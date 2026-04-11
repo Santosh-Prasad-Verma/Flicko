@@ -254,3 +254,5 @@ Your Flicko app is now:
 **Issues Resolved**: 12 issues
 **Performance**: 50-70% faster
 **Next**: Test and enjoy!
+- **BUG-007 (Slow Consumer Detection Causes Premature Disconnects)**
+  - Modified `FanoutToChannel` inside `ws-gateway/internal/conn/manager.go`. We now use a goroutine with `time.NewTimer(2 * time.Second)` to give a 2-second grace period for full send buffers before disconnecting the client instead of doing it immediately.
