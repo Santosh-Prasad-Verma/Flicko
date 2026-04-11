@@ -256,3 +256,32 @@ Your Flicko app is now:
 **Next**: Test and enjoy!
 - **BUG-007 (Slow Consumer Detection Causes Premature Disconnects)**
   - Modified `FanoutToChannel` inside `ws-gateway/internal/conn/manager.go`. We now use a goroutine with `time.NewTimer(2 * time.Second)` to give a 2-second grace period for full send buffers before disconnecting the client instead of doing it immediately.
+- **BUG-008 (Cloudinary Signature Mismatch on Avatar Upload)**
+  - Updated `Sign` handler in `backend/internal/handlers/cloudinary.go` to always include `invalidate` and `overwrite` params in the signature, regardless of whether a `publicID` is specified, keeping it aligned with the form data sent from the mobile client.
+- **BUG-009 (Auth Token Not Refreshing When Expired)**
+  - Updated `_layout.tsx` in mobile app. The `TOKEN_REFRESHED` handler was omitting a redirect. Added `router.replace('/login')` to ensure users are redirected back to the login screen when their authenticated session completely expires.
+- **BUG-010 (Message Search Returns No Results)**
+  - Updated `Search` function in `msg-service/internal/repository/message_repo.go` to properly escape specific wildcards `\`, `%` and `_` and added the `ESCAPE '\'` clause to the `ILIKE` condition so that special characters are processed as literals.
+- **BUG-011 (Logout Not Clearing All Zustand Stores)**
+  - Added a `clearAllStores` utility function in `shared/stores/clearAll.ts` and exported it via `index.ts`. It loops over all imported stores and systematically calls `.reset()`, `.clear()` or `.clearAll()` to purge stale user data upon logout, preventing state bleed.
+- **BUG-011 (Logout Not Clearing All Zustand Stores)**
+  - Added a `clearAllStores` utility function in `shared/stores/clearAll.ts` and exported it via `index.ts`. It loops over all imported stores and systematically calls `.reset()`, `.clear()` or `.clearAll()` to purge stale user data upon logout, preventing state bleed.
+- **BUG-011 (Logout Not Clearing All Zustand Stores)**
+  - Added a `clearAllStores` utility function in `shared/stores/clearAll.ts` and exported it via `index.ts`. It loops over all imported stores and systematically calls `.reset()`, `.clear()` or `.clearAll()` to purge stale user data upon logout, preventing state bleed.
+- **BUG-012 (MessageList Not Auto-Scrolling to Bottom)**
+  - Updated `MessageList.tsx` in the mobile app. Included a missing `useEffect` that triggers `listRef.current?.scrollToOffset({ offset: 0, animated: true })` whenever `messages.length` changes, ensuring new arrivals are immediately brought into the viewport automatically.
+- **BUG-013 (Typing Indicator Showing Permanently)**
+  - Modified `shared/services/realtimeService.ts` within the `stop_typing` event listener. The `typingTimers.delete()` and `handlers.onTypingStop()` are now called unconditionally, outside the `if (timer)` check, preventing typing indicators from getting stuck when start/stop events arrive out of order.
+- **BUG-015 (Voice Channel Participant List Not Updating)**
+  - Modified `addParticipant` in `shared/stores/voiceStore.ts`. Removed the explicit check against `participant.id` (LiveKit session ID) and now solely deduplicates on `participant.userId` (App User ID) before pushing to the array. This prevents phantom duplicate users when a participant drops and reconnects with a new SID.
+- **BUG-012 (MessageList Not Auto-Scrolling to Bottom)**
+  - Added new hook watching `messages.length` in `MessageList.tsx` to autoscroll.
+
+- **BUG-014 (Read Receipts Not Syncing Between Devices)**
+  - Will be deferred to Track 2, as it requires deeper read state schema support and frontend tracking that exceeds minor bugfixes.
+
+- **BUG-015 (Voice Channel Participant List Not Updating)**
+  - Updated participant deduplication logic in `shared/stores/voiceStore.ts`. Removed check for LiveKit session `id` from the filter predicate, exclusively filtering by `userId` to ensure participants are properly refreshed instead of duplicated across reconnects.
+
+- **BUG-016 (GIF Picker Loading Indefinitely)**
+  - Updated `MessageInput.tsx` to wrap the `onGifPress` icon inside an `{onGifPress && (...)}` block, preventing it from rendering and falling back to a broken camera intent when the GIF feature is not passed.
