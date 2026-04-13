@@ -241,7 +241,7 @@ export default function VoiceChannelScreen() {
         <View
           style={[
             styles.controlsBar,
-            { backgroundColor: themeColors.bgSecondary, paddingBottom: insets.bottom + spacing.md },
+            { backgroundColor: themeColors.bgSecondary, paddingBottom: Math.max(insets.bottom, 24) + spacing.md },
           ]}
         >
           {!isConnected ? (

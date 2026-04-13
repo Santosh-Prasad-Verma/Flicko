@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "54bdaefd-6d9c-4680-ad46-cc731245489a"
+      }
+    },
+    "android": {
+      "package": "com.tarun_121.flicko"
+    }
+  }
+}

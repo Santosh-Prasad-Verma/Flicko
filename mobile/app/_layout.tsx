@@ -364,9 +364,9 @@ export default function RootLayout() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#111214' }}>
       <ErrorBoundary>
-        <SafeAreaProvider>
+        <SafeAreaProvider style={{ flex: 1, backgroundColor: '#111214' }}>
           <QueryClientProvider client={queryClient}>
             <AuthGate>
               <ThemeProvider value={FlickoDarkTheme}>
