@@ -16,6 +16,8 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.490.0",
     "@aws-sdk/lib-storage": "^3.490.0",
+    "@devcycle/openfeature-react-provider": "^1.12.8",
+    "@devcycle/react-native-expo-client-sdk": "^2.22.8",
     "@expo-google-fonts/inter": "^0.4.2",
     "@expo-google-fonts/pacifico": "^0.4.1",
     "@expo-google-fonts/poppins": "^0.4.1",
@@ -23,6 +25,7 @@
     "@expo/vector-icons": "^15.0.3",
     "@livekit/react-native": "^2.9.6",
     "@livekit/react-native-webrtc": "^137.0.2",
+    "@openfeature/react-sdk": "^1.2.1",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/netinfo": "11.4.1",
     "@shopify/flash-list": "2.0.2",

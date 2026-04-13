@@ -238,3 +238,8 @@ mail-gateway/.env
 
 # Trash folder
 trash/
+
+# VS Code MCP Config
+mcp.json
+.vscode/mcp.json
+dump.rdb
