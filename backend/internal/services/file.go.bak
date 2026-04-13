@@ -1,0 +1,55 @@
+package services
+
+import (
+	"context"
+	"io"
+
+	"github.com/flicko-org/flicko-backend/internal/storage"
+)
+
+type FileService interface {
+	UploadFile(ctx context.Context, filename string, r io.Reader, size int64) (string, error)
+	UploadAvatar(ctx context.Context, filename string, r io.Reader, size int64) (string, error)
+	DeleteFile(ctx context.Context, url string) error
+}
+
+type fileService struct {
+	b2 *storage.B2Client
+}
+
+func NewFileService(b2Client *storage.B2Client) FileService {
+	return &fileService{b2: b2Client}
+}
+
+func (s *fileService) UploadFile(ctx context.Context, filename string, r io.Reader, size int64) (string, error) {
+	if size > storage.MaxAttachmentSize {
+		return "", &fileSizeError{limit: storage.MaxAttachmentSize}
+	}
+	// Generic upload goes into attachments bucket with a fixed channel prefix
+	url, _, err := s.b2.UploadAttachment(ctx, "general", filename, r, size, "application/octet-stream")
+	return url, err
+}
+
+func (s *fileService) UploadAvatar(ctx context.Context, filename string, r io.Reader, size int64) (string, error) {
+	if size > storage.MaxAvatarSize {
+		return "", &fileSizeError{limit: storage.MaxAvatarSize}
+	}
+	// Use a placeholder userID from filename; real avatar uploads go through handlers
+	return s.b2.UploadAvatar(ctx, filename, r, size, "image/jpeg")
+}
+
+func (s *fileService) DeleteFile(ctx context.Context, objectName string) error {
+	return s.b2.DeleteAttachment(ctx, objectName)
+}
+
+type fileSizeError struct {
+	limit int64
+}
+
+func (e *fileSizeError) Error() string {
+	mb := e.limit / (1024 * 1024)
+	if mb > 0 {
+		return "file exceeds size limit"
+	}
+	return "file exceeds size limit"
+}

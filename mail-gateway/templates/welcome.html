@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="dark light" />
+  <meta name="supported-color-schemes" content="dark light" />
+  <title>Welcome to {{.AppName}}!</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #1a1a2e;
+      color: #ffffff;
+      display: flex;
+      justify-content: center;
+      padding: 40px 20px;
+      min-height: 100vh;
+    }
+
+    .email-wrapper {
+      max-width: 540px;
+      width: 100%;
+    }
+
+    .email-card {
+      background: linear-gradient(145deg, #16213e, #0f3460);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(83, 92, 236, 0.15);
+      border: 1px solid rgba(83, 92, 236, 0.2);
+    }
+
+    /* HERO */
+    .hero {
+      background: linear-gradient(135deg, #535cec, #7c3aed, #c084fc);
+      padding: 50px 30px 44px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -60%;
+      left: -60%;
+      width: 220%;
+      height: 220%;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.06) 0%, transparent 50%);
+    }
+
+    .hero-emoji {
+      font-size: 58px;
+      margin-bottom: 16px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero h1 {
+      font-size: 30px;
+      font-weight: 800;
+      margin-bottom: 8px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero p {
+      font-size: 15px;
+      opacity: 0.9;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* BODY */
+    .email-body {
+      padding: 40px 35px;
+    }
+
+    .greeting {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .greeting h2 {
+      font-size: 21px;
+      color: #e2e8f0;
+      margin-bottom: 10px;
+    }
+
+    .username {
+      color: #a78bfa;
+      font-weight: 700;
+    }
+
+    .greeting p {
+      font-size: 14px;
+      color: #94a3b8;
+      line-height: 1.8;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+
+    /* FEATURES */
+    .features {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-bottom: 32px;
+    }
+
+    .feature-card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 18px 20px;
+      background: rgba(83, 92, 236, 0.05);
+      border: 1px solid rgba(83, 92, 236, 0.12);
+      border-radius: 14px;
+    }
+
+    .feature-icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 24px;
+    }
+
+    .feature-icon.purple {
+      background: linear-gradient(135deg, #535cec, #7c3aed);
+    }
+
+    .feature-icon.green {
+      background: linear-gradient(135deg, #059669, #34d399);
+    }
+
+    .feature-icon.pink {
+      background: linear-gradient(135deg, #db2777, #f472b6);
+    }
+
+    .feature-icon.blue {
+      background: linear-gradient(135deg, #2563eb, #60a5fa);
+    }
+
+    .feature-info h4 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #e2e8f0;
+      margin-bottom: 3px;
+    }
+
+    .feature-info p {
+      font-size: 13px;
+      color: #64748b;
+      line-height: 1.5;
+    }
+
+    /* PROFILE CARD */
+    .profile-card {
+      background: rgba(83, 92, 236, 0.07);
+      border: 1px solid rgba(83, 92, 236, 0.18);
+      border-radius: 16px;
+      padding: 28px;
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .avatar {
+      width: 76px;
+      height: 76px;
+      background-color: #ffffff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 14px;
+      border: 3px solid rgba(167, 139, 250, 0.35);
+      box-shadow: 0 6px 25px rgba(83, 92, 236, 0.3);
+      overflow: hidden;
+    }
+
+    .avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .profile-name {
+      font-size: 19px;
+      font-weight: 700;
+      color: #e2e8f0;
+    }
+
+    .profile-email {
+      font-size: 13px;
+      color: #8b5cf6;
+      margin-top: 2px;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      margin-top: 14px;
+      padding: 7px 18px;
+      background: rgba(52, 211, 153, 0.08);
+      border: 1px solid rgba(52, 211, 153, 0.25);
+      border-radius: 20px;
+      font-size: 12px;
+      color: #34d399;
+      font-weight: 600;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: #34d399;
+      border-radius: 50%;
+    }
+
+    /* QUICK ACTIONS */
+    .quick-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    .action-card {
+      padding: 18px 14px;
+      background: rgba(83, 92, 236, 0.05);
+      border: 1px solid rgba(83, 92, 236, 0.12);
+      border-radius: 12px;
+      text-align: center;
+      text-decoration: none;
+    }
+
+    .action-emoji {
+      font-size: 28px;
+      margin-bottom: 8px;
+    }
+
+    .action-card h5 {
+      font-size: 13px;
+      font-weight: 700;
+      color: #e2e8f0;
+      margin-bottom: 2px;
+    }
+
+    .action-card p {
+      font-size: 11px;
+      color: #64748b;
+    }
+
+    /* CTA */
+    .cta-section {
+      text-align: center;
+    }
+
+    .cta-btn {
+      display: inline-block;
+      padding: 18px 52px;
+      background: linear-gradient(135deg, #535cec, #7c3aed);
+      color: #ffffff;
+      text-decoration: none;
+      border-radius: 14px;
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      box-shadow: 0 8px 30px rgba(83, 92, 236, 0.4);
+    }
+
+    .cta-sub {
+      font-size: 13px;
+      color: #475569;
+      margin-top: 14px;
+    }
+
+    /* FOOTER */
+    .email-footer {
+      padding: 26px 35px 32px;
+      text-align: center;
+      border-top: 1px solid rgba(83, 92, 236, 0.1);
+    }
+
+    .footer-text {
+      font-size: 12px;
+      color: #475569;
+      line-height: 1.8;
+    }
+
+    .footer-text a {
+      color: #8b5cf6;
+      text-decoration: none;
+    }
+
+    @media (max-width: 480px) {
+      .email-body {
+        padding: 30px 20px;
+      }
+
+      .quick-actions {
+        grid-template-columns: 1fr;
+      }
+
+      .cta-btn {
+        padding: 16px 38px;
+        font-size: 15px;
+      }
+    }
+      /* LOW-009: Light mode support for email clients */
+    @media (prefers-color-scheme: light) {
+      body {
+        background-color: #f0f2f5 !important;
+        color: #1a1a2e !important;
+      }
+      .email-card {
+        background: linear-gradient(145deg, #ffffff, #f8f9fc) !important;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1) !important;
+        border: 1px solid rgba(83, 92, 236, 0.15) !important;
+      }
+      .greeting h2, .email-body h2, .email-body h3 {
+        color: #1a1a2e !important;
+      }
+      .email-body p, .email-body li {
+        color: #374151 !important;
+      }
+      .footer p, .footer a {
+        color: #6b7280 !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="email-wrapper">
+    <div class="email-card">
+
+      <!-- HERO -->
+      <div class="hero">
+        <div class="hero-emoji">🎉</div>
+        <h1>Welcome to {{.AppName}}!</h1>
+        <p>Your new home for conversations &amp; community</p>
+      </div>
+
+      <!-- BODY -->
+      <div class="email-body">
+
+        <!-- Greeting -->
+        <div class="greeting">
+          <h2>Hey <span class="username">{{.To}}</span> 👋</h2>
+          <p>You're all set! Your account is verified and ready to go. Here's everything you can explore on
+            {{.AppName}}:</p>
+        </div>
+
+        <!-- Features -->
+        <div class="features">
+          <div class="feature-card">
+            <div class="feature-icon purple">💬</div>
+            <div class="feature-info">
+              <h4>Real-Time Messaging</h4>
+              <p>Chat with friends using text, images, GIFs &amp; reactions.</p>
+            </div>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon green">🎙️</div>
+            <div class="feature-info">
+              <h4>Voice &amp; Video Channels</h4>
+              <p>Jump into voice rooms and hang out live with your crew.</p>
+            </div>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon pink">🏠</div>
+            <div class="feature-info">
+              <h4>Create Servers</h4>
+              <p>Build custom community spaces with channels &amp; roles.</p>
+            </div>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon blue">🤖</div>
+            <div class="feature-info">
+              <h4>Bots &amp; Integrations</h4>
+              <p>Supercharge your server with powerful bots and tools.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Profile Card -->
+        <div class="profile-card">
+          <div class="avatar">
+            <img src="{{.AvatarURL}}" alt="{{.Username}}'s Avatar" />
+          </div>
+          <div class="profile-name">{{.Username}}</div>
+          <div class="profile-email">Member since {{.MemberSince}}</div>
+          <div class="status-badge">
+            <div class="status-dot"></div>
+            Account Active ✓
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+          <a href="{{.AppURL}}/profile" class="action-card">
+            <div class="action-emoji">👤</div>
+            <h5>Set Up Profile</h5>
+            <p>Add avatar &amp; bio</p>
+          </a>
+          <a href="{{.AppURL}}/explore" class="action-card">
+            <div class="action-emoji">🔍</div>
+            <h5>Explore Servers</h5>
+            <p>Find communities</p>
+          </a>
+          <a href="{{.AppURL}}/friends" class="action-card">
+            <div class="action-emoji">➕</div>
+            <h5>Add Friends</h5>
+            <p>Invite your crew</p>
+          </a>
+          <a href="{{.AppURL}}/settings" class="action-card">
+            <div class="action-emoji">🎨</div>
+            <h5>Customize</h5>
+            <p>Themes &amp; settings</p>
+          </a>
+        </div>
+
+        <!-- CTA -->
+        <div class="cta-section">
+          <a href="{{.AppURL}}" class="cta-btn">🚀&nbsp; Open {{.AppName}}</a>
+          <p class="cta-sub">Start chatting with friends now!</p>
+        </div>
+
+      </div>
+
+      <!-- FOOTER -->
+      <div class="email-footer">
+        <p class="footer-text">
+          You're receiving this because you joined {{.AppName}}.<br />
+          <a href="{{.AppURL}}">{{.AppURL}}</a> · <a href="{{.AppURL}}/privacy">Privacy Policy</a> · <a
+            href="{{.AppURL}}/help">Help Center</a><br /><br />
+          © {{.Year}} {{.AppName}}. All rights reserved.
+        </p>
+      </div>
+
+    </div>
+  </div>
+</body>
+
+</html>

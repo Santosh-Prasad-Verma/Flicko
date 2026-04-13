@@ -1,0 +1,55 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  backend:
+    build: .
+    ports:
+      - "8090:8080"
+      - "8091:8081"
+    env_file:
+      - ../.env
+    environment:
+      - DATABASE_URL=postgres://flicko:secret@db:5432/flickodb?sslmode=disable
+      - JWT_SECRET=change_this_to_a_secure_minimum_32_character_long_string_in_production!
+      - PORT_HTTP=8080
+      - PORT_WS=8081
+      - SUPABASE_URL=https://zliclxzqkopxgnlwlqsu.supabase.co
+      - SUPABASE_SERVICE_ROLE_KEY=sb_publishable_KALDplD_nuC6eCI8Vh55yA_G-rd2yY_
+      - ENVIRONMENT=development
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - flicko-network
+    restart: unless-stopped
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=flicko
+      - POSTGRES_PASSWORD=secret
+      - POSTGRES_DB=flickodb
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d:z
+    networks:
+      - flicko-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U flicko -d flickodb" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis — now hosted on Upstash (cloud). No local container needed.
+  # Set REDIS_URL in your .env to point to your Upstash instance.
+
+volumes:
+  postgres_data:
+
+
+networks:
+  flicko-network:
+    driver: bridge

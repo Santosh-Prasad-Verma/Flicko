@@ -1,0 +1,32 @@
+graph TD
+    classDef client fill:#5865F2,stroke:#fff,stroke-width:2px,color:#fff;
+    classDef proxy fill:#2B2D31,stroke:#99aab5,stroke-width:2px,color:#fff;
+    classDef service fill:#43B581,stroke:#fff,stroke-width:2px,color:#fff;
+    classDef db fill:#FEE75C,stroke:#000,stroke-width:2px,color:#000;
+    classDef cache fill:#ED4245,stroke:#fff,stroke-width:2px,color:#fff;
+
+    client_mobile[React Native App]:::client
+    client_web[Web Client]:::client
+
+    subedge[Cloudflare WAF Edge]
+    nginx[NGINX Reverse Proxy]:::proxy
+
+    client_mobile -->|HTTPS/WSS| subedge
+    client_web -->|HTTPS/WSS| subedge
+    subedge -->|HTTPS| nginx
+
+    subgraph "Docker Bridge Network (Single VPS)"
+        nginx -->|/api/v1/ws| gateway[ws-gateway (WebSockets)]:::service
+        nginx -->|/api/v1/.../messages| batcher[msg-service (Batcher)]:::service
+        nginx -->|/api/v1/*| api[backend (Monolith API)]:::service
+        
+        api -.->|PubSub| redis[(Upstash Redis)]:::cache
+        batcher -.->|PubSub / Queue| redis
+        gateway -.->|Subscribe| redis
+    end
+
+    api ==>|SQL DML| pg[(Supabase PostgreSQL)]:::db
+    batcher ==>|Bulk Copy| pg
+
+    api -->|S3 Push| cloud[Cloudinary]
+    gateway <-->|UDP/TCP WebRTC| livekit[LiveKit Cloud]

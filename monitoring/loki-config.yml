@@ -1,0 +1,82 @@
+# =============================================================================
+# Flicko — Loki Configuration
+# =============================================================================
+# Local filesystem storage, 7-day retention, 256 MB chunk storage limit.
+# Mounted into loki container at /etc/loki/local-config.yaml
+# =============================================================================
+
+auth_enabled: false
+
+server:
+  http_listen_port: 3100
+  grpc_listen_port: 9096
+  log_level: warn
+
+common:
+  path_prefix: /loki
+  storage:
+    filesystem:
+      chunks_directory: /loki/chunks
+      rules_directory: /loki/rules
+  replication_factor: 1
+  ring:
+    instance_addr: 127.0.0.1
+    kvstore:
+      store: inmemory
+
+ingester:
+  wal:
+    enabled: true
+    dir: /loki/wal
+  lifecycler:
+    ring:
+      replication_factor: 1
+  chunk_idle_period: 1h
+  max_chunk_age: 2h
+  chunk_target_size: 1572864    # ~1.5 MB compressed chunks
+  chunk_retain_period: 30s
+
+schema_config:
+  configs:
+    - from: "2024-01-01"
+      store: tsdb
+      object_store: filesystem
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+
+storage_config:
+  tsdb_shipper:
+    active_index_directory: /loki/tsdb-index
+    cache_location: /loki/tsdb-cache
+  filesystem:
+    directory: /loki/chunks
+
+chunk_store_config:
+  max_look_back_period: 168h      # 7 days
+
+limits_config:
+  retention_period: 168h           # 7 days
+  reject_old_samples: true
+  reject_old_samples_max_age: 168h
+  max_cache_freshness_per_query: 10m
+  ingestion_rate_mb: 4
+  ingestion_burst_size_mb: 8
+  per_stream_rate_limit: 3MB
+  per_stream_rate_limit_burst: 15MB
+
+compactor:
+  working_directory: /loki/compactor
+  compaction_interval: 10m
+  retention_enabled: true
+  retention_delete_delay: 2h
+  retention_delete_worker_count: 150
+  delete_request_store: filesystem
+
+# Keep total chunk storage around 256 MB on disk.
+# The compactor + retention_period handles cleanup.
+# At ~4 KB/log line, 256 MB holds ~65K log entries before compression.
+
+analytics:
+  reporting_enabled: false

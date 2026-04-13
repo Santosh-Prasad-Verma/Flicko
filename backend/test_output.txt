@@ -1,0 +1,46 @@
+# github.com/flicko-org/flicko-backend/internal/services_test [github.com/flicko-org/flicko-backend/internal/services.test]
+internal/services/channel_test.go:14:41: cannot use mc (variable of type *mockCache) as cache.CacheLayer value in argument to services.NewChannelService: *mockCache does not implement cache.CacheLayer (missing method GetRedisClient)
+internal/services/embed_service_test.go:39:39: cannot use mc (variable of type *mockCache) as cache.CacheLayer value in argument to services.NewEmbedService: *mockCache does not implement cache.CacheLayer (missing method GetRedisClient)
+internal/services/message_test.go:13:41: cannot use mc (variable of type *mockCache) as cache.CacheLayer value in argument to services.NewMessageService: *mockCache does not implement cache.CacheLayer (missing method GetRedisClient)
+internal/services/message_test.go:37:41: cannot use mc (variable of type *mockCache) as cache.CacheLayer value in argument to services.NewMessageService: *mockCache does not implement cache.CacheLayer (missing method GetRedisClient)
+internal/services/server_test.go:13:40: cannot use mc (variable of type *mockCache) as cache.CacheLayer value in argument to services.NewServerService: *mockCache does not implement cache.CacheLayer (missing method GetRedisClient)
+internal/services/user_settings_service_test.go:21:46: cannot use mc (variable of type *mockCache) as cache.CacheLayer value in argument to services.NewUserSettingsService: *mockCache does not implement cache.CacheLayer (missing method GetRedisClient)
+internal/services/user_test.go:58:38: cannot use mc (variable of type *mockCache) as cache.CacheLayer value in argument to services.NewUserService: *mockCache does not implement cache.CacheLayer (missing method GetRedisClient)
+?   	github.com/flicko-org/flicko-backend/cmd/server	[no test files]
+?   	github.com/flicko-org/flicko-backend/internal/bots	[no test files]
+ok  	github.com/flicko-org/flicko-backend/internal/cache	(cached)
+?   	github.com/flicko-org/flicko-backend/internal/commands	[no test files]
+--- FAIL: TestLoadConfig_Success (0.00s)
+    config_test.go:23: 
+        	Error Trace:	/home/tarun/Documents/Flicko/backend/internal/config/config_test.go:23
+        	Error:      	Received unexpected error:
+        	            	SUPABASE_SERVICE_ROLE_KEY is required
+        	Test:       	TestLoadConfig_Success
+    config_test.go:24: 
+        	Error Trace:	/home/tarun/Documents/Flicko/backend/internal/config/config_test.go:24
+        	Error:      	Expected value not to be nil.
+        	Test:       	TestLoadConfig_Success
+panic: runtime error: invalid memory address or nil pointer dereference [recovered, repanicked]
+[signal SIGSEGV: segmentation violation code=0x1 addr=0x0 pc=0x5b056a]
+
+goroutine 8 [running]:
+testing.tRunner.func1.2({0x60d540, 0x83f190})
+	/usr/lib/golang/src/testing/testing.go:1872 +0x237
+testing.tRunner.func1()
+	/usr/lib/golang/src/testing/testing.go:1875 +0x35b
+panic({0x60d540?, 0x83f190?})
+	/usr/lib/golang/src/runtime/panic.go:783 +0x132
+github.com/flicko-org/flicko-backend/internal/config_test.TestLoadConfig_Success(0xc0000a48c0)
+	/home/tarun/Documents/Flicko/backend/internal/config/config_test.go:25 +0x10a
+testing.tRunner(0xc0000a48c0, 0x665750)
+	/usr/lib/golang/src/testing/testing.go:1934 +0xea
+created by testing.(*T).Run in goroutine 1
+	/usr/lib/golang/src/testing/testing.go:1997 +0x465
+FAIL	github.com/flicko-org/flicko-backend/internal/config	0.010s
+?   	github.com/flicko-org/flicko-backend/internal/database	[no test files]
+?   	github.com/flicko-org/flicko-backend/internal/events	[no test files]
+?   	github.com/flicko-org/flicko-backend/internal/handlers	[no test files]
+?   	github.com/flicko-org/flicko-backend/internal/middleware	[no test files]
+?   	github.com/flicko-org/flicko-backend/internal/models	[no test files]
+FAIL	github.com/flicko-org/flicko-backend/internal/services [build failed]
+FAIL

@@ -1,0 +1,40 @@
+# ============================================================
+#  Prometheus — Flicko Dev Scrape Configuration
+# ============================================================
+#  In dev, Go services run on the host (not in Docker).
+#  Use host.docker.internal (Docker Desktop) or the gateway IP
+#  (Linux) to reach them from the Prometheus container.
+# ============================================================
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # ── ws-gateway (Go, run locally) ────────────────────────
+  - job_name: "ws-gateway"
+    static_configs:
+      - targets: ["host.docker.internal:9100"]
+        labels:
+          service: ws-gateway
+          env: dev
+
+  # ── msg-service (Go, run locally) ──────────────────────
+  - job_name: "msg-service"
+    static_configs:
+      - targets: ["host.docker.internal:9101"]
+        labels:
+          service: msg-service
+          env: dev
+
+  # ── Redis exporter (if added later) ────────────────────
+  # - job_name: "redis"
+  #   static_configs:
+  #     - targets: ["redis-exporter:9121"]
+
+  # ── Storage — Using Cloudinary (cloud), no local storage to scrape
+
+  # ── Prometheus self-monitoring ─────────────────────────
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]

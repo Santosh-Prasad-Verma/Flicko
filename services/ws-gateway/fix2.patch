@@ -1,0 +1,36 @@
+--- /home/tarun/Documents/Flicko/services/ws-gateway/internal/conn/manager.go
++++ /home/tarun/Documents/Flicko/services/ws-gateway/internal/conn/manager.go
+@@ -3,6 +3,7 @@
+ import (
+ "context"
++"encoding/json"
+ "sync"
+ "sync/atomic"
+@@ -306,19 +307,19 @@
+ 
+-func (m *Manager) handleClientMessage(client *Client, msgData []byte) {
++func (m *Manager) HandleInbound(client *Client, msgData []byte) {
+ var msg protocol.GatewayMessage
+ err := json.Unmarshal(msgData, &msg)
+ if err != nil {
+@@ -321,20 +322,20 @@
+ case protocol.OpMessageCreate:
+-m.handleMessageCreate(client, msg)
++m.handleMessageCreate(client, &msg)
+ 
+ case protocol.OpTypingStart:
+-m.handleTypingStart(client, msg)
++m.handleTypingStart(client, &msg)
+ 
+ case protocol.OpChannelSub:
+-m.handleChannelSub(client, msg)
++m.handleChannelSub(client, &msg)
+ 
+ case protocol.OpChannelUnsub:
+-m.handleChannelUnsub(client, msg)
++m.handleChannelUnsub(client, &msg)
+ 
+ case protocol.OpPresenceUpdate:
+-m.handlePresenceUpdate(client, msg)
++m.handlePresenceUpdate(client, &msg)
+ 

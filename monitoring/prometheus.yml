@@ -1,0 +1,81 @@
+# =============================================================================
+# Flicko — Production Prometheus Configuration
+# =============================================================================
+# Scrapes all Flicko services + infrastructure exporters.
+# Mounted into prometheus container at /etc/prometheus/prometheus.yml
+# =============================================================================
+
+global:
+  scrape_interval: 15s          # Default for most targets
+  evaluation_interval: 15s      # How often rules are evaluated
+  scrape_timeout: 10s
+
+  external_labels:
+    cluster: "flicko-prod"
+    environment: "production"
+
+# ── Alert rule files ─────────────────────────────────────────────────────────
+rule_files:
+  - "alerts.yml"
+
+# ── Remote write (placeholder for future Grafana Cloud / Mimir) ──────────────
+# Uncomment and fill in when migrating to managed metrics backend.
+# remote_write:
+#   - url: "https://prometheus-prod-XX-prod.grafana.net/api/prom/push"
+#     basic_auth:
+#       username: "<GRAFANA_CLOUD_USER>"
+#       password: "<GRAFANA_CLOUD_API_KEY>"
+#     queue_config:
+#       max_samples_per_send: 1000
+#       batch_send_deadline: 5s
+#       max_shards: 3
+
+# ── Scrape configs ───────────────────────────────────────────────────────────
+scrape_configs:
+
+  # ── WS Gateway (Go) — shorter interval for real-time connection tracking ──
+  - job_name: "ws-gateway"
+    scrape_interval: 10s
+    static_configs:
+      - targets: ["ws-gateway:9100"]
+        labels:
+          service: ws-gateway
+          env: production
+
+  # ── Message Service (Go) ──────────────────────────────────────────────────
+  - job_name: "msg-service"
+    scrape_interval: 10s
+    static_configs:
+      - targets: ["msg-service:9101"]
+        labels:
+          service: msg-service
+          env: production
+
+  # ── Redis Exporter — Removed (using Upstash cloud, monitor via dashboard)
+  # https://console.upstash.com
+
+  # ── NGINX Exporter ───────────────────────────────────────────────────────
+  - job_name: "nginx"
+    scrape_interval: 15s
+    static_configs:
+      - targets: ["nginx-exporter:9113"]
+        labels:
+          service: nginx
+          env: production
+
+  # ── Node Exporter (host metrics) ─────────────────────────────────────────
+  - job_name: "node"
+    scrape_interval: 15s
+    static_configs:
+      - targets: ["node-exporter:9100"]
+        labels:
+          service: node
+          env: production
+
+  # ── Storage — Using Cloudinary (cloud), no local storage to scrape
+
+  # ── Prometheus self-monitoring ───────────────────────────────────────────
+  - job_name: "prometheus"
+    scrape_interval: 30s
+    static_configs:
+      - targets: ["localhost:9090"]

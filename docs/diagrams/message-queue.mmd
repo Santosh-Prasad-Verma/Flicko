@@ -1,0 +1,34 @@
+flowchart TD
+    Client((Mobile User)) -->|POST /messages| NGINX[NGINX Reverse Proxy]
+    NGINX -->|Route match| MsgAPI(msg-service Worker)
+
+    subgraph "msg-service (Memory Buffer)"
+        MsgAPI --> Validator{JSON Valid?}
+        Validator -- Yes --> Allocator[Allocate MsgUUID]
+        Validator -- No --> Drop[Return 400]
+        
+        Allocator --> WaitGroup[Lock Array Mutex]
+        WaitGroup --> Batch[Append to []Message Buffer]
+        WaitGroup --> Unlock[Unlock Array Mutex]
+        
+        Unlock --> Return[(Return 201 Created immediately to User)]
+    end
+
+    Return -.-> Client
+
+    subgraph "Batch Insert Ticker (Every 300ms)"
+        Ticker((300ms Clock)) --> Flush[Swap Array Pointer, Flush Old Buffer]
+        Flush --> PGExecute[pgx.CopyFrom()]
+    end
+
+    Batch -.-> Ticker
+    PGExecute -->|Success| Postgres[(PostgreSQL)]
+    PGExecute -->|Failure (e.g. DB Down)| DLQ[RPUSH to Redis Dead Letter Queue]
+    DLQ --> Redis[(Upstash Redis)]
+
+    subgraph "Background Fallback Worker"
+        RedisDLQ[LPOP Redis DLQ] --> Monolith(backend Worker)
+        Monolith -->|Slow Retry| Postgres
+    end
+
+    Redis -.-> RedisDLQ

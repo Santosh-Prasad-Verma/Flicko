@@ -2,6 +2,7 @@ package conn
 
 import (
 	"context"
+	"encoding/json"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -60,7 +61,7 @@ type channelClients struct {
 type Manager struct {
 	clients  sync.Map // map[string]*Client  (clientID → *Client)
 	channels sync.Map // map[string]*channelClients
-        sessions sync.Map // map[string][]string (sessionID -> channelIDs)
+	sessions sync.Map // map[string][]string (sessionID -> channelIDs)
 
 	register   chan *Client
 	unregister chan *Client
@@ -280,27 +281,34 @@ func (m *Manager) FanoutToChannel(channelID string, message []byte, excludeClien
 
 		select {
 		case client.Send <- message:
-				// Delivered to buffer immediately.
-			default:
-				// SLOW CONSUMER: send channel full.
-				// Try again with a grace period in a goroutine so we don't block the fanout loop.
-				go func(c *Client, msg []byte) {
-					timer := time.NewTimer(2 * time.Second)
-					defer timer.Stop()
+			// Delivered to buffer immediately.
+		default:
+			// SLOW CONSUMER: send channel full.
+			// Try again with a grace period in a goroutine so we don't block the fanout loop.
+			go func(c *Client, msg []byte) {
+				timer := time.NewTimer(2 * time.Second)
+				defer timer.Stop()
 
-					select {
-					case c.Send <- msg:
-						// Delivered after a short delay.
-					case <-timer.C:
-						// Still full after grace period.
-						// Disconnect — they'll reconnect and catch up via REST.
-						m.log.Warn("slow consumer disconnected after grace period",
-							zap.String("user_id", c.UserID),
-							zap.String("channel_id", channelID),
-						)
-						m.unregister <- c
-					}
-				}(client, message)
+				select {
+				case c.Send <- msg:
+					// Delivered after a short delay.
+				case <-timer.C:
+					// Still full after grace period.
+					// Disconnect — they'll reconnect and catch up via REST.
+					m.log.Warn("slow consumer disconnected after grace period",
+						zap.String("user_id", c.UserID),
+						zap.String("channel_id", channelID),
+					)
+					m.unregister <- c
+				}
+			}(client, message)
+		}
+	}
+}
+
+func (m *Manager) HandleInbound(client *Client, msgData []byte) {
+	var msg protocol.GatewayMessage
+	err := json.Unmarshal(msgData, &msg)
 	if err != nil {
 		m.log.Debug("invalid frame", zap.Error(err), zap.String("client_id", client.ID))
 		client.sendError(protocol.ErrInvalidPayload)
@@ -312,19 +320,19 @@ func (m *Manager) FanoutToChannel(channelID string, message []byte, excludeClien
 		m.handleHeartbeat(client)
 
 	case protocol.OpMessageCreate:
-		m.handleMessageCreate(client, msg)
+		m.handleMessageCreate(client, &msg)
 
 	case protocol.OpTypingStart:
-		m.handleTypingStart(client, msg)
+		m.handleTypingStart(client, &msg)
 
 	case protocol.OpChannelSub:
-		m.handleChannelSub(client, msg)
+		m.handleChannelSub(client, &msg)
 
 	case protocol.OpChannelUnsub:
-		m.handleChannelUnsub(client, msg)
+		m.handleChannelUnsub(client, &msg)
 
 	case protocol.OpPresenceUpdate:
-		m.handlePresenceUpdate(client, msg)
+		m.handlePresenceUpdate(client, &msg)
 
 	default:
 		m.log.Debug("unknown opcode",

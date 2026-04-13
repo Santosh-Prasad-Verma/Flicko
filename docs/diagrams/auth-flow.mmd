@@ -1,0 +1,26 @@
+sequenceDiagram
+    participant User as React Native Client
+    participant API as Flicko Go Monolith
+    participant Auth as Supabase GoTrue Auth
+    participant DB as PostgreSQL (users table)
+
+    Note over User,DB: Registration Flow
+    User->>API: POST /auth/register {email, pass, username}
+    API->>Auth: Admin SDK Signup(email, pass)
+    Auth-->>API: Returns {Auth User ID}
+    API->>DB: INSERT INTO users {id(AuthID), username}
+    DB-->>API: Success
+    API->>Auth: Issue JWT
+    Auth-->>API: Signed JWT Header
+    API-->>User: 201 Created {Token}
+
+    Note over User,DB: Authenticated API Request (RBAC)
+    User->>API: POST /servers/123/channels {Bear Token}
+    API->>API: Middleware: HMAC Verify Token & Expiry
+    API->>API: Middleware: Extract UserID from Token
+    API->>DB: ComputePermissions(UserID, Server123)
+    DB-->>API: Returns Bitmask (e.g. 512)
+    API->>API: Check if (512 & ManageChannels) == TRUE
+    API->>DB: Execute Action (INSERT channel)
+    DB-->>API: Returned new record
+    API-->>User: 200 OK

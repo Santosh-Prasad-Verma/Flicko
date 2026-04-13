@@ -1,0 +1,54 @@
+# Flicko zero-cost profile
+# Goal: local or tiny beta operation with minimal infra spend.
+# This profile intentionally runs only the strict minimum infra:
+# - local Redis for cache/pubsub
+# Go services run directly on host using ./scripts/run-backend.sh
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: flicko-redis-zero
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command:
+      [
+        "redis-server",
+        "--appendonly",
+        "yes",
+        "--maxmemory",
+        "256mb",
+        "--maxmemory-policy",
+        "allkeys-lru"
+      ]
+    volumes:
+      - redis_zero_data:/data
+    networks:
+      - flicko_zero
+
+  # Optional lightweight monitoring for local debugging.
+  # Enable with: docker compose -f docker-compose.zero.yml --profile monitor up -d
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: flicko-prometheus-zero
+    restart: unless-stopped
+    profiles: ["monitor"]
+    ports:
+      - "9090:9090"
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=3d"
+    volumes:
+      - ./monitoring/prometheus-dev.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_zero_data:/prometheus
+    networks:
+      - flicko_zero
+
+networks:
+  flicko_zero:
+    driver: bridge
+
+volumes:
+  redis_zero_data:
+  prometheus_zero_data:

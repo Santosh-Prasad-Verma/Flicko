@@ -197,37 +197,37 @@ func (s *MessageService) CreateMessage(ctx context.Context, req CreateMessageReq
 	// Persist — async via batcher when available, synchronous fallback
 	// otherwise. The batcher Submit is non-blocking; the message will
 	// appear in PostgreSQL within ≤50ms (maxWait).
-    
-    // We pass a callback to PublishMessageCreated so that Redis gets the event
-    // ONLY AFTER the message is safely stored in the database.
-    onFlushed := func() {
-        if s.publisher != nil && !shadowMuted {
-                createdAt := time.Now()
-                if err := s.publisher.PublishMessageCreated(
-                        context.Background(), msg.ChannelID, msg.ID, msg.AuthorID, createdAt, req.IsDM,
-                ); err != nil {
-                        s.log.Error("pubsub publish failed (message persisted)",
-                                zap.String("message_id", msg.ID),
-                                zap.String("channel_id", msg.ChannelID),
-                                zap.Error(err),
-                        )
-                }
-        }
-    }
 
-    if s.batcher != nil {
-            if err := s.batcher.Submit(msg, onFlushed); err != nil {
-                    return nil, err // backpressure error propagated as-is
-            }
-    } else {
-            if err := s.messages.Create(ctx, msg); err != nil {
-                    return nil, fkerr.ErrInternal(err)
-            }
-            onFlushed()
-    }
+	// We pass a callback to PublishMessageCreated so that Redis gets the event
+	// ONLY AFTER the message is safely stored in the database.
+	onFlushed := func() {
+		if s.publisher != nil && !shadowMuted {
+			createdAt := time.Now()
+			if err := s.publisher.PublishMessageCreated(
+				context.Background(), msg.ChannelID, msg.ID, msg.AuthorID, createdAt, req.IsDM,
+			); err != nil {
+				s.log.Error("pubsub publish failed (message persisted)",
+					zap.String("message_id", msg.ID),
+					zap.String("channel_id", msg.ChannelID),
+					zap.Error(err),
+				)
+			}
+		}
+	}
 
-    // Return the newly constructed message object to the caller (it matches what will persist)
-    return msg, nil
+	if s.batcher != nil {
+		if err := s.batcher.Submit(msg, onFlushed); err != nil {
+			return nil, err // backpressure error propagated as-is
+		}
+	} else {
+		if err := s.messages.Create(ctx, msg); err != nil {
+			return nil, fkerr.ErrInternal(err)
+		}
+		onFlushed()
+	}
+
+	// Return the newly constructed message object to the caller (it matches what will persist)
+	return msg, nil
 }
 
 // GetMessages retrieves messages for a channel with cursor pagination.
@@ -273,12 +273,10 @@ func (s *MessageService) EditMessage(ctx context.Context, messageID, userID, con
 
 	// Publish message.updated event for cross-gateway fanout.
 	if s.publisher != nil {
-                if err := s.publisher.PublishMessageUpdated(ctx, msg.ChannelID, messageID, userID, false); err != nil {
-				zap.Error(err),
-			)
+		if err := s.publisher.PublishMessageUpdated(ctx, msg.ChannelID, messageID, userID, false); err != nil {
+			s.log.Error("failed to publish message updated event", zap.Error(err))
 		}
 	}
-
 	return nil
 }
 
@@ -298,11 +296,9 @@ func (s *MessageService) DeleteMessage(ctx context.Context, messageID, userID st
 
 	// Publish message.deleted event for cross-gateway fanout.
 	if s.publisher != nil {
-                if err := s.publisher.PublishMessageDeleted(ctx, msg.ChannelID, messageID, userID, false); err != nil {
-				zap.Error(err),
-			)
+		if err := s.publisher.PublishMessageDeleted(ctx, msg.ChannelID, messageID, userID, false); err != nil {
+			s.log.Error("failed to publish message deleted event", zap.Error(err))
 		}
 	}
-
 	return nil
 }

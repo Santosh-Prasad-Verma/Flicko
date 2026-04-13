@@ -1,0 +1,29 @@
+{
+	"@metadata": {
+		"authors": [
+			"Bapham123",
+			"Duongvu"
+		]
+	},
+	"auth": {
+		"errors": {
+			"invalid_credentials": "Email hoặc mật khẩu không hợp lệ. Vui lòng thử lại.",
+			"email_not_confirmed": "Vui lòng xác minh địa chỉ email của bạn trước khi đăng nhập.",
+			"user_already_exists": "Tài khoản với email này đã tồn tại.",
+			"weak_password": "Mật khẩu phải có ít nhất 6 ký tự.",
+			"invalid_email": "Vui lòng nhập địa chỉ email hợp lệ.",
+			"network_error": "Lỗi mạng. Vui lòng kiểm tra kết nối và thử lại.",
+			"session_expired": "Phiên của bạn đã hết hạn. Vui lòng đăng nhập lại.",
+			"default": "Đã xảy ra lỗi không mong muốn. Vui lòng thử lại."
+		}
+	},
+	"logout": {
+		"error": {
+			"cancel": "Hủy bỏ"
+		},
+		"logout": "Đăng xuất"
+	},
+	"pinMessage": "Ghim tin nhắn",
+	"readableName": "Tiếng Anh",
+	"reply": "Trả lời"
+}

@@ -25,20 +25,20 @@ type CloudinaryHandler struct {
 
 // Allowed upload folders — prevents arbitrary folder access
 var allowedFolders = map[string]bool{
-	"flicko":                      true,
-	"avatars":                     true,
-	"attachments":                 true,
-	"server-icons":                true,
-	"banners":                     true,
-	"emojis":                      true,
-	"stickers":                    true,
-	"flickochat":                  true,
-	"flickochat/avatars":          true,
-	"flickochat/banners":          true,
-	"flickochat/server-icons":     true,
-	"flickochat/server-banners":   true,
-	"flickochat/chat":             true,
-	"flickochat/stickers":         true,
+	"flicko":                    true,
+	"avatars":                   true,
+	"attachments":               true,
+	"server-icons":              true,
+	"banners":                   true,
+	"emojis":                    true,
+	"stickers":                  true,
+	"flickochat":                true,
+	"flickochat/avatars":        true,
+	"flickochat/banners":        true,
+	"flickochat/server-icons":   true,
+	"flickochat/server-banners": true,
+	"flickochat/chat":           true,
+	"flickochat/stickers":       true,
 }
 
 // NewCloudinaryHandler creates a CloudinaryHandler with the given credentials.
@@ -73,6 +73,11 @@ func (h *CloudinaryHandler) Sign(w http.ResponseWriter, r *http.Request) {
 		folder = "flickochat"
 	}
 
+	if strings.Contains(folder, "..") || strings.HasPrefix(folder, "/") {
+		writeError(w, http.StatusBadRequest, "invalid folder path")
+		return
+	}
+
 	// Security: Validate folder against allowlist to prevent arbitrary folder access
 	if !allowedFolders[folder] {
 		h.logger.Warn("invalid folder requested",
@@ -84,6 +89,10 @@ func (h *CloudinaryHandler) Sign(w http.ResponseWriter, r *http.Request) {
 	}
 
 	publicID := r.URL.Query().Get("public_id")
+	if strings.Contains(publicID, "..") || strings.HasPrefix(publicID, "/") {
+		writeError(w, http.StatusBadRequest, "invalid public_id")
+		return
+	}
 	colors := r.URL.Query().Get("colors") == "true"
 
 	timestamp := time.Now().Unix()

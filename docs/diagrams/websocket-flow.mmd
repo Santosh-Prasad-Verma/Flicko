@@ -1,0 +1,32 @@
+sequenceDiagram
+    participant User as Client App
+    participant Gateway as ws-gateway (Port 8081)
+    participant Redis as Redis Pub/Sub
+    participant Monolith as backend (Port 8080)
+
+    User->>Gateway: [HTTP Upgrade] /ws
+    Gateway-->>User: 101 Switching Protocols (TCP open)
+    User->>Gateway: {"op": "Identify", "d": {"token": "JWT"}}
+    Gateway->>Gateway: Validate JWT Signature
+    Gateway->>Redis: SET user:uuid:presence "online" EX 45
+    Gateway->>Redis: PSUBSCRIBE "user:uuid", "channel:*" (Sub to all assigned channels)
+    Gateway-->>User: {"op": "Ready", "d": {"session_id": "xyz"}}
+
+    Note over Monolith,Redis: Something happens in the backend
+    Monolith->>Redis: PUBLISH "channel:abc" {"type":"MESSAGE_CREATE", "data": {...}}
+    Redis-->>Gateway: Forward Payload
+    Gateway->>Gateway: Lookup connected sockets in memory mapped to "channel:abc"
+    Gateway-->>User: WS Emit (Stringified JSON)
+
+    Note over User,Gateway: Keep-Alive Loop
+    loop Every 30 seconds
+        User->>Gateway: {"op": "Heartbeat"}
+        Gateway->>Redis: EXPIRE user:uuid:presence 45
+        Gateway-->>User: {"op": "HeartbeatAck"}
+    end
+
+    Note over User,Redis: Ungraceful Disconnect
+    User-xGateway: *Elevator Internet Drop* (TCP Close)
+    Gateway->>Redis: DEL user:uuid:presence
+    Redis-->>Monolith: Keyspace Event (__keyevent@0__:expired)
+    Monolith->>Monolith: Update User status to OFFLINE

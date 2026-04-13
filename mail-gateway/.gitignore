@@ -1,0 +1,59 @@
+# Flicko Mail Gateway
+.env
+.env.local
+.env.*.local
+.env.production
+.env.staging
+.env.development
+.env.test
+.env.example
+env.local
+
+bin/
+*.exe
+*.out
+*.log
+__debug_bin*
+*.o
+*.a
+*.so
+*.dylib
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Go
+vendor/
+.gopath/
+*.prof
+*.pprof
+cpu.prof
+mem.prof
+
+# Credentials
+*.pem
+*.key
+*.csr
+*.crt
+*.cer
+*.keystore
+*.jks
+*.p12
+*.pfx
+jwt_private.pem
+**/private_key*
+
+# Binaries
+mail-gateway
+main
+cmd/server/server

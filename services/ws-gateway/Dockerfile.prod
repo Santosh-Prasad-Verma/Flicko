@@ -1,0 +1,123 @@
+# =============================================================================
+# Flicko — WS Gateway Production Dockerfile
+# =============================================================================
+#
+# Multi-stage build producing a minimal static binary.
+# Build context MUST be `services/` (not ws-gateway/) because go.mod uses
+# `replace ../shared` to reference the shared module.
+#
+# Build:
+#   docker build -f services/ws-gateway/Dockerfile.prod \
+#                -t flicko/ws-gateway:latest ./services
+#
+# Or via docker-compose.prod.yml (sets context: ./services automatically).
+#
+# Final image: alpine:3.19 + static binary + CA certs ≈ 15–18 MB.
+# =============================================================================
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Stage 1: BUILD — compile a fully static Go binary
+# ─────────────────────────────────────────────────────────────────────────────
+# NOTE: go.mod requires `go 1.25.7`. Using golang:1.25-alpine to satisfy.
+# golang:1.22-alpine would fail with "go: go.mod requires go >= 1.25.7".
+FROM golang:1.25-alpine AS build
+
+# ca-certificates: needed at build time if modules are fetched over HTTPS.
+# git: required by `go mod download` for any VCS-based dependencies.
+# tzdata: timezone data copied to runtime stage for correct log timestamps.
+RUN apk add --no-cache ca-certificates git tzdata
+
+# ── Dependency layer (cached unless go.mod/go.sum change) ───────────────
+# Copy go.mod + go.sum for both shared and ws-gateway first.
+# Docker will cache the `go mod download` layer until these files change,
+# which means code-only changes rebuild only the binary, not deps.
+WORKDIR /src
+
+# Shared module — ws-gateway depends on this via `replace ../shared`
+COPY shared/go.mod shared/go.sum ./shared/
+
+# Gateway module
+COPY ws-gateway/go.mod ws-gateway/go.sum ./ws-gateway/
+
+WORKDIR /src/ws-gateway
+RUN go mod download && go mod verify
+
+# ── Source copy + compile ───────────────────────────────────────────────
+# Now copy the actual source code. This layer rebuilds on every code change,
+# but the expensive dependency download above is cached.
+WORKDIR /src
+COPY shared/ ./shared/
+COPY ws-gateway/ ./ws-gateway/
+
+WORKDIR /src/ws-gateway
+
+# CGO_ENABLED=0 — pure Go, no C dependencies. Produces a static binary
+#   that doesn't link against libc, so it runs on scratch/alpine without
+#   any shared libraries.
+# -trimpath — remove filesystem paths from the binary (reproducible builds,
+#   doesn't leak server directory structure in stack traces).
+# -ldflags="-s -w" — strip debug symbols and DWARF info.
+#   -s: omit symbol table → saves ~2 MB
+#   -w: omit DWARF debug info → saves ~1 MB
+# -tags=netgo — use Go's native DNS resolver instead of CGO's.
+# Result: ~10–12 MB fully static binary.
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+    -trimpath \
+    -tags=netgo \
+    -ldflags="-s -w -extldflags '-static'" \
+    -o /bin/gateway ./cmd/gateway
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Stage 2: RUNTIME — minimal Alpine with just the binary
+# ─────────────────────────────────────────────────────────────────────────────
+# Why alpine:3.19 and not scratch?
+#   - We need wget for HEALTHCHECK (scratch has no shell/tools).
+#   - We need ca-certificates for outbound TLS (Supabase, CF).
+#   - alpine:3.19 base is ~3.3 MB, total image stays under 20 MB.
+FROM alpine:3.19
+
+# Install only what's strictly needed:
+#   ca-certificates — TLS cert bundle for outbound HTTPS (Redis TLS, etc.)
+#   tzdata          — timezone database (for UTC log timestamps)
+#   wget            — HEALTHCHECK probe (lighter than curl, no libcurl deps)
+RUN apk add --no-cache ca-certificates tzdata wget
+
+# ── Non-root user ───────────────────────────────────────────────────────
+# Create a dedicated non-root user. NEVER run production containers as root.
+# UID 1000 — conventional first non-system user, avoids conflicts with
+# system UIDs (0–999) and is compatible with most Kubernetes pod security
+# policies and Docker rootless mode.
+RUN addgroup -g 1000 -S appuser && \
+    adduser -u 1000 -S -G appuser -h /app -s /sbin/nologin appuser
+
+# ── Application directory ───────────────────────────────────────────────
+WORKDIR /app
+
+# Copy the static binary from the build stage.
+COPY --from=build /bin/gateway /app/gateway
+
+# Ensure the binary is owned by appuser and executable.
+RUN chown appuser:appuser /app/gateway && chmod 755 /app/gateway
+
+# ── Drop to non-root ───────────────────────────────────────────────────
+USER appuser
+
+# ── Ports ───────────────────────────────────────────────────────────────
+# 8080 — WebSocket upgrade endpoint + /healthz
+# 9100 — Prometheus /metrics (scraped by Prometheus on flicko_monitor network)
+EXPOSE 8080 9100
+
+# ── Health Check ────────────────────────────────────────────────────────
+# Docker daemon probes this every 10s. After 5 consecutive failures
+# (50s total), the container is marked unhealthy and compose can restart it.
+# --start-period gives the binary 10s to boot before checks begin.
+# wget --spider does a HEAD-like request (no body download).
+HEALTHCHECK --interval=10s --timeout=3s --retries=5 --start-period=10s \
+    CMD ["wget", "--spider", "-q", "http://localhost:8080/healthz"]
+
+# ── Entrypoint ──────────────────────────────────────────────────────────
+# Exec form (JSON array) — the binary runs as PID 1, receives signals
+# directly (SIGTERM for graceful shutdown), no shell wrapper overhead.
+ENTRYPOINT ["/app/gateway"]

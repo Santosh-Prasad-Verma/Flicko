@@ -1,0 +1,358 @@
+package storage
+
+import (
+	"context"
+	"fmt"
+	"io"
+	"strings"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
+	"go.uber.org/zap"
+)
+
+// Bucket name constants — these become B2 bucket names.
+// In B2, bucket names must be globally unique, so we prefix with the app name.
+const (
+	BucketAvatars     = "avatars"
+	BucketAttachments = "attachments"
+	BucketServerIcons = "server-icons"
+	BucketEmojis      = "emojis"
+	BucketBanners     = "banners"
+)
+
+// Size limits per bucket
+const (
+	MaxAvatarSize     = 8 * 1024 * 1024  // 8 MB
+	MaxAttachmentSize = 25 * 1024 * 1024 // 25 MB
+	MaxServerIconSize = 4 * 1024 * 1024  // 4 MB
+	MaxEmojiSize      = 512 * 1024       // 512 KB
+	MaxBannerSize     = 10 * 1024 * 1024 // 10 MB
+)
+
+// Presigned URL expiry
+const PresignedURLExpiry = 1 * time.Hour
+
+// Allowed MIME types per bucket
+var AllowedImageTypes = map[string]bool{
+	"image/jpeg": true,
+	"image/jpg":  true,
+	"image/png":  true,
+	"image/gif":  true,
+	"image/webp": true,
+}
+
+var AllowedAttachmentTypes = map[string]bool{
+	"image/jpeg":      true,
+	"image/jpg":       true,
+	"image/png":       true,
+	"image/gif":       true,
+	"image/webp":      true,
+	"video/mp4":       true,
+	"video/webm":      true,
+	"video/quicktime": true,
+	"audio/mpeg":      true,
+	"audio/ogg":       true,
+	"audio/wav":       true,
+	"application/pdf": true,
+	"text/plain":      true,
+}
+
+var AllowedEmojiTypes = map[string]bool{
+	"image/png":  true,
+	"image/gif":  true,
+	"image/webp": true,
+}
+
+// allBuckets lists every bucket that must exist.
+var allBuckets = []string{
+	BucketAvatars,
+	BucketAttachments,
+	BucketServerIcons,
+	BucketEmojis,
+	BucketBanners,
+}
+
+// B2Client wraps the S3-compatible client for Backblaze B2 storage.
+// Uses minio-go under the hood since B2 exposes an S3-compatible API.
+type B2Client struct {
+	client    *minio.Client
+	publicURL string
+	logger    *zap.Logger
+}
+
+// B2Config holds connection parameters for Backblaze B2 (S3-compatible API).
+type B2Config struct {
+	Endpoint  string // e.g. s3.us-west-004.backblazeb2.com
+	KeyID     string // B2 Application Key ID
+	AppKey    string // B2 Application Key
+	UseSSL    bool   // Always true for B2
+	PublicURL string // e.g. https://f004.backblazeb2.com/file/flickochat-media
+}
+
+// NewB2Client creates a new Backblaze B2 client via the S3-compatible API.
+func NewB2Client(cfg B2Config, logger *zap.Logger) (*B2Client, error) {
+	client, err := minio.New(cfg.Endpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(cfg.KeyID, cfg.AppKey, ""),
+		Secure: cfg.UseSSL,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("b2 client init: %w", err)
+	}
+
+	return &B2Client{
+		client:    client,
+		publicURL: strings.TrimRight(cfg.PublicURL, "/"),
+		logger:    logger,
+	}, nil
+}
+
+// HealthCheck ensures all required buckets exist, creating any missing ones.
+// B2 buckets must be created via the B2 dashboard or b2 CLI beforehand.
+// This just verifies they're accessible.
+func (b *B2Client) HealthCheck(ctx context.Context) error {
+	for _, bucket := range allBuckets {
+		exists, err := b.client.BucketExists(ctx, bucket)
+		if err != nil {
+			return fmt.Errorf("bucket check %s: %w", bucket, err)
+		}
+		if !exists {
+			// Attempt to create (works if the B2 app key has createBucket permission)
+			if err := b.client.MakeBucket(ctx, bucket, minio.MakeBucketOptions{}); err != nil {
+				return fmt.Errorf("bucket %s does not exist and could not be created: %w", bucket, err)
+			}
+			b.logger.Info("created B2 bucket", zap.String("bucket", bucket))
+		}
+	}
+	return nil
+}
+
+// ─── Upload functions ────────────────────────────────────────────────────────
+
+// uploadFile is the generic low-level upload helper.
+func (b *B2Client) uploadFile(ctx context.Context, bucket, objectName string, reader io.Reader, size int64, contentType string) (string, error) {
+	_, err := b.client.PutObject(ctx, bucket, objectName, reader, size, minio.PutObjectOptions{
+		ContentType: contentType,
+	})
+	if err != nil {
+		return "", fmt.Errorf("put object %s/%s: %w", bucket, objectName, err)
+	}
+
+	url := fmt.Sprintf("%s/%s/%s", b.publicURL, bucket, objectName)
+	return url, nil
+}
+
+// UploadAvatar stores a user profile picture.
+// Object path: user-{userID}.{ext}
+func (b *B2Client) UploadAvatar(ctx context.Context, userID string, reader io.Reader, size int64, contentType string) (string, error) {
+	if size > MaxAvatarSize {
+		return "", fmt.Errorf("avatar exceeds %dMB limit", MaxAvatarSize/(1024*1024))
+	}
+	if !AllowedImageTypes[contentType] {
+		return "", fmt.Errorf("invalid avatar content type: %s", contentType)
+	}
+
+	ext := extensionFromMime(contentType)
+	objectName := fmt.Sprintf("user-%s.%s", userID, ext)
+
+	// Remove previous avatar (different extension)
+	b.deletePrefix(ctx, BucketAvatars, fmt.Sprintf("user-%s.", userID))
+
+	return b.uploadFile(ctx, BucketAvatars, objectName, reader, size, contentType)
+}
+
+// UploadAttachment stores a chat file. Returns (publicURL, objectName, error).
+func (b *B2Client) UploadAttachment(ctx context.Context, channelID, filename string, reader io.Reader, size int64, contentType string) (string, string, error) {
+	if size > MaxAttachmentSize {
+		return "", "", fmt.Errorf("attachment exceeds %dMB limit", MaxAttachmentSize/(1024*1024))
+	}
+	if !AllowedAttachmentTypes[contentType] {
+		return "", "", fmt.Errorf("invalid attachment content type: %s", contentType)
+	}
+
+	safeName := sanitizeFilename(filename)
+	objectName := fmt.Sprintf("%s/%s-%s", channelID, uuid.New().String(), safeName)
+
+	url, err := b.uploadFile(ctx, BucketAttachments, objectName, reader, size, contentType)
+	return url, objectName, err
+}
+
+// UploadServerIcon stores a server profile image.
+// Object path: server-{serverID}.{ext}
+func (b *B2Client) UploadServerIcon(ctx context.Context, serverID string, reader io.Reader, size int64, contentType string) (string, error) {
+	if size > MaxServerIconSize {
+		return "", fmt.Errorf("server icon exceeds %dMB limit", MaxServerIconSize/(1024*1024))
+	}
+	if !AllowedImageTypes[contentType] {
+		return "", fmt.Errorf("invalid server icon content type: %s", contentType)
+	}
+
+	ext := extensionFromMime(contentType)
+	objectName := fmt.Sprintf("server-%s.%s", serverID, ext)
+
+	b.deletePrefix(ctx, BucketServerIcons, fmt.Sprintf("server-%s.", serverID))
+
+	return b.uploadFile(ctx, BucketServerIcons, objectName, reader, size, contentType)
+}
+
+// UploadEmoji stores a custom server emoji.
+// Object path: {serverID}/{emojiName}.{ext}
+func (b *B2Client) UploadEmoji(ctx context.Context, serverID, emojiName string, reader io.Reader, size int64, contentType string) (string, error) {
+	if size > MaxEmojiSize {
+		return "", fmt.Errorf("emoji exceeds %dKB limit", MaxEmojiSize/1024)
+	}
+	if !AllowedEmojiTypes[contentType] {
+		return "", fmt.Errorf("invalid emoji content type: %s", contentType)
+	}
+
+	ext := extensionFromMime(contentType)
+	objectName := fmt.Sprintf("%s/%s.%s", serverID, emojiName, ext)
+
+	return b.uploadFile(ctx, BucketEmojis, objectName, reader, size, contentType)
+}
+
+// UploadBanner stores a user or server banner.
+// ownerType must be "user" or "server".
+// Object path: {ownerType}-{ownerID}.{ext}
+func (b *B2Client) UploadBanner(ctx context.Context, ownerType, ownerID string, reader io.Reader, size int64, contentType string) (string, error) {
+	if ownerType != "user" && ownerType != "server" {
+		return "", fmt.Errorf("invalid owner type: %s (must be 'user' or 'server')", ownerType)
+	}
+	if size > MaxBannerSize {
+		return "", fmt.Errorf("banner exceeds %dMB limit", MaxBannerSize/(1024*1024))
+	}
+	if !AllowedImageTypes[contentType] {
+		return "", fmt.Errorf("invalid banner content type: %s", contentType)
+	}
+
+	ext := extensionFromMime(contentType)
+	objectName := fmt.Sprintf("%s-%s.%s", ownerType, ownerID, ext)
+
+	b.deletePrefix(ctx, BucketBanners, fmt.Sprintf("%s-%s.", ownerType, ownerID))
+
+	return b.uploadFile(ctx, BucketBanners, objectName, reader, size, contentType)
+}
+
+// ─── Presigned URL ──────────────────────────────────────────────────────────
+
+// GeneratePresignedURL returns a temporary download URL for a private object.
+func (b *B2Client) GeneratePresignedURL(ctx context.Context, bucket, objectName string, expiry time.Duration) (string, error) {
+	if expiry == 0 {
+		expiry = PresignedURLExpiry
+	}
+	presignedURL, err := b.client.PresignedGetObject(ctx, bucket, objectName, expiry, nil)
+	if err != nil {
+		return "", fmt.Errorf("presign %s/%s: %w", bucket, objectName, err)
+	}
+	return presignedURL.String(), nil
+}
+
+// ─── Delete functions ───────────────────────────────────────────────────────
+
+// DeleteAvatar removes a user's avatar from storage.
+func (b *B2Client) DeleteAvatar(ctx context.Context, userID string) error {
+	return b.deletePrefix(ctx, BucketAvatars, fmt.Sprintf("user-%s.", userID))
+}
+
+// DeleteAttachment removes a single attachment by its object name.
+func (b *B2Client) DeleteAttachment(ctx context.Context, objectName string) error {
+	return b.client.RemoveObject(ctx, BucketAttachments, objectName, minio.RemoveObjectOptions{})
+}
+
+// DeleteChannelAttachments removes all attachments for a channel (bulk).
+func (b *B2Client) DeleteChannelAttachments(ctx context.Context, channelID string) error {
+	return b.deletePrefix(ctx, BucketAttachments, channelID+"/")
+}
+
+// DeleteServerIcon removes a server icon.
+func (b *B2Client) DeleteServerIcon(ctx context.Context, serverID string) error {
+	return b.deletePrefix(ctx, BucketServerIcons, fmt.Sprintf("server-%s.", serverID))
+}
+
+// DeleteEmoji removes a single custom emoji.
+func (b *B2Client) DeleteEmoji(ctx context.Context, serverID, emojiName string) error {
+	return b.deletePrefix(ctx, BucketEmojis, fmt.Sprintf("%s/%s.", serverID, emojiName))
+}
+
+// DeleteServerEmojis removes all emojis for a server.
+func (b *B2Client) DeleteServerEmojis(ctx context.Context, serverID string) error {
+	return b.deletePrefix(ctx, BucketEmojis, serverID+"/")
+}
+
+// DeleteBanner removes a banner by owner type/ID.
+func (b *B2Client) DeleteBanner(ctx context.Context, ownerType, ownerID string) error {
+	return b.deletePrefix(ctx, BucketBanners, fmt.Sprintf("%s-%s.", ownerType, ownerID))
+}
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+// deletePrefix removes all objects matching a prefix in a bucket.
+func (b *B2Client) deletePrefix(ctx context.Context, bucket, prefix string) error {
+	objectsCh := b.client.ListObjects(ctx, bucket, minio.ListObjectsOptions{
+		Prefix:    prefix,
+		Recursive: true,
+	})
+	for obj := range objectsCh {
+		if obj.Err != nil {
+			return obj.Err
+		}
+		if err := b.client.RemoveObject(ctx, bucket, obj.Key, minio.RemoveObjectOptions{}); err != nil {
+			b.logger.Warn("failed to remove object",
+				zap.String("bucket", bucket),
+				zap.String("key", obj.Key),
+				zap.Error(err),
+			)
+		}
+	}
+	return nil
+}
+
+// extensionFromMime returns a file extension for common MIME types.
+func extensionFromMime(mime string) string {
+	switch mime {
+	case "image/jpeg", "image/jpg":
+		return "jpg"
+	case "image/png":
+		return "png"
+	case "image/gif":
+		return "gif"
+	case "image/webp":
+		return "webp"
+	case "video/mp4":
+		return "mp4"
+	case "video/webm":
+		return "webm"
+	case "video/quicktime":
+		return "mov"
+	case "audio/mpeg":
+		return "mp3"
+	case "audio/ogg":
+		return "ogg"
+	case "audio/wav":
+		return "wav"
+	case "application/pdf":
+		return "pdf"
+	case "text/plain":
+		return "txt"
+	default:
+		return "bin"
+	}
+}
+
+// sanitizeFilename removes path separators and dangerous characters from a filename.
+func sanitizeFilename(name string) string {
+	// Remove path traversal
+	name = strings.ReplaceAll(name, "..", "")
+	name = strings.ReplaceAll(name, "/", "")
+	name = strings.ReplaceAll(name, "\\", "")
+	// Limit length
+	if len(name) > 128 {
+		name = name[:128]
+	}
+	if name == "" {
+		name = "unnamed"
+	}
+	return name
+}

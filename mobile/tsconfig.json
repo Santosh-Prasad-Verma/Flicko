@@ -1,0 +1,20 @@
+{
+  "extends": "expo/tsconfig.base.json",
+  "compilerOptions": {
+    "strict": true,
+    "skipLibCheck": true,
+    "types": ["react"],
+    "ignoreDeprecations": "5.0",
+    "baseUrl": "..",
+    "paths": {
+      "*": ["mobile/node_modules/*"],
+      "@shared/*": ["shared/*"],
+      "@services/*": ["shared/services/*"],
+      "@stores/*": ["shared/stores/*"],
+      "@hooks/*": ["shared/hooks/*"],
+      "@types/*": ["shared/types/*"],
+      "@utils/*": ["shared/utils/*"],
+      "@lib/*": ["shared/lib/*"]
+    }
+  }
+}

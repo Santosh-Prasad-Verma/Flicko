@@ -1,0 +1,26 @@
+# Build outputs
+node_modules/
+dist/
+build/
+.expo/
+ios/
+android/
+bin/
+
+# Generated
+*.min.js
+*.min.css
+coverage/
+*.lock
+
+# Go binaries & vendor
+backend/bin/
+services/gateway
+services/server
+
+# Assets
+EmojiList/
+mobile/assets/
+
+# Config
+supabase/.temp/

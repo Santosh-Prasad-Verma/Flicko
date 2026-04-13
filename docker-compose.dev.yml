@@ -1,0 +1,85 @@
+# ============================================================
+#  Flicko — Local Development Infrastructure
+# ============================================================
+#  Usage:  docker compose -f docker-compose.dev.yml up -d
+#          (or use scripts/dev-start.sh for full bootstrap)
+#
+#  NOT included (run locally):
+#    - Go services     → go run ./services/ws-gateway/cmd/gateway
+#    - PostgreSQL      → remote Supabase instance
+#    - NGINX           → connect to Go directly
+# ============================================================
+
+services:
+  # ----------------------------------------------------------
+  # LOCAL REDIS (optional — use if not using Upstash cloud)
+  # Set REDIS_URL=redis://localhost:6379 in .env to use this.
+  # Comment out this service if using Upstash.
+  # ----------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: flicko-redis-dev
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    networks:
+      - flicko_dev
+
+  # ----------------------------------------------------------
+  # NOTE: Using Cloudinary for media storage (cloud).
+  # Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET in your .env
+  # ----------------------------------------------------------
+
+  # ----------------------------------------------------------
+  # PROMETHEUS — Metrics scraping
+  # ----------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: flicko-prometheus-dev
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=7d"
+    volumes:
+      - ./monitoring/prometheus-dev.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_dev_data:/prometheus
+    networks:
+      - flicko_dev
+
+  # ----------------------------------------------------------
+  # GRAFANA — Dashboards
+  # ----------------------------------------------------------
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: flicko-grafana-dev
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+    volumes:
+      - grafana_dev_data:/var/lib/grafana
+    networks:
+      - flicko_dev
+
+# ============================================================
+# NETWORKS
+# ============================================================
+networks:
+  flicko_dev:
+    driver: bridge
+
+# ============================================================
+# VOLUMES
+# ============================================================
+volumes:
+  prometheus_dev_data:
+  grafana_dev_data:

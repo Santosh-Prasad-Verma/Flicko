@@ -1,0 +1,12 @@
+--- /home/tarun/Documents/Flicko/services/ws-gateway/internal/conn/manager.go
++++ /home/tarun/Documents/Flicko/services/ws-gateway/internal/conn/manager.go
+@@ -303,2 +303,8 @@
+ }(client, message)
++}
++}
++}
++
++func (m *Manager) handleClientMessage(client *Client, msgData []byte) {
++var msg protocol.GatewayMessage
++err := json.Unmarshal(msgData, &msg)
+ if err != nil {

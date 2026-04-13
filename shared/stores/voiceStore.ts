@@ -275,7 +275,10 @@ export const useVoiceStore = create<VoiceState>((set, get) => ({
   addParticipant: (participant) =>
     set((s) => ({
       participants: [
-          ...s.participants.filter(p => p.userId !== participant.userId),
+        ...s.participants.filter(p => p.userId !== participant.userId),
+        participant
+      ],
+    })),
 
   removeParticipant: (userId) =>
     set((s) => ({

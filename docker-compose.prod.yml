@@ -1,0 +1,464 @@
+# =============================================================================
+# Flicko — Production Docker Compose
+# =============================================================================
+#
+# Target: 8 GB VPS, 3–5K CCU, ~300 msg/sec peak.
+# Total memory budget: ~4.5 GB allocated (leaves ~3.5 GB for OS + buffers).
+#
+# Usage:
+#   docker compose -f docker-compose.prod.yml up -d --build
+#   docker compose -f docker-compose.prod.yml logs -f
+#   docker compose -f docker-compose.prod.yml down
+#
+# Prerequisites:
+#   1. Copy .env.production.example → .env and fill in all values
+#   2. Generate JWT keys:  scripts/generate-jwt-keys.sh
+#   3. Place Cloudflare Origin cert:  nginx/ssl/origin.pem + origin-key.pem
+#   4. Create monitoring configs:
+#        monitoring/prometheus.yml
+#        monitoring/loki-config.yml
+#        monitoring/grafana/provisioning/
+#
+# Architecture:
+#   Browser ──[TLS]──▶ Cloudflare ──[Origin TLS]──▶ NGINX ──▶ Services
+#
+#   ┌──────────────┐     ┌─────────────────┐     ┌─────────────────┐
+#   │  flicko_edge │────▶│ flicko_internal  │     │ flicko_monitor  │
+#   │  (NGINX)     │     │ (all services)   │     │ (observability) │
+#   └──────────────┘     └─────────────────┘     └─────────────────┘
+#
+# =============================================================================
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# YAML Anchors — DRY shared configuration
+# ─────────────────────────────────────────────────────────────────────────────
+# These are "templates" referenced with `<<: *anchor-name` in services.
+
+x-common-env: &common-env
+  # Shared across all Go services.
+  TZ: UTC
+  GOMAXPROCS: "2"                    # Match available CPU cores on 8 GB VPS
+
+x-restart-policy: &restart-policy
+  # Restart on crash, but not if manually stopped (docker compose stop).
+  restart: unless-stopped
+
+x-logging: &default-logging
+  # JSON file driver with rotation. Each container gets 5 × 10 MB = 50 MB max.
+  # Promtail/Loki scrapes these files for centralized logging.
+  # The "tag" option embeds the container name in log metadata.
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "10m"
+      max-file: "5"
+      tag: "{{.Name}}"
+
+
+# =============================================================================
+# NETWORKS
+# =============================================================================
+# Three-tier network isolation prevents lateral movement if a container is
+# compromised. Only NGINX has host port bindings.
+networks:
+  flicko_edge:
+    # Edge network: NGINX ↔ public internet.
+    # Only NGINX connects here + to flicko_internal.
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+
+  flicko_internal:
+    # Service mesh: ws-gateway, msg-service.
+    # internal: false means outbound internet access is allowed.
+    # Services that need external connectivity (Supabase DB) use the host
+    # network stack via Docker's DNS (the connection goes out the host).
+    driver: bridge
+    internal: false
+    ipam:
+      config:
+        - subnet: 172.20.1.0/24
+
+  flicko_monitor:
+    # Observability: prometheus, grafana, loki.
+    # internal: false — monitoring tools can't reach the internet.
+    # ws-gateway + msg-service also join this network so Prometheus can
+    # scrape their /metrics endpoints.
+    driver: bridge
+    internal: false
+    ipam:
+      config:
+        - subnet: 172.20.2.0/24
+
+
+# =============================================================================
+# VOLUMES — Persistent data (survives container recreation)
+# =============================================================================
+volumes:
+  prometheus_data:
+    driver: local              # TSDB metrics (15 day retention)
+  grafana_data:
+    driver: local              # Dashboards, data sources, alert rules
+  loki_data:
+    driver: local              # Log index + chunks
+  dead_letter_data:
+    driver: local              # Failed message batches (JSONL files)
+
+
+# =============================================================================
+# SECRETS — sensitive files mounted read-only into containers
+# =============================================================================
+secrets:
+  jwt_public_key:
+    # Ed25519 public key for JWT verification.
+    # Generate with: scripts/generate-jwt-keys.sh
+    # Both Go services need this to verify tokens in incoming requests.
+    # HIGH-010: In production with Docker Swarm, switch to external secrets:
+    #   external: true
+    # And create with: echo "$JWT_PUBLIC_KEY" | docker secret create jwt_public_key -
+    file: ./secrets/jwt_public.pem
+
+
+# =============================================================================
+# SERVICES
+# =============================================================================
+services:
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # NGINX — Edge Reverse Proxy
+  # ──────────────────────────────────────────────────────────────────────────
+  # The ONLY container with host port bindings. Terminates Cloudflare Origin
+  # TLS and routes to internal services. See nginx/ directory for config.
+  # Resource budget: 128 MB — NGINX is extremely memory-efficient for proxying.
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: flicko-nginx
+    <<: [*restart-policy, *default-logging]
+    ports:
+      - "80:80"                      # HTTP → 301 redirect to HTTPS
+      - "443:443"                    # HTTPS — Cloudflare Origin TLS
+    networks:
+      - flicko_edge                  # Faces the public internet
+      - flicko_internal              # Routes to ws-gateway, msg-service
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro          # Origin cert + key
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.25"
+    depends_on:
+      ws-gateway:
+        condition: service_healthy   # Don't start until gateway is ready
+      msg-service:
+        condition: service_healthy   # Don't start until msg-service is ready
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:80/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # WS GATEWAY — WebSocket Connection Manager
+  # ──────────────────────────────────────────────────────────────────────────
+  # Holds all persistent WebSocket connections. Memory-heavy: each connection
+  # uses 2 goroutines (~8 KB stack each) + read/write buffers.
+  # At 5K CCU: ~80 MB goroutines + ~40 MB buffers = ~120 MB active.
+  # 1.5 GB limit provides headroom for burst + GC pressure.
+  ws-gateway:
+    build:
+      context: ./services                                # Build context is services/
+      dockerfile: ws-gateway/Dockerfile.prod             # Relative to context
+    image: flicko/ws-gateway:latest
+    container_name: flicko-ws-gateway
+    <<: [*restart-policy, *default-logging]
+    networks:
+      - flicko_internal              # Receives traffic from NGINX
+      - flicko_monitor               # Prometheus scrapes :9100/metrics
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    environment:
+      <<: *common-env
+      ENVIRONMENT: "production"
+      SERVICE_NAME: "ws-gateway"
+      WS_PORT: "8080"
+      METRICS_PORT: "9100"
+      REDIS_URL: "${REDIS_URL}"
+      JWT_PUBLIC_KEY_PATH: "/run/secrets/jwt_public_key"
+      # ── Connection tuning ─────────────────────────────────────────────
+      MAX_CONNECTIONS: "6000"        # Hard cap (5K target + 20% headroom)
+      READ_BUFFER_SIZE: "1024"       # 1 KB per-conn read buffer
+      WRITE_BUFFER_SIZE: "1024"      # 1 KB per-conn write buffer
+      WRITE_WAIT: "10s"              # Max time to write a frame
+      PONG_WAIT: "60s"               # Client must pong within 60s
+      PING_PERIOD: "54s"             # Server pings every 54s (< pong_wait)
+      MAX_MESSAGE_SIZE: "4096"       # 4 KB max inbound frame
+      SLOW_CONSUMER_TIMEOUT: "5s"    # Drop clients that can't keep up
+      # ── Rate limiting ─────────────────────────────────────────────────
+      RATE_LIMIT_MSG_PER_SEC: "10"   # Per-connection message rate
+      RATE_LIMIT_BURST: "20"         # Burst allowance
+    deploy:
+      resources:
+        limits:
+          memory: 1536M              # 1.5 GB — holds all WS connections
+          cpus: "1.5"
+        reservations:
+          memory: 512M               # Guaranteed minimum
+    secrets:
+      - jwt_public_key
+    healthcheck:
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    # ── File descriptor limits ──────────────────────────────────────────
+    # Each WS connection needs ≥2 fds (client socket + upstream/redis).
+    # Default ulimit is 1024, far too low for thousands of connections.
+    # 65536 matches worker_rlimit_nofile in nginx.conf.
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # MESSAGE SERVICE — REST API
+  # ──────────────────────────────────────────────────────────────────────────
+  # Stateless CRUD service: messages, channels, guilds, media presign.
+  # CPU-heavy (JSON serialization, DB queries) but low memory footprint.
+  # 512 MB limit is generous — actual usage ~100–200 MB.
+  msg-service:
+    build:
+      context: ./services
+      dockerfile: msg-service/Dockerfile.prod
+    image: flicko/msg-service:latest
+    container_name: flicko-msg-service
+    <<: [*restart-policy, *default-logging]
+    networks:
+      - flicko_internal              # Receives traffic from NGINX
+      - flicko_monitor               # Prometheus scrapes :9101/metrics
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    environment:
+      <<: *common-env
+      ENVIRONMENT: "production"
+      SERVICE_NAME: "msg-service"
+      HTTP_PORT: "8081"
+      METRICS_PORT: "9101"
+      # ── Database (Supabase PostgreSQL via pooler) ─────────────────────
+      DATABASE_URL: "${DATABASE_URL}"
+      DATABASE_POOL_MAX: "20"        # Supabase free tier: ~60 pooler conns
+      DATABASE_POOL_MIN: "5"
+      # ── Redis ─────────────────────────────────────────────────────────
+      REDIS_URL: "${REDIS_URL}"
+      # ── Cloudinary (Media Storage) ────────────────────────────────────
+      CLOUDINARY_CLOUD_NAME: "${CLOUDINARY_CLOUD_NAME}"
+      CLOUDINARY_API_KEY: "${CLOUDINARY_API_KEY}"
+      CLOUDINARY_API_SECRET: "${CLOUDINARY_API_SECRET}"
+      # ── Auth ──────────────────────────────────────────────────────────
+      JWT_PUBLIC_KEY_PATH: "/run/secrets/jwt_public_key"
+      # ── Batcher ───────────────────────────────────────────────────────
+      BATCH_INSERT_SIZE: "50"        # Flush at 50 messages
+      BATCH_INSERT_WINDOW: "50ms"    # Or every 50ms, whichever comes first
+      DLQ_DIR: "/data/dead_letter"   # Dead-letter queue directory
+      # ── Idempotency ──────────────────────────────────────────────────
+      IDEMPOTENCY_TTL: "300s"         # 5 min dedup window
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+        reservations:
+          memory: 256M
+    secrets:
+      - jwt_public_key
+    volumes:
+      - dead_letter_data:/data/dead_letter     # Persist DLQ across restarts
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO /dev/null http://localhost:8081/healthz || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # REDIS — Now using Upstash (cloud). No local container needed.
+  # Set REDIS_URL in .env to your Upstash TLS URL (rediss://).
+  # Monitor via Upstash dashboard: https://console.upstash.com
+  # ──────────────────────────────────────────────────────────────────────────
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # STORAGE — Using Cloudinary for media storage (cloud).
+  # Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET in .env
+  # ──────────────────────────────────────────────────────────────────────────
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # PROMETHEUS — Metrics Collection
+  # ──────────────────────────────────────────────────────────────────────────
+  # Scrapes /metrics from ws-gateway (:9100) and msg-service (:9101) every
+  # 15s. Stores 15 days of TSDB data with a 2 GB size cap.
+  # Accessible via Grafana on flicko_monitor network.
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: flicko-prometheus
+    <<: [*restart-policy, *default-logging]
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+      - "--storage.tsdb.retention.size=2GB"
+      - "--web.enable-lifecycle"     # Enable /-/reload for config hot-reload
+    networks:
+      - flicko_monitor
+      - flicko_internal              # Scrape targets on internal network
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.25"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:9090/-/healthy || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # GRAFANA — Dashboards & Alerting
+  # ──────────────────────────────────────────────────────────────────────────
+  # Web UI for metrics visualization. Runs behind NGINX at /grafana/.
+  # Provisioning configs auto-create Prometheus + Loki data sources.
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: flicko-grafana
+    <<: [*restart-policy, *default-logging]
+    networks:
+      - flicko_monitor
+      - flicko_internal              # NGINX reverse-proxies to this
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PASSWORD}"
+      GF_SERVER_ROOT_URL: "https://${DOMAIN:-flicko.dev}/grafana"
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_LOG_MODE: "console"
+      GF_LOG_LEVEL: "warn"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.25"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:3000/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # LOKI — Log Aggregation
+  # ──────────────────────────────────────────────────────────────────────────
+  # Receives structured JSON logs from Docker log driver via Promtail
+  # (or direct push). Grafana queries Loki via LogQL for log exploration.
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: flicko-loki
+    <<: [*restart-policy, *default-logging]
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - flicko_monitor
+    volumes:
+      - ./monitoring/loki-config.yml:/etc/loki/local-config.yaml:ro
+      - loki_data:/loki
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.25"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:3100/ready || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # REDIS EXPORTER — Removed (using Upstash cloud, no local redis-exporter)
+  # Monitor via Upstash dashboard instead: https://console.upstash.com
+  # ──────────────────────────────────────────────────────────────────────────
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # NGINX EXPORTER — NGINX Metrics for Prometheus
+  # ──────────────────────────────────────────────────────────────────────────
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:1.1.0
+    container_name: flicko-nginx-exporter
+    <<: [*restart-policy, *default-logging]
+    command:
+      - "--nginx.scrape-uri=http://nginx:8080/stub_status"
+    networks:
+      - flicko_internal              # Reach NGINX stub_status
+      - flicko_monitor               # Prometheus scrapes this
+    deploy:
+      resources:
+        limits:
+          memory: 32M
+          cpus: "0.1"
+    depends_on:
+      nginx:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9113/metrics"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # NODE EXPORTER — Host OS Metrics for Prometheus
+  # ──────────────────────────────────────────────────────────────────────────
+  # Exposes CPU, memory, disk, network stats from the host.
+  # Uses pid:host and read-only bind-mounts for safe host access.
+  node-exporter:
+    image: prom/node-exporter:v1.7.0
+    container_name: flicko-node-exporter
+    <<: [*restart-policy, *default-logging]
+    command:
+      - "--path.procfs=/host/proc"
+      - "--path.rootfs=/rootfs"
+      - "--path.sysfs=/host/sys"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
+    pid: host
+    networks:
+      - flicko_monitor               # Prometheus scrapes this
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: "0.1"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9100/metrics"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
