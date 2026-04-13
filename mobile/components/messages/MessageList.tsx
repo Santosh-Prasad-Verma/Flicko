@@ -113,6 +113,20 @@ export const MessageList = memo(forwardRef<MessageListHandle, MessageListProps>(
     return map;
   }, [messages]);
 
+  const continuationIds = useMemo(() => {
+    const set = new Set<string>();
+    // messages are sorted newest to oldest because of inverted list
+    for (let i = 0; i < messages.length; i++) {
+      const cur = messages[i];
+      // The older message is at i + 1
+      const older = messages[i + 1];
+      if (older && isSameGroup(older, cur)) {
+        set.add(cur.id);
+      }
+    }
+    return set;
+  }, [messages]);
+
   const renderMessage = useCallback(
     ({ item }: { item: MessageData }) => {
       const dateLabel = dateSeparators.get(item.id);
