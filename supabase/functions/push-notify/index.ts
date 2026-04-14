@@ -88,14 +88,15 @@ serve(async (req) => {
       .select('user_id, notifications_enabled')
       .in('user_id', memberIds);
 
-    const enabledUserIdSet = new Set(
-      (userSettings || [])
-        .filter(s => s.notifications_enabled !== false) // default true
-        .map(s => s.user_id)
-    );
+// Build set of users who explicitly disabled notifications
+      const disabledUserIdSet = new Set(
+        (userSettings || [])
+          .filter(s => s.notifications_enabled === false)
+          .map(s => s.user_id)
+      );
 
-    // Default to true if no settings row found
-    const filteredMemberIds = memberIds.filter(id => enabledUserIdSet.has(id));
+      // Default to true if no settings row found, discard disabled users
+      const filteredMemberIds = memberIds.filter(id => !disabledUserIdSet.has(id));
 
     // 4. Get active push tokens for these members
     const { data: tokens } = await supabase

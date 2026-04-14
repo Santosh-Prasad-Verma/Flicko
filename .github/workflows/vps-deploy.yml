@@ -46,6 +46,10 @@ jobs:
             ENVIRONMENT=production
             ENVFILE
             
+            # Ensure JWT keys are generated
+            chmod +x scripts/generate-jwt-keys.sh
+            ./scripts/generate-jwt-keys.sh
+
             # 4. Build and restart the containers using Docker Compose
             docker compose -f docker-compose.prod.yml down
             docker compose -f docker-compose.prod.yml up -d --build

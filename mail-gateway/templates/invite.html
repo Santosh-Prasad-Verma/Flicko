@@ -2,188 +2,111 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>You're Invited to {{.AppName}}</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>You're invited to {{.AppName}}</title>
 </head>
 
-<body
-    style="margin:0;padding:0;background-color:#0f0c29;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0"
-        style="background:linear-gradient(135deg,#0f0c29 0%,#302b63 50%,#24243e 100%);min-height:100vh;">
-        <tr>
-            <td align="center" style="padding:48px 20px;">
-                <table role="presentation" width="600" cellspacing="0" cellpadding="0"
-                    style="background-color:#1a1730;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,0.5),0 0 40px rgba(139,92,246,0.15);overflow:hidden;border:1px solid rgba(139,92,246,0.2);">
+<body style="margin:0;padding:0;background-color:#0f1115;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#dcddde;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;">
+    Accept your invitation to join {{.AppName}}.
+  </div>
 
-                    <!-- Header -->
-                    <tr>
-                        <td
-                            style="background:linear-gradient(135deg,#6d28d9 0%,#7c3aed 40%,#a855f7 80%,#c084fc 100%);padding:52px 40px;text-align:center;position:relative;">
-                            <!-- Decorative top shimmer -->
-                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
-                                <tr>
-                                    <td align="center" style="padding-bottom:20px;">
-                                        <table role="presentation" cellspacing="0" cellpadding="0">
-                                            <tr>
-                                                <td
-                                                    style="background:rgba(255,255,255,0.15);border-radius:50%;width:80px;height:80px;text-align:center;vertical-align:middle;font-size:38px;line-height:80px;">
-                                                    ✉️
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td align="center">
-                                        <h1
-                                            style="margin:0 0 10px;color:#ffffff;font-size:30px;font-weight:800;letter-spacing:-0.5px;">
-                                            You're Invited! 🎉
-                                        </h1>
-                                        <p style="margin:0;color:rgba(255,255,255,0.82);font-size:15px;line-height:1.5;">
-                                            Join the community on <strong
-                                                style="color:#ffffff;">{{.AppName}}</strong>
-                                        </p>
-                                    </td>
-                                </tr>
-                            </table>
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;background-color:#0f1115;">
+    <tr>
+      <td align="center" style="padding:28px 16px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:620px;background-color:#18191c;border:1px solid #313338;border-radius:28px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,0.45);">
+          <tr>
+            <td style="padding:14px 14px 0;background-color:#18191c;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:linear-gradient(135deg,#5865f2 0%,#6d77f4 100%);border-radius:22px;">
+                <tr>
+                  <td style="padding:28px 28px 30px;">
+                    <table role="presentation" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td style="width:54px;vertical-align:middle;">
+                          {{template "brand_mark" .}}
                         </td>
-                    </tr>
-
-                    <!-- Accent divider -->
-                    <tr>
-                        <td style="padding:0;height:4px;background:linear-gradient(90deg,#6d28d9,#a855f7,#ec4899,#a855f7,#6d28d9);">
+                        <td style="padding-left:14px;vertical-align:middle;">
+                          <p style="margin:0;color:#ffffff;font-size:28px;line-height:1;font-weight:800;letter-spacing:-0.04em;">
+                            {{.AppName}}
+                          </p>
+                          <p style="margin:6px 0 0;color:rgba(255,255,255,0.82);font-size:12px;line-height:1.4;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;">
+                            Invitation
+                          </p>
                         </td>
-                    </tr>
-
-                    <!-- Body -->
-                    <tr>
-                        <td style="padding:44px 40px;">
-
-                            <!-- Greeting text -->
-                            <p style="margin:0 0 16px;color:#e2e8f0;font-size:16px;line-height:1.7;">
-                                Hey there 👋
-                            </p>
-                            <p style="margin:0 0 28px;color:#cbd5e1;font-size:16px;line-height:1.7;">
-                                Someone special has invited you to join
-                                <a href="{{ .SiteURL }}"
-                                    style="color:#a78bfa;text-decoration:none;font-weight:600;border-bottom:1px solid rgba(167,139,250,0.4);">{{ .SiteURL }}</a>.
-                                Click the button below to accept your invite and create your account — it only takes a
-                                moment!
-                            </p>
-
-                            <!-- Feature highlights -->
-                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0"
-                                style="margin-bottom:32px;">
-                                <tr>
-                                    <td style="padding-bottom:12px;">
-                                        <table role="presentation" width="100%" cellspacing="0" cellpadding="0"
-                                            style="background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.18);border-radius:12px;">
-                                            <tr>
-                                                <td style="padding:14px 20px;vertical-align:middle;width:44px;font-size:22px;">
-                                                    💬
-                                                </td>
-                                                <td style="padding:14px 20px 14px 0;vertical-align:middle;">
-                                                    <strong style="color:#e2e8f0;font-size:14px;display:block;margin-bottom:2px;">Real-time messaging</strong>
-                                                    <span style="color:#94a3b8;font-size:13px;">Chat, share, and connect instantly</span>
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td style="padding-bottom:12px;">
-                                        <table role="presentation" width="100%" cellspacing="0" cellpadding="0"
-                                            style="background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.18);border-radius:12px;">
-                                            <tr>
-                                                <td style="padding:14px 20px;vertical-align:middle;width:44px;font-size:22px;">
-                                                    🌐
-                                                </td>
-                                                <td style="padding:14px 20px 14px 0;vertical-align:middle;">
-                                                    <strong style="color:#e2e8f0;font-size:14px;display:block;margin-bottom:2px;">Thriving communities</strong>
-                                                    <span style="color:#94a3b8;font-size:13px;">Join servers built around your interests</span>
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <table role="presentation" width="100%" cellspacing="0" cellpadding="0"
-                                            style="background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.18);border-radius:12px;">
-                                            <tr>
-                                                <td style="padding:14px 20px;vertical-align:middle;width:44px;font-size:22px;">
-                                                    🚀
-                                                </td>
-                                                <td style="padding:14px 20px 14px 0;vertical-align:middle;">
-                                                    <strong style="color:#e2e8f0;font-size:14px;display:block;margin-bottom:2px;">Get started in seconds</strong>
-                                                    <span style="color:#94a3b8;font-size:13px;">No credit card required — free to join</span>
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-                            </table>
-
-                            <!-- CTA Button -->
-                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
-                                <tr>
-                                    <td align="center" style="padding-bottom:32px;">
-                                        <a href="{{ .ConfirmationURL }}" target="_blank"
-                                            style="display:inline-block;background:linear-gradient(135deg,#6d28d9,#a855f7);color:#ffffff;text-decoration:none;padding:18px 56px;border-radius:14px;font-size:16px;font-weight:700;letter-spacing:0.4px;box-shadow:0 6px 20px rgba(139,92,246,0.45);">
-                                            Accept the Invite →
-                                        </a>
-                                    </td>
-                                </tr>
-                            </table>
-
-                            <!-- Fallback URL box -->
-                            <p style="margin:0 0 8px;color:#6b7280;font-size:13px;line-height:1.5;">
-                                Button not working? Paste this link into your browser:
-                            </p>
-                            <p
-                                style="margin:0 0 28px;word-break:break-all;background-color:#12102a;border:1px solid rgba(139,92,246,0.25);padding:12px 16px;border-radius:8px;font-size:12px;color:#a78bfa;line-height:1.6;">
-                                {{ .ConfirmationURL }}
-                            </p>
-
-                            <!-- Security notice -->
-                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
-                                <tr>
-                                    <td
-                                        style="background:rgba(245,158,11,0.08);border-left:4px solid #f59e0b;padding:12px 16px;border-radius:0 8px 8px 0;">
-                                        <p style="margin:0;color:#d97706;font-size:13px;line-height:1.6;">
-                                            🔒 This invite link is single-use and will expire. If you didn't expect
-                                            this invitation, you can safely ignore this email.
-                                        </p>
-                                    </td>
-                                </tr>
-                            </table>
-                        </td>
-                    </tr>
-
-                    <!-- Footer -->
-                    <tr>
-                        <td
-                            style="background-color:#12102a;padding:24px 40px;border-top:1px solid rgba(139,92,246,0.15);text-align:center;">
-                            <p style="margin:0 0 4px;color:#6b7280;font-size:12px;line-height:1.6;">
-                                You received this invitation because someone added your email address on
-                                <a href="{{ .SiteURL }}"
-                                    style="color:#a78bfa;text-decoration:none;">{{ .AppName }}</a>.
-                            </p>
-                            <p style="margin:0 0 4px;color:#6b7280;font-size:12px;line-height:1.6;">
-                                If you weren't expecting this, no action is required — just ignore this email.
-                            </p>
-                            <p style="margin:14px 0 0;color:#4b5563;font-size:11px;">
-                                © {{.Year}} {{.AppName}} · <a href="{{.AppURL}}"
-                                    style="color:#7c3aed;text-decoration:none;">{{.AppURL}}</a>
-                            </p>
-                        </td>
-                    </tr>
-
-                </table>
+                      </tr>
+                    </table>
+                    <h1 style="margin:22px 0 10px;color:#ffffff;font-size:34px;line-height:1.12;font-weight:800;letter-spacing:-0.03em;">
+                      You're invited
+                    </h1>
+                    <p style="margin:0;max-width:470px;color:rgba(255,255,255,0.88);font-size:16px;line-height:1.7;">
+                      Someone invited this email address to join {{.AppName}}. Accept the invite to continue.
+                    </p>
+                  </td>
+                </tr>
+              </table>
             </td>
-        </tr>
-    </table>
+          </tr>
+
+          <tr>
+            <td style="padding:34px 36px 18px;background-color:#18191c;">
+              <p style="margin:0 0 24px;color:#b9bbbe;font-size:15px;line-height:1.8;">
+                This invitation was sent to <strong style="color:#ffffff;">{{.To}}</strong>. Use the link below to accept and get started.
+              </p>
+
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:18px;">
+                <tr>
+                  <td align="center">
+                    <a href="{{.ActionURL}}" target="_blank" style="display:inline-block;background-color:#5865f2;border-radius:14px;color:#ffffff;font-size:16px;font-weight:700;line-height:20px;padding:16px 30px;text-decoration:none;box-shadow:0 12px 28px rgba(88,101,242,0.28);">
+                      Accept Invite
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              {{if .ValidFor}}
+              <p style="margin:0 0 24px;color:#8e9297;font-size:13px;line-height:1.6;text-align:center;">
+                This invite expires in <strong style="color:#ffffff;">{{.ValidFor}}</strong>.
+              </p>
+              {{end}}
+
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:24px;background-color:#202225;border:1px solid #313338;border-radius:18px;">
+                <tr>
+                  <td style="padding:20px 22px;">
+                    <p style="margin:0 0 8px;color:#ffffff;font-size:13px;font-weight:700;">Open link directly</p>
+                    <p style="margin:0;word-break:break-all;font-size:13px;line-height:1.7;">
+                      <a href="{{.ActionURL}}" target="_blank" style="color:#c9cdfb;text-decoration:none;">{{.ActionURL}}</a>
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:14px;background-color:#1e223d;border:1px solid #343b75;border-radius:18px;">
+                <tr>
+                  <td style="padding:18px 20px;">
+                    <p style="margin:0;color:#c9cdfb;font-size:13px;line-height:1.7;">
+                      If this invite was not meant for you, you can ignore this email.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:24px 36px 30px;background-color:#18191c;border-top:1px solid #2a2d31;">
+              <p style="margin:0 0 6px;color:#8e9297;font-size:12px;line-height:1.6;">
+                This email was sent because your address was used for an invitation to {{.AppName}}.
+              </p>
+              <p style="margin:0;color:#6d727a;font-size:12px;line-height:1.6;">
+                <a href="{{.AppURL}}" target="_blank" style="color:#c9cdfb;text-decoration:none;">{{.AppURL}}</a> · © {{.Year}} {{.AppName}}
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
 
 </html>

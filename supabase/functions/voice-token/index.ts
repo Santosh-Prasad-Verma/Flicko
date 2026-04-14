@@ -57,8 +57,8 @@ serve(async (req: Request) => {
     });
   }
 
-  const LIVEKIT_API_KEY = Deno.env.get('LIVEKIT_API_KEY') || 'mock-api-key';
-  const LIVEKIT_API_SECRET = Deno.env.get('LIVEKIT_API_SECRET') || 'mock-api-secret';
+  const LIVEKIT_API_KEY = Deno.env.get('LIVEKIT_API_KEY');
+  const LIVEKIT_API_SECRET = Deno.env.get('LIVEKIT_API_SECRET');
   const LIVEKIT_URL = Deno.env.get('LIVEKIT_URL') || 'wss://livekit.yourdomain.com';
   const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
   const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
@@ -290,7 +290,7 @@ serve(async (req: Request) => {
     );
   } catch (err: any) {
     console.error('voice-token error:', err);
-    return new Response(JSON.stringify({ error: err.message || 'Internal server error', stack: err.stack }), {
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

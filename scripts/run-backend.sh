@@ -256,7 +256,7 @@ print_status_table() {
   local ws_pid="$1" msg_pid="$2" be_pid="$3"
   local ws_port="${WS_PORT:-8080}"
   local msg_port="${HTTP_PORT:-8085}"
-  local be_port="${PORT:-8081}"
+  local be_port="${PORT_HTTP:-8080}"
   local w=$(( COLS - 4 ))
 
   gap
@@ -650,14 +650,14 @@ gap
 
 # ── backend ───────────────────────────────────────────────────────────────────
 dbg "Spawning backend..."
-start_spinner "Compiling and starting backend on :${PORT:-8081}..."
+start_spinner "Compiling and starting backend on :${PORT_HTTP:-8080}..."
 cd "${PROJECT_ROOT}/backend"
 go run ./cmd/server &
 BACKEND_PID=$!
 sleep 2
 stop_spinner
 progress_bar 3 3
-pulse_start "backend" "${PORT:-8081}" "$BACKEND_PID"
+pulse_start "backend" "${PORT_HTTP:-8080}" "$BACKEND_PID"
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  STATUS TABLE + HOLD
