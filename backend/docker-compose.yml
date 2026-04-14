@@ -10,12 +10,16 @@ services:
     env_file:
       - ../.env
     environment:
-      - DATABASE_URL=postgres://flicko:secret@db:5432/flickodb?sslmode=disable
-      - JWT_SECRET=change_this_to_a_secure_minimum_32_character_long_string_in_production!
+      - DATABASE_URL=${DATABASE_URL:-postgres://flicko:${POSTGRES_PASSWORD:-changeme}@db:5432/flickodb?sslmode=disable}
+      - JWT_SECRET=${JWT_SECRET:?set_JWT_SECRET}
       - PORT_HTTP=8080
       - PORT_WS=8081
-      - SUPABASE_URL=https://zliclxzqkopxgnlwlqsu.supabase.co
-      - SUPABASE_SERVICE_ROLE_KEY=sb_publishable_KALDplD_nuC6eCI8Vh55yA_G-rd2yY_
+      - SUPABASE_URL=${SUPABASE_URL:?set_SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:?set_SUPABASE_SERVICE_ROLE_KEY}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME:-demo}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY:-demo}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET:-demo}
       - ENVIRONMENT=development
     depends_on:
       db:
@@ -28,7 +32,7 @@ services:
     image: postgres:15-alpine
     environment:
       - POSTGRES_USER=flicko
-      - POSTGRES_PASSWORD=secret
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
       - POSTGRES_DB=flickodb
     ports:
       - "5433:5432"

@@ -57,15 +57,15 @@ serve(async (req: Request) => {
     });
   }
 
-  const LIVEKIT_API_KEY = Deno.env.get('LIVEKIT_API_KEY') || 'mock-api-key';
-  const LIVEKIT_API_SECRET = Deno.env.get('LIVEKIT_API_SECRET') || 'mock-api-secret';
-  const LIVEKIT_URL = Deno.env.get('LIVEKIT_URL') || 'wss://livekit.yourdomain.com';
+  const LIVEKIT_API_KEY = Deno.env.get('LIVEKIT_API_KEY');
+  const LIVEKIT_API_SECRET = Deno.env.get('LIVEKIT_API_SECRET');
+  const LIVEKIT_URL = Deno.env.get('LIVEKIT_URL');
   const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
   const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
-  if (!LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
+  if (!LIVEKIT_API_KEY || !LIVEKIT_API_SECRET || !LIVEKIT_URL || !SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
     return new Response(
-      JSON.stringify({ error: 'LiveKit credentials not configured' }),
+      JSON.stringify({ error: 'Voice token service is not configured' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }
@@ -113,7 +113,7 @@ serve(async (req: Request) => {
 
     if (memberError || !member) {
       console.error('Member error:', memberError);
-      return new Response(JSON.stringify({ error: 'Not a server member', details: memberError }), {
+      return new Response(JSON.stringify({ error: 'Not a server member' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -129,7 +129,7 @@ serve(async (req: Request) => {
 
     if (channelError || !channel || !['voice', 'stage'].includes(channel.type)) {
       console.error('Channel error:', channelError, 'Channel data:', channel);
-      return new Response(JSON.stringify({ error: 'Invalid voice channel', details: channelError }), {
+      return new Response(JSON.stringify({ error: 'Invalid voice channel' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -240,7 +240,7 @@ serve(async (req: Request) => {
 
     if (upsertError) {
       console.error('Voice state upsert error:', upsertError);
-      return new Response(JSON.stringify({ error: 'Failed to join voice channel', details: upsertError }), {
+      return new Response(JSON.stringify({ error: 'Failed to join voice channel' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -290,7 +290,7 @@ serve(async (req: Request) => {
     );
   } catch (err: any) {
     console.error('voice-token error:', err);
-    return new Response(JSON.stringify({ error: err.message || 'Internal server error', stack: err.stack }), {
+    return new Response(JSON.stringify({ error: err?.message || 'Internal server error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

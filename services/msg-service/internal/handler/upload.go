@@ -30,6 +30,13 @@ type presignRequest struct {
 
 // Presign handles POST /v1/channels/{channelID}/upload/presign.
 func (h *UploadHandler) Presign(w http.ResponseWriter, r *http.Request) {
+	if h.svc == nil {
+		JSON(w, http.StatusServiceUnavailable, map[string]string{
+			"error": "upload service unavailable",
+		})
+		return
+	}
+
 	channelID := chi.URLParam(r, "channelID")
 	userID := auth.UserIDFromContext(r.Context())
 

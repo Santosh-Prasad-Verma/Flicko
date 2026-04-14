@@ -396,7 +396,6 @@ export default function RootLayout() {
             </ThemeProvider>
           </AuthGate>
         </QueryClientProvider>
-        <import-placeholder />
         <FloatingVideoPiP />
       </SafeAreaProvider>
     </ErrorBoundary>

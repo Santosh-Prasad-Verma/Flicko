@@ -141,7 +141,7 @@ services:
       - "443:443"                    # HTTPS — Cloudflare Origin TLS
     networks:
       - flicko_edge                  # Faces the public internet
-      - flicko_internal              # Routes to ws-gateway, msg-service
+      - flicko_internal              # Routes to ws-gateway, msg-service, backend
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
@@ -156,6 +156,8 @@ services:
         condition: service_healthy   # Don't start until gateway is ready
       msg-service:
         condition: service_healthy   # Don't start until msg-service is ready
+      backend:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget --spider -q http://localhost:80/health || exit 1"]
       interval: 15s
@@ -288,6 +290,50 @@ services:
       start_period: 15s
 
   # ──────────────────────────────────────────────────────────────────────────
+  # BACKEND — Commands/Bots/Cloudinary signing API
+  # ──────────────────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: flicko/backend:latest
+    container_name: flicko-backend
+    <<: [*restart-policy, *default-logging]
+    networks:
+      - flicko_internal
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    environment:
+      <<: *common-env
+      ENVIRONMENT: "production"
+      PORT_HTTP: "8080"
+      PORT_WS: "8081"
+      DATABASE_URL: "${DATABASE_URL}"
+      REDIS_URL: "${REDIS_URL}"
+      JWT_SECRET: "${JWT_SECRET}"
+      SUPABASE_URL: "${SUPABASE_URL}"
+      SUPABASE_SERVICE_ROLE_KEY: "${SUPABASE_SERVICE_ROLE_KEY}"
+      ENCRYPTION_KEY: "${ENCRYPTION_KEY}"
+      CLOUDINARY_CLOUD_NAME: "${CLOUDINARY_CLOUD_NAME}"
+      CLOUDINARY_API_KEY: "${CLOUDINARY_API_KEY}"
+      CLOUDINARY_API_SECRET: "${CLOUDINARY_API_SECRET}"
+      CLOUDINARY_UPLOAD_PRESET: "${CLOUDINARY_UPLOAD_PRESET:-flickochat_media}"
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+          cpus: "1.0"
+        reservations:
+          memory: 256M
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO /dev/null http://localhost:8080/api/v1/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
+
+  # ──────────────────────────────────────────────────────────────────────────
   # REDIS — Now using Upstash (cloud). No local container needed.
   # Set REDIS_URL in .env to your Upstash TLS URL (rediss://).
   # Monitor via Upstash dashboard: https://console.upstash.com
@@ -411,7 +457,7 @@ services:
     container_name: flicko-nginx-exporter
     <<: [*restart-policy, *default-logging]
     command:
-      - "--nginx.scrape-uri=http://nginx:8080/stub_status"
+      - "--nginx.scrape-uri=http://nginx/stub_status"
     networks:
       - flicko_internal              # Reach NGINX stub_status
       - flicko_monitor               # Prometheus scrapes this
