@@ -268,6 +268,8 @@ func main() {
 	protected.HandleFunc("/activities/launch", activityHandler.Launch).Methods("POST")
 	protected.HandleFunc("/activities/{sessionId}/join", activityHandler.Join).Methods("POST")
 	protected.HandleFunc("/activities/{sessionId}/leave", activityHandler.Leave).Methods("POST")
+	protected.HandleFunc("/activities/{sessionId}/end", activityHandler.End).Methods("POST")
+	protected.HandleFunc("/activities/{sessionId}", activityHandler.GetSession).Methods("GET")
 	protected.HandleFunc("/activities/{sessionId}/state", activityHandler.UpdateState).Methods("POST")
 	protected.HandleFunc("/activities/{sessionId}/participants", activityHandler.GetParticipants).Methods("GET")
 

@@ -60,6 +60,26 @@ type ActivityParticipantResponse struct {
 	UserID    string    `json:"user_id"`
 	JoinedAt  time.Time `json:"joined_at"`
 	SessionID string    `json:"session_id"`
+	Role      string    `json:"role"`
+	LeftAt    *time.Time `json:"left_at,omitempty"`
+}
+
+type ActivitySessionResponse struct {
+	ID                string     `json:"id"`
+	ActivityID        string     `json:"activity_id"`
+	ChannelID         string     `json:"channel_id"`
+	ServerID          string     `json:"server_id"`
+	HostUserID        string     `json:"host_user_id"`
+	PreviousHostUserID *string    `json:"previous_host_user_id,omitempty"`
+	State             string     `json:"state"`
+	EmbedURL          string     `json:"embed_url"`
+	StartedAt         *time.Time `json:"started_at,omitempty"`
+	EndedAt           *time.Time `json:"ended_at,omitempty"`
+	EndedReason       *string    `json:"ended_reason,omitempty"`
+	LastHeartbeatAt   *time.Time `json:"last_heartbeat_at,omitempty"`
+	HostTransferredAt *time.Time `json:"host_transferred_at,omitempty"`
+	CreatedAt         time.Time  `json:"created_at"`
+	ParticipantCount  int        `json:"participant_count"`
 }
 
 // GetCatalog handles GET /api/v1/activities/catalog
@@ -173,19 +193,20 @@ func (h *ActivityHandler) Launch(w http.ResponseWriter, r *http.Request) {
 	var sessionID string
 	var state string
 	var createdAt time.Time
+	var heartbeatAt *time.Time
 	if err = tx.QueryRow(r.Context(), `
-		INSERT INTO public.activity_sessions (activity_id, channel_id, server_id, host_user_id, state, embed_url)
-		VALUES ($1, $2, $3, $4, 'launching', $5)
-		RETURNING id, state, created_at, embed_url
-	`, activityUUID, channelUUID, serverUUID, userUUID, embedURL).Scan(&sessionID, &state, &createdAt, &embedURL); err != nil {
+		INSERT INTO public.activity_sessions (activity_id, channel_id, server_id, host_user_id, state, embed_url, last_heartbeat_at)
+		VALUES ($1, $2, $3, $4, 'launching', $5, NOW())
+		RETURNING id, state, created_at, embed_url, last_heartbeat_at
+	`, activityUUID, channelUUID, serverUUID, userUUID, embedURL).Scan(&sessionID, &state, &createdAt, &embedURL, &heartbeatAt); err != nil {
 		h.logger.Error("failed to create activity session", zap.Error(err))
 		writeError(w, http.StatusInternalServerError, "failed to create activity session")
 		return
 	}
 
 	if _, err = tx.Exec(r.Context(), `
-		INSERT INTO public.activity_participants (session_id, user_id)
-		VALUES ($1, $2)
+		INSERT INTO public.activity_participants (session_id, user_id, role, left_at)
+		VALUES ($1, $2, 'host', NULL)
 		ON CONFLICT (session_id, user_id) DO NOTHING
 	`, sessionID, userUUID); err != nil {
 		h.logger.Error("failed to add host participant", zap.Error(err))
@@ -200,11 +221,12 @@ func (h *ActivityHandler) Launch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusCreated, map[string]interface{}{
-		"session_id":  sessionID,
-		"state":       state,
-		"embed_url":   embedURL,
+		"session_id":   sessionID,
+		"state":        state,
+		"embed_url":    embedURL,
 		"host_user_id": userID,
-		"created_at":  createdAt,
+		"created_at":   createdAt,
+		"last_heartbeat_at": heartbeatAt,
 	})
 }
 
@@ -234,9 +256,15 @@ func (h *ActivityHandler) Join(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if _, err = h.db.Exec(r.Context(), `
-		INSERT INTO public.activity_participants (session_id, user_id)
-		VALUES ($1, $2)
-		ON CONFLICT (session_id, user_id) DO NOTHING
+		INSERT INTO public.activity_participants (session_id, user_id, role, left_at)
+		VALUES ($1, $2, 'participant', NULL)
+		ON CONFLICT (session_id, user_id)
+		DO UPDATE SET
+			left_at = NULL,
+			role = CASE
+				WHEN activity_participants.left_at IS NOT NULL THEN 'participant'
+				ELSE activity_participants.role
+			END
 	`, sessionUUID, userUUID); err != nil {
 		h.logger.Error("failed to join activity session", zap.Error(err))
 		writeError(w, http.StatusInternalServerError, "failed to join activity session")
@@ -280,7 +308,9 @@ func (h *ActivityHandler) Leave(w http.ResponseWriter, r *http.Request) {
 	defer tx.Rollback(r.Context()) //nolint:errcheck
 
 	if _, err = tx.Exec(r.Context(), `
-		DELETE FROM public.activity_participants
+		UPDATE public.activity_participants
+		SET left_at = NOW(),
+		    role = CASE WHEN role = 'host' THEN 'participant' ELSE role END
 		WHERE session_id = $1 AND user_id = $2
 	`, sessionUUID, userUUID); err != nil {
 		h.logger.Error("failed to remove participant", zap.Error(err))
@@ -301,6 +331,7 @@ func (h *ActivityHandler) Leave(w http.ResponseWriter, r *http.Request) {
 			SELECT user_id
 			FROM public.activity_participants
 			WHERE session_id = $1
+			  AND left_at IS NULL
 			ORDER BY created_at ASC
 			LIMIT 1
 		`, sessionUUID).Scan(&nextHost)
@@ -308,23 +339,65 @@ func (h *ActivityHandler) Leave(w http.ResponseWriter, r *http.Request) {
 		if nextHostErr == nil {
 			if _, err = tx.Exec(r.Context(), `
 				UPDATE public.activity_sessions
-				SET host_user_id = $2
+				SET host_user_id = $2,
+				    previous_host_user_id = $3,
+				    host_transferred_at = NOW(),
+				    last_heartbeat_at = NOW()
 				WHERE id = $1
-			`, sessionUUID, nextHost); err != nil {
+			`, sessionUUID, nextHost, userUUID); err != nil {
 				h.logger.Error("failed to transfer activity host", zap.Error(err))
+				writeError(w, http.StatusInternalServerError, "failed to leave activity session")
+				return
+			}
+			if _, err = tx.Exec(r.Context(), `
+				UPDATE public.activity_participants
+				SET role = 'host'
+				WHERE session_id = $1
+				  AND user_id = $2
+				  AND left_at IS NULL
+			`, sessionUUID, nextHost); err != nil {
+				h.logger.Error("failed to promote new activity host", zap.Error(err))
 				writeError(w, http.StatusInternalServerError, "failed to leave activity session")
 				return
 			}
 		} else {
 			if _, err = tx.Exec(r.Context(), `
 				UPDATE public.activity_sessions
-				SET state = 'ended', ended_at = NOW()
+				SET state = 'ended',
+				    ended_at = NOW(),
+				    ended_reason = 'host_left',
+				    last_heartbeat_at = NOW()
 				WHERE id = $1
 			`, sessionUUID); err != nil {
 				h.logger.Error("failed to end empty activity session", zap.Error(err))
 				writeError(w, http.StatusInternalServerError, "failed to leave activity session")
 				return
 			}
+		}
+	}
+	var activeParticipants int
+	if err = tx.QueryRow(r.Context(), `
+		SELECT COUNT(*)
+		FROM public.activity_participants
+		WHERE session_id = $1
+		  AND left_at IS NULL
+	`, sessionUUID).Scan(&activeParticipants); err != nil {
+		h.logger.Error("failed to count active participants", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to leave activity session")
+		return
+	}
+	if activeParticipants == 0 {
+		if _, err = tx.Exec(r.Context(), `
+			UPDATE public.activity_sessions
+			SET state = 'ended',
+			    ended_at = COALESCE(ended_at, NOW()),
+			    ended_reason = COALESCE(ended_reason, 'empty'),
+			    last_heartbeat_at = NOW()
+			WHERE id = $1
+		`, sessionUUID); err != nil {
+			h.logger.Error("failed to end empty activity session", zap.Error(err))
+			writeError(w, http.StatusInternalServerError, "failed to leave activity session")
+			return
 		}
 	}
 
@@ -388,19 +461,25 @@ func (h *ActivityHandler) UpdateState(w http.ResponseWriter, r *http.Request) {
 	case "active":
 		_, err = tx.Exec(r.Context(), `
 			UPDATE public.activity_sessions
-			SET state = $2, started_at = COALESCE(started_at, NOW())
+			SET state = $2,
+			    started_at = COALESCE(started_at, NOW()),
+			    last_heartbeat_at = NOW()
 			WHERE id = $1
 		`, sessionUUID, req.State)
 	case "ended":
 		_, err = tx.Exec(r.Context(), `
 			UPDATE public.activity_sessions
-			SET state = $2, ended_at = NOW()
+			SET state = $2,
+			    ended_at = NOW(),
+			    ended_reason = COALESCE(ended_reason, 'host_ended'),
+			    last_heartbeat_at = NOW()
 			WHERE id = $1
 		`, sessionUUID, req.State)
 	default:
 		_, err = tx.Exec(r.Context(), `
 			UPDATE public.activity_sessions
-			SET state = $2
+			SET state = $2,
+			    last_heartbeat_at = NOW()
 			WHERE id = $1
 		`, sessionUUID, req.State)
 	}
@@ -475,7 +554,7 @@ func (h *ActivityHandler) GetParticipants(w http.ResponseWriter, r *http.Request
 	}
 
 	rows, err := h.db.Query(r.Context(), `
-		SELECT session_id, user_id, created_at
+		SELECT session_id, user_id, created_at, role, left_at
 		FROM public.activity_participants
 		WHERE session_id = $1
 		ORDER BY created_at ASC
@@ -490,7 +569,7 @@ func (h *ActivityHandler) GetParticipants(w http.ResponseWriter, r *http.Request
 	items := make([]ActivityParticipantResponse, 0, 16)
 	for rows.Next() {
 		var item ActivityParticipantResponse
-		if scanErr := rows.Scan(&item.SessionID, &item.UserID, &item.JoinedAt); scanErr != nil {
+		if scanErr := rows.Scan(&item.SessionID, &item.UserID, &item.JoinedAt, &item.Role, &item.LeftAt); scanErr != nil {
 			h.logger.Error("failed to scan participant row", zap.Error(scanErr))
 			writeError(w, http.StatusInternalServerError, "failed to parse participants")
 			return
@@ -508,4 +587,116 @@ func (h *ActivityHandler) GetParticipants(w http.ResponseWriter, r *http.Request
 		"items": items,
 		"count": len(items),
 	})
+}
+
+// End handles POST /api/v1/activities/{sessionId}/end
+func (h *ActivityHandler) End(w http.ResponseWriter, r *http.Request) {
+	userID := getUserID(r)
+	if userID == "" {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	sessionID := mux.Vars(r)["sessionId"]
+	if sessionID == "" {
+		writeError(w, http.StatusBadRequest, "missing sessionId")
+		return
+	}
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid user id")
+		return
+	}
+	sessionUUID, err := uuid.Parse(sessionID)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid sessionId")
+		return
+	}
+
+	tx, err := h.db.Begin(r.Context())
+	if err != nil {
+		h.logger.Error("failed to begin end transaction", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to end activity session")
+		return
+	}
+	defer tx.Rollback(r.Context()) //nolint:errcheck
+
+	res, err := tx.Exec(r.Context(), `
+		UPDATE public.activity_sessions
+		SET state = 'ended',
+		    ended_at = NOW(),
+		    ended_reason = 'host_ended',
+		    last_heartbeat_at = NOW()
+		WHERE id = $1
+		  AND host_user_id = $2
+	`, sessionUUID, userUUID)
+	if err != nil {
+		h.logger.Error("failed to end activity session", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to end activity session")
+		return
+	}
+	if res.RowsAffected() == 0 {
+		writeError(w, http.StatusForbidden, "only host can end activity session")
+		return
+	}
+
+	if _, err = tx.Exec(r.Context(), `
+		UPDATE public.activity_participants
+		SET left_at = NOW(),
+		    role = CASE WHEN role = 'host' THEN 'participant' ELSE role END
+		WHERE session_id = $1
+		  AND left_at IS NULL
+	`, sessionUUID); err != nil {
+		h.logger.Error("failed to close activity participants", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to end activity session")
+		return
+	}
+
+	if err = tx.Commit(r.Context()); err != nil {
+		h.logger.Error("failed to commit end transaction", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to end activity session")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ended"})
+}
+
+// GetSession handles GET /api/v1/activities/{sessionId}
+func (h *ActivityHandler) GetSession(w http.ResponseWriter, r *http.Request) {
+	sessionID := mux.Vars(r)["sessionId"]
+	if sessionID == "" {
+		writeError(w, http.StatusBadRequest, "missing sessionId")
+		return
+	}
+	sessionUUID, err := uuid.Parse(sessionID)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid sessionId")
+		return
+	}
+
+	var out ActivitySessionResponse
+	if err = h.db.QueryRow(r.Context(), `
+		SELECT s.id, s.activity_id, s.channel_id, s.server_id, s.host_user_id,
+		       s.previous_host_user_id, s.state, COALESCE(s.embed_url, ''),
+		       s.started_at, s.ended_at, s.ended_reason, s.last_heartbeat_at,
+		       s.host_transferred_at, s.created_at,
+		       COALESCE((
+		       	SELECT COUNT(*)
+		       	FROM public.activity_participants ap
+		       	WHERE ap.session_id = s.id
+		       	  AND ap.left_at IS NULL
+		       ), 0) AS participant_count
+		FROM public.activity_sessions s
+		WHERE s.id = $1
+		LIMIT 1
+	`, sessionUUID).Scan(
+		&out.ID, &out.ActivityID, &out.ChannelID, &out.ServerID, &out.HostUserID,
+		&out.PreviousHostUserID, &out.State, &out.EmbedURL, &out.StartedAt,
+		&out.EndedAt, &out.EndedReason, &out.LastHeartbeatAt, &out.HostTransferredAt,
+		&out.CreatedAt, &out.ParticipantCount,
+	); err != nil {
+		writeError(w, http.StatusNotFound, "session not found")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, out)
 }
