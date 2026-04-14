@@ -64,21 +64,12 @@ jobs:
             # Ensure the secrets directory exists
             mkdir -p ./secrets
             
-            # Extract JWT_PUBLIC_KEY from the .env file if it exists,
-            # and convert escaped newlines (for example, "\n") into real PEM line breaks.
+                        # Extract JWT_PUBLIC_KEY from the .env file if it exists,
+            # and convert escaped newlines into real PEM line breaks.
             JWT_PUBLIC_KEY_LINE=$(grep -m 1 -E '^JWT_PUBLIC_KEY=' ~/Flicko/.env || true)
             if [ -n "$JWT_PUBLIC_KEY_LINE" ]; then
               JWT_PUBLIC_KEY_VALUE=${JWT_PUBLIC_KEY_LINE#JWT_PUBLIC_KEY=}
-              case "$JWT_PUBLIC_KEY_VALUE" in
-                \"*\")
-                  JWT_PUBLIC_KEY_VALUE=${JWT_PUBLIC_KEY_VALUE#\"}
-                  JWT_PUBLIC_KEY_VALUE=${JWT_PUBLIC_KEY_VALUE%\"}
-                  ;;
-                \'*\')
-                  JWT_PUBLIC_KEY_VALUE=${JWT_PUBLIC_KEY_VALUE#\'}
-                  JWT_PUBLIC_KEY_VALUE=${JWT_PUBLIC_KEY_VALUE%\'}
-                  ;;
-              esac
+              JWT_PUBLIC_KEY_VALUE=$(printf '%s' "$JWT_PUBLIC_KEY_VALUE" | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
               if [ -n "$JWT_PUBLIC_KEY_VALUE" ]; then
                 printf '%b' "$JWT_PUBLIC_KEY_VALUE" > ./secrets/jwt_public.pem
               fi
