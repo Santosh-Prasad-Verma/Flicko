@@ -156,21 +156,16 @@ func (h *ActivityHandler) Launch(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback(r.Context()) //nolint:errcheck
 
-	var exists bool
+	var embedURL string
 	if err = tx.QueryRow(r.Context(), `
-		SELECT EXISTS(
-			SELECT 1
-			FROM public.activities
-			WHERE id = $1
-			  AND user_id IS NULL
-			  AND COALESCE(enabled, true) = true
-		)
-	`, activityUUID).Scan(&exists); err != nil {
+		SELECT COALESCE(embed_url, '')
+		FROM public.activities
+		WHERE id = $1
+		  AND user_id IS NULL
+		  AND COALESCE(enabled, true) = true
+		LIMIT 1
+	`, activityUUID).Scan(&embedURL); err != nil {
 		h.logger.Error("failed to validate activity", zap.Error(err))
-		writeError(w, http.StatusInternalServerError, "failed to launch activity")
-		return
-	}
-	if !exists {
 		writeError(w, http.StatusNotFound, "activity not found")
 		return
 	}
@@ -178,14 +173,11 @@ func (h *ActivityHandler) Launch(w http.ResponseWriter, r *http.Request) {
 	var sessionID string
 	var state string
 	var createdAt time.Time
-	var embedURL string
 	if err = tx.QueryRow(r.Context(), `
 		INSERT INTO public.activity_sessions (activity_id, channel_id, server_id, host_user_id, state, embed_url)
-		SELECT $1, $2, $3, $4, 'launching', COALESCE(a.embed_url, '')
-		FROM public.activities a
-		WHERE a.id = $1
+		VALUES ($1, $2, $3, $4, 'launching', $5)
 		RETURNING id, state, created_at, embed_url
-	`, activityUUID, channelUUID, serverUUID, userUUID).Scan(&sessionID, &state, &createdAt, &embedURL); err != nil {
+	`, activityUUID, channelUUID, serverUUID, userUUID, embedURL).Scan(&sessionID, &state, &createdAt, &embedURL); err != nil {
 		h.logger.Error("failed to create activity session", zap.Error(err))
 		writeError(w, http.StatusInternalServerError, "failed to create activity session")
 		return
@@ -298,12 +290,12 @@ func (h *ActivityHandler) Leave(w http.ResponseWriter, r *http.Request) {
 
 	// If host left, transfer host to oldest participant; if no participants remain, end session.
 	var currentHost uuid.UUID
-	hostErr := tx.QueryRow(r.Context(), `
+	hostQueryErr := tx.QueryRow(r.Context(), `
 		SELECT host_user_id
 		FROM public.activity_sessions
 		WHERE id = $1
 	`, sessionUUID).Scan(&currentHost)
-	if hostErr == nil && currentHost == userUUID {
+	if hostQueryErr == nil && currentHost == userUUID {
 		var nextHost uuid.UUID
 		nextHostErr := tx.QueryRow(r.Context(), `
 			SELECT user_id
@@ -421,6 +413,19 @@ func (h *ActivityHandler) UpdateState(w http.ResponseWriter, r *http.Request) {
 	patch := req.StatePatch
 	if patch == nil {
 		patch = map[string]interface{}{}
+	}
+	if len(patch) > 100 {
+		writeError(w, http.StatusBadRequest, "state_patch has too many keys")
+		return
+	}
+	patchBytes, marshalErr := json.Marshal(patch)
+	if marshalErr != nil {
+		writeError(w, http.StatusBadRequest, "invalid state_patch")
+		return
+	}
+	if len(patchBytes) > 16*1024 {
+		writeError(w, http.StatusBadRequest, "state_patch exceeds 16KB")
+		return
 	}
 
 	var version int64

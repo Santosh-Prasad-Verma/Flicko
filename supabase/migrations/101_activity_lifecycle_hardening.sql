@@ -127,7 +127,14 @@ END
 $$;
 
 -- Relax strict legacy constraints so catalog rows can exist without user_id/type.
--- Presence rows remain enforced through activities_presence_or_catalog_check below.
+-- Historical state:
+--   - legacy presence rows required user_id/type
+--   - embedded activity catalog rows do not have user ownership/type semantics
+-- Migration path:
+--   - drop strict NOT NULL constraints
+--   - replace them with activities_presence_or_catalog_check (below), which enforces:
+--       * presence rows => user_id present + valid presence type
+--       * catalog rows  => user_id/type null + valid catalog category
 ALTER TABLE public.activities ALTER COLUMN user_id DROP NOT NULL;
 ALTER TABLE public.activities ALTER COLUMN type DROP NOT NULL;
 
