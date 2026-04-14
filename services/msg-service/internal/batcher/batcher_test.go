@@ -146,7 +146,7 @@ func TestSubmitAndFlush(t *testing.T) {
 
 	// Submit 5 messages (less than maxBatch), should flush on timer.
 	for i := range 5 {
-		if err := b.Submit(newMsg, nil)(fmt.Sprintf("m-%d", i))); err != nil {
+		if err := b.Submit(newMsg(fmt.Sprintf("m-%d", i)), nil); err != nil {
 			t.Fatalf("submit: %v", err)
 		}
 	}
@@ -182,7 +182,7 @@ func TestFlushOnMaxBatch(t *testing.T) {
 	// Submit exactly maxBatch messages — they should flush immediately
 	// without waiting for the timer.
 	for i := range 10 {
-		if err := b.Submit(newMsg, nil)(fmt.Sprintf("batch-%d", i))); err != nil {
+		if err := b.Submit(newMsg(fmt.Sprintf("batch-%d", i)), nil); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -209,7 +209,7 @@ func TestFlushOnTimer(t *testing.T) {
 
 	// Submit 3 messages — well below maxBatch.
 	for i := range 3 {
-		_ = b.Submit(newMsg, nil)(fmt.Sprintf("timer-%d", i)))
+		_ = b.Submit(newMsg(fmt.Sprintf("timer-%d", i)), nil)
 	}
 
 	// Should flush within ~30ms + buffer.
@@ -236,7 +236,7 @@ func TestBackpressure(t *testing.T) {
 	// Fill the buffer.
 	var backpressureCount int
 	for i := range 20 {
-		if err := b.Submit(newMsg, nil)(fmt.Sprintf("bp-%d", i))); err != nil {
+		if err := b.Submit(newMsg(fmt.Sprintf("bp-%d", i)), nil); err != nil {
 			backpressureCount++
 		}
 	}
@@ -270,7 +270,7 @@ func TestRetryOnFailure(t *testing.T) {
 	go b.Run(ctx)
 
 	for i := range 5 {
-		_ = b.Submit(newMsg, nil)(fmt.Sprintf("retry-%d", i)))
+		_ = b.Submit(newMsg(fmt.Sprintf("retry-%d", i)), nil)
 	}
 
 	waitFor(t, 2*time.Second, func() bool {
@@ -306,7 +306,7 @@ func TestDeadLetter(t *testing.T) {
 	go b.Run(ctx)
 
 	for i := range 5 {
-		_ = b.Submit(newMsg, nil)(fmt.Sprintf("dlq-%d", i)))
+		_ = b.Submit(newMsg(fmt.Sprintf("dlq-%d", i)), nil)
 	}
 
 	// Wait for dead letter.
@@ -372,7 +372,7 @@ func TestGracefulShutdown(t *testing.T) {
 	// Submit messages.
 	const total = 37
 	for i := range total {
-		_ = b.Submit(newMsg, nil)(fmt.Sprintf("shutdown-%d", i)))
+		_ = b.Submit(newMsg(fmt.Sprintf("shutdown-%d", i)), nil)
 	}
 
 	// Give a moment for messages to reach the buffer.
@@ -420,7 +420,7 @@ func TestThroughput300MsgPerSec(t *testing.T) {
 	interval := time.Second / totalMsgs // ~3.33ms per message
 
 	for i := range totalMsgs {
-		if err := b.Submit(newMsg, nil)(fmt.Sprintf("perf-%d", i))); err != nil {
+		if err := b.Submit(newMsg(fmt.Sprintf("perf-%d", i)), nil); err != nil {
 			t.Fatalf("submit error at msg %d: %v", i, err)
 		}
 		submitted.Add(1)
@@ -466,7 +466,7 @@ func TestMetricsSnapshot(t *testing.T) {
 	go b.Run(ctx)
 
 	for i := range 15 {
-		_ = b.Submit(newMsg, nil)(fmt.Sprintf("snap-%d", i)))
+		_ = b.Submit(newMsg(fmt.Sprintf("snap-%d", i)), nil)
 	}
 
 	waitFor(t, 1*time.Second, func() bool {
@@ -518,7 +518,7 @@ func TestZeroConfigDefaults(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	go b.Run(ctx)
 
-	_ = b.Submit(newMsg, nil)("default-1"))
+	_ = b.Submit(newMsg("default-1"), nil)
 
 	waitFor(t, 500*time.Millisecond, func() bool {
 		return len(repo.Inserted()) == 1
@@ -549,7 +549,7 @@ func TestConcurrentSubmit(t *testing.T) {
 		go func(gid int) {
 			defer wg.Done()
 			for i := range perGoroutine {
-				_ = b.Submit(newMsg, nil)(fmt.Sprintf("conc-%d-%d", gid, i)))
+				_ = b.Submit(newMsg(fmt.Sprintf("conc-%d-%d", gid, i)), nil)
 			}
 		}(g)
 	}
