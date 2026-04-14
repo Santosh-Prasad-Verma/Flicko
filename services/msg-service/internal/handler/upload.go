@@ -31,6 +31,7 @@ type presignRequest struct {
 // Presign handles POST /v1/channels/{channelID}/upload/presign.
 func (h *UploadHandler) Presign(w http.ResponseWriter, r *http.Request) {
 	if h.svc == nil {
+		h.log.Error("upload service unavailable: media service not configured")
 		JSON(w, http.StatusServiceUnavailable, map[string]string{
 			"error": "upload service unavailable",
 		})
