@@ -483,5 +483,5 @@ services:
       CLOUDINARY_API_KEY: "${CLOUDINARY_API_KEY}"
       CLOUDINARY_API_SECRET: "${CLOUDINARY_API_SECRET}"
     secrets:
-      - jwt_public
+      - jwt_public_key
 
