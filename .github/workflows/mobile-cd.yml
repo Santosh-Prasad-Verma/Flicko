@@ -29,8 +29,8 @@ jobs:
 
       - name: Build & Submit (Android)
         working-directory: ./mobile
-        run: eas build --platform android --profile production --auto-submit
+        run: eas build --platform android --profile production --non-interactive
 
       - name: Build & Submit (iOS)
         working-directory: ./mobile
-        run: eas build --platform ios --profile production --auto-submit
+        run: eas build --platform ios --profile production --non-interactive

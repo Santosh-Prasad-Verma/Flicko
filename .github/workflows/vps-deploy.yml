@@ -21,17 +21,30 @@ jobs:
           password: ${{ secrets.VPS_PASSWORD }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            # 1. Navigate to the project directory on your VPS
-            # Change this path if your project is located somewhere else (e.g., /opt/Flicko)
-            cd ~/Flicko || git clone https://github.com/Santosh-Prasad-Verma/Flicko.git ~/Flicko && cd ~/Flicko
+            # 1. Clone repository if missing or empty, otherwise pull
+            if [ ! -d "$HOME/Flicko/.git" ]; then
+              echo "Git repository missing. Cloning directly..."
+              rm -rf ~/Flicko || true
+              git clone https://github.com/${{ github.repository }} ~/Flicko
+            fi
+            
+            cd ~/Flicko || exit 1
             
             # 2. Pull the latest code
+            git reset --hard HEAD
             git pull origin main
             
             # 3. Create or update the .env file with your production secrets
-            echo "REDIS_URL=${{ secrets.PROD_REDIS_URL }}" > .env
-            # Add any other required secrets here properly like above
-            # Add any other required secrets here...
+            # Docker Compose needs these values so Go doesn't crash on startup
+            cat << ENVFILE > .env
+            REDIS_URL=${{ secrets.PROD_REDIS_URL }}
+            DATABASE_URL=${{ secrets.PROD_DATABASE_URL }}
+            GRAFANA_ADMIN_PASSWORD=${{ secrets.GRAFANA_ADMIN_PASSWORD || 'admin' }}
+            CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}
+            CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}
+            CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
+            ENVIRONMENT=production
+            ENVFILE
             
             # 4. Build and restart the containers using Docker Compose
             docker compose -f docker-compose.prod.yml down
