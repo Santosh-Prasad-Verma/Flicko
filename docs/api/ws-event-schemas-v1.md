@@ -18,7 +18,7 @@ All WS dispatch frames use the shared envelope from `services/shared/protocol/me
   "op": 0,
   "t": "EVENT_NAME",
   "s": 123,
-  "d": { "..." : "payload" }
+  "d": { "...": "payload" }
 }
 ```
 
@@ -29,14 +29,14 @@ All WS dispatch frames use the shared envelope from `services/shared/protocol/me
 
 ## Version Matrix
 
-| Domain | Version | Status |
-|--------|---------|--------|
-| MESSAGE | v1 | active |
-| VOICE | v1 | active |
-| ACTIVITY | v1 | active |
-| MOD | v1 | active |
+| Domain   | Version | Status |
+| -------- | ------- | ------ |
+| MESSAGE  | v1      | active |
+| VOICE    | v1      | active |
+| ACTIVITY | v1      | active |
+| MOD      | v1      | active |
 
-## MESSAGE_* (v1)
+## MESSAGE\_\* (v1)
 
 ### MESSAGE_CREATE
 
@@ -83,7 +83,7 @@ Payload shape aligns with `protocol.MessagePayload`:
 }
 ```
 
-## VOICE_* (v1)
+## VOICE\_\* (v1)
 
 ### VOICE_JOIN
 
@@ -118,7 +118,7 @@ Payload shape aligns with `protocol.MessagePayload`:
 }
 ```
 
-## ACTIVITY_* (v1)
+## ACTIVITY\_\* (v1)
 
 ### ACTIVITY_SESSION_UPDATE
 
@@ -162,7 +162,7 @@ Payload shape aligns with `protocol.MessagePayload`:
 }
 ```
 
-## MOD_* (v1)
+## MOD\_\* (v1)
 
 ### MOD_ACTION
 
