@@ -13,7 +13,6 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-  workflow_dispatch:
     steps:
       - name: Deploy to VPS via SSH
         uses: appleboy/ssh-action@v1.0.3
@@ -37,11 +36,10 @@ jobs:
             git pull origin main
             
             # 3. Create or update the .env file with your production secrets
-            # Docker Compose needs these values so Go doesn't crash on startup
             cat << ENVFILE > .env
-            REDIS_URL=${{ secrets.REDIS_URL || secrets.PROD_REDIS_URL }}
+            REDIS_URL=${{ secrets.PROD_REDIS_URL }}
             DATABASE_URL=${{ secrets.DATABASE_URL }}
-            GRAFANA_ADMIN_PASSWORD=${{ secrets.GRAFANA_ADMIN_PASSWORD || 'admin' }}
+            GRAFANA_ADMIN_PASSWORD=${{ secrets.GRAFANA_ADMIN_PASSWORD }}
             CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}
             CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}
             CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
