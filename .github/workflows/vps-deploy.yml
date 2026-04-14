@@ -14,6 +14,27 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Doppler CLI
+        uses: dopplerhq/cli-action@v3
+
+      - name: Fetch Secrets from Doppler
+        run: doppler secrets download --no-file --format docker > .env.production
+        env:
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+
+      - name: Copy .env to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_IP }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: ".env.production"
+          target: "~/Flicko/"
+
       - name: Deploy to VPS via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -35,40 +56,22 @@ jobs:
             git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
             git reset --hard HEAD
             git pull origin main
-            
-            # 3. Create or update the .env file with your production secrets
-            cat << ENVFILE > .env
-            REDIS_URL=${{ secrets.PROD_REDIS_URL }}
-            DATABASE_URL=${{ secrets.PROD_DATABASE_URL }}
-            GRAFANA_ADMIN_PASSWORD=${{ secrets.GRAFANA_ADMIN_PASSWORD }}
-            CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}
-            CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}
-            CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
-            CLOUDINARY_UPLOAD_PRESET=${{ secrets.CLOUDINARY_UPLOAD_PRESET }}
-            JWT_SECRET=${{ secrets.JWT_SECRET }}
-            SUPABASE_URL=${{ secrets.SUPABASE_URL }}
-            SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-            ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}
-            ENVIRONMENT=production
-            SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-            SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-            ENVFILE
 
-            # 3.5. Validate required deployment secrets
-            if [ -z "${{ secrets.GRAFANA_ADMIN_PASSWORD }}" ] || \
-               [ -z "${{ secrets.CLOUDINARY_UPLOAD_PRESET }}" ] || \
-               [ -z "${{ secrets.JWT_PUBLIC_KEY }}" ]; then
-              echo "Missing one or more required secrets: GRAFANA_ADMIN_PASSWORD, CLOUDINARY_UPLOAD_PRESET, JWT_PUBLIC_KEY"
-              exit 1
-            fi
+            # 3. Move the Doppler-generated .env file into place
+            mv ~/Flicko/.env.production ~/Flicko/.env
 
-            # 3.6. Materialize JWT public key file for docker compose secret mount
+            # 3.5. Materialize JWT public key file for docker compose secret mount
+            # Ensure the secrets directory exists
             mkdir -p ./secrets
-            printf '%s\n' "${{ secrets.JWT_PUBLIC_KEY }}" > ./secrets/jwt_public.pem
+            
+            # Extract JWT_PUBLIC_KEY from the .env file and save it to a pem file
+            # grep looks for the key, sed strips the 'JWT_PUBLIC_KEY=' part and any surrounding quotes
+            grep -E "^JWT_PUBLIC_KEY=" ~/Flicko/.env | sed -E 's/^JWT_PUBLIC_KEY=["'\'']?(.*)["'\'']?$/\1/' > ./secrets/jwt_public.pem
              
-            # Ensure JWT keys are generated
+            # Ensure JWT keys are generated (as a fallback/rotation mechanism)
             chmod +x scripts/generate-jwt-keys.sh
             ./scripts/generate-jwt-keys.sh
+
             # 4. Build and restart the containers using Docker Compose
             docker compose -f docker-compose.prod.yml down
             docker compose -f docker-compose.prod.yml up -d --build

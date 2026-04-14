@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, View, Text } from 'react-native';
-import { PanGestureHandler, PanGestureHandlerGestureEvent } from 'react-native-gesture-handler';
+import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import Animated, {
-  useAnimatedGestureHandler,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -27,24 +26,25 @@ export const FloatingVideoPiP = () => {
   // Reanimated values for dragging
   const translateX = useSharedValue(20);
   const translateY = useSharedValue(20);
+  const startX = useSharedValue(0);
+  const startY = useSharedValue(0);
 
-  const gestureHandler = useAnimatedGestureHandler<PanGestureHandlerGestureEvent, { startX: number; startY: number }>({
-    onStart: (_, ctx) => {
-      ctx.startX = translateX.value;
-      ctx.startY = translateY.value;
-    },
-    onActive: (event, ctx) => {
-      translateX.value = ctx.startX + event.translationX;
-      translateY.value = ctx.startY + event.translationY;
-    },
-    onEnd: (_) => {
+  const gestureHandler = Gesture.Pan()
+    .onStart(() => {
+      startX.value = translateX.value;
+      startY.value = translateY.value;
+    })
+    .onUpdate((event) => {
+      translateX.value = startX.value + event.translationX;
+      translateY.value = startY.value + event.translationY;
+    })
+    .onEnd(() => {
       // Very basic snap back to edge
       if (translateX.value < 100) translateX.value = withSpring(20);
       else translateX.value = withSpring(200); // Or screen width minus PIP_WIDTH
       
       if (translateY.value < 100) translateY.value = withSpring(20);
-    },
-  });
+    });
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
@@ -79,11 +79,11 @@ export const FloatingVideoPiP = () => {
       {/* If Video Active -> Render the draggable PiP block */}
       {/* 
       {activeVideoTrack && (
-        <PanGestureHandler onGestureEvent={gestureHandler}>
+        <GestureDetector gesture={gestureHandler}>
           <Animated.View style={[styles.pipContainer, animatedStyle]}>
              <LKVideoTrack track={activeVideoTrack} style={StyleSheet.absoluteFill} />
           </Animated.View>
-        </PanGestureHandler>
+        </GestureDetector>
       )}
       */}
     </View>

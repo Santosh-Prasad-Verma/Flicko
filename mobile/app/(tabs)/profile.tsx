@@ -23,7 +23,7 @@ import { useAuthStore } from '@stores/authStore';
 import { supabase } from '../../services/supabase';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const flickoIcon = require('../../assets/splash_icon.png');
+const flickoIcon = require('../../assets/Flicko_icon.png');
 
 // Badge type
 interface Badge {
@@ -112,7 +112,7 @@ export default function ProfileScreen() {
     ? new Date(createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
     : null;
 
-  const rawStatus = profile?.online_status as string | undefined;
+  const rawStatus = (profile?.status || profile?.online_status) as string | undefined;
   const onlineStatus =
     rawStatus === 'online' || rawStatus === 'idle' || rawStatus === 'dnd' || rawStatus === 'offline'
       ? rawStatus
@@ -260,7 +260,14 @@ export default function ProfileScreen() {
               hitSlop={8}
             >
               <Ionicons name="ellipse" size={10} color={STATUS_COLORS[onlineStatus] || '#80848E'} />
-              <Text style={styles.setStatusText}>Set status</Text>
+              <Text style={styles.setStatusText}>
+                {profile?.custom_status || profile?.custom_status_emoji 
+                  ? `${profile.custom_status_emoji || ''} ${profile.custom_status || ''}`.trim()
+                  : onlineStatus === 'online' ? 'Online' 
+                  : onlineStatus === 'idle' ? 'Idle'
+                  : onlineStatus === 'dnd' ? 'Do Not Disturb'
+                  : 'Set status'}
+              </Text>
               <Ionicons name="chevron-forward" size={14} color="#6D6F78" />
             </Pressable>
 

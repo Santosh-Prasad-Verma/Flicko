@@ -76,8 +76,9 @@ export default function StatusScreen() {
     try {
       await setPresenceStatus(userId, status);
       queryClient.invalidateQueries({ queryKey: ['profile', userId] });
+      router.back();
     } catch {}
-  }, [userId, queryClient]);
+  }, [userId, queryClient, router]);
 
   const handleSaveCustom = useCallback(async () => {
     if (!userId) return;

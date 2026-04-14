@@ -22,10 +22,13 @@ export interface VoiceStateRow {
   user_id: string;
   channel_id: string;
   session_id: string;
-  self_mute: boolean;
-  self_deaf: boolean;
-  server_mute: boolean;
-  server_deaf: boolean;
+  server_id?: string;
+  is_muted: boolean;
+  is_deafened: boolean;
+  is_self_muted: boolean;
+  is_self_deafened: boolean;
+  is_streaming?: boolean;
+  is_video?: boolean;
   joined_at: string;
 }
 
@@ -60,6 +63,7 @@ export async function requestVoiceToken(
 export async function joinVoiceChannel(
   channelId: string,
   sessionId: string,
+  serverId: string,
 ): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
@@ -68,11 +72,14 @@ export async function joinVoiceChannel(
     {
       user_id: user.id,
       channel_id: channelId,
+      server_id: serverId,
       session_id: sessionId,
-      self_mute: false,
-      self_deaf: false,
-      server_mute: false,
-      server_deaf: false,
+      is_muted: false,
+      is_deafened: false,
+      is_self_muted: false,
+      is_self_deafened: false,
+      is_streaming: false,
+      is_video: false,
       joined_at: new Date().toISOString(),
     },
     { onConflict: 'user_id' },
@@ -100,7 +107,7 @@ export async function leaveVoiceChannel(): Promise<void> {
  * Update voice state (mute/deafen)
  */
 export async function updateVoiceState(
-  updates: Partial<Pick<VoiceStateRow, 'self_mute' | 'self_deaf'>>,
+  updates: Partial<Pick<VoiceStateRow, 'is_self_muted' | 'is_self_deafened'>>,
 ): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
@@ -123,10 +130,12 @@ export async function getVoiceParticipants(
     .from('voice_states')
     .select(`
       user_id,
-      self_mute,
-      self_deaf,
-      server_mute,
-      server_deaf,
+      is_muted,
+      is_deafened,
+      is_self_muted,
+      is_self_deafened,
+      is_streaming,
+      is_video,
       user:profiles!voice_states_user_id_fkey(username, display_name, avatar)
     `)
     .eq('channel_id', channelId);
@@ -140,11 +149,11 @@ export async function getVoiceParticipants(
       username: profile?.username ?? 'Unknown',
       displayName: profile?.display_name ?? profile?.username ?? 'Unknown',
       avatarUrl: profile?.avatar ?? null,
-      muted: row.self_mute || row.server_mute,
-      deafened: row.self_deaf || row.server_deaf,
+      muted: row.is_self_muted || row.is_muted,
+      deafened: row.is_self_deafened || row.is_deafened,
       speaking: false,
-      video: false,
-      streaming: false,
+      video: row.is_video || false,
+      streaming: row.is_streaming || false,
     };
   });
 }

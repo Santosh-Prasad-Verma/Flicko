@@ -226,6 +226,7 @@ serve(async (req: Request) => {
       user_id: user.id,
       channel_id: channelId,
       server_id: serverId,
+      session_id: crypto.randomUUID(),
       is_video: video || false,
       is_streaming: screenShare || false,
       is_muted: false,

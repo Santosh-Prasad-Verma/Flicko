@@ -114,7 +114,7 @@ function AvatarTabIcon({
   }));
 
   const avatarAnimStyle = useAnimatedStyle(() => ({
-    borderWidth: borderProgress.value * 2,
+    borderWidth: 2,
     borderColor: `rgba(255,255,255,${borderProgress.value})`,
   }));
 
@@ -233,9 +233,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(88,101,242,0.15)',
   },
   avatar: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   avatarImage: {
     width: 24,

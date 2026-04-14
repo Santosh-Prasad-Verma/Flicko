@@ -16,8 +16,8 @@ import {
   StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useVideoCall } from '../../../shared/hooks/useVideoCall';
-import { useGoLive } from '../../../shared/hooks/useGoLive';
+import { useVideoCall } from '@hooks/useVideoCall';
+import { useGoLive } from '@hooks/useGoLive';
 import { VideoGrid } from './VideoGrid';
 import { VoiceVideoControls } from './VoiceVideoControls';
 import { GoLiveModal } from './GoLiveModal';

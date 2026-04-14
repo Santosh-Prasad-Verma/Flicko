@@ -4,7 +4,7 @@
 import React, { useCallback } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '../../hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 
 interface VoiceVideoControlsProps {
