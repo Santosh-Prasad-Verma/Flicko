@@ -1,6 +1,7 @@
 name: Deploy Flicko to VPS
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -12,6 +13,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+  workflow_dispatch:
     steps:
       - name: Deploy to VPS via SSH
         uses: appleboy/ssh-action@v1.0.3
