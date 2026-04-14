@@ -288,7 +288,8 @@ services:
       timeout: 3s
       retries: 5
       start_period: 15s
-
+    secrets:
+      - jwt_public_key
   # ──────────────────────────────────────────────────────────────────────────
   # BACKEND — Commands/Bots/Cloudinary signing API
   # ──────────────────────────────────────────────────────────────────────────
@@ -508,26 +509,3 @@ services:
       timeout: 5s
       retries: 3
       start_period: 5s
-
-  backend:
-    build:
-      context: ./backend
-    image: flicko/backend:latest
-    container_name: flicko-backend
-    <<: [*restart-policy, *default-logging]
-    networks:
-      - flicko_internal
-    environment:
-      <<: *common-env
-      ENVIRONMENT: "production"
-      PORT_HTTP: "8080"
-      PORT_WS: "8081"
-      DATABASE_URL: "${DATABASE_URL}"
-      REDIS_URL: "${REDIS_URL}"
-      SUPABASE_SERVICE_ROLE_KEY: "${SUPABASE_SERVICE_ROLE_KEY}"
-      CLOUDINARY_CLOUD_NAME: "${CLOUDINARY_CLOUD_NAME}"
-      CLOUDINARY_API_KEY: "${CLOUDINARY_API_KEY}"
-      CLOUDINARY_API_SECRET: "${CLOUDINARY_API_SECRET}"
-    secrets:
-      - jwt_public_key
-
