@@ -221,12 +221,18 @@ serve(async (req: Request) => {
       key,
     );
 
-    // 11. Upsert voice state
+    // 11. Upsert voice state - fetch existing first to keep session_id stable if possible
+    const { data: existingState } = await supabase
+      .from('voice_states')
+      .select('session_id')
+      .eq('user_id', user.id)
+      .single();
+
     const { error: upsertError } = await supabase.from('voice_states').upsert({
       user_id: user.id,
       channel_id: channelId,
       server_id: serverId,
-      session_id: crypto.randomUUID(),
+      session_id: existingState?.session_id || crypto.randomUUID(),
       is_video: video || false,
       is_streaming: screenShare || false,
       is_muted: false,

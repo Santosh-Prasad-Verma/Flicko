@@ -49,7 +49,7 @@ export const VoiceOverlay = memo(function VoiceOverlay({ onPress }: VoiceOverlay
 
   const handleMute = async () => {
     toggleMute();
-    await updateVoiceState({ self_mute: !muted });
+    await updateVoiceState({ is_self_muted: !muted });
   };
 
   const handleDisconnect = async () => {

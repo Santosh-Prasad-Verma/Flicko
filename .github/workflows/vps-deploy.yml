@@ -64,13 +64,28 @@ jobs:
             # Ensure the secrets directory exists
             mkdir -p ./secrets
             
-            # Extract JWT_PUBLIC_KEY from the .env file and save it to a pem file
-            # grep looks for the key, sed strips the 'JWT_PUBLIC_KEY=' part and any surrounding quotes
-            grep -E "^JWT_PUBLIC_KEY=" ~/Flicko/.env | sed -E 's/^JWT_PUBLIC_KEY=["'\'']?(.*)["'\'']?$/\1/' > ./secrets/jwt_public.pem
+            # Extract JWT_PUBLIC_KEY from the .env file and fail explicitly if it is missing or empty.
+            # Decode escaped newlines so PEM content is written with real line breaks.
+            JWT_PUBLIC_KEY_LINE=$(grep -m1 -E '^JWT_PUBLIC_KEY=' ~/Flicko/.env || true)
+            if [ -z "$JWT_PUBLIC_KEY_LINE" ]; then
+              echo "Error: JWT_PUBLIC_KEY is missing from ~/Flicko/.env" >&2
+              exit 1
+            fi
+            JWT_PUBLIC_KEY_VALUE=${JWT_PUBLIC_KEY_LINE#JWT_PUBLIC_KEY=}
+            JWT_PUBLIC_KEY_VALUE=$(printf '%s' "$JWT_PUBLIC_KEY_VALUE" | sed -E 's/^["'\''](.*)["'\'']$/\1/')
+            if [ -z "$JWT_PUBLIC_KEY_VALUE" ]; then
+              echo "Error: JWT_PUBLIC_KEY is empty in ~/Flicko/.env" >&2
+              exit 1
+            fi
+            printf '%b' "$JWT_PUBLIC_KEY_VALUE" > ./secrets/jwt_public.pem
              
-            # Ensure JWT keys are generated (as a fallback/rotation mechanism)
+            # Ensure JWT keys are generated (as a fallback/rotation mechanism, skipping if keys exist)
             chmod +x scripts/generate-jwt-keys.sh
-            ./scripts/generate-jwt-keys.sh
+            if [ ! -f ./secrets/jwt_private.pem ]; then
+              ./scripts/generate-jwt-keys.sh
+            else
+              echo "JWT keys already exist. Skipping payload generation."
+            fi
 
             # 4. Build and restart the containers using Docker Compose
             docker compose -f docker-compose.prod.yml down

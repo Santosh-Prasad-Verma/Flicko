@@ -22,13 +22,13 @@ export interface VoiceStateRow {
   user_id: string;
   channel_id: string;
   session_id: string;
-  server_id?: string;
+  server_id: string;
   is_muted: boolean;
   is_deafened: boolean;
   is_self_muted: boolean;
   is_self_deafened: boolean;
-  is_streaming?: boolean;
-  is_video?: boolean;
+  is_streaming: boolean;
+  is_video: boolean;
   joined_at: string;
 }
 

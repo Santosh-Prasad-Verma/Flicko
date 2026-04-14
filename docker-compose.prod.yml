@@ -287,7 +287,8 @@ services:
       interval: 10s
       timeout: 3s
       retries: 5
-      start_period: 15s    secrets:
+      start_period: 15s
+    secrets:
       - jwt_public_key
   # ──────────────────────────────────────────────────────────────────────────
   # BACKEND — Commands/Bots/Cloudinary signing API

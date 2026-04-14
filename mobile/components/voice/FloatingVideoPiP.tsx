@@ -77,7 +77,6 @@ export const FloatingVideoPiP = () => {
       </View>
 
       {/* If Video Active -> Render the draggable PiP block */}
-      {/* 
       {activeVideoTrack && (
         <GestureDetector gesture={gestureHandler}>
           <Animated.View style={[styles.pipContainer, animatedStyle]}>
@@ -85,7 +84,6 @@ export const FloatingVideoPiP = () => {
           </Animated.View>
         </GestureDetector>
       )}
-      */}
     </View>
   );
 };
