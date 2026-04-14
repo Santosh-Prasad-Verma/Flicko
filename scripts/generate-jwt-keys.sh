@@ -42,14 +42,6 @@ if ! command -v openssl &>/dev/null; then
     exit 1
 fi
 
-# Verify Ed25519 support.
-if ! openssl list -public-key-algorithms | grep -qi ed25519; then
-    # Fallback check
-    if ! openssl genpkey -algorithm Ed25519 -text 2>&1 | grep -qi "Algorithm"; then
-    echo "Error: openssl does not support Ed25519. Requires >= 1.1.1."
-    echo "Installed version: $(openssl version)"
-    exit 1
-fi
 
 # Create secrets directory.
 mkdir -p "$SECRETS_DIR"
