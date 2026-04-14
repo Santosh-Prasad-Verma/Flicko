@@ -1,6 +1,6 @@
 # 📚 Flicko Documentation Hub
 
-> **Version:** 1.0.0 · **Last Updated:** 2026-04-14 · **Total Docs:** 89 files · **Maintained by:** Flicko Team
+> **Version:** 1.0.0 · **Last Updated:** 2026-04-14 · **Total Docs:** 90 files · **Maintained by:** Flicko Team
 
 ![Go](https://img.shields.io/badge/Go-1.25-00ADD8?logo=go&logoColor=white)
 ![React Native](https://img.shields.io/badge/React_Native-0.81-61DAFB?logo=react&logoColor=black)
@@ -343,12 +343,13 @@ Follow this reading order to get productive as quickly as possible:
 - [Features: Feature Index](features/feature-index.md) — Master list of all 30+ features with implementation status and responsible services
 - [Development: Discord Parity Execution Tickets](development/discord-parity-execution-tickets.md) — Audit-mapped epic/story/API-schema execution backlog with implementation sequencing
 - [Development: Discord Parity Execution Tickets CSV](development/discord-parity-execution-tickets.csv) — Import-ready flat backlog of the same execution tickets
+- [API: WebSocket Event Schemas v1](api/ws-event-schemas-v1.md) — Versioned contract definitions for MESSAGE_*, VOICE_*, ACTIVITY_*, and MOD_* events
 
 ## Quick Reference
 
 | Item                          | Value                                |
 | ----------------------------- | ------------------------------------ |
-| **Total documentation files** | 89                                   |
+| **Total documentation files** | 90                                   |
 | **Documentation categories**  | 12                                   |
 | **Go backend services**       | 3 (ws-gateway, msg-service, backend) |
 | **Backend service files**     | 95                                   |

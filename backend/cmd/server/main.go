@@ -262,6 +262,10 @@ func main() {
 	discoveryHandler := handlers.NewDiscoveryHandler(db.Pool(), logger)
 	protected.HandleFunc("/servers/discover", discoveryHandler.DiscoverServers).Methods("GET")
 
+	// Parity status (internal delivery tracking)
+	parityHandler := handlers.NewParityHandler(db.Pool(), logger)
+	protected.HandleFunc("/parity/status", parityHandler.GetParityStatus).Methods("GET")
+
 	// Custom Emojis
 	emojiHandler := handlers.NewEmojiHandler(db.Pool(), logger)
 	protected.HandleFunc("/servers/{serverId}/emojis", emojiHandler.GetServerEmojis).Methods("GET")
