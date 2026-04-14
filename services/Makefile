@@ -45,14 +45,14 @@ msg-service:
 test: ## Run all tests with race detector
 	@for mod in $(MODULES); do \
 		echo "→ testing $$mod"; \
-		cd $$mod && $(GO) test -race -count=1 ./... && cd ..; \
+		( cd $$mod && $(GO) test -race -count=1 ./... ) || exit $$?; \
 	done
 
 ## ── Vet / Lint ───────────────────────────────────────────
 vet: ## Run go vet on all modules
 	@for mod in $(MODULES); do \
 		echo "→ vetting $$mod"; \
-		cd $$mod && $(GO) vet ./... && cd ..; \
+		( cd $$mod && $(GO) vet ./... ) || exit $$?; \
 	done
 
 lint: vet ## Alias (replace with staticcheck / golangci-lint later)

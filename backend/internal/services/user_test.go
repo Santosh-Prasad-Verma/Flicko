@@ -2,6 +2,7 @@ package services_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -27,7 +28,9 @@ func (m *mockCache) Set(ctx context.Context, key string, val string, ext time.Du
 	return nil
 }
 func (m *mockCache) Delete(ctx context.Context, key string) error                    { delete(m.store, key); return nil }
-func (m *mockCache) GetJSON(ctx context.Context, key string, dest interface{}) error { return nil } // Stub
+func (m *mockCache) GetJSON(ctx context.Context, key string, dest interface{}) error {
+	return errors.New("cache miss")
+}
 func (m *mockCache) SetJSON(ctx context.Context, key string, val interface{}, ext time.Duration) error {
 	return nil
 }

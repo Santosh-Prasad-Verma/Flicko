@@ -285,9 +285,9 @@ func TestTier_Defaults(t *testing.T) {
 if ratelimit.TierAPIGeneral.Limit != 50 {
 t.Errorf("APIGeneral limit = %d, want 50", ratelimit.TierAPIGeneral.Limit)
 }
-if ratelimit.TierMessageCreate.Limit != 10 {
-t.Errorf("MessageCreate limit = %d, want 10", ratelimit.TierMessageCreate.Limit)
-}
+	if ratelimit.TierMessageCreate.Limit != 5 {
+	t.Errorf("MessageCreate limit = %d, want 5", ratelimit.TierMessageCreate.Limit)
+	}
 if ratelimit.TierAuth.Window != time.Minute {
 t.Errorf("Auth window = %v, want 1m", ratelimit.TierAuth.Window)
 }

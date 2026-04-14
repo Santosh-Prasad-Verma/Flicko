@@ -85,7 +85,9 @@ func TestInviteProperties(t *testing.T) {
 
 	// Expiration test
 	code2 := "EXPIR456"
-	db.CreateInvite(code2, 0, -1*time.Hour) // Created already expired
+	inv := db.CreateInvite(code2, 0, time.Hour)
+	expired := time.Now().Add(-1 * time.Minute)
+	inv.ExpiresAt = &expired // Force expired
 
 	err = db.AcceptInvite("user-D", code2)
 	assert.Error(t, err)

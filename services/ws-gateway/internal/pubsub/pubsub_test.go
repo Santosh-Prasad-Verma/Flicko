@@ -159,9 +159,9 @@ t.Errorf("MsgsReceived = %d, want 1", snap.MsgsReceived)
 if snap.MsgsFannedOut != 1 {
 t.Errorf("MsgsFannedOut = %d, want 1", snap.MsgsFannedOut)
 }
-if snap.ActiveSubscriptions != 1 {
-t.Errorf("ActiveSubscriptions = %d, want 1", snap.ActiveSubscriptions)
-}
+	if snap.ActiveSubscriptions != 3 {
+	t.Errorf("ActiveSubscriptions = %d, want 3", snap.ActiveSubscriptions)
+	}
 }
 
 func TestSubscribeIdempotent(t *testing.T) {
@@ -178,9 +178,9 @@ ps.Subscribe(ctx, "ch1")
 ps.Subscribe(ctx, "ch1")
 
 snap := ps.MetricSnapshot()
-if snap.ActiveSubscriptions != 1 {
-t.Errorf("ActiveSubscriptions = %d, want 1 (idempotent)", snap.ActiveSubscriptions)
-}
+	if snap.ActiveSubscriptions != 3 {
+	t.Errorf("ActiveSubscriptions = %d, want 3 (idempotent primary+dm+typing)", snap.ActiveSubscriptions)
+	}
 }
 
 func TestUnsubscribe(t *testing.T) {
@@ -271,9 +271,9 @@ t.Errorf("ch-b payload = %q, want %q", channels["ch-b"], "beta")
 }
 
 snap := ps.MetricSnapshot()
-if snap.ActiveSubscriptions != 2 {
-t.Errorf("ActiveSubscriptions = %d, want 2", snap.ActiveSubscriptions)
-}
+	if snap.ActiveSubscriptions != 6 {
+	t.Errorf("ActiveSubscriptions = %d, want 6", snap.ActiveSubscriptions)
+	}
 }
 
 func TestPublishTyping(t *testing.T) {
