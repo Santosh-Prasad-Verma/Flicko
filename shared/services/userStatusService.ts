@@ -26,17 +26,32 @@ export interface UserPresence {
 export async function getPresence(userId: string): Promise<UserPresence | null> {
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, status, custom_status, last_seen')
+    .select('id, status, custom_status, custom_status_emoji, custom_status_expires_at, last_seen')
     .eq('id', userId)
     .single();
   if (error) throw error;
-  return data ? { user_id: data.id, status: data.status, custom_status: data.custom_status, last_seen: data.last_seen } : null;
+  
+  const customStatusOpt: CustomStatus | null = (data.custom_status || data.custom_status_emoji) ? {
+    text: data.custom_status,
+    emoji: data.custom_status_emoji,
+    expires_at: data.custom_status_expires_at,
+  } : null;
+
+  let st = data.status;
+  if (!['online', 'idle', 'dnd', 'offline'].includes(st)) {
+    st = 'offline';
+  }
+
+  return data ? { user_id: data.id, status: st as PresenceStatus, custom_status: customStatusOpt, last_seen: data.last_seen } : null;
 }
 
 export async function setPresenceStatus(userId: string, status: PresenceStatus) {
+  // DB check constraint: ('online', 'idle', 'dnd', 'offline')
+  const dbStatus = status === 'invisible' ? 'offline' : status;
+  
   const { error } = await supabase
     .from('profiles')
-    .update({ status, last_seen: new Date().toISOString() })
+    .update({ status: dbStatus, last_seen: new Date().toISOString() })
     .eq('id', userId);
   if (error) throw error;
 }
@@ -47,7 +62,11 @@ export async function setCustomStatus(
 ) {
   const { error } = await supabase
     .from('profiles')
-    .update({ custom_status: customStatus })
+    .update({ 
+      custom_status: customStatus?.text || null,
+      custom_status_emoji: customStatus?.emoji || null,
+      custom_status_expires_at: customStatus?.expires_at || null,
+    })
     .eq('id', userId);
   if (error) throw error;
 }
@@ -58,15 +77,28 @@ export async function getBulkPresence(userIds: string[]): Promise<UserPresence[]
   if (userIds.length === 0) return [];
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, status, custom_status, last_seen')
+    .select('id, status, custom_status, custom_status_emoji, custom_status_expires_at, last_seen')
     .in('id', userIds);
   if (error) throw error;
-  return (data ?? []).map((d: any) => ({
-    user_id: d.id,
-    status: d.status,
-    custom_status: d.custom_status,
-    last_seen: d.last_seen,
-  }));
+  return (data ?? []).map((d: any) => {
+    const customStatusOpt: CustomStatus | null = (d.custom_status || d.custom_status_emoji) ? {
+      text: d.custom_status,
+      emoji: d.custom_status_emoji,
+      expires_at: d.custom_status_expires_at,
+    } : null;
+
+    let st = d.status;
+    if (!['online', 'idle', 'dnd', 'offline'].includes(st)) {
+      st = 'offline';
+    }
+
+    return {
+      user_id: d.id,
+      status: st as PresenceStatus,
+      custom_status: customStatusOpt,
+      last_seen: d.last_seen,
+    };
+  });
 }
 
 // ─── Status presets ────────────────────────────────────────────────────────────

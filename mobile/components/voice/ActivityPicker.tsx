@@ -547,8 +547,7 @@ export const ActivityPicker = memo(function ActivityPicker({
 
 const styles = StyleSheet.create({
   pickerBody: {
-    flex: 1,
-    minHeight: 280,
+    height: 480, // Giving it plenty of space
   },
   searchBox: {
     flexDirection: 'row',
