@@ -19,7 +19,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { Avatar } from '../ui/Avatar';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 import { spacing, borderRadius, typography } from '../../constants/Colors';
 import { generateProfilePalette } from '../../lib/colorUtils';
 

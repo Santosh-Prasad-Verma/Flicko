@@ -13,7 +13,7 @@ import {
   Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 import { spacing, typography, MINIMUM_TOUCH_TARGET } from '../../constants/Colors';
 import { MusicArtist } from '../../services/musicApi.service';
 import { MusicSourceBadge } from './MusicSourceBadge';

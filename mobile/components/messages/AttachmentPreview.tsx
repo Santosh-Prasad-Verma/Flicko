@@ -22,7 +22,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 import { spacing, borderRadius, typography } from '../../constants/Colors';
 import { useUploadStore, type UploadItem, type UploadStore } from '@stores/uploadStore';
 import { isImageFile, formatFileSize } from '@services/fileUploadService';

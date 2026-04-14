@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 import { spacing, borderRadius } from '../../constants/Colors';
 import { formatFileSize } from '@services/fileUploadService';
 

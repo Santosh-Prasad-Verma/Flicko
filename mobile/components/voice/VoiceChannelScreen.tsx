@@ -26,7 +26,7 @@ import { VideoLayoutToggle } from './VideoLayoutToggle';
 import { GoLiveIndicator } from './GoLiveIndicator';
 import { BotMusicControls } from '../music/BotMusicControls';
 import { ErrorBoundary } from '../shared/ErrorBoundary';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 import { spacing } from '../../constants/Colors';
 
 // ── Types ─────────────────────────────────────────────────────────────────

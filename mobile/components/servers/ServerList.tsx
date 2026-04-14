@@ -25,7 +25,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ServerIcon } from './ServerIcon';
 import { EmptyState } from '../shared/EmptyState';
 import { spacing, typography, borderRadius } from '../../constants/Colors';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 import { SPRING_SNAPPY, PRESS_SCALE_CARD } from '../../constants/Animations';
 import type { Server } from '@shared/types';
 

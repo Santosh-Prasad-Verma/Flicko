@@ -13,7 +13,7 @@ import { View, Text, StyleSheet, ViewStyle } from 'react-native';
 import { Image } from 'expo-image';
 import { borderRadius } from '../../constants/Colors';
 import { layout } from '../../constants/Layout';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 
 type AvatarSizeName = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 type StatusIndicator = 'online' | 'idle' | 'dnd' | 'offline' | null;

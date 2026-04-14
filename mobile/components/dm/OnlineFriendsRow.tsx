@@ -4,7 +4,7 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { OnlineAvatar } from './OnlineAvatar';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 import { spacing } from '../../constants/Colors';
 import type { DMParticipant } from '../../types/dm';
 

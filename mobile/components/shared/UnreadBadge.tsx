@@ -18,7 +18,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useReadStateStore, type ReadStateStore } from '@stores/readStateStore';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 
 type BadgeSize = 'small' | 'medium' | 'large';
 

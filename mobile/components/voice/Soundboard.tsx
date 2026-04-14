@@ -21,7 +21,7 @@ import {
 import Animated, { FadeIn, FadeOut, ZoomIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { Modal } from '../ui/Modal';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 import {
   spacing,
   borderRadius,

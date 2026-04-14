@@ -16,7 +16,7 @@ import {
   type PanResponderGestureState,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 
 export type DrawingTool = 'pen' | 'highlighter' | 'eraser' | 'shape';
 

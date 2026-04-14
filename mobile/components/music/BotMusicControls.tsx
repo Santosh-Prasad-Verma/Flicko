@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from 'expo-av';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 import { spacing, typography, MINIMUM_TOUCH_TARGET } from '../../constants/Colors';
 import { supabase } from '../../services/supabase';
 import { invokeCommand } from '../../../shared/services/botService';

@@ -20,7 +20,7 @@ import {
 import { FlashList } from '@shopify/flash-list';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 import { spacing, borderRadius, MINIMUM_TOUCH_TARGET } from '../../constants/Colors';
 
 // ── Types ─────────────────────────────────────────────────────────────────

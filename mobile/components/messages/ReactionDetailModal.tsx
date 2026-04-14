@@ -16,7 +16,7 @@ import {
 import { Modal } from '../ui/Modal';
 import { Avatar } from '../ui/Avatar';
 import { spacing, typography, borderRadius } from '../../constants/Colors';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 import { supabase } from '../../services/supabase';
 
 interface ReactionUser {

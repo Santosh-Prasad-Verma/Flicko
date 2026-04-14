@@ -10,7 +10,7 @@ import React, { memo, useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, TextInput, StyleSheet, Pressable } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 import { spacing, borderRadius, typography } from '../../constants/Colors';
 
 const NOTES_PREFIX = '@flicko:user_note:';

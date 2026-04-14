@@ -19,7 +19,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAudioPlayer, formatTime } from '../../hooks/useAudioPlayer';
 import {
   useMusicSearch,

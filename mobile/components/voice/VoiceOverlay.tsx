@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { SlideInDown, SlideOutDown } from 'react-native-reanimated';
 import { useVoiceStore } from '@stores/voiceStore';
 import { updateVoiceState, leaveVoiceChannel } from '@services/voiceService';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 import { spacing, borderRadius } from '../../constants/Colors';
 
 interface VoiceOverlayProps {

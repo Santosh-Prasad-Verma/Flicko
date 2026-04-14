@@ -15,7 +15,7 @@ import Animated, {
   withTiming,
   Easing,
 } from 'react-native-reanimated';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 import { spacing, borderRadius } from '../../constants/Colors';
 
 // ── Base Skeleton ─────────────────────────────────────────────────────────

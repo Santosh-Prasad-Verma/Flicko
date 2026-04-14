@@ -6,7 +6,7 @@
 import React from 'react';
 import { View, StyleSheet, Pressable, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 import { spacing, typography } from '../../constants/Colors';
 
 export type VideoLayout = 'grid' | 'focus' | 'sidebar';

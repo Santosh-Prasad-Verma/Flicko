@@ -25,7 +25,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { spacing, typography } from '../../constants/Colors';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 import { useSlowmodeTimer } from '../../hooks/useSlowmodeTimer';
 import { AttachmentPreview } from './AttachmentPreview';
 import { useUploadStore, type UploadItem } from '@stores/uploadStore';

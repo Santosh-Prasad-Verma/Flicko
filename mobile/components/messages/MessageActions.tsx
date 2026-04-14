@@ -29,7 +29,7 @@ import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
 import { Avatar } from '../ui/Avatar';
 import { spacing, borderRadius, typography } from '../../constants/Colors';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 import { SPRING_SNAPPY, SPRING_BOUNCY, PRESS_SCALE_CARD } from '../../constants/Animations';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);

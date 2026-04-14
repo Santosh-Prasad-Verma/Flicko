@@ -45,7 +45,7 @@ import { Avatar } from '../ui/Avatar';
 import { MarkdownText } from './MarkdownText';
 import { AttachmentList } from './AttachmentList';
 import { spacing, typography, borderRadius, MINIMUM_TOUCH_TARGET } from '../../constants/Colors';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 import { SPRING_SNAPPY, SPRING_BOUNCY, PRESS_SCALE_CARD, TIMING_FAST } from '../../constants/Animations';
 import { MessageComponents, EphemeralBanner } from './MessageComponents';
 import type { ActionRow } from '@stores/interactionStore';

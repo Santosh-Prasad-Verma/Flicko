@@ -3,7 +3,7 @@
  */
 import React, { useMemo } from 'react';
 import { View, StyleSheet, Dimensions, Pressable } from 'react-native';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 import { VideoTile } from './VideoTile';
 import { ScreenShareViewer } from './ScreenShareViewer';
 

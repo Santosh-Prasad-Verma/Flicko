@@ -19,7 +19,7 @@ import {
   shadows,
 } from '../../constants/Colors';
 import { SPRING_SNAPPY, PRESS_SCALE_CARD } from '../../constants/Animations';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 

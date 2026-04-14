@@ -33,7 +33,7 @@ import Animated, {
 import { Ionicons } from '@expo/vector-icons';
 import { router, usePathname } from 'expo-router';
 import { spacing, typography, MINIMUM_TOUCH_TARGET, borderRadius } from '../../constants/Colors';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 import { EmptyState } from '../shared/EmptyState';
 import {
   SPRING_SNAPPY,

@@ -64,13 +64,41 @@ jobs:
             # Ensure the secrets directory exists
             mkdir -p ./secrets
             
-            # Extract JWT_PUBLIC_KEY from the .env file and save it to a pem file
-            # grep looks for the key, sed strips the 'JWT_PUBLIC_KEY=' part and any surrounding quotes
-            grep -E "^JWT_PUBLIC_KEY=" ~/Flicko/.env | sed -E 's/^JWT_PUBLIC_KEY=["'\'']?(.*)["'\'']?$/\1/' > ./secrets/jwt_public.pem
-             
+# Extract JWT_PUBLIC_KEY from the .env file, fail if missing/empty,
+            # and convert escaped newlines (for example, "\n") into real PEM line breaks.
+            JWT_PUBLIC_KEY_LINE=$(grep -m 1 -E '^JWT_PUBLIC_KEY=' ~/Flicko/.env || true)
+            if [ -z "$JWT_PUBLIC_KEY_LINE" ]; then
+              echo "Error: JWT_PUBLIC_KEY is missing from ~/Flicko/.env" >&2
+              exit 1
+            fi
+            JWT_PUBLIC_KEY_VALUE=${JWT_PUBLIC_KEY_LINE#JWT_PUBLIC_KEY=}
+            case "$JWT_PUBLIC_KEY_VALUE" in
+              \"*\")
+                JWT_PUBLIC_KEY_VALUE=${JWT_PUBLIC_KEY_VALUE#\"}
+                JWT_PUBLIC_KEY_VALUE=${JWT_PUBLIC_KEY_VALUE%\"}
+                ;;
+              \'*\')
+                JWT_PUBLIC_KEY_VALUE=${JWT_PUBLIC_KEY_VALUE#\'}
+                JWT_PUBLIC_KEY_VALUE=${JWT_PUBLIC_KEY_VALUE%\'}
+                ;;
+            esac
+            if [ -z "$JWT_PUBLIC_KEY_VALUE" ]; then
+              echo "Error: JWT_PUBLIC_KEY is empty in ~/Flicko/.env" >&2
+              exit 1
+            fi
+            printf '%b' "$JWT_PUBLIC_KEY_VALUE" > ./secrets/jwt_public.pem
+            if [ ! -s ./secrets/jwt_public.pem ]; then
+              echo "Error: Failed to write a non-empty ./secrets/jwt_public.pem" >&2
+              exit 1
+            fi
+            
             # Ensure JWT keys are generated (as a fallback/rotation mechanism)
             chmod +x scripts/generate-jwt-keys.sh
-            ./scripts/generate-jwt-keys.sh
+            if [ ! -f ./secrets/jwt_private.pem ]; then
+              ./scripts/generate-jwt-keys.sh
+            else
+              echo "JWT keys already exist. Skipping payload generation."
+            fi
 
             # 4. Build and restart the containers using Docker Compose
             docker compose -f docker-compose.prod.yml down

@@ -40,7 +40,7 @@ import {
   MINIMUM_TOUCH_TARGET,
 } from '../../constants/Colors';
 import { SPRING_SNAPPY, SPRING_BOUNCY, TIMING_FAST } from '../../constants/Animations';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const DISMISS_THRESHOLD = 120;

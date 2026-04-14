@@ -23,7 +23,7 @@ import Animated, { FadeIn, FadeOut, FadeInRight, FadeOutLeft } from 'react-nativ
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { Modal } from '../ui/Modal';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 import {
   spacing,
   borderRadius,

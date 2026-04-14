@@ -18,7 +18,7 @@ import {
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { spacing } from '../../constants/Colors';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 import { ANIMATED_EMOJIS, STATIC_EMOJIS, type CustomEmoji } from '../../constants/customEmojis';
 import { supabase } from '../../services/supabase';
 import { GifPicker } from './GifPicker';

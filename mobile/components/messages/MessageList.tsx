@@ -20,7 +20,7 @@ import { FlashList, FlashListRef } from '@shopify/flash-list';
 import { MessageItem, isSameGroup, type MessageData } from './MessageItem';
 import { EmptyState } from '../shared/EmptyState';
 import { spacing, typography } from '../../constants/Colors';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 
 interface MessageListProps {
   messages: MessageData[];

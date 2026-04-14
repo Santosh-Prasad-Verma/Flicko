@@ -30,7 +30,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { supabase } from '../../services/supabase';
 import { Avatar } from '../ui/Avatar';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 import {
   spacing,
   borderRadius,

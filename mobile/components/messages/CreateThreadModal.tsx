@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { Modal } from '../ui/Modal';
 import { spacing, typography, borderRadius, MINIMUM_TOUCH_TARGET } from '../../constants/Colors';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 
 interface CreateThreadModalProps {
   visible: boolean;

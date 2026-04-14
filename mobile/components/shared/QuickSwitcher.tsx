@@ -18,7 +18,7 @@ import Animated, { FadeIn, FadeOut, SlideInUp } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { spacing, borderRadius, typography } from '../../constants/Colors';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 import { supabase } from '@services/supabase';
 
 interface QuickSwitcherProps {

@@ -22,7 +22,7 @@ import {
   typography,
   MINIMUM_TOUCH_TARGET,
 } from '../../constants/Colors';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 
 interface InputProps extends Omit<TextInputProps, 'style'> {
   label?: string;

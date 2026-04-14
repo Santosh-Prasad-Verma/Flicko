@@ -26,7 +26,7 @@ import {
   typography,
   MINIMUM_TOUCH_TARGET,
 } from '../../constants/Colors';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 
 // Animated version of expo-image so we can animate borderRadius directly on the
 // image — avoids putting overflow:hidden on a parent Animated.View which blocks

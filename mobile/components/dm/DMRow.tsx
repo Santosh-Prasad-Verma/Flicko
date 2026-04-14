@@ -12,7 +12,7 @@ import Animated, {
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import { OnlineAvatar } from './OnlineAvatar';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 import { spacing } from '../../constants/Colors';
 import { SPRING_SNAPPY, PRESS_SCALE_CARD } from '../../constants/Animations';
 import type { DMConversation } from '../../types/dm';

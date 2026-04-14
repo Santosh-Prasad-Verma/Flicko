@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { colors, spacing, borderRadius, typography } from '../../constants/Colors';
 import type { ThemeColors } from '../../constants/Colors';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 
 interface MarkdownTextProps {
   content: string;
