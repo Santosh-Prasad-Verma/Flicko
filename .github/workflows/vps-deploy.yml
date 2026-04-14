@@ -39,11 +39,11 @@ jobs:
             cat << ENVFILE > .env
             REDIS_URL=${{ secrets.PROD_REDIS_URL }}
             DATABASE_URL=${{ secrets.PROD_DATABASE_URL }}
-            GRAFANA_ADMIN_PASSWORD=${{ secrets.GRAFANA_ADMIN_PASSWORD || 'admin' }}
+            GRAFANA_ADMIN_PASSWORD=${{ secrets.GRAFANA_ADMIN_PASSWORD }}
             CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}
             CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}
             CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
-            CLOUDINARY_UPLOAD_PRESET=${{ secrets.CLOUDINARY_UPLOAD_PRESET || 'flickochat_media' }}
+            CLOUDINARY_UPLOAD_PRESET=${{ secrets.CLOUDINARY_UPLOAD_PRESET }}
             JWT_SECRET=${{ secrets.JWT_SECRET }}
             SUPABASE_URL=${{ secrets.SUPABASE_URL }}
             SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -51,11 +51,15 @@ jobs:
             ENVIRONMENT=production
             ENVFILE
 
-            # 3.5. Materialize JWT public key file for docker compose secret mount
-            if [ -z "${{ secrets.JWT_PUBLIC_KEY }}" ]; then
-              echo "JWT_PUBLIC_KEY secret is required"
+            # 3.5. Validate required deployment secrets
+            if [ -z "${{ secrets.GRAFANA_ADMIN_PASSWORD }}" ] || \
+               [ -z "${{ secrets.CLOUDINARY_UPLOAD_PRESET }}" ] || \
+               [ -z "${{ secrets.JWT_PUBLIC_KEY }}" ]; then
+              echo "Missing one or more required secrets: GRAFANA_ADMIN_PASSWORD, CLOUDINARY_UPLOAD_PRESET, JWT_PUBLIC_KEY"
               exit 1
             fi
+
+            # 3.6. Materialize JWT public key file for docker compose secret mount
             mkdir -p ./secrets
             printf '%s\n' "${{ secrets.JWT_PUBLIC_KEY }}" > ./secrets/jwt_public.pem
              
