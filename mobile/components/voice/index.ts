@@ -15,7 +15,7 @@ export { GoLiveIndicator } from './GoLiveIndicator';
 export { StreamViewerList } from './StreamViewerList';
 export { QualitySelector } from './QualitySelector';
 export { VideoLayoutToggle } from './VideoLayoutToggle';
-export { PictureInPicture } from './PictureInPicture';
+export { FloatingVideoPiP as PictureInPicture } from './FloatingVideoPiP';
 export { ConnectionQualityIcon } from './ConnectionQualityIcon';
 export { VideoSettings } from './VideoSettings';
 export { DrawingCanvas } from './DrawingCanvas';

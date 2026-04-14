@@ -10,7 +10,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { VideoTrack as LKVideoTrack, useRoomContext, useLocalParticipant, useRemoteParticipants } from '@livekit/react-native';
 import { Track } from 'livekit-client';
-import { useVoiceStore } from '../../shared/stores/voiceStore';
+import { useVoiceStore } from '@stores/voiceStore';
 import { VoiceOverlay } from './VoiceOverlay';
 import { router } from 'expo-router';
 

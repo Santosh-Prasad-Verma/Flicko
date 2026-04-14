@@ -88,6 +88,8 @@ func TestFriendNicknameRoundTrip(t *testing.T) {
 	assert.NotNil(t, f.Nickname)
 	assert.Equal(t, "Bestie", *f.Nickname)
 
+	// Clear nickname and verify it round-trips to nil.
+	err = db.SetNickname("user-A", "user-B", nil)
 	assert.NoError(t, err)
 	assert.Nil(t, db.friendships["user-Auser-B"].Nickname)
 }

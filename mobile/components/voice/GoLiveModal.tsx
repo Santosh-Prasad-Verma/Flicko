@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { useTheme } from '@/hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
-import { SCREEN_SHARE_PRESETS } from '@/shared/services/mediaService';
+import { SCREEN_SHARE_PRESETS } from '@services/mediaService';
 
 interface GoLiveModalProps {
   visible: boolean;

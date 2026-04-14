@@ -5,7 +5,7 @@ import React from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable } from 'react-native';
 import { useTheme } from '@/hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
-import type { StreamViewer } from '@/shared/services/streamService';
+import type { StreamViewer } from '@services/streamService';
 
 interface StreamViewerListProps {
   viewers: StreamViewer[];

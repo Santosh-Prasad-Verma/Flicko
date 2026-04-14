@@ -662,8 +662,8 @@ func TestCacheJSONRoundTrip(t *testing.T) {
 // ---------- TTL constants test ----------
 
 func TestTTLConstants(t *testing.T) {
-	if flickoredis.PresenceTTL != 120*time.Second {
-		t.Errorf("PresenceTTL = %v, want 120s", flickoredis.PresenceTTL)
+	if flickoredis.PresenceTTL != 60*time.Second {
+		t.Errorf("PresenceTTL = %v, want 60s", flickoredis.PresenceTTL)
 	}
 	if flickoredis.TypingTTL != 8*time.Second {
 		t.Errorf("TypingTTL = %v, want 8s", flickoredis.TypingTTL)

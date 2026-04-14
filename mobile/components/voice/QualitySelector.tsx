@@ -5,7 +5,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useTheme } from '@/hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
-import { QUALITY_PRESETS } from '@/shared/services/mediaService';
+import { QUALITY_PRESETS } from '@services/mediaService';
 
 interface QualitySelectorProps {
   currentQuality: string;

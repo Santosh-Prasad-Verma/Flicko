@@ -85,6 +85,8 @@ web_modules/
 .env.*.local
 .env.example
 .env.sample
+!.env.example
+!mobile/.env.example
 env.local
 .env.local.php
 secrets/

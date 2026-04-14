@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"go.uber.org/zap"
-	"go.uber.org/zap/zaptest"
 
 	"github.com/flicko-org/flicko/services/msg-service/internal/batcher"
 	"github.com/flicko-org/flicko/services/msg-service/internal/repository"
@@ -107,7 +106,7 @@ func newMsg(id string) *repository.Message {
 
 func newTestBatcher(t *testing.T, repo repository.MessageRepository, cfg batcher.Config) (*batcher.MessageBatcher, *batcher.DeadLetterQueue) {
 	t.Helper()
-	log := zaptest.NewLogger(t)
+	log := zap.NewNop()
 	dlqDir := t.TempDir()
 	dlq := batcher.NewDeadLetterQueue(dlqDir, repo, log)
 	b := batcher.NewMessageBatcher(repo, dlq, cfg, log)
@@ -291,7 +290,7 @@ func TestDeadLetter(t *testing.T) {
 		failErr: fmt.Errorf("permanent failure"),
 	}
 	dlqDir := t.TempDir()
-	log := zaptest.NewLogger(t)
+	log := zap.NewNop()
 	dlq := batcher.NewDeadLetterQueue(dlqDir, repo, log)
 
 	cfg := batcher.Config{
@@ -591,7 +590,7 @@ func TestDLQRetry(t *testing.T) {
 
 	// Use a repo that succeeds.
 	repo := &mockRepo{}
-	log := zaptest.NewLogger(t)
+	log := zap.NewNop()
 	_ = batcher.NewDeadLetterQueue(dlqDir, repo, log)
 	// Manually set depth to simulate prior dead-lettering.
 	// We can't set the atomic directly, so we'll just use Enqueue to track.

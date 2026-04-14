@@ -1,6 +1,13 @@
 version: "3.9"
 
-# Using Cloudinary for media storage (cloud).
-# Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET in your .env
+# Default local stack entrypoint.
+# For full infrastructure use:
+#   docker compose -f docker-compose.dev.yml up -d
 
-services: {}
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: flicko-redis-local
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
