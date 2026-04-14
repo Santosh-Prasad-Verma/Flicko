@@ -15,7 +15,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { useTheme } from '@/hooks/useTheme';
-import { useVoiceStore } from '@/shared/stores/voiceStore';
+import { useVoiceStore } from '@stores/voiceStore';
 import { Ionicons } from '@expo/vector-icons';
 import { VideoTrack as LKVideoTrack } from '@livekit/react-native';
 import { Track } from 'livekit-client';

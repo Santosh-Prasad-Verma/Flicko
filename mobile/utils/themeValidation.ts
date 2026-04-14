@@ -106,10 +106,18 @@ export function isValidColorFormat(value: string): boolean {
     return true;
   }
 
-  // RGB/RGBA: rgb(r, g, b) or rgba(r, g, b, a)
-  const rgbPattern = /^rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(,\s*[\d.]+\s*)?\)$/;
-  if (rgbPattern.test(trimmed)) {
-    return true;
+  // RGB/RGBA: rgb(r, g, b) or rgba(r, g, b, a) with component bounds.
+  const rgbMatch = trimmed.match(
+    /^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+)\s*)?\)$/
+  );
+  if (rgbMatch) {
+    const r = Number(rgbMatch[1]);
+    const g = Number(rgbMatch[2]);
+    const b = Number(rgbMatch[3]);
+    const a = rgbMatch[4] !== undefined ? Number(rgbMatch[4]) : undefined;
+    const inByteRange = [r, g, b].every((n) => Number.isInteger(n) && n >= 0 && n <= 255);
+    const alphaValid = a === undefined || (!Number.isNaN(a) && a >= 0 && a <= 1);
+    return inByteRange && alphaValid;
   }
 
   // Named colors (basic set - extend if needed)

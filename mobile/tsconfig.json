@@ -3,18 +3,17 @@
   "compilerOptions": {
     "strict": true,
     "skipLibCheck": true,
-    "types": ["react"],
-    "ignoreDeprecations": "5.0",
-    "baseUrl": "..",
+    "types": ["react", "jest"],
     "paths": {
-      "*": ["mobile/node_modules/*"],
-      "@shared/*": ["shared/*"],
-      "@services/*": ["shared/services/*"],
-      "@stores/*": ["shared/stores/*"],
-      "@hooks/*": ["shared/hooks/*"],
-      "@types/*": ["shared/types/*"],
-      "@utils/*": ["shared/utils/*"],
-      "@lib/*": ["shared/lib/*"]
+      "@/*": ["./*"],
+      "@constants/*": ["./constants/*"],
+      "@shared/*": ["../shared/*"],
+      "@services/*": ["../shared/services/*"],
+      "@stores/*": ["../shared/stores/*"],
+      "@hooks/*": ["../shared/hooks/*", "./hooks/*"],
+      "@types/*": ["../shared/types/*"],
+      "@utils/*": ["../shared/utils/*", "./utils/*"],
+      "@lib/*": ["../shared/lib/*"]
     }
   }
 }

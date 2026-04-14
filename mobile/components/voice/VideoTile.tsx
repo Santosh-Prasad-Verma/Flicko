@@ -8,7 +8,7 @@ import React, { memo, useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Image } from 'expo-image';
 import { useTheme } from '@/hooks/useTheme';
-import { useVoiceStore } from '@/shared/stores/voiceStore';
+import { useVoiceStore } from '@stores/voiceStore';
 import { ConnectionQualityIcon } from './ConnectionQualityIcon';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, {

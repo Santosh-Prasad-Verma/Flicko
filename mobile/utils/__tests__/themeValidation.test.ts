@@ -13,6 +13,8 @@ import {
 } from '../themeValidation';
 import { colors } from '@constants/Colors';
 
+const EXPECTED_TOKEN_COUNT = Object.keys(colors.dark).length;
+
 describe('themeValidation', () => {
   describe('isValidColorFormat', () => {
     it('should validate hex colors', () => {
@@ -177,8 +179,8 @@ describe('themeValidation', () => {
       const result = validateThemePalette('dark');
       expect(result.theme).toBe('dark');
       expect(result.isValid).toBe(true);
-      expect(result.totalTokens).toBe(45);
-      expect(result.validTokens).toBe(45);
+      expect(result.totalTokens).toBe(EXPECTED_TOKEN_COUNT);
+      expect(result.validTokens).toBe(EXPECTED_TOKEN_COUNT);
       expect(result.missingTokens).toHaveLength(0);
       expect(result.emptyTokens).toHaveLength(0);
       expect(result.invalidFormatTokens).toHaveLength(0);
@@ -188,8 +190,8 @@ describe('themeValidation', () => {
       const result = validateThemePalette('light');
       expect(result.theme).toBe('light');
       expect(result.isValid).toBe(true);
-      expect(result.totalTokens).toBe(45);
-      expect(result.validTokens).toBe(45);
+      expect(result.totalTokens).toBe(EXPECTED_TOKEN_COUNT);
+      expect(result.validTokens).toBe(EXPECTED_TOKEN_COUNT);
       expect(result.missingTokens).toHaveLength(0);
       expect(result.emptyTokens).toHaveLength(0);
       expect(result.invalidFormatTokens).toHaveLength(0);
@@ -199,8 +201,8 @@ describe('themeValidation', () => {
       const result = validateThemePalette('amoled');
       expect(result.theme).toBe('amoled');
       expect(result.isValid).toBe(true);
-      expect(result.totalTokens).toBe(45);
-      expect(result.validTokens).toBe(45);
+      expect(result.totalTokens).toBe(EXPECTED_TOKEN_COUNT);
+      expect(result.validTokens).toBe(EXPECTED_TOKEN_COUNT);
       expect(result.missingTokens).toHaveLength(0);
       expect(result.emptyTokens).toHaveLength(0);
       expect(result.invalidFormatTokens).toHaveLength(0);
@@ -208,7 +210,7 @@ describe('themeValidation', () => {
 
     it('should provide detailed token results', () => {
       const result = validateThemePalette('dark');
-      expect(result.tokenResults).toHaveLength(45);
+      expect(result.tokenResults).toHaveLength(EXPECTED_TOKEN_COUNT);
       
       const bgPrimaryResult = result.tokenResults.find(
         (r) => r.token === 'bgPrimary'
@@ -235,9 +237,9 @@ describe('themeValidation', () => {
     it('should return consistent results for all themes', () => {
       const results = validateAllThemes();
       
-      expect(results.dark.totalTokens).toBe(45);
-      expect(results.light.totalTokens).toBe(45);
-      expect(results.amoled.totalTokens).toBe(45);
+      expect(results.dark.totalTokens).toBe(EXPECTED_TOKEN_COUNT);
+      expect(results.light.totalTokens).toBe(EXPECTED_TOKEN_COUNT);
+      expect(results.amoled.totalTokens).toBe(EXPECTED_TOKEN_COUNT);
     });
   });
 });
