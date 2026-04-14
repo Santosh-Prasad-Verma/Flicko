@@ -32,6 +32,7 @@ jobs:
             cd ~/Flicko || exit 1
             
             # 2. Pull the latest code
+            git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
             git reset --hard HEAD
             git pull origin main
             
