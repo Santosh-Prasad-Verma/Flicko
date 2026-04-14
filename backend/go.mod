@@ -19,30 +19,17 @@ require (
 require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/devcyclehq/go-server-sdk/v2 v2.24.1 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
-	github.com/gabriel-vasile/mimetype v1.4.8 // indirect
-	github.com/go-logr/logr v1.4.3 // indirect
-	github.com/go-playground/locales v0.14.1 // indirect
-	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/go-playground/validator/v10 v10.25.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.11 // indirect
-	github.com/launchdarkly/eventsource v1.8.0 // indirect
-	github.com/leodido/go-urn v1.4.0 // indirect
-	github.com/matryer/try v0.0.0-20161228173917-9ac251b645a2 // indirect
-	github.com/open-feature/go-sdk v1.17.2 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	github.com/stretchr/objx v0.5.3 // indirect
-	github.com/twmb/murmur3 v1.1.8 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
-	go.uber.org/mock v0.6.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/sync v0.20.0 // indirect
-	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/text v0.35.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

@@ -1,0 +1,38 @@
+name: Deploy Flicko to VPS
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - 'services/**'
+      - 'docker-compose.prod.yml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_IP }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            # 1. Navigate to the project directory on your VPS
+            # Change this path if your project is located somewhere else (e.g., /opt/Flicko)
+            cd ~/Flicko || git clone https://github.com/Santosh-Prasad-Verma/Flicko.git ~/Flicko && cd ~/Flicko
+            
+            # 2. Pull the latest code
+            git pull origin main
+            
+            # 3. Create or update the .env file with your production secrets
+            echo "REDIS_URL=${{ secrets.PROD_REDIS_URL }}" > .env
+            # Add any other required secrets here properly like above
+            # Add any other required secrets here...
+            
+            # 4. Build and restart the containers using Docker Compose
+            docker compose -f docker-compose.prod.yml down
+            docker compose -f docker-compose.prod.yml up -d --build

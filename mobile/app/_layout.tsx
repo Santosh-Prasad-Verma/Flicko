@@ -28,6 +28,7 @@ import { colors } from '../constants/Colors';
 import { useTheme } from '../hooks/useTheme';
 import { initCrashReporting, captureException, setUser as setCrashUser } from '@shared/services/crashReporting';
 import { configureAudioSession } from '../lib/livekit';
+import { FloatingVideoPiP } from '../components/voice/FloatingVideoPiP';
 import { PresenceTracker } from '../components/PresenceTracker';
 import { subscribeToCalls } from '@services/dmCallService';
 import { IncomingCallDialog } from '../components/messages/IncomingCallDialog';
@@ -395,6 +396,8 @@ export default function RootLayout() {
             </ThemeProvider>
           </AuthGate>
         </QueryClientProvider>
+        <import-placeholder />
+        <FloatingVideoPiP />
       </SafeAreaProvider>
     </ErrorBoundary>
     </GestureHandlerRootView>

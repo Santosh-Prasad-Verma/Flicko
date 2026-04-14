@@ -1,13 +1,18 @@
 #!/usr/bin/env bash
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  Flicko — Setup Wizard 
-# ─────────────────────────────────────────────────────────────────────────────
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║              Flicko — Setup Wizard  ✦  Enhanced Edition                     ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
 
-# ── Colours ───────────────────────────────────────────────────────────────────
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  COLOURS & STYLES
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 R=$'\033[0m'
 BOLD=$'\033[1m'
 DIM=$'\033[2m'
+ITALIC=$'\033[3m'
+UNDERLINE=$'\033[4m'
+BLINK=$'\033[5m'
 
 WHITE=$'\033[97m'
 CYAN=$'\033[96m'
@@ -18,8 +23,9 @@ MAGENTA=$'\033[95m'
 BLUE=$'\033[94m'
 GRAY=$'\033[90m'
 BLACK=$'\033[30m'
+ORANGE=$'\033[38;5;208m'
 
-# 256-colour gradient palette
+# 256-colour gradient palette  (magenta → cyan arc)
 M=$'\033[38;5;201m'
 MP=$'\033[38;5;171m'
 P=$'\033[38;5;135m'
@@ -28,19 +34,43 @@ B=$'\033[38;5;63m'
 BB=$'\033[38;5;33m'
 CB=$'\033[38;5;39m'
 C=$'\033[38;5;45m'
+X1=$'\033[38;5;51m'
+X2=$'\033[38;5;45m'
+X3=$'\033[38;5;39m'
+X4=$'\033[38;5;33m'
+X5=$'\033[38;5;27m'
+X6=$'\033[38;5;24m'
+TEAL=$'\033[38;5;51m'
+LIME=$'\033[38;5;118m'
+GOLD=$'\033[38;5;220m'
+ROSE=$'\033[38;5;204m'
 
+# Background colours
 BG_DARK=$'\033[48;5;234m'
+BG_DARKER=$'\033[48;5;232m'
 BG_BLACK=$'\033[40m'
 BG_GREEN=$'\033[48;5;22m'
+BG_DARK_GREEN=$'\033[48;5;28m'
 BG_RED=$'\033[48;5;52m'
 BG_PURPLE=$'\033[48;5;57m'
+BG_NAVY=$'\033[48;5;17m'
+BG_TEAL=$'\033[48;5;23m'
+BG_ORANGE=$'\033[48;5;130m'
+BG_YELLOW=$'\033[48;5;136m'
+BG_GRAY=$'\033[48;5;237m'
 
-# ── Terminal width (hard-capped at 78) ────────────────────────────────────────
-COLS=$(tput cols 2>/dev/null || echo 72)
-[ "$COLS" -gt 78 ] && COLS=78
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  TERMINAL GEOMETRY  (hard-capped at 90)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+COLS=$(tput cols 2>/dev/null || echo 80)
+ROWS=$(tput lines 2>/dev/null || echo 24)
+[ "$COLS" -gt 90 ] && COLS=90
 
-# ── Core helpers ──────────────────────────────────────────────────────────────
-gap() { printf "\n"; }
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  CORE HELPERS
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+gap()  { printf "\n"; }
+gap2() { printf "\n\n"; }
 
 repeat_char() {
   local char="$1" count="$2" out=""
@@ -48,33 +78,69 @@ repeat_char() {
   printf "%s" "$out"
 }
 
-# ── Status lines ──────────────────────────────────────────────────────────────
-ok()   { printf "  ${GREEN}[${BOLD}OK${R}${GREEN}]${R}   ${WHITE}%s${R}\n"    "$*"; }
-fail() { printf "  ${RED}[${BOLD}!!${R}${RED}]${R}   ${WHITE}%s${R}\n"        "$*"; }
-warn() { printf "  ${YELLOW}[${BOLD}WW${R}${YELLOW}]${R}   ${YELLOW}%s${R}\n" "$*"; }
-info() { printf "  ${GRAY}[${R}${CYAN}--${R}${GRAY}]${R}   ${GRAY}%s${R}\n"   "$*"; }
-dbg()  { printf "  ${GRAY}[${R}${MAGENTA}>>${R}${GRAY}]${R}   ${GRAY}%s${R}\n" "$*"; }
-hint() { printf "      ${DIM}${GRAY}%s${R}\n" "$*"; }
+center_text() {
+  local text="$1" width="${2:-$COLS}"
+  local pad=$(( (width - ${#text}) / 2 ))
+  [ "$pad" -lt 0 ] && pad=0
+  printf "%${pad}s%s\n" "" "$text"
+}
 
-# ── Section header ────────────────────────────────────────────────────────────
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  STATUS LINES  (upgraded icons)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ok()   { printf "  ${BG_DARK}${GREEN} ✔ ${R}${GREEN}${BOLD} %-*s${R}\n" "$(( COLS - 9 ))" "$*"; }
+fail() { printf "  ${BG_RED}${WHITE} ✘ ${R}${RED}${BOLD}  %-*s${R}\n"   "$(( COLS - 9 ))" "$*"; }
+warn() { printf "  ${BG_YELLOW}${BLACK} ⚠ ${R}${YELLOW}  %-*s${R}\n"   "$(( COLS - 9 ))" "$*"; }
+info() { printf "  ${GRAY}  ℹ  ${CYAN}%s${R}\n"                          "$*"; }
+dbg()  { printf "  ${GRAY}  ›  ${DIM}${GRAY}%s${R}\n"                    "$*"; }
+hint() { printf "      ${DIM}${GRAY}↳  %s${R}\n"                         "$*"; }
+note() { printf "  ${BG_NAVY}${CYAN}${BOLD} NOTE ${R}  ${WHITE}%s${R}\n" "$*"; }
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  DIVIDERS & SECTION HEADERS
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+thin_line()  { printf "  ${GRAY}$(repeat_char '─' $(( COLS - 4 )))${R}\n"; }
+thick_line() { printf "  ${CYAN}$(repeat_char '═' $(( COLS - 4 )))${R}\n"; }
+wave_line()  {
+  local w=$(( COLS - 4 ))
+  local wave="${M}"
+  local palette=("$M" "$MP" "$P" "$PB" "$B" "$BB" "$CB" "$C")
+  printf "  "
+  for (( i=0; i<w; i++ )); do
+    local ci=$(( i % ${#palette[@]} ))
+    printf "%b%s" "${palette[$ci]}" "─"
+  done
+  printf "${R}\n"
+}
+
 section() {
   local title="$1"
-  local rhs=$(( COLS - ${#title} - 9 ))
+  local icon="${2:-◈}"
+  local rhs=$(( COLS - ${#title} - 12 ))
   [ "$rhs" -lt 1 ] && rhs=1
   gap
-  local line="  ${CYAN}$(repeat_char '─' 2)[ ${BOLD}${WHITE}${title}${R}${CYAN} ]$(repeat_char '─' $rhs)${R}"
-  printf "%b\n" "$line"
+  printf "  ${CB}$(repeat_char '─' 2)${R} ${BG_DARK}${BOLD}${C} ${icon} ${WHITE}${title} ${R}${CB}$(repeat_char '─' $rhs)${R}\n"
+  gap
 }
 
-# ── Numbered step ─────────────────────────────────────────────────────────────
+subsection() {
+  local title="$1"
+  printf "  ${GRAY}  ┌─ ${CYAN}${BOLD}${title}${R}\n"
+}
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  NUMBERED STEP
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 step_label() {
   local n="$1" msg="$2"
-  printf "  ${GRAY}[${R}${CYAN}${BOLD}%02d${R}${GRAY}]${R}  %s\n" "$n" "$msg"
+  printf "  ${BG_PURPLE}${BOLD}${WHITE} %02d ${R}  %b\n" "$n" "$msg"
 }
 
-# ── Typing animation ──────────────────────────────────────────────────────────
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  TYPING ANIMATION
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 type_text() {
-  local text="$1" delay="${2:-0.025}"
+  local text="$1" delay="${2:-0.022}"
   for (( i=0; i<${#text}; i++ )); do
     printf "%s" "${text:$i:1}"
     sleep "$delay"
@@ -82,64 +148,73 @@ type_text() {
   printf "\n"
 }
 
-# ── Glitch animation ──────────────────────────────────────────────────────────
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  GLITCH ANIMATION
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 glitch_text() {
   local text="$1"
   local len=${#text}
-  local glitch_chars="@#%&?!"
-  for (( round=0; round<5; round++ )); do
+  local glitch_chars="@#%&?!><~^*"
+  for (( round=0; round<6; round++ )); do
     local out=""
     for (( i=0; i<len; i++ )); do
-      if (( RANDOM % 3 == 0 )); then
+      if (( RANDOM % 4 == 0 )); then
         local gi=$(( RANDOM % ${#glitch_chars} ))
         out+="${RED}${glitch_chars:$gi:1}${R}"
+      elif (( RANDOM % 6 == 0 )); then
+        out+="${CYAN}${text:$i:1}${R}"
       else
         out+="${text:$i:1}"
       fi
     done
-    printf "\r  %b" "$out"
-    sleep 0.06
+    printf "\r  ${BOLD}${M}%b${R}" "$out"
+    sleep 0.055
   done
   printf "\r  ${BOLD}${GREEN}%s${R}\n" "$text"
 }
 
-# ── Matrix rain (FIXED — echo -e, pure ASCII art chars only) ─────────────────
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  MATRIX RAIN
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 matrix_burst() {
   local width=$(( COLS - 4 ))
-  local cols_count=6
+  local cols_count=7
   local col_width=$(( width / cols_count ))
   local all_cols=()
+  local col_colors=("$M" "$MP" "$P" "$B" "$CB" "$C" "$TEAL")
 
-  # Each column gets a random starting offset
   for (( c=0; c<cols_count; c++ )); do
-    all_cols+=( $(( RANDOM % 6 )) )
+    all_cols+=( $(( RANDOM % 5 )) )
   done
 
   tput civis 2>/dev/null
 
-  for (( row=0; row<7; row++ )); do
+  for (( row=0; row<8; row++ )); do
     local line="  "
     for (( c=0; c<cols_count; c++ )); do
       local drop=${all_cols[$c]}
+      local ccol="${col_colors[$c]}"
       for (( w=0; w<col_width; w++ )); do
         local dist=$(( row - drop ))
-        if   (( dist == 0 ));        then line+="${BOLD}${WHITE}"
-        elif (( dist > 0 && dist < 3 )); then line+="${GREEN}"
-        elif (( dist >= 3 ));        then line+="${GRAY}${DIM}"
-        else                              line+="${GRAY}${DIM}"
+        if   (( dist == 0 ));               then line+="${BOLD}${WHITE}"
+        elif (( dist > 0 && dist < 2 ));    then line+="${BOLD}${ccol}"
+        elif (( dist >= 2 && dist < 4 ));   then line+="${ccol}"
+        else                                     line+="${GRAY}${DIM}"
         fi
-        # Only safe printable ASCII — no block chars, no backslash
         local rn=$(( RANDOM % 62 ))
-        if   (( rn < 10 )); then line+="$rn"
-        elif (( rn < 36 )); then line+="$(printf '%s' "$(printf "\\$(printf '%03o' $(( rn - 10 + 65 )))")")"
-        else                     line+="$(printf '%s' "$(printf "\\$(printf '%03o' $(( rn - 36 + 97 )))")")"
+        if   (( rn < 10 )); then
+          line+="$rn"
+        elif (( rn < 36 )); then
+          line+="$(printf "\\$(printf '%03o' $(( rn - 10 + 65 )))")"
+        else
+          line+="$(printf "\\$(printf '%03o' $(( rn - 36 + 97 )))")"
         fi
         line+="${R}"
       done
     done
     printf "%b\n" "$line"
-    sleep 0.055
-    # Advance some columns
+    sleep 0.048
+
     for (( c=0; c<cols_count; c++ )); do
       if (( RANDOM % 2 == 0 )); then
         all_cols[$c]=$(( all_cols[$c] + 1 ))
@@ -150,19 +225,67 @@ matrix_burst() {
   tput cnorm 2>/dev/null
 }
 
-# ── Spinner ───────────────────────────────────────────────────────────────────
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  FLICKO WORDMARK
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+render_flicko_wordmark() {
+  local raw=(
+    "  ███████╗  ██╗      ██╗   ██████╗  ██╗  ██╗   ██████╗"
+    "  ██╔════╝  ██║      ██║  ██╔════╝  ██║ ██╔╝  ██╔═══██╗"
+    "  █████╗    ██║      ██║  ██║       █████╔╝   ██║   ██║"
+    "  ██╔══╝    ██║      ██║  ██║       ██╔═██╗   ██║   ██║"
+    "  ██║       ███████╗ ██║  ╚██████╗  ██║  ╚██╗ ╚██████╔╝"
+    "  ╚═╝       ╚══════╝ ╚═╝   ╚═════╝  ╚═╝   ╚══╝  ╚═════╝"
+  )
+  local line_cols=("$X2" "$X3" "$X4" "$X5" "$X6" "$GRAY")
+  local num_lines=${#raw[@]}
+
+  for (( l=0; l<num_lines; l++ )); do
+    printf "%b%s%b\n" "${line_cols[$l]}${BOLD}" "${raw[$l]}" "${R}"
+  done
+
+  sleep 0.12
+
+  local sweep_cols=("$X1" "$X2" "$X3" "$X4" "$X5" "$X6" \
+                    "$X2" "$X3" "$X4" "$X5" "$X6" "$X5" \
+                    "$X1" "$X2" "$X3" "$X4" "$X5" "$X6")
+
+  for (( sw=0; sw<2; sw++ )); do
+    for (( l=0; l<num_lines; l++ )); do
+      tput cuu1 2>/dev/null
+    done
+    for (( l=0; l<num_lines; l++ )); do
+      local ci=$(( (sw * 3 + l) % ${#sweep_cols[@]} ))
+      printf "\r%b%s%b\n" "${sweep_cols[$ci]}${BOLD}" "${raw[$l]}" "${R}"
+    done
+    sleep 0.08
+  done
+
+  for (( l=0; l<num_lines; l++ )); do
+    tput cuu1 2>/dev/null
+  done
+  for (( l=0; l<num_lines; l++ )); do
+    printf "\r%b%s%b\n" "${line_cols[$l]}${BOLD}" "${raw[$l]}" "${R}"
+  done
+}
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  SPINNER
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 SPINNER_PID=""
 
 start_spinner() {
   local msg="$1"
   local frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+  local spin_colors=("$M" "$MP" "$P" "$B" "$CB" "$C")
   (
-    local i=0
+    local i=0 ci=0
     tput civis 2>/dev/null
     while true; do
-      printf "\r  ${GREEN}${frames[$i]}${R}  ${GRAY}${msg}${R}   "
+      printf "\r  ${spin_colors[$ci]}${frames[$i]}${R}  ${GRAY}${msg}${R}   "
       i=$(( (i + 1) % ${#frames[@]} ))
-      sleep 0.07
+      ci=$(( (ci + 1) % ${#spin_colors[@]} ))
+      sleep 0.065
     done
   ) &
   SPINNER_PID=$!
@@ -179,140 +302,125 @@ stop_spinner() {
   fi
 }
 
-# ── Progress bar ──────────────────────────────────────────────────────────────
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  PROGRESS BAR  (gradient fill)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 progress_bar() {
   local current="$1" total="$2"
-  local bar_w=38
+  local bar_w=42
   local filled=$(( current * bar_w / total ))
   local empty=$(( bar_w - filled ))
   local pct=$(( current * 100 / total ))
-  printf "  ${GRAY}[${R}"
-  printf "${GREEN}$(repeat_char '=' $filled)${R}"
-  printf "${GRAY}$(repeat_char '.' $empty)${R}"
-  printf "${GRAY}]${R}  ${BOLD}${WHITE}%3d%%${R}  ${GRAY}(%d/%d)${R}\n" \
-    "$pct" "$current" "$total"
+  local grad=("$M" "$MP" "$P" "$B" "$CB" "$C" "$TEAL" "$GREEN")
+
+  printf "  ${GRAY}╟${R}"
+  for (( i=0; i<filled; i++ )); do
+    local ci=$(( i * ${#grad[@]} / bar_w ))
+    printf "%b▓" "${grad[$ci]}"
+  done
+  printf "${GRAY}$(repeat_char '░' $empty)╢${R}"
+
+  if   (( pct == 100 )); then printf "  ${GREEN}${BOLD}%3d%%  ✔${R}" "$pct"
+  elif (( pct >= 60  )); then printf "  ${CYAN}${BOLD}%3d%%${R}"      "$pct"
+  else                        printf "  ${YELLOW}${BOLD}%3d%%${R}"    "$pct"
+  fi
+
+  printf "  ${GRAY}(%d/%d)${R}\n" "$current" "$total"
 }
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  BOOT ANIMATION  (runs before everything else)
-# ─────────────────────────────────────────────────────────────────────────────
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  BOOT SEQUENCE
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 boot_sequence() {
   clear
   tput civis 2>/dev/null
 
   local w=$(( COLS - 4 ))
+  local scan_pal=("$M" "$MP" "$P" "$B" "$BB" "$CB" "$C")
 
-  # ── Phase 1: scan lines ───────────────────────────────────────────────────
-  for (( i=0; i<3; i++ )); do
-    printf "  ${GREEN}${DIM}"
-    local rn=$(( RANDOM % 62 ))
-    local line=""
-    for (( j=0; j<w; j++ )); do
-      rn=$(( RANDOM % 62 ))
-      if   (( rn < 10 )); then line+="$rn"
-      elif (( rn < 36 )); then
-        local code=$(( rn - 10 + 65 ))
-        line+="$(printf "\\$(printf '%03o' $code)")"
-      else
-        local code=$(( rn - 36 + 97 ))
-        line+="$(printf "\\$(printf '%03o' $code)")"
-      fi
-    done
-    printf "%s${R}\n" "$line"
-    sleep 0.04
-  done
+  # ── Phase 1: BIOS boot messages ──────────────────────────────────────────
+  printf "  ${BG_DARK}${CYAN}${BOLD} ◈  FLICKO-BIOS v2.1.0  │  64 MB VRAM  │  SETUP-CORE ×4 ${R}\n"
   gap
 
-  # ── Phase 2: BIOS-style boot messages ────────────────────────────────────
-  local bios_lines=(
-    "${GRAY}FLICKO-BIOS v2.1.0  │  64MB VRAM  │  CPU: SETUP-CORE x4${R}"
-    "${GRAY}Detecting terminal geometry...  ${GREEN}OK${R}"
-    "${GRAY}Mounting colour palette...      ${GREEN}OK${R}"
-    "${GRAY}Loading animation engine...     ${GREEN}OK${R}"
-    "${GRAY}Initialising prerequisite map...${GREEN}OK${R}"
+  local bios=(
+    "${GRAY}├─ Detecting terminal geometry  .............. ${GREEN}${BOLD}OK${R}"
+    "${GRAY}├─ Mounting 256-colour palette  .............. ${GREEN}${BOLD}OK${R}"
+    "${GRAY}├─ Initialising animation engine  ............ ${GREEN}${BOLD}OK${R}"
+    "${GRAY}├─ Loading prerequisite scanner  ............. ${GREEN}${BOLD}OK${R}"
+    "${GRAY}└─ Preparing setup manifest  ................. ${GREEN}${BOLD}OK${R}"
   )
-  for line in "${bios_lines[@]}"; do
+  for line in "${bios[@]}"; do
     printf "  "
     printf "%b\n" "$line"
-    sleep 0.12
+    sleep 0.1
   done
   gap
 
-  # ── Phase 3: segmented progress bar with phase labels ────────────────────
-  local phases=(
-    "KERNEL   "
-    "MODULES  "
-    "SERVICES "
-    "DISPLAY  "
-    "READY    "
-  )
-  local phase_colours=(
-    "$M"  "$P"  "$B"  "$CB"  "$GREEN"
-  )
-  local bar_w=$(( w - 20 ))
-  local total_phases=${#phases[@]}
+  # ── Phase 2: segmented gradient progress bar ──────────────────────────────
+  local phases=("KERNEL " "MODULES" "SERVICES" "DISPLAY" " READY ")
+  local pcols=("$M" "$P" "$B" "$CB" "$GREEN")
+  local bar_w=$(( w - 18 ))
+  local total=${#phases[@]}
 
-  for (( p=0; p<total_phases; p++ )); do
+  for (( p=0; p<total; p++ )); do
     local label="${phases[$p]}"
-    local col="${phase_colours[$p]}"
-    local steps=$(( bar_w / total_phases ))
+    local col="${pcols[$p]}"
+    local steps=$(( bar_w / total ))
     local start=$(( p * steps ))
     local end=$(( start + steps ))
-    [ "$p" -eq $(( total_phases - 1 )) ] && end=$bar_w
+    [ "$p" -eq $(( total - 1 )) ] && end=$bar_w
 
     for (( s=start; s<=end; s++ )); do
-      local filled=$s
       local empty=$(( bar_w - s ))
       local pct=$(( s * 100 / bar_w ))
-
-      # Build gradient fill
       local bar=""
-      for (( b=0; b<filled; b++ )); do
-        local seg=$(( b * total_phases / bar_w ))
-        bar+="${phase_colours[$seg]}|${R}"
+      for (( b=0; b<s; b++ )); do
+        local si=$(( b * total / bar_w ))
+        bar+="${pcols[$si]}▓${R}"
       done
-
-      printf "\r  ${col}${BOLD}[%s]${R}  [%b${GRAY}$(repeat_char '.' $empty)${R}]  ${BOLD}${WHITE}%3d%%${R}" \
+      printf "\r  ${col}${BOLD}[%s]${R}  ${GRAY}║${R}%b${GRAY}$(repeat_char '░' $empty)║${R}  ${BOLD}${WHITE}%3d%%${R}" \
         "$label" "$bar" "$pct"
-      sleep 0.012
+      sleep 0.010
     done
   done
   printf "\n"
   gap
 
-  # ── Phase 4: flicker flash then clear ────────────────────────────────────
-  for (( f=0; f<2; f++ )); do
-    printf "  ${GREEN}${BOLD}[ FLICKO SETUP — SYSTEM GO ]${R}\n"
-    sleep 0.07
+  # ── Phase 3: flash banner ─────────────────────────────────────────────────
+  local banner="  ✦  FLICKO SETUP ENGINE  —  ALL SYSTEMS GO  ✦"
+  for (( f=0; f<3; f++ )); do
+    local bc="${scan_pal[$((f % ${#scan_pal[@]}))]}"
+    printf "  ${BG_DARK}${bc}${BOLD}%-*s${R}\n" "$w" "$banner"
+    sleep 0.08
     tput cuu1 2>/dev/null
     printf "%${COLS}s\r" ""
-    sleep 0.05
+    sleep 0.04
   done
-  printf "  ${GREEN}${BOLD}[ FLICKO SETUP — SYSTEM GO ]${R}\n"
-  sleep 0.3
+  printf "  ${BG_DARK}${GREEN}${BOLD}%-*s${R}\n" "$w" "$banner"
+  sleep 0.4
 
   tput cnorm 2>/dev/null
-  sleep 0.2
+  sleep 0.15
   clear
 }
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  RUN BOOT
-# ─────────────────────────────────────────────────────────────────────────────
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  ❱  RUN BOOT
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 boot_sequence
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  MAIN SCREEN — matrix burst header
-# ─────────────────────────────────────────────────────────────────────────────
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  MAIN SCREEN HEADER
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 tput civis 2>/dev/null
 matrix_burst
 gap
-
-# ── Top border ────────────────────────────────────────────────────────────────
-printf "  ${CYAN}$(repeat_char '=' $(( COLS - 4 )))${R}\n"
+wave_line
 gap
 
-# ── Flicko icon logo ──────────────────────────────────────────────────────────
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  ICON LOGO
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ICON_LINES=(
   "       ${BB}▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄${C}▄▄▄▄▄▄▄▄"
   "       ${M}▄▄▄▄▄▄▄▄${MP}▄▄▄▄${P}▄▄${PB}██████${B}████████${BB}████████████▄"
@@ -332,217 +440,263 @@ ICON_LINES=(
 
 for line in "${ICON_LINES[@]}"; do
   printf "${BOLD}%b\n" "$line"
+  sleep 0.03
 done
-
 gap
 
-# ── Word-mark logo ────────────────────────────────────────────────────────────
-WORD_LINES=(
-  "  ${M}███████${MP}╗${R}  ${P}██${PB}╗${R}      ${B}██${BB}╗${R}   ${CB}██████${C}╗${R}  ${M}██${MP}╗${R}  ${P}██${PB}╗${R}   ${B}██████${BB}╗${R}"
-  "  ${M}██${MP}╔════╝${R}  ${P}██${PB}║${R}      ${B}██${BB}║${R}  ${CB}██${C}╔════╝${R}  ${M}██${MP}║${R} ${P}██${PB}╔╝${R}  ${B}██${BB}╔═══██╗${R}"
-  "  ${M}█████${MP}╗${R}    ${P}██${PB}║${R}      ${B}██${BB}║${R}  ${CB}██${C}║${R}       ${M}█████${MP}╔╝${R}   ${B}██${BB}║   ██║${R}"
-  "  ${M}██${MP}╔══╝${R}    ${P}██${PB}║${R}      ${B}██${BB}║${R}  ${CB}██${C}║${R}       ${M}██${MP}╔═${P}██${PB}╗${R}   ${B}██${BB}║   ██║${R}"
-  "  ${M}██${MP}║${R}       ${P}███████${PB}╗${R} ${B}██${BB}║${R}  ${CB}╚██████${C}╗${R}  ${M}██${MP}║${R}  ${P}╚█${PB}█╗${R} ${B}╚██████${BB}╔╝${R}"
-  "  ${GRAY}╚═╝       ╚══════╝ ╚═╝   ╚═════╝  ╚═╝   ╚══╝  ╚═════╝${R}"
-)
-
-for line in "${WORD_LINES[@]}"; do
-  printf "${BOLD}%b\n" "$line"
-done
-
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  WORD-MARK LOGO
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+render_flicko_wordmark
 gap
 
 # ── Sub-title ─────────────────────────────────────────────────────────────────
-SUBTITLE="[ REAL-TIME  *  COMMUNITY  *  PLATFORM  *  v1.0.0 ]"
+SUBTITLE="◈  REAL-TIME  ·  COMMUNITY  ·  PLATFORM  ·  v1.0.0  ◈"
 SUB_PAD=$(( (COLS - ${#SUBTITLE}) / 2 ))
 [ "$SUB_PAD" -lt 0 ] && SUB_PAD=0
-printf "%${SUB_PAD}s${GRAY}%s${R}\n" "" "$SUBTITLE"
-
+printf "%${SUB_PAD}s${BOLD}${GRAY}%s${R}\n" "" "$SUBTITLE"
 gap
 
 # ── Timestamp badge ───────────────────────────────────────────────────────────
-BADGE="  ** flicko-setup  |  $(date '+%Y-%m-%d %H:%M:%S')  "
+TS="$(date '+%Y-%m-%d  %H:%M:%S')"
+BADGE=" ◈  flicko-setup  │  ${TS}  │  PID $$  "
 BADGE_PAD=$(( (COLS - ${#BADGE}) / 2 ))
 [ "$BADGE_PAD" -lt 0 ] && BADGE_PAD=0
-printf "%${BADGE_PAD}s${BG_DARK}${CYAN}${BOLD}%s${R}\n" "" "$BADGE"
-
+printf "%${BADGE_PAD}s${BG_DARK}${BOLD}${C}%s${R}\n" "" "$BADGE"
 gap
-printf "  ${CYAN}$(repeat_char '=' $(( COLS - 4 )))${R}\n"
 
+wave_line
 tput cnorm 2>/dev/null
 
-# ─────────────────────────────────────────────────────────────────────────────
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #  PROJECT INFO
-# ─────────────────────────────────────────────────────────────────────────────
-section "PROJECT"
-gap
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+section "PROJECT" "◈"
 
-printf "  ${GRAY}|${R}  ${BOLD}${WHITE}%-*s${R}  ${GRAY}|${R}\n" \
-  "$(( COLS - 10 ))" "Flicko — Discord-inspired real-time community platform"
-
+printf "  ${BG_DARK}${BOLD}${WHITE}  Flicko${R}${BG_DARK}${GRAY}  —  Discord-inspired real-time community platform  ${R}\n"
 gap
 
 TABLE_W=$(( COLS - 4 ))
-printf "  ${GRAY}+$(repeat_char '-' $(( TABLE_W - 2 )))+${R}\n"
-printf "  ${GRAY}|${R}  ${CYAN}${BOLD}%-10s${R}  ${GRAY}|${R}  ${WHITE}%-*s${R}  ${GRAY}|${R}\n" \
-  "FRONTEND"  "$(( TABLE_W - 19 ))" "React Native  *  Expo  *  TypeScript"
-printf "  ${GRAY}|${R}  ${CYAN}${BOLD}%-10s${R}  ${GRAY}|${R}  ${WHITE}%-*s${R}  ${GRAY}|${R}\n" \
-  "BACKEND"   "$(( TABLE_W - 19 ))" "Go  *  ws-gateway  *  msg-service"
-printf "  ${GRAY}|${R}  ${CYAN}${BOLD}%-10s${R}  ${GRAY}|${R}  ${WHITE}%-*s${R}  ${GRAY}|${R}\n" \
-  "INFRA"     "$(( TABLE_W - 19 ))" "Supabase  *  Redis  *  Docker  *  LiveKit"
-printf "  ${GRAY}|${R}  ${CYAN}${BOLD}%-10s${R}  ${GRAY}|${R}  ${WHITE}%-*s${R}  ${GRAY}|${R}\n" \
-  "OBS"       "$(( TABLE_W - 19 ))" "Prometheus  *  Grafana  *  pprof"
-printf "  ${GRAY}|${R}  ${CYAN}${BOLD}%-10s${R}  ${GRAY}|${R}  ${WHITE}%-*s${R}  ${GRAY}|${R}\n" \
-  "LICENSE"   "$(( TABLE_W - 19 ))" "Apache 2.0"
-printf "  ${GRAY}+$(repeat_char '-' $(( TABLE_W - 2 )))+${R}\n"
+local_w=$(( TABLE_W - 19 ))
+
+# Table header
+printf "  ${GRAY}┌$(repeat_char '─' $(( TABLE_W - 2 )))┐${R}\n"
+printf "  ${GRAY}│${R}  ${BG_DARK}${BOLD}${C}%-12s${R}${BG_DARK}  ${GRAY}│${R}${BG_DARK}  ${BOLD}${WHITE}%-*s${R}${BG_DARK}  ${GRAY}│${R}\n" \
+  " LAYER" "$(( local_w - 2 ))" "TECHNOLOGY STACK"
+printf "  ${GRAY}├$(repeat_char '─' $(( TABLE_W - 2 )))┤${R}\n"
+
+_row() {
+  local label="$1" value="$2" lcolor="${3:-$CYAN}" vcolor="${4:-$WHITE}"
+  printf "  ${GRAY}│${R}  ${lcolor}${BOLD}%-12s${R}  ${GRAY}│${R}  ${vcolor}%-*s${R}  ${GRAY}│${R}\n" \
+    "$label" "$local_w" "$value"
+}
+
+_row " FRONTEND"  "React Native  ·  Expo  ·  TypeScript"          "$M"    "$WHITE"
+printf "  ${GRAY}├$(repeat_char '─' $(( TABLE_W - 2 )))┤${R}\n"
+_row " BACKEND"   "Go  ·  ws-gateway  ·  msg-service"             "$CB"   "$WHITE"
+printf "  ${GRAY}├$(repeat_char '─' $(( TABLE_W - 2 )))┤${R}\n"
+_row " INFRA"     "Supabase  ·  Redis  ·  Docker  ·  LiveKit"     "$B"    "$WHITE"
+printf "  ${GRAY}├$(repeat_char '─' $(( TABLE_W - 2 )))┤${R}\n"
+_row " OBS"       "Prometheus  ·  Grafana  ·  pprof"              "$P"    "$WHITE"
+printf "  ${GRAY}├$(repeat_char '─' $(( TABLE_W - 2 )))┤${R}\n"
+_row " LICENSE"   "Apache 2.0"                                    "$MP"   "${GRAY}"
+printf "  ${GRAY}└$(repeat_char '─' $(( TABLE_W - 2 )))┘${R}\n"
 
 gap
 info "github.com/Santosh-Prasad-Verma/Flicko"
 
-# ─────────────────────────────────────────────────────────────────────────────
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #  PREREQUISITE CHECKS
-# ─────────────────────────────────────────────────────────────────────────────
-section "PREREQUISITE CHECKS"
-gap
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+section "PREREQUISITE CHECKS" "⬡"
 
-dbg "Scanning PATH for required tools..."
+dbg "Scanning \$PATH for required tools..."
 gap
 
 PASS=0
 FAIL=0
 TOTAL_TOOLS=5
 
+# ── tool descriptions ─────────────────────────────────────────────────────────
+declare -A TOOL_DESC=(
+  [node]="JavaScript runtime  (React Native / Expo)"
+  [npm]="Node package manager"
+  [go]="Go language runtime  (backend services)"
+  [docker]="Container engine  (infra stack)"
+  [git]="Version control"
+)
+
 check_tool() {
   local name="$1" cmd="$2"
-  start_spinner "Checking ${name}..."
-  sleep 0.3
+  start_spinner "Checking ${BOLD}${name}${R}${GRAY} — ${TOOL_DESC[$name]:-}${R}..."
+  sleep 0.35
 
   if command -v "$name" &>/dev/null; then
     local ver
-    ver=$(eval "$cmd" 2>/dev/null | head -1 | tr -d '\n')
+    ver=$(eval "$cmd" 2>/dev/null | head -1 | sed 's/^[[:space:]]*//' | tr -d '\n')
     stop_spinner
     PASS=$(( PASS + 1 ))
-    ok "${BOLD}${name}${R}  ${GRAY}-> ${ver}${R}"
+    ok "${BOLD}${name}${R}${GREEN}  ›  ${ver}  ${GRAY}— ${TOOL_DESC[$name]:-}${R}"
   else
     stop_spinner
     FAIL=$(( FAIL + 1 ))
-    fail "${BOLD}${name}${R}  ${GRAY}-> not found in PATH${R}"
+    fail "${BOLD}${name}${R}${RED}  ›  not found in \$PATH  ${GRAY}— ${TOOL_DESC[$name]:-}${R}"
   fi
+
   progress_bar "$(( PASS + FAIL ))" "$TOTAL_TOOLS"
   gap
 }
 
-check_tool "node"    "node --version"
-check_tool "npm"     "npm --version"
-check_tool "go"      "go version"
-check_tool "docker"  "docker --version"
-check_tool "git"     "git --version"
+check_tool "node"   "node --version"
+check_tool "npm"    "npm  --version"
+check_tool "go"     "go   version"
+check_tool "docker" "docker --version"
+check_tool "git"    "git   --version"
 
-# Result banner
-printf "  ${GRAY}$(repeat_char '-' $(( COLS - 4 )))${R}\n"
+# ── result banner ─────────────────────────────────────────────────────────────
+thin_line
 gap
 
 if [ "$FAIL" -eq 0 ]; then
-  glitch_text "All ${PASS}/${TOTAL_TOOLS} prerequisites satisfied"
+  glitch_text "All ${PASS}/${TOTAL_TOOLS} prerequisites satisfied — system ready"
   gap
-  printf "  ${BG_GREEN}${BOLD}${WHITE}  [OK]  System is ready — proceed to setup  ${R}\n"
+  printf "  ${BG_DARK_GREEN}${BOLD}${WHITE}  ✔  All tools found — proceed to Flicko setup  ${R}\n"
 else
-  printf "  ${BG_RED}${BOLD}${WHITE}  [!!]  ${FAIL} missing tool(s) — install before continuing  ${R}\n"
+  printf "  ${BG_RED}${BOLD}${WHITE}  ✘  ${FAIL} missing tool(s) — install before continuing  ${R}\n"
   gap
-  warn "Install missing tools then re-run this script"
-  hint "node/npm  ->  https://nodejs.org"
-  hint "go        ->  https://go.dev/dl"
-  hint "docker    ->  https://docs.docker.com/get-docker"
-  hint "git       ->  https://git-scm.com"
+  warn "${FAIL} tool(s) not found. Install them then re-run this script."
+  gap
+  [ ! "$(command -v node)" ] && hint "node / npm  →  https://nodejs.org"
+  [ ! "$(command -v go)"   ] && hint "go          →  https://go.dev/dl"
+  [ ! "$(command -v docker)"] && hint "docker      →  https://docs.docker.com/get-docker"
+  [ ! "$(command -v git)"  ] && hint "git         →  https://git-scm.com"
 fi
 
 gap
 
-# ─────────────────────────────────────────────────────────────────────────────
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #  GETTING STARTED
-# ─────────────────────────────────────────────────────────────────────────────
-section "GETTING STARTED"
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+section "GETTING STARTED" "▶"
+
+# ── Step 1 ────────────────────────────────────────────────────────────────────
+step_label 1 "${BOLD}${WHITE}Infrastructure${R}  ${GRAY}— spin up local Redis · Prometheus · Grafana${R}"
 gap
 
-step_label 1 "${BOLD}Infrastructure${R}  ${GRAY}— local metrics and Redis stack${R}"
-gap
-printf "  ${GRAY}|${R}\n"
-printf "  ${GRAY}|${R}  ${GRAY}run:${R}\n"
-printf "  ${GRAY}|${R}  ${BOLD}${GREEN}>>${R}  "
-type_text "./scripts/dev-start.sh" 0.022
-printf "  ${GRAY}|${R}\n"
-info "Starts Redis + Prometheus + Grafana via Docker Compose"
-gap
-
-step_label 2 "${BOLD}Backend Services${R}  ${GRAY}— Go microservices (separate terminals)${R}"
-gap
-printf "  ${GRAY}|${R}\n"
-printf "  ${GRAY}|${R}  ${GRAY}terminal 1:${R}\n"
-printf "  ${GRAY}|${R}  ${BOLD}${GREEN}>>${R}  "
-type_text "cd services && go run ./msg-service/cmd/server" 0.018
-printf "  ${GRAY}|${R}\n"
-printf "  ${GRAY}|${R}  ${GRAY}terminal 2:${R}\n"
-printf "  ${GRAY}|${R}  ${BOLD}${GREEN}>>${R}  "
-type_text "cd services && go run ./ws-gateway/cmd/gateway" 0.018
-printf "  ${GRAY}|${R}\n"
-info "msg-service  ->  http://localhost:8085"
-info "ws-gateway   ->  ws://localhost:8080"
+printf "  ${GRAY}│${R}\n"
+printf "  ${GRAY}│  ${DIM}command:${R}\n"
+printf "  ${GRAY}│${R}\n"
+printf "  ${GRAY}│  ${BG_DARK}${GREEN}${BOLD}  \$  ${R}${BG_DARK}${WHITE}  "
+type_text "./scripts/dev-start.sh" 0.020
+printf "${R}"
+printf "  ${GRAY}│${R}\n"
+info "Starts the full local infra stack via Docker Compose"
+note "Requires Docker Desktop to be running"
 gap
 
-step_label 3 "${BOLD}Mobile App${R}  ${GRAY}— Expo React Native client${R}"
+# ── Step 2 ────────────────────────────────────────────────────────────────────
+step_label 2 "${BOLD}${WHITE}Backend Services${R}  ${GRAY}— Go microservices (each in its own terminal)${R}"
 gap
-printf "  ${GRAY}|${R}\n"
-printf "  ${GRAY}|${R}  ${GRAY}run:${R}\n"
-printf "  ${GRAY}|${R}  ${BOLD}${GREEN}>>${R}  "
+
+printf "  ${GRAY}│${R}\n"
+subsection "terminal 1  —  msg-service"
+printf "  ${GRAY}│  ${BG_DARK}${GREEN}${BOLD}  \$  ${R}${BG_DARK}${WHITE}  "
+type_text "cd services && go run ./msg-service/cmd/server" 0.016
+printf "${R}"
+gap
+subsection "terminal 2  —  ws-gateway"
+printf "  ${GRAY}│  ${BG_DARK}${GREEN}${BOLD}  \$  ${R}${BG_DARK}${WHITE}  "
+type_text "cd services && go run ./ws-gateway/cmd/gateway" 0.016
+printf "${R}"
+printf "  ${GRAY}│${R}\n"
+info "msg-service   →  http://localhost:8085"
+info "ws-gateway    →  ws://localhost:8080"
+gap
+
+# ── Step 3 ────────────────────────────────────────────────────────────────────
+step_label 3 "${BOLD}${WHITE}Mobile App${R}  ${GRAY}— Expo React Native client${R}"
+gap
+
+printf "  ${GRAY}│${R}\n"
+printf "  ${GRAY}│  ${DIM}command:${R}\n"
+printf "  ${GRAY}│${R}\n"
+printf "  ${GRAY}│  ${BG_DARK}${GREEN}${BOLD}  \$  ${R}${BG_DARK}${WHITE}  "
 type_text "cd mobile && npm install && npx expo start" 0.018
-printf "  ${GRAY}|${R}\n"
-info "Scan the QR code in Expo Go  *  or press 'a' for Android emulator"
+printf "${R}"
+printf "  ${GRAY}│${R}\n"
+info "Scan the QR code in the Expo Go app"
+hint "Press 'a' for Android emulator  ·  'i' for iOS simulator"
 gap
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  QUICK REFERENCE
-# ─────────────────────────────────────────────────────────────────────────────
-section "QUICK REFERENCE"
-gap
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  QUICK REFERENCE TABLE
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+section "QUICK REFERENCE" "◉"
 
 REF_W=$(( COLS - 4 ))
-printf "  ${GRAY}+$(repeat_char '-' $(( REF_W - 2 )))+${R}\n"
-printf "  ${GRAY}|${R}  ${CYAN}${BOLD}%-22s${R}  ${GRAY}|${R}  ${WHITE}%-*s${R}  ${GRAY}|${R}\n" \
-  "FILE / RESOURCE" "$(( REF_W - 31 ))" "PURPOSE"
-printf "  ${GRAY}+$(repeat_char '-' $(( REF_W - 2 )))+${R}\n"
-printf "  ${GRAY}|${R}  ${YELLOW}%-22s${R}  ${GRAY}|${R}  ${GRAY}%-*s${R}  ${GRAY}|${R}\n" \
-  ".env.example"            "$(( REF_W - 31 ))" "copy to .env and fill in secrets"
-printf "  ${GRAY}|${R}  ${YELLOW}%-22s${R}  ${GRAY}|${R}  ${GRAY}%-*s${R}  ${GRAY}|${R}\n" \
-  "README.md"               "$(( REF_W - 31 ))" "full project documentation"
-printf "  ${GRAY}|${R}  ${YELLOW}%-22s${R}  ${GRAY}|${R}  ${GRAY}%-*s${R}  ${GRAY}|${R}\n" \
-  "scripts/dev-start.sh"    "$(( REF_W - 31 ))" "spin up local infra stack"
-printf "  ${GRAY}|${R}  ${YELLOW}%-22s${R}  ${GRAY}|${R}  ${GRAY}%-*s${R}  ${GRAY}|${R}\n" \
-  "scripts/run-backend.sh"  "$(( REF_W - 31 ))" "launch all Go services"
-printf "  ${GRAY}|${R}  ${YELLOW}%-22s${R}  ${GRAY}|${R}  ${GRAY}%-*s${R}  ${GRAY}|${R}\n" \
-  "scripts/expo-usb.sh"     "$(( REF_W - 31 ))" "USB ADB metro launcher"
-printf "  ${GRAY}+$(repeat_char '-' $(( REF_W - 2 )))+${R}\n"
+REF_NAME_W=25
+REF_DESC_W=$(( REF_W - REF_NAME_W - 11 ))
+
+printf "  ${GRAY}┌$(repeat_char '─' $(( REF_W - 2 )))┐${R}\n"
+printf "  ${GRAY}│${R}  ${BG_DARK}${BOLD}${C}%-25s${R}${BG_DARK}  ${GRAY}│${R}${BG_DARK}  ${BOLD}${WHITE}%-*s${R}${BG_DARK}  ${GRAY}│${R}\n" \
+  " FILE / SCRIPT" "$REF_DESC_W" "PURPOSE"
+printf "  ${GRAY}├$(repeat_char '─' $(( REF_W - 2 )))┤${R}\n"
+
+_ref() {
+  printf "  ${GRAY}│${R}  ${YELLOW}%-25s${R}  ${GRAY}│${R}  ${GRAY}%-*s${R}  ${GRAY}│${R}\n" \
+    "$1" "$REF_DESC_W" "$2"
+}
+
+_ref ".env.example"           "copy → .env and fill in your secrets"
+printf "  ${GRAY}├$(repeat_char '─' $(( REF_W - 2 )))┤${R}\n"
+_ref "README.md"              "full project documentation"
+printf "  ${GRAY}├$(repeat_char '─' $(( REF_W - 2 )))┤${R}\n"
+_ref "scripts/dev-start.sh"  "spin up local infra (Redis · Prometheus · Grafana)"
+printf "  ${GRAY}├$(repeat_char '─' $(( REF_W - 2 )))┤${R}\n"
+_ref "scripts/run-backend.sh" "launch all Go services in one shot"
+printf "  ${GRAY}├$(repeat_char '─' $(( REF_W - 2 )))┤${R}\n"
+_ref "scripts/expo-usb.sh"   "USB ADB metro launcher for physical devices"
+printf "  ${GRAY}└$(repeat_char '─' $(( REF_W - 2 )))┘${R}\n"
 
 gap
 
-# ─────────────────────────────────────────────────────────────────────────────
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  ENVIRONMENT SNAPSHOT
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+section "ENVIRONMENT" "◎"
+
+_env() {
+  printf "  ${GRAY}  %-16s${R}  ${WHITE}%s${R}\n" "$1" "$2"
+}
+_env "Shell:"    "${SHELL:-unknown}"
+_env "Terminal:" "${TERM:-unknown}"
+_env "User:"     "$(whoami 2>/dev/null || echo unknown)"
+_env "Hostname:" "$(hostname 2>/dev/null || echo unknown)"
+_env "OS:"       "$(uname -srm 2>/dev/null || echo unknown)"
+_env "Width:"    "${COLS} cols"
+
+gap
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #  FOOTER
-# ─────────────────────────────────────────────────────────────────────────────
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 gap
-printf "  ${CYAN}$(repeat_char '=' $(( COLS - 4 )))${R}\n"
+wave_line
 gap
 
 REPO="https://github.com/Santosh-Prasad-Verma/Flicko"
-REPO_PAD=$(( (COLS - ${#REPO} - 5) / 2 ))
+REPO_LBL="◈  ${REPO}"
+REPO_PAD=$(( (COLS - ${#REPO_LBL} - 1) / 2 ))
 [ "$REPO_PAD" -lt 0 ] && REPO_PAD=0
-printf "%${REPO_PAD}s${GRAY}[*]  ${CYAN}${BOLD}%s${R}\n" "" "$REPO"
+printf "%${REPO_PAD}s${GRAY}◈  ${UNDERLINE}${BOLD}${CYAN}%s${R}\n" "" "$REPO"
 
 gap
 
 CREDIT="Made with ♥ by the Flicko team"
 CREDIT_PAD=$(( (COLS - ${#CREDIT}) / 2 ))
 [ "$CREDIT_PAD" -lt 0 ] && CREDIT_PAD=0
-printf "%${CREDIT_PAD}s${GRAY}%s${R}\n" "" "$CREDIT"
+printf "%${CREDIT_PAD}s${DIM}${GRAY}%s${R}\n" "" "$CREDIT"
 
 gap
-printf "  ${CYAN}$(repeat_char '=' $(( COLS - 4 )))${R}\n"
+wave_line
 gap
