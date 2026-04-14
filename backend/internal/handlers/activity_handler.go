@@ -16,6 +16,14 @@ type ActivityHandler struct {
 	logger *zap.Logger
 }
 
+var validActivitySessionStates = map[string]struct{}{
+	"idle":      {},
+	"launching": {},
+	"active":    {},
+	"closing":   {},
+	"ended":     {},
+}
+
 func NewActivityHandler(db *pgxpool.Pool, logger *zap.Logger) *ActivityHandler {
 	return &ActivityHandler{
 		db:     db,
@@ -147,6 +155,25 @@ func (h *ActivityHandler) Launch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer tx.Rollback(r.Context()) //nolint:errcheck
+
+	var exists bool
+	if err = tx.QueryRow(r.Context(), `
+		SELECT EXISTS(
+			SELECT 1
+			FROM public.activities
+			WHERE id = $1
+			  AND user_id IS NULL
+			  AND COALESCE(enabled, true) = true
+		)
+	`, activityUUID).Scan(&exists); err != nil {
+		h.logger.Error("failed to validate activity", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to launch activity")
+		return
+	}
+	if !exists {
+		writeError(w, http.StatusNotFound, "activity not found")
+		return
+	}
 
 	var sessionID string
 	var state string
@@ -341,7 +368,7 @@ func (h *ActivityHandler) UpdateState(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "state is required")
 		return
 	}
-	if req.State != "idle" && req.State != "launching" && req.State != "active" && req.State != "closing" && req.State != "ended" {
+	if _, ok := validActivitySessionStates[req.State]; !ok {
 		writeError(w, http.StatusBadRequest, "invalid state")
 		return
 	}
@@ -365,19 +392,27 @@ func (h *ActivityHandler) UpdateState(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback(r.Context()) //nolint:errcheck
 
-	updates := "state = $2"
-	if req.State == "active" {
-		updates += ", started_at = COALESCE(started_at, NOW())"
+	switch req.State {
+	case "active":
+		_, err = tx.Exec(r.Context(), `
+			UPDATE public.activity_sessions
+			SET state = $2, started_at = COALESCE(started_at, NOW())
+			WHERE id = $1
+		`, sessionUUID, req.State)
+	case "ended":
+		_, err = tx.Exec(r.Context(), `
+			UPDATE public.activity_sessions
+			SET state = $2, ended_at = NOW()
+			WHERE id = $1
+		`, sessionUUID, req.State)
+	default:
+		_, err = tx.Exec(r.Context(), `
+			UPDATE public.activity_sessions
+			SET state = $2
+			WHERE id = $1
+		`, sessionUUID, req.State)
 	}
-	if req.State == "ended" {
-		updates += ", ended_at = NOW()"
-	}
-
-	if _, err = tx.Exec(r.Context(), `
-		UPDATE public.activity_sessions
-		SET `+updates+`
-		WHERE id = $1
-	`, sessionUUID, req.State); err != nil {
+	if err != nil {
 		h.logger.Error("failed to update session state", zap.Error(err))
 		writeError(w, http.StatusInternalServerError, "failed to update activity state")
 		return

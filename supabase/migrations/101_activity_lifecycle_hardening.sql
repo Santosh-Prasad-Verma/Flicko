@@ -49,7 +49,8 @@ BEGIN
     SELECT 1 FROM information_schema.columns
     WHERE table_schema = 'public' AND table_name = 'activities' AND column_name = 'started_at'
   ) THEN
-    ALTER TABLE public.activities ADD COLUMN started_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+    -- Keep nullable to avoid backfilling catalog rows with synthetic "started now" semantics.
+    ALTER TABLE public.activities ADD COLUMN started_at TIMESTAMPTZ;
   END IF;
 
   IF NOT EXISTS (
@@ -126,6 +127,7 @@ END
 $$;
 
 -- Relax strict legacy constraints so catalog rows can exist without user_id/type.
+-- Presence rows remain enforced through activities_presence_or_catalog_check below.
 ALTER TABLE public.activities ALTER COLUMN user_id DROP NOT NULL;
 ALTER TABLE public.activities ALTER COLUMN type DROP NOT NULL;
 
