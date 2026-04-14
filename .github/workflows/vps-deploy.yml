@@ -1,6 +1,7 @@
 name: Deploy Flicko to VPS
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -25,17 +26,17 @@ jobs:
             if [ ! -d "$HOME/Flicko/.git" ]; then
               echo "Git repository missing. Cloning directly..."
               rm -rf ~/Flicko || true
-              git clone https://github.com/${{ github.repository }} ~/Flicko
+              git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} ~/Flicko
             fi
             
             cd ~/Flicko || exit 1
             
             # 2. Pull the latest code
+            git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
             git reset --hard HEAD
             git pull origin main
             
             # 3. Create or update the .env file with your production secrets
-            # Docker Compose needs these values so Go doesn't crash on startup
             cat << ENVFILE > .env
             REDIS_URL=${{ secrets.PROD_REDIS_URL }}
             DATABASE_URL=${{ secrets.PROD_DATABASE_URL }}
@@ -49,6 +50,8 @@ jobs:
             SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
             ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}
             ENVIRONMENT=production
+            SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+            SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
             ENVFILE
 
             # 3.5. Validate required deployment secrets
@@ -63,6 +66,9 @@ jobs:
             mkdir -p ./secrets
             printf '%s\n' "${{ secrets.JWT_PUBLIC_KEY }}" > ./secrets/jwt_public.pem
              
+            # Ensure JWT keys are generated
+            chmod +x scripts/generate-jwt-keys.sh
+            ./scripts/generate-jwt-keys.sh
             # 4. Build and restart the containers using Docker Compose
             docker compose -f docker-compose.prod.yml down
             docker compose -f docker-compose.prod.yml up -d --build

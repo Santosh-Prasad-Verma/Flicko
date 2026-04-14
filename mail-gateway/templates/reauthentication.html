@@ -2,199 +2,121 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reauthentication Code — {{.AppName}}</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Complete your {{.AppName}} security check</title>
 </head>
 
-<body
-    style="margin:0;padding:0;background-color:#0f0a00;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0"
-        style="background:linear-gradient(135deg,#0f0a00 0%,#1c1200 50%,#1a1000 100%);min-height:100vh;">
-        <tr>
-            <td align="center" style="padding:48px 20px;">
-                <table role="presentation" width="600" cellspacing="0" cellpadding="0"
-                    style="background-color:#161005;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,0.6),0 0 40px rgba(245,158,11,0.12);overflow:hidden;border:1px solid rgba(245,158,11,0.18);">
+<body style="margin:0;padding:0;background-color:#0f1115;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#dcddde;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;">
+    Complete the security check for your {{.AppName}} account.
+  </div>
 
-                    <!-- Header -->
-                    <tr>
-                        <td
-                            style="background:linear-gradient(135deg,#b45309 0%,#d97706 40%,#f59e0b 80%,#fbbf24 100%);padding:52px 40px;text-align:center;">
-                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
-                                <tr>
-                                    <td align="center" style="padding-bottom:20px;">
-                                        <table role="presentation" cellspacing="0" cellpadding="0">
-                                            <tr>
-                                                <td
-                                                    style="background:rgba(255,255,255,0.18);border-radius:50%;width:80px;height:80px;text-align:center;vertical-align:middle;font-size:36px;line-height:80px;">
-                                                    🛡️
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td align="center">
-                                        <h1
-                                            style="margin:0 0 10px;color:#1c1200;font-size:28px;font-weight:800;letter-spacing:-0.5px;">
-                                            Confirm It's You
-                                        </h1>
-                                        <p style="margin:0;color:rgba(28,18,0,0.72);font-size:15px;line-height:1.5;">
-                                            Reauthentication requested on <strong
-                                                style="color:#1c1200;">{{.AppName}}</strong>
-                                        </p>
-                                    </td>
-                                </tr>
-                            </table>
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;background-color:#0f1115;">
+    <tr>
+      <td align="center" style="padding:28px 16px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:620px;background-color:#18191c;border:1px solid #313338;border-radius:28px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,0.45);">
+          <tr>
+            <td style="padding:14px 14px 0;background-color:#18191c;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:linear-gradient(135deg,#f0b232 0%,#d69e2e 100%);border-radius:22px;">
+                <tr>
+                  <td style="padding:28px 28px 30px;">
+                    <table role="presentation" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td style="width:54px;vertical-align:middle;">
+                          {{template "brand_mark" .}}
                         </td>
-                    </tr>
-
-                    <!-- Accent divider -->
-                    <tr>
-                        <td
-                            style="padding:0;height:4px;background:linear-gradient(90deg,#b45309,#f59e0b,#fcd34d,#f59e0b,#b45309);">
+                        <td style="padding-left:14px;vertical-align:middle;">
+                          <p style="margin:0;color:#ffffff;font-size:28px;line-height:1;font-weight:800;letter-spacing:-0.04em;">
+                            {{.AppName}}
+                          </p>
+                          <p style="margin:6px 0 0;color:rgba(255,255,255,0.82);font-size:12px;line-height:1.4;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;">
+                            Security Check
+                          </p>
                         </td>
-                    </tr>
-
-                    <!-- Body -->
-                    <tr>
-                        <td style="padding:44px 40px;">
-
-                            <!-- Greeting -->
-                            <p style="margin:0 0 16px;color:#e2e8f0;font-size:16px;line-height:1.7;">
-                                Hey there 👋
-                            </p>
-                            <p style="margin:0 0 36px;color:#cbd5e1;font-size:16px;line-height:1.7;">
-                                Someone is attempting to reauthenticate your
-                                <strong style="color:#fcd34d;">{{.AppName}}</strong> account. Use the
-                                verification code below to proceed. Never share this code with anyone.
-                            </p>
-
-                            <!-- Code block -->
-                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0"
-                                style="margin-bottom:36px;">
-                                <tr>
-                                    <td align="center">
-                                        <table role="presentation" cellspacing="0" cellpadding="0"
-                                            style="background:rgba(245,158,11,0.07);border:2px solid rgba(245,158,11,0.3);border-radius:16px;overflow:hidden;">
-                                            <tr>
-                                                <td style="padding:8px 32px 4px;text-align:center;">
-                                                    <p
-                                                        style="margin:0;color:#92400e;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;">
-                                                        Your Verification Code
-                                                    </p>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td
-                                                    style="padding:16px 48px 24px;text-align:center;">
-                                                    <p
-                                                        style="margin:0;color:#fbbf24;font-size:48px;font-weight:800;letter-spacing:12px;font-family:'Courier New',Courier,monospace;line-height:1.1;">
-                                                        {{ .Token }}
-                                                    </p>
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-                            </table>
-
-                            <!-- Instructions -->
-                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0"
-                                style="margin-bottom:28px;">
-                                <tr>
-                                    <td style="padding-bottom:12px;">
-                                        <table role="presentation" width="100%" cellspacing="0" cellpadding="0"
-                                            style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.14);border-radius:12px;">
-                                            <tr>
-                                                <td
-                                                    style="padding:14px 20px;vertical-align:middle;width:44px;font-size:20px;">
-                                                    1️⃣
-                                                </td>
-                                                <td style="padding:14px 20px 14px 0;vertical-align:middle;">
-                                                    <span style="color:#cbd5e1;font-size:14px;line-height:1.5;">Copy the code above and enter it in the
-                                                        reauthentication prompt.</span>
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td style="padding-bottom:12px;">
-                                        <table role="presentation" width="100%" cellspacing="0" cellpadding="0"
-                                            style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.14);border-radius:12px;">
-                                            <tr>
-                                                <td
-                                                    style="padding:14px 20px;vertical-align:middle;width:44px;font-size:20px;">
-                                                    2️⃣
-                                                </td>
-                                                <td style="padding:14px 20px 14px 0;vertical-align:middle;">
-                                                    <span style="color:#cbd5e1;font-size:14px;line-height:1.5;">The code is <strong
-                                                            style="color:#fcd34d;">single-use</strong> and expires
-                                                        shortly — act quickly.</span>
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <table role="presentation" width="100%" cellspacing="0" cellpadding="0"
-                                            style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.14);border-radius:12px;">
-                                            <tr>
-                                                <td
-                                                    style="padding:14px 20px;vertical-align:middle;width:44px;font-size:20px;">
-                                                    3️⃣
-                                                </td>
-                                                <td style="padding:14px 20px 14px 0;vertical-align:middle;">
-                                                    <span style="color:#cbd5e1;font-size:14px;line-height:1.5;">Never share this code with anyone — our
-                                                        team will <strong style="color:#fcd34d;">never</strong> ask for
-                                                        it.</span>
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-                            </table>
-
-                            <!-- Security notice -->
-                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
-                                <tr>
-                                    <td
-                                        style="background:rgba(239,68,68,0.07);border-left:4px solid #ef4444;padding:12px 16px;border-radius:0 8px 8px 0;">
-                                        <p style="margin:0;color:#f87171;font-size:13px;line-height:1.6;">
-                                            🚨 If you did not request reauthentication, your account may be at risk.
-                                            Change your password immediately and contact support.
-                                        </p>
-                                    </td>
-                                </tr>
-                            </table>
-                        </td>
-                    </tr>
-
-                    <!-- Footer -->
-                    <tr>
-                        <td
-                            style="background-color:#0b0700;padding:24px 40px;border-top:1px solid rgba(245,158,11,0.1);text-align:center;">
-                            <p style="margin:0 0 4px;color:#6b7280;font-size:12px;line-height:1.6;">
-                                You received this because a reauthentication was initiated on your
-                                <a href="{{ .SiteURL }}"
-                                    style="color:#f59e0b;text-decoration:none;">{{.AppName}}</a> account.
-                            </p>
-                            <p style="margin:0 0 4px;color:#6b7280;font-size:12px;line-height:1.6;">
-                                If you didn't make this request, please secure your account.
-                            </p>
-                            <p style="margin:14px 0 0;color:#374151;font-size:11px;">
-                                © {{.Year}} {{.AppName}} · <a href="{{.AppURL}}"
-                                    style="color:#d97706;text-decoration:none;">{{.AppURL}}</a>
-                            </p>
-                        </td>
-                    </tr>
-
-                </table>
+                      </tr>
+                    </table>
+                    <h1 style="margin:22px 0 10px;color:#ffffff;font-size:34px;line-height:1.12;font-weight:800;letter-spacing:-0.03em;">
+                      Confirm it's you
+                    </h1>
+                    <p style="margin:0;max-width:470px;color:rgba(255,255,255,0.9);font-size:16px;line-height:1.7;">
+                      A protected action on your {{.AppName}} account needs one more confirmation before it can continue.
+                    </p>
+                  </td>
+                </tr>
+              </table>
             </td>
-        </tr>
-    </table>
+          </tr>
+
+          <tr>
+            <td style="padding:34px 36px 18px;background-color:#18191c;">
+              <p style="margin:0 0 14px;color:#ffffff;font-size:16px;line-height:1.7;">Hi {{.Username}},</p>
+              <p style="margin:0 0 24px;color:#b9bbbe;font-size:15px;line-height:1.8;">
+                Continue below to complete the security check. This link should only be used by the owner of the account.
+              </p>
+
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:24px;background-color:#202225;border:1px solid #313338;border-radius:18px;">
+                <tr>
+                  <td style="padding:22px 22px 20px;">
+                    <p style="margin:0 0 8px;color:#ffffff;font-size:13px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;">Account email</p>
+                    <p style="margin:0;color:#dcddde;font-size:15px;line-height:1.7;word-break:break-all;">{{.To}}</p>
+                  </td>
+                </tr>
+              </table>
+
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:18px;">
+                <tr>
+                  <td align="center">
+                    <a href="{{.ActionURL}}" target="_blank" style="display:inline-block;background-color:#f0b232;border-radius:14px;color:#ffffff;font-size:16px;font-weight:700;line-height:20px;padding:16px 30px;text-decoration:none;box-shadow:0 12px 28px rgba(240,178,50,0.28);">
+                      Continue Securely
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              {{if .ValidFor}}
+              <p style="margin:0 0 24px;color:#8e9297;font-size:13px;line-height:1.6;text-align:center;">
+                This link expires in <strong style="color:#ffffff;">{{.ValidFor}}</strong>.
+              </p>
+              {{end}}
+
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:24px;background-color:#202225;border:1px solid #313338;border-radius:18px;">
+                <tr>
+                  <td style="padding:20px 22px;">
+                    <p style="margin:0 0 8px;color:#ffffff;font-size:13px;font-weight:700;">Open link directly</p>
+                    <p style="margin:0;word-break:break-all;font-size:13px;line-height:1.7;">
+                      <a href="{{.ActionURL}}" target="_blank" style="color:#f6dc98;text-decoration:none;">{{.ActionURL}}</a>
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:14px;background-color:#362d18;border:1px solid #5f4a1d;border-radius:18px;">
+                <tr>
+                  <td style="padding:18px 20px;">
+                    <p style="margin:0;color:#f6dc98;font-size:13px;line-height:1.7;">
+                      If you did not initiate this action, ignore this email and review your recent account activity.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:24px 36px 30px;background-color:#18191c;border-top:1px solid #2a2d31;">
+              <p style="margin:0 0 6px;color:#8e9297;font-size:12px;line-height:1.6;">
+                This email was sent because a security-sensitive action was requested for {{.AppName}}.
+              </p>
+              <p style="margin:0;color:#6d727a;font-size:12px;line-height:1.6;">
+                <a href="{{.AppURL}}" target="_blank" style="color:#f6dc98;text-decoration:none;">{{.AppURL}}</a> · © {{.Year}} {{.AppName}}
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
 
 </html>

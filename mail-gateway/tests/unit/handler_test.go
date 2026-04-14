@@ -75,9 +75,9 @@ func TestHandleEmail_ValidSignature(t *testing.T) {
 		t.Errorf("expected 200, got %d: %s", rr.Code, rr.Body.String())
 	}
 
-	// Verify job was enqueued
-	if q.Pending() != 1 {
-		t.Errorf("expected 1 pending job, got %d", q.Pending())
+	// Signup now queues both verification and welcome emails.
+	if q.Pending() != 2 {
+		t.Errorf("expected 2 pending jobs, got %d", q.Pending())
 	}
 }
 
@@ -191,8 +191,8 @@ func TestHandleEmail_SignupType(t *testing.T) {
 	if rr.Code != http.StatusOK {
 		t.Errorf("expected 200, got %d", rr.Code)
 	}
-	if q.Pending() != 1 {
-		t.Errorf("expected 1 pending job, got %d", q.Pending())
+	if q.Pending() != 2 {
+		t.Errorf("expected 2 pending jobs, got %d", q.Pending())
 	}
 }
 

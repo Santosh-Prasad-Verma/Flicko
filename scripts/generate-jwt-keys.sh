@@ -42,12 +42,6 @@ if ! command -v openssl &>/dev/null; then
     exit 1
 fi
 
-# Verify Ed25519 support.
-if ! openssl pkey -help 2>&1 | grep -qi ed25519; then
-    echo "Error: openssl does not support Ed25519. Requires >= 1.1.1."
-    echo "Installed version: $(openssl version)"
-    exit 1
-fi
 
 # Create secrets directory.
 mkdir -p "$SECRETS_DIR"

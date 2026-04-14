@@ -4,6 +4,8 @@
     "strict": true,
     "skipLibCheck": true,
     "types": ["react", "jest"],
+    "ignoreDeprecations": "6.0",
+    "baseUrl": "..",
     "paths": {
       "@/*": ["./*"],
       "@constants/*": ["./constants/*"],

@@ -8,6 +8,7 @@ import (
 
 	"github.com/flicko-org/flicko/services/msg-service/internal/service"
 	"github.com/flicko-org/flicko/services/shared/auth"
+	"github.com/flicko-org/flicko/services/shared/errors"
 )
 
 // UploadHandler handles media upload presigned URL generation.
@@ -44,6 +45,11 @@ func (h *UploadHandler) Presign(w http.ResponseWriter, r *http.Request) {
 	var body presignRequest
 	if err := DecodeJSON(r, &body); err != nil {
 		Error(w, h.log, err)
+		return
+	}
+
+	if h.svc == nil {
+		Error(w, h.log, errors.ErrInternal(nil)) // Or however it wraps an error
 		return
 	}
 
