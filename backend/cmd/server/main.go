@@ -272,6 +272,7 @@ func main() {
 	purgeHandler := handlers.NewPurgeHandler(db.Pool(), logger)
 	moderationActionsHandler := handlers.NewModerationActionsHandler(db.Pool(), logger)
 	stageHandler := handlers.NewStageHandler(db.Pool(), logger)
+	voiceAdminHandler := handlers.NewVoiceAdminHandler(db.Pool(), logger)
 	protected.HandleFunc("/activities/catalog", activityHandler.GetCatalog).Methods("GET")
 	protected.HandleFunc("/activities/catalog/{id}/validate", activityHandler.ValidateCatalogActivity).Methods("POST")
 	protected.HandleFunc("/activities/providers/register", activityHandler.RegisterProvider).Methods("POST")
@@ -307,6 +308,8 @@ func main() {
 	protected.HandleFunc("/servers/{id}/members/{userId}/ban", moderationActionsHandler.BanMember).Methods("POST")
 	protected.HandleFunc("/stage/{channelId}/raise-hand", stageHandler.RaiseHand).Methods("POST")
 	protected.HandleFunc("/stage/{channelId}/speaker/{userId}", stageHandler.PromoteSpeaker).Methods("POST")
+	protected.HandleFunc("/voice/channels/{id}/move-user", voiceAdminHandler.MoveUser).Methods("POST")
+	protected.HandleFunc("/voice/channels/{id}", voiceAdminHandler.PatchVoiceChannel).Methods("PATCH")
 
 	// Parity status (internal delivery tracking)
 	parityHandler := handlers.NewParityHandler(db.Pool(), logger)
