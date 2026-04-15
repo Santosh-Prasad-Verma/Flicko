@@ -246,7 +246,7 @@ func (h *PremiumHandler) RedeemGift(w http.ResponseWriter, r *http.Request) {
 }
 
 func generateGiftCode() (string, error) {
-	b := make([]byte, 6)
+	b := make([]byte, 16)
 	if _, err := rand.Read(b); err != nil {
 		return "", err
 	}
