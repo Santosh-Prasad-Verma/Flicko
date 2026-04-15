@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
 
@@ -27,9 +26,11 @@ type MFAHandler struct {
 }
 
 const (
-	totpPeriodSeconds int64 = 30
-	totpDigits        int   = 6
-	totpSkewWindows   int64 = 1
+	totpPeriodSeconds        int64 = 30
+	totpDigits               int   = 6
+	totpSkewWindows          int64 = 1
+	defaultRecoveryCodeCount       = 8
+	recoveryCodeLength             = 16
 )
 
 func NewMFAHandler(db *pgxpool.Pool, logger *zap.Logger) *MFAHandler {
@@ -216,7 +217,7 @@ func (h *MFAHandler) Verify(w http.ResponseWriter, r *http.Request) {
 		MFAEnabled: true,
 	}
 	if recoveryCount == 0 {
-		recoveryCodes, hashes, genErr := generateRecoveryCodes(8)
+		recoveryCodes, hashes, genErr := generateRecoveryCodes(defaultRecoveryCodeCount)
 		if genErr != nil {
 			h.logger.Error("failed to generate recovery codes", zap.Error(genErr))
 			writeError(w, http.StatusInternalServerError, "failed to verify mfa")
@@ -429,31 +430,19 @@ func generateRecoveryCodes(n int) ([]string, []string, error) {
 	codes := make([]string, 0, n)
 	hashes := make([]string, 0, n)
 	for i := 0; i < n; i++ {
-		codeNum, err := cryptoRandomInt(10000000, 99999999)
+		raw := make([]byte, 10)
+		_, err := rand.Read(raw)
 		if err != nil {
 			return nil, nil, err
 		}
-		code := strconv.Itoa(codeNum)
+		code := base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(raw)
+		if len(code) > recoveryCodeLength {
+			code = code[:recoveryCodeLength]
+		}
 		codes = append(codes, code)
 		hashes = append(hashes, hashRecoveryCode(code))
 	}
 	return codes, hashes, nil
-}
-
-func cryptoRandomInt(minVal, maxVal int) (int, error) {
-	if maxVal < minVal {
-		return 0, fmt.Errorf("invalid range")
-	}
-	if maxVal == minVal {
-		return minVal, nil
-	}
-	width := maxVal - minVal + 1
-	buf := make([]byte, 8)
-	if _, err := rand.Read(buf); err != nil {
-		return 0, err
-	}
-	randVal := int(binary.BigEndian.Uint64(buf) % uint64(width))
-	return minVal + randVal, nil
 }
 
 func hashRecoveryCode(code string) string {

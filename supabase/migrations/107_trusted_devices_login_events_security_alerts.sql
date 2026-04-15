@@ -22,7 +22,9 @@ CREATE TABLE IF NOT EXISTS public.trusted_devices (
 );
 
 CREATE INDEX IF NOT EXISTS idx_trusted_devices_user_id ON public.trusted_devices(user_id);
-CREATE INDEX IF NOT EXISTS idx_trusted_devices_active ON public.trusted_devices(user_id, last_used_at DESC) WHERE revoked_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_trusted_devices_active
+  ON public.trusted_devices(user_id, last_used_at DESC, trusted_at DESC)
+  WHERE revoked_at IS NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS ux_trusted_devices_user_fingerprint_active
   ON public.trusted_devices(user_id, fingerprint_hash)
   WHERE fingerprint_hash IS NOT NULL AND revoked_at IS NULL;

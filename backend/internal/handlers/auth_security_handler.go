@@ -74,7 +74,7 @@ func (h *AuthSecurityHandler) ListTrustedDevices(w http.ResponseWriter, r *http.
 		FROM public.trusted_devices
 		WHERE user_id = $1
 		  AND revoked_at IS NULL
-		ORDER BY COALESCE(last_used_at, trusted_at) DESC, trusted_at DESC
+		ORDER BY last_used_at DESC, trusted_at DESC
 		LIMIT $2
 	`, userUUID, limit)
 	if err != nil {
