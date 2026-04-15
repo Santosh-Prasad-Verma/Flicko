@@ -269,6 +269,7 @@ func main() {
 	privacyHandler := handlers.NewPrivacyHandler(db.Pool(), logger)
 	reactionRoleHandler := handlers.NewReactionRoleHandler(db.Pool(), logger)
 	screeningHandler := handlers.NewScreeningHandler(db.Pool(), logger)
+	purgeHandler := handlers.NewPurgeHandler(db.Pool(), logger)
 	protected.HandleFunc("/activities/catalog", activityHandler.GetCatalog).Methods("GET")
 	protected.HandleFunc("/activities/catalog/{id}/validate", activityHandler.ValidateCatalogActivity).Methods("POST")
 	protected.HandleFunc("/activities/providers/register", activityHandler.RegisterProvider).Methods("POST")
@@ -299,6 +300,7 @@ func main() {
 	protected.HandleFunc("/servers/{id}/reaction-roles/{mappingId}", reactionRoleHandler.DeleteReactionRole).Methods("DELETE")
 	protected.HandleFunc("/servers/{id}/screening", screeningHandler.GetScreening).Methods("GET")
 	protected.HandleFunc("/servers/{id}/screening/accept", screeningHandler.AcceptScreening).Methods("POST")
+	protected.HandleFunc("/channels/{id}/messages/purge", purgeHandler.PurgeChannelMessages).Methods("POST")
 
 	// Parity status (internal delivery tracking)
 	parityHandler := handlers.NewParityHandler(db.Pool(), logger)
