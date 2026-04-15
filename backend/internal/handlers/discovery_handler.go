@@ -122,3 +122,164 @@ func (h *DiscoveryHandler) DiscoverServers(w http.ResponseWriter, r *http.Reques
 		"servers": servers,
 	})
 }
+
+type TrendingServerPayload struct {
+	ID             string   `json:"id"`
+	Name           string   `json:"name"`
+	Icon           *string  `json:"icon"`
+	Banner         *string  `json:"banner"`
+	Description    *string  `json:"description"`
+	Category       *string  `json:"category"`
+	Tags           []string `json:"tags"`
+	CompositeScore float64  `json:"composite_score"`
+	GrowthScore    float64  `json:"growth_score"`
+	Engagement     float64  `json:"engagement_score"`
+	Retention      float64  `json:"retention_score"`
+	TrustScore     float64  `json:"trust_score"`
+	Reasons        []string `json:"reasons"`
+}
+
+func (h *DiscoveryHandler) GetTrendingServers(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	limit := 25
+	if v, err := strconv.Atoi(r.URL.Query().Get("limit")); err == nil && v > 0 {
+		if v > 100 {
+			v = 100
+		}
+		limit = v
+	}
+
+	offset := 0
+	if v, err := strconv.Atoi(r.URL.Query().Get("offset")); err == nil && v >= 0 {
+		offset = v
+	}
+
+	category := strings.TrimSpace(r.URL.Query().Get("category"))
+	queryArgs := []interface{}{limit, offset}
+	categoryFilter := ""
+	if category != "" {
+		queryArgs = append(queryArgs, category)
+		categoryFilter = " AND sc.slug = $3 "
+	}
+
+	rows, err := h.db.Query(ctx, `
+		WITH latest_scores AS (
+			SELECT DISTINCT ON (sds.server_id)
+				sds.server_id,
+				sds.category_id,
+				sds.composite_score,
+				sds.growth_score,
+				sds.engagement_score,
+				sds.retention_score,
+				sds.trust_score,
+				sds.reasons,
+				sds.score_date
+			FROM public.server_discovery_scores sds
+			ORDER BY sds.server_id, sds.score_date DESC, sds.composite_score DESC
+		)
+		SELECT
+			s.id,
+			s.name,
+			s.icon,
+			s.banner,
+			s.description,
+			sc.name AS category_name,
+			COALESCE(tags.tags, '{}'::text[]) AS tags,
+			ls.composite_score,
+			ls.growth_score,
+			ls.engagement_score,
+			ls.retention_score,
+			ls.trust_score,
+			COALESCE(
+			  ARRAY(
+			    SELECT value
+			    FROM jsonb_array_elements_text(COALESCE(ls.reasons, '[]'::jsonb)) AS value
+			  ),
+			  '{}'::text[]
+			) AS reasons
+		FROM latest_scores ls
+		INNER JOIN public.servers s ON s.id = ls.server_id
+		LEFT JOIN public.server_categories sc ON sc.id = ls.category_id
+		LEFT JOIN LATERAL (
+			SELECT array_agg(st.tag ORDER BY st.tag) AS tags
+			FROM public.server_tags st
+			WHERE st.server_id = s.id
+		) tags ON true
+		WHERE s.is_public = true
+		`+categoryFilter+`
+		ORDER BY ls.composite_score DESC, ls.trust_score DESC, ls.growth_score DESC
+		LIMIT $1 OFFSET $2
+	`, queryArgs...)
+	if err != nil {
+		h.logger.Error("failed to query trending servers", zap.Error(err))
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	results := make([]TrendingServerPayload, 0)
+	for rows.Next() {
+		var item TrendingServerPayload
+		if err = rows.Scan(
+			&item.ID,
+			&item.Name,
+			&item.Icon,
+			&item.Banner,
+			&item.Description,
+			&item.Category,
+			&item.Tags,
+			&item.CompositeScore,
+			&item.GrowthScore,
+			&item.Engagement,
+			&item.Retention,
+			&item.TrustScore,
+			&item.Reasons,
+		); err != nil {
+			h.logger.Error("failed to scan trending server row", zap.Error(err))
+			http.Error(w, "internal server error", http.StatusInternalServerError)
+			return
+		}
+		if len(item.Reasons) == 0 {
+			item.Reasons = deriveTrendingReasons(item.GrowthScore, item.Engagement, item.Retention, item.TrustScore)
+		}
+		results = append(results, item)
+	}
+
+	if err = rows.Err(); err != nil {
+		h.logger.Error("failed iterating trending server rows", zap.Error(err))
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"servers": results,
+		"count":   len(results),
+		"filters": map[string]interface{}{
+			"category": category,
+			"limit":    limit,
+			"offset":   offset,
+		},
+	})
+}
+
+func deriveTrendingReasons(growth, engagement, retention, trust float64) []string {
+	reasons := make([]string, 0, 4)
+	if growth >= 60 {
+		reasons = append(reasons, "fast_growth")
+	}
+	if engagement >= 60 {
+		reasons = append(reasons, "high_engagement")
+	}
+	if retention >= 60 {
+		reasons = append(reasons, "strong_retention")
+	}
+	if trust >= 60 {
+		reasons = append(reasons, "high_trust")
+	}
+	if len(reasons) == 0 {
+		reasons = append(reasons, "trending_now")
+	}
+	return reasons
+}

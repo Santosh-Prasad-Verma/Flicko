@@ -261,6 +261,7 @@ func main() {
 	// Server Discovery
 	discoveryHandler := handlers.NewDiscoveryHandler(db.Pool(), logger)
 	protected.HandleFunc("/servers/discover", discoveryHandler.DiscoverServers).Methods("GET")
+	protected.HandleFunc("/servers/discover/trending", discoveryHandler.GetTrendingServers).Methods("GET")
 
 	// Activities lifecycle + catalog
 	activityHandler := handlers.NewActivityHandler(db.Pool(), logger)
