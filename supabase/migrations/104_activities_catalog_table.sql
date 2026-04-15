@@ -41,11 +41,22 @@ CREATE POLICY "Authenticated users can update activities catalog metadata"
   USING (auth.uid() IS NOT NULL)
   WITH CHECK (auth.uid() IS NOT NULL);
 
+CREATE OR REPLACE FUNCTION public.catalog_activity_slug(activity_name TEXT, activity_id UUID)
+RETURNS TEXT
+LANGUAGE sql
+IMMUTABLE
+AS $$
+  SELECT
+    regexp_replace(lower(COALESCE(activity_name, 'activity')), '[^a-z0-9]+', '-', 'g')
+    || '-'
+    || substr(replace(activity_id::text, '-', ''), 1, 8);
+$$;
+
 -- Backfill entries for existing catalog activities where missing.
 INSERT INTO public.activities_catalog (activity_id, slug, provider, capabilities, mobile_supported, enabled)
 SELECT
   a.id,
-  regexp_replace(lower(a.name), '[^a-z0-9]+', '-', 'g') || '-' || substr(replace(a.id::text, '-', ''), 1, 8),
+  public.catalog_activity_slug(a.name, a.id),
   'flicko',
   '[]'::jsonb,
   true,
