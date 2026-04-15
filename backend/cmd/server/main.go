@@ -278,6 +278,7 @@ func main() {
 	appInstallHandler := handlers.NewAppInstallHandler(db.Pool(), logger)
 	interactionsHandler := handlers.NewInteractionsHandler(db.Pool(), logger)
 	appDirectoryHandler := handlers.NewAppDirectoryHandler(db.Pool(), logger)
+	forumHandler := handlers.NewForumHandler(db.Pool(), logger)
 	protected.HandleFunc("/activities/catalog", activityHandler.GetCatalog).Methods("GET")
 	protected.HandleFunc("/activities/catalog/{id}/validate", activityHandler.ValidateCatalogActivity).Methods("POST")
 	protected.HandleFunc("/activities/providers/register", activityHandler.RegisterProvider).Methods("POST")
@@ -327,6 +328,7 @@ func main() {
 	protected.HandleFunc("/interactions/components", interactionsHandler.CreateComponentInteraction).Methods("POST")
 	protected.HandleFunc("/interactions/modals", interactionsHandler.CreateModalInteraction).Methods("POST")
 	protected.HandleFunc("/app-directory", appDirectoryHandler.ListAppDirectory).Methods("GET")
+	protected.HandleFunc("/forum/posts/{id}/vote", forumHandler.VoteForumPost).Methods("POST")
 
 	// Parity status (internal delivery tracking)
 	parityHandler := handlers.NewParityHandler(db.Pool(), logger)
