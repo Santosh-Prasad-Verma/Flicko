@@ -26,6 +26,12 @@ type MFAHandler struct {
 	logger *zap.Logger
 }
 
+const (
+	totpPeriodSeconds int64 = 30
+	totpDigits        int   = 6
+	totpSkewWindows   int64 = 1
+)
+
 func NewMFAHandler(db *pgxpool.Pool, logger *zap.Logger) *MFAHandler {
 	return &MFAHandler{
 		db:     db,
@@ -113,9 +119,12 @@ func (h *MFAHandler) Enroll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	label := url.QueryEscape(fmt.Sprintf("flicko:%s", userUUID))
+	label := url.QueryEscape(fmt.Sprintf("Flicko:%s", userUUID))
 	issuer := url.QueryEscape("Flicko")
-	provisioningURI := fmt.Sprintf("otpauth://totp/%s?secret=%s&issuer=%s&period=30&digits=6", label, secret, issuer)
+	provisioningURI := fmt.Sprintf(
+		"otpauth://totp/%s?secret=%s&issuer=%s&period=%d&digits=%d",
+		label, secret, issuer, totpPeriodSeconds, totpDigits,
+	)
 
 	writeJSON(w, http.StatusOK, mfaEnrollResponse{
 		FactorID:        factorID,
@@ -143,8 +152,8 @@ func (h *MFAHandler) Verify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	req.Code = strings.TrimSpace(req.Code)
-	if !isSixDigitCode(req.Code) {
-		writeError(w, http.StatusBadRequest, "code must be a 6-digit number")
+	if !isNDigitCode(req.Code, totpDigits) {
+		writeError(w, http.StatusBadRequest, "code must be a valid mfa code")
 		return
 	}
 
@@ -173,7 +182,7 @@ func (h *MFAHandler) Verify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !verifyTOTP(secret, req.Code, time.Now().UTC(), 30, 6, 1) {
+	if !verifyTOTP(secret, req.Code, time.Now().UTC(), totpPeriodSeconds, totpDigits, totpSkewWindows) {
 		writeError(w, http.StatusUnauthorized, "invalid mfa code")
 		return
 	}
@@ -290,7 +299,8 @@ func (h *MFAHandler) Disable(w http.ResponseWriter, r *http.Request) {
 	}
 
 	authorized := false
-	if req.Code != "" && isSixDigitCode(req.Code) && verifyTOTP(secret, req.Code, time.Now().UTC(), 30, 6, 1) {
+	if req.Code != "" && isNDigitCode(req.Code, totpDigits) &&
+		verifyTOTP(secret, req.Code, time.Now().UTC(), totpPeriodSeconds, totpDigits, totpSkewWindows) {
 		authorized = true
 	}
 
@@ -360,8 +370,8 @@ func generateTOTPSecret() (string, error) {
 	return base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(secret), nil
 }
 
-func isSixDigitCode(code string) bool {
-	if len(code) != 6 {
+func isNDigitCode(code string, digits int) bool {
+	if len(code) != digits {
 		return false
 	}
 	for _, c := range code {
