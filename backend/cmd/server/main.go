@@ -274,6 +274,7 @@ func main() {
 	stageHandler := handlers.NewStageHandler(db.Pool(), logger)
 	voiceAdminHandler := handlers.NewVoiceAdminHandler(db.Pool(), logger)
 	premiumHandler := handlers.NewPremiumHandler(db.Pool(), logger)
+	appInstallHandler := handlers.NewAppInstallHandler(db.Pool(), logger)
 	protected.HandleFunc("/activities/catalog", activityHandler.GetCatalog).Methods("GET")
 	protected.HandleFunc("/activities/catalog/{id}/validate", activityHandler.ValidateCatalogActivity).Methods("POST")
 	protected.HandleFunc("/activities/providers/register", activityHandler.RegisterProvider).Methods("POST")
@@ -317,6 +318,8 @@ func main() {
 	protected.HandleFunc("/premium/boost-credits/apply", premiumHandler.ApplyBoostCredit).Methods("POST")
 	protected.HandleFunc("/premium/cosmetics", premiumHandler.ListCosmetics).Methods("GET")
 	protected.HandleFunc("/profile/cosmetics/apply", premiumHandler.ApplyCosmetic).Methods("POST")
+	protected.HandleFunc("/apps/{id}/oauth/authorize", appInstallHandler.AuthorizeApp).Methods("GET")
+	protected.HandleFunc("/apps/{id}/install/callback", appInstallHandler.InstallCallback).Methods("POST")
 
 	// Parity status (internal delivery tracking)
 	parityHandler := handlers.NewParityHandler(db.Pool(), logger)
