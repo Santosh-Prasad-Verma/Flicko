@@ -1,6 +1,6 @@
 # Deployment: Monitoring & Observability
 
-> *Last Updated: 2026-04-11 · Version: 1.0.0*
+> *Last Updated: 2026-04-15 · Version: 1.1.0*
 
 ## Overview
 
@@ -73,6 +73,33 @@ flowchart LR
 - WebSocket connection count approaching max
 - Service health check failures
 - High error rate (>1% of requests)
+
+---
+
+## Parity Epic SLO Pack (X5)
+
+The parity execution stream tracks SLOs by epic so regressions are visible as features land.
+
+| Epic Area | Primary SLI | Target SLO |
+|---|---|---|
+| P3 Moderation | 5xx ratio on moderation endpoints | < 1% over 30d |
+| P4 Voice/Stage | P95 WS/voice message latency | < 500ms |
+| P5 Premium | Premium API success rate | > 99.5% over 30d |
+| P6 Apps/Interactions | App install + interaction endpoint success | > 99.5% over 30d |
+| P8 Discovery/Insights | Discover/insights endpoint success | > 99.0% over 30d |
+
+### Tracing requirements by epic
+
+- Include `request_id`, `user_id`, and domain identifiers (`server_id`, `channel_id`, `app_id`, `session_id`) in logs/spans.
+- Preserve correlation across gateway → service hops.
+- Emit structured errors with operation names to support SLO burn analysis.
+
+### Alert mapping
+
+Current alert groups already backstop the parity SLO pack:
+- `HighErrorRate` for availability SLOs.
+- `HighMessageLatency` for real-time latency SLOs.
+- `WSGatewayDown` and `DBPoolExhaustion` for hard dependency failures.
 
 ---
 

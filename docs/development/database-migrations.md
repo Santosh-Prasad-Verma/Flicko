@@ -1,6 +1,6 @@
 # Database Migrations
 
-> **Reading time:** ~5 minutes · **Audience:** Backend Developers · **Last Updated:** 2026-04-11
+> **Reading time:** ~8 minutes · **Audience:** Backend Developers · **Last Updated:** 2026-04-15
 
 Because Flicko's architecture runs on PostgreSQL, changes to the database (adding columns, creating trigger functions) cannot be applied manually via a UI like pgAdmin. 
 They must be scripted explicitly so that staging and production environments can reproduce them via CLI.
@@ -10,7 +10,7 @@ They must be scripted explicitly so that staging and production environments can
 ## The Migration Paradigm
 
 We utilize the **Supabase CLI** for managing PostgreSQL version control.
-All migrations are stored sequentially in `backend/supabase/migrations/`.
+All migrations are stored sequentially in `supabase/migrations/`.
 
 Example structure:
 ```text
@@ -62,14 +62,58 @@ Validate your Go Unit Tests/Integration Tests against the new schema.
 ### 4. Push to CI (Production)
 Commit the `.sql` file to Git and open a Pull Request.
 
-When the PR is merged into `main`, the GitHub Actions CI pipeline connects to the Production Supabase instance via its connection string. It checks the `supabase_migrations.schema_migrations` tracking table to see which timetamp it executed last. It will detect your new file, and automatically `EXECUTE` it against production, locking it into the history forever.
+When the PR is merged into `main`, CI compares against `supabase_migrations.schema_migrations`, detects the new version, and executes it once in order.
+
+---
+
+## Migration Safety Pack (X4)
+
+Every new migration must satisfy both **idempotency** and **recovery readiness**.
+
+### Idempotent SQL checklist
+
+- Use `CREATE TABLE IF NOT EXISTS` for new tables.
+- Use `CREATE INDEX IF NOT EXISTS` for new indexes.
+- Use `DROP TRIGGER IF EXISTS` before recreating triggers.
+- Use `DROP POLICY IF EXISTS` before recreating RLS policies.
+- Enable RLS explicitly and define all CRUD policies in the same migration for public schema tables.
+- Seed rows with `INSERT ... ON CONFLICT DO NOTHING` when applicable.
+
+### Rollback runbook (forward-fix model)
+
+Supabase migrations are forward-only, so rollbacks are performed through a corrective migration:
+
+1. **Stop rollout** and identify the bad migration version.
+2. **Generate a new fix migration**:
+   ```bash
+   npx supabase migration new fix_<issue_name>
+   ```
+3. Add corrective SQL (`ALTER`, compensating inserts/updates/deletes, policy adjustments).
+4. Validate locally:
+   ```bash
+   npx supabase db reset
+   npx supabase start
+   ```
+5. Run repository validation before merge:
+   ```bash
+   cd services && make vet && make test && make build
+   cd ../backend && go test ./...
+   ```
+6. Merge and deploy the fix migration.
+
+### Emergency migration state repair
+
+Only when a migration state mismatch exists and after confirming data safety:
+
+```bash
+npx supabase migration repair --status reverted <VERSION>
+```
+
+Then ship a new corrective migration immediately.
 
 ---
 
 ## ⚠️ Warning: Rollbacks
 
-Supabase CLI migrations are explicitly **forward-only**. 
-There are no "down" migrations. 
-If you accidentally push a migration to production that contains a typo, you **CANNOT** simply edit the previous SQL file. CI will ignore it, as it already recorded the timestamp as "completed".
-
-You must generate a brand *new* migration (e.g. `npx supabase migration new fix_typo`) containing an `ALTER TABLE` to fix the mistake.
+Supabase CLI migrations are explicitly **forward-only**.
+Do not edit already-applied migrations; always create a new corrective migration.
