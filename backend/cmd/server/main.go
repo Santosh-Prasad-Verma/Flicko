@@ -291,6 +291,8 @@ func main() {
 	protected.HandleFunc("/auth/login-events", authSecurityHandler.ListLoginEvents).Methods("GET")
 	protected.HandleFunc("/privacy/export", privacyHandler.RequestExport).Methods("POST")
 	protected.HandleFunc("/privacy/export/{jobId}", privacyHandler.GetExportStatus).Methods("GET")
+	protected.HandleFunc("/privacy/delete-account", privacyHandler.RequestAccountDeletion).Methods("POST")
+	protected.HandleFunc("/privacy/delete-account/{jobId}", privacyHandler.GetAccountDeletionStatus).Methods("GET")
 
 	// Parity status (internal delivery tracking)
 	parityHandler := handlers.NewParityHandler(db.Pool(), logger)
