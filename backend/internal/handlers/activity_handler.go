@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -61,12 +62,12 @@ type SyncSeekRequest struct {
 }
 
 type ActivitySyncStateResponse struct {
-	SessionID   string    `json:"session_id"`
+	SessionID    string    `json:"session_id"`
 	LeaderUserID *string   `json:"leader_user_id,omitempty"`
-	PlayheadMS  int64     `json:"playhead_ms"`
-	IsPlaying   bool      `json:"is_playing"`
-	MediaURL    string    `json:"media_url"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	PlayheadMS   int64     `json:"playhead_ms"`
+	IsPlaying    bool      `json:"is_playing"`
+	MediaURL     string    `json:"media_url"`
+	UpdatedAt    time.Time `json:"updated_at"`
 }
 
 type ActivityCatalogItem struct {
@@ -93,30 +94,54 @@ type ValidateCatalogActivityResponse struct {
 	Enabled         bool          `json:"enabled"`
 }
 
+type RegisterActivityProviderRequest struct {
+	Name            string                 `json:"name"`
+	Slug            string                 `json:"slug"`
+	Description     string                 `json:"description"`
+	HomepageURL     string                 `json:"homepage_url"`
+	IntegrationURL  string                 `json:"integration_url"`
+	Metadata        map[string]interface{} `json:"metadata"`
+	MobileSupported *bool                  `json:"mobile_supported"`
+	Secrets         map[string]string      `json:"secrets"`
+}
+
+type RegisterActivityProviderResponse struct {
+	ProviderID string    `json:"provider_id"`
+	Slug       string    `json:"slug"`
+	Status     string    `json:"status"`
+	CreatedAt  time.Time `json:"created_at"`
+}
+
+type PublishActivityProviderResponse struct {
+	ProviderID  string     `json:"provider_id"`
+	Status      string     `json:"status"`
+	PublishedAt *time.Time `json:"published_at,omitempty"`
+}
+
 type ActivityParticipantResponse struct {
-	UserID    string    `json:"user_id"`
-	JoinedAt  time.Time `json:"joined_at"`
-	SessionID string    `json:"session_id"`
-	Role      string    `json:"role"`
+	UserID    string     `json:"user_id"`
+	JoinedAt  time.Time  `json:"joined_at"`
+	SessionID string     `json:"session_id"`
+	Role      string     `json:"role"`
 	LeftAt    *time.Time `json:"left_at,omitempty"`
 }
 
 type ActivitySessionResponse struct {
-	ID                string     `json:"id"`
-	ActivityID        string     `json:"activity_id"`
-	ChannelID         string     `json:"channel_id"`
-	ServerID          string     `json:"server_id"`
-	HostUserID        string     `json:"host_user_id"`
+	ID                 string     `json:"id"`
+	ActivityID         string     `json:"activity_id"`
+	ChannelID          string     `json:"channel_id"`
+	ServerID           string     `json:"server_id"`
+	HostUserID         string     `json:"host_user_id"`
 	PreviousHostUserID *string    `json:"previous_host_user_id,omitempty"`
-	State             string     `json:"state"`
-	EmbedURL          string     `json:"embed_url"`
-	StartedAt         *time.Time `json:"started_at,omitempty"`
-	EndedAt           *time.Time `json:"ended_at,omitempty"`
-	EndedReason       *string    `json:"ended_reason,omitempty"`
-	LastHeartbeatAt   *time.Time `json:"last_heartbeat_at,omitempty"`
-	HostTransferredAt *time.Time `json:"host_transferred_at,omitempty"`
-	CreatedAt         time.Time  `json:"created_at"`
-	ParticipantCount  int        `json:"participant_count"`
+	State              string     `json:"state"`
+	EmbedURL           string     `json:"embed_url"`
+	StartedAt          *time.Time `json:"started_at,omitempty"`
+	EndedAt            *time.Time `json:"ended_at,omitempty"`
+	EndedReason        *string    `json:"ended_reason,omitempty"`
+	LastHeartbeatAt    *time.Time `json:"last_heartbeat_at,omitempty"`
+	HostTransferredAt  *time.Time `json:"host_transferred_at,omitempty"`
+	CreatedAt          time.Time  `json:"created_at"`
+	ParticipantCount   int        `json:"participant_count"`
 }
 
 // GetCatalog handles GET /api/v1/activities/catalog
@@ -218,6 +243,212 @@ func (h *ActivityHandler) ValidateCatalogActivity(w http.ResponseWriter, r *http
 	writeJSON(w, http.StatusOK, out)
 }
 
+// RegisterProvider handles POST /api/v1/activities/providers/register
+func (h *ActivityHandler) RegisterProvider(w http.ResponseWriter, r *http.Request) {
+	userID := getUserID(r)
+	if userID == "" {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid user id")
+		return
+	}
+
+	var req RegisterActivityProviderRequest
+	if err = json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	req.Name = strings.TrimSpace(req.Name)
+	req.Slug = strings.TrimSpace(req.Slug)
+	if req.Name == "" {
+		writeError(w, http.StatusBadRequest, "name is required")
+		return
+	}
+
+	metadata := req.Metadata
+	if metadata == nil {
+		metadata = map[string]interface{}{}
+	}
+	mobileSupported := true
+	if req.MobileSupported != nil {
+		mobileSupported = *req.MobileSupported
+	}
+
+	tx, err := h.db.Begin(r.Context())
+	if err != nil {
+		h.logger.Error("failed to begin provider register transaction", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to register provider")
+		return
+	}
+	defer tx.Rollback(r.Context()) //nolint:errcheck
+
+	providerUUID := uuid.New()
+	var out RegisterActivityProviderResponse
+	if err = tx.QueryRow(r.Context(), `
+		INSERT INTO public.activity_providers (
+			id, owner_user_id, name, slug, description, homepage_url, integration_url, status, metadata, mobile_supported
+		)
+		VALUES (
+			$1, $2, $3,
+			COALESCE(NULLIF($4, ''), public.activity_provider_slug($3, $1)),
+			NULLIF($5, ''), NULLIF($6, ''), NULLIF($7, ''), 'pending_review', $8, $9
+		)
+		RETURNING id, slug, status, created_at
+	`, providerUUID, userUUID, req.Name, req.Slug, req.Description, req.HomepageURL, req.IntegrationURL, metadata, mobileSupported).Scan(
+		&out.ProviderID, &out.Slug, &out.Status, &out.CreatedAt,
+	); err != nil {
+		if strings.Contains(strings.ToLower(err.Error()), "duplicate key") {
+			writeError(w, http.StatusConflict, "provider slug already exists")
+			return
+		}
+		h.logger.Error("failed to insert provider", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to register provider")
+		return
+	}
+
+	if _, err = tx.Exec(r.Context(), `
+		INSERT INTO public.activity_review_queue (provider_id, submitted_by, status)
+		VALUES ($1, $2, 'pending')
+	`, out.ProviderID, userUUID); err != nil {
+		h.logger.Error("failed to enqueue provider review", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to register provider")
+		return
+	}
+
+	for key, value := range req.Secrets {
+		secretKey := strings.TrimSpace(key)
+		if secretKey == "" {
+			continue
+		}
+		if _, err = tx.Exec(r.Context(), `
+			INSERT INTO public.activity_provider_secrets (provider_id, secret_key, secret_value, created_by)
+			VALUES ($1, $2, $3, $4)
+			ON CONFLICT (provider_id, secret_key)
+			DO UPDATE SET secret_value = EXCLUDED.secret_value, updated_at = NOW(), created_by = EXCLUDED.created_by
+		`, out.ProviderID, secretKey, value, userUUID); err != nil {
+			h.logger.Error("failed to persist provider secret", zap.Error(err))
+			writeError(w, http.StatusInternalServerError, "failed to register provider")
+			return
+		}
+	}
+
+	if err = tx.Commit(r.Context()); err != nil {
+		h.logger.Error("failed to commit provider register transaction", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to register provider")
+		return
+	}
+
+	writeJSON(w, http.StatusCreated, out)
+}
+
+// PublishProvider handles POST /api/v1/activities/providers/{id}/publish
+func (h *ActivityHandler) PublishProvider(w http.ResponseWriter, r *http.Request) {
+	userID := getUserID(r)
+	if userID == "" {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid user id")
+		return
+	}
+	providerID := mux.Vars(r)["id"]
+	if providerID == "" {
+		writeError(w, http.StatusBadRequest, "missing id")
+		return
+	}
+	providerUUID, err := uuid.Parse(providerID)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+
+	tx, err := h.db.Begin(r.Context())
+	if err != nil {
+		h.logger.Error("failed to begin provider publish transaction", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to publish provider")
+		return
+	}
+	defer tx.Rollback(r.Context()) //nolint:errcheck
+
+	var ownerUserID uuid.UUID
+	var currentStatus string
+	if err = tx.QueryRow(r.Context(), `
+		SELECT owner_user_id, status
+		FROM public.activity_providers
+		WHERE id = $1
+		FOR UPDATE
+	`, providerUUID).Scan(&ownerUserID, &currentStatus); err != nil {
+		writeError(w, http.StatusNotFound, "provider not found")
+		return
+	}
+	if ownerUserID != userUUID {
+		writeError(w, http.StatusForbidden, "only owner can publish provider")
+		return
+	}
+
+	var out PublishActivityProviderResponse
+	if currentStatus == "published" {
+		if err = tx.QueryRow(r.Context(), `
+			SELECT id, status, published_at
+			FROM public.activity_providers
+			WHERE id = $1
+		`, providerUUID).Scan(&out.ProviderID, &out.Status, &out.PublishedAt); err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to publish provider")
+			return
+		}
+		if err = tx.Commit(r.Context()); err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to publish provider")
+			return
+		}
+		writeJSON(w, http.StatusOK, out)
+		return
+	}
+
+	var approved bool
+	if err = tx.QueryRow(r.Context(), `
+		SELECT EXISTS(
+			SELECT 1
+			FROM public.activity_review_queue
+			WHERE provider_id = $1
+			  AND status = 'approved'
+		)
+	`, providerUUID).Scan(&approved); err != nil {
+		h.logger.Error("failed to verify provider review approval", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to publish provider")
+		return
+	}
+	if !approved {
+		writeError(w, http.StatusConflict, "provider requires approved review before publish")
+		return
+	}
+
+	if err = tx.QueryRow(r.Context(), `
+		UPDATE public.activity_providers
+		SET status = 'published',
+		    published_at = NOW(),
+		    updated_at = NOW()
+		WHERE id = $1
+		RETURNING id, status, published_at
+	`, providerUUID).Scan(&out.ProviderID, &out.Status, &out.PublishedAt); err != nil {
+		h.logger.Error("failed to update provider publish status", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to publish provider")
+		return
+	}
+
+	if err = tx.Commit(r.Context()); err != nil {
+		h.logger.Error("failed to commit provider publish transaction", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to publish provider")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, out)
+}
+
 // Launch handles POST /api/v1/activities/launch
 func (h *ActivityHandler) Launch(w http.ResponseWriter, r *http.Request) {
 	userID := getUserID(r)
@@ -311,11 +542,11 @@ func (h *ActivityHandler) Launch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusCreated, map[string]interface{}{
-		"session_id":   sessionID,
-		"state":        state,
-		"embed_url":    embedURL,
-		"host_user_id": userID,
-		"created_at":   createdAt,
+		"session_id":        sessionID,
+		"state":             state,
+		"embed_url":         embedURL,
+		"host_user_id":      userID,
+		"created_at":        createdAt,
 		"last_heartbeat_at": heartbeatAt,
 	})
 }
