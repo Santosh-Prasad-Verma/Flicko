@@ -14,8 +14,9 @@ import (
 )
 
 const (
-	defaultExportFormat       = "json"
-	defaultExportRetentionDay = 30
+	defaultExportFormat        = "json"
+	defaultExportRetentionDays = 30
+	hoursPerDay                = 24
 )
 
 type PrivacyHandler struct {
@@ -99,7 +100,7 @@ func (h *PrivacyHandler) RequestExport(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var artifactID uuid.UUID
-	retentionUntil := time.Now().UTC().Add(defaultExportRetentionDay * 24 * time.Hour)
+	retentionUntil := time.Now().UTC().Add(defaultExportRetentionDays * hoursPerDay * time.Hour)
 	if err = tx.QueryRow(r.Context(), `
 		INSERT INTO public.data_export_artifacts (job_id, user_id, status, retention_until)
 		VALUES ($1, $2, 'pending', $3)
@@ -123,7 +124,7 @@ func (h *PrivacyHandler) RequestExport(w http.ResponseWriter, r *http.Request) {
 		"requested_at":   requestedAt,
 		"expires_at":     expiresAt,
 		"artifact_id":    artifactID.String(),
-		"retention_days": defaultExportRetentionDay,
+		"retention_days": defaultExportRetentionDays,
 	})
 }
 
