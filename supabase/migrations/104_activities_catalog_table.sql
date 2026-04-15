@@ -46,8 +46,11 @@ RETURNS TEXT
 LANGUAGE sql
 IMMUTABLE
 AS $$
+  WITH normalized AS (
+    SELECT regexp_replace(lower(COALESCE(activity_name, 'activity')), '[^a-z0-9]+', '-', 'g') AS base_slug
+  )
   SELECT
-    regexp_replace(lower(COALESCE(activity_name, 'activity')), '[^a-z0-9]+', '-', 'g')
+    trim(both '-' FROM regexp_replace(base_slug, '-{2,}', '-', 'g'))
     || '-'
     || substr(replace(activity_id::text, '-', ''), 1, 8);
 $$;
