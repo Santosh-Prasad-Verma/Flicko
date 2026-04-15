@@ -265,6 +265,7 @@ func main() {
 	// Activities lifecycle + catalog
 	activityHandler := handlers.NewActivityHandler(db.Pool(), logger)
 	mfaHandler := handlers.NewMFAHandler(db.Pool(), logger)
+	authSecurityHandler := handlers.NewAuthSecurityHandler(db.Pool(), logger)
 	protected.HandleFunc("/activities/catalog", activityHandler.GetCatalog).Methods("GET")
 	protected.HandleFunc("/activities/catalog/{id}/validate", activityHandler.ValidateCatalogActivity).Methods("POST")
 	protected.HandleFunc("/activities/providers/register", activityHandler.RegisterProvider).Methods("POST")
@@ -284,6 +285,9 @@ func main() {
 	protected.HandleFunc("/auth/mfa/enroll", mfaHandler.Enroll).Methods("POST")
 	protected.HandleFunc("/auth/mfa/verify", mfaHandler.Verify).Methods("POST")
 	protected.HandleFunc("/auth/mfa/disable", mfaHandler.Disable).Methods("POST")
+	protected.HandleFunc("/auth/devices", authSecurityHandler.ListTrustedDevices).Methods("GET")
+	protected.HandleFunc("/auth/devices/{id}", authSecurityHandler.RevokeTrustedDevice).Methods("DELETE")
+	protected.HandleFunc("/auth/login-events", authSecurityHandler.ListLoginEvents).Methods("GET")
 
 	// Parity status (internal delivery tracking)
 	parityHandler := handlers.NewParityHandler(db.Pool(), logger)
