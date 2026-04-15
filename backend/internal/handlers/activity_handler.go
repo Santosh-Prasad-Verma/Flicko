@@ -49,6 +49,28 @@ type UpdateActivityStateRequest struct {
 	StatePatch map[string]interface{} `json:"state_patch"`
 }
 
+type SyncPlayRequest struct {
+	PlayheadMS int64  `json:"playhead_ms"`
+	MediaURL   string `json:"media_url"`
+}
+
+type SyncPauseRequest struct {
+	PlayheadMS int64 `json:"playhead_ms"`
+}
+
+type SyncSeekRequest struct {
+	PlayheadMS int64 `json:"playhead_ms"`
+}
+
+type ActivitySyncStateResponse struct {
+	SessionID   string    `json:"session_id"`
+	LeaderUserID *string   `json:"leader_user_id,omitempty"`
+	PlayheadMS  int64     `json:"playhead_ms"`
+	IsPlaying   bool      `json:"is_playing"`
+	MediaURL    string    `json:"media_url"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
 type ActivityCatalogItem struct {
 	ID              string `json:"id"`
 	Name            string `json:"name"`
@@ -706,4 +728,260 @@ func (h *ActivityHandler) GetSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, out)
+}
+
+// SyncPlay handles POST /api/v1/activities/{sessionId}/sync/play
+func (h *ActivityHandler) SyncPlay(w http.ResponseWriter, r *http.Request) {
+	userUUID, sessionUUID, ok := h.validateSyncActor(w, r)
+	if !ok {
+		return
+	}
+
+	var req SyncPlayRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if req.PlayheadMS < 0 {
+		writeError(w, http.StatusBadRequest, "playhead_ms must be non-negative")
+		return
+	}
+
+	isPlaying := true
+	out, err := h.upsertSyncState(r, sessionUUID, userUUID, &isPlaying, &req.PlayheadMS, &req.MediaURL)
+	if err != nil {
+		h.logger.Error("failed to apply sync play", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to sync play")
+		return
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+// SyncPause handles POST /api/v1/activities/{sessionId}/sync/pause
+func (h *ActivityHandler) SyncPause(w http.ResponseWriter, r *http.Request) {
+	userUUID, sessionUUID, ok := h.validateSyncActor(w, r)
+	if !ok {
+		return
+	}
+
+	var req SyncPauseRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if req.PlayheadMS < 0 {
+		writeError(w, http.StatusBadRequest, "playhead_ms must be non-negative")
+		return
+	}
+
+	isPlaying := false
+	out, err := h.upsertSyncState(r, sessionUUID, userUUID, &isPlaying, &req.PlayheadMS, nil)
+	if err != nil {
+		h.logger.Error("failed to apply sync pause", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to sync pause")
+		return
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+// SyncSeek handles POST /api/v1/activities/{sessionId}/sync/seek
+func (h *ActivityHandler) SyncSeek(w http.ResponseWriter, r *http.Request) {
+	userUUID, sessionUUID, ok := h.validateSyncActor(w, r)
+	if !ok {
+		return
+	}
+
+	var req SyncSeekRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if req.PlayheadMS < 0 {
+		writeError(w, http.StatusBadRequest, "playhead_ms must be non-negative")
+		return
+	}
+
+	out, err := h.upsertSyncState(r, sessionUUID, userUUID, nil, &req.PlayheadMS, nil)
+	if err != nil {
+		h.logger.Error("failed to apply sync seek", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to sync seek")
+		return
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+// GetUserActiveActivity handles GET /api/v1/users/{id}/active-activity
+func (h *ActivityHandler) GetUserActiveActivity(w http.ResponseWriter, r *http.Request) {
+	userID := mux.Vars(r)["id"]
+	if userID == "" {
+		writeError(w, http.StatusBadRequest, "missing user id")
+		return
+	}
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid user id")
+		return
+	}
+
+	var sessionID string
+	err = h.db.QueryRow(r.Context(), `
+		SELECT s.id
+		FROM public.activity_sessions s
+		JOIN public.activity_participants p ON p.session_id = s.id
+		WHERE p.user_id = $1
+		  AND p.left_at IS NULL
+		  AND s.state IN ('launching', 'active')
+		ORDER BY s.created_at DESC
+		LIMIT 1
+	`, userUUID).Scan(&sessionID)
+	if err != nil {
+		writeJSON(w, http.StatusOK, map[string]interface{}{"active_activity": nil})
+		return
+	}
+
+	h.writeSessionByID(w, r, sessionID)
+}
+
+// GetChannelActiveActivity handles GET /api/v1/channels/{id}/active-activity
+func (h *ActivityHandler) GetChannelActiveActivity(w http.ResponseWriter, r *http.Request) {
+	channelID := mux.Vars(r)["id"]
+	if channelID == "" {
+		writeError(w, http.StatusBadRequest, "missing channel id")
+		return
+	}
+	channelUUID, err := uuid.Parse(channelID)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid channel id")
+		return
+	}
+
+	var sessionID string
+	err = h.db.QueryRow(r.Context(), `
+		SELECT s.id
+		FROM public.activity_sessions s
+		WHERE s.channel_id = $1
+		  AND s.state IN ('launching', 'active')
+		ORDER BY s.created_at DESC
+		LIMIT 1
+	`, channelUUID).Scan(&sessionID)
+	if err != nil {
+		writeJSON(w, http.StatusOK, map[string]interface{}{"active_activity": nil})
+		return
+	}
+
+	h.writeSessionByID(w, r, sessionID)
+}
+
+func (h *ActivityHandler) validateSyncActor(w http.ResponseWriter, r *http.Request) (uuid.UUID, uuid.UUID, bool) {
+	userID := getUserID(r)
+	if userID == "" {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return uuid.Nil, uuid.Nil, false
+	}
+	sessionID := mux.Vars(r)["sessionId"]
+	if sessionID == "" {
+		writeError(w, http.StatusBadRequest, "missing sessionId")
+		return uuid.Nil, uuid.Nil, false
+	}
+
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid user id")
+		return uuid.Nil, uuid.Nil, false
+	}
+	sessionUUID, err := uuid.Parse(sessionID)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid sessionId")
+		return uuid.Nil, uuid.Nil, false
+	}
+
+	var isParticipant bool
+	if err = h.db.QueryRow(r.Context(), `
+		SELECT EXISTS(
+			SELECT 1
+			FROM public.activity_participants
+			WHERE session_id = $1
+			  AND user_id = $2
+			  AND left_at IS NULL
+		)
+	`, sessionUUID, userUUID).Scan(&isParticipant); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to validate participant")
+		return uuid.Nil, uuid.Nil, false
+	}
+	if !isParticipant {
+		writeError(w, http.StatusForbidden, "participant membership required")
+		return uuid.Nil, uuid.Nil, false
+	}
+
+	return userUUID, sessionUUID, true
+}
+
+func (h *ActivityHandler) upsertSyncState(
+	r *http.Request,
+	sessionUUID uuid.UUID,
+	userUUID uuid.UUID,
+	isPlaying *bool,
+	playheadMS *int64,
+	mediaURL *string,
+) (*ActivitySyncStateResponse, error) {
+	var out ActivitySyncStateResponse
+	err := h.db.QueryRow(r.Context(), `
+		INSERT INTO public.activity_sync_state (session_id, leader_user_id, playhead_ms, is_playing, media_url, updated_at)
+		VALUES (
+			$1,
+			$2,
+			COALESCE($3, 0),
+			COALESCE($4, false),
+			COALESCE($5, ''),
+			NOW()
+		)
+		ON CONFLICT (session_id)
+		DO UPDATE SET
+			leader_user_id = $2,
+			playhead_ms = COALESCE($3, activity_sync_state.playhead_ms),
+			is_playing = COALESCE($4, activity_sync_state.is_playing),
+			media_url = COALESCE(NULLIF($5, ''), activity_sync_state.media_url),
+			updated_at = NOW()
+		RETURNING session_id, leader_user_id, playhead_ms, is_playing, media_url, updated_at
+	`, sessionUUID, userUUID, playheadMS, isPlaying, mediaURL).Scan(
+		&out.SessionID, &out.LeaderUserID, &out.PlayheadMS, &out.IsPlaying, &out.MediaURL, &out.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (h *ActivityHandler) writeSessionByID(w http.ResponseWriter, r *http.Request, sessionID string) {
+	sessionUUID, err := uuid.Parse(sessionID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "session not found")
+		return
+	}
+	var out ActivitySessionResponse
+	if err = h.db.QueryRow(r.Context(), `
+		SELECT s.id, s.activity_id, s.channel_id, s.server_id, s.host_user_id,
+		       s.previous_host_user_id, s.state, COALESCE(s.embed_url, ''),
+		       s.started_at, s.ended_at, s.ended_reason, s.last_heartbeat_at,
+		       s.host_transferred_at, s.created_at,
+		       COALESCE((
+		       	SELECT COUNT(*)
+		       	FROM public.activity_participants ap
+		       	WHERE ap.session_id = s.id
+		       	  AND ap.left_at IS NULL
+		       ), 0) AS participant_count
+		FROM public.activity_sessions s
+		WHERE s.id = $1
+		LIMIT 1
+	`, sessionUUID).Scan(
+		&out.ID, &out.ActivityID, &out.ChannelID, &out.ServerID, &out.HostUserID,
+		&out.PreviousHostUserID, &out.State, &out.EmbedURL, &out.StartedAt,
+		&out.EndedAt, &out.EndedReason, &out.LastHeartbeatAt, &out.HostTransferredAt,
+		&out.CreatedAt, &out.ParticipantCount,
+	); err != nil {
+		writeError(w, http.StatusNotFound, "session not found")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{"active_activity": out})
 }

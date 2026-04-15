@@ -271,7 +271,12 @@ func main() {
 	protected.HandleFunc("/activities/{sessionId}/end", activityHandler.End).Methods("POST")
 	protected.HandleFunc("/activities/{sessionId}", activityHandler.GetSession).Methods("GET")
 	protected.HandleFunc("/activities/{sessionId}/state", activityHandler.UpdateState).Methods("POST")
+	protected.HandleFunc("/activities/{sessionId}/sync/play", activityHandler.SyncPlay).Methods("POST")
+	protected.HandleFunc("/activities/{sessionId}/sync/pause", activityHandler.SyncPause).Methods("POST")
+	protected.HandleFunc("/activities/{sessionId}/sync/seek", activityHandler.SyncSeek).Methods("POST")
 	protected.HandleFunc("/activities/{sessionId}/participants", activityHandler.GetParticipants).Methods("GET")
+	protected.HandleFunc("/users/{id}/active-activity", activityHandler.GetUserActiveActivity).Methods("GET")
+	protected.HandleFunc("/channels/{id}/active-activity", activityHandler.GetChannelActiveActivity).Methods("GET")
 
 	// Parity status (internal delivery tracking)
 	parityHandler := handlers.NewParityHandler(db.Pool(), logger)
