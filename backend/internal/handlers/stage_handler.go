@@ -12,6 +12,11 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	permissionAdministrator = 2
+	permissionManageChannel = 8
+)
+
 type StageHandler struct {
 	db     *pgxpool.Pool
 	logger *zap.Logger
@@ -344,8 +349,11 @@ func (h *StageHandler) hasModerationPermission(r *http.Request, serverID, userID
 			JOIN public.roles r ON r.id = mr.role_id
 			WHERE mr.server_id = $1
 			  AND mr.user_id = $2
-			  AND ((COALESCE(r.permissions, 0) & 8) > 0 OR (COALESCE(r.permissions, 0) & 2) > 0)
+			  AND (
+				(COALESCE(r.permissions, 0) & $3) > 0
+				OR (COALESCE(r.permissions, 0) & $4) > 0
+			  )
 		)
-	`, serverID, userID).Scan(&hasPermission)
+	`, serverID, userID, permissionManageChannel, permissionAdministrator).Scan(&hasPermission)
 	return hasPermission, err
 }

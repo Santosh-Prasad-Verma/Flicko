@@ -14,6 +14,11 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	maxTimeoutDurationSeconds = 2_419_200  // 28 days
+	maxBanDurationSeconds     = 31_536_000 // 1 year
+)
+
 type ModerationActionsHandler struct {
 	db     *pgxpool.Pool
 	logger *zap.Logger
@@ -52,7 +57,7 @@ func (h *ModerationActionsHandler) TimeoutMember(w http.ResponseWriter, r *http.
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-	if req.DurationSeconds < 1 || req.DurationSeconds > 2419200 { // 28 days
+	if req.DurationSeconds < 1 || req.DurationSeconds > maxTimeoutDurationSeconds {
 		writeError(w, http.StatusBadRequest, "duration_seconds must be between 1 and 2419200")
 		return
 	}
@@ -110,7 +115,7 @@ func (h *ModerationActionsHandler) BanMember(w http.ResponseWriter, r *http.Requ
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-	if req.DurationSeconds != nil && (*req.DurationSeconds < 1 || *req.DurationSeconds > 31536000) {
+	if req.DurationSeconds != nil && (*req.DurationSeconds < 1 || *req.DurationSeconds > maxBanDurationSeconds) {
 		writeError(w, http.StatusBadRequest, "duration_seconds must be between 1 and 31536000")
 		return
 	}
