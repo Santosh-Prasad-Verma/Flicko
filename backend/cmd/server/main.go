@@ -315,6 +315,8 @@ func main() {
 	protected.HandleFunc("/premium/redeem", premiumHandler.RedeemGift).Methods("POST")
 	protected.HandleFunc("/premium/boost-credits", premiumHandler.GetBoostCredits).Methods("GET")
 	protected.HandleFunc("/premium/boost-credits/apply", premiumHandler.ApplyBoostCredit).Methods("POST")
+	protected.HandleFunc("/premium/cosmetics", premiumHandler.ListCosmetics).Methods("GET")
+	protected.HandleFunc("/profile/cosmetics/apply", premiumHandler.ApplyCosmetic).Methods("POST")
 
 	// Parity status (internal delivery tracking)
 	parityHandler := handlers.NewParityHandler(db.Pool(), logger)

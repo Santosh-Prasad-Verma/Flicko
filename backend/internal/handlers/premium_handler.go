@@ -48,6 +48,10 @@ type boostCreditResponse struct {
 	Source             string     `json:"source"`
 }
 
+type applyCosmeticRequest struct {
+	CosmeticID string `json:"cosmetic_id"`
+}
+
 func NewPremiumHandler(db *pgxpool.Pool, logger *zap.Logger) *PremiumHandler {
 	return &PremiumHandler{
 		db:     db,
@@ -435,6 +439,186 @@ func (h *PremiumHandler) ApplyBoostCredit(w http.ResponseWriter, r *http.Request
 		"consumed_at":     consumedAt,
 		"expires_at":      boostExpiresAt,
 		"status":          "applied",
+	})
+}
+
+func (h *PremiumHandler) ListCosmetics(w http.ResponseWriter, r *http.Request) {
+	userID := getUserID(r)
+	if userID == "" {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid user id")
+		return
+	}
+
+	rows, err := h.db.Query(r.Context(), `
+		SELECT
+			cc.id,
+			cc.slug,
+			cc.name,
+			cc.cosmetic_type,
+			cc.asset_url,
+			cc.rarity,
+			cc.required_plan,
+			cc.is_active,
+			uc.id IS NOT NULL AS owned,
+			COALESCE(uc.is_equipped, FALSE) AS equipped,
+			uc.unlocked_at
+		FROM public.cosmetic_catalog cc
+		LEFT JOIN public.user_cosmetics uc
+		  ON uc.cosmetic_id = cc.id
+		 AND uc.user_id = $1
+		WHERE cc.is_active = TRUE
+		ORDER BY cc.cosmetic_type ASC, cc.rarity DESC, cc.name ASC
+	`, userUUID)
+	if err != nil {
+		h.logger.Error("failed to list cosmetics catalog", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to fetch cosmetics")
+		return
+	}
+	defer rows.Close()
+
+	items := make([]map[string]interface{}, 0)
+	for rows.Next() {
+		var cosmeticID uuid.UUID
+		var slug, name, cosmeticType, assetURL, rarity string
+		var requiredPlan *string
+		var isActive, owned, equipped bool
+		var unlockedAt *time.Time
+		if err = rows.Scan(
+			&cosmeticID, &slug, &name, &cosmeticType, &assetURL, &rarity,
+			&requiredPlan, &isActive, &owned, &equipped, &unlockedAt,
+		); err != nil {
+			h.logger.Error("failed to scan cosmetic row", zap.Error(err))
+			writeError(w, http.StatusInternalServerError, "failed to fetch cosmetics")
+			return
+		}
+		items = append(items, map[string]interface{}{
+			"id":            cosmeticID.String(),
+			"slug":          slug,
+			"name":          name,
+			"type":          cosmeticType,
+			"asset_url":     assetURL,
+			"rarity":        rarity,
+			"required_plan": requiredPlan,
+			"is_active":     isActive,
+			"owned":         owned,
+			"equipped":      equipped,
+			"unlocked_at":   unlockedAt,
+		})
+	}
+	if err = rows.Err(); err != nil {
+		h.logger.Error("cosmetics row iteration failed", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to fetch cosmetics")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"user_id":   userUUID.String(),
+		"cosmetics": items,
+		"count":     len(items),
+	})
+}
+
+func (h *PremiumHandler) ApplyCosmetic(w http.ResponseWriter, r *http.Request) {
+	userID := getUserID(r)
+	if userID == "" {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid user id")
+		return
+	}
+
+	req := applyCosmeticRequest{}
+	if err = json.NewDecoder(r.Body).Decode(&req); err != nil && err != io.EOF {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	cosmeticUUID, err := uuid.Parse(req.CosmeticID)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid cosmetic id")
+		return
+	}
+
+	tx, err := h.db.Begin(r.Context())
+	if err != nil {
+		h.logger.Error("failed to begin apply cosmetic transaction", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to apply cosmetic")
+		return
+	}
+	defer tx.Rollback(r.Context()) //nolint:errcheck
+
+	var cosmeticType string
+	var owned bool
+	err = tx.QueryRow(r.Context(), `
+		SELECT cc.cosmetic_type, uc.id IS NOT NULL AS owned
+		FROM public.cosmetic_catalog cc
+		LEFT JOIN public.user_cosmetics uc
+		  ON uc.cosmetic_id = cc.id
+		 AND uc.user_id = $2
+		WHERE cc.id = $1
+		  AND cc.is_active = TRUE
+	`, cosmeticUUID, userUUID).Scan(&cosmeticType, &owned)
+	if errors.Is(err, pgx.ErrNoRows) {
+		writeError(w, http.StatusNotFound, "cosmetic not found")
+		return
+	}
+	if err != nil {
+		h.logger.Error("failed to query cosmetic ownership", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to apply cosmetic")
+		return
+	}
+	if !owned {
+		writeError(w, http.StatusForbidden, "cosmetic is not owned")
+		return
+	}
+
+	if _, err = tx.Exec(r.Context(), `
+		UPDATE public.user_cosmetics uc
+		SET is_equipped = FALSE,
+		    updated_at = NOW()
+		FROM public.cosmetic_catalog cc
+		WHERE uc.cosmetic_id = cc.id
+		  AND uc.user_id = $1
+		  AND cc.cosmetic_type = $2
+	`, userUUID, cosmeticType); err != nil {
+		h.logger.Error("failed to clear equipped cosmetics", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to apply cosmetic")
+		return
+	}
+
+	var updatedAt time.Time
+	if err = tx.QueryRow(r.Context(), `
+		UPDATE public.user_cosmetics
+		SET is_equipped = TRUE,
+		    updated_at = NOW()
+		WHERE user_id = $1
+		  AND cosmetic_id = $2
+		RETURNING updated_at
+	`, userUUID, cosmeticUUID).Scan(&updatedAt); err != nil {
+		h.logger.Error("failed to set equipped cosmetic", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to apply cosmetic")
+		return
+	}
+
+	if err = tx.Commit(r.Context()); err != nil {
+		h.logger.Error("failed to commit apply cosmetic transaction", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to apply cosmetic")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"user_id":     userUUID.String(),
+		"cosmetic_id": cosmeticUUID.String(),
+		"type":        cosmeticType,
+		"equipped":    true,
+		"updated_at":  updatedAt,
 	})
 }
 
