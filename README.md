@@ -62,7 +62,7 @@ Flicko is a **complete, open-source communication platform** — think Discord, 
 
 The entire platform runs on a **single 8 GB VPS** serving **3,000–5,000 concurrent users**, orchestrated through Docker Compose with 9 containers across 3 isolated networks, monitored by a full Prometheus + Grafana + Loki observability stack.
 
-> **This is not a toy project.** Flicko has **65 database migrations**, **95 backend service files**, **51 frontend API services**, **22 Zustand state stores**, **42 Go unit test suites**, **26 granular permission types**, and **87 documentation files**. Every feature is fully implemented end-to-end, from mobile UI to database queries.
+> **This is not a toy project.** Flicko has **100 database migrations**, **96 backend service files**, **64 frontend API services**, **22 Zustand state stores**, **42 Go unit test suites**, **26 granular permission types**, and **121 documentation files**. Every feature is fully implemented end-to-end, from mobile UI to database queries.
 
 ### Why Flicko?
 
@@ -147,7 +147,7 @@ Header Redaction → Redis Rate Limit → JWT Auth → Handler → Service → D
 
 ## 🚀 Features
 
-Flicko ships with **30+ fully implemented, production-quality features** across 6 domains:
+Flicko ships with **30+ fully implemented, production-quality features** across 7 domains:
 
 ### 💬 Communication
 
@@ -228,6 +228,14 @@ Flicko ships with **30+ fully implemented, production-quality features** across 
 | **File attachments** | ✅ | Multi-file with progress tracking |
 | **Image transforms** | ✅ | Cloudinary on-the-fly resize/crop/format |
 | **Animated avatars** | ✅ | Premium-only GIF avatar support |
+
+### 📈 Parity Governance & Ops
+
+| Feature | Status | Implementation |
+|---------|--------|---------------|
+| **Discord Parity Tracking** | ✅ | Status of missing, planned, and completed modules |
+| **Schema Versions Governance** | ✅ | Target release windows and versioned DB rollouts |
+| **Live Metric Observability** | ✅ | Dynamic parity validation and metrics APIs |
 
 ---
 
@@ -464,7 +472,7 @@ Flicko/
 ├── 🔀 nginx/                           # NGINX reverse proxy config (232 lines)
 ├── 📊 monitoring/                      # Prometheus, Grafana, Loki configs
 ├── 🔧 scripts/                         # Deploy, setup, health check scripts
-├── 📄 docs/                            # 87 documentation files
+├── 📄 docs/                            # 121 documentation files
 ├── docker-compose.prod.yml             # Production stack (455 lines, 9 containers)
 ├── docker-compose.dev.yml              # Development stack
 ├── .env.example                        # Environment template (169 variables)
