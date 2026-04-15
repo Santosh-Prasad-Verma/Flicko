@@ -5,6 +5,8 @@
 package middleware
 
 import (
+	"os"
+
 	"context"
 	"fmt"
 	"net/http"
@@ -276,4 +278,23 @@ func GetUserIDFromContext(r *http.Request) string {
 		return userID
 	}
 	return ""
+}
+
+// InternalAuth protects internal delivery and monitoring routes.
+// It requires an X-Internal-Token header that matches the INTERNAL_API_KEY env.
+func InternalAuth(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token := r.Header.Get("X-Internal-Token")
+		expected := os.Getenv("INTERNAL_API_KEY")
+		if expected == "" {
+			// Fail securely if no internal token is configured
+			http.Error(w, `{"error": "Internal API access not configured"}`, http.StatusForbidden)
+			return
+		}
+		if token != expected {
+			http.Error(w, `{"error": "Unauthorized internal access"}`, http.StatusForbidden)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }

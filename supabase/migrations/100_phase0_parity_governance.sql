@@ -75,3 +75,12 @@ VALUES
     ('ACTIVITY', 'ws_event', 'v1', 'active', NOW()),
     ('MOD', 'ws_event', 'v1', 'active', NOW())
 ON CONFLICT (domain, schema_type, version) DO NOTHING;
+
+CREATE TRIGGER handle_updated_at_feature_parity_status
+    BEFORE UPDATE ON feature_parity_status
+    FOR EACH ROW
+    EXECUTE FUNCTION public.handle_updated_at();
+
+
+ALTER TABLE feature_parity_status ENABLE ROW LEVEL SECURITY;
+ALTER TABLE schema_versions ENABLE ROW LEVEL SECURITY;

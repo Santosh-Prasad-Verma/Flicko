@@ -75,7 +75,7 @@ This diagram shows the complete request path from a user's mobile device through
 
 ## Documentation Map
 
-The complete inventory of all 87 documentation files organized by category. Use the **Who Should Read** column to quickly find documents relevant to your role, and the **Reading Time** column to plan your learning sessions.
+The complete inventory of all 90 documentation files organized by category. Use the **Who Should Read** column to quickly find documents relevant to your role, and the **Reading Time** column to plan your learning sessions.
 
 ### Root Documentation (4 files)
 
@@ -292,16 +292,16 @@ Follow this reading order to get productive as quickly as possible:
 
 | System            | Status         | Test Coverage   | Key Metric           | Last Updated |
 | ----------------- | -------------- | --------------- | -------------------- | ------------ |
-| **ws-gateway**    | ✅ Operational | —               | 6K max connections   | 2026-04-11   |
-| **msg-service**   | ✅ Operational | —               | 50 msg/batch         | 2026-04-11   |
-| **backend**       | ✅ Operational | 42 test files   | 8 bots active        | 2026-04-11   |
-| **Database**      | ✅ Operational | —               | 65 migrations        | 2026-04-11   |
-| **Redis**         | ✅ Operational | —               | TLS encrypted        | 2026-04-11   |
-| **NGINX**         | ✅ Operational | —               | 4 rate limit zones   | 2026-04-11   |
-| **Monitoring**    | ✅ Operational | —               | 15s scrape interval  | 2026-04-11   |
-| **Mobile App**    | ✅ Building    | Jest configured | 30+ screens          | 2026-04-11   |
-| **CI/CD**         | ✅ Active      | —               | Docker build on push | 2026-04-11   |
-| **Documentation** | ✅ Complete    | —               | 87 files             | 2026-04-11   |
+| **ws-gateway**    | ✅ Operational | —               | 6K max connections   | 2026-04-14   |
+| **msg-service**   | ✅ Operational | —               | 50 msg/batch         | 2026-04-14   |
+| **backend**       | ✅ Operational | 42 test files   | 8 bots active        | 2026-04-14   |
+| **Database**      | ✅ Operational | —               | 65 migrations        | 2026-04-14   |
+| **Redis**         | ✅ Operational | —               | TLS encrypted        | 2026-04-14   |
+| **NGINX**         | ✅ Operational | —               | 4 rate limit zones   | 2026-04-14   |
+| **Monitoring**    | ✅ Operational | —               | 15s scrape interval  | 2026-04-14   |
+| **Mobile App**    | ✅ Building    | Jest configured | 30+ screens          | 2026-04-14   |
+| **CI/CD**         | ✅ Active      | —               | Docker build on push | 2026-04-14   |
+| **Documentation** | ✅ Complete    | —               | 90 files             | 2026-04-14   |
 
 ---
 

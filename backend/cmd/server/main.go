@@ -334,7 +334,9 @@ func main() {
 
 	// Parity status (internal delivery tracking)
 	parityHandler := handlers.NewParityHandler(db.Pool(), logger)
-	protected.HandleFunc("/parity/status", parityHandler.GetParityStatus).Methods("GET")
+	internalRouter := api.PathPrefix("/").Subrouter()
+	internalRouter.Use(middleware.InternalAuth)
+	internalRouter.HandleFunc("/parity/status", parityHandler.GetParityStatus).Methods("GET")
 
 	// Custom Emojis
 	emojiHandler := handlers.NewEmojiHandler(db.Pool(), logger)
