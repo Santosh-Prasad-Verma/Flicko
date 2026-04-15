@@ -313,6 +313,8 @@ func main() {
 	protected.HandleFunc("/voice/channels/{id}", voiceAdminHandler.PatchVoiceChannel).Methods("PATCH")
 	protected.HandleFunc("/premium/gifts", premiumHandler.CreateGift).Methods("POST")
 	protected.HandleFunc("/premium/redeem", premiumHandler.RedeemGift).Methods("POST")
+	protected.HandleFunc("/premium/boost-credits", premiumHandler.GetBoostCredits).Methods("GET")
+	protected.HandleFunc("/premium/boost-credits/apply", premiumHandler.ApplyBoostCredit).Methods("POST")
 
 	// Parity status (internal delivery tracking)
 	parityHandler := handlers.NewParityHandler(db.Pool(), logger)

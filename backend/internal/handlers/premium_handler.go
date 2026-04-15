@@ -35,6 +35,19 @@ type redeemGiftRequest struct {
 	Code string `json:"code"`
 }
 
+type applyBoostCreditRequest struct {
+	ServerID string `json:"server_id"`
+}
+
+type boostCreditResponse struct {
+	ID                 string     `json:"id"`
+	IssuedAt           time.Time  `json:"issued_at"`
+	ExpiresAt          time.Time  `json:"expires_at"`
+	ConsumedAt         *time.Time `json:"consumed_at,omitempty"`
+	ConsumedByServerID *string    `json:"consumed_by_server_id,omitempty"`
+	Source             string     `json:"source"`
+}
+
 func NewPremiumHandler(db *pgxpool.Pool, logger *zap.Logger) *PremiumHandler {
 	return &PremiumHandler{
 		db:     db,
@@ -242,6 +255,186 @@ func (h *PremiumHandler) RedeemGift(w http.ResponseWriter, r *http.Request) {
 		"redeemed_at":         redeemedAt,
 		"entitlement_expires": entitlementExpiresAt,
 		"status":              "redeemed",
+	})
+}
+
+func (h *PremiumHandler) GetBoostCredits(w http.ResponseWriter, r *http.Request) {
+	userID := getUserID(r)
+	if userID == "" {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid user id")
+		return
+	}
+
+	rows, err := h.db.Query(r.Context(), `
+		SELECT id, issued_at, expires_at, consumed_at, consumed_by_server_id, source
+		FROM public.boost_credits
+		WHERE user_id = $1
+		ORDER BY issued_at DESC
+	`, userUUID)
+	if err != nil {
+		h.logger.Error("failed to list boost credits", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to fetch boost credits")
+		return
+	}
+	defer rows.Close()
+
+	credits := make([]boostCreditResponse, 0)
+	available := 0
+	consumed := 0
+	now := time.Now().UTC()
+	for rows.Next() {
+		var item boostCreditResponse
+		var id uuid.UUID
+		var consumedByServerID *uuid.UUID
+		if err = rows.Scan(&id, &item.IssuedAt, &item.ExpiresAt, &item.ConsumedAt, &consumedByServerID, &item.Source); err != nil {
+			h.logger.Error("failed to scan boost credit row", zap.Error(err))
+			writeError(w, http.StatusInternalServerError, "failed to fetch boost credits")
+			return
+		}
+		item.ID = id.String()
+		if consumedByServerID != nil {
+			serverID := consumedByServerID.String()
+			item.ConsumedByServerID = &serverID
+		}
+		if item.ConsumedAt == nil && item.ExpiresAt.After(now) {
+			available++
+		} else {
+			consumed++
+		}
+		credits = append(credits, item)
+	}
+	if err = rows.Err(); err != nil {
+		h.logger.Error("boost credits row iteration failed", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to fetch boost credits")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"user_id":           userUUID.String(),
+		"available_credits": available,
+		"used_credits":      consumed,
+		"total_credits":     len(credits),
+		"credits":           credits,
+	})
+}
+
+func (h *PremiumHandler) ApplyBoostCredit(w http.ResponseWriter, r *http.Request) {
+	userID := getUserID(r)
+	if userID == "" {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid user id")
+		return
+	}
+
+	req := applyBoostCreditRequest{}
+	if err = json.NewDecoder(r.Body).Decode(&req); err != nil && err != io.EOF {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	serverUUID, err := uuid.Parse(req.ServerID)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid server id")
+		return
+	}
+
+	var isMember bool
+	if err = h.db.QueryRow(r.Context(), `
+		SELECT EXISTS (
+			SELECT 1
+			FROM public.server_members
+			WHERE server_id = $1
+			  AND user_id = $2
+		)
+	`, serverUUID, userUUID).Scan(&isMember); err != nil {
+		h.logger.Error("failed to verify server membership for boost apply", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to apply boost credit")
+		return
+	}
+	if !isMember {
+		writeError(w, http.StatusForbidden, "forbidden")
+		return
+	}
+
+	tx, err := h.db.Begin(r.Context())
+	if err != nil {
+		h.logger.Error("failed to begin boost apply transaction", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to apply boost credit")
+		return
+	}
+	defer tx.Rollback(r.Context()) //nolint:errcheck
+
+	var creditID uuid.UUID
+	err = tx.QueryRow(r.Context(), `
+		SELECT id
+		FROM public.boost_credits
+		WHERE user_id = $1
+		  AND consumed_at IS NULL
+		  AND expires_at > NOW()
+		ORDER BY issued_at ASC
+		LIMIT 1
+		FOR UPDATE
+	`, userUUID).Scan(&creditID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		writeError(w, http.StatusConflict, "no available boost credits")
+		return
+	}
+	if err != nil {
+		h.logger.Error("failed to locate available boost credit", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to apply boost credit")
+		return
+	}
+
+	var consumedAt time.Time
+	if err = tx.QueryRow(r.Context(), `
+		UPDATE public.boost_credits
+		SET consumed_at = NOW(),
+		    consumed_by_server_id = $2,
+		    updated_at = NOW()
+		WHERE id = $1
+		RETURNING consumed_at
+	`, creditID, serverUUID).Scan(&consumedAt); err != nil {
+		h.logger.Error("failed to consume boost credit", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to apply boost credit")
+		return
+	}
+
+	var serverBoostID uuid.UUID
+	var boostExpiresAt time.Time
+	if err = tx.QueryRow(r.Context(), `
+		INSERT INTO public.server_boosts (
+			server_id, user_id, started_at, expires_at, is_active
+		)
+		VALUES ($1, $2, NOW(), NOW() + INTERVAL '30 days', TRUE)
+		RETURNING id, expires_at
+	`, serverUUID, userUUID).Scan(&serverBoostID, &boostExpiresAt); err != nil {
+		h.logger.Error("failed to create server boost from credit", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to apply boost credit")
+		return
+	}
+
+	if err = tx.Commit(r.Context()); err != nil {
+		h.logger.Error("failed to commit boost apply transaction", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to apply boost credit")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"boost_credit_id": creditID.String(),
+		"server_boost_id": serverBoostID.String(),
+		"server_id":       serverUUID.String(),
+		"user_id":         userUUID.String(),
+		"consumed_at":     consumedAt,
+		"expires_at":      boostExpiresAt,
+		"status":          "applied",
 	})
 }
 
