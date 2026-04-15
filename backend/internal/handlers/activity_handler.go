@@ -29,8 +29,6 @@ const (
 	maxStatePatchBytes = 16 * 1024
 )
 
-const participantRoleOnLeaveExpr = "CASE WHEN role = 'host' THEN 'participant' ELSE role END"
-
 func NewActivityHandler(db *pgxpool.Pool, logger *zap.Logger) *ActivityHandler {
 	return &ActivityHandler{
 		db:     db,
@@ -50,8 +48,8 @@ type UpdateActivityStateRequest struct {
 }
 
 type SyncPlayRequest struct {
-	PlayheadMS int64  `json:"playhead_ms"`
-	MediaURL   string `json:"media_url"`
+	PlayheadMS int64   `json:"playhead_ms"`
+	MediaURL   *string `json:"media_url"`
 }
 
 type SyncPauseRequest struct {
@@ -402,7 +400,7 @@ func (h *ActivityHandler) Leave(w http.ResponseWriter, r *http.Request) {
 	if _, err = tx.Exec(r.Context(), `
 		UPDATE public.activity_participants
 		SET left_at = NOW(),
-		    role = `+participantRoleOnLeaveExpr+`
+		    role = CASE WHEN role = 'host' THEN 'participant' ELSE role END
 		WHERE session_id = $1 AND user_id = $2
 	`, sessionUUID, userUUID); err != nil {
 		h.logger.Error("failed to remove participant", zap.Error(err))
@@ -734,7 +732,7 @@ func (h *ActivityHandler) End(w http.ResponseWriter, r *http.Request) {
 	if _, err = tx.Exec(r.Context(), `
 		UPDATE public.activity_participants
 		SET left_at = NOW(),
-		    role = `+participantRoleOnLeaveExpr+`
+		    role = CASE WHEN role = 'host' THEN 'participant' ELSE role END
 		WHERE session_id = $1
 		  AND left_at IS NULL
 	`, sessionUUID); err != nil {
@@ -811,7 +809,7 @@ func (h *ActivityHandler) SyncPlay(w http.ResponseWriter, r *http.Request) {
 	}
 
 	isPlaying := true
-	out, err := h.upsertSyncState(r, sessionUUID, userUUID, &isPlaying, &req.PlayheadMS, &req.MediaURL)
+	out, err := h.upsertSyncState(r, sessionUUID, userUUID, &isPlaying, &req.PlayheadMS, req.MediaURL)
 	if err != nil {
 		h.logger.Error("failed to apply sync play", zap.Error(err))
 		writeError(w, http.StatusInternalServerError, "failed to sync play")
@@ -1003,7 +1001,7 @@ func (h *ActivityHandler) upsertSyncState(
 			leader_user_id = $2,
 			playhead_ms = COALESCE($3, activity_sync_state.playhead_ms),
 			is_playing = COALESCE($4, activity_sync_state.is_playing),
-			media_url = COALESCE(NULLIF($5, ''), activity_sync_state.media_url),
+			media_url = COALESCE($5, activity_sync_state.media_url),
 			updated_at = NOW()
 		RETURNING session_id, leader_user_id, playhead_ms, is_playing, media_url, updated_at
 	`, sessionUUID, userUUID, playheadMS, isPlaying, mediaURL).Scan(

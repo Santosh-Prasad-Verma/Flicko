@@ -50,9 +50,10 @@ AS $$
     SELECT regexp_replace(lower(COALESCE(activity_name, 'activity')), '[^a-z0-9]+', '-', 'g') AS base_slug
   )
   SELECT
-    trim(both '-' FROM regexp_replace(base_slug, '-{2,}', '-', 'g'))
+    trim(both '-' FROM regexp_replace(normalized.base_slug, '-{2,}', '-', 'g'))
     || '-'
     || substr(replace(activity_id::text, '-', ''), 1, 8);
+  FROM normalized;
 $$;
 
 -- Backfill entries for existing catalog activities where missing.
