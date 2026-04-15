@@ -24,6 +24,13 @@ var validActivitySessionStates = map[string]struct{}{
 	"ended":     {},
 }
 
+const (
+	maxStatePatchKeys  = 100
+	maxStatePatchBytes = 16 * 1024
+)
+
+const participantRoleOnLeaveExpr = "CASE WHEN role = 'host' THEN 'participant' ELSE role END"
+
 func NewActivityHandler(db *pgxpool.Pool, logger *zap.Logger) *ActivityHandler {
 	return &ActivityHandler{
 		db:     db,
@@ -310,7 +317,7 @@ func (h *ActivityHandler) Leave(w http.ResponseWriter, r *http.Request) {
 	if _, err = tx.Exec(r.Context(), `
 		UPDATE public.activity_participants
 		SET left_at = NOW(),
-		    role = CASE WHEN role = 'host' THEN 'participant' ELSE role END
+		    role = `+participantRoleOnLeaveExpr+`
 		WHERE session_id = $1 AND user_id = $2
 	`, sessionUUID, userUUID); err != nil {
 		h.logger.Error("failed to remove participant", zap.Error(err))
@@ -493,7 +500,7 @@ func (h *ActivityHandler) UpdateState(w http.ResponseWriter, r *http.Request) {
 	if patch == nil {
 		patch = map[string]interface{}{}
 	}
-	if len(patch) > 100 {
+	if len(patch) > maxStatePatchKeys {
 		writeError(w, http.StatusBadRequest, "state_patch has too many keys")
 		return
 	}
@@ -502,7 +509,7 @@ func (h *ActivityHandler) UpdateState(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid state_patch")
 		return
 	}
-	if len(patchBytes) > 16*1024 {
+	if len(patchBytes) > maxStatePatchBytes {
 		writeError(w, http.StatusBadRequest, "state_patch exceeds 16KB")
 		return
 	}
@@ -642,7 +649,7 @@ func (h *ActivityHandler) End(w http.ResponseWriter, r *http.Request) {
 	if _, err = tx.Exec(r.Context(), `
 		UPDATE public.activity_participants
 		SET left_at = NOW(),
-		    role = CASE WHEN role = 'host' THEN 'participant' ELSE role END
+		    role = `+participantRoleOnLeaveExpr+`
 		WHERE session_id = $1
 		  AND left_at IS NULL
 	`, sessionUUID); err != nil {
