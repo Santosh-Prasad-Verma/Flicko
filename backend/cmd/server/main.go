@@ -264,6 +264,7 @@ func main() {
 
 	// Activities lifecycle + catalog
 	activityHandler := handlers.NewActivityHandler(db.Pool(), logger)
+	mfaHandler := handlers.NewMFAHandler(db.Pool(), logger)
 	protected.HandleFunc("/activities/catalog", activityHandler.GetCatalog).Methods("GET")
 	protected.HandleFunc("/activities/catalog/{id}/validate", activityHandler.ValidateCatalogActivity).Methods("POST")
 	protected.HandleFunc("/activities/providers/register", activityHandler.RegisterProvider).Methods("POST")
@@ -280,6 +281,9 @@ func main() {
 	protected.HandleFunc("/activities/{sessionId}/participants", activityHandler.GetParticipants).Methods("GET")
 	protected.HandleFunc("/users/{id}/active-activity", activityHandler.GetUserActiveActivity).Methods("GET")
 	protected.HandleFunc("/channels/{id}/active-activity", activityHandler.GetChannelActiveActivity).Methods("GET")
+	protected.HandleFunc("/auth/mfa/enroll", mfaHandler.Enroll).Methods("POST")
+	protected.HandleFunc("/auth/mfa/verify", mfaHandler.Verify).Methods("POST")
+	protected.HandleFunc("/auth/mfa/disable", mfaHandler.Disable).Methods("POST")
 
 	// Parity status (internal delivery tracking)
 	parityHandler := handlers.NewParityHandler(db.Pool(), logger)
