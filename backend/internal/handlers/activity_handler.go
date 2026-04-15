@@ -85,6 +85,16 @@ type ActivityCatalogItem struct {
 	Enabled         bool   `json:"enabled"`
 }
 
+type ValidateCatalogActivityResponse struct {
+	ActivityID      string        `json:"activity_id"`
+	Valid           bool          `json:"valid"`
+	Slug            *string       `json:"slug,omitempty"`
+	Provider        *string       `json:"provider,omitempty"`
+	Capabilities    []interface{} `json:"capabilities"`
+	MobileSupported bool          `json:"mobile_supported"`
+	Enabled         bool          `json:"enabled"`
+}
+
 type ActivityParticipantResponse struct {
 	UserID    string    `json:"user_id"`
 	JoinedAt  time.Time `json:"joined_at"`
@@ -155,6 +165,59 @@ func (h *ActivityHandler) GetCatalog(w http.ResponseWriter, r *http.Request) {
 		"items": items,
 		"count": len(items),
 	})
+}
+
+// ValidateCatalogActivity handles POST /api/v1/activities/catalog/{id}/validate
+func (h *ActivityHandler) ValidateCatalogActivity(w http.ResponseWriter, r *http.Request) {
+	activityID := mux.Vars(r)["id"]
+	if activityID == "" {
+		writeError(w, http.StatusBadRequest, "missing id")
+		return
+	}
+	activityUUID, err := uuid.Parse(activityID)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+
+	var out ValidateCatalogActivityResponse
+	var capabilitiesRaw []byte
+	if err = h.db.QueryRow(r.Context(), `
+		SELECT
+			a.id,
+			(COALESCE(a.enabled, true) AND COALESCE(c.enabled, true)) AS valid,
+			c.slug,
+			c.provider,
+			COALESCE(c.capabilities, '[]'::jsonb) AS capabilities,
+			COALESCE(c.mobile_supported, true) AS mobile_supported,
+			(COALESCE(a.enabled, true) AND COALESCE(c.enabled, true)) AS enabled
+		FROM public.activities a
+		LEFT JOIN public.activities_catalog c
+			ON c.activity_id = a.id
+		WHERE a.id = $1
+		  AND a.user_id IS NULL
+		LIMIT 1
+	`, activityUUID).Scan(
+		&out.ActivityID,
+		&out.Valid,
+		&out.Slug,
+		&out.Provider,
+		&capabilitiesRaw,
+		&out.MobileSupported,
+		&out.Enabled,
+	); err != nil {
+		writeError(w, http.StatusNotFound, "activity not found")
+		return
+	}
+
+	out.Capabilities = make([]interface{}, 0)
+	if unmarshalErr := json.Unmarshal(capabilitiesRaw, &out.Capabilities); unmarshalErr != nil {
+		h.logger.Error("failed to parse activity capabilities", zap.Error(unmarshalErr))
+		writeError(w, http.StatusInternalServerError, "failed to validate activity")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, out)
 }
 
 // Launch handles POST /api/v1/activities/launch

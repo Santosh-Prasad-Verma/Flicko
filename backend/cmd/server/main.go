@@ -265,6 +265,7 @@ func main() {
 	// Activities lifecycle + catalog
 	activityHandler := handlers.NewActivityHandler(db.Pool(), logger)
 	protected.HandleFunc("/activities/catalog", activityHandler.GetCatalog).Methods("GET")
+	protected.HandleFunc("/activities/catalog/{id}/validate", activityHandler.ValidateCatalogActivity).Methods("POST")
 	protected.HandleFunc("/activities/launch", activityHandler.Launch).Methods("POST")
 	protected.HandleFunc("/activities/{sessionId}/join", activityHandler.Join).Methods("POST")
 	protected.HandleFunc("/activities/{sessionId}/leave", activityHandler.Leave).Methods("POST")
