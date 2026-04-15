@@ -80,16 +80,9 @@ func (h *ReactionRoleHandler) CreateReactionRole(w http.ResponseWriter, r *http.
 		return
 	}
 
-	var isMember bool
-	if err = h.db.QueryRow(r.Context(), `
-		SELECT EXISTS (
-			SELECT 1
-			FROM public.server_members
-			WHERE server_id = $1
-			  AND user_id = $2
-		)
-	`, serverUUID, userUUID).Scan(&isMember); err != nil {
-		h.logger.Error("failed to verify server membership", zap.Error(err))
+	isMember, membershipErr := h.isServerMember(r, serverUUID, userUUID)
+	if membershipErr != nil {
+		h.logger.Error("failed to verify server membership", zap.Error(membershipErr))
 		writeError(w, http.StatusInternalServerError, "failed to create reaction role mapping")
 		return
 	}
@@ -152,16 +145,9 @@ func (h *ReactionRoleHandler) DeleteReactionRole(w http.ResponseWriter, r *http.
 		return
 	}
 
-	var isMember bool
-	if err = h.db.QueryRow(r.Context(), `
-		SELECT EXISTS (
-			SELECT 1
-			FROM public.server_members
-			WHERE server_id = $1
-			  AND user_id = $2
-		)
-	`, serverUUID, userUUID).Scan(&isMember); err != nil {
-		h.logger.Error("failed to verify server membership", zap.Error(err))
+	isMember, membershipErr := h.isServerMember(r, serverUUID, userUUID)
+	if membershipErr != nil {
+		h.logger.Error("failed to verify server membership", zap.Error(membershipErr))
 		writeError(w, http.StatusInternalServerError, "failed to delete reaction role mapping")
 		return
 	}
@@ -190,4 +176,17 @@ func (h *ReactionRoleHandler) DeleteReactionRole(w http.ResponseWriter, r *http.
 		"id":      deletedID.String(),
 		"deleted": true,
 	})
+}
+
+func (h *ReactionRoleHandler) isServerMember(r *http.Request, serverID, userID uuid.UUID) (bool, error) {
+	var isMember bool
+	err := h.db.QueryRow(r.Context(), `
+		SELECT EXISTS (
+			SELECT 1
+			FROM public.server_members
+			WHERE server_id = $1
+			  AND user_id = $2
+		)
+	`, serverID, userID).Scan(&isMember)
+	return isMember, err
 }

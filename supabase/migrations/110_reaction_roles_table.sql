@@ -13,8 +13,7 @@ CREATE TABLE IF NOT EXISTS public.reaction_roles (
   created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE (message_id, emoji),
-  UNIQUE (server_id, channel_id, message_id, emoji, role_id)
+  UNIQUE (message_id, emoji)
 );
 
 CREATE INDEX IF NOT EXISTS idx_reaction_roles_server_id
