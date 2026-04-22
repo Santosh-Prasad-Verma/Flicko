@@ -23,7 +23,6 @@ ActiveSubscriptions atomic.Int64
 
 // WorkerQueueDepth is sampled (not continuously tracked) — call
 // Snapshot() to get the current depth.
-workerCh chan struct{} // placeholder, set by redis.go
 }
 
 // Snapshot returns a point-in-time copy of all metric values.
