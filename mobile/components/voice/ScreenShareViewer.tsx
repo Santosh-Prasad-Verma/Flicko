@@ -17,9 +17,23 @@ import { router } from 'expo-router';
 import { useTheme } from '@/hooks/useTheme';
 import { useVoiceStore } from '@stores/voiceStore';
 import { Ionicons } from '@expo/vector-icons';
-import { VideoTrack as LKVideoTrack } from '@livekit/react-native';
-import { Track } from 'livekit-client';
-import type { Room } from 'livekit-client';
+import { isLiveKitAvailable } from '../../lib/livekit';
+
+// Conditionally import LiveKit modules
+let LKVideoTrack: any = null;
+let Track: any = null;
+let Room: any = null;
+if (isLiveKitAvailable) {
+  try {
+    const lk = require('@livekit/react-native');
+    LKVideoTrack = lk.VideoTrack;
+    const lkClient = require('livekit-client');
+    Track = lkClient.Track;
+    Room = lkClient.Room;
+  } catch (e) {
+    console.warn('[ScreenShareViewer] Failed to load LiveKit modules:', e);
+  }
+}
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MIN_ZOOM = 1;
@@ -41,12 +55,12 @@ export function ScreenShareViewer({
   onClose,
 }: ScreenShareViewerProps) {
   const { themeColors } = useTheme();
-  const room = useVoiceStore((s) => s.room) as Room | null;
+  const room = useVoiceStore((s) => s.room) as any;
   const [controlsVisible, setControlsVisible] = useState(true);
 
   // Resolve screen share track reference from LiveKit room
   const screenTrackRef = useMemo(() => {
-    if (!room) return undefined;
+    if (!room || !Track) return undefined;
 
     const remoteParticipant = room.remoteParticipants?.get(participantId);
     if (!remoteParticipant) return undefined;
@@ -155,12 +169,14 @@ export function ScreenShareViewer({
       <GestureDetector gesture={composedGesture}>
         <Animated.View style={[styles.videoWrapper, animatedStyle]}>
           {/* Real LiveKit Screen Share VideoTrack */}
-          <LKVideoTrack
-            trackRef={screenTrackRef}
-            style={styles.screenVideo}
-            objectFit="contain"
-            zOrder={0}
-          />
+          {LKVideoTrack && (
+            <LKVideoTrack
+              trackRef={screenTrackRef}
+              style={styles.screenVideo}
+              objectFit="contain"
+              zOrder={0}
+            />
+          )}
         </Animated.View>
       </GestureDetector>
 

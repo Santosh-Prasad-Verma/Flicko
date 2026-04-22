@@ -7,11 +7,24 @@ import Animated, {
   withSpring,
   runOnJS,
 } from 'react-native-reanimated';
-import { VideoTrack as LKVideoTrack, useRoomContext, useLocalParticipant, useRemoteParticipants } from '@livekit/react-native';
-import { Track } from 'livekit-client';
 import { useVoiceStore } from '@stores/voiceStore';
 import { VoiceOverlay } from './VoiceOverlay';
 import { router } from 'expo-router';
+import { isLiveKitAvailable } from '../../lib/livekit';
+
+// Conditionally import LiveKit modules
+let LKVideoTrack: any = null;
+let Track: any = null;
+if (isLiveKitAvailable) {
+  try {
+    const lk = require('@livekit/react-native');
+    LKVideoTrack = lk.VideoTrack;
+    const lkClient = require('livekit-client');
+    Track = lkClient.Track;
+  } catch (e) {
+    console.warn('[FloatingVideoPiP] Failed to load LiveKit modules:', e);
+  }
+}
 
 // Screen boundaries for snapping calculating
 const PIP_WIDTH = 120;
@@ -21,7 +34,7 @@ export const FloatingVideoPiP = () => {
   const { channelId, connectionState, room } = useVoiceStore();
   
   // To handle the pure audio VoiceOverlay if no video is active
-  const [activeVideoTrack, setActiveVideoTrack] = useState<Track | null>(null);
+  const [activeVideoTrack, setActiveVideoTrack] = useState<any>(null);
 
   // Reanimated values for dragging
   const translateX = useSharedValue(20);
@@ -77,7 +90,7 @@ export const FloatingVideoPiP = () => {
       </View>
 
       {/* If Video Active -> Render the draggable PiP block */}
-      {activeVideoTrack && (
+      {activeVideoTrack && LKVideoTrack && (
         <GestureDetector gesture={gestureHandler}>
           <Animated.View style={[styles.pipContainer, animatedStyle]}>
              <LKVideoTrack track={activeVideoTrack} style={StyleSheet.absoluteFill} />

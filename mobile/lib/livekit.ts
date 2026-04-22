@@ -14,15 +14,35 @@ let _AudioSession: typeof import('@livekit/react-native').AudioSession | null = 
 let _liveKitAvailable = false;
 let _isSessionActive = false;
 
+// Detect whether we're running inside Expo Go. If so, skip attempting to
+// initialize native LiveKit modules (they aren't available in Expo Go).
+let _isExpoGo = false;
 try {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const lk = require('@livekit/react-native');
-  lk.registerGlobals();
-  _AudioSession = lk.AudioSession;
-  _liveKitAvailable = true;
-  console.log('[LiveKit] Native modules loaded & globals registered');
-} catch (err) {
-  console.warn('[LiveKit] Native modules not available (Expo Go?). Voice/video features disabled.', (err as Error).message);
+  const Constants = require('expo-constants').default || require('expo-constants');
+  _isExpoGo = Constants?.appOwnership === 'expo' || Constants?.executionEnvironment === 'storeClient';
+  
+} catch (e) {
+  _isExpoGo = false;
+}
+
+if (_isExpoGo) {
+  console.warn('[LiveKit] Running in Expo Go — skipping native LiveKit initialization. Use a custom dev client (expo-dev-client) or EAS build to enable voice/video features.');
+} else {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const lk = require('@livekit/react-native');
+    if (lk && typeof lk.registerGlobals === 'function') {
+      lk.registerGlobals();
+      _AudioSession = lk.AudioSession;
+      _liveKitAvailable = true;
+      console.log('[LiveKit] Native modules loaded & globals registered');
+    } else {
+      console.warn('[LiveKit] Native module loaded but expected API missing — voice/video features disabled.');
+    }
+  } catch (err) {
+    console.warn('[LiveKit] Native modules not available — voice/video features disabled.', (err as Error).message);
+  }
 }
 
 /**

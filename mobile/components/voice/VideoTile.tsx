@@ -17,9 +17,23 @@ import Animated, {
   withTiming,
   withSequence,
 } from 'react-native-reanimated';
-import { VideoTrack as LKVideoTrack } from '@livekit/react-native';
-import { Track } from 'livekit-client';
-import type { Room } from 'livekit-client';
+import { isLiveKitAvailable } from '../../lib/livekit';
+
+// Conditionally import LiveKit modules
+let LKVideoTrack: any = null;
+let Track: any = null;
+let Room: any = null;
+if (isLiveKitAvailable) {
+  try {
+    const lk = require('@livekit/react-native');
+    LKVideoTrack = lk.VideoTrack;
+    const lkClient = require('livekit-client');
+    Track = lkClient.Track;
+    Room = lkClient.Room;
+  } catch (e) {
+    console.warn('[VideoTile] Failed to load LiveKit modules:', e);
+  }
+}
 
 interface Participant {
   id: string;
@@ -51,11 +65,11 @@ export const VideoTile = memo(function VideoTile({
   onLongPress,
 }: VideoTileProps) {
   const { themeColors } = useTheme();
-  const room = useVoiceStore((s) => s.room) as Room | null;
+  const room = useVoiceStore((s) => s.room) as any;
 
   // Resolve the LiveKit participant → camera track reference
   const trackRef = useMemo(() => {
-    if (!room || !participant.videoEnabled) return undefined;
+    if (!room || !participant.videoEnabled || !Track) return undefined;
 
     const isLocal = room.localParticipant?.identity === participant.id;
     const lkParticipant = isLocal
@@ -108,13 +122,15 @@ export const VideoTile = memo(function VideoTile({
         {hasVideo ? (
           // Real LiveKit Video Feed
           <View style={styles.videoContainer}>
-            <LKVideoTrack
-              trackRef={trackRef}
-              style={styles.video}
-              objectFit="cover"
-              mirror={isLocal}
-              zOrder={isLocal ? 1 : 0}
-            />
+            {LKVideoTrack && (
+              <LKVideoTrack
+                trackRef={trackRef}
+                style={styles.video}
+                objectFit="cover"
+                mirror={isLocal}
+                zOrder={isLocal ? 1 : 0}
+              />
+            )}
 
             {/* Overlay: name + indicators */}
             <View style={styles.videoOverlay}>

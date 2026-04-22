@@ -344,23 +344,6 @@ boot_sequence() {
   tput civis 2>/dev/null
   local w=$(( COLS - 4 ))
 
-  # ── Phase 1: scan lines ───────────────────────────────────────────────────
-  for (( i=0; i<3; i++ )); do
-    local line=""
-    for (( j=0; j<w; j++ )); do
-      local rn=$(( RANDOM % 62 ))
-      if   (( rn < 10 )); then line+="$rn"
-      elif (( rn < 36 )); then
-        local code=$(( rn - 10 + 65 ))
-        line+="$(printf "\\$(printf '%03o' $code)")"
-      else
-        local code=$(( rn - 36 + 97 ))
-        line+="$(printf "\\$(printf '%03o' $code)")"
-      fi
-    done
-    printf "  ${GREEN}${DIM}%s${R}\n" "$line"
-    sleep 0.04
-  done
   gap
 
   # ── Phase 2: BIOS-style boot messages ────────────────────────────────────

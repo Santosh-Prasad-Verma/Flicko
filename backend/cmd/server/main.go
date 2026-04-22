@@ -37,8 +37,6 @@ func initLogger() (*zap.Logger, error) {
 	return cfg.Build()
 }
 
-var startTime = time.Now()
-
 func main() {
 	// 0. Initialize structured logger
 	logger, err := initLogger()

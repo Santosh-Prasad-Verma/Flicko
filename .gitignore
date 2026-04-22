@@ -249,3 +249,7 @@ backend/test_output.txt
 backend/flicko-backend
 services/server
 backend/.env
+
+# Local dev scripts
+start-dev.sh
+stop-dev.sh

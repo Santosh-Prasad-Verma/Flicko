@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -33,10 +32,9 @@ const (
 
 // HIGH-005: pgxClient with statement cache support.
 type pgxClient struct {
-	pool       *pgxpool.Pool
-	stmtCache  map[string]bool
-	cacheMutex sync.RWMutex
-	logger     *zap.Logger
+	pool      *pgxpool.Pool
+	stmtCache map[string]bool
+	logger    *zap.Logger
 }
 
 // CRIT-005: Improved pool configuration based on expected load
@@ -91,9 +89,9 @@ func NewDatabaseClient(ctx context.Context, databaseURL string) (DatabaseClient,
 	if config.MinConns > maxConns {
 		config.MinConns = maxConns
 	}
-	config.MaxConnLifetime = 30 * time.Minute        // Refresh every 30 min
-	config.MaxConnIdleTime = 2 * time.Minute         // Aggressive idle cutoff
-	config.HealthCheckPeriod = 30 * time.Second      // Detect failures early
+	config.MaxConnLifetime = 30 * time.Minute   // Refresh every 30 min
+	config.MaxConnIdleTime = 2 * time.Minute    // Aggressive idle cutoff
+	config.HealthCheckPeriod = 30 * time.Second // Detect failures early
 	config.ConnConfig.ConnectTimeout = 10 * time.Second
 
 	// pgbouncer transaction-mode pooling doesn't support prepared statements.
