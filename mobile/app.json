@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/Flicko_icon.png",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/Flicko_icon.png",
       "resizeMode": "contain",
@@ -40,7 +40,7 @@
         "android.permission.USE_FINGERPRINT"
       ],
       "softwareKeyboardLayoutMode": "resize",
-      "edgeToEdgeEnabled": true,
+      "edgeToEdgeEnabled": false,
       "predictiveBackGestureEnabled": false
     },
     "plugins": [
