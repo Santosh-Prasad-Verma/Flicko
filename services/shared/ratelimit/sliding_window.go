@@ -11,22 +11,21 @@
 package ratelimit
 
 import (
-"context"
-"crypto/rand"
-"fmt"
-"time"
+	"context"
+	"fmt"
+	"time"
 
-goredis "github.com/redis/go-redis/v9"
-"go.uber.org/zap"
+	goredis "github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
 )
 
 // slidingWindowLua atomically implements a sliding window counter using a
 // Redis sorted set.
 //
-//KEYS[1] = rate limit key
-//ARGV[1] = current time (ms)
-//ARGV[2] = window size (ms)
-//ARGV[3] = max requests
+// KEYS[1] = rate limit key
+// ARGV[1] = current time (ms)
+// ARGV[2] = window size (ms)
+// ARGV[3] = max requests
 //
 // Returns {allowed(0|1), remaining, resetTimestamp(ms)}.
 const slidingWindowLua = `
@@ -57,12 +56,12 @@ return {0, 0, reset}
 
 // Result holds the outcome of a rate-limit check.
 type Result struct {
-// Allowed is true when the request is within the limit.
-Allowed bool
-// Remaining is the number of requests left in the current window.
-Remaining int
-// ResetAt is the earliest time the window resets.
-ResetAt time.Time
+	// Allowed is true when the request is within the limit.
+	Allowed bool
+	// Remaining is the number of requests left in the current window.
+	Remaining int
+	// ResetAt is the earliest time the window resets.
+	ResetAt time.Time
 }
 
 // SlidingWindow is a Redis-backed distributed rate limiter.
@@ -72,20 +71,20 @@ ResetAt time.Time
 // Thread-safe: no internal mutex is needed because the go-redis client
 // is itself safe for concurrent use and the Lua script is pure.
 type SlidingWindow struct {
-rdb *goredis.Client
-sha string // SHA1 of the loaded Lua script
-log *zap.Logger
+	rdb *goredis.Client
+	sha string // SHA1 of the loaded Lua script
+	log *zap.Logger
 }
 
 // NewSlidingWindow creates a SlidingWindow rate limiter.
 // It eagerly loads the Lua script into Redis.
 func NewSlidingWindow(ctx context.Context, rdb *goredis.Client, log *zap.Logger) (*SlidingWindow, error) {
-sha, err := rdb.ScriptLoad(ctx, slidingWindowLua).Result()
-if err != nil {
-return nil, fmt.Errorf("ratelimit: script load: %w", err)
-}
-log.Info("ratelimit: sliding window script loaded", zap.String("sha", sha[:12]))
-return &SlidingWindow{rdb: rdb, sha: sha, log: log.Named("ratelimit.sw")}, nil
+	sha, err := rdb.ScriptLoad(ctx, slidingWindowLua).Result()
+	if err != nil {
+		return nil, fmt.Errorf("ratelimit: script load: %w", err)
+	}
+	log.Info("ratelimit: sliding window script loaded", zap.String("sha", sha[:12]))
+	return &SlidingWindow{rdb: rdb, sha: sha, log: log.Named("ratelimit.sw")}, nil
 }
 
 // Allow checks whether key is below limit within window.
@@ -93,27 +92,26 @@ return &SlidingWindow{rdb: rdb, sha: sha, log: log.Named("ratelimit.sw")}, nil
 // The Redis key is automatically prefixed with "flicko:rl:" to avoid
 // collisions with other subsystems.
 func (sw *SlidingWindow) Allow(ctx context.Context, key string, limit int, window time.Duration) (Result, error) {
-redisKey := "flicko:rl:" + key
-nowMS := time.Now().UnixMilli()
-windowMS := window.Milliseconds()
+	redisKey := "flicko:rl:" + key
+	nowMS := time.Now().UnixMilli()
+	windowMS := window.Milliseconds()
 
-vals, err := sw.rdb.EvalSha(ctx, sw.sha, []string{redisKey},
-nowMS,
-windowMS,
-limit,
-).Int64Slice()
-if err != nil {
-return Result{}, fmt.Errorf("ratelimit: evalsha: %w", err)
+	vals, err := sw.rdb.EvalSha(ctx, sw.sha, []string{redisKey},
+		nowMS,
+		windowMS,
+		limit,
+	).Int64Slice()
+	if err != nil {
+		return Result{}, fmt.Errorf("ratelimit: evalsha: %w", err)
+	}
+
+	if len(vals) != 3 {
+		return Result{}, fmt.Errorf("ratelimit: unexpected lua result length %d", len(vals))
+	}
+
+	return Result{
+		Allowed:   vals[0] == 1,
+		Remaining: int(vals[1]),
+		ResetAt:   time.UnixMilli(vals[2]),
+	}, nil
 }
-
-if len(vals) != 3 {
-return Result{}, fmt.Errorf("ratelimit: unexpected lua result length %d", len(vals))
-}
-
-return Result{
-Allowed:   vals[0] == 1,
-Remaining: int(vals[1]),
-ResetAt:   time.UnixMilli(vals[2]),
-}, nil
-}
-
