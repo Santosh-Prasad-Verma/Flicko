@@ -24,7 +24,7 @@ jobs:
         uses: dopplerhq/cli-action@v3
 
       - name: Fetch Secrets from Doppler
-        run: doppler secrets download --no-file --format docker > .env.production
+        run: doppler secrets download --no-file --format env > .env.production
         env:
           DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
 
