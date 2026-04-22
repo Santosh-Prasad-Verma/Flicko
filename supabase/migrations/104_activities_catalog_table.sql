@@ -52,7 +52,7 @@ AS $$
   SELECT
     trim(both '-' FROM regexp_replace(normalized.base_slug, '-{2,}', '-', 'g'))
     || '-'
-    || substr(replace(activity_id::text, '-', ''), 1, 8);
+    || substr(replace(activity_id::text, '-', ''), 1, 8)
   FROM normalized;
 $$;
 

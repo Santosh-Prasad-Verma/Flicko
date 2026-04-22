@@ -5,7 +5,7 @@
  * Used for: avatars, banners, server icons, chat images, GIFs, stickers.
  *
  * Architecture:
- *   1. Client requests a signature from the backend (/cloudinary/sign)
+ *   1. Client requests a signature from the backend (GET /v1/cloudinary/sign)
  *   2. Client uploads directly to Cloudinary with that signature
  *   3. Cloudinary returns public_id + secure_url
  *   4. We store public_id in the database (URLs are derived from it)
@@ -107,7 +107,7 @@ async function getUploadSignature(
   if (publicId) qp.set('public_id', publicId);
   if (colors) qp.set('colors', 'true');
   const qs = qp.toString();
-  const url = `${API_URL}/api/v1/cloudinary/sign${qs ? '?' + qs : ''}`;
+  const url = `${API_URL}/v1/cloudinary/sign${qs ? '?' + qs : ''}`;
 
   if (__DEV__) {
     console.log('[Cloudinary] Requesting signature from:', url);

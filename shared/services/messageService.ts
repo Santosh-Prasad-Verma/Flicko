@@ -377,7 +377,7 @@ export async function sendMessage(input: SendMessageInput): Promise<Message> {
     withRetry(async () => {
       const timeout = withTimeout();
       try {
-        const res = await fetch(`${apiUrl}/m/messages`, {
+        const res = await fetch(`${apiUrl}/v1/channels/${channelId}/messages`, {
           method: 'POST',
           headers: {
             ...headers,
@@ -472,7 +472,7 @@ export async function editMessage(
     withRetry(async () => {
       const timeout = withTimeout();
       try {
-        const res = await fetch(`${apiUrl}/m/messages/${messageId}`, {
+        const res = await fetch(`${apiUrl}/v1/messages/${messageId}`, {
           method: 'PATCH',
           headers,
           body: JSON.stringify({
@@ -534,7 +534,7 @@ export async function deleteMessage(messageId: string): Promise<void> {
     withRetry(async () => {
       const timeout = withTimeout();
       try {
-        const res = await fetch(`${apiUrl}/m/messages/${messageId}`, {
+        const res = await fetch(`${apiUrl}/v1/messages/${messageId}`, {
           method: 'DELETE',
           headers,
           signal: timeout.signal,
@@ -586,7 +586,7 @@ export async function addReaction(messageId: string, emoji: string): Promise<voi
     withRetry(async () => {
       const timeout = withTimeout();
       try {
-        const res = await fetch(`${apiUrl}/m/messages/${messageId}/reactions/${encodeURIComponent(emoji.trim())}`, {
+        const res = await fetch(`${apiUrl}/v1/messages/${messageId}/reactions/${encodeURIComponent(emoji.trim())}`, {
           method: 'PUT',
           headers,
           signal: timeout.signal,
@@ -635,7 +635,7 @@ export async function removeReaction(messageId: string, emoji: string): Promise<
     withRetry(async () => {
       const timeout = withTimeout();
       try {
-        const res = await fetch(`${apiUrl}/m/messages/${messageId}/reactions/${encodeURIComponent(emoji.trim())}`, {
+        const res = await fetch(`${apiUrl}/v1/messages/${messageId}/reactions/${encodeURIComponent(emoji.trim())}`, {
           method: 'DELETE',
           headers,
           signal: timeout.signal,
@@ -743,7 +743,7 @@ export async function bulkDeleteMessages(channelId: string, messageIds: string[]
     withRetry(async () => {
       const timeout = withTimeout();
       try {
-        const res = await fetch(`${apiUrl}/m/channels/${channelId}/messages/bulk-delete`, {
+        const res = await fetch(`${apiUrl}/v1/channels/${channelId}/messages/bulk-delete`, {
           method: 'POST',
           headers,
           body: JSON.stringify({ message_ids: messageIds }),
@@ -787,7 +787,7 @@ export async function pinMessage(messageId: string): Promise<void> {
     withRetry(async () => {
       const timeout = withTimeout();
       try {
-        const res = await fetch(`${apiUrl}/m/messages/${messageId}/pin`, {
+        const res = await fetch(`${apiUrl}/v1/messages/${messageId}/pin`, {
           method: 'PUT',
           headers,
           signal: timeout.signal,
@@ -830,7 +830,7 @@ export async function unpinMessage(messageId: string): Promise<void> {
     withRetry(async () => {
       const timeout = withTimeout();
       try {
-        const res = await fetch(`${apiUrl}/m/messages/${messageId}/pin`, {
+        const res = await fetch(`${apiUrl}/v1/messages/${messageId}/pin`, {
           method: 'DELETE',
           headers,
           signal: timeout.signal,
@@ -871,7 +871,7 @@ export async function getPinnedMessages(channelId: string): Promise<Message[]> {
 
   const timeout = withTimeout();
   try {
-    const res = await fetch(`${apiUrl}/api/v1/channels/${channelId}/pins`, {
+    const res = await fetch(`${apiUrl}/v1/channels/${channelId}/pins`, {
       headers,
       signal: timeout.signal,
     });
@@ -915,7 +915,7 @@ export async function forwardMessage(messageId: string, targetChannelId: string)
     withRetry(async () => {
       const timeout = withTimeout();
       try {
-        const res = await fetch(`${apiUrl}/m/messages/${messageId}/forward`, {
+        const res = await fetch(`${apiUrl}/v1/messages/${messageId}/forward`, {
           method: 'POST',
           headers,
           body: JSON.stringify({ target_channel_id: targetChannelId }),

@@ -195,7 +195,7 @@ export async function sendThreadMessage(
     is_silent: options?.isSilent || false,
   };
 
-  const res = await fetch(`${API_URL}/api/v1/channels/${channelId}/messages`, {
+  const res = await fetch(`${API_URL}/v1/channels/${channelId}/messages`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

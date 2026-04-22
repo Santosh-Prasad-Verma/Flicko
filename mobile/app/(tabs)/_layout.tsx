@@ -35,15 +35,16 @@ function TabIcon({
   iconFocused: React.ComponentProps<typeof Ionicons>['name'];
   iconDefault: React.ComponentProps<typeof Ionicons>['name'];
 }) {
-  const scale = useSharedValue(focused ? 1 : 1);
+  const scale = useSharedValue(1);
+  const rotation = useSharedValue(0);
   const pillOpacity = useSharedValue(focused ? 1 : 0);
   const pillScale = useSharedValue(focused ? 1 : 0.5);
 
   useEffect(() => {
-    // Bounce on focus change
     if (focused) {
-      scale.value = withSpring(1.15, SPRING_BOUNCY, () => {
-        scale.value = withSpring(1, SPRING_SNAPPY);
+      scale.value = withSpring(1.2, SPRING_BOUNCY);
+      rotation.value = withTiming(360, { duration: 400 }, () => {
+        rotation.value = 0;
       });
       pillOpacity.value = withTiming(1, TIMING_FAST);
       pillScale.value = withSpring(1, SPRING_SNAPPY);
@@ -55,7 +56,10 @@ function TabIcon({
   }, [focused]);
 
   const iconAnimStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
+    transform: [
+      { scale: scale.value },
+      { rotate: `${rotation.value}deg` },
+    ],
   }));
 
   const pillAnimStyle = useAnimatedStyle(() => ({
@@ -84,14 +88,16 @@ function AvatarTabIcon({
   avatarUri?: string | null;
 }) {
   const scale = useSharedValue(1);
+  const rotation = useSharedValue(0);
   const pillOpacity = useSharedValue(focused ? 1 : 0);
   const pillScale = useSharedValue(focused ? 1 : 0.5);
   const borderProgress = useSharedValue(focused ? 1 : 0);
 
   useEffect(() => {
     if (focused) {
-      scale.value = withSpring(1.15, SPRING_BOUNCY, () => {
-        scale.value = withSpring(1, SPRING_SNAPPY);
+      scale.value = withSpring(1.2, SPRING_BOUNCY);
+      rotation.value = withTiming(360, { duration: 400 }, () => {
+        rotation.value = 0;
       });
       pillOpacity.value = withTiming(1, TIMING_FAST);
       pillScale.value = withSpring(1, SPRING_SNAPPY);
@@ -105,7 +111,10 @@ function AvatarTabIcon({
   }, [focused]);
 
   const iconAnimStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
+    transform: [
+      { scale: scale.value },
+      { rotate: `${rotation.value}deg` },
+    ],
   }));
 
   const pillAnimStyle = useAnimatedStyle(() => ({
@@ -180,7 +189,7 @@ export default function TabLayout() {
         options={{
           title: 'Servers',
           tabBarIcon: ({ color, focused }) => (
-            <TabIcon focused={focused} color={color} iconFocused="grid" iconDefault="grid-outline" />
+            <TabIcon focused={focused} color={color} iconFocused="albums" iconDefault="albums-outline" />
           ),
         }}
       />

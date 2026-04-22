@@ -181,7 +181,7 @@ export default function HomeScreen() {
     <View style={[styles.container, { backgroundColor: themeColors.bgTertiary }]}>
       {/* Left Server Rail */}
       <View style={[styles.serverRail, { paddingTop: insets.top + 8 }]}>
-        {/* Home button */}
+        {/* Home button with Flicko logo */}
         <Pressable
           onPress={() => setActiveView('home')}
           style={styles.serverIconWrapper}
@@ -207,13 +207,15 @@ export default function HomeScreen() {
                     ? themeColors.accentPrimary
                     : themeColors.bgSecondary,
                 borderRadius: activeView === 'home' ? 16 : SERVER_ICON_SIZE / 2,
+                overflow: 'hidden',
               },
             ]}
           >
-            <Ionicons
-              name="home"
-              size={24}
-              color={activeView === 'home' ? '#FFFFFF' : themeColors.textPrimary}
+            <Image
+              source={require('../../assets/Flicko_icon.png')}
+              style={styles.serverImage}
+              contentFit="cover"
+              transition={200}
             />
           </View>
         </Pressable>
@@ -307,16 +309,28 @@ export default function HomeScreen() {
                 { paddingTop: insets.top + 8, backgroundColor: themeColors.bgSecondary },
               ]}
             >
-              <Pressable
-                onPress={() => router.push('/search')}
-                hitSlop={8}
-                style={[styles.headerBtn, { marginRight: 'auto' }]}
-              >
-                <Ionicons name="search" size={22} color={themeColors.textSecondary} />
-              </Pressable>
+              <View style={styles.headerInfo}>
+                <Text
+                  style={[styles.headerTitle, { color: themeColors.textPrimary }]}
+                >
+                  Flicko
+                </Text>
+                <Text
+                  style={[styles.headerSubtitle, { color: themeColors.textMuted }]}
+                >
+                  Welcome back, {user?.username || 'User'}
+                </Text>
+              </View>
               
               <View style={styles.headerActions}>
-                {/* Empty right actions */}
+                <Pressable
+                  onPress={() => router.push('/search')}
+                  hitSlop={8}
+                  style={styles.headerBtn}
+                  accessibilityLabel="Search"
+                >
+                  <Ionicons name="search" size={22} color={themeColors.textSecondary} />
+                </Pressable>
               </View>
             </View>
 
@@ -324,69 +338,24 @@ export default function HomeScreen() {
               contentContainerStyle={{
                 paddingHorizontal: spacing.md,
                 paddingBottom: insets.bottom + 80,
-                paddingTop: spacing.sm,
+                paddingTop: spacing.md,
               }}
+              showsVerticalScrollIndicator={false}
             >
-              {/* Quick action cards */}
-              <Pressable
-                style={({ pressed }) => [
-                  styles.quickRow,
-                  {
-                    backgroundColor: pressed
-                      ? themeColors.bgTertiary
-                      : themeColors.bgPrimary,
-                  },
-                ]}
-                onPress={() => router.push('/(tabs)/dms')}
-              >
-                <View style={[styles.quickIcon, { backgroundColor: themeColors.accentPrimary }]}>
-                  <Ionicons name="chatbubble" size={20} color="#fff" />
+              {/* Welcome Card */}
+              <View style={[styles.welcomeCard, { backgroundColor: themeColors.accentPrimary }]}>
+                <View style={styles.welcomeContent}>
+                  <Text style={styles.welcomeTitle}>Welcome to Flicko</Text>
+                  <Text style={styles.welcomeText}>
+                    Connect with friends, join communities, and explore servers
+                  </Text>
                 </View>
-                <Text style={[styles.quickLabel, { color: themeColors.textPrimary }]}>
-                  Direct Messages
-                </Text>
-                <Ionicons name="chevron-forward" size={18} color={themeColors.textMuted} />
-              </Pressable>
-
-              <Pressable
-                style={({ pressed }) => [
-                  styles.quickRow,
-                  {
-                    backgroundColor: pressed
-                      ? themeColors.bgTertiary
-                      : themeColors.bgPrimary,
-                  },
-                ]}
-                onPress={() => router.push('/(tabs)/friends')}
-              >
-                <View style={[styles.quickIcon, { backgroundColor: themeColors.success }]}>
-                  <Ionicons name="people" size={20} color="#fff" />
-                </View>
-                <Text style={[styles.quickLabel, { color: themeColors.textPrimary }]}>
-                  Friends
-                </Text>
-                <Ionicons name="chevron-forward" size={18} color={themeColors.textMuted} />
-              </Pressable>
-
-              <Pressable
-                style={({ pressed }) => [
-                  styles.quickRow,
-                  {
-                    backgroundColor: pressed
-                      ? themeColors.bgTertiary
-                      : themeColors.bgPrimary,
-                  },
-                ]}
-                onPress={() => router.push('/notifications')}
-              >
-                <View style={[styles.quickIcon, { backgroundColor: themeColors.warning }]}>
-                  <Ionicons name="notifications" size={20} color="#fff" />
-                </View>
-                <Text style={[styles.quickLabel, { color: themeColors.textPrimary }]}>
-                  Notifications
-                </Text>
-                <Ionicons name="chevron-forward" size={18} color={themeColors.textMuted} />
-              </Pressable>
+                <Image
+                  source={require('../../assets/Flicko_icon.png')}
+                  style={styles.welcomeIcon}
+                  contentFit="contain"
+                />
+              </View>
 
               {/* Your Servers heading */}
               {servers.length > 0 && (
@@ -617,10 +586,16 @@ const styles = StyleSheet.create({
   },
   headerInfo: {
     flex: 1,
+    marginRight: spacing.md,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontFamily: 'gg-sans-bold',
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    fontFamily: 'gg-sans',
+    marginTop: 2,
   },
   headerActions: {
     flexDirection: 'row',
@@ -632,6 +607,61 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  /* Welcome Card */
+  welcomeCard: {
+    borderRadius: 16,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  welcomeContent: {
+    flex: 1,
+  },
+  welcomeTitle: {
+    fontSize: 20,
+    fontFamily: 'gg-sans-bold',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  welcomeText: {
+    fontSize: 14,
+    fontFamily: 'gg-sans',
+    color: '#FFFFFF',
+    opacity: 0.9,
+  },
+  welcomeIcon: {
+    width: 60,
+    height: 60,
+    marginLeft: spacing.md,
+  },
+  /* Quick action grid */
+  quickGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  quickCard: {
+    width: '47%',
+    aspectRatio: 1.2,
+    borderRadius: 16,
+    padding: spacing.md,
+    justifyContent: 'space-between',
+  },
+  quickCardIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickCardLabel: {
+    fontSize: 16,
+    fontFamily: 'gg-sans-semibold',
+    marginTop: spacing.sm,
   },
   /* Quick action rows — Discord home style */
   quickRow: {

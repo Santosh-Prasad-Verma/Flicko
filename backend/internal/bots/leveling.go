@@ -3,7 +3,6 @@ package bots
 import (
 	"context"
 	"fmt"
-	"math"
 	"math/rand"
 	"strings"
 	"time"
@@ -634,23 +633,4 @@ func levelForXP(xp int) int {
 		level = 1000
 	}
 	return level
-}
-
-// xpForLevelTotal is cumulative XP needed at a given level.
-func xpForLevelTotal(level int) int {
-	total := 0
-	for i := 0; i <= level; i++ {
-		total += xpForLevel(i)
-	}
-	return total
-}
-
-// Unused but available for rank card percentage calculations.
-func progressPercentage(currentXP, level int) float64 {
-	currentLevelXP := xpForLevel(level)
-	nextLevelXP := xpForLevel(level + 1)
-	if nextLevelXP == currentLevelXP {
-		return 100
-	}
-	return math.Min(100, float64(currentXP-currentLevelXP)/float64(nextLevelXP-currentLevelXP)*100)
 }

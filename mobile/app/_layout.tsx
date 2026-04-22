@@ -20,8 +20,6 @@ import { useFonts } from 'expo-font';
 import { Pacifico_400Regular } from '@expo-google-fonts/pacifico';
 import * as SplashScreen from 'expo-splash-screen';
 
-// Keep splash screen visible while fonts load
-SplashScreen.preventAutoHideAsync();
 import { useAuthStore } from '@stores/authStore';
 import { supabase } from '../services/supabase';
 import { colors } from '../constants/Colors';
@@ -37,6 +35,8 @@ import { fetchUserPrivacySettings } from '@shared/services/privacySettingsServic
 
 // MED-001: Initialize crash reporting before any rendering
 initCrashReporting();
+// Keep splash screen visible while fonts load
+SplashScreen.preventAutoHideAsync();
 
 // LiveKit: configure native audio session at startup
 configureAudioSession();

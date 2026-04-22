@@ -96,7 +96,7 @@ CREATE POLICY "Users can read tags for public or joined servers"
       SELECT 1
       FROM public.servers s
       WHERE s.id = server_tags.server_id
-        AND s.is_public = true
+        AND 'DISCOVERABLE' = ANY(s.features)
     )
     OR EXISTS (
       SELECT 1
@@ -138,7 +138,7 @@ CREATE POLICY "Users can read discovery scores for public or joined servers"
       SELECT 1
       FROM public.servers s
       WHERE s.id = server_discovery_scores.server_id
-        AND s.is_public = true
+        AND 'DISCOVERABLE' = ANY(s.features)
     )
     OR EXISTS (
       SELECT 1
