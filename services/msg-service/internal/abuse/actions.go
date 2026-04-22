@@ -18,9 +18,6 @@ const (
 	// Key: flicko:muted:{user_id} — TTL = mute duration.
 	mutedKeyPrefix = "flicko:muted:"
 
-	// abuseLogChannel is the Redis channel used to fan out abuse events
-	// to any listening admin dashboard / log aggregator.
-	abuseLogChannel = "flicko:abuse:log"
 )
 
 // ─────────────────────────────────────────────────────────────────────────────

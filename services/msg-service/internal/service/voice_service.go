@@ -63,7 +63,7 @@ func (s *VoiceService) GenerateToken(ctx context.Context, in VoiceTokenInput) (s
 
 	at := lkauth.NewAccessToken(s.apiKey, s.apiSecret)
 	grant := &lkauth.VideoGrant{RoomJoin: true, Room: "voice-" + in.ChannelID}
-	at.AddGrant(grant).SetIdentity(in.UserID).SetValidFor(2 * time.Hour)
+	at.SetVideoGrant(grant).SetIdentity(in.UserID).SetValidFor(2 * time.Hour)
 	token, err := at.ToJWT()
 	if err != nil {
 		s.log.Error("failed to generate livekit token", zap.Error(err))

@@ -192,7 +192,8 @@ func (b *MessageBatcher) flush(ctx context.Context, batch []BatchItem) {
                 case <-time.After(backoff):
                         backoff *= 2
                 case <-ctx.Done():
-                        break
+                        backoff *= 2
+                        continue
                 }
         }
 
