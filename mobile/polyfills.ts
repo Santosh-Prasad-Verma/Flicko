@@ -8,8 +8,18 @@
  * (especially uuid which caches getRandomValues at module load time).
  */
 import * as ExpoCrypto from 'expo-crypto';
+import 'react-native-url-polyfill/auto';
 
 const globalScope = globalThis as any;
+
+if (!globalScope.DOMException) {
+  globalScope.DOMException = class DOMException extends Error {
+    constructor(message: string, name: string) {
+      super(message);
+      this.name = name;
+    }
+  };
+}
 
 if (!globalScope.crypto) {
   globalScope.crypto = {};
