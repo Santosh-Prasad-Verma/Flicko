@@ -42,7 +42,7 @@ SplashScreen.preventAutoHideAsync();
 configureAudioSession();
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const flickoIcon = require('../assets/splash_icon.png');
+const flickoIcon = require('../assets/Flicko_icon.png');
 
 // queryClient imported from services/queryClient.ts
 
