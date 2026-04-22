@@ -117,11 +117,3 @@ ResetAt:   time.UnixMilli(vals[2]),
 }, nil
 }
 
-// uniqueMember returns a collision-resistant sorted-set member.
-// Not used directly here (the Lua script generates its own), but
-// exported for callers that build custom rate-limit keys.
-func uniqueMember() string {
-var buf [8]byte
-rand.Read(buf[:])
-return fmt.Sprintf("%x", buf[:])
-}

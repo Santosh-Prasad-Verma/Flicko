@@ -164,7 +164,12 @@ func (p *PresenceManager) GetGuildOnline(ctx context.Context, guildID string, li
 	if limit <= 0 {
 		limit = 100
 	}
-	return p.rdb.ZRevRange(ctx, key, 0, int64(limit-1)).Result()
+	return p.rdb.ZRangeArgs(ctx, redis.ZRangeArgs{
+		Key:   key,
+		Start: 0,
+		Stop:  int64(limit - 1),
+		Rev:   true,
+	}).Result()
 }
 
 // RemoveGuildOnline removes a user from the guild's online set.

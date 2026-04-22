@@ -12,8 +12,6 @@ package config
 
 import (
 	"fmt"
-	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -214,35 +212,3 @@ func validatePort(port int, name string) error {
 	return nil
 }
 
-// envDurationOrDefault reads an env var as a duration. If the value is a
-// plain integer (no unit suffix), it is interpreted as seconds. Falls back
-// to defaultVal when the variable is unset or empty.
-func envDurationOrDefault(key string, defaultVal time.Duration) time.Duration {
-	v := os.Getenv(key)
-	if v == "" {
-		return defaultVal
-	}
-	// Try Go duration first (e.g. "50ms", "10s").
-	if d, err := time.ParseDuration(v); err == nil {
-		return d
-	}
-	// Fall back to plain integer → seconds.
-	if n, err := strconv.ParseInt(v, 10, 64); err == nil {
-		return time.Duration(n) * time.Second
-	}
-	return defaultVal
-}
-
-// envBoolOrDefault reads an env var as a boolean. Accepts "true"/"1" as
-// true and everything else (including empty/unset) as fallback to defaultVal.
-func envBoolOrDefault(key string, defaultVal bool) bool {
-	v := os.Getenv(key)
-	if v == "" {
-		return defaultVal
-	}
-	b, err := strconv.ParseBool(v)
-	if err != nil {
-		return defaultVal
-	}
-	return b
-}
