@@ -74,6 +74,7 @@ jobs:
               JWT_PUBLIC_KEY_VALUE=${JWT_PUBLIC_KEY_LINE#JWT_PUBLIC_KEY=}
               JWT_PUBLIC_KEY_VALUE=$(printf '%s' "$JWT_PUBLIC_KEY_VALUE" | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
               if [ -n "$JWT_PUBLIC_KEY_VALUE" ]; then
+                rm -f ./secrets/jwt_public.pem
                 printf '%b' "$JWT_PUBLIC_KEY_VALUE" > ./secrets/jwt_public.pem
               fi
             else
@@ -90,3 +91,14 @@ jobs:
             # 4. Build and restart the containers using Docker Compose
             docker compose -f docker-compose.prod.yml down
             docker compose -f docker-compose.prod.yml up -d --build
+
+            # 5. Wait and print logs for any unhealthy containers
+            sleep 20
+            for svc in backend ws-gateway msg-service; do
+              status=$(docker inspect --format='{{.State.Health.Status}}' flicko-$svc 2>/dev/null || echo "missing")
+              echo "$svc health: $status"
+              if [ "$status" != "healthy" ]; then
+                echo "=== $svc logs ==="
+                docker logs --tail=50 flicko-$svc 2>&1 || true
+              fi
+            done
