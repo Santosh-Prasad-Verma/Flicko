@@ -164,7 +164,7 @@ func (p *PresenceManager) GetGuildOnline(ctx context.Context, guildID string, li
 	if limit <= 0 {
 		limit = 100
 	}
-	return p.rdb.ZRangeArgs(ctx, redis.ZRangeArgs{
+	return p.rdb.ZRangeArgs(ctx, goredis.ZRangeArgs{
 		Key:   key,
 		Start: 0,
 		Stop:  int64(limit - 1),
