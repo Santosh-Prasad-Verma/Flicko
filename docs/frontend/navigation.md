@@ -1,80 +1,85 @@
-# Navigation Architecture
+# Navigation Architecture (GoRouter)
 
-> **Reading time:** ~7 minutes · **Audience:** Mobile Developers · **Last Updated:** 2026-04-11
+> **Reading time:** ~7 minutes · **Audience:** Mobile Developers · **Last Updated:** 2026-04-24
 
-Flicko handles routing via **Expo Router (v3)**, which uses the filesystem to dictate application paths. This enables deep linking out of the box and natively mapped URLs for web equivalents.
-
----
-
-## App Layouts
-
-Our routing hierarchy is protected by nested `_layout.tsx` files.
-
-### 1. The Root Layout (`app/_layout.tsx`)
-This is the absolute top of the app tree.
-**Responsibilities:**
-- Initializes TanStack QueryClient.
-- Connects the main WebSocket (via `useWebSocket` hook).
-- Initializes LiveKit libraries.
-- Checks the `authStore`: Automatically redirects users to `/(auth)/login` if no valid JWT is present, or `/(tabs)/chat` if they are authenticated.
-
-### 2. The Auth Layout (`app/(auth)/_layout.tsx`)
-A minimal `Stack` navigator.
-Contains the Login, Register, and Forgot Password screens. Does not render any tabs or sidebars.
-
-### 3. The Tabs Layout (`app/(tabs)/_layout.tsx`)
-The main post-login UI. Rendered as a native Bottom Tab navigator on iOS/Android.
+Flicko handles all mobile routing via **GoRouter**, a declarative routing package for Flutter that allows for type-safe parameter passing, deep linking, and nested navigation shells.
 
 ---
 
-## The Two-Pane Concept (Sidebar + Chat)
+## Routing Hierarchy
 
-Flicko relies heavily on a fluid sidebar for navigating servers, identical to the Discord mobile app UX.
+The application routing is defined centrally in `lib/core/router/app_router.dart`. It uses a combination of top-level routes and nested `ShellRoute`s to manage the app's complex UI state.
 
-**How it works:**
-The Sidebar is NOT a dedicated screen in the navigation stack. It is a persistent UI layer rendered *above* the Chat tab, controlled by `appStateStore`.
+### 1. The Main Shell (`ShellRoute`)
+Most post-login screens are wrapped in a `MainNavigationShell`. This shell handles the persistent sidebar (for server/channel navigation) and the bottom navigation tabs (Chat, Friends, Notifications, Profile).
 
-```typescript
-// Opening the sidebar
-const toggleSidebar = useAppStateStore(s => s.toggleSidebar);
+**Key Responsibilities:**
+- Managing the transition between the Sidebar and the active Content view.
+- Handling global gestures for opening/closing the server list.
+- Maintaining the state of the bottom navigation bar.
 
-// Used by custom gesture recognizers 
-<PanGestureHandler onGestureEvent={onSwipeRight}>
-  <ChatScreen />
-</PanGestureHandler>
+### 2. Auth Routes
+The `/login`, `/register`, and `/forgot-password` routes exist outside the main shell. They are standard `GoRoute` entries that render full-screen without any persistent navigation bars.
+
+### 3. Feature Routes
+Features like Servers, Channels, and Profiles have nested routes:
+- `/server/:sid/channel/:cid`: The primary chat interface.
+- `/profile/:uid`: Public user profiles.
+- `/settings`: The user settings hub with its own internal sub-routes.
+
+---
+
+## Redirection & Protection
+
+Routing is protected by a `redirect` handler that listens to the `AuthNotifier` provider.
+
+```dart
+// Simplified Redirect Logic
+redirect: (context, state) {
+  final authState = ref.read(authProvider);
+  final loggingIn = state.matchedLocation == '/login';
+
+  if (authState is Unauthenticated && !loggingIn) {
+    return '/login';
+  }
+  if (authState is Authenticated && loggingIn) {
+    return '/'; // Go to home if already logged in
+  }
+  return null;
+}
 ```
-When a user taps a channel in the Sidebar, it does not push a new screen to the navigation stack. It merely updates `appStateStore.activeChannelId`. The `<Chat />` screen responds reactively to this ID change by re-subscribing its queries and wiping its message buffer. This provides a lightning-fast channel switching experience (no screen transition animations).
 
 ---
 
 ## Deep Linking
 
-Expo Router allows handling complex invite links natively.
+Flicko supports native deep links and universal links.
 
 **Scheme:** `flicko://`
-**Universal Link:** `https://flicko.app/`
+**Hosts:** `flicko.app`, `join.flicko.app`
 
-When a user taps `https://flicko.app/join/xyz`, the OS opens Flicko.
-1. Expo Router catches the path `/join/[code]`.
-2. The `app/join/[code].tsx` screen mounts.
-3. The component extracts `code` from the URL parameters using `useLocalSearchParams()`.
-4. The screen fetches the invite metadata and renders the "Accept Invite" modal.
+When a link like `https://flicko.app/server/join/[code]` is clicked:
+1. The OS redirects the intent to the Flicko app.
+2. GoRouter matches the location `/server/join/:code`.
+3. The `JoinServerScreen` is pushed to the stack, extracting the `code` parameter from the URL.
 
 ---
 
-## Modals & Presentation
+## Modals & Dialogs
 
-Certain interactions require temporary contextual screens, rather than standard push navigation.
+While GoRouter handles high-level screen transitions, contextual overlays (like member profile sheets or server options) are often handled via Flutter's `showModalBottomSheet` or `showDialog`.
 
-If a user needs to see a member's profile, we render a bottom sheet. Expo Router defines these using the `presentation: 'modal'` option inside `_layout.tsx`.
+However, some "major" modals (like the User Settings Hub) are mapped to routes to allow them to be deep-linked or shared. These are implemented using custom `Page` builders in the router configuration to provide specific transitions (e.g., sliding up from the bottom).
 
-```tsx
-<Stack>
-  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-  <Stack.Screen 
-    name="modals/profile" 
-    options={{ presentation: 'formSheet', headerShown: false }} 
-  />
-</Stack>
-```
-When navigating to `/modals/profile`, iOS will render a native sliding sheet that the user can dismiss by swiping down, preserving the underlying chat view state completely.
+---
+
+## Best Practices
+
+1. **Use Named Routes:** Always use `context.goNamed('route_name')` instead of hardcoding strings to prevent broken links if the path structure changes.
+2. **Minimize Rebuilds:** Ensure the `GoRouter` instance is provided via a Riverpod provider to ensure it only rebuilds when the auth state changes.
+3. **Parameter Safety:** Use the `state.pathParameters` and `state.uri.queryParameters` to extract data from the route path in a structured way.
+
+---
+
+*Last Updated: 2026-04-24 | Version: 2.0.0 (GoRouter) | Maintained by: Flicko Team*
+

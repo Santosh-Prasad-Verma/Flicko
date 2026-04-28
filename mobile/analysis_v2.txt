@@ -1,0 +1,44 @@
+Analyzing mobile...                                             
+
+   info • Unnecessary use of multiple underscores • lib/core/router/app_router.dart:113:28 • unnecessary_underscores
+warning • Unused import: 'package:supabase_flutter/supabase_flutter.dart' • lib/data/clients/dio_client.dart:3:8 • unused_import
+   info • The import of 'dart:ui' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/material.dart' • lib/features/auth/presentation/screens/otp_verification_screen.dart:1:8 • unnecessary_import
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/auth/presentation/screens/otp_verification_screen.dart:116:49 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/auth/presentation/screens/otp_verification_screen.dart:148:51 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/auth/presentation/screens/otp_verification_screen.dart:150:70 • deprecated_member_use
+   info • Use 'isNotEmpty' instead of 'length' to test whether the collection is empty • lib/features/auth/presentation/screens/register_screen.dart:444:74 • prefer_is_empty
+   info • The private field _paths could be 'final' • lib/features/collaboration/presentation/shared_whiteboard.dart:41:18 • prefer_final_fields
+   info • Don't invoke 'print' in production code • lib/features/direct_messages/data/dm_repository.dart:33:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/features/direct_messages/data/dm_repository.dart:34:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/features/direct_messages/data/dm_repository.dart:62:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/features/direct_messages/data/dm_repository.dart:63:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/features/direct_messages/data/dm_repository.dart:64:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/features/direct_messages/data/dm_repository.dart:77:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/features/direct_messages/data/dm_repository.dart:87:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/features/direct_messages/data/dm_repository.dart:88:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/features/direct_messages/data/dm_repository.dart:89:7 • avoid_print
+warning • The declaration '_buildWelcomeCard' isn't referenced • lib/features/home/presentation/feed_screen.dart:506:10 • unused_element
+warning • The value of the field '_ref' isn't used • lib/features/notifications/application/notification_service.dart:10:13 • unused_field
+   info • Use the null-aware marker '?' rather than a null check via an 'if' • lib/features/profile/presentation/profile_screen.dart:360:15 • use_null_aware_elements
+   info • Use the null-aware marker '?' rather than a null check via an 'if' • lib/features/profile/presentation/profile_screen.dart:370:15 • use_null_aware_elements
+   info • Unnecessary use of multiple underscores • lib/features/server/presentation/discover_servers_screen.dart:392:43 • unnecessary_underscores
+   info • Unnecessary use of multiple underscores • lib/features/server/presentation/discover_servers_screen.dart:392:47 • unnecessary_underscores
+   info • The private field _selectedOptions could be 'final' • lib/features/server/presentation/server_onboarding_screen.dart:24:29 • prefer_final_fields
+warning • The value of the field '_editName' isn't used • lib/features/server_settings/presentation/channels_settings_screen.dart:37:10 • unused_field
+warning • The value of the field '_editTopic' isn't used • lib/features/server_settings/presentation/channels_settings_screen.dart:38:10 • unused_field
+warning • The value of the field '_editNsfw' isn't used • lib/features/server_settings/presentation/channels_settings_screen.dart:39:8 • unused_field
+   info • Unnecessary braces in a string interpolation • lib/features/server_settings/presentation/emoji_management_screen.dart:170:35 • unnecessary_brace_in_string_interps
+   info • Unnecessary braces in a string interpolation • lib/features/server_settings/presentation/stickers_management_screen.dart:185:37 • unnecessary_brace_in_string_interps
+warning • Unused import: 'package:mobile/features/shared/presentation/widgets/user_avatar.dart' • lib/features/settings/presentation/edit_profile_screen.dart:12:8 • unused_import
+warning • The left operand can't be null, so the right operand is never executed • lib/features/settings/presentation/edit_profile_screen.dart:91:82 • dead_null_aware_expression
+   info • Don't invoke 'print' in production code • lib/features/settings/presentation/edit_profile_screen.dart:121:9 • avoid_print
+   info • Don't invoke 'print' in production code • lib/features/settings/presentation/edit_profile_screen.dart:128:9 • avoid_print
+   info • Don't invoke 'print' in production code • lib/features/settings/presentation/edit_profile_screen.dart:132:9 • avoid_print
+   info • Don't invoke 'print' in production code • lib/features/settings/presentation/edit_profile_screen.dart:140:9 • avoid_print
+   info • Unnecessary use of multiple underscores • lib/features/settings/presentation/edit_profile_screen.dart:774:25 • unnecessary_underscores
+   info • Unnecessary use of multiple underscores • lib/features/settings/presentation/edit_profile_screen.dart:774:29 • unnecessary_underscores
+   info • Unnecessary use of '??' with 'null' • lib/features/voice/domain/voice_models.g.dart:40:58 • unnecessary_null_in_if_null_operators
+warning • Unused import: 'features/auth/application/auth_notifier.dart' • lib/main.dart:14:8 • unused_import
+  error • The argument type 'Auth' can't be assigned to the parameter type 'ClerkAuthState?'.  • lib/main.dart:66:20 • argument_type_not_assignable
+warning • Unused import: 'package:supabase_flutter/supabase_flutter.dart' • query_servers.dart:1:8 • unused_import
+

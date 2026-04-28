@@ -233,6 +233,7 @@ serve(async (req: Request) => {
       is_deafened: false,
       is_self_muted: false,
       is_self_deafened: false,
+      suppress: false,
       joined_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     }, {

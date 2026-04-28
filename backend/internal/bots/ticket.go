@@ -56,7 +56,7 @@ func (b *TicketBot) registerCommands() {
 		Description: "Manage support tickets",
 		BotName:     "ticket",
 		Options: []commands.CommandOption{
-			{Name: "action", Description: "new, close, add, remove, claim, unclaim, rename, priority, panels", Type: 3, Required: true},
+			{Name: "action", Description: "new, close, add, remove, claim, unclaim, rename, priority, panels, transcript, stats", Type: 3, Required: true},
 			{Name: "subject", Description: "Ticket subject", Type: 3, Required: false},
 			{Name: "category", Description: "Ticket category", Type: 3, Required: false},
 			{Name: "user", Description: "User to add/remove", Type: 6, Required: false},
@@ -103,9 +103,13 @@ func (b *TicketBot) handleTicket(ctx commands.CommandContext) (*commands.Command
 		return b.setTicketPriority(ctx)
 	case "panels":
 		return b.createPanel(ctx)
+	case "transcript":
+		return b.generateTranscript(ctx)
+	case "stats":
+		return b.ticketStats(ctx)
 	default:
 		return &commands.CommandResponse{
-			Content:   "❌ Unknown action. Use: new, close, add, remove, claim, unclaim, rename, priority, panels",
+			Content:   "❌ Unknown action. Use: new, close, add, remove, claim, unclaim, rename, priority, panels, transcript, stats",
 			Ephemeral: true,
 		}, nil
 	}
@@ -225,6 +229,48 @@ func (b *TicketBot) closeTicket(ctx commands.CommandContext) (*commands.CommandR
 	}
 
 	b.sendBotMessage(ctx.ChannelID, fmt.Sprintf("🔒 %s", closeMsg))
+
+	// Fetch messages for transcript before fully closing and hiding
+	rows, err := b.ctx.DB.Query(context.Background(),
+		`SELECT u.username, m.content, m.created_at
+		 FROM messages m
+		 LEFT JOIN users u ON m.user_id = u.id
+		 WHERE m.channel_id = $1
+		 ORDER BY m.created_at ASC`,
+		ctx.ChannelID)
+	if err == nil {
+		var lines []string
+		lines = append(lines, fmt.Sprintf("Auto-Transcript for Ticket #%d", ticketNumber))
+		lines = append(lines, "========================================")
+
+		for rows.Next() {
+			var username *string
+			var content string
+			var createdAt time.Time
+			if err := rows.Scan(&username, &content, &createdAt); err == nil {
+				name := "System"
+				if username != nil {
+					name = *username
+				}
+				lines = append(lines, fmt.Sprintf("[%s] %s: %s", createdAt.Format("2006-01-02 15:04:05"), name, content))
+			}
+		}
+		rows.Close()
+
+		transcriptText := strings.Join(lines, "\n")
+		if len(transcriptText) > 1900 {
+			transcriptText = transcriptText[:1900] + "\n... (truncated)"
+		}
+
+		// Send transcript to log channel specifically if standard logging works
+		var logChannelID *string
+		b.ctx.DB.QueryRow(context.Background(),
+			`SELECT log_channel_id FROM ticket_settings WHERE server_id = $1`,
+			ctx.ServerID).Scan(&logChannelID)
+		if logChannelID != nil {
+			b.sendBotMessage(*logChannelID, fmt.Sprintf("📄 **Transcript for closed ticket #%d:**\n```text\n%s\n```", ticketNumber, transcriptText))
+		}
+	}
 
 	// Log to ticket log channel
 	b.logTicketAction(ctx.ServerID, ticketNumber, ctx.UserID, "closed")
@@ -349,6 +395,80 @@ func (b *TicketBot) createPanel(ctx commands.CommandContext) (*commands.CommandR
 	b.sendBotMessage(channelID, "🎫 **Support Tickets**\nClick the button below to create a support ticket.\n\n`[Create Ticket]`")
 
 	return &commands.CommandResponse{Content: fmt.Sprintf("✅ Ticket panel created in <#%s>.", channelID)}, nil
+}
+
+func (b *TicketBot) generateTranscript(ctx commands.CommandContext) (*commands.CommandResponse, error) {
+	// Find ticket by current channel
+	var ticketID string
+	var ticketNumber int
+	err := b.ctx.DB.QueryRow(context.Background(),
+		`SELECT id, ticket_number FROM tickets WHERE channel_id = $1`,
+		ctx.ChannelID).Scan(&ticketID, &ticketNumber)
+	if err != nil {
+		return &commands.CommandResponse{Content: "❌ This channel is not a ticket.", Ephemeral: true}, nil
+	}
+
+	// Fetch messages for transcript
+	rows, err := b.ctx.DB.Query(context.Background(),
+		`SELECT u.username, m.content, m.created_at
+		 FROM messages m
+		 LEFT JOIN users u ON m.user_id = u.id
+		 WHERE m.channel_id = $1
+		 ORDER BY m.created_at ASC`,
+		ctx.ChannelID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch transcript messages: %w", err)
+	}
+	defer rows.Close()
+
+	var lines []string
+	lines = append(lines, fmt.Sprintf("Transcript for Ticket #%d", ticketNumber))
+	lines = append(lines, "========================================")
+
+	for rows.Next() {
+		var username *string
+		var content string
+		var createdAt time.Time
+		if err := rows.Scan(&username, &content, &createdAt); err == nil {
+			name := "System"
+			if username != nil {
+				name = *username
+			}
+			lines = append(lines, fmt.Sprintf("[%s] %s: %s", createdAt.Format("2006-01-02 15:04:05"), name, content))
+		}
+	}
+
+	transcriptText := strings.Join(lines, "\n")
+	if len(transcriptText) > 1900 {
+		transcriptText = transcriptText[:1900] + "\n... (truncated)"
+	}
+
+	// Log it if needed
+	b.logTicketAction(ctx.ServerID, ticketNumber, ctx.UserID, "generated a transcript")
+
+	return &commands.CommandResponse{
+		Content: fmt.Sprintf("✅ **Transcript Generated**\n```text\n%s\n```", transcriptText),
+	}, nil
+}
+
+func (b *TicketBot) ticketStats(ctx commands.CommandContext) (*commands.CommandResponse, error) {
+	var total, open, closed int
+	err := b.ctx.DB.QueryRow(context.Background(),
+		`SELECT 
+			COUNT(*) as total,
+			COUNT(*) FILTER (WHERE status = 'open') as open_tickets,
+			COUNT(*) FILTER (WHERE status = 'closed') as closed_tickets
+		 FROM tickets WHERE server_id = $1`, ctx.ServerID).Scan(&total, &open, &closed)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch ticket stats: %w", err)
+	}
+
+	statsText := fmt.Sprintf("📊 **Ticket Statistics**\n\n"+
+		"**Total Tickets:** %d\n"+
+		"**Open Tickets:** %d\n"+
+		"**Closed Tickets:** %d", total, open, closed)
+
+	return &commands.CommandResponse{Content: statsText}, nil
 }
 
 // ── Ticket Config ───────────────────────────────────────────────────────────

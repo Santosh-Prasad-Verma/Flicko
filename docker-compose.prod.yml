@@ -181,7 +181,7 @@ services:
     <<: [*restart-policy, *default-logging]
     networks:
       - flicko_internal              # Receives traffic from NGINX
-      - flicko_monitor               # Prometheus scrapes :9100/metrics
+      - flicko_monitor               # Prometheus scrapes :9102/metrics
     dns:
       - 8.8.8.8
       - 1.1.1.1
@@ -190,7 +190,7 @@ services:
       ENVIRONMENT: "production"
       SERVICE_NAME: "ws-gateway"
       WS_PORT: "8080"
-      METRICS_PORT: "9100"
+      METRICS_PORT: "9102"
       REDIS_URL: "${REDIS_URL}"
       JWT_PUBLIC_KEY_PATH: "/run/secrets/jwt_public_key"
       # ── Connection tuning ─────────────────────────────────────────────
@@ -333,6 +333,57 @@ services:
       start_period: 20s
 
   # ──────────────────────────────────────────────────────────────────────────
+  # MAIL GATEWAY — SMTP Email Service
+  # ──────────────────────────────────────────────────────────────────────────
+  # Handles all email sending via SMTP: verification, password reset, welcome.
+  # Receives webhooks from Supabase Auth and queues emails for async delivery.
+  # Uses beautiful Discord-style HTML templates from templates/ directory.
+  mail-gateway:
+    build:
+      context: ./mail-gateway
+      dockerfile: Dockerfile
+    image: flicko/mail-gateway:latest
+    container_name: flicko-mail-gateway
+    <<: [*restart-policy, *default-logging]
+    networks:
+      - flicko_internal              # Receives webhooks from Supabase via NGINX
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    environment:
+      <<: *common-env
+      ENVIRONMENT: "production"
+      PORT: "8082"
+      # ── SMTP Configuration ────────────────────────────────────────────
+      SMTP_HOST: "${SMTP_HOST}"
+      SMTP_PORT: "${SMTP_PORT}"
+      SMTP_USER: "${SMTP_USER}"
+      SMTP_PASS: "${SMTP_PASS}"
+      SMTP_FROM: "${SMTP_FROM}"
+      # ── App Configuration ─────────────────────────────────────────────
+      APP_NAME: "Flicko"
+      APP_URL: "https://flicko.focko.tech"
+      SUPABASE_URL: "${SUPABASE_URL}"
+      WEBHOOK_SECRET: "${WEBHOOK_SECRET}"
+      # ── Queue Configuration ───────────────────────────────────────────
+      QUEUE_SIZE: "1000"             # Max queued emails
+      WORKER_COUNT: "4"              # Concurrent email senders
+      RETRY_MAX: "3"                 # Max retry attempts per email
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+        reservations:
+          memory: 128M
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO /dev/null http://localhost:8082/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  # ──────────────────────────────────────────────────────────────────────────
   # REDIS — Now using Upstash (cloud). No local container needed.
   # Set REDIS_URL in .env to your Upstash TLS URL (rediss://).
   # Monitor via Upstash dashboard: https://console.upstash.com
@@ -395,7 +446,7 @@ services:
       - 1.1.1.1
     environment:
       GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PASSWORD}"
-      GF_SERVER_ROOT_URL: "https://${DOMAIN:-flicko.dev}/grafana"
+      GF_SERVER_ROOT_URL: "https://${DOMAIN:-flicko.tech}/grafana"
       GF_SERVER_SERVE_FROM_SUB_PATH: "true"
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_LOG_MODE: "console"

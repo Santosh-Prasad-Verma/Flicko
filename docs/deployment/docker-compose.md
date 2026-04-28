@@ -144,4 +144,4 @@ When a new version of Flicko is pulled, executing a rebuild minimizes downtime b
 git pull origin main
 sudo docker compose -f docker-compose.prod.yml up -d --build
 ```
-Existing WebSockets will drop during the ~1.5s swap, but the React Native [`offline-mode.md`](../frontend/offline-mode.md) exponential backoff algorithm will automatically negotiate fresh connections instantly.
+Existing WebSockets will drop during the ~1.5s swap, but the Flutter [`offline-mode.md`](../frontend/offline-mode.md) exponential backoff algorithm will automatically negotiate fresh connections instantly.

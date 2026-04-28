@@ -2,21 +2,21 @@
 
 > **Reading time:** ~6 minutes · **Audience:** FrontEnd Developers · **Last Updated:** 2026-04-11
 
-Unit testing React Native components is useful, but it cannot verify if clicking the "Login" button correctly redirects to the Chat layout while successfully maintaining the JWT in SecureStorage. 
+Unit testing Flutter components is useful, but it cannot verify if clicking the "Login" button correctly redirects to the Chat layout while successfully maintaining the JWT in SecureStorage. 
 Flicko uses **Detox** to achieve true gray-box End-to-End automation.
 
 ---
 
 ## 1. What is Detox?
 
-Detox is an open-source testing framework developed by Wix. Unlike Appium (which acts like a black box blindly tapping coordinates), Detox operates "gray box". It monitors the React Native Javascript thread and the native iOS/Android Animation queues. 
+Detox is an open-source testing framework developed by Wix. Unlike Appium (which acts like a black box blindly tapping coordinates), Detox operates "gray box". It monitors the Flutter Javascript thread and the native iOS/Android Animation queues. 
 It will **automatically wait** for all HTTP requests to finish and all loading spinners to vanish before attempting to tap a button, completely eliminating flaky `sleep(2000)` test hacks.
 
 ---
 
 ## 2. Configuration & Execution
 
-Detox must compile a special debug binary of the Expo app to inject its test listeners.
+Detox must compile a special debug binary of the Flutter app to inject its test listeners.
 
 **To run the suite locally (iOS Simulator):**
 

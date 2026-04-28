@@ -15,10 +15,10 @@ Thank you for your interest in contributing to Flicko! This guide covers everyth
 - [How to Add a New API Endpoint](#how-to-add-a-new-api-endpoint)
 - [How to Add a New Bot Command](#how-to-add-a-new-bot-command)
 - [How to Create a Database Migration](#how-to-create-a-database-migration)
-- [How to Add a New Zustand Store](#how-to-add-a-new-zustand-store)
+- [How to Add a New Riverpod Store](#how-to-add-a-new-zustand-store)
 - [How to Add a New Mobile Screen](#how-to-add-a-new-mobile-screen)
 - [Go Code Style Guide](#go-code-style-guide)
-- [TypeScript/React Native Code Style Guide](#typescriptreact-native-code-style-guide)
+- [TypeScript/Flutter Code Style Guide](#typescriptreact-native-code-style-guide)
 - [Commit Conventions](#commit-conventions)
 - [Pull Request Process](#pull-request-process)
 - [Testing Requirements](#testing-requirements)
@@ -36,7 +36,7 @@ All contributors must follow our [Code of Conduct](CODE_OF_CONDUCT.md). We are c
 
 ## Getting Started
 
-Before making any contribution, familiarize yourself with the project structure and architecture. Flicko consists of three Go microservices (`ws-gateway`, `msg-service`, `backend`), a React Native mobile app, and shared TypeScript code. Understanding which service owns which functionality is essential for placing your changes correctly.
+Before making any contribution, familiarize yourself with the project structure and architecture. Flicko consists of three Go microservices (`ws-gateway`, `msg-service`, `backend`), a Flutter mobile app, and shared TypeScript code. Understanding which service owns which functionality is essential for placing your changes correctly.
 
 ```bash
 # 1. Fork the repository on GitHub
@@ -97,7 +97,7 @@ The Go workspace file (`services/go.work`) links the three service modules toget
 
 ### Setting Up the Mobile App
 
-The React Native app uses Expo SDK 54 with file-based routing. The development server connects to your local backend services via environment variables.
+The Flutter app uses Flutter SDK 54 with file-based routing. The development server connects to your local backend services via environment variables.
 
 ```bash
 cd mobile
@@ -106,10 +106,10 @@ npm install
 # Configure the API URL to point to your local backend
 cp .env.example .env
 # Edit .env and set:
-# EXPO_PUBLIC_API_URL=http://<YOUR_LOCAL_IP>:8081
-# EXPO_PUBLIC_WS_URL=ws://<YOUR_LOCAL_IP>:8080/ws
+# FLICKO_API_URL=http://<YOUR_LOCAL_IP>:8081
+# FLICKO_WS_URL=ws://<YOUR_LOCAL_IP>:8080/ws
 
-# Start the Expo development server
+# Start the Flutter development server
 npx expo start
 ```
 
@@ -169,7 +169,7 @@ graph LR
 
     subgraph SHARED["shared/ (TypeScript)"]
         D1[51 API Services]
-        D2[22 Zustand Stores]
+        D2[22 Riverpod Stores]
         D3[Type Definitions]
         D4[Utilities]
     end
@@ -523,7 +523,7 @@ CREATE POLICY "Admins can modify your_feature"
 
 ---
 
-## How to Add a New Zustand Store
+## How to Add a New Riverpod Store
 
 The 22 existing stores follow a consistent pattern. Here's how to add a new one that fits the existing architecture:
 
@@ -536,7 +536,7 @@ import { create } from 'zustand';
  *
  * This store follows the same pattern as all 22 existing stores:
  * - TypeScript interface defining the state shape
- * - Zustand create() with combined state and actions
+ * - Riverpod create() with combined state and actions
  * - Async actions that call service functions
  * - Loading and error state tracking
  */
@@ -589,7 +589,7 @@ export const useYourFeatureStore = create<YourFeatureState>((set, get) => ({
 
 ## How to Add a New Mobile Screen
 
-Flicko uses Expo Router's file-based routing. Adding a new screen is as simple as creating a new `.tsx` file in the correct directory:
+Flicko uses Flutter Router's file-based routing. Adding a new screen is as simple as creating a new `.tsx` file in the correct directory:
 
 ```typescript
 // mobile/app/your-feature.tsx (creates route: /your-feature)
@@ -604,7 +604,7 @@ import { spacing, typography } from '@/constants/Colors';
  *
  * Route: /your-feature
  * Auth: Required (protected by AuthGate provider)
- * Data: Loaded from yourFeatureStore via Zustand
+ * Data: Loaded from yourFeatureStore via Riverpod
  */
 export default function YourFeatureScreen() {
   const { colors } = useTheme();
@@ -661,7 +661,7 @@ The Go codebase follows these conventions, derived from the actual patterns foun
 package services     // ✅
 package userServices // ❌
 
-// Exported types: PascalCase with descriptive names
+// Flutterrted types: PascalCase with descriptive names
 type ServerService struct {}          // ✅
 type SrvSvc struct {}                 // ❌
 
@@ -724,7 +724,7 @@ go vet ./...
 
 ---
 
-## TypeScript/React Native Code Style Guide
+## TypeScript/Flutter Code Style Guide
 
 ### Component Pattern
 
@@ -759,7 +759,7 @@ Constants:      PascalCase.ts     (Colors.ts)
 ### Import Organization
 
 ```typescript
-// 1. React/React Native
+// 1. React/Flutter
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 

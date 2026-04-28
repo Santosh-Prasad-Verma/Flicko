@@ -1,6 +1,6 @@
 # Flicko Platform Overview
 
-> **Reading time:** ~20 minutes · **Audience:** Everyone · **Last Updated:** 2026-04-11
+> **Reading time:** ~20 minutes · **Audience:** Everyone · **Last Updated:** 2026-04-24
 
 This document provides a comprehensive introduction to the Flicko platform — what it is, who it's for, what concepts it uses, how its services are decomposed, and what features are fully implemented. Read this first if you are new to the project, as every other documentation file builds on the vocabulary and mental models established here.
 
@@ -8,9 +8,9 @@ This document provides a comprehensive introduction to the Flicko platform — w
 
 ## What Is Flicko?
 
-Flicko is a **full-featured, production-ready, open-source real-time communication platform** designed as a self-hostable alternative to Discord. It provides the complete feature set that modern communities expect — text messaging, voice and video channels, server and channel management, role-based permissions, bot automation, media sharing, and premium subscriptions — all built from scratch with Go microservices, React Native, and PostgreSQL. The platform is designed to be deployed on a single 8 GB VPS, serving 3,000–5,000 concurrent users with full monitoring and observability included.
+Flicko is a **full-featured, production-ready, open-source real-time communication platform** designed as a self-hostable alternative to Discord. It provides the complete feature set that modern communities expect — text messaging, voice and video channels, server and channel management, role-based permissions, bot automation, media sharing, and premium subscriptions — all built from scratch with Go microservices, Flutter, and PostgreSQL. The platform is designed to be deployed on a single 8 GB VPS, serving 3,000–5,000 concurrent users with full monitoring and observability included.
 
-Unlike other open-source Discord alternatives that focus primarily on web clients, Flicko takes a **mobile-first approach** with a native iOS and Android application built using React Native and Expo SDK 54. The mobile app implements Discord's visual design language (GG Sans typography, dark/light/AMOLED themes, Discord-accurate color tokens) to provide a familiar and polished user experience. The app is organized into 30+ screens with file-based routing, 20 component directories for reusable UI elements, and 22 Zustand state stores for client-side state management.
+Unlike other open-source Discord alternatives that focus primarily on web clients, Flicko takes a **mobile-first approach** with a premium native iOS and Android application built using Flutter 3.22+. The mobile app implements Discord's visual design language (GG Sans typography, dark/light/AMOLED themes, Discord-accurate color tokens) to provide a familiar and polished user experience. The app is organized into 30+ screens using a feature-first architecture, highly reusable components, and Riverpod for robust client-side state management.
 
 The backend is written entirely in Go (version 1.25), chosen for its excellent concurrency primitives (goroutines and channels) which are essential for managing thousands of simultaneous WebSocket connections. The backend is split into three independent microservices — `ws-gateway` for real-time WebSocket connections, `msg-service` for RESTful API requests, and `backend` for the bot framework — each with its own Dockerfile, entry point, health check endpoint, and resource limits. This decomposition allows each service to be scaled, deployed, and monitored independently based on its specific workload characteristics.
 
@@ -72,15 +72,15 @@ Channel permission overwrites allow server administrators to override base role 
 
 DM conversations are initiated when a user sends a message to another user they have a friendship or shared server membership with. The conversation is created lazily on first message rather than requiring an explicit "create conversation" action. Group DMs are created by adding participants to an existing DM conversation, up to a maximum of 10 participants.
 
-```typescript
-// shared/services/dmService.ts — DM conversation management
-export async function getOrCreateDMConversation(
-  userId: string,
-  participantId: string
-): Promise<DMConversation> {
+```dart
+// mobile/lib/data/repositories/dm_repository.dart — DM conversation management
+Future<DMConversation> getOrCreateDMConversation(
+  String userId,
+  String participantId,
+) async {
   // Check for existing conversation first
-  const existing = await findExistingDM(userId, participantId);
-  if (existing) return existing;
+  final existing = await findExistingDM(userId, participantId);
+  if (existing != null) return existing;
 
   // Create new conversation with both participants
   return await createDMConversation([userId, participantId]);
@@ -93,7 +93,7 @@ The DM service files in the backend include `dm_message_service.go` (6.1 KB) for
 
 The **Voice System** in Flicko uses LiveKit as its WebRTC Selective Forwarding Unit (SFU). Instead of implementing peer-to-peer audio/video (which doesn't scale beyond a handful of participants), LiveKit runs a central media server that receives audio/video streams from each participant and selectively forwards them to other participants. This architecture supports voice channels with many simultaneous speakers while keeping bandwidth usage manageable.
 
-The voice flow works as follows: (1) User taps a voice channel in the mobile app, (2) the frontend requests a LiveKit room token from the backend via `GET /api/v1/video/token`, (3) the backend generates a signed JWT token using the LiveKit API secret with the user's identity and room name, (4) the mobile app connects to LiveKit Cloud using the `@livekit/react-native` SDK with the received token, (5) voice state changes (join, leave, mute, deaf) are tracked in the `voice_states` database table, and (6) all voice state changes are broadcast to other server members via WebSocket events so the UI can display who's in each voice channel.
+The voice flow works as follows: (1) User taps a voice channel in the mobile app, (2) the frontend requests a LiveKit room token from the backend via `GET /api/v1/video/token`, (3) the backend generates a signed JWT token using the LiveKit API secret with the user's identity and room name, (4) the mobile app connects to LiveKit Cloud using the `livekit_client` Flutter SDK with the received token, (5) voice state changes (join, leave, mute, deaf) are tracked in the `voice_states` database table, and (6) all voice state changes are broadcast to other server members via WebSocket events so the UI can display who's in each voice channel.
 
 ```go
 // backend/internal/services/voice_service.go
@@ -149,9 +149,9 @@ registry.StartAll()
 
 ### Subscription System
 
-**Flicko Plus** is the premium subscription tier powered by Stripe. Subscribers unlock enhanced features: custom emoji uploads, animated GIF avatars, higher file upload size limits, enhanced voice audio quality settings, server boosting perks, and soundboard access. The subscription state is managed by the `stripePaymentService.ts` (12 KB) on the frontend and the subscription-related services on the backend.
+**Flicko Plus** is the premium subscription tier powered by Stripe. Subscribers unlock enhanced features: custom emoji uploads, animated GIF avatars, higher file upload size limits, enhanced voice audio quality settings, server boosting perks, and soundboard access. The subscription state is managed by the `PremiumRepository` on the frontend and the subscription-related services on the backend.
 
-The subscription purchase flow involves: (1) user taps "Get Flicko Plus" on the `flicko-plus.tsx` screen (26 KB), (2) the app creates a Stripe checkout session via the backend, (3) the user completes payment in the Stripe sheet, (4) Stripe sends a webhook to the backend confirming payment, (5) the backend updates the user's subscription status in the database, and (6) the mobile app receives the updated user profile via WebSocket and immediately unlocks premium features.
+The subscription purchase flow involves: (1) user taps "Get Flicko Plus" on the `FlickoPlusScreen` in the mobile app, (2) the app creates a Stripe checkout session via the backend, (3) the user completes payment in the Stripe sheet, (4) Stripe sends a webhook to the backend confirming payment, (5) the backend updates the user's subscription status in the database, and (6) the mobile app receives the updated user profile via WebSocket and immediately unlocks premium features.
 
 ### Server Members & Roles
 
@@ -309,7 +309,7 @@ The diagram above shows the most common flow in Flicko — a user sending a mess
 
 | Feature | Status | Primary Service | Key Files | Database Tables |
 |---------|--------|----------------|-----------|----------------|
-| User registration/login | ✅ Complete | Supabase Auth | `auth.service.ts` | `auth.users` (Supabase managed) |
+| User registration/login | ✅ Complete | Supabase Auth | `AuthRepository` | `auth.users` (Supabase managed) |
 | JWT authentication | ✅ Complete | All 3 services | `middleware/auth.go`, `shared/auth/` | — (stateless) |
 | Server CRUD | ✅ Complete | msg-service | `server.go` (3.3 KB) | `servers`, `members` |
 | Channel management | ✅ Complete | msg-service | `channel_service.go` | `channels` |
@@ -342,7 +342,7 @@ The diagram above shows the most common flow in Flicko — a user sending a mess
 | Push notifications | ✅ Complete | Supabase Edge Fn | `supabase/functions/` | — |
 | Cloudinary uploads | ✅ Complete | backend | `cloudinary.go` (4.3 KB) | — |
 | GIF search (GIPHY) | ✅ Complete | Supabase Edge Fn | `supabase/functions/` | — |
-| Flicko Plus (Stripe) | ✅ Complete | backend | `stripePaymentService.ts` (12 KB) | `subscriptions` |
+| Flicko Plus (Stripe) | ✅ Complete | backend | `PremiumRepository` | `subscriptions` |
 | Docker deployment | ✅ Complete | Infrastructure | `docker-compose.prod.yml` (455 lines) | — |
 | Monitoring (Prometheus/Grafana/Loki) | ✅ Complete | Infrastructure | `monitoring/` | — |
 
@@ -362,7 +362,7 @@ The diagram above shows the most common flow in Flicko — a user sending a mess
 |------|-------|
 | **Platform type** | Discord-like real-time communication |
 | **Backend language** | Go 1.25 |
-| **Frontend framework** | React Native (Expo SDK 54) |
+| **Frontend framework** | Flutter 3.22+ |
 | **Database** | PostgreSQL 15+ (via Supabase) |
 | **Service count** | 3 microservices |
 | **Total features** | 30+ fully implemented |
@@ -372,4 +372,4 @@ The diagram above shows the most common flow in Flicko — a user sending a mess
 
 ---
 
-*Last Updated: 2026-04-11 | Version: 1.0.0 | Maintained by: Flicko Team*
+*Last Updated: 2026-04-24 | Version: 2.0.0 | Maintained by: Flicko Team*

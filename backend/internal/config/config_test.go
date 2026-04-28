@@ -14,9 +14,6 @@ func TestLoadConfig_Success(t *testing.T) {
 	os.Setenv("JWT_SECRET", "this-is-a-super-secret-key-that-is-at-least-thirty-two-bytes")
 	os.Setenv("SUPABASE_URL", "https://example.supabase.co")
 	os.Setenv("SUPABASE_SERVICE_ROLE_KEY", "test-service-role-key")
-	os.Setenv("CLOUDINARY_CLOUD_NAME", "test-cloud")
-	os.Setenv("CLOUDINARY_API_KEY", "test-api-key")
-	os.Setenv("CLOUDINARY_API_SECRET", "test-api-secret")
 
 	defer func() {
 		os.Clearenv()

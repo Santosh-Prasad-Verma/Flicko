@@ -1,6 +1,6 @@
 # Media & Uploads
 
-> **Reading time:** ~10 minutes · **Audience:** Backend, Mobile Developers · **Last Updated:** 2026-04-11
+> **Reading time:** ~12 minutes · **Audience:** Frontend Developers, Backend Developers · **Last Updated:** 2026-04-24
 
 This document covers how Flicko handles user-generated media efficiently without overwhelming the backend bandwidth. We utilize Cloudinary as an edge CDN and GIPHY for dynamic integrations.
 
@@ -17,16 +17,41 @@ This document covers how Flicko handles user-generated media efficiently without
 
 ## The Direct Upload Architecture
 
-If clients uploaded large videos directly to our Go `backend`, it would require vast bandwidth, massive RAM buffers, and slow down other API requests. Instead, we use Cloudinary's "Direct Upload" capability. The backend authorizes the upload without ever touching the actual file bytes.
+## The Core Principle: SDK-Direct Uploads
+Flicko uses **SDK-Direct Uploads** via **Appwrite Storage**. This means the mobile client uploads media files directly to Appwrite's S3-compatible buckets using the Appwrite Flutter SDK.
 
-### Step-by-Step Flow
+### Why this approach?
+- **Reduced Backend Load:** The Go backend doesn't handle binary file streams.
+- **Scalability:** Managed storage scales horizontally without infrastructure work.
+- **Security:** Appwrite provides fine-grained permissions for individual buckets and files.
+- **Performance:** Multi-part uploads and chunked processing are handled natively by the Appwrite SDK.
 
-1. **Client Request:** The React Native app requests a signature: `GET /api/v1/upload/signature?folder=avatars`
-2. **Backend Signing:** The Go backend validates the user's JWT. It reads the server's Unix timestamp, appends the folder name, and generates an HMAC-SHA256 signature using the secret `CLOUDINARY_API_SECRET`.
-3. **Response:** Backend returns `{ signature: "xyz", timestamp: 1712800000, api_key: "abc" }`.
-4. **Direct POST:** The mobile app constructs a `multipart/form-data` request containing the physical image file and the signature, and POSTs it directly to `https://api.cloudinary.com/v1_1/<cloud_name>/image/upload`.
-5. **CDN Storage:** Cloudinary verifies the signature, stores the file, and returns a secure `secure_url`.
-6. **API Usage:** The mobile app takes that URL and includes it when making its next Flicko API request (e.g., `PATCH /api/v1/users/@me` to update their avatar).
+## Technical Flow: Appwrite Migration
+
+The system uses `AppwriteStorageService` in the mobile app to handle all interactions.
+
+### 1. Initialization
+The `AppwriteStorageService` is initialized with the project ID and endpoint configured via `AppConfig`.
+
+### 2. Upload Flow
+The client performs the following steps:
+1.  Initialize `Storage` object from the Appwrite SDK.
+2.  Use `storage.createFile()` with the appropriate `bucketId`.
+3.  Store the returned `fileId` in the backend database via a message or profile update request.
+
+```dart
+// Example Upload Snippet
+final file = await storage.createFile(
+  bucketId: AppConfig.appwriteMessageBucketId,
+  fileId: ID.unique(),
+  file: InputFile.fromPath(path: filePath),
+);
+```
+
+### 3. Fetching Content
+Media is served using the Appwrite file preview or download URLs.
+- **Avatars:** `appwrite/storage/buckets/[AVATAR_BUCKET]/files/[FILE_ID]/view`
+- **Messages:** `appwrite/storage/buckets/[MESSAGE_BUCKET]/files/[FILE_ID]/view`
 
 ---
 
@@ -49,7 +74,7 @@ Messages support an array of JSON objects representing attachments.
 }
 ```
 
-By storing the `width` and `height` alongside the URL, the React Native app can compute the correct aspect ratio and reserve UI space *before* the image finishes downloading, completely preventing layout shift in the chat timeline.
+By storing the `width` and `height` alongside the URL, the Flutter app can compute the correct aspect ratio and reserve UI space *before* the image finishes downloading, completely preventing layout shift in the chat timeline.
 
 ---
 
@@ -95,4 +120,4 @@ To protect the GIPHY API keys from being extracted from the mobile binary or int
 
 ---
 
-*Last Updated: 2026-04-11 | Version: 1.0.0 | Maintained by: Flicko Team*
+*Last Updated: 2026-04-24 | Version: 1.1.0 | Maintained by: Media Infrastructure Team*

@@ -2,7 +2,7 @@
 
 > **Reading time:** ~5 minutes · **Audience:** Experienced Developers · **Last Updated:** 2026-04-11
 
-This is the fast-track setup guide for experienced developers who are comfortable with Go, React Native, Docker, PostgreSQL, and Redis. If you want detailed explanations of every step, use the [Installation Guide](installation.md) instead. This page assumes you have all [prerequisites](prerequisites.md) installed and cloud accounts set up.
+This is the fast-track setup guide for experienced developers who are comfortable with Go, Flutter, Docker, PostgreSQL, and Redis. If you want detailed explanations of every step, use the [Installation Guide](installation.md) instead. This page assumes you have all [prerequisites](prerequisites.md) installed and cloud accounts set up.
 
 ---
 
@@ -25,7 +25,7 @@ cd services/ws-gateway && go mod download && go run ./cmd/gateway     # Terminal
 cd backend && go mod download && go run ./cmd/server                  # Terminal 3 → :8080
 
 # Start mobile app
-cd mobile && npm install && npx expo start    # Terminal 4 → press 'i' or 'a'
+cd mobile && flutter pub get && flutter run    # Terminal 4 → select device or simulator
 ```
 
 ---
@@ -33,7 +33,7 @@ cd mobile && npm install && npx expo start    # Terminal 4 → press 'i' or 'a'
 ## Architecture at a Glance
 
 ```
-📱 Mobile App (Expo SDK 54, React Native)
+📱 Mobile App (Flutter v3.22+, Riverpod)
     │
     ├──REST──→ NGINX ──→ msg-service :8081 ──→ PostgreSQL (Supabase)
     │                                    └──→ Redis Pub/Sub (Upstash)
@@ -66,11 +66,11 @@ LIVEKIT_URL=wss://your-project.livekit.cloud
 LIVEKIT_API_KEY=APIxxxxxxx
 LIVEKIT_API_SECRET=your_livekit_secret
 
-# mobile/.env — used by React Native app
-EXPO_PUBLIC_API_URL=http://192.168.1.X:8081
-EXPO_PUBLIC_WS_URL=ws://192.168.1.X:8080/ws
-EXPO_PUBLIC_SUPABASE_URL=https://REF.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGci...
+# mobile/.env — used by Flutter app
+FLICKO_API_URL=http://192.168.1.X:8081
+FLICKO_WS_URL=ws://192.168.1.X:8080/ws
+FLICKO_SUPABASE_URL=https://REF.supabase.co
+FLICKO_SUPABASE_ANON_KEY=eyJhbGci...
 ```
 
 > **⚠️ Mobile URLs:** Use your machine's LAN IP (`hostname -I` on Linux, `ifconfig | grep "inet "` on macOS). Simulators/devices can't resolve `localhost`.
@@ -162,7 +162,7 @@ openssl rand -hex 32
 |---------|-------------|-----|
 | `connection refused` (DB) | Wrong port in DATABASE_URL | Use port 6543 (Supavisor), not 5432 |
 | `401 Unauthorized` on all requests | JWT_SECRET mismatch | Copy exact JWT secret from Supabase Dashboard |
-| White screen on mobile | Metro bundler crashed | Restart with `npx expo start -c` (clears cache) |
+| App doesn't build | Missing dependencies or codegen | Run `flutter pub get` and `build_runner` |
 | Messages don't appear in real-time | ws-gateway not running | Start ws-gateway in separate terminal |
 | Bot commands don't work | `backend` service not running | Start backend service; check for "all bots started" log |
 | File uploads fail | Cloudinary credentials wrong | Verify all 3 Cloudinary env vars |

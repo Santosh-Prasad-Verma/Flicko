@@ -21,12 +21,9 @@ type Config struct {
 	EncryptionKey      []byte
 	EncryptionKeyID    string
 	Environment        string
-
-	// Cloudinary media storage (signed uploads)
-	CloudinaryCloudName string
-	CloudinaryAPIKey    string
-	CloudinaryAPISecret string
-	CloudinaryPreset    string
+	LiveKitAPIKey      string
+	LiveKitAPISecret   string
+	LiveKitURL         string
 }
 
 func Load() (*Config, error) {
@@ -111,38 +108,19 @@ func Load() (*Config, error) {
 	keyID := sha256.Sum256(encryptionKeyBytes)
 	keyIDHex = hex.EncodeToString(keyID[:8])
 
-	// Cloudinary configuration
-	cloudinaryCloudName := os.Getenv("CLOUDINARY_CLOUD_NAME")
-	if cloudinaryCloudName == "" {
-		return nil, errors.New("CLOUDINARY_CLOUD_NAME is required")
-	}
-	cloudinaryAPIKey := os.Getenv("CLOUDINARY_API_KEY")
-	if cloudinaryAPIKey == "" {
-		return nil, errors.New("CLOUDINARY_API_KEY is required")
-	}
-	cloudinaryAPISecret := os.Getenv("CLOUDINARY_API_SECRET")
-	if cloudinaryAPISecret == "" {
-		return nil, errors.New("CLOUDINARY_API_SECRET is required")
-	}
-	cloudinaryPreset := os.Getenv("CLOUDINARY_UPLOAD_PRESET")
-	if cloudinaryPreset == "" {
-		cloudinaryPreset = "flickochat_media"
-	}
-
 	return &Config{
-		DatabaseURL:         dbURL,
-		RedisURL:            redisURL,
-		JWTSecret:           jwtSecret,
-		PortHTTP:            portHTTP,
-		PortWS:              portWS,
-		SupabaseURL:         supabaseURL,
-		SupabaseServiceKey:  supabaseServiceKey,
-		EncryptionKey:       encryptionKeyBytes,
-		EncryptionKeyID:     keyIDHex,
-		Environment:         environment,
-		CloudinaryCloudName: cloudinaryCloudName,
-		CloudinaryAPIKey:    cloudinaryAPIKey,
-		CloudinaryAPISecret: cloudinaryAPISecret,
-		CloudinaryPreset:    cloudinaryPreset,
+		DatabaseURL:        dbURL,
+		RedisURL:           redisURL,
+		JWTSecret:          jwtSecret,
+		PortHTTP:           portHTTP,
+		PortWS:             portWS,
+		SupabaseURL:        supabaseURL,
+		SupabaseServiceKey: supabaseServiceKey,
+		EncryptionKey:      encryptionKeyBytes,
+		EncryptionKeyID:    keyIDHex,
+		Environment:        environment,
+		LiveKitAPIKey:      os.Getenv("LIVEKIT_API_KEY"),
+		LiveKitAPISecret:   os.Getenv("LIVEKIT_API_SECRET"),
+		LiveKitURL:         os.Getenv("LIVEKIT_URL"),
 	}, nil
 }

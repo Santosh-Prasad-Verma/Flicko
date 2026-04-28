@@ -7,7 +7,7 @@
 ```mermaid
 graph TB
     subgraph Client["Client Layer"]
-        MOBILE["📱 React Native Mobile App<br/>Expo SDK 54<br/>TypeScript"]
+        MOBILE["📱 Flutter Mobile App<br/>Flutter SDK 54<br/>TypeScript"]
     end
 
     subgraph Edge["Edge Layer (Public Internet)"]
@@ -38,8 +38,8 @@ graph TB
         PROM["📊 Prometheus<br/>Metrics TSDB<br/>15s Scrape Interval"]
         GRAF["📈 Grafana<br/>Dashboards<br/>Alerting"]
         LOKI["📋 Loki<br/>Log Aggregation<br/>LogQL Queries"]
-        NODE["🖥️ Node Exporter<br/>Host Metrics"]
-        NGXEXP["📡 NGINX Exporter<br/>Request Metrics"]
+        NODE["🖥️ Node Flutterrter<br/>Host Metrics"]
+        NGXEXP["📡 NGINX Flutterrter<br/>Request Metrics"]
     end
 
     %% Client connections

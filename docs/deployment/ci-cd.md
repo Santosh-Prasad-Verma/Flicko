@@ -82,9 +82,9 @@ This ensures zero drift between the `main` GitHub branch and actual production s
 
 ---
 
-## 3. Frontend CI/CD (EAS/Expo Build)
+## 3. Frontend CI/CD (EAS/Flutter Build)
 
-React Native apps require complex Xcode/Android Studio setups to compile. Rather than managing this, Flicko utilizes **EAS (Expo Application Services)** via GitHub Actions.
+Flutter apps require complex Xcode/Android Studio setups to compile. Rather than managing this, Flicko utilizes **EAS (Flutter Application Services)** via GitHub Actions.
 
 When code is merged to `main`, EAS spins up a cloud macOS worker, compiles the `.ipa` (iOS) and `.aab` (Android), and automatically submits them to the Apple TestFlight and Google Play Internal testing tracks.
 

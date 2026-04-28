@@ -31,16 +31,19 @@ type BotContext struct {
 
 // Registry manages all registered bots.
 type Registry struct {
-	bots   []Bot
-	ctx    BotContext
-	logger *zap.Logger
+	bots          []Bot
+	ctx           BotContext
+	logger        *zap.Logger
+	externalMgr   *ExternalBotManager
 }
 
 // NewRegistry creates a new bot registry.
 func NewRegistry(bctx BotContext) *Registry {
+	externalMgr := NewExternalBotManager(bctx)
 	return &Registry{
-		ctx:    bctx,
-		logger: bctx.Logger,
+		ctx:         bctx,
+		logger:      bctx.Logger,
+		externalMgr: externalMgr,
 	}
 }
 
@@ -54,6 +57,10 @@ func (r *Registry) StartAll() error {
 	for _, bot := range r.bots {
 		r.startWithRecovery(bot.Name(), bot)
 	}
+	
+	// Register external bot webhook handler
+	r.externalMgr.RegisterEventHandler()
+	
 	r.logger.Info("all bots started with recovery loops", zap.Int("count", len(r.bots)))
 	return nil
 }
@@ -101,4 +108,9 @@ func (r *Registry) StartBackgroundTasks(ctx context.Context) {
 	// Ticker for periodic tasks is handled by the individual bots
 	// that subscribe to TickerMinute / TickerHour events.
 	r.logger.Info("background task loop started")
+}
+
+// GetExternalBotManager returns the external bot manager
+func (r *Registry) GetExternalBotManager() *ExternalBotManager {
+	return r.externalMgr
 }

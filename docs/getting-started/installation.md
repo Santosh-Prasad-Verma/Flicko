@@ -34,8 +34,8 @@ After cloning, you'll have the complete monorepo with the following top-level st
 Flicko/
 ├── backend/           # Go monolith — Bot framework (8 bots), slash commands, 95 services
 ├── services/          # Go microservices — ws-gateway + msg-service + shared packages
-├── mobile/            # React Native app — 30+ screens, 20 component directories
-├── shared/            # Cross-platform TypeScript — 51 services, 22 stores, hooks, types
+├── mobile/            # Flutter app — 80+ screens, Riverpod state, feature-first structure
+├── shared/            # Shared packages and logic
 ├── supabase/          # Supabase config — 65 SQL migrations, Edge Functions
 ├── mail-gateway/      # Go email service
 ├── nginx/             # NGINX reverse proxy configuration (232 lines)
@@ -50,12 +50,8 @@ Flicko/
 └── README.md          # Project README
 ```
 
-### Install Root Dependencies
-
-```bash
-# From the Flicko root directory
-npm install
-```
+# This project doesn't require root npm install for core functionality, 
+# although linting/hooks may use it.
 
 This installs three root-level packages and sets up the development toolchain:
 
@@ -158,19 +154,18 @@ cp mobile/.env.example mobile/.env
 
 ```env
 # Mobile app environment variables
-# These are embedded in the app bundle via Expo's env system
+# These are loaded by the Flutter app using Doppler or local .env fallback
 
 # API base URL — points to msg-service REST API
 # For local dev: use your machine's LAN IP, NOT localhost
-# The emulator/device runs in a different network context
-EXPO_PUBLIC_API_URL=http://192.168.1.100:8081
+FLICKO_API_URL=http://192.168.1.100:8081
 
 # WebSocket URL — points to ws-gateway
-EXPO_PUBLIC_WS_URL=ws://192.168.1.100:8080/ws
+FLICKO_WS_URL=ws://192.168.1.100:8080/ws
 
 # Supabase credentials (same as root .env)
-EXPO_PUBLIC_SUPABASE_URL=https://XXXXX.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGci...
+FLICKO_SUPABASE_URL=https://XXXXX.supabase.co
+FLICKO_SUPABASE_ANON_KEY=eyJhbGci...
 ```
 
 > **Finding your local IP:** Run `ifconfig | grep "inet "` on macOS, `hostname -I` on Linux, or `ipconfig` on Windows. Use your LAN IP (usually 192.168.x.x or 10.x.x.x), not 127.0.0.1.
@@ -357,55 +352,61 @@ The `backend` service initialization sequence (defined in `cmd/server/main.go`, 
 
 ---
 
-## Step 6: Mobile App Setup
-
 ### Install Dependencies
 
 ```bash
 cd mobile
-npm install
+flutter pub get
 ```
 
-This installs all React Native and Expo dependencies defined in `package.json`. Key packages include:
+This installs all Flutter and Dart dependencies defined in `pubspec.yaml`. Key packages include:
 
-- **expo** (SDK 54) — Development framework and build system
-- **react-native** (0.81) — Cross-platform mobile framework
-- **expo-router** (4.x) — File-based routing with deep linking
-- **@react-navigation/native** (7.x) — Navigation primitives
-- **zustand** (5.0) — State management (22 stores)
-- **@tanstack/react-query** (5.x) — Server state caching
-- **@supabase/supabase-js** — Supabase client library
-- **expo-secure-store** — Encrypted token storage
-- **expo-local-authentication** — Biometric auth (Face ID/fingerprint)
-- **react-native-reanimated** (3.x) — 60fps native animations
-- **@livekit/react-native** — Voice/video WebRTC client
+- **flutter_riverpod** — Reactive state management and dependency injection
+- **go_router** — Declarative routing system for all 80+ screens
+- **supabase_flutter** — Official Supabase client for Auth and Database
+- **livekit_client** — Real-time voice and video WebRTC client
+- **flutter_secure_storage** — Encrypted local state (auth tokens)
+- **cached_network_image** — High-performance image caching
+- **shimmer** — Modern loading states
+- **flutter_local_notifications** — Push and local notification engine
+- **custom_lint** — Project-specific linting rules for Riverpod
 
-### Start the Development Server
+### Generate Code
+
+Many parts of the Flicko mobile app (Riverpod and Freezed models) rely on code generation.
 
 ```bash
-npx expo start
+# Run one-time generation
+flutter pub run build_runner build --delete-conflicting-outputs
+
+# Or watch for changes during development
+flutter pub run build_runner watch --delete-conflicting-outputs
 ```
 
-This starts the Metro bundler and displays a QR code in your terminal. You have several options for running the app:
+### Start the Application
+
+```bash
+flutter run
+```
+
+This compiles the app for your targets. You have several options for running the app:
 
 | Method | Command | Requirements |
 |--------|---------|-------------|
-| **iOS Simulator** | Press `i` in terminal | macOS + Xcode |
-| **Android Emulator** | Press `a` in terminal | Android Studio + AVD running |
-| **Physical iOS Device** | Scan QR with Camera app | Expo Go app installed |
-| **Physical Android Device** | Scan QR with Expo Go | Expo Go app installed |
-
-### Configuring the Backend URL
+| **iOS Simulator** | `flutter run -d iOS` | macOS + Xcode + Booted Simulator |
+| **Android Emulator** | `flutter run -d android` | Android Studio + AVD running |
+| **Physical Device** | `flutter run -d <DEVICE_ID>` | Physical device connected via USB/Wi-Fi |
+| **Release Build** | `flutter build apk` / `ios` | Production signing configured |
 
 The mobile app needs to connect to your local backend services. Ensure `mobile/.env` has the correct IP:
 
 ```env
 # ❌ WRONG — simulators can't resolve localhost to the host machine
-EXPO_PUBLIC_API_URL=http://localhost:8081
+FLICKO_API_URL=http://localhost:8081
 
 # ✅ CORRECT — use your machine's LAN IP
-EXPO_PUBLIC_API_URL=http://192.168.1.100:8081
-EXPO_PUBLIC_WS_URL=ws://192.168.1.100:8080/ws
+FLICKO_API_URL=http://192.168.1.100:8081
+FLICKO_WS_URL=ws://192.168.1.100:8080/ws
 ```
 
 ### First Run Expectations
@@ -417,7 +418,7 @@ When the app first loads, you should see:
 3. **Create an account** — Fill in username, email, and password
 4. **Home screen** — Empty server list with a "Create Server" button
 
-If you see a white/blank screen or an error, check the Metro bundler terminal for error details and refer to the [Troubleshooting Guide](troubleshooting.md).
+If you see a white/blank screen or an error, check the console output and refer to the [Troubleshooting Guide](troubleshooting.md).
 
 ---
 
@@ -440,7 +441,8 @@ After completing all steps, verify that everything is working correctly by going
 
 ### Mobile App
 
-- [ ] Metro bundler is running without errors
+- [ ] Flutter dependencies are installed (`flutter pub get`)
+- [ ] Code generation is complete (`build_runner`)
 - [ ] App loads on simulator/device (shows login or home screen)
 - [ ] Registration works (create a new account)
 - [ ] Login works (sign in with the account you just created)
@@ -501,7 +503,7 @@ This setup gives you a complete testing environment for all major features.
 | Database setup | 5 min | 65 migrations applied |
 | Redis verification | 1 min | Pub/Sub + cache + rate limiting |
 | Backend services | 5 min | 3 Go services running |
-| Mobile app | 5 min | React Native app on simulator |
+| Mobile app | 5 min | Flutter app on simulator |
 | Verification | 5 min | End-to-end feature check |
 | **Total** | **~35 min** | **Full local development environment** |
 

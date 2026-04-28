@@ -73,7 +73,7 @@ Flicko uses a dual-token architecture:
 - **Signature Algorithm:** HMAC-SHA256 (HS256)
 - **Time-to-Live (TTL):** 1 hour (default)
 - **Usage:** Sent in the `Authorization: Bearer <token>` header of every API and WebSocket request.
-- **Storage (Mobile):** In-memory (Zustand authStore)
+- **Storage (Mobile):** In-memory (Riverpod authStore)
 
 **JWT Payload Structure:**
 ```json
@@ -158,7 +158,7 @@ func ValidateJWT(next http.Handler) http.Handler {
 
 ## Mobile Session Management
 
-State is managed by the `authStore.ts` Zustand store.
+State is managed by the `authStore.ts` Riverpod store.
 
 1. **App Launch:** The app checks `expo-secure-store` for an existing session JSON string.
 2. **Restoration:** If found, Supabase SDK restores the session. If the Access Token is expired, the SDK automatically uses the Refresh Token to get a new one.
@@ -169,7 +169,7 @@ State is managed by the `authStore.ts` Zustand store.
 import * as SecureStore from 'expo-secure-store';
 import { createClient } from '@supabase/supabase-js';
 
-const ExpoSecureStoreAdapter = {
+const FlutterSecureStoreAdapter = {
   getItem: (key: string) => {
     return SecureStore.getItemAsync(key);
   },
@@ -183,7 +183,7 @@ const ExpoSecureStoreAdapter = {
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
-    storage: ExpoSecureStoreAdapter,
+    storage: FlutterSecureStoreAdapter,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
@@ -231,7 +231,7 @@ sequenceDiagram
     App->>GO: GET /api/v1/users/@me (with Bearer Token)
     GO-->>App: 401 Unauthorized (Token Expired)
     
-    Note over App: Axios Interceptor catches 401
+    Note over App: Dio Interceptor catches 401
     App->>SUPA: POST /auth/v1/token?grant_type=refresh_token
     SUPA-->>App: {access_token: "new...", refresh_token: "new..."}
     

@@ -165,7 +165,7 @@ echo $JWT_SECRET | wc -c    # Should be 100+ characters
 **Solution:**
 1. Log out and log back in on the mobile app (forces a fresh token)
 2. If persistent, check that the device's clock is accurate
-3. Verify the token refresh logic in `shared/services/auth.service.ts`
+3. Verify the token refresh logic in `mobile/lib/core/services/auth_service.dart`
 
 ### Error: `invalid token format`
 
@@ -242,68 +242,58 @@ ulimit -n 65536
 
 ## Mobile App Issues
 
-### White / Blank Screen on Launch
-
-**Root cause (most common):** Metro bundler crashed or has stale cache. The app loads but JavaScript failed to execute.
-
+### Widespread Import Errors
+**Symptoms:** Hundreds of errors stating "Target of URI doesn't exist" or "Undefined name".
+**Root cause:** Usually occurs after a large refactor where relative paths were broken or `pubspec.yaml` was modified without updating the cache.
 **Solution:**
 ```bash
 cd mobile
+flutter clean
+flutter pub get
+```
+If using VS Code, restart the Dart Analysis Server (`Cmd/Ctrl+Shift+P` -> "Dart: Restart Analysis Server").
 
-# Clear Metro cache and restart
-npx expo start -c
+### Generated Code Missing (`.g.dart` or `.freezed.dart`)
+**Symptoms:** "Method not found" or "Class not found" for classes that should be generated.
+**Root cause:** `build_runner` hasn't been run or failed to complete.
+**Solution:**
+```bash
+cd mobile
+flutter pub run build_runner build --delete-conflicting-outputs
+```
 
-# If that doesn't work, clear all caches
-rm -rf node_modules/.cache
-rm -rf .expo
-npm install
-npx expo start -c
+### Android Build Failure (Gradle)
+**Symptoms:** `Execution failed for task ':app:processDebugResources'` or `Could not find com.android.tools.build:gradle`.
+**Root cause:** Misconfigured `android/build.gradle` or stale Gradle cache.
+**Solution:**
+1. Check `mobile/android/build.gradle` for the correct Kotlin and Gradle versions.
+2. Clean Gradle cache:
+   ```bash
+   cd mobile/android
+   ./gradlew clean
+   ```
+
+### iOS Build Failure (CocoaPods)
+**Symptoms:** `Error: Linker command failed` or `Module 'X' not found`.
+**Root cause:** Pods are out of sync or stale.
+**Solution:**
+```bash
+cd mobile/ios
+rm -rf Pods
+rm Podfile.lock
+pod install
 ```
 
 ### Error: `Network Request Failed`
-
-**Root cause:** The mobile app can't reach the backend services. The most common cause is using `localhost` in `EXPO_PUBLIC_API_URL` instead of the machine's LAN IP.
-
+**Root cause:** The mobile app cannot reach the backend. In development, this is often because the API URL is set to `localhost` which refers to the emulator/device itself, not your host machine.
 **Solution:**
-1. Find your LAN IP:
-   ```bash
-   hostname -I           # Linux
-   ifconfig | grep "inet " # macOS
-   ```
-2. Update `mobile/.env`:
+1. Find your machine's LAN IP (`hostname -I` on Linux/macOS).
+2. Ensure your `.env` (managed via Doppler) uses this IP:
    ```env
-   EXPO_PUBLIC_API_URL=http://192.168.1.100:8081
-   EXPO_PUBLIC_WS_URL=ws://192.168.1.100:8080/ws
+   API_URL=http://192.168.1.XX:8081
+   WS_URL=ws://192.168.1.XX:8080/ws
    ```
-3. Restart Metro bundler (env changes require restart)
-
-**Other causes:**
-- Backend service isn't running
-- Firewall blocking the port
-- Phone and computer on different networks (if using physical device)
-
-### Error: `Unable to resolve module`
-
-**Root cause:** Missing npm dependency or incorrect import path.
-
-**Solution:**
-```bash
-cd mobile
-rm -rf node_modules
-npm install
-npx expo start -c
-```
-
-### Error: `Invariant Violation: "main" has not been registered`
-
-**Root cause:** The app entry point is misconfigured. In Expo Router, the entry point is defined by the `"main"` field in `package.json` pointing to `expo-router/entry`.
-
-**Solution:** Verify `mobile/package.json` contains:
-```json
-{
-  "main": "expo-router/entry"
-}
-```
+3. Ensure both the device and host are on the same Wi-Fi network.
 
 ---
 
@@ -411,17 +401,15 @@ docker logs flicko-ws-gateway --tail 50
 
 **Solution:** Upgrade Go to the latest version (see [Prerequisites](prerequisites.md#go)).
 
-### npm install: `ERESOLVE unable to resolve dependency tree`
+### Error: `pubspec.yaml` Dependency Conflict
 
-**Root cause:** Peer dependency conflict between packages. This sometimes happens when Expo SDK and React Native version constraints conflict.
+**Root cause:** Version mismatch between packages or incompatible SDK constraints.
 
 **Solution:**
 ```bash
-# Force install (resolves most peer dependency conflicts)
-npm install --legacy-peer-deps
-
-# Or use the exact lockfile
-npm ci
+# Clean cache and retry
+flutter pub cache clean
+flutter pub get
 ```
 
 ---

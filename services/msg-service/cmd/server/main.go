@@ -152,14 +152,8 @@ func run(log *zap.Logger) error {
 	channelSvc := service.NewChannelService(channelRepo, guildRepo, log)
 	guildSvc := service.NewGuildService(guildRepo, log)
 
-	// Media service - Cloudinary credentials are configured via environment variables
-	// The MediaService will use Cloudinary for presigned uploads
-	// Note: You may need to implement a Cloudinary-specific presigner or use existing MediaService
-	// For now, commenting out until Cloudinary presigner is implemented
-	// mediaSvc := service.NewMediaService(cloudinaryPresigner, "flicko-attachments", log)
-	var mediaSvc *service.MediaService // Placeholder until Cloudinary presigner is implemented
-
 	// ── Handlers ────────────────────────────────────────────
+	var mediaSvc *service.MediaService // Unused since Appwrite is handled client-side per README
 	messageH := handler.NewMessageHandler(messageSvc, log)
 	channelH := handler.NewChannelHandler(channelSvc, log)
 	guildH := handler.NewGuildHandler(guildSvc, log)

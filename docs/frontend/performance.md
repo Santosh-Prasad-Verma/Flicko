@@ -2,21 +2,21 @@
 
 > **Reading time:** ~6 minutes · **Audience:** Mobile Developers · **Last Updated:** 2026-04-11
 
-To deliver a premium 60fps React Native experience equivalent to native iOS/Android chat apps, Flicko employs several aggressive optimization strategies.
+To deliver a premium 60fps Flutter experience equivalent to native iOS/Android chat apps, Flicko employs several aggressive optimization strategies.
 
 ---
 
 ## 1. Hermes Engine
 
-We enforce the usage of the Hermes JavaScript Engine, purposefully built by Meta for React Native.
+We enforce the usage of the Hermes JavaScript Engine, purposefully built by Meta for Flutter.
 
 **Benefits realized in Flicko:**
-- **Ahead-of-Time (AOT) Compilation:** The JavaScript bundle is precompiled into Hermes bytecode during the Expo build step. This results in incredibly fast app launch times (TTI) compared to JIT engines like V8.
+- **Ahead-of-Time (AOT) Compilation:** The JavaScript bundle is precompiled into Hermes bytecode during the Flutter build step. This results in incredibly fast app launch times (TTI) compared to JIT engines like V8.
 - **Garbage Collection:** Hermes utilizes an optimized GC tailored for mobile memory limits, preventing the dreaded "micro-stutters" when rendering hundreds of chat messages during rapid scrolling.
 
 ## 2. Reanimated 3 (UI Thread Processing)
 
-Standard React Native animations require constantly crossing the "Bridge" — passing numbers between the JS Thread and the Native UI Thread. This causes lag if the JS thread is busy parsing incoming WebSocket JSON.
+Standard Flutter animations require constantly crossing the "Bridge" — passing numbers between the JS Thread and the Native UI Thread. This causes lag if the JS thread is busy parsing incoming WebSocket JSON.
 
 For all gestures (e.g., swiping the sidebar, dragging to reorder channels), Flicko relies on `react-native-reanimated`.
 

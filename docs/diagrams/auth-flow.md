@@ -9,7 +9,7 @@ sequenceDiagram
     participant U as 👤 User
     participant APP as 📱 Mobile App
     participant SA as 🔐 Supabase Auth
-    participant STORE as 📦 AuthStore (Zustand)
+    participant STORE as 📦 AuthStore (Riverpod)
     participant SS as 🔑 SecureStore
     participant BE as ⚙️ Backend API
 

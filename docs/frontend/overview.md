@@ -1,50 +1,60 @@
 # Frontend Overview
 
-> **Reading time:** ~5 minutes · **Audience:** Mobile/Frontend Developers · **Last Updated:** 2026-04-11
+> **Reading time:** ~5 minutes · **Audience:** Mobile Developers · **Last Updated:** 2026-04-24
 
-Flicko’s frontend is a cross-platform mobile application built using React Native and the Expo framework. It is responsible for delivering the real-time, 60fps chat experience that users expect from modern platforms.
+Flicko’s frontend is a premium, cross-platform mobile application built using **Flutter 3.22+**. It is designed for maximum performance, aiming for a consistent 120fps experience on supported devices while delivering real-time features like messaging, voice chat, and collaborative tools.
 
 ---
 
 ## Technology Stack
 
-Our choices prioritize developer velocity cross-platform consistency:
+Our stack is chosen for performance, type safety, and developer expressiveness:
 
-- **Framework:** React Native + Expo (Managed Workflow)
-- **Language:** TypeScript (Strict Mode)
-- **UI & Styling:** StyleSheet API with highly customized design tokens
-- **Navigation:** Expo Router (File-based routing)
-- **State Management:** 
-  - `Zustand` (Global UI and WebSocket State)
-  - `@tanstack/react-query` (Server Cache + Offline logic)
-- **Media:** `@livekit/react-native` for WebRTC, `expo-image` for high-performance lazy loading
-- **Storage:** `expo-secure-store` for Auth Tokens, `AsyncStorage` for preferences.
+- **Framework:** [Flutter](https://flutter.dev/) (3.22.x)
+- **Language:** [Dart](https://dart.dev/) (3.4+)
+- **State Management:** [Riverpod](https://riverpod.dev/) (Provider-based, reactive)
+- **Navigation:** [GoRouter](https://pub.dev/packages/go_router) (Declarative, parameter-safe routing)
+- **Networking:** [Dio](https://pub.dev/packages/dio) for REST, [Websocket Manager](https://pub.dev/packages/web_socket_channel) for Real-time
+- **Voice/Video:** [LiveKit Flutter SDK](https://livekit.io/)
+- **Storage:** [Supabase Storage](https://supabase.com/storage) for binaries, [Cloudinary](https://cloudinary.com/) for media CDN
+- **Local Persistence:** `flutter_secure_storage` (Auth) and `shared_preferences` (Settings)
 
 ---
 
 ## Design Philosophy
 
-1. **Optimistic Updates First:** The user should never wait for an HTTP request to finish to see their chat message appear. The app must feel instantaneous.
-2. **Platform Agnostic UI:** Unlike some apps that heavily branch for iOS vs Android, Flicko maintains a unified custom brand language (colors, fonts, gestures) that looks identical on both platforms.
-3. **Always Connected:** The frontend must smoothly handle spotty 4G connections, gracefully queuing messages and reconnecting WebSockets in the background.
+1. **Native Performance:** We leverage Flutter's Impeller rendering engine to ensure buttery-smooth animations and transitions.
+2. **Feature-First Architecture:** Code is organized by feature (Auth, Servers, Messages) rather than by layer (Models, Views, Controllers), making it easier to scale and maintain.
+3. **Reactive by Default:** The entire application follows a reactive pattern using Riverpod. UI widgets automatically rebuild when their dependent providers emit new state.
+4. **Resilient Connectivity:** The app is built to handle network transitions gracefully, with built-in retry logic and optimistic UI state management.
 
 ---
 
-## Directory Context
+## Directory structure
 
-The entire mobile application lives inside the `/mobile` directory of the monorepo. It operates completely independently of the Go backend, connecting only via the public API URLs.
+The mobile source code lives in the `/mobile` directory.
 
 ```bash
-Flicko/
-└── mobile/
-    ├── app/          # Navigation screens (Expo Router)
-    ├── components/   # Reusable UI elements
-    ├── constants/    # Theme colors, config maps
-    ├── hooks/        # Custom React hooks
-    └── shared/       # Zustand stores & util functions
+mobile/
+├── lib/
+│   ├── core/           # Global config, constants, network, and theme
+│   ├── data/           # Repositories and base API clients
+│   ├── features/       # Feature-specific logic (Presentation & Application)
+│   │   ├── auth/
+│   │   ├── server/
+│   │   ├── messages/
+│   │   └── voice/
+│   └── main.dart       # Application entry point
+└── assets/             # Images, fonts, and design tokens
 ```
 
-Explore the frontend documentation:
+---
+
+## Next Steps
+
+Explore the detailed frontend documentation:
 - [Folder Structure](folder-structure.md)
-- [State Management & Zustand Stores](zustand-stores.md)
-- [Performance & Optimization](performance.md)
+- [Riverpod Providers](riverpod-providers.md)
+- [Navigation & Routing](navigation.md)
+- [Styling & Design Tokens](styling-guide.md)
+

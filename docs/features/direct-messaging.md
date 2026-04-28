@@ -99,7 +99,7 @@ Flicko uses a coordination table `dm_calls` to orchestrate calls without a persi
 5. **Media**: The `conversation_id` serves as the LiveKit room name, ensuring all participants join the same private media session.
 
 ### State Management
-Call state is managed via the `useDMCallStore` Zustand store, which handles ringing durations, visibility of the call dialog, and clean-up of the call record when the conversation ends.
+Call state is managed via the `useDMCallStore` Riverpod store, which handles ringing durations, visibility of the call dialog, and clean-up of the call record when the conversation ends.
 
 ---
 

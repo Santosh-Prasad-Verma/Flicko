@@ -32,9 +32,9 @@ flowchart LR
     WS -->|/metrics| PROM
     MSG -->|/metrics| PROM
     BE -->|/metrics| PROM
-    NGINX -->|stub_status| NGXEXP[NGINX Exporter]
+    NGINX -->|stub_status| NGXEXP[NGINX Flutterrter]
     NGXEXP --> PROM
-    HOST --> NODEEXP[Node Exporter]
+    HOST --> NODEEXP[Node Flutterrter]
     NODEEXP --> PROM
 
     WS -->|JSON logs| LOKI
@@ -56,8 +56,8 @@ flowchart LR
 |--------|----------|----------|
 | ws-gateway | `ws-gateway:9100/metrics` | 15s |
 | msg-service | `msg-service:9081/metrics` | 15s |
-| Node Exporter | `node-exporter:9100/metrics` | 15s |
-| NGINX Exporter | `nginx-exporter:9113/metrics` | 15s |
+| Node Flutterrter | `node-exporter:9100/metrics` | 15s |
+| NGINX Flutterrter | `nginx-exporter:9113/metrics` | 15s |
 
 **Key metrics collected:**
 - `ws_gateway_connections_total` — Active WebSocket connections
@@ -161,9 +161,9 @@ All Go services output JSON structured logs (via `zap`). Loki ingests these via 
 
 ---
 
-## Node Exporter
+## Node Flutterrter
 
-Exposes Linux host metrics:
+Flutterses Linux host metrics:
 - CPU usage per core
 - Memory usage and swap
 - Disk I/O and space

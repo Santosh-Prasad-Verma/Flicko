@@ -12,20 +12,22 @@ This document provides a complete annotated directory tree for the Flicko monore
 Flicko/
 ├── backend/                    # Go monolith: Bot framework, services, middleware
 ├── services/                   # Go microservices: ws-gateway, msg-service, shared packages
-├── mobile/                     # React Native app: Expo SDK 54, file-based routing
-├── shared/                     # Cross-platform TypeScript: services, stores, hooks, types
-├── supabase/                   # Supabase config: 65 SQL migrations, Edge Functions
+├── mobile/                     # Flutter app: Riverpod state management, GoRouter, modular architecture
+├── mobile/lib/                 # Flutter source: features, core, data models
+├── mobile/assets/              # App assets: icons, fonts, banners
+├── mobile/pubspec.yaml         # Flutter dependencies
+├── supabase/                   # Supabase config: 94 SQL migrations, Edge Functions
 ├── mail-gateway/               # Go email service
 ├── nginx/                      # NGINX reverse proxy config
 ├── monitoring/                 # Prometheus, Grafana, Loki configurations
 ├── scripts/                    # Deployment and setup scripts
-├── docs/                       # 87 documentation files
+├── docs/                       # 121 documentation files
 ├── .github/                    # GitHub Actions CI/CD, issue templates
-├── .husky/                     # Git hooks (pre-commit: Prettier + gofmt)
+├── .husky/                     # Git hooks (pre-commit: gofmt + dart format)
 ├── docker-compose.prod.yml     # Production: 9 containers, 3 networks (455 lines)
 ├── docker-compose.dev.yml      # Development stack
 ├── .env.example                # Environment variable template
-├── package.json                # Root: Husky + Prettier + lint-staged
+├── package.json                # Root: Husky + lint-staged
 ├── setup.sh                    # Interactive setup wizard (9.7 KB)
 ├── README.md                   # Project README
 └── .gitignore                  # Git ignore rules
@@ -164,122 +166,53 @@ services/
 │   │   └── handlers/                        # HTTP handlers
 │   ├── go.mod
 │   └── Dockerfile
-│
-└── shared/                                  # Shared Go packages
-    ├── protocol/                            # WebSocket protocol definitions
-    │   ├── opcodes.go                       # OpIdentify, OpReady, OpHeartbeat, OpDispatch, etc.
-    │   └── events.go                        # Event types (MESSAGE_CREATE, PRESENCE_UPDATE, etc.)
-    ├── auth/                                # JWT validation utilities
-    ├── redis/                               # Redis client wrapper with TLS support
-    └── models/                              # Shared data models
 ```
 
 ---
 
-## mobile/ — React Native Application
+## mobile/ — Flutter Application
+
+The `mobile/` directory contains the cross-platform Flutter application. It follows a modular, feature-first architecture where each domain (auth, server, messaging, etc.) has its own folder containing presentation, domain, and data logic.
 
 ```
 mobile/
-├── app/                                     # File-based routes (Expo Router)
-│   ├── _layout.tsx                          # Root layout with providers
-│   ├── index.tsx                            # Entry redirect
+├── lib/
+│   ├── main.dart                       # App entry point — ProviderScope init
 │   │
-│   ├── (auth)/                              # Auth route group (unauthenticated)
-│   │   ├── login.tsx                        # Login screen
-│   │   └── register.tsx                     # Registration screen
+│   ├── core/                           # App-wide infrastructure
+│   │   ├── router/                     # GoRouter configuration (app_router.dart)
+│   │   ├── theme/                      # Theme definitions (Light/Dark/AMOLED)
+│   │   ├── constants/                  # Global constants (API URLs, keys)
+│   │   ├── network/                    # API clients and WebSocket logic
+│   │   ├── error_handling/             # App-wide error handling
+│   │   ├── extensions/                 # Dart extensions for UI/logic
+│   │   ├── services/                   # App-wide services
+│   │   └── utils/                      # Formatting and validation helpers
 │   │
-│   ├── (tabs)/                              # Main tab bar
-│   │   ├── _layout.tsx                      # Tab navigator config
-│   │   ├── home.tsx                         # Server list
-│   │   ├── friends.tsx                      # Friends list
-│   │   ├── dms.tsx                          # DM conversations
-│   │   ├── notifications.tsx                # Notification center
-│   │   └── profile.tsx                      # User profile
+│   ├── features/                       # Modular feature-first architecture
+│   │   ├── auth/                       # Authentication (Login, Register, Reset)
+│   │   ├── server/                     # Server discovery, creation, management
+│   │   ├── channel/                    # Channel list, reordering, settings
+│   │   ├── messaging/                  # Real-time chat, attachments, reactions
+│   │   ├── voice/                      # LiveKit integration, voice HUD
+│   │   ├── video/                      # Video grid, screen share
+│   │   ├── dm/                         # Direct messages and group DMs
+│   │   ├── profile/                    # User profiles (public & private)
+│   │   ├── settings/                   # App, privacy, voice settings
+│   │   └── premium/                    # Flicko Plus & plus subscriptions
 │   │
-│   ├── server/                              # Server detail screens
-│   │   ├── [serverId]/                      # Dynamic route per server
-│   │   │   ├── index.tsx                    # Channel list
-│   │   │   ├── [channelId].tsx              # Message view
-│   │   │   └── settings.tsx                 # Server settings
-│   │   └── create.tsx                       # Create server
-│   │
-│   ├── dm/[conversationId].tsx              # DM conversation screen
-│   ├── voice/[channelId].tsx                # Voice channel screen
-│   ├── user/[userId].tsx                    # User profile screen
-│   ├── search.tsx                           # Global search
-│   ├── settings/                            # App settings
-│   │   ├── index.tsx                        # Settings menu
-│   │   ├── appearance.tsx                   # Theme selection
-│   │   ├── notifications.tsx                # Notification prefs
-│   │   └── account.tsx                      # Account management
-│   └── flicko-plus.tsx                      # Premium subscription (26 KB)
+│   └── data/                           # Data layer (shared across features)
+│       ├── models/                     # Data models (JSON serialization)
+│       ├── repositories/               # Repository implementations
+│       ├── datasources/                # Remote/Local data sources
+│       ├── clients/                    # Specific API clients
+│       └── services/                   # Data-focused services
 │
-├── components/                              # 20 component directories
-│   ├── ui/                                  # Buttons, inputs, modals, cards
-│   ├── messages/                            # MessageBubble, MessageList, ReactionPicker
-│   ├── server/                              # ServerCard, ServerIcon, ChannelList
-│   ├── voice/                               # VoiceChannelCard, ParticipantList
-│   ├── friends/                             # FriendCard, FriendRequestCard
-│   └── ...                                  # Additional component groups
-│
-├── hooks/                                   # Custom React hooks
-│   ├── useTheme.ts                          # Theme provider hook
-│   ├── useWebSocket.ts                      # WebSocket connection hook
-│   └── ...
-│
-├── constants/
-│   └── Colors.ts                            # Design tokens (255 lines) — all theme colors
-│
-├── assets/
-│   ├── Flicko_icon.png                      # App icon
-│   └── fonts/                               # GG Sans typography files
-│
-├── app.json                                 # Expo configuration (77 lines)
-├── package.json                             # Dependencies
-├── tsconfig.json                            # TypeScript config
-└── .env.example                             # Mobile env template
-```
-
----
-
-## shared/ — Cross-Platform TypeScript
-
-```
-shared/
-├── services/                                # 51 API service files
-│   ├── auth.service.ts                      # Authentication
-│   ├── serverService.ts                     # Server CRUD
-│   ├── messageService.ts                    # Message operations
-│   ├── cloudinaryService.ts                 # Media upload (12 KB)
-│   ├── mediaService.ts                      # Media processing (20 KB)
-│   ├── inviteService.ts                     # Invite management (9 KB)
-│   ├── roleService.ts                       # Role operations (9 KB)
-│   ├── stripePaymentService.ts              # Premium subscription (12 KB)
-│   ├── dmService.ts                         # Direct messages
-│   ├── friendService.ts                     # Friend lifecycle
-│   ├── voiceService.ts                      # Voice operations
-│   ├── notificationService.ts               # Push notifications
-│   └── ...                                  # 38+ additional services
-│
-├── stores/                                  # 22 Zustand state stores
-│   ├── authStore.ts                         # Auth state + token management
-│   ├── serverManagementStore.ts             # Server state (10 KB)
-│   ├── messageStore.ts                      # Message cache + optimistic updates
-│   ├── voiceStore.ts                        # Voice channel state
-│   ├── presenceStore.ts                     # Online/offline status
-│   ├── notificationStore.ts                 # Notification state
-│   ├── uploadStore.ts                       # Upload progress tracking
-│   ├── subscriptionStore.ts                 # Premium subscription state
-│   ├── accountSwitchStore.ts                # Multi-account support
-│   └── ...                                  # 13+ additional stores
-│
-├── hooks/                                   # Shared React hooks
-├── types/                                   # TypeScript type definitions
-├── utils/                                   # Utility functions
-│
-└── __tests__/                               # Jest test files
-    ├── stores/                              # Store tests
-    └── services/                            # Service tests
+├── assets/                             # Static assets (images, icons, fonts)
+├── android/                            # Android native project files
+├── ios/                                # iOS native project files
+├── test/                               # Flutter unit and widget tests
+└── pubspec.yaml                        # Flutter dependencies and config
 ```
 
 ---
@@ -342,4 +275,4 @@ docker-compose.dev.yml                       # Development stack
 
 ---
 
-*Last Updated: 2026-04-11 | Version: 1.0.0 | Maintained by: Flicko Team*
+*Last Updated: 2026-04-24 | Version: 1.0.0 | Maintained by: Flicko Team*

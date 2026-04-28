@@ -1,30 +1,22 @@
 # Frontend State Management
-> *Last Updated: 2026-04-11 · Version: 1.0.0*
 
-## Architecture: Zustand + React Query
+> **Reading time:** ~3 minutes · **Audience:** Frontend Developers · **Last Updated:** 2026-04-24
 
-### Zustand Stores (22 stores)
-Location: `shared/stores/`
+Flicko uses **Riverpod** as its central state management and data caching solution. It replaces the legacy combination of Riverpod and React Query used in earlier versions.
 
-All stores use Zustand's hook-based API:
-```typescript
-const { user, setUser } = useAuthStore();
-```
+## Core Features
 
-Key stores (with file sizes indicating complexity):
-- `messageStore.ts` (13 KB) — Message cache, optimistic updates
-- `voiceStore.ts` (12 KB) — Voice channel state
-- `serverManagementStore.ts` (10 KB) — Server CRUD
-- `readStateStore.ts` (8 KB) — Unread tracking
-- `settingsStore.ts` (7 KB) — User preferences
-- `uploadStore.ts` (7 KB) — File upload progress
-- `authStore.ts` (6 KB) — Auth state, session
+- **Standardized Data Fetching:** We use `FutureProvider` and `AsyncNotifier` to handle API requests and state management in a single, type-safe interface.
+- **Real-Time Integration:** `StreamProvider` is used to map WebSocket events directly into the UI state.
+- **Optimistic Updates:** Implementing low-latency UI updates during network operations to ensure a highly responsive user experience.
+- **Testing ready:** All dependencies are injected via providers, making it trivial to mock the backend for widget and integration tests.
 
-### React Query
-File: `mobile/services/queryClient.ts`
+## Key Resources
 
-Used for:
-- Server state caching
-- Background data refetching
-- Optimistic updates on mutations
-- Automatic retry on failure
+- **Detailed Architecture:** [Architecture: State Management](../architecture/state-management.md)
+- **Provider Inventory:** [Riverpod Providers Index](riverpod-providers.md)
+
+---
+
+*Last Updated: 2026-04-24 | Version: 2.0.0 | Maintained by: Flicko Team*
+

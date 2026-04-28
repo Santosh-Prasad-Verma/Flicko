@@ -13,12 +13,12 @@ Our networking strategy is controlled by an interceptor automaton that monitors 
 When the OS reports `isConnected: false`:
 1. The app renders a discreet "Connecting..." banner at the top of the UI.
 2. The WebSocket dispatcher suppresses standard disconnect warning modals.
-3. React Query enters "paused" state. Any `POST/PUT/PATCH` requests triggered by the user UI are caught by an Axios interceptor and placed into a volatile memory queue.
+3. React Query enters "paused" state. Any `POST/PUT/PATCH` requests triggered by the user UI are caught by an Dio interceptor and placed into a volatile memory queue.
 
 When `isConnected: true` returns:
 1. The `useWebSocket` hook instantly attempts a reconnection to `ws-gateway`.
 2. React Query automatically invalidates active queries (`refetchOnReconnect: true`), ensuring the UI fetches any messages missed while offline.
-3. The Axios interceptor automatically pops pending mutations off the memory queue and executes them in order.
+3. The Dio interceptor automatically pops pending mutations off the memory queue and executes them in order.
 
 ---
 
@@ -27,7 +27,7 @@ When `isConnected: true` returns:
 If a user hits "Send" while in an elevator (Offline):
 1. The `messageStore.ts` assigns the temporary message UUID.
 2. The UI renders the message normally, but gives it a grey clock icon indicating `status: 'pending'`.
-3. The network request is caught by the Axios Offline Interceptor.
+3. The network request is caught by the Dio Offline Interceptor.
 4. If the user force-closes the app *while still offline*, the message is lost (we intentionally do not persist the outbound queue to disk to prevent complex conflict resolution bugs upon app reboot).
 
 ---
@@ -44,7 +44,7 @@ To ensure incredibly fast "Cold Boot" times to interactive paint, the React Quer
 
 ---
 
-## WebSocket Exponential Backoff
+## WebSocket Flutternential Backoff
 
 If the `ws-gateway` server restarts for a deployment, thousands of clients will drop simultaneously.
 If they all retried instantly via a `setInterval(reconnect, 1000)`, they would inadvertently execute a DDoS attack against our own load balancer.

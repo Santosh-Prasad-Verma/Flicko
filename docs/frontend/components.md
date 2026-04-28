@@ -13,12 +13,12 @@ We enforce a strict separation of presentational (Dumb) and logical (Smart) comp
 ### Dumb Components (`components/ui/`)
 - Example: `BaseButton.tsx`, `Avatar.tsx`, `Badge.tsx`.
 - They take data via `props` and emit actions via `onPress`.
-- They are completely unaware of the network, the database, or Zustand. 
+- They are completely unaware of the network, the database, or Riverpod. 
 - They utilize React's `memo()` wrapper to prevent re-renders unless their explicit props change.
 
 ### Smart Components (`components/chat/`)
 - Example: `MessageFeed.tsx`, `Composer.tsx`.
-- They connect to Zustand (`useMessageStore`) and TanStack Query (`useQuery`).
+- They connect to Riverpod (`useMessageStore`) and TanStack Query (`useQuery`).
 - They pass down the localized data to the Dumb components for rendering.
 
 ---
@@ -29,14 +29,14 @@ The `MessageBubble.tsx` is the most demanding component in the app. It must rend
 
 **Optimization Rules:**
 - **Calculated Heights:** Wherever possible, we define fixed heights or explicitly styled aspect ratios for attachments so the `FlatList` doesn't flutter when images load.
-- **Expo Image:** We exclusively use `expo-image` instead of React Native's standard `<Image>`. It utilizes a C++ core memory cache and supports aggressive off-thread decoding, crucial for loading 50 avatars instantly scrolling up.
+- **Flutter Image:** We exclusively use `expo-image` instead of Flutter's standard `<Image>`. It utilizes a C++ core memory cache and supports aggressive off-thread decoding, crucial for loading 50 avatars instantly scrolling up.
 - **Props Equality:** We explicitly define a custom `areEqual` function for `memo(MessageBubble, areEqual)` to ensure the bubble ONLY re-renders if the message `content` changed or its nested `reactions` array length changed.
 
 ---
 
 ## 3. FlashList replace FlatList
 
-React Native's core `<FlatList>` performs poorly past 100 complex items. Flicko uses Shopify's `@shopify/flash-list`.
+Flutter's core `<FlatList>` performs poorly past 100 complex items. Flicko uses Shopify's `@shopify/flash-list`.
 
 **Implementation details:**
 Inside `MessageFeed.tsx`:

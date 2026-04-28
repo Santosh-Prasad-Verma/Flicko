@@ -28,8 +28,8 @@ graph TB
                 PROM["📊 Prometheus<br/>RAM: 512 MB"]
                 GRAF["📈 Grafana<br/>RAM: 256 MB"]
                 LOKI["📋 Loki<br/>RAM: 512 MB"]
-                NEXP["📡 Node Exporter<br/>RAM: 64 MB"]
-                XEXP["📡 NGINX Exporter<br/>RAM: 32 MB"]
+                NEXP["📡 Node Flutterrter<br/>RAM: 64 MB"]
+                XEXP["📡 NGINX Flutterrter<br/>RAM: 32 MB"]
             end
         end
 
@@ -82,8 +82,8 @@ Container Allocation:
   Prometheus ........ 512 MB
   Grafana ........... 256 MB
   Loki .............. 512 MB
-  Node Exporter ..... 64 MB
-  NGINX Exporter .... 32 MB
+  Node Flutterrter ..... 64 MB
+  NGINX Flutterrter .... 32 MB
 ────────────────────────────────────────
   Total Containers: 3,552 MB (~3.5 GB)
   OS + Buffers:     4,640 MB (~4.5 GB)

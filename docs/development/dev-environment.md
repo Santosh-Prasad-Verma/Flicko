@@ -48,7 +48,7 @@ Install these extensions:
 
 | Service | Hot Reload | How |
 |---------|-----------|-----|
-| Mobile app | ✅ Yes | Expo fast refresh (automatic) |
+| Mobile app | ✅ Yes | Flutter fast refresh (automatic) |
 | Go backend | ❌ Manual | Stop → `go run` again. Or use `air` for Go hot reload |
 | NGINX | ❌ Manual | `docker compose restart nginx` |
 

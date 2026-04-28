@@ -1,0 +1,7 @@
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/Flicko_icon.png"
+  adaptive_icon_background: "#36393F"
+  adaptive_icon_foreground: "assets/images/Flicko_icon.png"
+  remove_alpha_ios: true

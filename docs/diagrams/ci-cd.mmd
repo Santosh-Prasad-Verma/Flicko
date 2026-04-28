@@ -4,16 +4,16 @@ flowchart LR
     subgraph "CI: Testing & Linting"
         GHA --> GoTest[Go Unit Tests]
         GHA --> GoLint[Staticcheck / gofmt]
-        GHA --> ExpoLint[ESLint / Prettier]
+        GHA --> FlutterLint[ESLint / Prettier]
     end
 
     GoTest -->|Pass| CD
     GoLint -->|Pass| CD
-    ExpoLint -->|Pass| CD
+    FlutterLint -->|Pass| CD
 
     subgraph "CD: Deployment"
         CD{Split CD} -->|Backend Changed| SSH[ssh-action]
-        CD -->|Mobile Changed| EAS[Expo EAS Build]
+        CD -->|Mobile Changed| EAS[Flutter EAS Build]
     end
 
     SSH -->|Trigger| VPS[(Production VPS)]

@@ -240,6 +240,7 @@ mail-gateway/.env
 
 # Trash folder
 trash/
+TRAP/
 
 # VS Code MCP Config
 mcp.json
@@ -253,3 +254,40 @@ backend/.env
 # Local dev scripts
 start-dev.sh
 stop-dev.sh
+.env
+
+# Junk & Temporary files
+l.txt
+out.log
+backend_test.log
+*.rdb
+dump.rdb
+debug.test
+prof.out
+cpu.prof
+mem.prof
+
+# Mobile (Flutter)
+mobile/.dart_tool/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/.packages
+mobile/.pub-cache/
+mobile/.pub/
+mobile/build/
+mobile/android/local.properties
+mobile/android/key.properties
+mobile/android/app/debug/
+mobile/android/app/profile/
+mobile/android/app/release/
+mobile/ios/.last_build_id
+mobile/ios/Pods/
+mobile/ios/Symbols/
+mobile/ios/Flutter/Generated.xcconfig
+mobile/ios/Flutter/flutter_export_environment.sh
+mobile/ios/ServiceDefinitions.json
+mobile/mobile.iml
+
+# Firebase (uncomment if you use Firebase and want to hide your config)
+mobile/android/app/google-services.json
+mobile/ios/Runner/GoogleService-Info.plist

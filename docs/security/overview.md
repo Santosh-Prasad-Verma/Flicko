@@ -20,7 +20,7 @@ An incoming malicious request attempting an SQL Injection on the Flicko API must
 ## Attack Vector Mitigations
 
 ### 1. Cross-Site Scripting (XSS)
-- **Prevention:** React Native handles text safely natively (there is no DOM). 
+- **Prevention:** Flutter handles text safely natively (there is no DOM). 
 - **Prevention:** Any web interfaces receive `X-XSS-Protection: 1; mode=block` headers.
 
 ### 2. Denial of Service (DoS/DDoS)

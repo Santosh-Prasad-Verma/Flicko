@@ -2,7 +2,7 @@
 
 > *Last Updated: 2026-04-11 · Version: 1.0.0*
 
-## React Native Component Hierarchy
+## Flutter Component Hierarchy
 
 ```mermaid
 graph TD
@@ -70,7 +70,7 @@ graph TD
 
 ```mermaid
 graph TD
-    A["GestureHandlerRootView<br/><i>React Native Gesture Handler</i><br/><i>Enables swipe/pan gestures</i>"]
+    A["GestureHandlerRootView<br/><i>Flutter Gesture Handler</i><br/><i>Enables swipe/pan gestures</i>"]
     B["ErrorBoundary<br/><i>Class component</i><br/><i>Catches render errors</i><br/><i>Reports to Sentry</i>"]
     C["SafeAreaProvider<br/><i>Safe area insets</i><br/><i>Avoids notch/status bar</i>"]
     D["QueryClientProvider<br/><i>React Query cache</i><br/><i>Server state management</i>"]

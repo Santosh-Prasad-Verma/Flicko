@@ -62,7 +62,7 @@ func (h *EmojiHandler) GetServerEmojis(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]interface{}{"emojis": emojis})
 }
 
-// Mobile devices call Cloudinary explicitly. When finished, they POST back the payload.
+// Mobile devices call Appwrite SDK explicitly. When finished, they POST back the payload.
 func (h *EmojiHandler) CreateEmoji(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	vars := mux.Vars(r)
