@@ -162,7 +162,7 @@ func (s *connectedAccountService) DisconnectAccount(ctx context.Context, userID,
 	return nil
 }
 
-func revokeThirdPartyToken(ctx context.Context, provider, token string) {
+func revokeThirdPartyToken(_ context.Context, provider, _ string) {
 	// e.g., if provider == "google", call POST https://oauth2.googleapis.com/revoke?token=TOKEN
 	// In a complete implementation, this would use http.Client.
 	// We handle errors gracefully so internal disconnect doesn't fail just because the remote API is down.

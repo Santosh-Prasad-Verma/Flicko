@@ -173,11 +173,12 @@ func (s *embedService) parseHTMLForMetaTags(r io.Reader, sourceURL string) *Embe
 			if token.Data == "meta" {
 				var prop, name, content string
 				for _, attr := range token.Attr {
-					if attr.Key == "property" {
+					switch attr.Key {
+					case "property":
 						prop = attr.Val
-					} else if attr.Key == "name" {
+					case "name":
 						name = attr.Val
-					} else if attr.Key == "content" {
+					case "content":
 						content = attr.Val
 					}
 				}
