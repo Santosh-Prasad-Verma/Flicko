@@ -39,7 +39,7 @@ func (s *livekitService) GenerateToken(roomName string, participantName string, 
 	}
 
 	at := auth.NewAccessToken(s.apiKey, s.apiSecret).
-		AddGrant(grant).
+		SetVideoGrant(grant).
 		SetIdentity(participantIdentity).
 		SetName(participantName).
 		SetValidFor(time.Hour * 8)
