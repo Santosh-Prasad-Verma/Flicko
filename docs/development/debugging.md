@@ -8,12 +8,12 @@ When a user taps "Send Message" on the mobile app and nothing happens, the error
 
 ## 1. Tracing the Mobile Network (Reactotron)
 
-Never use `console.log` for network tracing in React Native. The output is stripped when Expo caches the metro bundle, and scrolling through a terminal of giant JSON blobs is impossible.
+Never use `console.log` for network tracing in Flutter. The output is stripped when Flutter caches the metro bundle, and scrolling through a terminal of giant JSON blobs is impossible.
 
 We use **Reactotron**.
 1. Download the Reactotron desktop client.
 2. In the `mobile/` directory, ensure `reactotron.config.js` is imported in `App.tsx`.
-3. The desktop client will automatically intercept every Axios request, WebSocket payload, and Zustand state change.
+3. The desktop client will automatically intercept every Dio request, WebSocket payload, and Riverpod state change.
 
 **The Strategy:**
 If a message fails, first check Reactotron's "Networking" tab. 
@@ -25,7 +25,7 @@ Did the app receive a `400 Bad Request` or a `500 Internal Server Error`?
 
 ## 2. API STDOUT Auditing (Loki/Logfmt)
 
-If Reactotron shows a `500`, look at the `X-Request-Id` header returned in the Axios payload (e.g. `c-9x2`).
+If Reactotron shows a `500`, look at the `X-Request-Id` header returned in the Dio payload (e.g. `c-9x2`).
 
 The Go backend outputs logs using `logrus` formatted as Logfmt space-delimited text.
 If you are running the API via Air locally, look at the terminal tab running `api` or `msg-service`.

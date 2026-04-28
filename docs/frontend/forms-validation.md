@@ -18,7 +18,7 @@ File: `backend/internal/services/password_validator.go` (4.7 KB)
 Server-side password validation with entropy checks.
 
 ## Form Patterns
-Forms use controlled components with Zustand state:
+Forms use controlled components with Riverpod state:
 1. Local component state for input values
 2. Validation on submit
 3. Error display inline

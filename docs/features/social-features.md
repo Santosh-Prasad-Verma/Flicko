@@ -101,7 +101,7 @@ Updating the profile triggers a `USER_PROFILE_UPDATE` event across all shared se
 
 Push notifications are critical for social engagement but cannot be handled reliably by standard HTTP timeouts.
 
-Flicko uses an asynchronous Supabase Edge Function to deliver payloads to Apple APNs and Google FCM via the Expo Push API.
+Flicko uses an asynchronous Supabase Edge Function to deliver payloads to Apple APNs and Google FCM via the Flutter Push API.
 
 **The Pipeline:**
 1. User receives a DM. `msg-service` writes to DB.
@@ -109,7 +109,7 @@ Flicko uses an asynchronous Supabase Edge Function to deliver payloads to Apple 
 3. If no, `msg-service` triggers the `push-notification` Edge Function via an internal webhook.
 4. The Edge Function looks up the user's `expo_push_token` (registered when they logged in on the mobile app).
 5. The Edge Function posts the payload to `https://exp.host/--/api/v2/push/send`.
-6. Expo delivers the native notification to the device.
+6. Flutter delivers the native notification to the device.
 
 ---
 

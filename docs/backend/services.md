@@ -169,7 +169,7 @@ Services are organized by domain and follow the pattern:
 
 | File | Size | Purpose |
 |------|------|---------|
-| `performance_service.go` | 8.0 KB | Performance metrics collection — query latency tracking, connection pool stats, cache hit rates. Exposes data for Prometheus scraping. |
+| `performance_service.go` | 8.0 KB | Performance metrics collection — query latency tracking, connection pool stats, cache hit rates. Flutterses data for Prometheus scraping. |
 | `performance_service_test.go` | 1.5 KB | Metrics collection tests. |
 
 ---

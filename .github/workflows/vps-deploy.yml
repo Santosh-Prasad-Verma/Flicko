@@ -60,6 +60,9 @@ jobs:
             git reset --hard HEAD
             git pull origin main
 
+            # 2.5. Remove token from persisted git config (security hygiene)
+            git remote set-url origin https://github.com/${{ github.repository }}
+
             # 3. Move the Doppler-generated .env file into place
             mv ~/Flicko/.env.production ~/Flicko/.env
 

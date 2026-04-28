@@ -34,7 +34,7 @@ Flicko uses a direct API integration with Stripe for handling the complex state 
 
 - `STRIPE_SECRET_KEY`: Used by the backend to create Setup Intents.
 - `STRIPE_WEBHOOK_SECRET`: Used to cryptographically verify incoming webhook signatures.
-- `EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY`: Bundled into the React Native app to tokenize cards directly to Stripe (PCI compliance).
+- `FLICKO_STRIPE_PUBLISHABLE_KEY`: Bundled into the Flutter app to tokenize cards directly to Stripe (PCI compliance).
 
 ---
 

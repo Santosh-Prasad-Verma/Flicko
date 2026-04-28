@@ -24,8 +24,8 @@ graph TD
     end
 
     subgraph "Global State"
-        Zustand(Zustand Stores) -.-> |authStore| App
-        Zustand -.-> |appStateStore| SidebarOverlay
-        Zustand -.-> |appStateStore| ChatScreen
+        Riverpod(Riverpod Stores) -.-> |authStore| App
+        Riverpod -.-> |appStateStore| SidebarOverlay
+        Riverpod -.-> |appStateStore| ChatScreen
         ReactQuery(React Query Cache) -.-> |useMessages| ChatScreen
     end

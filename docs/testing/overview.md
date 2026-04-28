@@ -13,7 +13,7 @@ To ensure extreme reliability—especially given our small core team—Flicko ut
 2. **Integration Tests (Medium, Critical Paths)**
    Test the interaction between the Go backend and a real (Dockerized) PostgreSQL database to ensure SQL queries and transactions execute flawlessly.
 3. **End-to-End (E2E) Tests (Slow, Simulates User)**
-   Test the React Native mobile UI workflows using Detox to ensure the entire system works together.
+   Test the Flutter mobile UI workflows using Detox to ensure the entire system works together.
 4. **Load & Stress Tests (On-Demand)**
    Simulates 50,000 users connecting WebSockets simultaneously to verify memory limits.
 

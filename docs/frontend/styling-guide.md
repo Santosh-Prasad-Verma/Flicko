@@ -36,6 +36,6 @@ const { themeColors, isDark } = useTheme();
 ```
 
 ## Styling Approach
-- React Native `StyleSheet.create()` for static styles
+- Flutter `StyleSheet.create()` for static styles
 - Inline styles for dynamic theme-aware styling
-- No external CSS framework (pure React Native)
+- No external CSS framework (pure Flutter)

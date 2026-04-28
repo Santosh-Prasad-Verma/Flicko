@@ -144,11 +144,6 @@ type MsgServiceConfig struct {
 	DatabasePoolMax int    `env:"DATABASE_POOL_MAX" envDefault:"20"`
 	DatabasePoolMin int    `env:"DATABASE_POOL_MIN" envDefault:"5"`
 
-	// Cloudinary (Media Storage)
-	CloudinaryCloudName string `env:"CLOUDINARY_CLOUD_NAME"`
-	CloudinaryAPIKey    string `env:"CLOUDINARY_API_KEY"`
-	CloudinaryAPISecret string `env:"CLOUDINARY_API_SECRET"`
-
 	// Idempotency
 	IdempotencyTTL time.Duration `env:"IDEMPOTENCY_TTL" envDefault:"300s"`
 

@@ -1,6 +1,6 @@
 # Third-Party Integrations
 
-> **Reading time:** ~15 minutes · **Audience:** Backend, DevOps, External API Specialists · **Last Updated:** 2026-04-11
+> **Reading time:** ~15 minutes · **Audience:** Backend, DevOps, External API Specialists · **Last Updated:** 2026-04-24
 
 Flicko relies on several specialized third-party platforms to handle infrastructure primitives that are difficult to build and scale reliably (webRTC SFUs, high-performance edge CDNs, payment processing). This document maps every external service to its exact role in the Flicko architecture.
 
@@ -11,7 +11,7 @@ Flicko relies on several specialized third-party platforms to handle infrastruct
 - [Integration Map](#integration-map)
 - [1. Supabase (Database & Identity)](#1-supabase-database--identity)
 - [2. Upstash (Redis & Pub/Sub)](#2-upstash-redis--pubsub)
-- [3. Cloudinary (Media CDN)](#3-cloudinary-media-cdn)
+- [3. Appwrite (Media Storage & Buckets)](#3-appwrite-media-storage--buckets)
 - [4. LiveKit Cloud (WebRTC SFU)](#4-livekit-cloud-webrtc-sfu)
 - [5. Stripe (Payments)](#5-stripe-payments)
 - [6. Cloudflare (Edge Network)](#6-cloudflare-edge-network)
@@ -23,14 +23,14 @@ Flicko relies on several specialized third-party platforms to handle infrastruct
 
 ```mermaid
 graph TD
-    APP[📱 React Native App]
+    APP[📱 Flutter App]
     BACKEND[⚙️ Flicko Backend]
     
     APP -->|Auth & Signups| SUPA[🐘 Supabase Auth]
     BACKEND -->|SQL Queries| SUPP[🐘 Supavisor Pooler]
     
-    APP -->|Direct Upload| CLOUD[☁️ Cloudinary CDN]
-    BACKEND -->|Signatures| CLOUD
+    APP -->|SDK Direct Upload| APPW[☁️ Appwrite Storage]
+    BACKEND -->|Config Only| APPW
     
     APP -->|WebRTC Media| LK[🎙️ LiveKit Cloud]
     BACKEND -->|Room Tokens| LK
@@ -76,19 +76,27 @@ Upstash provides serverless Redis with TLS encryption out-of-the-box, allowing u
 
 ---
 
-## 3. Cloudinary (Media CDN)
-
-Cloudinary handles the storage, transformation, and edge-delivery of all user avatars, server banners, and message attachments.
-
-**The "Direct Upload" Integration Flow:**
-To save backend bandwidth, Flicko uses Cloudinary's Direct Upload capability.
-1. The mobile app HTTP requests a cryptographic signature for upload.
-2. The `msg-service` backend generates an HMAC-SHA256 signature using the `CLOUDINARY_API_SECRET`.
-3. The mobile app POSTs the binary file + signature directly to Cloudinary's API.
-4. Cloudinary returns a secure URL (e.g., `https://res.cloudinary.com/...`).
-5. The mobile app embeds this URL into the message payload it sends to the Flicko API.
-
-**Transformations:** Avatar images are requested with `c_fill,w_256,h_256` appended to the URL by the React Native client to force server-side cropping and save mobile bandwidth.
+## 3. Appwrite (Media Storage & Buckets)
+ 
+Appwrite Storage provides the S3-compatible infrastructure for managing user-generated content. Unlike Cloudinary, which follows a signing-flow, Appwrite uses a simpler SDK-based permission model.
+ 
+**Features Used:**
+- **Managed Buckets:** High-capacity storage pools for avatars, message attachments, and server icons.
+- **Access Control:** Fine-grained permissions (ACLs) to ensure only authorized users can upload or delete files.
+- **Flutter SDK Integration:** Direct file streaming from the mobile client to Appwrite endpoints.
+ 
+**The Upload Flow:**
+To save backend bandwidth, Flicko uses Appwrite's client-side SDK.
+1. The mobile app initializes the Appwrite `Storage` service with the Project ID and Endpoint.
+2. The user selects a file (avatar or message attachment).
+3. The app calls `storage.createFile()` directly, targeting the designated bucket ID.
+4. Appwrite returns a `fileId` which is then included in the subsequent Flicko API call to persist the association in the metadata database.
+ 
+**Environment Variables Required:**
+- `APPWRITE_ENDPOINT`
+- `APPWRITE_PROJECT_ID`
+- `APPWRITE_AVATAR_BUCKET_ID`
+- `APPWRITE_MESSAGE_BUCKET_ID`
 
 ---
 
@@ -110,7 +118,7 @@ Building a highly concurrent audio/video Selective Forwarding Unit (SFU) from sc
 Stripe manages the billing and card processing for "Flicko Plus" subscriptions.
 
 **Integration Components:**
-- **React Native SDK:** Used to render the native Payment Sheet (Apple Pay/Google Pay/Card).
+- **Flutter SDK:** Used to render the native Payment Sheet (Apple Pay/Google Pay/Card).
 - **Backend Webhooks:** The Stripe API sends webhooks to `/api/v1/webhooks/stripe` when subscriptions succeed or expire. The Go backend verifies the Stripe webhook signature, then updates the user's `is_premium` flag in the database.
 
 ---
@@ -131,7 +139,7 @@ Cloudflare sits entirely outside the codebase as the DNS router and outer securi
 The GIPHY API is integrated into the message composer to allow users to search and send GIFs.
 
 **Security Measure:**
-If the React Native app queried GIPHY directly, we would have to bundle the GIPHY API Key into the mobile binary, where it could easily be extracted and abused. Instead, we deployed a Supabase Edge Function (`supabase/functions/gif-search/`). 
+If the Flutter app queried GIPHY directly, we would have to bundle the GIPHY API Key into the mobile binary, where it could easily be extracted and abused. Instead, we deployed a Supabase Edge Function (`supabase/functions/gif-search/`). 
 The mobile app hits the Edge Function (secured via Supabase Auth headers), and the Edge Function appends the secret API key and queries GIPHY.
 
 ---
@@ -144,4 +152,4 @@ The mobile app hits the Edge Function (secured via Supabase Auth headers), and t
 
 ---
 
-*Last Updated: 2026-04-11 | Version: 1.0.0 | Maintained by: Flicko Team*
+*Last Updated: 2026-04-24 | Version: 1.1.0 | Maintained by: Flicko Team*

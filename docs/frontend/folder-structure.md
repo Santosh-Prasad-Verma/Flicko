@@ -2,7 +2,7 @@
 
 > **Reading time:** ~5 minutes · **Audience:** Mobile Developers · **Last Updated:** 2026-04-11
 
-The `@mobile` application is structured using Expo Router's file-based routing combined with domain-driven component separation. 
+The `mobile` application is structured using a feature-first approach, combined with the standard Flutter project structure. 
 
 ---
 
@@ -10,45 +10,36 @@ The `@mobile` application is structured using Expo Router's file-based routing c
 
 ```text
 mobile/
-├── app/                  # File-based Navigation Router
-│   ├── (auth)/           # Authentication layout and screens
-│   ├── (tabs)/           # Main bottom-tab layout
-│   │   ├── chat/         # Active chat screen (WebSockets map here)
-│   │   ├── dms/          # Direct messages list
-│   │   ├── search/       # Global search interface
-│   │   └── settings/     # User preferences & profile
-│   └── _layout.tsx       # Root wrapper (Providers, Auth checks)
-│
-├── components/           # Reusable UI Architecture
-│   ├── ui/               # Dumb components (Buttons, Inputs, Spinners)
-│   ├── chat/             # Chat domain (MessageBubble, Composer, Reactions)
-│   ├── mod/              # Moderation domain (ReportModal, BanSheet)
-│   └── server/           # Server domain (ChannelList, MemberList)
-│
-├── constants/            # Project-wide static maps
-│   ├── Colors.ts         # Centralized Light/Dark theme hex codes
-│   └── Config.ts         # Static limits (Max file size, regex)
-│
-├── hooks/                # React Hooks
-│   ├── useWebSocket.ts   # The massive central event dispatcher
-│   ├── useAuthQueue.ts   # Axios interceptors for 401 retries
-│   └── useKeyboard.ts    # iOS keyboard height adjustments
-│
-├── shared/               # Non-React utilities
-│   ├── stores/           # The 22 Zustand stores (e.g., authStore.ts)
-│   ├── api/              # Axios wrappers and query definitions
-│   └── utils/            # Time formatters, UUID generators
-│
-└── assets/               # Local binary files (Fonts, the flicko icon)
+├── assets/               # Local binary files (Fonts, icons, JSON tokens)
+├── lib/
+│   ├── core/             # Global cross-cutting concerns
+│   │   ├── constants/    # Environment config, static keys
+│   │   ├── network/      # Dio API client, WebSocket handlers
+│   │   ├── theme/        # AppTheme with Light/Dark mode tokens
+│   │   └── utils/        # Shared helpers (date parsing, etc.)
+│   │
+│   ├── data/             # Infrastructure Layer
+│   │   ├── models/       # Freezed data models (JSON serialization)
+│   │   ├── providers/    # Global Riverpod provider definitions
+│   │   └── repositories/ # Repositories for DB/Storage/API ops
+│   │
+│   ├── features/         # Feature-first domain modules
+│   │   ├── auth/         # Login, Register, Password Recovery
+│   │   ├── chat/         # Real-time messages, bubbles, composer
+│   │   ├── server/       # Servers, Channels, and Members
+│   │   └── voice/        # LiveKit WebRTC integration
+│   │
+│   ├── main.dart         # Entry point & ProviderScope setup
+│   └── router.dart       # Central GoRouter routing table
 ```
 
 ---
 
 ## Architectural Rules
 
-1. **No Deep Nesting:** The `components/` directory should never be nested more than one domain level deep. Do not create `components/chat/input/buttons/Send.tsx`. Keep it flat.
-2. **"Dumb" UI Components:** Files in `components/ui` must NOT `import { useStore }` or make API calls. They accept props and emit generic `onPress` events. They are purely presentational.
-3. **File Routing Brackets:** Folders in `app/` surrounded by parentheses `(tabs)` are logical groupings used by Expo Router. They do not affect the physical URL/Path structure of deep links.
+1. **No Logic in Widgets:** Presentation widgets must only consume state from Riverpod providers. Any business logic belongs in `Notifer` or `Repository` classes.
+2. **Feature Encapsulation:** A feature folder should contain its own widgets, state providers, and models if they are unique to that domain.
+3. **Repository Pattern:** All data source interaction (REST, WS, DB) must go through a Repository class, never directly called from a UI widget.
 
 ---
 

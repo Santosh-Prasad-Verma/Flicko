@@ -2,7 +2,7 @@
 
 > **Reading time:** ~8 minutes · **Audience:** Everyone · **Last Updated:** 2026-04-11
 
-Running Flicko locally requires spinning up the database, the three separate Go services, and the React Native frontend simultaneously. 
+Running Flicko locally requires spinning up the database, the three separate Go services, and the Flutter frontend simultaneously. 
 
 ---
 
@@ -53,7 +53,7 @@ air -c ./cmd/msg-service/.air.toml
 
 ## 3. Booting the Mobile App
 
-With all 3 Go services active, we compile the Expo app.
+With all 3 Go services active, we compile the Flutter app.
 
 1. Navigate to the frontend directory:
    ```bash
@@ -63,7 +63,7 @@ With all 3 Go services active, we compile the Expo app.
    ```bash
    npm ci
    ```
-3. Start the Expo Metro Bundler:
+3. Start the Flutter Metro Bundler:
    ```bash
    npx expo start
    ```
@@ -71,13 +71,13 @@ With all 3 Go services active, we compile the Expo app.
 **Connecting Devices:**
 - **iOS Simulator:** Press `i` in the terminal to boot Xcode simulator.
 - **Android Emulator:** Press `a` in the terminal.
-- **Physical Device:** Install the "Expo Go" app from the iOS/Google app store, and scan the massive QR code displayed in the terminal with your phone's camera. Ensure your phone is on the exact same WiFi network as your development laptop.
+- **Physical Device:** Install the "Flutter Go" app from the iOS/Google app store, and scan the massive QR code displayed in the terminal with your phone's camera. Ensure your phone is on the exact same WiFi network as your development laptop.
 
 ---
 
 ## Modifying URLs for Mobile
 
-**Crucial Step:** When testing on an iOS Simulator or Physical iPhone via Wi-Fi, the React Native app cannot resolve `localhost` mapping back to your laptop. It will look for `localhost` within the iPhone itself and fail.
+**Crucial Step:** When testing on an iOS Simulator or Physical iPhone via Wi-Fi, the Flutter app cannot resolve `localhost` mapping back to your laptop. It will look for `localhost` within the iPhone itself and fail.
 
 Inside `mobile/constants/Config.ts`, ensure you change the API bindings to your laptop's explicit local IPv4 address during development.
 

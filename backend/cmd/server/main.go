@@ -76,18 +76,6 @@ func main() {
 	defer redisCache.Close()
 	logger.Info("redis connection established")
 
-	// 3a. Setup Cloudinary signing handler (replaces B2)
-	cloudinaryHandler := handlers.NewCloudinaryHandler(
-		cfg.CloudinaryCloudName,
-		cfg.CloudinaryAPIKey,
-		cfg.CloudinaryAPISecret,
-		cfg.CloudinaryPreset,
-		logger,
-	)
-	logger.Info("cloudinary signing configured",
-		zap.String("cloud_name", cfg.CloudinaryCloudName),
-	)
-
 	// 3c. Setup Bot System (Event Bus, Command Router, Bot Registry)
 	eventBus := events.NewEventBus(logger)
 	eventBus.Use(events.RecoveryMiddleware(logger))
@@ -215,16 +203,12 @@ func main() {
 	permService := services.NewPermissionService(db.Pool(), redisCache)
 	voiceService := services.NewVoiceService(db.Pool(), permService)
 	streamService := services.NewStreamService(db.Pool(), permService, voiceService)
-	videoHandler := handlers.NewVideoHandler(streamService, voiceService, permService, logger)
+	liveKitService := services.NewLiveKitService(cfg.LiveKitAPIKey, cfg.LiveKitAPISecret)
+	videoHandler := handlers.NewVideoHandler(streamService, voiceService, permService, liveKitService, logger)
 	// VideoHandler.RegisterRoutes uses absolute /api/v1/ paths with auth middleware
 	videoRouter := r.PathPrefix("/").Subrouter()
 	videoRouter.Use(middleware.RequestID, middleware.CORS, middleware.Auth)
 	videoHandler.RegisterRoutes(videoRouter)
-
-	// ── Cloudinary signing endpoint ─────────────────────────────────────────
-	// Mobile clients call this to get a signed upload params, then upload
-	// directly to Cloudinary. No file data passes through this server.
-	protected.HandleFunc("/cloudinary/sign", cloudinaryHandler.Sign).Methods("GET")
 
 	// ── Bot API routes ──────────────────────────────────────────────────────
 	botHandler := handlers.NewBotHandler(db, eventBus, cmdRouter, logger)
@@ -294,6 +278,26 @@ func main() {
 	protected.HandleFunc("/activities/{sessionId}/participants", activityHandler.GetParticipants).Methods("GET")
 	protected.HandleFunc("/users/{id}/active-activity", activityHandler.GetUserActiveActivity).Methods("GET")
 	protected.HandleFunc("/channels/{id}/active-activity", activityHandler.GetChannelActiveActivity).Methods("GET")
+
+	// ── Bot Marketplace Endpoints ───────────────────────────────────────────
+	protected.HandleFunc("/bots", handlers.HandleRegisterBot).Methods("POST")
+	protected.HandleFunc("/bots/{id}/keys", handlers.HandleGenerateAPIKey).Methods("POST")
+	protected.HandleFunc("/bots/{id}/rotate-secret", handlers.HandleRotateBotSecret).Methods("POST")
+
+	// ── Webhook / Bot API Endpoints (called *by* bots) ─────────────────────
+	// These use the new BotAuthMiddleware requiring `flicko_bot_...` Authorization bearers
+	botAPI := api.PathPrefix("/bot-api").Subrouter()
+	botAPI.Use(apiLimiter.Limit)
+	botAPI.Use(func(next http.Handler) http.Handler {
+		// Use empty required scope for now or "messages.write" for specific targets
+		return handlers.BotAuthMiddleware("", next)
+	})
+
+	botAPI.HandleFunc("/messages/{channelId}", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"status": "delivered"}`))
+	}).Methods("POST")
 	protected.HandleFunc("/auth/mfa/enroll", mfaHandler.Enroll).Methods("POST")
 	protected.HandleFunc("/auth/mfa/verify", mfaHandler.Verify).Methods("POST")
 	protected.HandleFunc("/auth/mfa/disable", mfaHandler.Disable).Methods("POST")

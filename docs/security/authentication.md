@@ -85,7 +85,7 @@ The `authStore` manages:
 - `initialized` — Whether initial session check completed
 - `isSessionExpired()` — Checks token expiry
 
-Tokens are persisted in Expo SecureStore (encrypted device storage).
+Tokens are persisted in Flutter SecureStore (encrypted device storage).
 
 ### Backend (Server-Side)
 File: `backend/internal/services/session_service.go` (7.3 KB)
@@ -112,7 +112,7 @@ All state-changing requests (POST, PUT, DELETE, PATCH) must include a valid `X-C
 | **Password strength** | `password_validator.go` — length, complexity, entropy checks |
 | **Rate limiting on auth** | NGINX: 5 req/min per IP on `/auth/*` |
 | **Account lockout** | Supabase built-in brute-force protection |
-| **Secure token storage** | Expo SecureStore (iOS Keychain, Android Keystore) |
+| **Secure token storage** | Flutter SecureStore (iOS Keychain, Android Keystore) |
 | **Token rotation** | Automatic refresh before expiry, fallback verification |
 
 ---

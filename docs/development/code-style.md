@@ -20,7 +20,7 @@ gofmt -w .
 - **Interfaces:** Single-method interfaces should be suffixed with "er" (e.g., `Reader`, `MessageSender`).
 - **Structs:** MixedCaps. Do not use underscores (`UserRepository` not `User_Repository`).
 - **Packages:** lower_case, single word, no underscores (e.g., `middleware`, not `middle_ware`).
-- **Exported vs Unexported:** Only export variables, structs, or functions (by Capitalizing the first letter) if they explicitly need to be used outside that package. Hide internal states aggressively.
+- **Flutterrted vs Unexported:** Only export variables, structs, or functions (by Capitalizing the first letter) if they explicitly need to be used outside that package. Hide internal states aggressively.
 
 ### Error Handling
 Go does not use `try/catch`. 

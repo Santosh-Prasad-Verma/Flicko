@@ -85,7 +85,7 @@ We rely strictly on the `supabase-cli` to apply these. Running `supabase db push
 
 ## Row-Level Security (RLS)
 
-Although Supabase is famous for Client-Side RLS (allowing React Native to query the DB directly), Flicko **DOES NOT** use this paradigm.
+Although Supabase is famous for Client-Side RLS (allowing Flutter to query the DB directly), Flicko **DOES NOT** use this paradigm.
 
 All SQL queries flow through the Go backend (which uses service tier connection strings). The Go backend enforces authorization mathematically using the 26-bit RBAC system within Go application space. This provides absolute programmatic flexibility that RLS struggles to match cleanly (e.g. merging channel-deny overrides against server-allow bitfields).
 

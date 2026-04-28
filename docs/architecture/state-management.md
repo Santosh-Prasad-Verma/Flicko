@@ -1,199 +1,122 @@
-# State Management Architecture
+# State Management Architecture (Riverpod)
 
-> **Reading time:** ~15 minutes · **Audience:** Mobile Developers · **Last Updated:** 2026-04-11
+> **Reading time:** ~15 minutes · **Audience:** Mobile Developers · **Last Updated:** 2026-04-24
 
-This document explains the frontend state management architecture in Flicko's React Native application. It details how we combine Zustand (for global UI/WebSocket state) and React Query (for server state caching) to create a highly responsive, optimistic UI that seamlessly synchronizes real-time data.
+This document explains the mobile state management architecture in Flicko's Flutter application. It details how we use **Riverpod** to handle local state, server data caching, and real-time WebSocket synchronization in a reactive, testable, and high-performance manner.
 
 ---
 
 ## Table of Contents
 
 - [Core Philosophy](#core-philosophy)
-- [Zustand vs. React Query](#zustand-vs-react-query)
-- [Zustand Store Architecture](#zustand-store-architecture)
-- [WebSocket State Synchronization](#websocket-state-synchronization)
-- [Optimistic UI Updates](#optimistic-ui-updates)
-- [Persistence Strategy](#persistence-strategy)
-- [Example: The Message Flow](#example-the-message-flow)
+- [Why Riverpod?](#why-riverpod)
+- [Provider Categories](#provider-categories)
+- [Real-Time Synchronization](#real-time-synchronization)
+- [Optimistic UI Patterns](#optimistic-ui-patterns)
+- [Persistence & Secure Storage](#persistence--secure-storage)
+- [Example: Message Dispatch Flow](#example-message-dispatch-flow)
 
 ---
 
 ## Core Philosophy
 
-Flicko's frontend state management follows three rules:
+Flicko's mobile state management follows three primary rules:
 
-1. **Local State is King for UX:** Interactions (typing, changing channels, opening modals) must never block on a network request. All UI state is held locally and changes synchronously.
-2. **Server State is Cached:** Entity data (user profiles, channel lists) is cached heavily. We show stale data while revalidating in the background.
-3. **WebSocket Overrides Cache:** Real-time events delivered via WebSocket instantly mutate the local state directly, bypassing standard React Query invalidation delays.
-
----
-
-## Zustand vs. React Query
-
-We divide our state into two distinct categories, handled by two different libraries:
-
-### React Query (Server State)
-Used for data fetched via standard REST API calls. 
-**Responsibilities:** fetching, caching, deduplication, automatic retries, background refetching (stale-while-revalidate), and pagination.
-**Where to find it:** Inside `mobile/components/` and `mobile/app/` (e.g., `useQuery`, `useInfiniteQuery`).
-**Primary Entities:** Server lists, members lists, older message history, search results.
-
-### Zustand (Global UI & Real-Time State)
-Used for everything that isn't a REST data fetch. We have 22 dedicated stores.
-**Responsibilities:** 
-1. **App State:** Current active server/channel, theme preferences, modals.
-2. **WebSocket Streams:** Typing indicators, online presence, active voice channel participants.
-3. **Optimistic Cache:** The local buffer for messages flowing over WebSockets.
-**Where to find it:** `shared/stores/`
+1. **Reactive UI:** The UI is a direct function of the state. When state changes, only the specific widgets listening to that slice of state re-render.
+2. **Aggressive Caching:** We use providers to cache server responses. Stale data is shown immediately while background refreshes (revalidation) occur via `AsyncValue`.
+3. **One-Way Data Flow:** Actions (methods in Notifiers) trigger state updates, which then flow down to the UI. The UI never mutates state directly.
 
 ---
 
-## Zustand Store Architecture
+## Why Riverpod?
 
-Zustand stores in `shared/stores/` are domain-separated to prevent unnecessary re-renders. We aggressively avoid monolithic top-level stores.
+Riverpod is chosen as the primary state management solution for Flicko due to its robust features that align with production-grade application requirements:
 
-### The 22 Stores (Key Highlights)
-
-| Store | Responsibility | Persistence |
-|-------|----------------|-------------|
-| `authStore` | JWT tokens, login session, current user identity | Encrypted (SecureStore) |
-| `appStateStore` | Active server ID, active channel ID, sidebar status | Async Storage (Mem) |
-| `messageStore` | Active channel message buffer, sending status, optimistic UI | Memory Only |
-| `presenceStore` | Map of `userId` -> `status` (online, idle), typing state | Memory Only |
-| `voiceStore` | LiveKit session state, active speaker, mute/deafen status | Memory Only |
-| `uploadStore` | Cross-screen file upload progress | Memory Only |
-| `themeStore` | Light/Dark/AMOLED user preference | Async Storage |
-
-### Defining a Store (Best Practices)
-
-```typescript
-import { create } from 'zustand';
-
-interface PresenceState {
-  // 1. Data state
-  onlineUsers: Record<string, 'online' | 'idle' | 'dnd'>;
-  typingUsers: Record<string, { username: string; timestamp: number }>;
-  
-  // 2. Immutability functions (actions)
-  setUserStatus: (userId: string, status: 'online' | 'idle' | 'dnd') => void;
-  setTyping: (channelId: string, userId: string, username: string) => void;
-  clearTypingIntervals: () => void;
-}
-
-export const usePresenceStore = create<PresenceState>((set) => ({
-  onlineUsers: {},
-  typingUsers: {},
-  
-  setUserStatus: (userId, status) => 
-    set((state) => ({ 
-      onlineUsers: { ...state.onlineUsers, [userId]: status } 
-    })),
-    
-  setTyping: (channelId, userId, username) => {
-    // Implementation drops typing indicator after 5 seconds
-    // ...
-  },
-  // ...
-}));
-```
+- **Compile-time Safety:** Providers are inherently type-safe and verified at compile-time.
+- **Provider Composition:** Providers can easily depend on each other without circular dependency issues.
+- **Async Handling:** Built-in support for `AsyncValue` (loading, error, data) eliminates boilerplate in widgets.
+- **Testability:** Mocking providers for unit and widget tests is straightforward and robust.
 
 ---
 
-## WebSocket State Synchronization
+## Provider Categories
 
-When the `ws-gateway` delivers an event, it bypasses React Query and updates Zustand stores directly. This gives the app its real-time "Discord-like" feel.
+We group providers based on their lifecycle and frequency of updates.
 
-The central router for this is the `useWebSocket` hook (`mobile/hooks/useWebSocket.ts`):
+### 1. Data Providers (Server State)
+These handle data fetched from our Go microservices.
+- **Types:** `FutureProvider`, `AsyncNotifierProvider`.
+- **Responsibilities:** API calls, data transformation, caching logic.
+- **Primary Entities:** Server lists, channel history, user profiles.
 
-```typescript
-// Simplified WebSocket Dispatcher
-useEffect(() => {
-  ws.onmessage = (event) => {
-    const payload = JSON.parse(event.data);
-    
-    switch (payload.type) {
-      case 'MESSAGE_CREATE':
-        // Update local buffer immediately
-        useMessageStore.getState().addMessage(payload.data);
-        break;
-        
-      case 'PRESENCE_UPDATE':
-        usePresenceStore.getState().setUserStatus(payload.data.user_id, payload.data.status);
-        break;
-        
-      case 'VOICE_STATE_UPDATE':
-        useVoiceStore.getState().updateParticipant(payload.data);
-        break;
-        
-      case 'CHANNEL_DELETE':
-        // Edge case: Sometimes we must invalidate React Query
-        queryClient.invalidateQueries({ queryKey: ['channels', payload.data.server_id] });
-        break;
+### 2. Logic Providers (UI State)
+These handle ephemeral state that doesn't necessarily persist to the server.
+- **Types:** `StateProvider`, `NotifierProvider`.
+- **Responsibilities:** Navigation state, sidebar status, modal visibility, search queries.
+
+### 3. Stream Providers (Real-Time State)
+These integrate directly with our WebSocket gateway.
+- **Types:** `StreamProvider`.
+- **Responsibilities:** Listens to the WebSocket stream and emits updates for typing indicators, online status, and instant message arrivals.
+
+---
+
+## Real-Time Synchronization
+
+When a message arrives via the `ws-gateway`, we use Riverpod to update our local data cache without requiring a full REST API refetch.
+
+```dart
+// Example of a Message Stream Provider
+final messageStreamProvider = StreamProvider.autoDispose<Message>((ref) {
+  final socketService = ref.watch(webSocketServiceProvider);
+  return socketService.messagesStream;
+});
+
+// Listener in the Message List Notifier
+ref.listen(messageStreamProvider, (previous, next) {
+  next.whenData((message) {
+    if (message.channelId == currentChannelId) {
+      state = state.copyWith(
+        messages: [message, ...state.messages],
+      );
     }
-  };
-}, []);
+  });
+});
 ```
 
 ---
 
-## Optimistic UI Updates
+## Optimistic UI Patterns
 
-When a user performs a local action (e.g., sends a message), we do not wait for the server response (or the subsequent WebSocket echo) to update the UI.
+Optimistic updates are critical for a "fast" feel. When a user sends a message, it appears in the UI instantly, even before the server acknowledges it.
 
-**The Optimistic Pipeline:**
-1. User taps "Send".
-2. Create a temporary message object with a local `uuid` and `status: 'sending'`.
-3. Push immediately to `messageStore` (UI renders it instantly in gray).
-4. Fire the REST API request.
-5. On success: Replace the temporary object with the server-acknowledged object. Update status to `sent`.
-6. On failure: Update status to `error`. UI shows a red retry icon.
-
-```typescript
-const sendMessage = async (content: string) => {
-  const tempId = uuidv4();
-  const tempMessage = { id: tempId, content, status: 'sending', /* ... */ };
-  
-  // 1. Optimistic Update
-  addMessage(tempMessage);
-  
-  try {
-    // 2. Network Request
-    const realMessage = await api.post(`/channels/${channelId}/messages`, { content });
-    
-    // 3. Confirm Update
-    replaceMessage(tempId, realMessage);
-  } catch (error) {
-    // 4. Mark as Failed
-    markMessageError(tempId);
-  }
-};
-```
-
-*(Note: Our WebSocket dispatcher includes logic to ignore the `MESSAGE_CREATE` echo it receives via Redis if the message originated from the current device, preventing duplicates).*
+**The Workflow:**
+1. **Trigger:** User taps "Send".
+2. **Local Add:** The `AsyncNotifier` adds a temporary message with a `uuid` and `status = sending`.
+3. **Network Call:** The API call is made in the background.
+4. **Resync:** 
+   - **On Success:** The temporary message is replaced with the official server version.
+   - **On Error:** The message is marked with `status = error`, and a retry option is presented.
 
 ---
 
-## Persistence Strategy
+## Persistence & Secure Storage
 
-To ensure fast app launches and seamless offline recovery, specific data is persisted.
+To ensure seamless app restarts, certain providers are persisted.
 
-**1. Secure Storage (`expo-secure-store`)**
-Used exclusively by `authStore.ts` for sensitive JWT tokens. Encrypted by the mobile OS Keychain/Keystore.
-
-**2. Async Storage (`@react-native-async-storage/async-storage`)**
-Used for non-sensitive user preferences (`themeStore`, `appStateStore`) via Zustand's `persist` middleware.
-
-**3. React Query Offline Cache (`@tanstack/react-query-persist-client`)**
-The React Query cache is persisted to Async Storage. When the app launches offline, it instantly renders the last viewed channels and servers from cache while attempting background refetches.
+- **Storage Service:** We use `shared_preferences` and `flutter_secure_storage`.
+- **Auth Persistence:** `AuthNotifier` persists the JWT token to secure storage.
+- **Theme Persistence:** User theme preferences (Dark, Light, AMOLED) are saved to shared preferences and loaded at app startup.
 
 ---
 
 ## Related Documentation
 
-- [Frontend: Overview](../frontend/overview.md) — The complete React Native architecture
-- [Architecture: Data Flow](data-flow.md) — Sequence diagrams showing network/state boundaries
-- [Features: Real-Time Messaging](../features/real-time-messaging.md) — How the message UI components consume these stores
+- [Frontend Overview](../frontend/overview.md) — The Flutter architecture summary
+- [Folder Structure](folder-structure.md) — How providers are organized within features
+- [Tech Stack](tech-stack.md) — Detailed list of dependencies
 
 ---
 
-*Last Updated: 2026-04-11 | Version: 1.0.0 | Maintained by: Flicko Team*
+*Last Updated: 2026-04-24 | Version: 2.0.0 (Flutter/Riverpod) | Maintained by: Flicko Team*
+ko Team*

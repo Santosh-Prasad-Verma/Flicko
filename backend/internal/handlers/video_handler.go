@@ -12,24 +12,28 @@ import (
 
 // VideoHandler manages all video/streaming HTTP endpoints.
 type VideoHandler struct {
-	streamSvc services.StreamService
-	voiceSvc  services.VoiceService
-	permSvc   services.PermissionService
-	logger    *zap.Logger
+	streamSvc   services.StreamService
+	voiceSvc    services.VoiceService
+	permSvc     services.PermissionService
+	liveKitSvc  services.LiveKitService
+	logger      *zap.Logger
 }
 
 // NewVideoHandler creates a VideoHandler wired to stream and voice services.
-func NewVideoHandler(streamSvc services.StreamService, voiceSvc services.VoiceService, permSvc services.PermissionService, logger *zap.Logger) *VideoHandler {
+func NewVideoHandler(streamSvc services.StreamService, voiceSvc services.VoiceService, permSvc services.PermissionService, liveKitSvc services.LiveKitService, logger *zap.Logger) *VideoHandler {
 	return &VideoHandler{
 		streamSvc: streamSvc,
 		voiceSvc:  voiceSvc,
 		permSvc:   permSvc,
+		liveKitSvc: liveKitSvc,
 		logger:    logger,
 	}
 }
 
 // RegisterRoutes binds video/streaming endpoints to the given router.
 func (h *VideoHandler) RegisterRoutes(r *mux.Router) {
+	r.HandleFunc("/api/v1/voice/token", h.GenerateLiveKitToken).Methods("GET")
+
 	// Stream (Go Live) endpoints
 	r.HandleFunc("/api/v1/streams", h.CreateStream).Methods("POST")
 	r.HandleFunc("/api/v1/channels/{channelId}/streams", h.GetActiveStreams).Methods("GET")
@@ -266,4 +270,41 @@ func getVideoUserID(r *http.Request) string {
 		return uid
 	}
 	return ""
+}
+
+// ── LiveKit JWT Token ──
+
+func (h *VideoHandler) GenerateLiveKitToken(w http.ResponseWriter, r *http.Request) {
+userID := getVideoUserID(r)
+if userID == "" {
+writeError(w, http.StatusUnauthorized, "unauthorized")
+return
+}
+
+channelID := r.URL.Query().Get("channel_id")
+if channelID == "" {
+writeError(w, http.StatusBadRequest, "channel_id is required")
+return
+}
+
+// Default flags
+canPublish := true
+canPublishData := true
+
+// In a real scenario, you could verify user permissions to establish whether they can speak/publish video
+// For example:
+// hasPerm, _ := h.permSvc.HasPermission(r.Context(), userID, channelID, "SPEAK")
+// canPublish = hasPerm
+
+token, err := h.liveKitSvc.GenerateToken(channelID, userID, userID, canPublish, canPublishData)
+if err != nil {
+h.logger.Error("failed to generate livekit token", zap.Error(err))
+writeError(w, http.StatusInternalServerError, "failed to generate vc token")
+return
+}
+
+w.Header().Set("Content-Type", "application/json")
+json.NewEncoder(w).Encode(map[string]string{
+"token": token,
+})
 }

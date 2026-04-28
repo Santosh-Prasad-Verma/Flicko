@@ -1,0 +1,118 @@
+name: mobile
+description: "A new Flutter project for Flicko."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.8.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # UI & Design
+  cupertino_icons: ^1.0.6
+  flutter_svg: ^2.0.10
+  flutter_animate: ^4.5.0
+  google_fonts: ^8.0.2
+  intl: ^0.20.2
+  
+  # Navigation
+  go_router: ^17.2.2
+  
+  # State Management & DI
+  flutter_riverpod: ^3.3.1
+  freezed_annotation: ^3.1.0
+  json_annotation: ^4.8.1
+  
+  # Networking
+  dio: ^5.4.3+1
+  collection: ^1.19.0
+  http: ^1.6.0
+  crypto: ^3.0.3
+  path: ^1.8.3
+  
+  # OAuth
+  google_sign_in: ^7.2.0
+  sign_in_with_apple: ^7.0.1
+  
+  # Backend & Services
+  supabase_flutter: ^2.5.0
+  livekit_client: ^2.0.0
+  flutter_stripe: ^12.6.0
+  appwrite: ^23.1.0
+  
+  # Local Storage & Security
+  shared_preferences: ^2.2.3
+  flutter_secure_storage: ^10.0.0
+  flutter_dotenv: ^6.0.1
+  local_auth: ^3.0.1
+  
+  # Notifications & Media
+  firebase_messaging: ^16.2.0
+  flutter_local_notifications: ^21.0.0
+  web_socket_channel: ^3.0.3
+  workmanager: ^0.9.0+3
+  image_picker: ^1.1.1
+  camera: ^0.12.0+1
+  video_player: ^2.8.6
+  just_audio: ^0.10.5
+  audio_session: ^0.2.3
+  permission_handler: ^12.0.1
+  flutter_foreground_task: ^9.2.2
+  record: ^6.2.0
+  path_provider: ^2.1.3
+  
+  # Chat & Rich Content
+  flutter_markdown_plus: ^1.0.7
+  cached_network_image: ^3.4.1
+  url_launcher: ^6.3.0
+  markdown: ^7.2.2
+  logger: ^2.3.0
+  clerk_flutter: ^0.0.14-beta
+  clerk_auth: ^0.0.14-beta
+  mime: ^2.0.0
+  intl_phone_field: ^3.2.0
+  fl_country_code_picker: ^0.1.9+1
+  firebase_core: ^4.7.0
+  app_links: ^7.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  
+  # Code Generation
+  build_runner: ^2.4.9
+  mockito: ^5.4.4
+  mocktail: ^1.0.4
+  freezed: ^3.2.5
+  json_serializable: ^6.7.1
+  riverpod_generator: ^4.0.3
+  flutter_launcher_icons: ^0.14.4
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - .env
+    - assets/images/
+    - assets/images/emojis/
+    - assets/images/emojis/static/
+    - assets/images/emojis/animated/
+    - assets/icons/
+    - assets/animations/
+    - assets/translations/
+
+  fonts:
+    - family: GGSans
+      fonts:
+        - asset: assets/fonts/GGSans-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/GGSans-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/GGSans-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/GGSans-Bold.ttf
+          weight: 700

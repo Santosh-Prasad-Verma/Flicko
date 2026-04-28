@@ -1,6 +1,6 @@
 # Tech Stack
 
-> **Reading time:** ~15 minutes · **Audience:** All Developers · **Last Updated:** 2026-04-11
+> **Reading time:** ~15 minutes · **Audience:** All Developers · **Last Updated:** 2026-04-24
 
 Complete documentation of every technology, framework, library, and cloud service used in Flicko with version numbers, why each was chosen, and where it's used in the codebase.
 
@@ -35,39 +35,33 @@ Complete documentation of every technology, framework, library, and cloud servic
 
 ## Frontend Stack
 
-### React Native (v0.81)
-**Role:** Cross-platform mobile framework for iOS and Android.
-**Why:** Single TypeScript codebase for both platforms. Large ecosystem of native modules. Hot reload for rapid development. React's component model enables reusable UI components.
+### Flutter (v3.22+)
+**Role:** Primary framework for the cross-platform mobile application.
+**Why:** Compiles to native ARM/x86 code for maximum performance (60/120fps). Single Dart codebase for both iOS and Android. Rich, customizable widget library allows for pixel-perfect Discord-like UI. Hot reload enables rapid iteration.
 **Where:** `mobile/`
 
-### Expo SDK 54
-**Role:** Build toolchain, development server, and native module management for React Native.
-**Why:** Simplifies React Native development with managed workflows, OTA updates, and pre-configured native modules for camera, file system, biometric auth, secure storage, and notifications. File-based routing via Expo Router eliminates manual route configuration.
-**Where:** `mobile/`
+### Riverpod / GoRouter
+**Role:** State management, dependency injection, and declarative routing for Flutter.
+**Why:** Riverpod provides a compile-safe, testable way to manage reactive state across the app. GoRouter simplifies complex deep-linking and nested navigation structures required for a server/channel multi-pane interface.
+**Where:** `mobile/lib/`
 
 ### Key Frontend Dependencies
 
-| Package | Version | Purpose | Used In |
-|---------|---------|---------|---------|
-| `expo-router` | 4.x | File-based routing with deep linking | `mobile/app/` |
-| `@react-navigation/native` | 7.x | Navigation primitives (stack, tab, drawer) | `mobile/app/` |
-| `zustand` | 5.0 | Lightweight state management (22 stores) | `shared/stores/` |
-| `@tanstack/react-query` | 5.x | Server state caching, background refetch | `mobile/`, `shared/` |
-| `@supabase/supabase-js` | 2.x | Supabase client (auth, realtime, storage) | `shared/services/` |
-| `@livekit/react-native` | 2.x | WebRTC voice/video client | `mobile/app/voice/` |
-| `@stripe/stripe-react-native` | 0.x | Payment sheet for Flicko Plus | `mobile/app/flicko-plus.tsx` |
-| `react-native-reanimated` | 3.x | 60fps native animations | `mobile/components/` |
-| `react-native-gesture-handler` | 2.x | Native gesture recognition | `mobile/components/` |
-| `expo-secure-store` | — | Encrypted storage for JWT tokens | `shared/services/auth.service.ts` |
-| `expo-local-authentication` | — | Biometric auth (Face ID, fingerprint) | `mobile/app/settings/` |
-| `expo-image-picker` | — | Camera and gallery access | `shared/services/mediaService.ts` |
-| `expo-notifications` | — | Push notification handling | `shared/services/notificationService.ts` |
-| `expo-haptics` | — | Haptic feedback for UI interactions | `mobile/components/` |
+| `flutter_riverpod` | 3.x | Reactive state management & DI | `mobile/lib/features/` |
+| `go_router` | 17.x | Declarative routing & deep linking | `mobile/lib/core/router/app_router.dart` |
+| `supabase_flutter` | 2.x | Supabase client (auth, realtime, storage) | `mobile/lib/core/services/` |
+| `livekit_client` | 2.x | WebRTC voice/video implementation | `mobile/lib/features/voice/` |
+| `stripe_flutter` | 12.x | Native payment sheet integration | `mobile/lib/features/premium/` |
+| `cached_network_image` | 3.x | Efficient image caching and loading | `mobile/lib/common/widgets/` |
+| `flutter_secure_storage` | 9.x | Encrypted storage for JWT tokens | `mobile/lib/core/services/` |
+| `local_auth` | 2.x | Biometric auth (Face ID, Fingerprint) | `mobile/lib/features/auth/` |
+| `appwrite` | 13.x | Appwrite SDK for storage and buckets | `mobile/lib/data/services/` |
+| `flutter_vibrate`| — | Haptic feedback for interactions | `lib/common/` |
 
-### TypeScript (v5.9)
-**Role:** Type-safe JavaScript for all frontend code.
-**Why:** Catches type errors at compile time, provides IntelliSense/autocompletion, and serves as documentation via interfaces. All 51 service files and 22 stores use TypeScript interfaces for data shapes.
-**Where:** `mobile/`, `shared/`
+### Dart (v3.4+)
+**Role:** Primary language for all mobile application code.
+**Why:** Built-in sound null safety prevents null-reference crashes. Ahead-of-Time (AOT) compilation to native machine code ensures consistent performance. Dart's isolate model allows for high-performance background processing without blocking the UI thread.
+**Where:** `mobile/lib/`
 
 ---
 
@@ -76,7 +70,7 @@ Complete documentation of every technology, framework, library, and cloud servic
 ### PostgreSQL 15+ (via Supabase)
 **Role:** Primary relational database for all persistent data.
 **Why:** ACID transactions ensure data consistency. Relational model naturally represents Discord-like hierarchies (servers → channels → messages). Row-Level Security enforces access rules at the database layer. Full-text search via `tsvector` indexes powers message search. Supabase provides managed hosting with connection pooling, backups, and a REST API.
-**Where:** 65 migrations in `supabase/migrations/`, 3 in `backend/migrations/`
+**Where:** 94 migrations in `supabase/migrations/`, 3 in `backend/migrations/`
 
 **Key PostgreSQL Features Used:**
 - `gen_random_uuid()` — UUID primary key generation
@@ -96,7 +90,7 @@ Complete documentation of every technology, framework, library, and cloud servic
 **Role:** Serverless functions for isolated tasks.
 **Functions deployed:**
 - `gif-search` — Proxies GIPHY API requests (avoids exposing GIPHY API key to mobile client)
-- `push-notification` — Delivers push notifications via Expo's push service
+- `push-notification` — Delivers push notifications via Firebase Cloud Messaging (FCM) proxy
 
 ---
 
@@ -111,20 +105,20 @@ Complete documentation of every technology, framework, library, and cloud servic
 
 ## Media & Communication
 
-### Cloudinary
-**Role:** Cloud-based image and video CDN with direct upload support.
-**Why:** Direct upload (client → Cloudinary, bypassing the backend) reduces server load. HMAC-SHA256 signed uploads ensure security without exposing credentials. Built-in image transformations (resize, crop, format conversion) are applied via URL parameters. Global CDN ensures fast media delivery worldwide.
-**Where:** `backend/internal/handlers/cloudinary.go`, `shared/services/cloudinaryService.ts`
+### Appwrite Storage
+**Role:** Cloud-based S3-compatible storage for media and user assets.
+**Why:** Simplified file management with built-in permission systems. Multi-platform SDKs make it easy to integrate with Flutter. Managed buckets allow for separation of avatars, server icons, and message attachments. 
+**Where:** `mobile/lib/data/services/appwrite_storage_service.dart`
 
 ### LiveKit Cloud
 **Role:** WebRTC Selective Forwarding Unit for voice and video.
-**Why:** SFU architecture scales better than peer-to-peer for group calls. Open-source with self-hosting option. Native React Native SDK. Handles codec negotiation, adaptive bitrate, and participant management automatically.
-**Where:** `backend/internal/services/voice_service.go`, `mobile/app/voice/`
+**Why:** SFU architecture scales better than peer-to-peer for group calls. Open-source with self-hosting option. Unified Flutter SDK. Handles codec negotiation, adaptive bitrate, and participant management automatically.
+**Where:** `backend/internal/services/voice_service.go`, `mobile/lib/features/voice/`
 
 ### Stripe
 **Role:** Payment processing for Flicko Plus premium subscription.
-**Why:** PCI-compliant payment infrastructure. React Native SDK provides native payment sheets. Webhook integration for subscription lifecycle events (created, renewed, cancelled).
-**Where:** `shared/services/stripePaymentService.ts`, `mobile/app/flicko-plus.tsx`
+**Why:** PCI-compliant payment infrastructure. Flutter SDK provides native payment sheets. Webhook integration for subscription lifecycle events (created, renewed, cancelled).
+**Where:** `mobile/lib/core/services/stripe_service.dart`, `mobile/lib/features/premium/premium_plus_screen.dart`
 
 ---
 
@@ -153,8 +147,8 @@ Complete documentation of every technology, framework, library, and cloud servic
 | **Prometheus** | latest | Metrics time-series database, 15s scrape interval | `monitoring/prometheus/` |
 | **Grafana** | latest | Dashboards, alerting, auto-provisioned datasources | `monitoring/grafana/` |
 | **Loki** | latest | Log aggregation with 30-day retention | `monitoring/loki/` |
-| **Node Exporter** | latest | Host CPU/RAM/disk/network metrics | Docker container |
-| **NGINX Exporter** | latest | Request throughput and status codes | Docker container |
+| **Node Flutterrter** | latest | Host CPU/RAM/disk/network metrics | Docker container |
+| **NGINX Flutterrter** | latest | Request throughput and status codes | Docker container |
 
 ---
 
@@ -163,10 +157,9 @@ Complete documentation of every technology, framework, library, and cloud servic
 | Tool | Purpose | Configuration |
 |------|---------|--------------|
 | **Husky** | Git pre-commit hooks | `.husky/pre-commit` |
-| **Prettier** | TS/JSON/YAML/MD formatting | `.prettierrc` |
-| **lint-staged** | Run formatters on staged files only | `package.json` |
+| **Dart Format** | Code formatting | `dart format .` |
+| **flutter_test** | Flutter unit & widget testing | `lib/features/` |
 | **gofmt** | Go code formatting (enforced) | Husky pre-commit |
-| **Jest** v29.7.0 | TypeScript unit testing | `jest.config.js` |
 | **testify** v1.11.1 | Go test assertions | Used in 42 test files |
 | **Zap** | Structured JSON logging | All Go services |
 
@@ -181,4 +174,4 @@ Complete documentation of every technology, framework, library, and cloud servic
 
 ---
 
-*Last Updated: 2026-04-11 | Version: 1.0.0 | Maintained by: Flicko Team*
+*Last Updated: 2026-04-24 | Version: 1.1.0 | Maintained by: Flicko Team*

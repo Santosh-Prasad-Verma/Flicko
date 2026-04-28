@@ -1,7 +1,7 @@
 # Pages & Routes
 > *Last Updated: 2026-04-11 · Version: 1.0.0*
 
-## Routing: Expo Router (file-based)
+## Routing: Flutter Router (file-based)
 
 ### Tab Navigation (`app/(tabs)/`)
 | File | Route | Screen |

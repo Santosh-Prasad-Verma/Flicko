@@ -11,7 +11,7 @@ If managing a Raw VPS with Docker Compose and NGINX (as outlined in [Docker Comp
 When deploying to Render, we **delete** NGINX. 
 Render handles edge routing, DDoS projection, and SSL termination automatically. Every Web Service on Render gets its own public URL (e.g., `https://flicko-gateway.onrender.com`).
 
-Because the services no longer sit behind a single `api.flicko.app` domain, you must update the React Native frontend `Config.ts` to point to the three distinct URLs.
+Because the services no longer sit behind a single `api.flicko.app` domain, you must update the Flutter frontend `Config.ts` to point to the three distinct URLs.
 
 ---
 

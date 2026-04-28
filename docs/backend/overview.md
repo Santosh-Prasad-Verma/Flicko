@@ -27,7 +27,7 @@ By splitting them in Go, we scale the `ws-gateway` (which holds thousands of idl
 
 ## 📡 NGINX Request Routing
 
-The React Native app only knows one base URL: `https://api.flicko.app`. NGINX acts as the reverse proxy, intelligently stripping path prefixes and routing traffic to the correct underlying Docker container:
+The Flutter app only knows one base URL: `https://api.flicko.app`. NGINX acts as the reverse proxy, intelligently stripping path prefixes and routing traffic to the correct underlying Docker container:
 
 ```nginx
 # Map WebSocket upgrade requests to ws-gateway

@@ -1,6 +1,6 @@
 # System Architecture Overview
 
-> **Reading time:** ~25 minutes · **Audience:** All Developers, Architects · **Last Updated:** 2026-04-11
+> **Reading time:** ~25 minutes · **Audience:** All Developers, Architects · **Last Updated:** 2026-04-24
 
 This document provides a comprehensive technical analysis of Flicko's system architecture — the three-service microservice decomposition, inter-service communication patterns, data flow through the system, scalability design, failure modes, and the rationale behind every major architectural decision. Understanding this architecture is essential for contributing to any part of the codebase.
 
@@ -36,7 +36,7 @@ Flicko's architecture follows three guiding principles:
 ```mermaid
 graph TB
     subgraph CLIENT["📱 Client Layer"]
-        APP[React Native App<br/>Expo SDK 54<br/>30+ screens]
+        APP[Flutter App<br/>v3.22+<br/>80+ screens]
     end
 
     subgraph EDGE["🌐 Edge Layer"]
@@ -56,7 +56,7 @@ graph TB
     end
 
     subgraph MEDIA["📸 Media Layer"]
-        CDN[Cloudinary CDN<br/>Direct Upload<br/>HMAC-SHA256 Signing]
+        AW[Appwrite Storage<br/>S3-Compatible<br/>Direct SDK Upload]
         LK[LiveKit Cloud<br/>WebRTC SFU<br/>Voice + Video]
     end
 
@@ -64,8 +64,8 @@ graph TB
         PROM[Prometheus<br/>Metrics TSDB<br/>15s scrape interval]
         GRAF[Grafana<br/>Dashboards<br/>Auto-provisioned]
         LOKI[Loki<br/>Log Aggregation<br/>30-day retention]
-        NODE[Node Exporter<br/>Host Metrics]
-        NGXE[NGINX Exporter<br/>Request Metrics]
+        NODE[Node Flutterrter<br/>Host Metrics]
+        NGXE[NGINX Flutterrter<br/>Request Metrics]
     end
 
     APP -->|HTTPS| CF
@@ -81,7 +81,7 @@ graph TB
     BE -->|SQL queries| PG
     BE -->|Cache + events| RD
 
-    APP -->|Signed upload| CDN
+    APP -->|Direct SDK upload| AW
     APP -->|WebRTC| LK
 
     PROM -->|Scrape /metrics| WS
@@ -379,11 +379,9 @@ The coupling risk is managed through Row-Level Security (RLS) policies that enfo
 ### Pattern 3: Media Upload
 
 ```
-📱 App → NGINX → backend /cloudinary/sign → Generate HMAC-SHA256 signature
-                                                      │
-📱 App → Cloudinary CDN (direct upload with signature) ← (response)
+📱 App → Appwrite Storage (Direct Upload via SDK)
               │
-              └─→ 📱 App sends message with Cloudinary URL → Standard message flow
+              └─→ 📱 App sends message with Appwrite file URL → Standard message flow
 ```
 
 ### Pattern 4: Bot Slash Command
@@ -453,12 +451,12 @@ Understanding what happens when each component fails is critical for operational
 | Decision | Choice | Alternatives Considered | Why This Choice |
 |----------|--------|----------------------|----------------|
 | Backend language | Go 1.25 | Node.js, Rust, Java | Go's goroutines handle thousands of concurrent WebSocket connections with minimal memory. Compile to single binary for simple deployment. |
-| Frontend framework | React Native (Expo) | Flutter, Swift/Kotlin native | Single codebase for iOS and Android. Large ecosystem. Expo simplifies build/deploy. |
-| Database | PostgreSQL (Supabase) | MongoDB, MySQL | Relational model fits Discord's data patterns (channels belong to servers, messages belong to channels). Supabase adds auth, RLS, Edge Functions. |
+| Frontend framework | Flutter 3.22+ | Flutter, Swift/Kotlin native | High-performance native rendering. Single codebase for iOS and Android. Excellent developer toolchain. |
+| Database | PostgreSQL (Supabase) | MongoDB, MySQL | Relational model fits Discord's data patterns. Supabase adds auth, RLS, Edge Functions. |
 | Cache/Pub/Sub | Redis (Upstash) | Kafka, RabbitMQ, NATS | Minimal overhead for fire-and-forget Pub/Sub. Upstash provides serverless Redis without ops. |
-| State management | Zustand | Redux, MobX, Jotai | Minimal boilerplate. 22 stores without boilerplate pain. |
-| Voice/Video | LiveKit | Twilio, Agora, Vonage | Open-source SFU with self-hosting option. Native React Native SDK. |
-| Media CDN | Cloudinary | AWS S3 + CloudFront | Direct upload with signature reduces backend load. Built-in image transformations. |
+| State management | Riverpod | Bloc, GetX, Provider | Reactive, provider-based state management. Safe and scalable. |
+| Voice/Video | LiveKit | Twilio, Agora, Vonage | Open-source SFU with self-hosting option. Native Flutter SDK. |
+| Media Storage | Appwrite Storage | Cloudinary, S3 | S3-compatible storage with easier multi-platform SDKs. Managed buckets and file level permissions. |
 | Reverse proxy | NGINX | Traefik, Caddy, HAProxy | Battle-tested WebSocket support. Familiar configuration syntax. |
 | Monitoring | Prometheus + Grafana + Loki | DataDog, New Relic | Self-hosted, free, pluggable. All three integrate natively. |
 | Container orchestration | Docker Compose | Kubernetes, Nomad | Appropriate for single-VPS deployment. K8s would be over-engineering at this scale. |
@@ -475,4 +473,4 @@ Understanding what happens when each component fails is critical for operational
 
 ---
 
-*Last Updated: 2026-04-11 | Version: 1.0.0 | Maintained by: Flicko Team*
+*Last Updated: 2026-04-24 | Version: 1.1.0 | Maintained by: Flicko Team*

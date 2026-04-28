@@ -31,7 +31,7 @@ func (s *ServerService) CreateServer(ctx context.Context, ownerID uuid.UUID, nam
 
 ---
 
-## TypeScript/React Native Standards
+## TypeScript/Flutter Standards
 
 ### Formatting
 - **Formatter:** Prettier (enforced via pre-commit hook)
@@ -40,7 +40,7 @@ func (s *ServerService) CreateServer(ctx context.Context, ownerID uuid.UUID, nam
 
 ### Patterns
 - **Components:** Functional components with hooks (no class components except ErrorBoundary)
-- **State:** Zustand stores in `shared/stores/`
+- **State:** Riverpod stores in `shared/stores/`
 - **Server state:** React Query (`@tanstack/react-query`)
 - **Imports:** Path aliases (`@shared/`, `@stores/`, `@services/`, etc.)
 - **Types:** TypeScript strict mode, no `any` without justification

@@ -10,7 +10,7 @@ E2E testing is minimal. The current testing strategy relies on:
 
 ## Recommended E2E Setup
 For comprehensive E2E testing, consider:
-- **Detox** — React Native E2E testing framework
+- **Detox** — Flutter E2E testing framework
 - **Maestro** — Mobile UI testing with YAML flows
 - **k6** — Load testing for WebSocket and REST APIs
 

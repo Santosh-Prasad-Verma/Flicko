@@ -10,7 +10,7 @@ This guide details every tool, runtime, and cloud account required to develop, b
 
 - [Quick Checklist](#quick-checklist)
 - [Go](#go)
-- [Node.js and npm](#nodejs-and-npm)
+- [Flutter SDK](#flutter-sdk)
 - [Docker and Docker Compose](#docker-and-docker-compose)
 - [Git](#git)
 - [Cloud Accounts](#cloud-accounts)
@@ -18,10 +18,10 @@ This guide details every tool, runtime, and cloud account required to develop, b
   - [Upstash Redis](#upstash-redis)
   - [Cloudinary](#cloudinary)
   - [LiveKit](#livekit)
+- [Tooling (Node.js)](#tooling-nodejs)
 - [Mobile Development Tools](#mobile-development-tools)
   - [iOS Development (macOS only)](#ios-development-macos-only)
   - [Android Development](#android-development)
-- [Optional Tools](#optional-tools)
 
 ---
 
@@ -31,17 +31,15 @@ Run these commands to verify all prerequisites are installed. Every command shou
 
 ```bash
 # Core tools
-go version          # Expected: go1.22+ (recommend 1.25)
-node --version      # Expected: v18.0.0+
-npm --version       # Expected: 9.0.0+
+go version          # Expected: go1.25+
+flutter --version   # Expected: Flutter 3.22+
 docker --version    # Expected: Docker 24.0+
 docker compose version  # Expected: v2.20+
 git --version       # Expected: git 2.30+
 
-# Mobile tools (if developing the mobile app)
-npx expo --version  # Expected: Expo CLI
-
-# Optional but recommended
+# Optional (for development tooling)
+node --version      # Expected: v18.0.0+ (Husky/Prettier)
+npm --version       # Expected: 9.0.0+
 jq --version        # JSON log parsing
 psql --version      # PostgreSQL client
 redis-cli --version # Redis client
@@ -147,85 +145,35 @@ For the best development experience with Flicko's Go codebase, configure your ed
 
 ---
 
-## Node.js and npm
+---
 
-**Required Version:** Node.js 18.0+ (LTS recommended), npm 9.0+
-**Verification:** `node --version` and `npm --version`
-**Why Flicko needs it:** The React Native mobile app and all shared TypeScript packages run on Node.js. The root `package.json` sets up Husky pre-commit hooks and Prettier formatting. npm manages dependencies for the mobile app (Expo SDK 54, React Navigation, Zustand, React Query, and ~30 other packages) and the shared code (51 service files, 22 stores).
+## Flutter SDK
+
+**Required Version:** 3.22 or higher
+**Verification:** `flutter --version`
+**Why Flicko needs it:** The Flicko mobile application is built using Flutter for true cross-platform performance (iOS + Android) from a single codebase. It leverages Dart 3.4+ features and the Riverpod state management framework for predictable, testable app logic.
 
 ### Installation
 
-<details>
-<summary><strong>macOS</strong></summary>
-
-```bash
-# Option 1: nvm (recommended — allows version switching)
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
-source ~/.bashrc  # or ~/.zshrc
-nvm install 18
-nvm use 18
-nvm alias default 18
-
-# Option 2: Homebrew
-brew install node@18
-
-# Option 3: Official installer
-# Download from https://nodejs.org/
-```
-
-</details>
-
-<details>
-<summary><strong>Linux (Ubuntu/Debian)</strong></summary>
-
-```bash
-# Option 1: nvm (recommended)
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
-source ~/.bashrc
-nvm install 18
-nvm use 18
-nvm alias default 18
-
-# Option 2: NodeSource PPA (for system-wide install)
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-sudo apt-get install -y nodejs
-```
-
-</details>
-
-<details>
-<summary><strong>Windows</strong></summary>
-
-```powershell
-# Option 1: nvm-windows
-# Download from https://github.com/coreybutler/nvm-windows/releases
-nvm install 18
-nvm use 18
-
-# Option 2: Official installer
-# Download from https://nodejs.org/
-```
-
-</details>
+Follow the official Flutter installation guide for your platform:
+- [macOS Installation](https://docs.flutter.dev/get-started/install/macos)
+- [Linux Installation](https://docs.flutter.dev/get-started/install/linux)
+- [Windows Installation](https://docs.flutter.dev/get-started/install/windows)
 
 ### Verification
 
 ```bash
-$ node --version
-v18.19.0
-
-$ npm --version
-9.8.1
+$ flutter doctor
+# Should show green checkmarks for Flutter, Android toolchain, and Xcode (if on macOS)
 ```
 
 ### Common Issues
 
 | Issue | Cause | Fix |
 |-------|-------|-----|
-| `node: command not found` | Node.js not in PATH | Restart terminal or `source ~/.bashrc` |
-| npm version too old | Came with old Node.js | `npm install -g npm@latest` |
-| `EACCES` permission errors | npm using root-owned dir | Configure npm to use `~/.npm-global` or use nvm |
-| `node-gyp` build errors | Missing build tools | macOS: `xcode-select --install`, Linux: `sudo apt install build-essential` |
+| `flutter: command not found` | Flutter not in PATH | Add the `flutter/bin` directory to your shell PATH |
+| `cmdline-tools component is missing` | Android SDK missing tools | Install "Android SDK Command-line Tools" in Android Studio SDK Manager |
+| `CocoaPods not installed` | Missing iOS dependency | `brew install cocoapods` or `sudo gem install cocoapods` |
 
 ---
 
@@ -463,12 +411,19 @@ LIVEKIT_API_SECRET=AbCdEfGhIjKlMnOpQrStUvWxYzAbCdEfGhIjKlMnOp
 
 ---
 
+## Tooling (Node.js)
+
+**Required Version:** Node.js 18.0+
+**Why Flicko needs it:** While the core app uses Flutter and Go, Node.js is required for our development tooling. The root `package.json` configures **Husky** pre-commit hooks and **Prettier** code formatting to maintain high code quality across the monorepo.
+
+---
+
 ## Mobile Development Tools
 
 ### iOS Development (macOS only)
 
 **Required:** Xcode 15+ with iOS Simulator
-**Why:** To run and debug the Flicko React Native app on iOS. Expo SDK 54 requires Xcode for building the iOS app and running it in the simulator.
+**Why:** To run and debug the Flicko mobile app on iOS. Xcode provides the build toolchain and simulators for iPhone testing.
 
 ```bash
 # Install Xcode from the Mac App Store or:
@@ -476,39 +431,12 @@ xcode-select --install   # Installs command-line tools
 
 # Verify
 xcodebuild -version      # Expected: Xcode 15.x
-
-# Install iOS Simulator (if not already included)
-# Open Xcode → Settings → Platforms → Download iOS 17+ Simulator
 ```
 
 ### Android Development
 
 **Required:** Android Studio with Android SDK, JDK 17+
-**Why:** To run and debug the Flicko app on Android emulator or physical device. Even on macOS, you need Android Studio for the Android build toolchain.
-
-```bash
-# Install Android Studio from https://developer.android.com/studio
-# During setup, install:
-# - Android SDK (API 34)
-# - Android SDK Platform-Tools
-# - Android Virtual Device (AVD) with Pixel emulator
-
-# Set environment variables in ~/.bashrc or ~/.zshrc:
-export ANDROID_HOME=$HOME/Android/Sdk        # Linux
-export ANDROID_HOME=$HOME/Library/Android/sdk # macOS
-export PATH=$PATH:$ANDROID_HOME/emulator
-export PATH=$PATH:$ANDROID_HOME/platform-tools
-
-# Verify
-adb --version             # Expected: Android Debug Bridge version x.x.x
-emulator -list-avds       # Should show at least one AVD
-```
-
-### Expo Go App (Quickest Path)
-
-For quick testing without Xcode or Android Studio, install the **Expo Go** app on a physical iOS or Android device. Then run `npx expo start` and scan the QR code. Note that some native features (biometric auth, push notifications) require a development build rather than Expo Go.
-
----
+**Why:** To run and debug the Flicko app on an Android emulator or physical device. Flutter requires the Android SDK for building and deploying.
 
 ## Optional Tools
 
@@ -520,7 +448,7 @@ These tools are not required but significantly improve the development experienc
 | **psql** | Connect directly to Supabase PostgreSQL for debugging | `brew install postgresql` / `apt install postgresql-client` |
 | **redis-cli** | Inspect Redis state, monitor Pub/Sub | `brew install redis` / `apt install redis-tools` |
 | **Delve (dlv)** | Go debugger with breakpoints and step-through | `go install github.com/go-delve/delve/cmd/dlv@latest` |
-| **ngrok** | Expose local services for mobile testing on physical devices | Download from [ngrok.com](https://ngrok.com) |
+| **ngrok** | Flutterse local services for mobile testing on physical devices | Download from [ngrok.com](https://ngrok.com) |
 | **Postman/Insomnia** | API testing with saved request collections | Download from respective websites |
 
 ### jq for Log Parsing

@@ -62,12 +62,12 @@ ON CONFLICT (user_id) DO UPDATE SET channel_id = $2;
 It then broadcasts a `VOICE_STATE_UPDATE` to Redis. All connected clients receive this and update their UI to show the user's avatar appearing in the voice channel.
 
 ### 3. WebRTC Connection (Mobile)
-The React Native app receives the token and hands it to the LiveKit SDK, completely bypassing the Flicko backend for the actual audio traffic:
+The Flutter app receives the token and hands it to the LiveKit SDK, completely bypassing the Flicko backend for the actual audio traffic:
 ```typescript
 import { LiveKitRoom } from '@livekit/react-native';
 
 <LiveKitRoom 
-  serverUrl={process.env.EXPO_PUBLIC_LIVEKIT_URL} 
+  serverUrl={process.env.FLICKO_LIVEKIT_URL} 
   token={token} 
   connect={true}
 >
@@ -111,7 +111,7 @@ Voice channels respect the Flicko 26-bit RBAC system. The Go backend checks thes
 
 ## Mobile Implementation
 
-The voice UI is driven by the `voiceStore.ts` Zustand store, which combines local hardware state (from LiveKit hooks) with network state (from WebSocket `VOICE_STATE_UPDATE`s).
+The voice UI is driven by the `voiceStore.ts` Riverpod store, which combines local hardware state (from LiveKit hooks) with network state (from WebSocket `VOICE_STATE_UPDATE`s).
 
 ### Voice Activity Detection (VAD)
 When a user speaks, their avatar gets a green glowing ring. We do not transmit audio volume levels over WebSockets; instead, the LiveKit SDK computes audio energy levels directly on the WebRTC stream and fires a local event:

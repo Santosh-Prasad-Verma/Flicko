@@ -106,8 +106,8 @@ USER appuser
 
 # ── Ports ───────────────────────────────────────────────────────────────
 # 8080 — WebSocket upgrade endpoint + /healthz
-# 9100 — Prometheus /metrics (scraped by Prometheus on flicko_monitor network)
-EXPOSE 8080 9100
+# 9102 — Prometheus /metrics (scraped by Prometheus on flicko_monitor network)
+EXPOSE 8080 9102
 
 # ── Health Check ────────────────────────────────────────────────────────
 # Docker daemon probes this every 10s. After 5 consecutive failures

@@ -27,8 +27,8 @@ services:
       - flicko_dev
 
   # ----------------------------------------------------------
-  # NOTE: Using Cloudinary for media storage (cloud).
-  # Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET in your .env
+  # NOTE: Using Appwrite for media storage (cloud).
+  # Set FLICKO_APPWRITE_PROJECT_ID, FLICKO_APPWRITE_PUBLIC_ENDPOINT, etc. in .env
   # ----------------------------------------------------------
 
   # ----------------------------------------------------------

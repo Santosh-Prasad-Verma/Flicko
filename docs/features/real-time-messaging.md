@@ -89,7 +89,7 @@ The `ws-gateway` service runs a central `Hub`. When a client connects via WebSoc
 When Redis receives the `PUBLISH` from `msg-service`, the `ws-gateway` receives it, looks up all WebSocket connections subscribed to `channel:{channel_id}`, and pushes the JSON payload down the TCP socket.
 
 **Optimistic Deduplication:**
-Because the sender also has an active WebSocket connection, they will receive the `MESSAGE_CREATE` event for their own message. The mobile app's Zustand store compares the incoming message's `id` against its optimistic local buffer; if it matches, it ignores the WebSocket payload to prevent UI flickering.
+Because the sender also has an active WebSocket connection, they will receive the `MESSAGE_CREATE` event for their own message. The mobile app's Riverpod store compares the incoming message's `id` against its optimistic local buffer; if it matches, it ignores the WebSocket payload to prevent UI flickering.
 
 ---
 

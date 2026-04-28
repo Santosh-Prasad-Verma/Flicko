@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/flicko-org/flicko-backend/internal/commands"
@@ -13,10 +14,11 @@ import (
 
 // ModerationBot handles kick, ban, mute, warn, purge, and temp-punishment expiry.
 type ModerationBot struct {
-	ctx    BotContext
-	router *commands.Router
-	logger *zap.Logger
-	cancel context.CancelFunc
+	ctx      BotContext
+	router   *commands.Router
+	logger   *zap.Logger
+	cancel   context.CancelFunc
+	loopOnce sync.Once
 }
 
 func NewModerationBot(router *commands.Router) *ModerationBot {
@@ -37,9 +39,11 @@ func (b *ModerationBot) Register(bctx BotContext) error {
 	bctx.EventBus.Subscribe(events.TickerMinute, "mod-punishment-expiry", b.checkExpiredPunishments)
 
 	// Start background punishment expiry ticker
-	bgCtx, cancel := context.WithCancel(context.Background())
-	b.cancel = cancel
-	go b.punishmentExpiryLoop(bgCtx)
+	b.loopOnce.Do(func() {
+		bgCtx, cancel := context.WithCancel(context.Background())
+		b.cancel = cancel
+		go b.punishmentExpiryLoop(bgCtx)
+	})
 
 	b.logger.Info("moderation bot registered")
 	return nil
@@ -167,7 +171,16 @@ func (b *ModerationBot) registerCommands() {
 func (b *ModerationBot) handleKick(ctx commands.CommandContext) (*commands.CommandResponse, error) {
 	reqCtx, cancel := context.WithTimeout(ctx.Ctx, 30*time.Second)
 	defer cancel()
-	targetID, _ := ctx.Options["user"].(string)
+	
+	// Validate user parameter
+	targetID, ok := ctx.Options["user"].(string)
+	if !ok || targetID == "" {
+		return &commands.CommandResponse{
+			Content: "❌ Invalid user specified.",
+			Ephemeral: true,
+		}, nil
+	}
+	
 	reason, _ := ctx.Options["reason"].(string)
 	if reason == "" {
 		reason = "No reason provided"
@@ -205,7 +218,16 @@ func (b *ModerationBot) handleKick(ctx commands.CommandContext) (*commands.Comma
 func (b *ModerationBot) handleBan(ctx commands.CommandContext) (*commands.CommandResponse, error) {
 	reqCtx, cancel := context.WithTimeout(ctx.Ctx, 30*time.Second)
 	defer cancel()
-	targetID, _ := ctx.Options["user"].(string)
+	
+	// Validate user parameter
+	targetID, ok := ctx.Options["user"].(string)
+	if !ok || targetID == "" {
+		return &commands.CommandResponse{
+			Content: "❌ Invalid user specified.",
+			Ephemeral: true,
+		}, nil
+	}
+	
 	reason, _ := ctx.Options["reason"].(string)
 	if reason == "" {
 		reason = "No reason provided"
@@ -249,7 +271,15 @@ func (b *ModerationBot) handleBan(ctx commands.CommandContext) (*commands.Comman
 func (b *ModerationBot) handleUnban(ctx commands.CommandContext) (*commands.CommandResponse, error) {
 	reqCtx, cancel := context.WithTimeout(ctx.Ctx, 30*time.Second)
 	defer cancel()
-	targetID, _ := ctx.Options["user"].(string)
+	
+	// Validate user parameter
+	targetID, ok := ctx.Options["user"].(string)
+	if !ok || targetID == "" {
+		return &commands.CommandResponse{
+			Content: "❌ Invalid user specified.",
+			Ephemeral: true,
+		}, nil
+	}
 
 	if err := b.checkModPermission(reqCtx, ctx.ServerID, ctx.UserID); err != nil {
 		return &commands.CommandResponse{Content: "❌ You don't have permission to unban members.", Ephemeral: true}, nil
@@ -277,7 +307,16 @@ func (b *ModerationBot) handleUnban(ctx commands.CommandContext) (*commands.Comm
 func (b *ModerationBot) handleMute(ctx commands.CommandContext) (*commands.CommandResponse, error) {
 	reqCtx, cancel := context.WithTimeout(ctx.Ctx, 30*time.Second)
 	defer cancel()
-	targetID, _ := ctx.Options["user"].(string)
+	
+	// Validate user parameter
+	targetID, ok := ctx.Options["user"].(string)
+	if !ok || targetID == "" {
+		return &commands.CommandResponse{
+			Content: "❌ Invalid user specified.",
+			Ephemeral: true,
+		}, nil
+	}
+	
 	durationStr, _ := ctx.Options["duration"].(string)
 	reason, _ := ctx.Options["reason"].(string)
 	if reason == "" {
@@ -316,7 +355,15 @@ func (b *ModerationBot) handleMute(ctx commands.CommandContext) (*commands.Comma
 func (b *ModerationBot) handleUnmute(ctx commands.CommandContext) (*commands.CommandResponse, error) {
 	reqCtx, cancel := context.WithTimeout(ctx.Ctx, 30*time.Second)
 	defer cancel()
-	targetID, _ := ctx.Options["user"].(string)
+	
+	// Validate user parameter
+	targetID, ok := ctx.Options["user"].(string)
+	if !ok || targetID == "" {
+		return &commands.CommandResponse{
+			Content: "❌ Invalid user specified.",
+			Ephemeral: true,
+		}, nil
+	}
 
 	if err := b.checkModPermission(reqCtx, ctx.ServerID, ctx.UserID); err != nil {
 		return &commands.CommandResponse{Content: "❌ You don't have permission to unmute members.", Ephemeral: true}, nil
@@ -340,7 +387,16 @@ func (b *ModerationBot) handleUnmute(ctx commands.CommandContext) (*commands.Com
 func (b *ModerationBot) handleWarn(ctx commands.CommandContext) (*commands.CommandResponse, error) {
 	reqCtx, cancel := context.WithTimeout(ctx.Ctx, 30*time.Second)
 	defer cancel()
-	targetID, _ := ctx.Options["user"].(string)
+	
+	// Validate user parameter
+	targetID, ok := ctx.Options["user"].(string)
+	if !ok || targetID == "" {
+		return &commands.CommandResponse{
+			Content: "❌ Invalid user specified.",
+			Ephemeral: true,
+		}, nil
+	}
+	
 	reason, _ := ctx.Options["reason"].(string)
 
 	if err := b.checkModPermission(reqCtx, ctx.ServerID, ctx.UserID); err != nil {
@@ -378,7 +434,15 @@ func (b *ModerationBot) handleWarn(ctx commands.CommandContext) (*commands.Comma
 func (b *ModerationBot) handleWarnings(ctx commands.CommandContext) (*commands.CommandResponse, error) {
 	reqCtx, cancel := context.WithTimeout(ctx.Ctx, 30*time.Second)
 	defer cancel()
-	targetID, _ := ctx.Options["user"].(string)
+	
+	// Validate user parameter
+	targetID, ok := ctx.Options["user"].(string)
+	if !ok || targetID == "" {
+		return &commands.CommandResponse{
+			Content: "❌ Invalid user specified.",
+			Ephemeral: true,
+		}, nil
+	}
 
 	rows, err := b.ctx.DB.Query(reqCtx,
 		`SELECT id, reason, moderator_id, created_at FROM warnings
@@ -420,7 +484,11 @@ func (b *ModerationBot) handleWarnings(ctx commands.CommandContext) (*commands.C
 func (b *ModerationBot) handlePurge(ctx commands.CommandContext) (*commands.CommandResponse, error) {
 	reqCtx, cancel := context.WithTimeout(ctx.Ctx, 30*time.Second)
 	defer cancel()
-	countFloat, _ := ctx.Options["count"].(float64)
+	
+	countFloat, ok := ctx.Options["count"].(float64)
+	if !ok {
+		return &commands.CommandResponse{Content: "❌ Invalid count specified.", Ephemeral: true}, nil
+	}
 	count := int(countFloat)
 	if count < 1 || count > 100 {
 		return &commands.CommandResponse{Content: "❌ Count must be between 1 and 100.", Ephemeral: true}, nil
@@ -462,7 +530,11 @@ func (b *ModerationBot) handlePurge(ctx commands.CommandContext) (*commands.Comm
 func (b *ModerationBot) handleSlowmode(ctx commands.CommandContext) (*commands.CommandResponse, error) {
 	reqCtx, cancel := context.WithTimeout(ctx.Ctx, 30*time.Second)
 	defer cancel()
-	secondsFloat, _ := ctx.Options["seconds"].(float64)
+	
+	secondsFloat, ok := ctx.Options["seconds"].(float64)
+	if !ok {
+		return &commands.CommandResponse{Content: "❌ Invalid seconds specified.", Ephemeral: true}, nil
+	}
 	seconds := int(secondsFloat)
 
 	if err := b.checkModPermission(reqCtx, ctx.ServerID, ctx.UserID); err != nil {
@@ -668,13 +740,27 @@ func (b *ModerationBot) expirePunishments() error {
 // parseDuration parses human-friendly durations like "10m", "1h", "7d".
 func parseDuration(s string) (time.Duration, error) {
 	s = strings.TrimSpace(strings.ToLower(s))
-	if strings.HasSuffix(s, "d") {
-		s = strings.TrimSuffix(s, "d")
-		var days int
-		if _, err := fmt.Sscanf(s, "%d", &days); err != nil {
-			return 0, err
-		}
-		return time.Duration(days) * 24 * time.Hour, nil
-	}
-	return time.ParseDuration(s)
+        var duration time.Duration
+        var err error
+
+        if strings.HasSuffix(s, "d") {
+                s = strings.TrimSuffix(s, "d")
+                var days int
+                if _, err = fmt.Sscanf(s, "%d", &days); err != nil {
+                        return 0, err
+                }
+                duration = time.Duration(days) * 24 * time.Hour
+        } else {
+                duration, err = time.ParseDuration(s)
+                if err != nil {
+                        return 0, err
+                }
+        }
+
+        const maxDuration = 30 * 24 * time.Hour
+        if duration > maxDuration {
+                return 0, fmt.Errorf("duration too long (maximum is 30 days)")
+        }
+
+        return duration, nil
 }

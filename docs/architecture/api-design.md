@@ -2,7 +2,7 @@
 
 > **Reading time:** ~15 minutes · **Audience:** Backend, Mobile Developers · **Last Updated:** 2026-04-11
 
-This document outlines the design principles, conventions, and patterns used across Flicko's REST API. Whether you are building new endpoints in the Go `msg-service` or consuming them in the React Native app, adhering to these rules ensures consistency and predictability.
+This document outlines the design principles, conventions, and patterns used across Flicko's REST API. Whether you are building new endpoints in the Go `msg-service` or consuming them in the Flutter app, adhering to these rules ensures consistency and predictability.
 
 ---
 

@@ -69,7 +69,7 @@ This backlog decomposes the audit implementation plan into **Epic → Story → 
   - **Task P2-E1-S2-T3 (API):** `GET /api/v1/auth/login-events`
   - **Task P2-E1-S2-T4 (Schema):** Add `trusted_devices`, `login_events`, `security_alerts`.
 
-### Epic P2-E2 — GDPR Export & Deletion (Audit: privacy compliance parity gap)
+### Epic P2-E2 — GDPR Flutterrt & Deletion (Audit: privacy compliance parity gap)
 
 - **Story P2-E2-S1 — Async account export**
   - **Task P2-E2-S1-T1 (API):** `POST /api/v1/privacy/export`

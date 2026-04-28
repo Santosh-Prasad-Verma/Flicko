@@ -67,7 +67,7 @@ The AutoMod Engine is an event-driven system running inside the `backend` monoli
 
 ## AutoMod Filters Details
 
-The `automod_settings.filters` JSON structure defines behavior. Server owners can toggle each independently via the React Native settings UI.
+The `automod_settings.filters` JSON structure defines behavior. Server owners can toggle each independently via the Flutter settings UI.
 
 1. **Invite Links:** Uses regex to block `discord.gg/`, `flicko.app/join/`, and similar platform invite domains to prevent server raiding.
 2. **External Links:** Deletes messages containing any HTTP link, unless the domain is present in the `whitelist` configuration array.

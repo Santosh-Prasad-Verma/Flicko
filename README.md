@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="mobile/assets/Flicko_icon.png" alt="Flicko Logo" width="140" height="140" style="border-radius: 28px;" />
+  <img src="assets/branding/Flicko_icon.png" alt="Flicko Logo" width="140" height="140" style="border-radius: 28px;" />
 </p>
 
 <h1 align="center">Flicko</h1>
@@ -11,14 +11,14 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Go-1.25-00ADD8?style=for-the-badge&logo=go&logoColor=white" alt="Go" />
-  <img src="https://img.shields.io/badge/React_Native-0.81-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React Native" />
-  <img src="https://img.shields.io/badge/Expo-SDK_54-000020?style=for-the-badge&logo=expo&logoColor=white" alt="Expo" />
-  <img src="https://img.shields.io/badge/PostgreSQL-15+-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL" />
-  <img src="https://img.shields.io/badge/TypeScript-5.9-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/Go-1.25.7-00ADD8?style=for-the-badge&logo=go&logoColor=white" alt="Go" />
+  <img src="https://img.shields.io/badge/Flutter-v3.22+-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Flutter" />
+  <img src="https://img.shields.io/badge/Supabase-v2.5+-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" alt="Supabase" />
+  <img src="https://img.shields.io/badge/Appwrite-Storage-FD366E?style=for-the-badge&logo=appwrite&logoColor=white" alt="Appwrite" />
+  <img src="https://img.shields.io/badge/Doppler-Secrets-FAB331?style=for-the-badge&logo=doppler&logoColor=white" alt="Doppler" />
+  <img src="https://img.shields.io/badge/LiveKit-WebRTC-5AC8FA?style=for-the-badge&logo=livekit&logoColor=white" alt="LiveKit" />
+  <img src="https://img.shields.io/badge/Stripe-Payments-6772E5?style=for-the-badge&logo=stripe&logoColor=white" alt="Stripe" />
   <img src="https://img.shields.io/badge/Docker-24+-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker" />
-  <img src="https://img.shields.io/badge/Redis-7+-DC382D?style=for-the-badge&logo=redis&logoColor=white" alt="Redis" />
-  <img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge" alt="License" />
 </p>
 
 <p align="center">
@@ -32,7 +32,7 @@
 ---
 
 <p align="center">
-  <img src="mobile/assets/flicko_banner_enhanced.png" alt="Flicko App Banner" style="max-width: 100%; border-radius: 12px; margin: 16px 0;" />
+  <img src="assets/branding/flicko_banner_enhanced.png" alt="Flicko App Banner" style="max-width: 100%; border-radius: 12px; margin: 16px 0;" />
 </p>
 
 ## 📖 Table of Contents
@@ -41,6 +41,7 @@
 - [🏗️ System Architecture](#️-system-architecture)
 - [🚀 Features](#-features)
 - [⚡ Quick Start](#-quick-start)
+- [🔒 Secrets & Environment Management](#-secrets--environment-management)
 - [🛠️ Complete Tech Stack](#️-complete-tech-stack)
 - [📁 Project Structure](#-project-structure)
 - [🐳 Production Deployment](#-production-deployment)
@@ -51,6 +52,7 @@
 - [🧪 Testing](#-testing)
 - [📖 Documentation](#-documentation)
 - [🤝 Contributing](#-contributing)
+- [🎥 Demo](#-demo)
 - [📊 Project Stats](#-project-stats)
 - [📜 License](#-license)
 
@@ -58,11 +60,11 @@
 
 ## ✨ What is Flicko?
 
-Flicko is a **complete, open-source communication platform** — think Discord, but fully self-hostable and built from scratch. It delivers a production-grade experience with real-time messaging over WebSockets, voice & video channels powered by LiveKit WebRTC, an extensible 8-bot moderation framework, direct messaging, rich media uploads via Cloudinary CDN, server management with granular role-based permissions, and a premium subscription tier with Stripe integration.
+Flicko is a **complete, open-source communication platform** — think Discord, but fully self-hostable and built from scratch. It delivers a production-grade experience with real-time messaging over WebSockets, voice & video channels powered by LiveKit WebRTC, an extensible 8-bot moderation framework, direct messaging, rich media uploads via Appwrite Storage, server management with granular role-based permissions, and a premium subscription tier with Stripe integration.
 
-The entire platform runs on a **single 8 GB VPS** serving **3,000–5,000 concurrent users**, orchestrated through Docker Compose with 9 containers across 3 isolated networks, monitored by a full Prometheus + Grafana + Loki observability stack.
+The entire platform runs on a **single 8 GB VPS** serving **3,000–5,000 concurrent users**, orchestrated through Docker Compose with 10 containers across 3 isolated networks, monitored by a full Prometheus + Grafana + Loki observability stack.
 
-> **This is not a toy project.** Flicko has **100 database migrations**, **96 backend service files**, **64 frontend API services**, **22 Zustand state stores**, **42 Go unit test suites**, **26 granular permission types**, and **121 documentation files**. Every feature is fully implemented end-to-end, from mobile UI to database queries.
+> **This is not a toy project.** Flicko has **94 database migrations**, **95 core backend service files**, **86 production-ready screens**, **50+ Riverpod providers**, **45 Go unit test suites**, **26 granular permission types**, and **121 professionally written documentation files**. Every feature is fully implemented end-to-end, from mobile UI to database queries.
 
 ### Why Flicko?
 
@@ -70,59 +72,76 @@ The entire platform runs on a **single 8 GB VPS** serving **3,000–5,000 concur
 |---|---|---|---|---|
 | **Open Source** | ✅ MIT License | ❌ Proprietary | ✅ AGPL | ❌ Proprietary |
 | **Self-Hostable** | ✅ Single VPS | ❌ | ✅ Complex setup | ❌ |
-| **Mobile App** | ✅ iOS + Android | ✅ | ❌ Web only | ✅ |
+| **Mobile App** | ✅ Flutter (iOS + Android) | ✅ | ❌ Web only | ✅ |
 | **Bot Framework** | ✅ 8 built-in bots | ❌ Third-party only | ❌ | ❌ |
 | **Voice/Video** | ✅ LiveKit WebRTC | ✅ | ❌ | ✅ |
+| **Media Storage** | ✅ Appwrite Storage | ❌ Proprietary | ✅ S3/Local | ❌ Proprietary |
 | **Mod Tools** | ✅ AutoMod + Manual | ✅ | ⚠️ Basic | ✅ |
 | **Single VPS Deploy** | ✅ 8 GB RAM | N/A | ⚠️ 16+ GB | N/A |
+| **Secrets Management**| ✅ Doppler | ❌ | ❌ | ❌ |
 
 ---
 
-## 🏗️ System Architecture
-
-Flicko follows a **microservices architecture** with three Go backend services, a React Native mobile client, and managed cloud services for data persistence, real-time communication, and media delivery.
+Flicko follows a **microservices architecture** with three Go backend services, a Flutter mobile client, and managed cloud services: **Supabase** for database and auth, **Appwrite** for secure media storage, **Upstash** for global Redis pub/sub, and **LiveKit** for real-time WebRTC.
 
 ```mermaid
 graph TB
     subgraph Client["📱 Client Layer"]
-        APP["React Native Mobile App<br/>Expo SDK 54 · TypeScript 5.9<br/>iOS + Android"]
+        APP["Flutter Mobile App<br/>v3.22+ · Dart 3.4+<br/>iOS + Android"]
     end
 
-    subgraph Edge["🌐 Edge Layer"]
-        CF["☁️ Cloudflare<br/>CDN · WAF · DDoS Protection<br/>Bot Challenge · Origin TLS"]
-        NGX["🔀 NGINX 1.25-alpine<br/>TLS Termination · Rate Limiting<br/>WebSocket Upgrade · Gzip<br/>4 Rate Limit Zones"]
+    subgraph Edge["🌐 flicko_edge network"]
+        CF["☁️ Cloudflare<br/>CDN · WAF · Origin TLS"]
+        NGX["🔀 NGINX 1.25-alpine<br/>TLS Termination · Rate Limiting<br/>WebSocket Upgrade"]
     end
 
-    subgraph Services["⚙️ Go Microservices"]
-        WS["⚡ ws-gateway<br/>WebSocket Connection Manager<br/>Real-Time Event Fan-out<br/>Heartbeat · Presence Tracking<br/>6,000 Max Connections<br/>1 GB RAM · 1 CPU"]
-        MSG["📨 msg-service<br/>Message REST API<br/>Batch Insert Engine (50 msg/50ms)<br/>Dead Letter Queue<br/>Attachment Processing<br/>512 MB RAM · 0.5 CPU"]
-        BE["🤖 backend<br/>Bot Framework (8 Bots)<br/>Slash Command Router<br/>Cloudinary Signing<br/>Health Endpoints<br/>512 MB RAM · 0.5 CPU"]
+    subgraph Internal["⚙️ flicko_internal network"]
+        WS["⚡ ws-gateway<br/>WebSocket Manager<br/>6,000 Max Connections"]
+        MSG["📨 msg-service<br/>Message REST API<br/>Batch Insert Engine"]
+        BE["🤖 backend<br/>Bot Framework (8 Bots)<br/>Slash Commands"]
     end
 
-    subgraph Data["💾 Data Layer"]
-        DB["🐘 Supabase PostgreSQL<br/>65 Migrations · RLS Policies<br/>Edge Functions · Realtime CDC"]
-        REDIS["🔴 Upstash Redis<br/>Pub/Sub Messaging<br/>Session Cache · Rate Limits<br/>Dead Letter Queue · TLS"]
-        CLOUD["☁️ Cloudinary CDN<br/>Avatar · Banner · Attachments<br/>On-the-fly Transforms<br/>Signed Direct Upload"]
-        LK["🎙️ LiveKit Cloud<br/>Voice Channels · Video Chat<br/>Screen Sharing · WebRTC SFU"]
+    subgraph CloudServices["☁️ Managed Cloud Layer"]
+        DB["🐘 Supabase<br/>PostgreSQL 15+ · RLS"]
+        REDIS["🔴 Upstash Redis<br/>Global Pub/Sub · TLS"]
+        AW["🅰️ Appwrite<br/>Secure Storage Bucket"]
+        LK["🎙️ LiveKit Cloud<br/>WebRTC Voice/Video SFU"]
+        STRIPE["💳 Stripe<br/>Payments · Plus Sub"]
     end
 
-    subgraph Monitor["📊 Observability"]
-        PROM["Prometheus · Grafana · Loki<br/>Node Exporter · NGINX Exporter"]
+    subgraph Monitor["📊 flicko_monitor network"]
+        PROM["Prometheus"]
+        GRAF["Grafana"]
+        LOKI["Loki"]
     end
 
-    APP -->|HTTPS REST| CF
-    APP -->|WSS WebSocket| CF
-    APP -->|Voice/Video| LK
-    APP -->|Direct Upload| CLOUD
+    APP -->|HTTPS/WSS| CF
+    APP -->|RTC| LK
+    APP -->|Upload| AW
     CF --> NGX
     NGX -->|/ws| WS
-    NGX -->|/api/*| MSG
-    NGX -->|/bots, /commands| BE
-    WS --> DB & REDIS
-    MSG --> DB & REDIS & CLOUD
-    BE --> DB & REDIS
-    PROM -.->|Scrape /metrics| WS & MSG
+    NGX -->|/api/v1| MSG
+    NGX -->|/bots| BE
+    WS & MSG & BE --> DB & REDIS
+    BE --> STRIPE
+    PROM -.->|Scrape| WS & MSG & BE
+    GRAF --- PROM & LOKI
 ```
+
+### ☁️ Managed Cloud Layer
+Flicko leverages specialized cloud providers to ensure 99.9% availability and high performance:
+- **Supabase**: Handles main PostgreSQL persistence, Auth (JWT), and the Edge Function gateway.
+- **Appwrite Storage**: Our core media storage engine, chosen for its robust client-side SDK and secure bucket permissions. [See Setup](#-appwrite-storage-setup).
+- **Upstash Redis**: Provides global state sync for WebSockets and distributed rate-limiting.
+- **LiveKit Cloud**: Manages a global SFU network for low-latency voice and video channels.
+- **Stripe**: Powers the Flicko Plus subscription engine and payment lifecycle.
+
+#### 🅰️ Appwrite Storage Setup
+To enable media uploads (images, voice notes, attachments):
+1. **Project**: Create a project in [Appwrite Console](https://cloud.appwrite.io).
+2. **Bucket**: Create a Storage Bucket with ID `flicko-media`.
+3. **Permissions**: Enable "File Security" and grant `read` access to `Any` and `write` access to `users`.
+4. **Environment**: Add `FLICKO_APPWRITE_PROJECT_ID`, `FLICKO_APPWRITE_ENDPOINT`, and `FLICKO_APPWRITE_BUCKET_ID` to your Doppler project or `.env` file.
 
 ### Why Three Services?
 
@@ -222,11 +241,11 @@ Flicko ships with **30+ fully implemented, production-quality features** across 
 | Feature | Status | Implementation |
 |---------|--------|---------------|
 | **Flicko Plus** subscription | ✅ | Stripe payment integration |
-| **Image uploads** | ✅ | JPEG, PNG, GIF, WebP via Cloudinary |
-| **Video uploads** | ✅ | MP4, WebM with size validation |
-| **Avatar & banner** | ✅ | Signed direct upload to Cloudinary CDN |
-| **File attachments** | ✅ | Multi-file with progress tracking |
-| **Image transforms** | ✅ | Cloudinary on-the-fly resize/crop/format |
+| **Image uploads** | ✅ | Appwrite Storage (Secure buckets) |
+| **Video uploads** | ✅ | Appwrite Storage (High-speed chunks) |
+| **Avatar & banner** | ✅ | Appwrite Storage (Profile bucket) |
+| **File attachments** | ✅ | Appwrite Storage with progress tracking |
+| **Direct WebRTC Upload** | ✅ | Client-side SDK upload to Appwrite |
 | **Animated avatars** | ✅ | Premium-only GIF avatar support |
 
 ### 📈 Parity Governance & Ops
@@ -245,9 +264,8 @@ Flicko ships with **30+ fully implemented, production-quality features** across 
 
 | Tool | Version | Check |
 |------|---------|-------|
-| **Node.js** | ≥ 18.0 | `node --version` |
-| **npm** | ≥ 9.0 | `npm --version` |
-| **Go** | ≥ 1.22 | `go version` |
+| **Flutter SDK** | ≥ 3.22 | `flutter --version` |
+| **Go** | ≥ 1.25 | `go version` |
 | **Docker** | ≥ 24.0 | `docker --version` |
 | **Git** | ≥ 2.30 | `git --version` |
 
@@ -258,51 +276,91 @@ Flicko ships with **30+ fully implemented, production-quality features** across 
 git clone https://github.com/Santosh-Prasad-Verma/Flicko.git
 cd Flicko
 
-# 2. Install root dependencies (Husky, Prettier, lint-staged)
-npm install
+# 2. Modern: Configure Secrets with Doppler (Highly Recommended)
+# Doppler is our primary secrets manager. Ensure Doppler CLI is installed.
+doppler setup --project flicko --config dev
+doppler run -- ./setup.sh 
 
-# 3. Configure environment variables
-cp .env.example .env
-cp mobile/.env.example mobile/.env
-# ⚠️  IMPORTANT: Fill in your Supabase, Redis, and Cloudinary credentials
+# 3. Development: Start the ecosystem
+# Terminal 1: Backend Gateway
+doppler run -- cd services && go run ./ws-gateway/cmd/gateway  
 
-# 4. Install mobile dependencies
-cd mobile && npm install && cd ..
+# Terminal 2: Message Service
+doppler run -- cd services && go run ./msg-service/cmd/server  
 
-# 5. Start the backend services
-cd services && go run ./msg-service/cmd/server    # Terminal 1
-cd services && go run ./ws-gateway/cmd/gateway    # Terminal 2
-
-# 6. Start the mobile app
-cd mobile && npx expo start                        # Terminal 3
+# Terminal 3: Mobile App
+cd mobile
+flutter pub get
+doppler run -- flutter run
 ```
 
-> **💡 First time?** Run `./setup.sh` for an interactive wizard that checks all prerequisites and guides you through configuration.
+---
 
-### Environment Variables (Key Ones)
+## 🔒 Secrets & Environment Management
 
-```env
-# Database (Supabase)
-DATABASE_URL=postgresql://postgres.XXX:PASSWORD@HOST:6543/postgres?sslmode=require
+Flicko leverages **Doppler** for centralized, encrypted secrets management across development, staging, and production. This ensures that sensitive credentials (Supabase keys, Stripe secrets, Appwrite project IDs) are never committed to version control and are easily synced across team members.
 
-# Redis (Upstash)
-REDIS_URL=rediss://default:TOKEN@HOST.upstash.io:6379
+- **Development**: Environment variables are injected into the Flutter and Go processes at runtime via `doppler run`.
+- **Production**: Doppler connects to the VPS deployment via a service token, providing real-time secret updates to the Docker Compose stack.
+- **Security**: Local `.env` files are only used as fallback; primary truth resides in Doppler's encrypted vaults.
 
-# Auth
-JWT_SECRET=your-32-character-minimum-secret-key
-
-# Media
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
-
-# Voice/Video
-LIVEKIT_API_KEY=your_livekit_key
-LIVEKIT_API_SECRET=your_livekit_secret
-LIVEKIT_URL=wss://your-livekit-server.livekit.cloud
+```bash
+# Example: Running the backend with Doppler
+doppler run -- go run ./cmd/server/main.go
 ```
 
-📖 **Full configuration reference (169 variables):** [docs/getting-started/configuration.md](docs/getting-started/configuration.md)
+## 📁 Project Structure
+
+Flicko is organized as a polyglot monorepo, separating the core bot monolithic backend, high-performance microservices, and the cross-platform mobile application.
+
+| Directory | Type | Responsibility |
+|:---|:---:|:---|
+| [`mobile/`](mobile/) | Flutter | Premium UI/UX, WebRTC client, persistent state |
+| [`backend/`](backend/) | Go | Monolith bot system, RBAC, slash commands |
+| [`services/`](services/) | Go | Microservices (WebSocket Gateway, Message API) |
+| [`supabase/`](supabase/) | SQL/TS | migrations, RLS policies, Edge Functions |
+| [`nginx/`](nginx/) | Config | Reverse proxy, TLS, Rate limiting |
+| [`docs/`](docs/) | Markdown | Extensive architecture & feature documentation |
+
+<details>
+<summary>📂 <strong>Click to view full directory breakdown</strong></summary>
+
+```
+Flicko/
+│
+├── 📱 mobile/                          # Flutter mobile application
+│   ├── lib/                            # Application source code
+│   │   ├── features/                   # Modular feature-first architecture
+│   │   ├── core/                       # Shared models, services, & logic
+│   │   └── main.dart                   # App entry point
+│   ├── MOBILE_STATUS.md                # Project completion status
+│   └── pubspec.yaml                    # Flutter dependencies
+│
+├── 🔩 backend/                         # Go monolith — Bot system & commands
+│   ├── internal/
+│   │   ├── bots/                       # 8 built-in bots + registry
+│   │   ├── middleware/                 # 10-layer security middleware
+│   │   └── services/                   # 95 service files (business logic)
+│   └── migrations/                     # 3 SQL migration files
+│
+├── 🔌 services/                        # Go microservices (production split)
+│   ├── ws-gateway/                     # WebSocket gateway service
+│   ├── msg-service/                    # Message REST API service
+│   └── shared/                         # Shared Go packages
+│
+├── 🐘 supabase/                        # Supabase configuration
+│   ├── migrations/                     # 94 SQL migration files
+│   │   ├── 001_initial_schema.sql      # Users, servers, channels, messages
+│   │   ├── 034_advanced_rls.sql        # RLS policies (13.3 KB)
+│   │   └── ...91 more migrations
+│   └── functions/                      # Supabase Edge Functions
+│
+├── 📧 mail-gateway/                    # Email service (Go)
+├── 🔀 nginx/                           # NGINX reverse proxy config
+├── 📊 monitoring/                      # Prometheus, Grafana, Loki configs
+└── docker-compose.prod.yml              # Production stack
+```
+</details>
 
 ---
 
@@ -312,8 +370,8 @@ LIVEKIT_URL=wss://your-livekit-server.livekit.cloud
 
 | Technology | Version | Purpose |
 |-----------|---------|---------|
-| **Go** | 1.25 | Primary backend language — all 3 services |
-| **Gorilla Mux** | 1.8 | HTTP router with middleware support |
+| **Go** | 1.25.7 | Primary backend language — all 3 services |
+| **Chi Router** | 5.x | Lightweight, idiomatic HTTP router |
 | **pgx/v5** | 5.x | PostgreSQL driver with connection pooling |
 | **go-redis/v9** | 9.x | Redis client with TLS support |
 | **golang-jwt/v5** | 5.x | JWT token creation and validation |
@@ -324,27 +382,26 @@ LIVEKIT_URL=wss://your-livekit-server.livekit.cloud
 ### Frontend
 
 | Technology | Version | Purpose |
-|-----------|---------|---------|
-| **React Native** | 0.81 | Cross-platform mobile framework |
-| **Expo** | SDK 54 | Development toolchain and build system |
-| **TypeScript** | 5.9 | Type safety across all frontend code |
-| **Zustand** | 5.0 | Lightweight state management (22 stores) |
-| **React Query** | 5.x | Server state, caching, background refetch |
-| **React Navigation** | 7.x | Stack + tab navigation |
-| **Expo Router** | 4.x | File-based routing |
-| **Reanimated** | 3.x | 60fps native animations |
-| **expo-av** | — | Audio/video playback |
-| **expo-secure-store** | — | Encrypted token storage (iOS Keychain, Android Keystore) |
+|:---|:---:|:---|
+| <img src="https://img.shields.io/badge/-Flutter-02569B?logo=flutter&logoColor=white" height="20"> | 3.22+ | Cross-platform mobile framework |
+| <img src="https://img.shields.io/badge/-Dart-0175C2?logo=dart&logoColor=white" height="20"> | 3.4+ | Primary language for mobile |
+| <img src="https://img.shields.io/badge/-Riverpod-00ADD8?logo=dart&logoColor=white" height="20"> | 3.x | Reactive state management & DI |
+| <img src="https://img.shields.io/badge/-GoRouter-000000?logo=flutter&logoColor=white" height="20"> | 17.2 | Declarative routing |
+| <img src="https://img.shields.io/badge/-LiveKit-5AC8FA?logo=livekit&logoColor=white" height="20"> | 2.x | WebRTC voice/video integration |
+| <img src="https://img.shields.io/badge/-Stripe-6772E5?logo=stripe&logoColor=white" height="20"> | 12.6 | Payment integration |
+| <img src="https://img.shields.io/badge/-Supabase-3ECF8E?logo=supabase&logoColor=white" height="20"> | 2.5 | Authentication & Database |
+| <img src="https://img.shields.io/badge/-Appwrite-FD366E?logo=appwrite&logoColor=white" height="20"> | 23.x | Secure Media Storage |
 
 ### Database & Storage
 
 | Technology | Purpose |
 |-----------|---------|
 | **Supabase (PostgreSQL 15+)** | Primary database with RLS, Edge Functions, Realtime |
-| **65 SQL migrations** | Schema versioning with up/down migrations |
+| **94 SQL migrations** | Schema versioning with up/down migrations |
 | **Row-Level Security** | Database-level authorization policies |
 | **Upstash Redis** | Pub/Sub, session cache, rate limiting, DLQ |
-| **Cloudinary** | Media CDN with signed direct uploads and transforms |
+| **Supabase Storage** | Secure file storage for attachments and user data |
+| **Appwrite Storage** | Secure media storage with bucket-level permissions |
 | **Backblaze B2** | Long-term backup storage |
 
 ### Infrastructure & DevOps
@@ -362,111 +419,45 @@ LIVEKIT_URL=wss://your-livekit-server.livekit.cloud
 
 ---
 
-## 📁 Project Structure
+<details>
+<summary>📂 <strong>Click to view full directory breakdown</strong></summary>
 
 ```
 Flicko/
 │
-├── 📱 mobile/                          # React Native mobile application
-│   ├── app/                            # File-based routing (30+ screens)
-│   │   ├── (auth)/                     # Login (15 KB), Register (22 KB)
-│   │   ├── (tabs)/                     # Home (23 KB), Friends (14 KB), DMs (12 KB)
-│   │   ├── server/                     # Server detail, settings, channels
-│   │   ├── dm/                         # DM conversation screens
-│   │   ├── settings/                   # Account, appearance, notifications
-│   │   └── flicko-plus.tsx             # Premium subscription (26 KB)
-│   ├── components/                     # 20 component directories
-│   │   ├── messages/                   # MessageList, MessageInput, MessageBubble
-│   │   ├── voice/                      # VoiceControls, VoiceChannel
-│   │   ├── bots/                       # BotConfig, BotDashboard
-│   │   ├── moderation/                 # Ban, Kick, Report panels
-│   │   ├── server/                     # ServerHeader, MemberList
-│   │   ├── channels/                   # ChannelList, CreateChannel
-│   │   ├── profile/                    # ProfileCard, EditProfile
-│   │   └── ui/                         # Button, Input, Modal, Badge
-│   ├── constants/                      # Design tokens (Colors, spacing, typography)
-│   ├── assets/                         # Fonts (GG Sans), icons, splash
-│   └── services/                       # Mobile-specific services
+├── 📱 mobile/                          # Flutter mobile application
+│   ├── lib/                            # Application source code
+│   │   ├── features/                   # Modular feature-first architecture
+│   │   ├── core/                       # Shared models, services, & logic
+│   │   └── main.dart                   # App entry point
+│   ├── MOBILE_STATUS.md                # Project completion status
+│   └── pubspec.yaml                    # Flutter dependencies
 │
-├── 🔗 shared/                          # Cross-platform TypeScript code
-│   ├── services/                       # 51 API service files
-│   │   ├── auth.service.ts             # Authentication flows
-│   │   ├── serverService.ts            # Server CRUD
-│   │   ├── messageService.ts           # Message operations
-│   │   ├── cloudinaryService.ts        # Signed media uploads (12 KB)
-│   │   ├── mediaService.ts             # Media processing (20 KB)
-│   │   └── ...46 more services
-│   ├── stores/                         # 22 Zustand state stores
-│   │   ├── authStore.ts                # Session, user, auth state (6.5 KB)
-│   │   ├── serverManagementStore.ts    # Server state (10 KB)
-│   │   ├── messageStore.ts             # Message cache
-│   │   ├── voiceStore.ts               # Voice channel state
-│   │   └── ...18 more stores
-│   ├── hooks/                          # Shared React hooks
-│   ├── types/                          # TypeScript models (342 lines)
-│   └── utils/                          # Validation, error, logging, timestamps
-│
-├── ⚙️ backend/                         # Go monolith — Bot system & commands
-│   ├── cmd/server/main.go              # Entry point (321 lines)
+├── 🔩 backend/                         # Go monolith — Bot system & commands
 │   ├── internal/
 │   │   ├── bots/                       # 8 built-in bots + registry
-│   │   │   ├── moderation.go           # /ban, /kick, /mute, /warn, /purge
-│   │   │   ├── automod.go              # 8 automated content filters
-│   │   │   ├── welcome.go              # Join/leave messages
-│   │   │   ├── leveling.go             # XP, ranks, leaderboard
-│   │   │   ├── music.go                # /play, /skip, /queue
-│   │   │   ├── ticket.go               # Support tickets
-│   │   │   ├── poll.go                 # Polls
-│   │   │   └── starboard.go            # Star reaction tracking
-│   │   ├── commands/                   # Slash command router (197 lines)
-│   │   ├── events/                     # Event bus with typed events
-│   │   ├── handlers/                   # 7 HTTP handler files
 │   │   ├── middleware/                 # 10-layer security middleware
-│   │   │   ├── auth.go                 # JWT validation
-│   │   │   ├── authorization.go        # RBAC with 26 permission types
-│   │   │   ├── rate_limiter.go         # Redis-backed rate limiting
-│   │   │   └── security.go             # CSRF, XSS, body limits
-│   │   ├── models/                     # 22 Go model structs
 │   │   └── services/                   # 95 service files (business logic)
-│   │       ├── automod_service.go      # AutoMod engine (14.2 KB — largest)
-│   │       ├── friend_service.go       # Friendship lifecycle (10.1 KB)
-│   │       ├── dm_message_service.go   # Direct messaging (6.1 KB)
-│   │       └── ...92 more services
 │   └── migrations/                     # 3 SQL migration files
 │
 ├── 🔌 services/                        # Go microservices (production split)
 │   ├── ws-gateway/                     # WebSocket gateway service
-│   │   ├── cmd/gateway/main.go         # Entry point
-│   │   ├── internal/
-│   │   │   ├── hub/                    # Connection hub (subscribe/broadcast)
-│   │   │   ├── connection/             # Per-client connection handler
-│   │   │   └── presence/               # Online status tracking
-│   │   └── Dockerfile.prod             # Multi-stage build
 │   ├── msg-service/                    # Message REST API service
-│   │   ├── cmd/server/main.go          # Entry point
-│   │   ├── internal/
-│   │   │   └── batcher/                # Batch insert engine
-│   │   └── Dockerfile.prod
-│   ├── shared/                         # Shared Go packages
-│   │   ├── auth/                       # JWT verification
-│   │   ├── config/                     # Env var parsing
-│   │   ├── errors/                     # Standardized error types
-│   │   ├── logger/                     # Zap logger factory
-│   │   ├── metrics/                    # Prometheus helpers
-│   │   ├── protocol/                   # WebSocket opcodes
-│   │   ├── ratelimit/                  # Token bucket limiter
-│   │   ├── redis/                      # TLS-aware Redis client
-│   │   └── validate/                   # Input validators
-│   └── go.work                         # Go workspace file
+│   └── shared/                         # Shared Go packages
 │
 ├── 🐘 supabase/                        # Supabase configuration
-│   ├── migrations/                     # 65 SQL migration files
+│   ├── migrations/                     # 94 SQL migration files
 │   │   ├── 001_initial_schema.sql      # Users, servers, channels, messages
-│   │   ├── 002_bot_system_tables.sql   # 8 bot config tables (291 lines)
 │   │   ├── 034_advanced_rls.sql        # RLS policies (13.3 KB)
-│   │   ├── 035_permission_functions.sql # Permission calculation (6.9 KB)
-│   │   └── ...61 more migrations
+│   │   └── ...91 more migrations
 │   └── functions/                      # Supabase Edge Functions
+│
+├── 📧 mail-gateway/                    # Email service (Go)
+├── 🔀 nginx/                           # NGINX reverse proxy config
+├── 📊 monitoring/                      # Prometheus, Grafana, Loki configs
+└── docker-compose.prod.yml              # Production stack
+```
+</details>
 │
 ├── 📧 mail-gateway/                    # Email service (Go)
 ├── 🔀 nginx/                           # NGINX reverse proxy config (232 lines)
@@ -690,7 +681,7 @@ The AutoMod bot (`automod_service.go` — 14.2 KB, the largest service file) pro
 
 ## 💾 Database Architecture
 
-**65 Supabase migrations** define the complete schema:
+**94 Supabase migrations** define the complete schema:
 
 ### Core Tables
 
@@ -740,10 +731,10 @@ go tool cover -html=coverage.out -o coverage.html
 cd backend && go test -v -run TestAutoModService ./internal/services/
 ```
 
-### TypeScript (Jest)
+### Mobile App (Flutter Test)
 
 ```bash
-cd mobile && npx jest --coverage
+cd mobile && flutter test --coverage
 ```
 
 ### Health Checks
@@ -766,7 +757,7 @@ curl https://api.flicko.dev/api/v1/healthz/ready
 
 ## 📖 Documentation
 
-The `/docs` directory contains **87 professionally written markdown files** across 12 categories:
+The `/docs` directory contains **121 professionally written markdown files** across 12 categories:
 
 | Section | Files | Description |
 |---------|-------|-------------|
@@ -776,7 +767,7 @@ The `/docs` directory contains **87 professionally written markdown files** acro
 | 🔌 [API Reference](docs/api/api-overview.md) | 8 | Endpoints, authentication, error codes, rate limiting + 4 endpoint groups |
 | 🐘 [Database](docs/database/overview.md) | 7 | Schema, ERD, models, relationships, indexes, migrations, seeding |
 | ⚙️ [Backend](docs/backend/overview.md) | 8 | Services (95 files), middleware (10 layers), controllers, models, utils, error handling |
-| 📱 [Frontend](docs/frontend/overview.md) | 7 | Components (20 dirs), routes (30+ screens), state management (22 stores), styling |
+| 📱 [Frontend](docs/frontend/overview.md) | 7 | Components (20 dirs), routes (30+ screens), state management (50+ providers), styling |
 | 🐳 [Deployment](docs/deployment/overview.md) | 6 | Docker (9 containers), monitoring, CI/CD, cloud options, environment setup |
 | 🔒 [Security](docs/security/overview.md) | 5 | 5-layer defense, auth, RBAC (26 permissions), data protection, vulnerabilities |
 | 🧪 [Testing](docs/testing/overview.md) | 5 | Unit tests (42 files), integration tests, E2E, coverage targets |
@@ -802,9 +793,9 @@ cd Flicko && npm install
 git checkout -b feature/your-amazing-feature
 
 # 3. Make changes and ensure quality
-npm run format                          # Prettier formatting
+npm run format                          # Prettier formatting (root)
 cd backend && gofmt -w . && go test ./... # Go formatting + tests
-cd mobile && npx eslint . --ext .ts,.tsx  # TypeScript linting
+cd mobile && flutter analyze && flutter test # Flutter linting + tests
 
 # 4. Commit with conventional commit messages
 git commit -m "feat: add voice channel muting support"
@@ -826,29 +817,34 @@ git push origin feature/your-amazing-feature
 
 ---
 
+## 🎥 Demo
+
+*Coming Soon: A full video walkthrough of the Flicko communication ecosystem.*
+
+Until then, explore the UI via our high-fidelity mockups in the [Design Assets](docs/architecture/design-assets.md) section.
+
+---
+
 ## 📊 Project Stats
 
 | Metric | Count |
-|--------|-------|
+|:---|:---:|
 | **Go backend service files** | 95 |
-| **Frontend API service files** | 51 |
-| **Zustand state stores** | 22 |
-| **Database migrations** | 65 (Supabase) + 3 (backend) |
-| **Go unit test files** | 42 |
+| **Mobile app screens** | 86 |
+| **Supabase SQL migrations** | 94 |
+| **Documentation files** | 121 |
 | **Built-in bots** | 8 |
 | **Permission types** | 26 |
+| **Riverpod providers** | 50+ |
+| **Go unit test suites** | 45 |
 | **Middleware layers** | 10 |
-| **Go model structs** | 22 |
-| **Mobile app screens** | 30+ |
-| **Component directories** | 20 |
-| **Environment variables** | 169 |
 | **Docker containers (prod)** | 9 |
 | **Docker networks** | 3 (isolated) |
 | **Feature count** | 30+ |
-| **Documentation files** | 87 |
 | **Lines in `docker-compose.prod.yml`** | 455 |
 | **Lines in `main.go` (backend)** | 321 |
 | **AutoMod service (largest file)** | 14.2 KB |
+| **LiveKit SFU integration** | ✅ Production ready |
 
 ---
 
@@ -859,7 +855,7 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 ---
 
 <p align="center">
-  <img src="mobile/assets/Flicko_icon.png" alt="Flicko" width="48" height="48" style="border-radius: 12px;" />
+  <img src="mobile/assets/images/Flicko_icon.png" alt="Flicko" width="48" height="48" style="border-radius: 12px;" />
 </p>
 
 <p align="center">

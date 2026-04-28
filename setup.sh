@@ -491,7 +491,7 @@ _row() {
     "$label" "$local_w" "$value"
 }
 
-_row " FRONTEND"  "React Native  ·  Expo  ·  TypeScript"          "$M"    "$WHITE"
+_row " FRONTEND"  "Flutter  ·  Riverpod  ·  Dart"              "$M"    "$WHITE"
 printf "  ${GRAY}├$(repeat_char '─' $(( TABLE_W - 2 )))┤${R}\n"
 _row " BACKEND"   "Go  ·  ws-gateway  ·  msg-service"             "$CB"   "$WHITE"
 printf "  ${GRAY}├$(repeat_char '─' $(( TABLE_W - 2 )))┤${R}\n"
@@ -519,8 +519,7 @@ TOTAL_TOOLS=5
 
 # ── tool descriptions ─────────────────────────────────────────────────────────
 declare -A TOOL_DESC=(
-  [node]="JavaScript runtime  (React Native / Expo)"
-  [npm]="Node package manager"
+  [flutter]="Flutter SDK  (mobile app)"
   [go]="Go language runtime  (backend services)"
   [docker]="Container engine  (infra stack)"
   [git]="Version control"
@@ -547,8 +546,7 @@ check_tool() {
   gap
 }
 
-check_tool "node"   "node --version"
-check_tool "npm"    "npm  --version"
+check_tool "flutter" "flutter --version"
 check_tool "go"     "go   version"
 check_tool "docker" "docker --version"
 check_tool "git"    "git   --version"
@@ -566,7 +564,7 @@ else
   gap
   warn "${FAIL} tool(s) not found. Install them then re-run this script."
   gap
-  [ ! "$(command -v node)" ] && hint "node / npm  →  https://nodejs.org"
+  [ ! "$(command -v flutter)"] && hint "flutter      →  https://flutter.dev/docs/get-started"
   [ ! "$(command -v go)"   ] && hint "go          →  https://go.dev/dl"
   [ ! "$(command -v docker)"] && hint "docker      →  https://docs.docker.com/get-docker"
   [ ! "$(command -v git)"  ] && hint "git         →  https://git-scm.com"
@@ -614,14 +612,14 @@ info "ws-gateway    →  ws://localhost:8080"
 gap
 
 # ── Step 3 ────────────────────────────────────────────────────────────────────
-step_label 3 "${BOLD}${WHITE}Mobile App${R}  ${GRAY}— Expo React Native client${R}"
+step_label 3 "${BOLD}${WHITE}Mobile App${R}  ${GRAY}— Flutter client${R}"
 gap
 
 printf "  ${GRAY}│${R}\n"
 printf "  ${GRAY}│  ${DIM}command:${R}\n"
 printf "  ${GRAY}│${R}\n"
 printf "  ${GRAY}│  ${BG_DARK}${GREEN}${BOLD}  \$  ${R}${BG_DARK}${WHITE}  "
-type_text "cd mobile && npm install && npx expo start" 0.018
+type_text "cd mobile && flutter pub get && flutter run" 0.018
 printf "${R}"
 printf "  ${GRAY}│${R}\n"
 info "Scan the QR code in the Expo Go app"
@@ -649,13 +647,11 @@ _ref() {
 
 _ref ".env.example"           "copy → .env and fill in your secrets"
 printf "  ${GRAY}├$(repeat_char '─' $(( REF_W - 2 )))┤${R}\n"
-_ref "README.md"              "full project documentation"
+_ref "docs/README.md"          "full project documentation"
 printf "  ${GRAY}├$(repeat_char '─' $(( REF_W - 2 )))┤${R}\n"
 _ref "scripts/dev-start.sh"  "spin up local infra (Redis · Prometheus · Grafana)"
 printf "  ${GRAY}├$(repeat_char '─' $(( REF_W - 2 )))┤${R}\n"
 _ref "scripts/run-backend.sh" "launch all Go services in one shot"
-printf "  ${GRAY}├$(repeat_char '─' $(( REF_W - 2 )))┤${R}\n"
-_ref "scripts/expo-usb.sh"   "USB ADB metro launcher for physical devices"
 printf "  ${GRAY}└$(repeat_char '─' $(( REF_W - 2 )))┘${R}\n"
 
 gap

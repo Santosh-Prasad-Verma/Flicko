@@ -15,14 +15,14 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.22'
+        go-version: '1.25'
         cache-dependency-path: "**/*.sum"
 
     - name: Verify Dependencies
       run: |
         for dir in backend mail-gateway services/shared services/ws-gateway services/msg-service; do
           if [ -d "$dir" ]; then
-            cd $dir && go mod verify && cd -
+            (cd $dir && go mod verify)
           fi
         done
 
@@ -31,7 +31,7 @@ jobs:
         go install honnef.co/go/tools/cmd/staticcheck@latest
         for dir in backend mail-gateway services/shared services/ws-gateway services/msg-service; do
           if [ -d "$dir" ]; then
-            cd $dir && go vet ./... && staticcheck ./... && cd -
+            (cd $dir && go vet ./... && staticcheck ./...)
           fi
         done
 
@@ -40,6 +40,6 @@ jobs:
       run: |
         for dir in backend mail-gateway services/shared services/ws-gateway services/msg-service; do
           if [ -d "$dir" ]; then
-            cd $dir && go test -v ./... -coverprofile=coverage.txt && cd -
+            (cd $dir && go test -v ./... -coverprofile=coverage.txt)
           fi
         done

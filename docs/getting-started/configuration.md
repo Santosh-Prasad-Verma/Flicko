@@ -1,6 +1,6 @@
 # Configuration Reference
 
-> **Reading time:** ~20 minutes · **Audience:** All Developers, DevOps · **Last Updated:** 2026-04-11
+> **Reading time:** ~20 minutes · **Audience:** All Developers, DevOps · **Last Updated:** 2026-04-24
 
 This document is the complete environment variable reference for every `.env` file across all Flicko services. Every variable is documented with its type, whether it's required, default value, valid values, and a detailed explanation of what it controls in the system. Variables are organized by the service that consumes them and grouped by functional category.
 
@@ -15,7 +15,7 @@ This document is the complete environment variable reference for every `.env` fi
   - [Redis Configuration](#redis-configuration)
   - [JWT Authentication](#jwt-authentication)
   - [Encryption](#encryption)
-  - [Cloudinary Configuration](#cloudinary-configuration)
+  - [Appwrite Configuration](#appwrite-configuration)
   - [LiveKit Configuration](#livekit-configuration)
   - [Stripe Configuration](#stripe-configuration)
   - [Service Configuration](#service-configuration)
@@ -63,10 +63,12 @@ type Config struct {
     // Encryption
     EncryptionKey []byte
     
-    // Cloudinary
-    CloudinaryCloudName string
-    CloudinaryAPIKey    string
-    CloudinaryAPISecret string
+    // Appwrite
+    AppwriteEndpoint       string
+    AppwriteProjectID      string
+    AppwriteAvatarBucketID string
+    AppwriteMsgBucketID    string
+    AppwriteServerBucketID string
     
     // LiveKit
     LiveKitURL       string
@@ -213,19 +215,19 @@ openssl rand -hex 32
 # Output example: a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2
 ```
 
-### Cloudinary Configuration
+### Appwrite Configuration
 
 | Variable | Type | Required | Default | Description |
 |----------|------|----------|---------|-------------|
-| `CLOUDINARY_CLOUD_NAME` | String | ✅ Yes | — | Cloudinary cloud name |
-| `CLOUDINARY_API_KEY` | String (Numeric) | ✅ Yes | — | Cloudinary API key |
-| `CLOUDINARY_API_SECRET` | String | ✅ Yes | — | Cloudinary API secret |
+| `APPWRITE_ENDPOINT` | String (URL) | ✅ Yes | — | Appwrite API Endpoint |
+| `APPWRITE_PROJECT_ID` | String | ✅ Yes | — | Appwrite Project ID |
+| `APPWRITE_AVATAR_BUCKET_ID` | String | ✅ Yes | — | Bucket ID for user avatars |
+| `APPWRITE_MESSAGE_BUCKET_ID` | String | ✅ Yes | — | Bucket ID for message attachments |
+| `APPWRITE_SERVER_BUCKET_ID` | String | ✅ Yes | — | Bucket ID for server icons |
 
-These three variables enable the Cloudinary direct upload flow. When a user uploads a file (avatar, banner, message attachment), the mobile app first requests a cryptographic signature from the backend (`GET /api/v1/cloudinary/sign`). The backend handler (`cloudinary.go`, 4.3 KB) uses the API secret to generate an HMAC-SHA256 signature over the upload parameters (timestamp, eager transforms, folder). The mobile app then uploads directly to Cloudinary with this signature, bypassing the Flicko backend entirely.
+These variables configure the Appwrite Storage integration. Unlike Cloudinary, which used a backend signing flow, Appwrite is primarily accessed via the client-side SDK. However, the backend still requires these IDs to validate file associations in incoming metadata.
 
-The `CLOUDINARY_API_SECRET` is used **only on the backend** for signature generation. The `CLOUDINARY_CLOUD_NAME` and `CLOUDINARY_API_KEY` are used on both the backend (for signature generation) and the mobile app (for constructing the upload URL).
-
-**Where to find them:** Cloudinary Dashboard → Getting Started (top of the page shows all three values).
+**Where to find them:** Appwrite Console → [Project] → Settings (for Project ID / Endpoint) and Appwrite Console → Storage → [Bucket] → Settings (for Bucket IDs).
 
 ### LiveKit Configuration
 
@@ -235,7 +237,7 @@ The `CLOUDINARY_API_SECRET` is used **only on the backend** for signature genera
 | `LIVEKIT_API_KEY` | String | ✅ Yes | — | LiveKit API key |
 | `LIVEKIT_API_SECRET` | String | ✅ Yes | — | LiveKit API secret |
 
-These variables configure the LiveKit WebRTC SFU integration for voice and video channels. The backend uses the API key and secret to generate room tokens (JWTs signed with the LiveKit secret) that authorize users to join specific voice channels. The mobile app connects to the LiveKit URL using the `@livekit/react-native` SDK with the token received from the backend.
+These variables configure the LiveKit WebRTC SFU integration for voice and video channels. The backend uses the API key and secret to generate room tokens (JWTs signed with the LiveKit secret) that authorize users to join specific voice channels. The mobile app connects to the LiveKit URL using the `livekit_client` Flutter SDK with the token received from the backend.
 
 The `LIVEKIT_URL` must use the `wss://` protocol for secure WebSocket connections. For LiveKit Cloud, this is provided when you create a project. For self-hosted LiveKit, it's your server's WebSocket endpoint.
 
@@ -272,20 +274,22 @@ These variables configure the application-level Redis-backed rate limiter (the t
 
 ---
 
-## Mobile Environment Variables (mobile/.env)
-
-These variables are loaded by the React Native app via Expo's environment system. They are prefixed with `EXPO_PUBLIC_` to indicate they are embedded in the app bundle and are therefore NOT secret.
+These variables are loaded by the Flutter app (typically via Doppler or local `.env` files). They are NOT secret as they are embedded in the compiled application.
 
 | Variable | Type | Required | Default | Description |
 |----------|------|----------|---------|-------------|
-| `EXPO_PUBLIC_API_URL` | String (URL) | ✅ Yes | — | msg-service REST API base URL |
-| `EXPO_PUBLIC_WS_URL` | String (URL) | ✅ Yes | — | ws-gateway WebSocket URL |
-| `EXPO_PUBLIC_SUPABASE_URL` | String (URL) | ✅ Yes | — | Supabase project URL |
-| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | String (JWT) | ✅ Yes | — | Supabase anonymous key |
+| `FLICKO_API_URL` | String (URL) | ✅ Yes | — | msg-service REST API base URL |
+| `FLICKO_WS_URL` | String (URL) | ✅ Yes | — | ws-gateway WebSocket URL |
+| `FLICKO_SUPABASE_URL` | String (URL) | ✅ Yes | — | Supabase project URL |
+| `FLICKO_SUPABASE_ANON_KEY` | String (JWT) | ✅ Yes | — | Supabase anonymous key |
+| `FLICKO_APPWRITE_ENDPOINT` | String (URL) | ✅ Yes | — | Appwrite API Endpoint |
+| `FLICKO_APPWRITE_PROJECT_ID` | String | ✅ Yes | — | Appwrite Project ID |
+| `FLICKO_APPWRITE_AVATAR_BUCKET_ID` | String | ✅ Yes | — | Avatar Bucket ID |
+| `FLICKO_APPWRITE_MESSAGE_BUCKET_ID` | String | ✅ Yes | — | Message Bucket ID |
 
-**`EXPO_PUBLIC_API_URL`** is the base URL the mobile app uses for all REST API calls. In local development, this must be set to your machine's LAN IP (not `localhost`) because the mobile simulator/device runs in a different network context. In production, this points to your NGINX reverse proxy (e.g., `https://api.flicko.dev`).
+**`FLICKO_API_URL`** is the base URL the mobile app uses for all REST API calls. In local development, this must be set to your machine's LAN IP (not `localhost`) because the mobile simulator/device runs in a different network context. In production, this points to your NGINX reverse proxy (e.g., `https://api.flicko.dev`).
 
-**`EXPO_PUBLIC_WS_URL`** is the WebSocket endpoint the mobile app connects to for real-time events. The path is typically `/ws`. In development: `ws://192.168.1.x:8080/ws`. In production: `wss://api.flicko.dev/ws`.
+**`FLICKO_WS_URL`** is the WebSocket endpoint the mobile app connects to for real-time events. The path is typically `/ws`. In development: `ws://192.168.1.x:8080/ws`. In production: `wss://api.flicko.dev/ws`.
 
 ---
 
@@ -349,10 +353,10 @@ In production, environment variables for NGINX, Prometheus, Grafana, and Loki ar
 | Supabase | 3 | `SUPABASE_SERVICE_ROLE_KEY` |
 | Redis | 1 | `REDIS_URL` |
 | Auth | 1 | `JWT_SECRET` |
-| Cloudinary | 3 | `CLOUDINARY_API_SECRET` |
+| Appwrite | 5 | `APPWRITE_PROJECT_ID` |
 | LiveKit | 3 | `LIVEKIT_API_SECRET` |
-| Mobile | 4 | `EXPO_PUBLIC_API_URL` |
+| Mobile | 8 | `FLICKO_API_URL` |
 
 ---
 
-*Last Updated: 2026-04-11 | Version: 1.0.0 | Maintained by: Flicko Team*
+*Last Updated: 2026-04-24 | Version: 1.1.0 | Maintained by: Flicko Team*

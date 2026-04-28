@@ -127,8 +127,8 @@ Similar to msg-service but includes Cloudinary and LiveKit configuration.
 - **Prometheus** — Scrapes metrics from all Go services every 15s
 - **Grafana** — Dashboard UI with Prometheus and Loki data sources
 - **Loki** — Receives JSON logs from all containers via Docker log driver
-- **Node Exporter** — Host system metrics (CPU, RAM, disk, network)
-- **NGINX Exporter** — NGINX stub_status metrics
+- **Node Flutterrter** — Host system metrics (CPU, RAM, disk, network)
+- **NGINX Flutterrter** — NGINX stub_status metrics
 
 ---
 
