@@ -291,3 +291,4 @@ mobile/mobile.iml
 # Firebase (uncomment if you use Firebase and want to hide your config)
 mobile/android/app/google-services.json
 mobile/ios/Runner/GoogleService-Info.plist
+.agents/
