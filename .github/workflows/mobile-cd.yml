@@ -4,7 +4,13 @@ on:
   push:
     branches: [ "main" ]
     paths:
-      - 'mobile/**' # Only trigger if mobile code changed
+      - 'mobile/**'
+      - '.github/workflows/mobile-cd.yml'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/mobile-cd.yml'
 
 jobs:
   analyze:
