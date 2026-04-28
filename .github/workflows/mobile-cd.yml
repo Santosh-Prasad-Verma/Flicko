@@ -4,7 +4,13 @@ on:
   push:
     branches: [ "main" ]
     paths:
-      - 'mobile/**' # Only trigger if mobile code changed
+      - 'mobile/**'
+      - '.github/workflows/mobile-cd.yml'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/mobile-cd.yml'
 
 jobs:
   analyze:
@@ -16,7 +22,6 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.29.3'
           channel: 'stable'
           cache: true
 
@@ -44,7 +49,6 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.29.3'
           channel: 'stable'
           cache: true
 
@@ -84,7 +88,6 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.29.3'
           channel: 'stable'
           cache: true
 

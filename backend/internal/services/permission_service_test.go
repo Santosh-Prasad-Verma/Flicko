@@ -57,11 +57,8 @@ func TestPermissionService_HasPermission_CacheHit(t *testing.T) {
 	mockRedis := new(MockRedisClient)
 	mockRedis.On("Get", mock.Anything, "perm:"+userID.String()+":"+channelID.String()+":"+permissionName).Return("true", nil)
 
-	// Since we expect a cache hit, the DB shouldn't be called. We can pass nil.
-	_ = &permissionService{
-		db:    nil, // Will panic if called, which acts as a verification it wasn't
-		redis: nil, // We mock the underlying methods using our mocked struct in real code, but for this simple test, interface injection is better.
-	}
+	// Since we expect a cache hit, the DB shouldn't be called.
+	// We need to refactor the PermissionService to accept an interface for Redis to make it fully testable like this.
 
 	// We need to refactor the PermissionService to accept an interface for Redis to make it fully testable like this.
 	// This is a placeholder test showing the intention.
