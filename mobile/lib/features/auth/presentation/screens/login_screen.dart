@@ -76,10 +76,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
     final trimmedEmail = _emailController.text.trim();
     
     if (trimmedEmail.isEmpty) {
-      setState(() => _emailError = 'Email is required');
-      valid = false;
-    } else if (!_validateEmail(trimmedEmail)) {
-      setState(() => _emailError = 'Enter a valid email address');
+      setState(() => _emailError = 'Identifier is required');
       valid = false;
     }
 
@@ -287,13 +284,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                                   ],
 
                                   _buildInput(
-                                    label: 'EMAIL',
-                                    placeholder: 'name@example.com',
+                                    label: 'EMAIL, PHONE OR USERNAME',
+                                    placeholder: 'Enter your identifier',
                                     controller: _emailController,
                                     focusNode: _emailFocusNode,
                                     error: _emailError,
                                     keyboardType: TextInputType.emailAddress,
-                                    icon: Icons.alternate_email,
+                                    icon: Icons.person_outline,
                                   ),
                                   
                                   _buildInput(

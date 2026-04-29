@@ -9,7 +9,6 @@ import 'package:mobile/data/models/user_model.dart';
 import 'package:mobile/data/repositories/auth_repository.dart';
 import 'package:mobile/data/services/appwrite_storage_service.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
-import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
 
 /// Edit Profile Screen
 ///
@@ -88,7 +87,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   void _initializeFromProfile(UserModel? profile) {
     if (!_hasChanges && profile != null) {
       if (_displayNameController.text.isEmpty) {
-        _displayNameController.text = profile.displayName ?? profile.username ?? '';
+        _displayNameController.text = profile.displayName ?? profile.username;
       }
       if (_bioController.text.isEmpty) {
         _bioController.text = profile.bio ?? '';
@@ -118,18 +117,18 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         final appwriteService = ref.read(appwriteStorageServiceProvider);
         
         // Debug check
-        print('Appwrite configuration check: ${appwriteService.isConfigured}');
+        debugPrint('Appwrite configuration check: ${appwriteService.isConfigured}');
         
         if (!appwriteService.isConfigured) {
           throw Exception('Media storage is not properly configured. Please check your Appwrite Project ID and Bucket ID.');
         }
 
         final file = File(picked.path);
-        print('Uploading avatar file: ${file.path}, size: ${await file.length()} bytes');
+        debugPrint('Uploading avatar file: ${file.path}, size: ${await file.length()} bytes');
         
         final result = await appwriteService.uploadImage(file);
         final uploadedUrl = result['url'];
-        print('Avatar upload successful: $uploadedUrl');
+        debugPrint('Avatar upload successful: $uploadedUrl');
 
         setState(() {
           _avatarUrl = uploadedUrl;
@@ -137,7 +136,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           _isLoading = false;
         });
       } catch (e) {
-        print('Avatar upload error details: $e');
+        debugPrint('Avatar upload error details: $e');
         setState(() => _isLoading = false);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -771,7 +770,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       width: size,
       height: size,
       fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => Container(
+      errorBuilder: (_, _, _) => Container(
         width: size,
         height: size,
         color: const Color(FlickoColors.blurple),

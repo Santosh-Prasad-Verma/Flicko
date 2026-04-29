@@ -12,5 +12,6 @@ abstract class AuthState with _$AuthState {
     UserModel? userProfile,
   }) = _Authenticated;
   const factory AuthState.unauthenticated() = _Unauthenticated;
+  const factory AuthState.needsVerification({required String email, String? phone, @Default(false) bool isPhone}) = _NeedsVerification;
   const factory AuthState.error(String message) = _Error;
 }

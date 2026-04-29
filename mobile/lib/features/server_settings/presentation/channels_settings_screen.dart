@@ -34,9 +34,7 @@ class _ChannelsSettingsScreenState extends ConsumerState<ChannelsSettingsScreen>
 
   // Edit form
   ChannelModel? _editChannel;
-  String _editName = '';
-  String _editTopic = '';
-  bool _editNsfw = false;
+
 
   final _client = Supabase.instance.client;
 
@@ -176,9 +174,6 @@ class _ChannelsSettingsScreenState extends ConsumerState<ChannelsSettingsScreen>
   void _startEdit(ChannelModel channel) {
     setState(() {
       _editChannel = channel;
-      _editName = channel.name;
-      _editTopic = channel.topic ?? '';
-      _editNsfw = channel.nsfw;
     });
   }
 

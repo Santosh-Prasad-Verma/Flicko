@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,8 +6,16 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 
 class OtpVerificationScreen extends ConsumerStatefulWidget {
-  final String email;
-  const OtpVerificationScreen({super.key, required this.email});
+  final String? email;
+  final String? phone;
+  final bool isPhone;
+
+  const OtpVerificationScreen({
+    super.key,
+    this.email,
+    this.phone,
+    this.isPhone = false,
+  });
 
   @override
   ConsumerState<OtpVerificationScreen> createState() => _OtpVerificationScreenState();
@@ -79,7 +86,12 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> w
     });
 
     try {
-      await ref.read(authNotifierProvider.notifier).verifyEmail(code);
+      if (widget.isPhone) {
+        await ref.read(authNotifierProvider.notifier).verifyPhone(code);
+      } else {
+        await ref.read(authNotifierProvider.notifier).verifyEmail(code);
+      }
+      
       if (mounted) {
         context.go('/home'); // Or wherever after successful login
       }
@@ -113,7 +125,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> w
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
+                            color: Colors.black.withValues(alpha: 0.2),
                             blurRadius: 20,
                             offset: const Offset(0, 10),
                           ),
@@ -123,7 +135,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> w
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            'Verify your email',
+                            widget.isPhone ? 'Verify your phone' : 'Verify your email',
                             style: GoogleFonts.inter(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
@@ -132,7 +144,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> w
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'We sent a 6-digit code to\n${widget.email}',
+                            'We sent a 6-digit code to\n${widget.isPhone ? widget.phone : widget.email}',
                             textAlign: TextAlign.center,
                             style: GoogleFonts.inter(
                               fontSize: 14,
@@ -145,9 +157,9 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> w
                               padding: const EdgeInsets.all(12),
                               margin: const EdgeInsets.only(bottom: 16),
                               decoration: BoxDecoration(
-                                color: Colors.red.withOpacity(0.1),
+                                color: Colors.red.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.red.withOpacity(0.5)),
+                                border: Border.all(color: Colors.red.withValues(alpha: 0.5)),
                               ),
                               child: Row(
                                 children: [

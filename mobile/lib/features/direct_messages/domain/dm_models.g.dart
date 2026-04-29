@@ -62,15 +62,18 @@ _DMMessage _$DMMessageFromJson(Map<String, dynamic> json) => _DMMessage(
   recipientId: json['recipient_id'] as String,
   content: json['content'] as String,
   createdAt: DateTime.parse(json['created_at'] as String),
-  sender: json['sender'] == null
-      ? null
-      : UserModel.fromJson(json['sender'] as Map<String, dynamic>),
-  recipient: json['recipient'] == null
-      ? null
-      : UserModel.fromJson(json['recipient'] as Map<String, dynamic>),
-  attachments: (json['attachments'] as List<dynamic>?)
-      ?.map((e) => DMAttachment.fromJson(e as Map<String, dynamic>))
-      .toList(),
+  sender:
+      json['sender'] == null
+          ? null
+          : UserModel.fromJson(json['sender'] as Map<String, dynamic>),
+  recipient:
+      json['recipient'] == null
+          ? null
+          : UserModel.fromJson(json['recipient'] as Map<String, dynamic>),
+  attachments:
+      (json['attachments'] as List<dynamic>?)
+          ?.map((e) => DMAttachment.fromJson(e as Map<String, dynamic>))
+          .toList(),
 );
 
 Map<String, dynamic> _$DMMessageToJson(_DMMessage instance) =>

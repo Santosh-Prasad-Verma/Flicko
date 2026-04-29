@@ -89,8 +89,6 @@ class LegacyAuthNotifier extends StateNotifier<LegacyAuthState> {
 class AuthNotifier extends StateNotifier<app_auth.AuthState> with WidgetsBindingObserver {
   final Ref ref;
   final AuthRepository _profileRepository;
-  // _authSubscription is unused and causing type conflict, removing.
-  // StreamSubscription? _authSubscription;
 
   AuthNotifier(this.ref, this._profileRepository) 
       : super(const app_auth.AuthState.initial()) {
@@ -129,11 +127,8 @@ class AuthNotifier extends StateNotifier<app_auth.AuthState> with WidgetsBinding
     if (user != null && session != null) {
       debugPrint('User is authenticated. Syncing with Supabase...');
       try {
-        // 1. Get the Supabase-compatible JWT from Clerk
-        // IMPORTANT: This requires a JWT Template named 'supabase' in your Clerk Dashboard
         String? token;
         try {
-          // In clerk_auth 0.0.14-beta, sessionToken() is used to get JWTs
           final sessionToken = await clerk.sessionToken(templateName: 'supabase');
           token = sessionToken.jwt;
           debugPrint('Successfully retrieved Supabase JWT from Clerk');
@@ -143,8 +138,7 @@ class AuthNotifier extends StateNotifier<app_auth.AuthState> with WidgetsBinding
           token = sessionToken.jwt;
         }
         
-        if (token != null && token.isNotEmpty) {
-          // 2. Inject the token into the Supabase client headers
+        if (token.isNotEmpty) {
           final supabase = ref.read(supabaseClientProvider);
           supabase.rest.headers['Authorization'] = 'Bearer $token';
           supabase.storage.headers['Authorization'] = 'Bearer $token';
@@ -154,24 +148,21 @@ class AuthNotifier extends StateNotifier<app_auth.AuthState> with WidgetsBinding
           debugPrint('Warning: Retrieved Clerk token is empty');
         }
 
-        // 3. Map Clerk ID to a deterministic UUID for Supabase compatibility
         final supabaseId = _generateDeterministicUuid(user.id);
         debugPrint('Mapped Clerk ID ${user.id} to UUID $supabaseId');
 
-        // 4. Fetch or create profile
         UserModel? profile;
         try {
           profile = await _profileRepository.getUserProfile(supabaseId);
           debugPrint('Profile fetched successfully');
         } catch (e) {
           debugPrint('Profile not found for $supabaseId, creating new one...');
-          // Get basic info from Clerk user
           final email = user.emailAddresses?.firstOrNull?.emailAddress ?? '';
           final emailPrefix = email.contains('@') ? email.split('@')[0] : null;
           final username = user.username ?? emailPrefix ?? 'user_${user.id.substring(0, 5)}';
           
           final newProfile = UserModel(
-            id: supabaseId, // Using the generated UUID
+            id: supabaseId,
             username: username,
             displayName: user.firstName != null ? '${user.firstName} ${user.lastName ?? ''}'.trim() : null,
             avatarUrl: user.imageUrl,
@@ -200,7 +191,6 @@ class AuthNotifier extends StateNotifier<app_auth.AuthState> with WidgetsBinding
   String _generateDeterministicUuid(String input) {
     final bytes = utf8.encode(input);
     final hash = sha256.convert(bytes).toString();
-    // Format as UUID: 8-4-4-4-12
     return '${hash.substring(0, 8)}-${hash.substring(8, 12)}-${hash.substring(12, 16)}-${hash.substring(16, 20)}-${hash.substring(20, 32)}';
   }
 
@@ -239,7 +229,7 @@ class AuthNotifier extends StateNotifier<app_auth.AuthState> with WidgetsBinding
     }
   }
 
-  Future<void> signUp(String email, String password, String username, {String? phone}) async {
+  Future<void> signUp(String email, String password, String passwordConfirmation, String username, {String? phone}) async {
     try {
       state = const app_auth.AuthState.loading();
       
@@ -249,35 +239,51 @@ class AuthNotifier extends StateNotifier<app_auth.AuthState> with WidgetsBinding
       debugPrint('Attempting Clerk Sign-up for $email');
 
       debugPrint('Calling clerk.attemptSignUp with email: $email');
-      // Step 1: Create sign-up with initial data
       await clerk.attemptSignUp(
         strategy: clerk_auth_api.Strategy.password,
         emailAddress: email,
         password: password,
+        passwordConfirmation: passwordConfirmation,
         username: username,
         phoneNumber: phone,
       );
       debugPrint('clerk.attemptSignUp initial call completed');
 
       final signUp = clerk.client.signUp;
-      if (signUp == null) throw Exception('Sign-up creation failed');
+      if (signUp == null) {
+        debugPrint('ERROR: Sign-up object is null after attemptSignUp');
+        throw Exception('Sign-up creation failed');
+      }
 
       debugPrint('Sign-up created. Status: ${signUp.status}');
+      debugPrint('Unverified fields: ${signUp.unverifiedFields}');
       
-      // Step 2: Trigger email verification
-      // Check if email address needs verification
-      if (signUp.unverifiedFields.contains(clerk_auth_api.Field.emailAddress)) {
-        debugPrint('Email needs verification. Preparing email code...');
+      if (signUp.unverifiedFields.contains(clerk_auth_api.Field.phoneNumber)) {
+        debugPrint('Phone needs verification. Sending phone code...');
+        await clerk.attemptSignUp(
+          strategy: clerk_auth_api.Strategy.phoneCode,
+        );
+        debugPrint('Verification code sent to phone successfully');
+        state = app_auth.AuthState.needsVerification(
+          email: email,
+          phone: phone,
+          isPhone: true,
+        );
+      } else if (signUp.unverifiedFields.contains(clerk_auth_api.Field.emailAddress)) {
+        debugPrint('Email needs verification. Sending email code...');
         await clerk.attemptSignUp(
           strategy: clerk_auth_api.Strategy.emailCode,
         );
-        debugPrint('Verification email sent to $email');
+        debugPrint('Verification email sent to $email successfully');
+        state = app_auth.AuthState.needsVerification(
+          email: email,
+          phone: phone,
+          isPhone: false,
+        );
       } else {
-        debugPrint('Email verification not required or already verified.');
+        debugPrint('No verification required according to Clerk. Current status: ${signUp.status}');
+        state = const app_auth.AuthState.unauthenticated();
       }
-      
-      // We don't set authenticated yet, the user needs to verify the code
-      state = const app_auth.AuthState.unauthenticated();
     } on Exception catch (e) {
       debugPrint('Clerk Sign-up error: $e');
       String errorMessage = e.toString();
@@ -287,6 +293,21 @@ class AuthNotifier extends StateNotifier<app_auth.AuthState> with WidgetsBinding
         errorMessage = e.message;
       }
       state = app_auth.AuthState.error(errorMessage);
+      
+      // Detailed logging for the Unknown Error
+      if (e is clerk_auth_api.ClerkError) {
+        debugPrint('--- CLERK ERROR DETAILS ---');
+        debugPrint('Message: ${e.message}');
+        debugPrint('Code: ${e.code}');
+        // Accessing underlying details if they exist in this version of the SDK
+        try {
+          debugPrint('Full Error: $e');
+        } catch (_) {}
+        debugPrint('---------------------------');
+      } else {
+        debugPrint('Non-Clerk Error: $e');
+      }
+
       state = const app_auth.AuthState.unauthenticated();
       rethrow;
     }
@@ -306,6 +327,30 @@ class AuthNotifier extends StateNotifier<app_auth.AuthState> with WidgetsBinding
       debugPrint('Email verified successfully');
     } on Exception catch (e) {
       debugPrint('Email verification error: $e');
+      String message = e.toString();
+      if (message.contains('SocketException') || message.contains('timeout')) {
+        message = 'Connection timed out while verifying. Please check your internet.';
+      }
+      state = app_auth.AuthState.error(message);
+      state = const app_auth.AuthState.unauthenticated();
+      rethrow;
+    }
+  }
+
+  Future<void> verifyPhone(String code) async {
+    try {
+      state = const app_auth.AuthState.loading();
+      final clerk = ClerkAuthService.currentAuthState;
+      if (clerk == null) throw Exception('Clerk not initialized');
+
+      debugPrint('Verifying phone with code: $code');
+      await clerk.attemptSignUp(
+        strategy: clerk_auth_api.Strategy.phoneCode,
+        code: code,
+      );
+      debugPrint('Phone verified successfully');
+    } on Exception catch (e) {
+      debugPrint('Phone verification error: $e');
       String message = e.toString();
       if (message.contains('SocketException') || message.contains('timeout')) {
         message = 'Connection timed out while verifying. Please check your internet.';
@@ -354,22 +399,17 @@ class AuthNotifier extends StateNotifier<app_auth.AuthState> with WidgetsBinding
 
       debugPrint('Initiating OAuth login with $strategyStr');
 
-      // 1. Initiate OAuth sign-in
-      // The redirect URI must match what's configured in Clerk and the app's deep link settings
       final redirectUri = Uri.parse('flicko://auth-callback');
       await clerk.oauthSignIn(
         strategy: strategy,
         redirect: redirectUri,
       );
 
-      // 2. Extract the redirect URL. It could be in signIn or signUp
       String? redirectUrl;
       
-      // Check Sign In
       if (clerk.client.signIn?.firstFactorVerification?.externalVerificationRedirectUrl != null) {
         redirectUrl = clerk.client.signIn!.firstFactorVerification!.externalVerificationRedirectUrl;
       } 
-      // Check Sign Up if Sign In didn't have it
       else if (clerk.client.signUp != null) {
         for (final verification in clerk.client.signUp!.verifications.values) {
           if (verification.externalVerificationRedirectUrl != null) {
@@ -400,7 +440,7 @@ class AuthNotifier extends StateNotifier<app_auth.AuthState> with WidgetsBinding
       debugPrint('OAuth error: $e');
       String message = e.toString();
       if (message.contains('SocketException') || message.contains('timeout')) {
-        message = 'Connection timed out while reaching Clerk. Ensure your phone can reach casual-oyster-66.clerk.accounts.dev';
+        message = 'Connection timed out while reaching Clerk. Please check your internet connection and ensure your Clerk instance is reachable.';
       }
       state = app_auth.AuthState.error(message);
       state = const app_auth.AuthState.unauthenticated();

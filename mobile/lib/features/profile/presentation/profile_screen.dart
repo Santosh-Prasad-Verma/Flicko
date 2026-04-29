@@ -357,6 +357,7 @@ class ProfileScreen extends ConsumerWidget {
           const SizedBox(height: 8),
           Row(
             children: [
+              // ignore: use_null_aware_elements
               if (prefixWidget != null) prefixWidget,
               Expanded(
                 child: Text(
@@ -367,6 +368,7 @@ class ProfileScreen extends ConsumerWidget {
                   ),
                 ),
               ),
+              // ignore: use_null_aware_elements
               if (trailing != null) trailing,
             ],
           ),

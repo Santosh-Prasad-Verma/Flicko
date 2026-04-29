@@ -21,7 +21,7 @@ class _ServerOnboardingScreenState extends ConsumerState<ServerOnboardingScreen>
   bool _isLoading = true;
   Map<String, dynamic>? _config;
   int _step = 0;
-  Map<String, List<String>> _selectedOptions = {};
+  final Map<String, List<String>> _selectedOptions = {};
   bool _rulesAccepted = false;
   bool _isSubmitting = false;
   String? _errorMessage;

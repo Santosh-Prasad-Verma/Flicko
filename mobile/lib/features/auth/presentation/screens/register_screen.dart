@@ -1,12 +1,15 @@
-import 'dart:ui';
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/auth/presentation/screens/otp_verification_screen.dart';
+import 'package:mobile/data/services/clerk_auth_service.dart';
+import 'package:clerk_auth/clerk_auth.dart' as clerk_auth_api;
 import 'package:fl_country_code_picker/fl_country_code_picker.dart';
+
 
 /// Register Screen — Premium Discord-inspired with Clerk Authentication
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -151,7 +154,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> with SingleTick
       valid = false;
     }
 
-    final password = _passwordController.text;
+    final password = _passwordController.text.trim();
+    final confirmPassword = _confirmPasswordController.text.trim();
+
+    debugPrint('Validation check:');
+    debugPrint('Password length: ${password.length}');
+    debugPrint('Confirm length: ${confirmPassword.length}');
+    debugPrint('Passwords match exactly: ${password == confirmPassword}');
+
     if (password.isEmpty) {
       setState(() => _passwordError = 'Password is required');
       valid = false;
@@ -160,7 +170,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> with SingleTick
       valid = false;
     }
 
-    final confirmPassword = _confirmPasswordController.text;
     if (password != confirmPassword) {
       setState(() => _confirmError = 'Passwords do not match');
       valid = false;
@@ -182,21 +191,32 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> with SingleTick
       _generalError = null;
     });
 
-    // Registration handled by Clerk
-
     try {
+      final phone = '${_selectedCountry.dialCode}${_phoneController.text.trim().replaceAll(RegExp(r'^\+'), '')}';
+      
+      final password = _passwordController.text.trim();
+      
       await ref.read(authNotifierProvider.notifier).signUp(
         _emailController.text.trim().toLowerCase(),
-        _passwordController.text,
+        password,
+        _confirmPasswordController.text.trim(),
         _usernameController.text.trim(),
-        phone: '${_selectedCountry.dialCode}${_phoneController.text.trim().replaceAll(RegExp(r'^\+'), '')}',
+        phone: phone,
       );
 
       if (mounted) {
+        final clerk = ClerkAuthService.currentAuthState;
+        final signUp = clerk?.client.signUp;
+        final needsPhone = signUp?.unverifiedFields.contains(clerk_auth_api.Field.phoneNumber) ?? false;
+        
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => OtpVerificationScreen(email: _emailController.text.trim().toLowerCase()),
+            builder: (context) => OtpVerificationScreen(
+              email: _emailController.text.trim().toLowerCase(),
+              phone: phone,
+              isPhone: needsPhone,
+            ),
           ),
         );
       }
@@ -393,7 +413,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> with SingleTick
                                           onChanged: (value) {
                                             // Auto-detect country code as user types
                                             String digits = value.replaceAll(RegExp(r'[^0-9]'), '');
-                                            if (value.startsWith('+') || digits.length >= 1) {
+                                            if (value.startsWith('+') || digits.isNotEmpty) {
                                               // Look for matches in the picker's common country code list
                                               final searchStr = value.startsWith('+') ? value : '+$value';
                                               final match = _countryPicker.countryCodes.where((c) => searchStr.startsWith(c.dialCode)).toList();
@@ -445,6 +465,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> with SingleTick
                                     icon: Icons.lock_outline,
                                     isVisible: _passwordVisible,
                                     onToggleVisibility: () => setState(() => _passwordVisible = !_passwordVisible),
+                                    onChanged: (_) {
+                                      if (_passwordError != null || _confirmError != null) {
+                                        setState(() {
+                                          _passwordError = null;
+                                          _confirmError = null;
+                                        });
+                                      }
+                                    },
                                   ),
 
                                   _buildInput(
@@ -457,6 +485,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> with SingleTick
                                     icon: Icons.lock_reset_outlined,
                                     isVisible: _confirmPasswordVisible,
                                     onToggleVisibility: () => setState(() => _confirmPasswordVisible = !_confirmPasswordVisible),
+                                    onChanged: (_) {
+                                      if (_confirmError != null) {
+                                        setState(() {
+                                          _confirmError = null;
+                                        });
+                                      }
+                                    },
                                   ),
 
                                   // TOS Checkbox

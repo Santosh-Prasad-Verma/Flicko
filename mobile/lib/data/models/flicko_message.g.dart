@@ -27,20 +27,24 @@ _FlickoMessage _$FlickoMessageFromJson(Map<String, dynamic> json) =>
           const [],
       pinned: json['pinned'] as bool? ?? false,
       edited: json['edited'] as bool? ?? false,
-      editedAt: json['edited_at'] == null
-          ? null
-          : DateTime.parse(json['edited_at'] as String),
+      editedAt:
+          json['edited_at'] == null
+              ? null
+              : DateTime.parse(json['edited_at'] as String),
       createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: json['updated_at'] == null
-          ? null
-          : DateTime.parse(json['updated_at'] as String),
+      updatedAt:
+          json['updated_at'] == null
+              ? null
+              : DateTime.parse(json['updated_at'] as String),
       recipientId: json['recipient_id'] as String?,
-      author: json['author'] == null
-          ? null
-          : UserModel.fromJson(json['author'] as Map<String, dynamic>),
-      replyTo: json['replyTo'] == null
-          ? null
-          : FlickoMessage.fromJson(json['replyTo'] as Map<String, dynamic>),
+      author:
+          json['author'] == null
+              ? null
+              : UserModel.fromJson(json['author'] as Map<String, dynamic>),
+      replyTo:
+          json['replyTo'] == null
+              ? null
+              : FlickoMessage.fromJson(json['replyTo'] as Map<String, dynamic>),
     );
 
 Map<String, dynamic> _$FlickoMessageToJson(_FlickoMessage instance) =>

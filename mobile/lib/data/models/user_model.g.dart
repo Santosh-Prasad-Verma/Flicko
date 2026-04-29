@@ -30,9 +30,10 @@ _UserModel _$UserModelFromJson(Map<String, dynamic> json) => _UserModel(
   pronouns: json['pronouns'] as String?,
   phone: json['phone'] as String?,
   accentColor: json['accent_color'] as String?,
-  bannerColors: (json['banner_colors'] as List<dynamic>?)
-      ?.map((e) => e as String)
-      .toList(),
+  bannerColors:
+      (json['banner_colors'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList(),
   avatarDecoration: json['avatar_decoration'] as String?,
   onlineStatus: json['online_status'] as String? ?? 'offline',
   customStatus: json['custom_status'] as String?,
@@ -46,9 +47,10 @@ _UserModel _$UserModelFromJson(Map<String, dynamic> json) => _UserModel(
   isPartner: json['is_partner'] as bool? ?? false,
   hasNitro: json['has_nitro'] as bool? ?? false,
   createdAt: DateTime.parse(json['created_at'] as String),
-  updatedAt: json['updated_at'] == null
-      ? null
-      : DateTime.parse(json['updated_at'] as String),
+  updatedAt:
+      json['updated_at'] == null
+          ? null
+          : DateTime.parse(json['updated_at'] as String),
 );
 
 Map<String, dynamic> _$UserModelToJson(_UserModel instance) =>

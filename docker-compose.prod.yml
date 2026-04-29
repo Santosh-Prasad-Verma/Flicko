@@ -158,6 +158,8 @@ services:
         condition: service_healthy   # Don't start until msg-service is ready
       backend:
         condition: service_healthy
+      mail-gateway:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget --spider -q http://localhost:80/health || exit 1"]
       interval: 15s

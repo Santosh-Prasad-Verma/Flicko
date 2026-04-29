@@ -55,14 +55,15 @@ extension AuthStatePatterns on AuthState {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _Initial value)?  initial,TResult Function( _Loading value)?  loading,TResult Function( _Authenticated value)?  authenticated,TResult Function( _Unauthenticated value)?  unauthenticated,TResult Function( _Error value)?  error,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _Initial value)?  initial,TResult Function( _Loading value)?  loading,TResult Function( _Authenticated value)?  authenticated,TResult Function( _Unauthenticated value)?  unauthenticated,TResult Function( _NeedsVerification value)?  needsVerification,TResult Function( _Error value)?  error,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case _Initial() when initial != null:
 return initial(_that);case _Loading() when loading != null:
 return loading(_that);case _Authenticated() when authenticated != null:
 return authenticated(_that);case _Unauthenticated() when unauthenticated != null:
-return unauthenticated(_that);case _Error() when error != null:
+return unauthenticated(_that);case _NeedsVerification() when needsVerification != null:
+return needsVerification(_that);case _Error() when error != null:
 return error(_that);case _:
   return orElse();
 
@@ -81,14 +82,15 @@ return error(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _Initial value)  initial,required TResult Function( _Loading value)  loading,required TResult Function( _Authenticated value)  authenticated,required TResult Function( _Unauthenticated value)  unauthenticated,required TResult Function( _Error value)  error,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _Initial value)  initial,required TResult Function( _Loading value)  loading,required TResult Function( _Authenticated value)  authenticated,required TResult Function( _Unauthenticated value)  unauthenticated,required TResult Function( _NeedsVerification value)  needsVerification,required TResult Function( _Error value)  error,}){
 final _that = this;
 switch (_that) {
 case _Initial():
 return initial(_that);case _Loading():
 return loading(_that);case _Authenticated():
 return authenticated(_that);case _Unauthenticated():
-return unauthenticated(_that);case _Error():
+return unauthenticated(_that);case _NeedsVerification():
+return needsVerification(_that);case _Error():
 return error(_that);case _:
   throw StateError('Unexpected subclass');
 
@@ -106,14 +108,15 @@ return error(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _Initial value)?  initial,TResult? Function( _Loading value)?  loading,TResult? Function( _Authenticated value)?  authenticated,TResult? Function( _Unauthenticated value)?  unauthenticated,TResult? Function( _Error value)?  error,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _Initial value)?  initial,TResult? Function( _Loading value)?  loading,TResult? Function( _Authenticated value)?  authenticated,TResult? Function( _Unauthenticated value)?  unauthenticated,TResult? Function( _NeedsVerification value)?  needsVerification,TResult? Function( _Error value)?  error,}){
 final _that = this;
 switch (_that) {
 case _Initial() when initial != null:
 return initial(_that);case _Loading() when loading != null:
 return loading(_that);case _Authenticated() when authenticated != null:
 return authenticated(_that);case _Unauthenticated() when unauthenticated != null:
-return unauthenticated(_that);case _Error() when error != null:
+return unauthenticated(_that);case _NeedsVerification() when needsVerification != null:
+return needsVerification(_that);case _Error() when error != null:
 return error(_that);case _:
   return null;
 
@@ -131,13 +134,14 @@ return error(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  initial,TResult Function()?  loading,TResult Function( dynamic authUser,  UserModel? userProfile)?  authenticated,TResult Function()?  unauthenticated,TResult Function( String message)?  error,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  initial,TResult Function()?  loading,TResult Function( dynamic authUser,  UserModel? userProfile)?  authenticated,TResult Function()?  unauthenticated,TResult Function( String email,  String? phone,  bool isPhone)?  needsVerification,TResult Function( String message)?  error,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Initial() when initial != null:
 return initial();case _Loading() when loading != null:
 return loading();case _Authenticated() when authenticated != null:
 return authenticated(_that.authUser,_that.userProfile);case _Unauthenticated() when unauthenticated != null:
-return unauthenticated();case _Error() when error != null:
+return unauthenticated();case _NeedsVerification() when needsVerification != null:
+return needsVerification(_that.email,_that.phone,_that.isPhone);case _Error() when error != null:
 return error(_that.message);case _:
   return orElse();
 
@@ -156,13 +160,14 @@ return error(_that.message);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  initial,required TResult Function()  loading,required TResult Function( dynamic authUser,  UserModel? userProfile)  authenticated,required TResult Function()  unauthenticated,required TResult Function( String message)  error,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  initial,required TResult Function()  loading,required TResult Function( dynamic authUser,  UserModel? userProfile)  authenticated,required TResult Function()  unauthenticated,required TResult Function( String email,  String? phone,  bool isPhone)  needsVerification,required TResult Function( String message)  error,}) {final _that = this;
 switch (_that) {
 case _Initial():
 return initial();case _Loading():
 return loading();case _Authenticated():
 return authenticated(_that.authUser,_that.userProfile);case _Unauthenticated():
-return unauthenticated();case _Error():
+return unauthenticated();case _NeedsVerification():
+return needsVerification(_that.email,_that.phone,_that.isPhone);case _Error():
 return error(_that.message);case _:
   throw StateError('Unexpected subclass');
 
@@ -180,13 +185,14 @@ return error(_that.message);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  initial,TResult? Function()?  loading,TResult? Function( dynamic authUser,  UserModel? userProfile)?  authenticated,TResult? Function()?  unauthenticated,TResult? Function( String message)?  error,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  initial,TResult? Function()?  loading,TResult? Function( dynamic authUser,  UserModel? userProfile)?  authenticated,TResult? Function()?  unauthenticated,TResult? Function( String email,  String? phone,  bool isPhone)?  needsVerification,TResult? Function( String message)?  error,}) {final _that = this;
 switch (_that) {
 case _Initial() when initial != null:
 return initial();case _Loading() when loading != null:
 return loading();case _Authenticated() when authenticated != null:
 return authenticated(_that.authUser,_that.userProfile);case _Unauthenticated() when unauthenticated != null:
-return unauthenticated();case _Error() when error != null:
+return unauthenticated();case _NeedsVerification() when needsVerification != null:
+return needsVerification(_that.email,_that.phone,_that.isPhone);case _Error() when error != null:
 return error(_that.message);case _:
   return null;
 
@@ -370,6 +376,76 @@ String toString() {
 
 
 
+
+/// @nodoc
+
+
+class _NeedsVerification implements AuthState {
+  const _NeedsVerification({required this.email, this.phone, this.isPhone = false});
+  
+
+ final  String email;
+ final  String? phone;
+@JsonKey() final  bool isPhone;
+
+/// Create a copy of AuthState
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$NeedsVerificationCopyWith<_NeedsVerification> get copyWith => __$NeedsVerificationCopyWithImpl<_NeedsVerification>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _NeedsVerification&&(identical(other.email, email) || other.email == email)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.isPhone, isPhone) || other.isPhone == isPhone));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,email,phone,isPhone);
+
+@override
+String toString() {
+  return 'AuthState.needsVerification(email: $email, phone: $phone, isPhone: $isPhone)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$NeedsVerificationCopyWith<$Res> implements $AuthStateCopyWith<$Res> {
+  factory _$NeedsVerificationCopyWith(_NeedsVerification value, $Res Function(_NeedsVerification) _then) = __$NeedsVerificationCopyWithImpl;
+@useResult
+$Res call({
+ String email, String? phone, bool isPhone
+});
+
+
+
+
+}
+/// @nodoc
+class __$NeedsVerificationCopyWithImpl<$Res>
+    implements _$NeedsVerificationCopyWith<$Res> {
+  __$NeedsVerificationCopyWithImpl(this._self, this._then);
+
+  final _NeedsVerification _self;
+  final $Res Function(_NeedsVerification) _then;
+
+/// Create a copy of AuthState
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? email = null,Object? phone = freezed,Object? isPhone = null,}) {
+  return _then(_NeedsVerification(
+email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
+as String,phone: freezed == phone ? _self.phone : phone // ignore: cast_nullable_to_non_nullable
+as String?,isPhone: null == isPhone ? _self.isPhone : isPhone // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
+}
+
+
+}
 
 /// @nodoc
 

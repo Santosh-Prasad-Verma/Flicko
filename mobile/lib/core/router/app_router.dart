@@ -100,7 +100,7 @@ final _authRefreshNotifier = ValueNotifier<Object?>(null);
 final appRouterProvider = Provider<GoRouter>((ref) {
   // Listen to auth state changes and notify GoRouter to refresh redirects,
   // instead of recreating the entire GoRouter (which disposes all screens).
-  ref.listen(authNotifierProvider, (_, __) {
+  ref.listen(authNotifierProvider, (_, _) {
     _authRefreshNotifier.value = Object();
   });
 
@@ -120,8 +120,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (isSpikeRoute) return null;
 
       return authState.maybeWhen(
-        authenticated: (_, __) => isAuthRoute ? '/' : null,
+        authenticated: (_, _) => isAuthRoute ? '/' : null,
         unauthenticated: () => isAuthRoute ? null : '/login',
+        needsVerification: (email, phone, isPhone) => null,
         orElse: () => null,
       );
     },

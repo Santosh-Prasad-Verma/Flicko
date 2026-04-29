@@ -21,9 +21,10 @@ _ChannelModel _$ChannelModelFromJson(Map<String, dynamic> json) =>
       slowmodeSeconds: (json['slowmode_seconds'] as num?)?.toInt() ?? 0,
       lastMessageId: json['last_message_id'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: json['updated_at'] == null
-          ? null
-          : DateTime.parse(json['updated_at'] as String),
+      updatedAt:
+          json['updated_at'] == null
+              ? null
+              : DateTime.parse(json['updated_at'] as String),
     );
 
 Map<String, dynamic> _$ChannelModelToJson(_ChannelModel instance) =>

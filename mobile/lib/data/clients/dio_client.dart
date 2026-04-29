@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mobile/core/config/app_config.dart';
 import 'package:mobile/core/services/app_logger.dart';
 import 'package:mobile/data/services/clerk_auth_service.dart';

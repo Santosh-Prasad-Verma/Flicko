@@ -28,7 +28,7 @@ abstract class VoiceParticipant with _$VoiceParticipant {
     @Default(false) bool isSpeaking,    // Local or Remote detection
     @Default(false) bool isDeafened,
     @Default(false) bool isLocal,
-    @Default(null) bool? isVideoEnabled, // Future proofing
+    bool? isVideoEnabled, // Future proofing
     required DateTime joinedAt,
     String? avatarUrl,
     String? displayName,

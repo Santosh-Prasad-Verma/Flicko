@@ -506,7 +506,7 @@ return $default(_that.participantSid,_that.userId,_that.isMuted,_that.isSpeaking
 @JsonSerializable()
 
 class _VoiceParticipant implements VoiceParticipant {
-  const _VoiceParticipant({required this.participantSid, required this.userId, this.isMuted = false, this.isSpeaking = false, this.isDeafened = false, this.isLocal = false, this.isVideoEnabled = null, required this.joinedAt, this.avatarUrl, this.displayName});
+  const _VoiceParticipant({required this.participantSid, required this.userId, this.isMuted = false, this.isSpeaking = false, this.isDeafened = false, this.isLocal = false, this.isVideoEnabled, required this.joinedAt, this.avatarUrl, this.displayName});
   factory _VoiceParticipant.fromJson(Map<String, dynamic> json) => _$VoiceParticipantFromJson(json);
 
 @override final  String participantSid;
@@ -518,7 +518,7 @@ class _VoiceParticipant implements VoiceParticipant {
 // Local or Remote detection
 @override@JsonKey() final  bool isDeafened;
 @override@JsonKey() final  bool isLocal;
-@override@JsonKey() final  bool? isVideoEnabled;
+@override final  bool? isVideoEnabled;
 // Future proofing
 @override final  DateTime joinedAt;
 @override final  String? avatarUrl;

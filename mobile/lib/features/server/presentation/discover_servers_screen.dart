@@ -389,7 +389,7 @@ class _DiscoverServersScreenState extends ConsumerState<DiscoverServersScreen> {
                     ? Image.network(
                         bannerUrl,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _buildDefaultBanner(),
+                        errorBuilder: (_, _, _) => _buildDefaultBanner(),
                       )
                     : _buildDefaultBanner(),
               ),

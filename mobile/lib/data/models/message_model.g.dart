@@ -27,19 +27,23 @@ _MessageModel _$MessageModelFromJson(Map<String, dynamic> json) =>
           const [],
       pinned: json['pinned'] as bool? ?? false,
       edited: json['edited'] as bool? ?? false,
-      editedAt: json['edited_at'] == null
-          ? null
-          : DateTime.parse(json['edited_at'] as String),
+      editedAt:
+          json['edited_at'] == null
+              ? null
+              : DateTime.parse(json['edited_at'] as String),
       createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: json['updated_at'] == null
-          ? null
-          : DateTime.parse(json['updated_at'] as String),
-      author: json['author'] == null
-          ? null
-          : UserModel.fromJson(json['author'] as Map<String, dynamic>),
-      replyTo: json['replyTo'] == null
-          ? null
-          : MessageModel.fromJson(json['replyTo'] as Map<String, dynamic>),
+      updatedAt:
+          json['updated_at'] == null
+              ? null
+              : DateTime.parse(json['updated_at'] as String),
+      author:
+          json['author'] == null
+              ? null
+              : UserModel.fromJson(json['author'] as Map<String, dynamic>),
+      replyTo:
+          json['replyTo'] == null
+              ? null
+              : MessageModel.fromJson(json['replyTo'] as Map<String, dynamic>),
     );
 
 Map<String, dynamic> _$MessageModelToJson(_MessageModel instance) =>
