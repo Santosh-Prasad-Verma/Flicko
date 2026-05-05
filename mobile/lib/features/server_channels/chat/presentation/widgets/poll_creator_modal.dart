@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../../../core/constants/flicko_colors.dart';
 import 'dart:convert';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:mobile/features/auth/application/auth_notifier.dart';
 
 Future<void> showPollCreatorModal(
   BuildContext context, {
@@ -22,7 +20,7 @@ Future<void> showPollCreatorModal(
   );
 }
 
-class _PollCreatorModal extends ConsumerStatefulWidget {
+class _PollCreatorModal extends StatefulWidget {
   final String channelId;
   final String serverId;
 
@@ -32,10 +30,10 @@ class _PollCreatorModal extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<_PollCreatorModal> createState() => _PollCreatorModalState();
+  State<_PollCreatorModal> createState() => _PollCreatorModalState();
 }
 
-class _PollCreatorModalState extends ConsumerState<_PollCreatorModal> {
+class _PollCreatorModalState extends State<_PollCreatorModal> {
   final TextEditingController _questionController = TextEditingController();
   final List<TextEditingController> _optionControllers = [
     TextEditingController(),
@@ -81,11 +79,7 @@ class _PollCreatorModalState extends ConsumerState<_PollCreatorModal> {
 
     try {
       final client = Supabase.instance.client;
-      final userId = ref.read(currentUserIdProvider);
-
-      if (userId == null) {
-        throw Exception('User not authenticated');
-      }
+      final userId = client.auth.currentUser!.id;
 
       // Calculate end time
       final endTime = DateTime.now().add(Duration(hours: _durationHours)).toUtc().toIso8601String();
@@ -273,7 +267,7 @@ class _PollCreatorModalState extends ConsumerState<_PollCreatorModal> {
                   title: Text('Allow multiple answers', style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary))),
                   value: _multiSelect,
                   onChanged: (v) => setState(() => _multiSelect = v),
-                  activeThumbColor: const Color(FlickoColors.blurple),
+                  activeColor: const Color(FlickoColors.blurple),
                   contentPadding: EdgeInsets.zero,
                 ),
                 

@@ -38,7 +38,7 @@ class SharedWhiteboard extends StatefulWidget {
 }
 
 class _SharedWhiteboardState extends State<SharedWhiteboard> {
-  final List<PathData> _paths = [];
+  List<PathData> _paths = [];
   List<Offset> _currentPath = [];
   Color _selectedColor = Colors.white;
   double _brushSize = 4.0;
@@ -158,7 +158,7 @@ class _SharedWhiteboardState extends State<SharedWhiteboard> {
         payload: {
           'id': newPath.id,
           'points': newPath.points.map((p) => {'x': p.dx, 'y': p.dy}).toList(),
-          'color': newPath.color.toARGB32(),
+          'color': newPath.color.value,
           'strokeWidth': newPath.strokeWidth,
           'userId': newPath.userId,
         },
@@ -353,7 +353,7 @@ class _SharedWhiteboardState extends State<SharedWhiteboard> {
       child: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: isActive ? const Color(FlickoColors.blurple).withValues(alpha: 0.15) : Colors.transparent,
+          color: isActive ? const Color(FlickoColors.blurple).withOpacity(0.15) : Colors.transparent,
           borderRadius: BorderRadius.circular(6),
         ),
         child: Icon(
@@ -395,7 +395,7 @@ class _SharedWhiteboardState extends State<SharedWhiteboard> {
       child: Container(
         padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
-          color: isActive ? const Color(FlickoColors.blurple).withValues(alpha: 0.15) : Colors.transparent,
+          color: isActive ? const Color(FlickoColors.blurple).withOpacity(0.15) : Colors.transparent,
           borderRadius: BorderRadius.circular(4),
         ),
         child: Container(

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mobile/core/constants/flicko_colors.dart';
+import 'package:mobile/features/core/constants/flicko_colors.dart';
 
 enum CardElevation { none, subtle, medium, heavy }
 
@@ -8,8 +8,6 @@ class Card extends StatefulWidget {
   final VoidCallback? onPress;
   final CardElevation elevation;
   final String? accessibilityLabel;
-  final EdgeInsets? margin;
-  final EdgeInsets? padding;
 
   const Card({
     super.key,
@@ -17,8 +15,6 @@ class Card extends StatefulWidget {
     this.onPress,
     this.elevation = CardElevation.subtle,
     this.accessibilityLabel,
-    this.margin,
-    this.padding,
   });
 
   @override
@@ -63,14 +59,13 @@ class _CardState extends State<Card> with SingleTickerProviderStateMixin {
     final shadow = _getShadow();
 
     final cardContent = Container(
-      margin: widget.margin,
       decoration: BoxDecoration(
         color: const Color(FlickoColors.bgSecondary),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(FlickoColors.border)),
         boxShadow: hasShadow ? [shadow] : [],
       ),
-      padding: widget.padding ?? const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       child: widget.child,
     );
 
@@ -105,26 +100,25 @@ class _CardState extends State<Card> with SingleTickerProviderStateMixin {
   BoxShadow _getShadow() {
     switch (widget.elevation) {
       case CardElevation.none:
-        return const BoxShadow(color: Colors.transparent, blurRadius: 0);
+        return BoxShadow.none;
       case CardElevation.subtle:
         return BoxShadow(
-          color: Colors.black.withValues(alpha: 0.05),
+          color: Colors.black.withOpacity(0.05),
           blurRadius: 4,
           offset: const Offset(0, 2),
         );
       case CardElevation.medium:
         return BoxShadow(
-          color: Colors.black.withValues(alpha: 0.1),
+          color: Colors.black.withOpacity(0.1),
           blurRadius: 8,
           offset: const Offset(0, 4),
         );
       case CardElevation.heavy:
         return BoxShadow(
-          color: Colors.black.withValues(alpha: 0.15),
+          color: Colors.black.withOpacity(0.15),
           blurRadius: 16,
           offset: const Offset(0, 8),
         );
     }
   }
 }
-

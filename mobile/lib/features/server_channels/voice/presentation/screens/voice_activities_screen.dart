@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:mobile/core/constants/flicko_colors.dart';
+import 'package:mobile/features/core/constants/flicko_colors.dart';
 import 'package:mobile/features/server_channels/voice/presentation/widgets/activity_picker.dart';
 
 /// Voice Activities Screen
@@ -28,7 +28,7 @@ class _VoiceActivitiesScreenState extends ConsumerState<VoiceActivitiesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
+      backgroundColor: const Color(FlickoColors.bgPrimary),
       appBar: AppBar(
         backgroundColor: const Color(FlickoColors.bgSecondary),
         elevation: 0,
@@ -201,7 +201,7 @@ class _VoiceActivitiesScreenState extends ConsumerState<VoiceActivitiesScreen> {
                     width: 60,
                     height: 60,
                     decoration: BoxDecoration(
-                      color: const Color(FlickoColors.blurple).withValues(alpha: 0.2),
+                      color: const Color(FlickoColors.blurple).withOpacity(0.2),
                       shape: BoxShape.circle,
                     ),
                     child: const Center(

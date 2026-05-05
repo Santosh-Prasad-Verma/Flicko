@@ -96,7 +96,7 @@ class GestureGuide extends StatefulWidget {
   static Future<void> show(BuildContext context, {bool forceShow = true}) {
     return showDialog(
       context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.85),
+      barrierColor: Colors.black.withOpacity(0.85),
       barrierDismissible: false,
       builder: (_) => GestureGuide(forceShow: forceShow),
     );
@@ -173,7 +173,7 @@ class _GestureGuideState extends State<GestureGuide> {
             borderRadius: BorderRadius.circular(FlickoRadius.xl),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.4),
+                color: Colors.black.withOpacity(0.4),
                 blurRadius: 24,
                 offset: const Offset(0, 8),
               ),
@@ -257,7 +257,7 @@ class _GestureGuideState extends State<GestureGuide> {
                         color: active
                             ? const Color(FlickoColors.blurple)
                             : const Color(FlickoColors.textMuted)
-                                .withValues(alpha: 0.3),
+                                .withOpacity(0.3),
                         borderRadius: BorderRadius.circular(4),
                       ),
                     );
@@ -442,7 +442,7 @@ class _GestureAnimatedDotState extends State<_GestureAnimatedDot>
               width: 24,
               height: 24,
               decoration: BoxDecoration(
-                color: const Color(FlickoColors.blurple).withValues(alpha: 0.35),
+                color: const Color(FlickoColors.blurple).withOpacity(0.35),
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: const Color(FlickoColors.blurple),

@@ -37,7 +37,7 @@ class _BotMarketplaceScreenState extends State<BotMarketplaceScreen> with Single
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
+      backgroundColor: const Color(FlickoColors.bgPrimary),
       body: CustomScrollView(
         slivers: [
           _buildAppBar(),
@@ -93,7 +93,7 @@ class _BotMarketplaceScreenState extends State<BotMarketplaceScreen> with Single
               child: Text(
                 'Explore AI Agents & Tools',
                 style: GoogleFonts.inter(
-                  color: Colors.white.withValues(alpha: 0.8),
+                  color: Colors.white.withOpacity(0.8),
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
                 ),
@@ -238,9 +238,9 @@ class _BotMarketplaceScreenState extends State<BotMarketplaceScreen> with Single
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFFD700).withValues(alpha: 0.1),
+                          color: const Color(0xFFFFD700).withOpacity(0.1),
                           borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: const Color(0xFFFFD700).withValues(alpha: 0.5)),
+                          border: Border.all(color: const Color(0xFFFFD700).withOpacity(0.5)),
                         ),
                         child: Text(
                           'PLUS',
@@ -319,7 +319,7 @@ class _BotMarketplaceScreenState extends State<BotMarketplaceScreen> with Single
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      
+      backgroundColor: const Color(FlickoColors.bgPrimary),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),

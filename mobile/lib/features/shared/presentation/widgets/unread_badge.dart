@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:mobile/core/constants/flicko_colors.dart';
+import 'package:mobile/features/core/constants/flicko_colors.dart';
 
 enum BadgeSize { small, medium, large }
 
@@ -41,7 +41,7 @@ class UnreadBadge extends StatelessWidget {
 
     final backgroundColor = hasMentions
         ? const Color(FlickoColors.blurple)
-        : const Color(0xFFED4245);
+        : const Color(0xED4245);
     final displayText = displayCount > 99 ? '99+' : displayCount.toString();
 
     if (dot) {
@@ -58,8 +58,7 @@ class UnreadBadge extends StatelessWidget {
     return Container(
       constraints: BoxConstraints(
         minWidth: sizeConfig['minWidth']!,
-        maxHeight: sizeConfig['height']!,
-        minHeight: sizeConfig['height']!,
+        height: sizeConfig['height']!,
       ),
       padding: EdgeInsets.symmetric(horizontal: sizeConfig['padding']!),
       decoration: BoxDecoration(
@@ -101,7 +100,7 @@ class UnreadDot extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: color ?? const Color(0xFFED4245),
+        color: color ?? const Color(0xED4245),
         shape: BoxShape.circle,
       ),
     );

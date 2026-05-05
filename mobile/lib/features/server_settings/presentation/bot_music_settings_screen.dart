@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/flicko_colors.dart';
@@ -87,13 +86,13 @@ class _BotMusicSettingsScreenState extends ConsumerState<BotMusicSettingsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
+      backgroundColor: const Color(FlickoColors.bgPrimary),
       appBar: AppBar(
-        
+        backgroundColor: const Color(FlickoColors.bgPrimary),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),
-          onPressed: () => context.pop(),
+          onPressed: () => Navigator.of(context).pop(),
         ),
         title: Row(
           children: [
@@ -161,7 +160,7 @@ class _BotMusicSettingsScreenState extends ConsumerState<BotMusicSettingsScreen>
               subtitle: Text('Allow music playback in voice channels', style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted), fontSize: 12)),
               value: _settings?['enabled'] ?? false,
               onChanged: _toggleEnabled,
-              activeThumbColor: const Color(FlickoColors.blurple),
+              activeColor: const Color(FlickoColors.blurple),
             ),
           ]),
           const SizedBox(height: 24),
@@ -222,7 +221,7 @@ class _BotMusicSettingsScreenState extends ConsumerState<BotMusicSettingsScreen>
       subtitle: Text(hint, style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted), fontSize: 12)),
       value: value,
       onChanged: (v) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$label toggle - Coming Soon'))),
-      activeThumbColor: const Color(FlickoColors.blurple),
+      activeColor: const Color(FlickoColors.blurple),
     );
   }
 }

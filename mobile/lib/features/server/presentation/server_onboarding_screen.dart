@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/flicko_colors.dart';
-import 'package:mobile/features/auth/application/auth_notifier.dart';
+import 'package:mobile/auth/application/auth_notifier.dart';
 
 class ServerOnboardingScreen extends ConsumerStatefulWidget {
   final String serverId;
@@ -21,7 +21,7 @@ class _ServerOnboardingScreenState extends ConsumerState<ServerOnboardingScreen>
   bool _isLoading = true;
   Map<String, dynamic>? _config;
   int _step = 0;
-  final Map<String, List<String>> _selectedOptions = {};
+  Map<String, List<String>> _selectedOptions = {};
   bool _rulesAccepted = false;
   bool _isSubmitting = false;
   String? _errorMessage;
@@ -137,7 +137,7 @@ class _ServerOnboardingScreenState extends ConsumerState<ServerOnboardingScreen>
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        
+        backgroundColor: const Color(FlickoColors.bgPrimary),
         body: const Center(
           child: CircularProgressIndicator(color: Color(FlickoColors.blurple)),
         ),
@@ -146,9 +146,9 @@ class _ServerOnboardingScreenState extends ConsumerState<ServerOnboardingScreen>
 
     if (_errorMessage != null) {
       return Scaffold(
-        
+        backgroundColor: const Color(FlickoColors.bgPrimary),
         appBar: AppBar(
-          
+          backgroundColor: const Color(FlickoColors.bgPrimary),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),
             onPressed: () => Navigator.of(context).pop(),
@@ -171,9 +171,9 @@ class _ServerOnboardingScreenState extends ConsumerState<ServerOnboardingScreen>
 
     if (_config == null || !_config!['enabled']) {
       return Scaffold(
-        
+        backgroundColor: const Color(FlickoColors.bgPrimary),
         appBar: AppBar(
-          
+          backgroundColor: const Color(FlickoColors.bgPrimary),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),
             onPressed: () => Navigator.of(context).pop(),
@@ -196,9 +196,9 @@ class _ServerOnboardingScreenState extends ConsumerState<ServerOnboardingScreen>
     }
 
     return Scaffold(
-      
+      backgroundColor: const Color(FlickoColors.bgPrimary),
       appBar: AppBar(
-        
+        backgroundColor: const Color(FlickoColors.bgPrimary),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),

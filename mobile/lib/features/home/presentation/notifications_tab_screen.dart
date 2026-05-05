@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/flicko_colors.dart';
-import 'package:mobile/features/auth/application/auth_notifier.dart';
+import 'package:mobile/features/auth/providers/auth_provider.dart';
 import 'package:mobile/features/shared/presentation/widgets/avatar.dart';
 
 /// Notifications Tab Screen
@@ -24,6 +24,7 @@ class _NotificationsTabScreenState extends ConsumerState<NotificationsTabScreen>
   
   List<Map<String, dynamic>> _notifications = [];
   bool _isLoading = true;
+  bool _refreshing = false;
   String? _error;
 
   @override
@@ -33,7 +34,7 @@ class _NotificationsTabScreenState extends ConsumerState<NotificationsTabScreen>
   }
 
   Future<void> _loadNotifications() async {
-    final user = ref.read(currentUserProvider);
+    final user = ref.read(authProvider).user;
     if (user == null) {
       setState(() => _isLoading = false);
       return;
@@ -51,12 +52,14 @@ class _NotificationsTabScreenState extends ConsumerState<NotificationsTabScreen>
       setState(() {
         _notifications = (data as List<dynamic>).cast<Map<String, dynamic>>();
         _isLoading = false;
+        _refreshing = false;
         _error = null;
       });
     } catch (e) {
       debugPrint('Error loading notifications: $e');
       setState(() {
         _isLoading = false;
+        _refreshing = false;
         _error = e.toString();
       });
     }
@@ -96,7 +99,7 @@ class _NotificationsTabScreenState extends ConsumerState<NotificationsTabScreen>
   }
 
   Future<void> _markAllAsRead() async {
-    final user = ref.read(currentUserProvider);
+    final user = ref.read(authProvider).user;
     if (user == null || _unreadCount == 0) return;
 
     setState(() {
@@ -184,7 +187,7 @@ class _NotificationsTabScreenState extends ConsumerState<NotificationsTabScreen>
                   ? Avatar(
                       name: meta['userName'] as String? ?? 'User',
                       imageUrl: meta['userAvatar'] as String?,
-                      size: AvatarSize.md,
+                      size: 40,
                     )
                   : Icon(
                       _getTypeIcon(type),
@@ -317,7 +320,7 @@ class _NotificationsTabScreenState extends ConsumerState<NotificationsTabScreen>
     final topPadding = MediaQuery.of(context).padding.top;
 
     return Scaffold(
-      
+      backgroundColor: const Color(FlickoColors.bgPrimary),
       body: Column(
         children: [
           // Header
@@ -413,7 +416,10 @@ class _NotificationsTabScreenState extends ConsumerState<NotificationsTabScreen>
                     : _filteredNotifications.isEmpty
                         ? _buildEmptyView()
                         : RefreshIndicator(
-                            onRefresh: _loadNotifications,
+                            onRefresh: () async {
+                              setState(() => _refreshing = true);
+                              await _loadNotifications();
+                            },
                             color: const Color(FlickoColors.blurple),
                             child: ListView.builder(
                               padding: const EdgeInsets.only(bottom: 100),

@@ -46,22 +46,22 @@ class _AdvancedSearchScreenState extends ConsumerState<AdvancedSearchScreen> {
 
     try {
       // Search messages in Supabase
-      var queryBuilder = Supabase.instance.client
+      final queryBuilder = Supabase.instance.client
           .from('messages')
           .select('*, profiles!inner(username, display_name, avatar_url)')
-          .ilike('content', '%$query%');
+          .ilike('content', '%$query%')
+          .order('created_at', ascending: false)
+          .limit(50);
 
       if (widget.channelId != null) {
-        queryBuilder = queryBuilder.eq('channel_id', widget.channelId!);
+        queryBuilder.eq('channel_id', widget.channelId);
       }
 
       if (widget.serverId != null) {
-        queryBuilder = queryBuilder.eq('server_id', widget.serverId!);
+        queryBuilder.eq('server_id', widget.serverId);
       }
 
-      final response = await queryBuilder
-          .order('created_at', ascending: false)
-          .limit(50);
+      final response = await queryBuilder;
 
       setState(() {
         _results = (response as List).cast<Map<String, dynamic>>();
@@ -79,9 +79,9 @@ class _AdvancedSearchScreenState extends ConsumerState<AdvancedSearchScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
+      backgroundColor: const Color(FlickoColors.bgPrimary),
       appBar: AppBar(
-        
+        backgroundColor: const Color(FlickoColors.bgPrimary),
         elevation: 0,
         title: Text(
           'Search Messages',

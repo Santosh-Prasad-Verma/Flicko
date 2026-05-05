@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../core/constants/flicko_colors.dart';
-import '../../../../data/services/razorpay_service.dart';
-import '../../../../data/models/subscription_model.dart';
-import '../../auth/application/auth_notifier.dart';
+import '../../../../data/services/stripe_service.dart';
+import '../../../../data/models/user_model.dart';
 
-/// Flicko Drop — Premium subscription page with Free/Plus/Pro tiers
-/// and feature comparison breakdown table.
+/// Nitro Screen — The premium subscription home
+/// 
+/// High-fidelity landing page with tier comparison, feature highlights,
+/// and animated premium branding.
 class NitroScreen extends ConsumerStatefulWidget {
   const NitroScreen({super.key});
 
@@ -16,103 +18,51 @@ class NitroScreen extends ConsumerStatefulWidget {
   ConsumerState<NitroScreen> createState() => _NitroScreenState();
 }
 
-class _NitroScreenState extends ConsumerState<NitroScreen>
-    with SingleTickerProviderStateMixin {
+class _NitroScreenState extends ConsumerState<NitroScreen> with SingleTickerProviderStateMixin {
+  late AnimationController _badgeController;
+  int _selectedTier = 1; // 0: Basic, 1: Nitro
   bool _isPurchasing = false;
-  String _purchasingPlan = '';
 
-  // ── Corrected & Explicit Design Tokens for a premium Black Theme ──
-  static const Color _neonGreen = Color(0xFFCBEF17);
-  static const Color _bgBlack = Color(0xFF000000);
-  static const Color _textWhite = Color(0xFFFFFFFF);
-  static const Color _bodyText = Color(0xFF999999);
-  static const Color _cardGrey = Color(0xFF141414);
-  static const Color _borderGrey = Color(0xFF262626);
+  @override
+  void initState() {
+    super.initState();
+    _badgeController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _badgeController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bgBlack,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildTopBar(),
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 20),
-                    // ── Upgrade Badge ──
-                    _buildUpgradeBadge(),
-                    const SizedBox(height: 20),
-                    // ── Hero Title ──
-                    _buildHeroTitle(),
-                    const SizedBox(height: 12),
-                    // ── Subtitle ──
-                    _buildSubtitle(),
-                    const SizedBox(height: 32),
-                    // ── BASIC / FREE Tier ──
-                    _buildFreeTier(),
-                    const SizedBox(height: 20),
-                    // ── PLUS Tier ──
-                    _buildPlusTier(),
-                    const SizedBox(height: 20),
-                    // ── PRO Tier ──
-                    _buildProTier(),
-                    const SizedBox(height: 40),
-                    // ── THE BREAKDOWN ──
-                    _buildBreakdownTable(),
-                    const SizedBox(height: 32),
-                    // ── Legal Footer ──
-                    _buildLegalFooter(),
-                    const SizedBox(height: 80),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+      backgroundColor: const Color(FlickoColors.bgPrimary),
+      body: CustomScrollView(
+        slivers: [
+          // ── Hero Section ──
+          SliverToBoxAdapter(
+            child: _buildHero(),
+          ),
 
-  // ═══════════════════════════════════════════
-  // ── TOP BAR ──
-  // ═══════════════════════════════════════════
-  Widget _buildTopBar() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          GestureDetector(
-            onTap: () => context.pop(),
-            child: const Icon(Icons.arrow_back_ios_new, color: _textWhite, size: 20),
-          ),
-          Text(
-            'FLICKO PLUS',
-            style: GoogleFonts.spaceGrotesk(
-              color: _textWhite,
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.5,
-            ),
-          ),
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: _borderGrey, width: 1),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(7),
-              child: Image.asset(
-                'assets/branding/Flicko-for-black-background.png',
-                fit: BoxFit.cover,
-                errorBuilder: (c, e, s) => const Icon(Icons.bolt, size: 16, color: _neonGreen),
-              ),
+          // ── Action Buttons ──
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                _buildTierSelector(),
+                const SizedBox(height: 32),
+                _buildHighlightsGrid(),
+                const SizedBox(height: 48),
+                _buildComparisonTable(),
+                const SizedBox(height: 48),
+                _buildGiftingSection(),
+                const SizedBox(height: 100),
+              ]),
             ),
           ),
         ],
@@ -120,360 +70,321 @@ class _NitroScreenState extends ConsumerState<NitroScreen>
     );
   }
 
-  // ═══════════════════════════════════════════
-  // ── UPGRADE BADGE ──
-  // ═══════════════════════════════════════════
-  Widget _buildUpgradeBadge() {
+  Widget _buildHero() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 7),
-      decoration: BoxDecoration(
-        color: _neonGreen,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.bolt, color: _bgBlack, size: 14),
-          const SizedBox(width: 4),
-          Text(
-            'UPGRADE YOUR STATUS',
-            style: GoogleFonts.spaceGrotesk(
-              color: _bgBlack,
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.2,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ═══════════════════════════════════════════
-  // ── HERO TITLE ──
-  // ═══════════════════════════════════════════
-  Widget _buildHeroTitle() {
-    return Column(
-      children: [
-        Text(
-          'CHOOSE YOUR',
-          style: GoogleFonts.spaceGrotesk(
-            color: _textWhite,
-            fontSize: 32,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 1,
-            height: 1.1,
-          ),
-        ),
-        ShaderMask(
-          shaderCallback: (bounds) => const LinearGradient(
-            colors: [_neonGreen, Color(0xFF9ACD00)],
-          ).createShader(bounds),
-          child: Text(
-            'DROP',
-            style: GoogleFonts.dancingScript(
-              color: _textWhite,
-              fontSize: 48,
-              fontWeight: FontWeight.w700,
-              height: 1.1,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ═══════════════════════════════════════════
-  // ── SUBTITLE ──
-  // ═══════════════════════════════════════════
-  Widget _buildSubtitle() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 40),
-      child: Text(
-        'Unlock exclusive perks, elevate your profile, and stand out in the culture.\nPick the tier that matches your hustle.',
-        textAlign: TextAlign.center,
-        style: GoogleFonts.inter(
-          color: _bodyText,
-          fontSize: 13,
-          height: 1.5,
-        ),
-      ),
-    );
-  }
-
-  // ═══════════════════════════════════════════
-  // ── FREE TIER ──
-  // ═══════════════════════════════════════════
-  Widget _buildFreeTier() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: _cardGrey,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _borderGrey, width: 1),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'BASIC',
-            style: GoogleFonts.spaceGrotesk(
-              color: _bodyText,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.5,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Free',
-            style: GoogleFonts.spaceGrotesk(
-              color: _textWhite,
-              fontSize: 36,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'The essential toolkit for every street level member.',
-            style: GoogleFonts.inter(color: _bodyText, fontSize: 13, height: 1.4),
-          ),
-          const SizedBox(height: 20),
-          _featureRow('Standard Profile', isIncluded: true),
-          _featureRow('Join Public Drops', isIncluded: true),
-          _featureRow('Basic Chat Features', isIncluded: true),
-          const SizedBox(height: 20),
-          _outlinedButton('CURRENT PLAN', enabled: false),
-        ],
-      ),
-    );
-  }
-
-  // ═══════════════════════════════════════════
-  // ── PLUS TIER ──
-  // ═══════════════════════════════════════════
-  Widget _buildPlusTier() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: _cardGrey,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _neonGreen, width: 2),
+      height: 440,
+      decoration: const BoxDecoration(
+        color: Color(0xFF1E1F22),
       ),
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'PLUS',
-                style: GoogleFonts.spaceGrotesk(
-                  color: _neonGreen.withValues(alpha: 0.9),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.5,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  Text(
-                    '₹799',
-                    style: GoogleFonts.spaceGrotesk(
-                      color: _textWhite,
-                      fontSize: 36,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '/mo',
-                    style: GoogleFonts.inter(
-                      color: _bodyText,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Level up your identity with custom flair and higher limits.',
-                style: GoogleFonts.inter(color: _bodyText, fontSize: 13, height: 1.4),
-              ),
-              const SizedBox(height: 20),
-              _featureRow('Custom Emojis', isIncluded: true, isGreen: true),
-              _featureRow('Nitro Badge', isIncluded: true, isGreen: true),
-              _featureRow('Custom Themes', isIncluded: true, isGreen: true),
-              _featureRow('Priority Support', isIncluded: true, isGreen: true),
-              const SizedBox(height: 20),
-              _filledButton('GET PLUS', color: _neonGreen, textColor: _bgBlack, onTap: () => _handlePurchase('plus')),
-            ],
-          ),
-          // "MOST POPULAR" badge
+          // Background Glows
           Positioned(
-            top: -12,
-            right: 0,
+            top: -100,
+            left: -50,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              width: 300,
+              height: 300,
               decoration: BoxDecoration(
-                color: _neonGreen,
-                borderRadius: BorderRadius.circular(10),
+                shape: BoxShape.circle,
+                color: const Color(0xFF5865F2).withOpacity(0.15),
               ),
-              child: Text(
-                'MOST POPULAR',
-                style: GoogleFonts.spaceGrotesk(
-                  color: _bgBlack,
-                  fontSize: 9,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.8,
-                ),
-              ),
-            ),
+            ).animate(onPlay: (c) => c.repeat(reverse: true)).moveY(begin: 0, end: 50, duration: 4.seconds),
           ),
-        ],
-      ),
-    );
-  }
+          Positioned(
+            bottom: 50,
+            right: -80,
+            child: Container(
+              width: 350,
+              height: 350,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFFEB459E).withOpacity(0.12),
+              ),
+            ).animate(onPlay: (c) => c.repeat(reverse: true)).moveX(begin: 0, end: -40, duration: 5.seconds),
+          ),
 
-  // ═══════════════════════════════════════════
-  // ── PRO TIER ──
-  // ═══════════════════════════════════════════
-  Widget _buildProTier() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: _cardGrey,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _borderGrey, width: 1),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                'PRO',
-                style: GoogleFonts.spaceGrotesk(
-                  color: _textWhite,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.5,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                '₹1599',
-                style: GoogleFonts.spaceGrotesk(
-                  color: _textWhite,
-                  fontSize: 36,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(width: 4),
-              Text(
-                '/mo',
-                style: GoogleFonts.inter(
-                  color: _bodyText,
-                  fontSize: 14,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'The ultimate flex. Uncompromised performance and access.',
-            style: GoogleFonts.inter(color: _bodyText, fontSize: 13, height: 1.4),
-          ),
-          const SizedBox(height: 20),
-          _featureRow('4K Streaming', isIncluded: true),
-          _featureRow('4GB Uploads', isIncluded: true),
-          _featureRow('Early Access to Drops', isIncluded: true),
-          _featureRow('All Plus Features', isIncluded: true),
-          const SizedBox(height: 20),
-          _filledButton('GET PRO', color: _textWhite, textColor: _bgBlack, onTap: () => _handlePurchase('pro')),
-        ],
-      ),
-    );
-  }
-
-  // ═══════════════════════════════════════════
-  // ── BREAKDOWN TABLE ──
-  // ═══════════════════════════════════════════
-  Widget _buildBreakdownTable() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
-        children: [
-          const SizedBox(height: 8),
-          Text(
-            'THE BREAKDOWN',
-            style: GoogleFonts.spaceGrotesk(
-              color: _textWhite,
-              fontSize: 24,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1,
-            ),
-          ),
-          const SizedBox(height: 24),
-          // Table Header
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: const BoxDecoration(
-              color: _cardGrey,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-            ),
-            child: Row(
+          // Main Content
+          SafeArea(
+            child: Column(
               children: [
-                Expanded(
-                  flex: 3,
-                  child: Text(
-                    'FEATURE',
-                    style: GoogleFonts.spaceGrotesk(
-                      color: _bodyText,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1,
-                    ),
+                _buildTopBar(),
+                const SizedBox(height: 20),
+                // Animated Nitro Logo/Badge
+                Center(
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Outer rotating rings
+                      RotationTransition(
+                        turns: _badgeController,
+                        child: Container(
+                          width: 140,
+                          height: 140,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: const Color(0xFFFF73FA).withOpacity(0.3),
+                              width: 1,
+                            ),
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.all(28),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFEB459E).withOpacity(0.4),
+                              blurRadius: 30,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF5865F2), Color(0xFFEB459E)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.rocket_launch,
+                          color: Colors.white,
+                          size: 56,
+                        ),
+                      ).animate().scale(
+                            duration: 800.ms,
+                            curve: Curves.elasticOut,
+                            begin: const Offset(0.5, 0.5),
+                          ),
+                    ],
                   ),
                 ),
-                _tableHeader('BASIC'),
-                _tableHeader('PLUS'),
-                _tableHeader('PRO'),
+                const SizedBox(height: 24),
+                Text(
+                  'FLICKO NITRO',
+                  style: GoogleFonts.inter(
+                    color: Colors.white,
+                    fontSize: 34,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -1.0,
+                  ),
+                ).animate().fadeIn(delay: 200.ms).moveY(begin: 10, end: 0),
+                const SizedBox(height: 12),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 48),
+                  child: Text(
+                    'Unleash the full power of Flicko with enhanced features, profile customization, and more.',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.inter(
+                      color: const Color(0xFFB5BAC1),
+                      fontSize: 15,
+                      height: 1.4,
+                    ),
+                  ).animate().fadeIn(delay: 400.ms),
+                ),
+                const SizedBox(height: 32),
+                _buildPrimaryAction(),
               ],
             ),
           ),
-          // Table Rows
-          _tableRow('Custom Emojis', basic: '—', plus: '✓', pro: '✓'),
-          _tableRow('Nitro Badge', basic: '—', plus: '✓', pro: '✓'),
-          _tableRow('Custom Themes', basic: '—', plus: '✓', pro: '✓'),
-          _tableRow('File Uploads', basic: '25MB', plus: '100MB', pro: '4GB'),
-          _tableRow('Streaming Quality', basic: '720p', plus: '1080p', pro: '4K'),
-          _tableRow('Early Access', basic: '—', plus: '—', pro: '✓'),
-          _tableRow('Priority Support', basic: '—', plus: '✓', pro: '✓'),
-          _tableRow('Server Boosts', basic: '—', plus: '1x', pro: '2x'),
-          _tableRow('Profile Animations', basic: '—', plus: '—', pro: '✓'),
-          // Bottom rounded container
-          Container(
-            height: 12,
-            decoration: BoxDecoration(
-              color: _cardGrey.withValues(alpha: 0.3),
-              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
-              border: Border(
-                left: BorderSide(color: _borderGrey, width: 0.5),
-                right: BorderSide(color: _borderGrey, width: 0.5),
-                bottom: BorderSide(color: _borderGrey, width: 0.5),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTopBar() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.close, color: Colors.white, size: 24),
+            onPressed: () => context.pop(),
+          ),
+          Text(
+            'Flicko Plus Shop',
+            style: GoogleFonts.inter(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(width: 48), // Spacer for balance
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPrimaryAction() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 24),
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: () => _handlePurchase(),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          elevation: 0,
+        ),
+        child: Text(
+          'Get Nitro',
+          style: GoogleFonts.inter(
+            fontWeight: FontWeight.w800,
+            fontSize: 16,
+          ),
+        ),
+      ),
+    ).animate().fadeIn(delay: 600.ms).scale(begin: const Offset(0.9, 0.9));
+  }
+
+  Widget _buildTierSelector() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: const Color(FlickoColors.bgSecondary),
+        borderRadius: BorderRadius.circular(32),
+      ),
+      child: Row(
+        children: [
+          _TierTab(
+            label: 'Nitro Basic',
+            isSelected: _selectedTier == 0,
+            onTap: () => setState(() => _selectedTier = 0),
+          ),
+          _TierTab(
+            label: 'Nitro',
+            isSelected: _selectedTier == 1,
+            onTap: () => setState(() => _selectedTier = 1),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHighlightsGrid() {
+    final highlights = [
+      {'icon': Icons.emoji_emotions, 'title': 'Custom Emoji', 'desc': 'Use your favorite emojis anywhere.'},
+      {'icon': Icons.badge, 'title': 'Nitro Badge', 'desc': 'Show off your support on your profile.'},
+      {'icon': Icons.cloud_upload, 'title': '500MB Uploads', 'desc': 'Share high-res videos and files.'},
+      {'icon': Icons.videocam, 'title': '4K Streaming', 'desc': 'Go live in stunning ultra HD.'},
+      {'icon': Icons.style, 'title': 'Profile Themes', 'desc': 'Customize your banner and colors.'},
+      {'icon': Icons.auto_awesome, 'title': 'Special Roles', 'desc': 'Unlock exclusive server roles.'},
+    ];
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 16,
+        crossAxisSpacing: 16,
+        childAspectRatio: 1.1,
+      ),
+      itemCount: highlights.length,
+      itemBuilder: (context, index) {
+        final item = highlights[index];
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(FlickoColors.bgSecondary),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white.withOpacity(0.05)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(item['icon'] as IconData, color: const Color(FlickoColors.blurple), size: 28),
+              const Spacer(),
+              Text(
+                item['title'] as String,
+                style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                item['desc'] as String,
+                style: GoogleFonts.inter(color: const Color(0xFFB5BAC1), fontSize: 12, height: 1.2),
+              ),
+            ],
+          ),
+        ).animate().fadeIn(delay: (index * 100).ms).moveX(begin: 20, end: 0);
+      },
+    );
+  }
+
+  Widget _buildComparisonTable() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Compare Plans',
+          style: GoogleFonts.inter(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 16),
+        _ComparisonRow(label: 'Custom Emoji', basic: true, nitro: true),
+        _ComparisonRow(label: 'Special Badge', basic: true, nitro: true),
+        _ComparisonRow(label: '500MB Uploads', basic: false, nitro: true),
+        _ComparisonRow(label: '4K HD Streaming', basic: false, nitro: true),
+        _ComparisonRow(label: 'Profile Themes', basic: false, nitro: true),
+        _ComparisonRow(label: 'Server Boosts', basic: false, nitro: true),
+      ],
+    );
+  }
+
+  Widget _buildGiftingSection() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF2B2D31), Color(0xFF1E1F22)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFEB459E).withOpacity(0.3)),
+      ),
+      child: Column(
+        children: [
+          const Icon(Icons.card_giftcard, color: Color(0xFFEB459E), size: 48),
+          const SizedBox(height: 16),
+          Text(
+            'Gift Nitro',
+            style: GoogleFonts.inter(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Support your friends and share the premium love across Flicko.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.inter(
+              color: const Color(0xFFB5BAC1),
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: () {},
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Color(0xFFEB459E)),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+              ),
+              child: Text(
+                'Select a Gift',
+                style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold),
               ),
             ),
           ),
@@ -482,300 +393,139 @@ class _NitroScreenState extends ConsumerState<NitroScreen>
     );
   }
 
-  Widget _tableHeader(String text) {
+  Future<void> _handlePurchase() async {
+    setState(() => _isPurchasing = true);
+    
+    try {
+      final stripeService = ref.read(stripeServiceProvider);
+      
+      // 1. Create PaymentIntent on the backend
+      final paymentData = await stripeService.createPaymentIntent(
+        plan: _selectedTier == 0 ? SubscriptionPlan.basic : SubscriptionPlan.plus,
+        billingCycle: BillingCycle.monthly,
+      );
+
+      // 2. Initialize PaymentSheet
+      await stripeService.initPaymentSheet(
+        clientSecret: paymentData['clientSecret'],
+        customerId: paymentData['customerId'],
+        ephemeralKey: paymentData['ephemeralKey'],
+      );
+
+      // 3. Present PaymentSheet
+      await stripeService.presentPaymentSheet();
+
+      // 4. Success — Show success message and navigate
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Welcome to Flicko ${_selectedTier == 0 ? 'Basic' : 'Nitro'}!'),
+            backgroundColor: const Color(FlickoColors.success),
+          ),
+        );
+        context.go('/settings');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Payment failed or cancelled.'),
+            backgroundColor: const Color(FlickoColors.danger),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isPurchasing = false);
+      }
+    }
+  }
+}
+
+class _TierTab extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _TierTab({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Expanded(
-      flex: 2,
-      child: Text(
-        text,
-        textAlign: TextAlign.center,
-        style: GoogleFonts.spaceGrotesk(
-          color: _textWhite,
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.8,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelected ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(28),
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.inter(
+              color: isSelected ? Colors.black : const Color(0xFFB5BAC1),
+              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+              fontSize: 14,
+            ),
+          ),
         ),
       ),
     );
   }
+}
 
-  Widget _tableRow(String feature, {
-    required String basic,
-    required String plus,
-    required String pro,
-  }) {
+class _ComparisonRow extends StatelessWidget {
+  final String label;
+  final bool basic;
+  final bool nitro;
+
+  const _ComparisonRow({
+    required this.label,
+    required this.basic,
+    required this.nitro,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: _borderGrey.withValues(alpha: 0.5), width: 0.5),
-          left: BorderSide(color: _borderGrey, width: 0.5),
-          right: BorderSide(color: _borderGrey, width: 0.5),
-        ),
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: Color(0xFF2B2D31))),
       ),
       child: Row(
         children: [
           Expanded(
             flex: 3,
             child: Text(
-              feature,
-              style: GoogleFonts.inter(
-                color: _textWhite,
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
+              label,
+              style: GoogleFonts.inter(color: const Color(0xFFDBDEE1), fontSize: 14),
+            ),
+          ),
+          Expanded(
+            child: Center(
+              child: Icon(
+                basic ? Icons.check : Icons.close,
+                color: basic ? const Color(0xFF57F287) : const Color(0xFF949BA4),
+                size: 18,
               ),
             ),
           ),
-          _tableCell(basic),
-          _tableCell(plus, isGreen: plus == '✓'),
-          _tableCell(pro, isGreen: pro == '✓'),
-        ],
-      ),
-    );
-  }
-
-  Widget _tableCell(String value, {bool isGreen = false}) {
-    final isCheck = value == '✓';
-    final isDash = value == '—';
-    return Expanded(
-      flex: 2,
-      child: isCheck
-          ? const Icon(Icons.check_circle, color: _neonGreen, size: 18)
-          : isDash
-              ? Text('—', textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(color: _bodyText.withValues(alpha: 0.4), fontSize: 14))
-              : Text(
-                  value,
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(
-                    color: _textWhite,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-    );
-  }
-
-  // ═══════════════════════════════════════════
-  // ── SHARED WIDGETS ──
-  // ═══════════════════════════════════════════
-  Widget _featureRow(String text, {bool isIncluded = false, bool isGreen = false}) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        children: [
-          Icon(
-            isIncluded ? Icons.check_circle : Icons.remove_circle_outline,
-            color: isGreen ? _neonGreen : (isIncluded ? _bodyText : _borderGrey),
-            size: 18,
-          ),
-          const SizedBox(width: 10),
-          Text(
-            text,
-            style: GoogleFonts.inter(
-              color: _textWhite,
-              fontSize: 13,
-              fontWeight: FontWeight.w400,
+          Expanded(
+            child: Center(
+              child: Icon(
+                nitro ? Icons.check : Icons.close,
+                color: nitro ? const Color(0xFFEB459E) : const Color(0xFF949BA4),
+                size: 18,
+              ),
             ),
           ),
         ],
       ),
     );
-  }
-
-  Widget _outlinedButton(String text, {bool enabled = true}) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: _borderGrey, width: 1.5),
-      ),
-      child: Center(
-        child: Text(
-          text,
-          style: GoogleFonts.spaceGrotesk(
-            color: enabled ? _textWhite : _bodyText,
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 1,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _filledButton(String text, {
-    required Color color,
-    required Color textColor,
-    required VoidCallback onTap,
-  }) {
-    final isPurchasingThis = _isPurchasing && _purchasingPlan == text;
-    return GestureDetector(
-      onTap: _isPurchasing ? null : onTap,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Center(
-          child: isPurchasingThis
-              ? SizedBox(
-                  height: 18,
-                  width: 18,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: textColor,
-                  ),
-                )
-              : Text(
-                  text,
-                  style: GoogleFonts.spaceGrotesk(
-                    color: textColor,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1,
-                  ),
-                ),
-        ),
-      ),
-    );
-  }
-
-  // ═══════════════════════════════════════════
-  // ── LEGAL FOOTER ──
-  // ═══════════════════════════════════════════
-  Widget _buildLegalFooter() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
-      child: Text(
-        'BY SUBSCRIBING TO FLICKO PLUS, YOU AGREE TO OUR TERMS OF SERVICE AND PRIVACY POLICY. SUBSCRIPTION AUTOMATICALLY RENEWS UNLESS CANCELED AT LEAST 24 HOURS BEFORE THE END OF THE CURRENT PERIOD.',
-        textAlign: TextAlign.center,
-        style: GoogleFonts.inter(
-          color: const Color(0xFF999999),
-          fontSize: 9,
-          height: 1.5,
-          letterSpacing: 0.3,
-        ),
-      ),
-    );
-  }
-
-  // ═══════════════════════════════════════════
-  // ── PURCHASE HANDLER ──
-  // ═══════════════════════════════════════════
-  Future<void> _handlePurchase(String planName) async {
-    setState(() {
-      _isPurchasing = true;
-      _purchasingPlan = planName == 'plus' ? 'GET PLUS' : 'GET PRO';
-    });
-
-    try {
-      final razorpayService = ref.read(razorpayServiceProvider);
-      final user = ref.read(currentUserProvider);
-      final userEmail = user?.email ?? 'user@flicko.tech';
-      final username = user?.userMetadata?['username'] as String? ??
-          userEmail.split('@')[0];
-      final plan = SubscriptionPlan.plus; // Both Plus and Pro use 'plus' tier on backend
-      final amountFormatted = planName == 'plus' ? 'INR 799' : 'INR 1599';
-
-      final orderData = await razorpayService.createOrder(
-        plan: plan,
-        billingCycle: BillingCycle.monthly,
-      );
-
-      final result = await razorpayService.startPayment(
-        orderId: orderData['id'],
-        amount: (orderData['amount'] as num).toDouble() / 100,
-        userEmail: userEmail,
-        userPhone: '',
-        description: 'Flicko ${planName == 'plus' ? 'Plus' : 'Pro'} Subscription',
-      );
-
-      final verified = await razorpayService.verifyPayment(
-        orderId: result['orderId'],
-        paymentId: result['paymentId'],
-        signature: result['signature'],
-        email: userEmail,
-        username: username,
-        amount: amountFormatted,
-      );
-
-      if (verified && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Welcome to Flicko ${planName == 'plus' ? 'Plus' : 'Pro'}!'),
-            backgroundColor: const Color(FlickoColors.success),
-          ),
-        );
-        context.go('/u/settings');
-      }
-    } catch (e) {
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            backgroundColor: _cardGrey,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-              side: const BorderSide(color: _neonGreen, width: 2),
-            ),
-            title: Text(
-              'SANDBOX TEST MODE',
-              style: GoogleFonts.spaceGrotesk(
-                color: _textWhite,
-                fontWeight: FontWeight.w900,
-                fontSize: 18,
-                letterSpacing: 1,
-              ),
-            ),
-            content: Text(
-              'Live payment service is currently not active in sandbox mode. Would you like to proceed with free test activation of Flicko ${planName == 'plus' ? 'Plus' : 'Pro'} to explore premium perks?',
-              style: GoogleFonts.inter(color: _bodyText, fontSize: 13, height: 1.5),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text(
-                  'Cancel',
-                  style: GoogleFonts.inter(color: _bodyText, fontWeight: FontWeight.bold),
-                ),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(ctx);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Welcome to Flicko ${planName == 'plus' ? 'Plus' : 'Pro'}! (Demo Mode)'),
-                      backgroundColor: const Color(FlickoColors.success),
-                    ),
-                  );
-                  context.go('/u/settings');
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _neonGreen,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                ),
-                child: Text(
-                  'Activate',
-                  style: GoogleFonts.inter(color: _bgBlack, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isPurchasing = false;
-          _purchasingPlan = '';
-        });
-      }
-    }
   }
 }

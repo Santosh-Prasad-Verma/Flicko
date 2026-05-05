@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../auth/application/auth_notifier.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/flicko_colors.dart';
 
 /// Change Password Screen
 ///
 /// Allows the authenticated user to update their password.
-/// Uses Supabase Auth's updateUser() via AuthNotifier.
-/// Route: /u/settings/change-password
+/// Uses Supabase Auth's updateUser() which works on the current session.
+/// Route: /profile/settings/change-password
 class ChangePasswordScreen extends ConsumerStatefulWidget {
   const ChangePasswordScreen({super.key});
 
@@ -68,9 +68,33 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await ref.read(authNotifierProvider.notifier).changePassword(
-        _newPassword,
+      // Verify current password by re-authenticating
+      final sessionData = await Supabase.instance.client.auth.getSession();
+      final email = sessionData.session?.user.email;
+
+      if (email == null) {
+        _showAlert('Error', 'Unable to verify identity. Please log in again.');
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      final signInError = await Supabase.instance.client.auth.signInWithPassword(
+        email: email,
+        password: _currentPassword,
       );
+
+      if (signInError.error != null) {
+        _showAlert('Incorrect Password', 'Your current password is incorrect.');
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      // Update to new password
+      final updateError = await Supabase.instance.client.auth.updateUser(
+        UserAttributes(password: _newPassword),
+      );
+
+      if (updateError != null) throw updateError;
 
       _showAlert(
         'Password Updated',
@@ -78,7 +102,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
         onOk: () => context.pop(),
       );
     } catch (e) {
-      _showAlert('Error', e.toString());
+      _showAlert('Error', e.toString() ?? 'Failed to update password. Please try again.');
     } finally {
       setState(() => _isLoading = false);
     }
@@ -118,9 +142,9 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
     final passwordsMatch = _confirmPassword.isNotEmpty && _confirmPassword == _newPassword;
 
     return Scaffold(
-      
+      backgroundColor: const Color(FlickoColors.bgPrimary),
       appBar: AppBar(
-        
+        backgroundColor: const Color(FlickoColors.bgPrimary),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),

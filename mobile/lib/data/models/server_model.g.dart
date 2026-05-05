@@ -7,15 +7,15 @@ part of 'server_model.dart';
 // **************************************************************************
 
 _ServerModel _$ServerModelFromJson(Map<String, dynamic> json) => _ServerModel(
-  id: json['id'] as String,
-  name: json['name'] as String,
-  description: json['description'] as String?,
-  iconUrl: json['icon'] as String?,
-  bannerUrl: json['banner'] as String?,
-  ownerId: json['owner_id'] as String,
-  memberCount: (json['member_count'] as num?)?.toInt() ?? 0,
-  createdAt: DateTime.parse(json['created_at'] as String),
-);
+      id: json['id'] as String,
+      name: json['name'] as String,
+      description: json['description'] as String?,
+      iconUrl: json['icon'] as String?,
+      bannerUrl: json['banner'] as String?,
+      ownerId: json['owner_id'] as String,
+      memberCount: (json['member_count'] as num?)?.toInt() ?? 0,
+      createdAt: DateTime.parse(json['created_at'] as String),
+    );
 
 Map<String, dynamic> _$ServerModelToJson(_ServerModel instance) =>
     <String, dynamic>{

@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../../../../core/theme/theme_provider.dart';
+import '../../../../core/constants/flicko_colors.dart';
 
+/// Appearance Settings Screen
+///
+/// Theme switching between Dark, Light, and AMOLED modes.
+/// Font scaling and other visual preferences.
 class AppearanceSettingsScreen extends ConsumerStatefulWidget {
   const AppearanceSettingsScreen({super.key});
 
@@ -13,495 +16,225 @@ class AppearanceSettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _AppearanceSettingsScreenState extends ConsumerState<AppearanceSettingsScreen> {
+  String _selectedTheme = 'dark';
   double _fontScale = 1.0;
-  bool _isLoading = true;
-  String _tempThemeId = 'dark';
-  final Color _limeColor = const Color(0xFFC8FF00);
 
-  @override
-  void initState() {
-    super.initState();
-    _loadPreferences();
-  }
-
-  Future<void> _loadPreferences() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _fontScale = prefs.getDouble('fontScale') ?? 1.0;
-      _tempThemeId = ref.read(themeProvider);
-      _isLoading = false;
-    });
-  }
+  static final List<Map<String, dynamic>> _themes = [
+    {'id': 'dark', 'label': 'Dark', 'icon': Icons.dark_mode, 'color': 0xFF313338},
+    {'id': 'light', 'label': 'Light', 'icon': Icons.light_mode, 'color': 0xFFFFFFFF},
+    {'id': 'amoled', 'label': 'AMOLED', 'icon': Icons.brightness_3, 'color': 0xFF000000},
+  ];
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return Scaffold(
-        backgroundColor: Colors.black,
-        body: Center(child: CircularProgressIndicator(color: _limeColor)),
-      );
-    }
-
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: const Color(FlickoColors.bgPrimary),
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: const Color(FlickoColors.bgPrimary),
         elevation: 0,
-        centerTitle: true,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, color: _limeColor, size: 20),
+          icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),
           onPressed: () => context.pop(),
         ),
         title: Text(
-          'APPEARANCE',
+          'Appearance',
           style: GoogleFonts.inter(
-            color: Colors.white,
-            fontWeight: FontWeight.w900,
-            fontSize: 16,
-            letterSpacing: 2,
+            color: const Color(FlickoColors.textPrimary),
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildSectionHeader('THEME ENGINE'),
-            _buildThemeGrid(),
-            const SizedBox(height: 32),
-            
-            _buildSectionHeader('TYPOGRAPHY'),
-            _buildTypographyCard(),
-            const SizedBox(height: 32),
-            
-            _buildSectionHeader('ACCENT COLORS'),
-            _buildAccentSection(),
-            const SizedBox(height: 48),
-            
-            _buildActionButtons(),
-            const SizedBox(height: 40),
-            
-            Center(
-              child: Opacity(
-                opacity: 0.1,
-                child: Image.asset(
-                  'assets/branding/Flicko-for-black-background.png',
-                  height: 30,
-                  errorBuilder: (c, e, s) => const SizedBox(),
-                ),
-              ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _buildSectionHeader('THEME'),
+          _buildThemeSelector(),
+          const SizedBox(height: 24),
+
+          _buildSectionHeader('DISPLAY'),
+          _buildSettingsCard([
+            _buildSliderSetting(
+              'Chat Font Scaling',
+              'Adjust the size of text in messages',
+              _fontScale,
+              min: 0.75,
+              max: 1.5,
+              divisions: 3,
+              labels: const ['Small', 'Normal', 'Large', 'Extra Large'],
+              onChanged: (value) => setState(() => _fontScale = value),
             ),
-            const SizedBox(height: 40),
-          ],
-        ),
+          ]),
+          const SizedBox(height: 24),
+
+          _buildSectionHeader('ACCESSIBILITY'),
+          _buildSettingsCard([
+            _buildToggleSetting('Saturation', 'Reduce saturation for accessibility', false),
+            _buildToggleSetting('High Contrast', 'Increase contrast for better visibility', false),
+          ]),
+          const SizedBox(height: 40),
+        ],
       ),
     );
   }
 
   Widget _buildSectionHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 16),
-      child: Row(
-        children: [
-          Container(
-            width: 4,
-            height: 14,
-            decoration: BoxDecoration(
-              color: _limeColor,
-              borderRadius: BorderRadius.circular(2),
-              boxShadow: [
-                BoxShadow(
-                  color: _limeColor.withValues(alpha: 0.5),
-                  blurRadius: 8,
-                  spreadRadius: -2,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 10),
-          Text(
-            title,
-            style: GoogleFonts.inter(
-              color: Colors.white.withValues(alpha: 0.4),
-              fontSize: 11,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1.5,
-            ),
-          ),
-        ],
+      padding: const EdgeInsets.only(left: 8, bottom: 8),
+      child: Text(
+        title,
+        style: GoogleFonts.inter(
+          color: const Color(FlickoColors.textMuted),
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 0.5,
+        ),
       ),
     );
   }
 
-  Widget _buildThemeGrid() {
-    return Column(
-      children: [
-        _buildThemeOption('STUDIO LIGHT', 'light', Icons.wb_sunny_rounded, 'Classic clean aesthetic'),
-        const SizedBox(height: 12),
-        _buildThemeOption('DARKROOM', 'dark', Icons.nightlight_round_rounded, 'Optimized for focus'),
-        const SizedBox(height: 12),
-        _buildThemeOption('RAW INDUSTRIAL', 'amoled', Icons.flash_on_rounded, 'Pure black performance', isPremium: true),
-      ],
-    );
-  }
-
-  Widget _buildThemeOption(String label, String id, IconData icon, String subtitle, {bool isPremium = false}) {
-    final isSelected = _tempThemeId == id;
-    return GestureDetector(
-      onTap: () => setState(() => _tempThemeId = id),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeInOut,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF111111) : const Color(0xFF0D0D0D),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: isSelected ? _limeColor : Colors.white.withValues(alpha: 0.05),
-            width: isSelected ? 1.5 : 1,
-          ),
-          boxShadow: isSelected ? [
-            BoxShadow(
-              color: _limeColor.withValues(alpha: 0.08),
-              blurRadius: 24,
-              offset: const Offset(0, 8),
-            )
-          ] : [],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
+  Widget _buildThemeSelector() {
+    return Row(
+      children: _themes.map((theme) {
+        final isSelected = _selectedTheme == theme['id'];
+        return Expanded(
+          child: GestureDetector(
+            onTap: () => setState(() => _selectedTheme = theme['id'] as String),
+            child: Container(
+              margin: const EdgeInsets.only(right: 12),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: isSelected ? _limeColor.withValues(alpha: 0.1) : Colors.white.withValues(alpha: 0.03),
-                borderRadius: BorderRadius.circular(16),
+                color: const Color(FlickoColors.bgSecondary),
+                borderRadius: BorderRadius.circular(12),
+                border: isSelected
+                    ? Border.all(color: const Color(FlickoColors.blurple), width: 2)
+                    : null,
               ),
-              child: Icon(
-                icon, 
-                color: isSelected ? _limeColor : Colors.white.withValues(alpha: 0.3), 
-                size: 24
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Text(
-                        label,
-                        style: GoogleFonts.inter(
-                          color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.7),
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      if (isPremium) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: _limeColor,
-                            borderRadius: BorderRadius.circular(6),
-                            boxShadow: [
-                              BoxShadow(
-                                color: _limeColor.withValues(alpha: 0.3),
-                                blurRadius: 8,
-                              )
-                            ],
-                          ),
-                          child: Text(
-                            'PLUS',
-                            style: GoogleFonts.inter(
-                              color: Colors.black, 
-                              fontSize: 8, 
-                              fontWeight: FontWeight.w900
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
+                  Icon(
+                    theme['icon'] as IconData,
+                    color: isSelected
+                        ? const Color(FlickoColors.blurple)
+                        : const Color(FlickoColors.textSecondary),
+                    size: 32,
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 8),
                   Text(
-                    subtitle,
+                    theme['label'] as String,
                     style: GoogleFonts.inter(
-                      color: Colors.white.withValues(alpha: 0.3), 
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500
+                      color: isSelected
+                          ? const Color(FlickoColors.blurple)
+                          : const Color(FlickoColors.textPrimary),
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: Color(theme['color'] as int),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(
+                        color: const Color(FlickoColors.textMuted),
+                        width: 1,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-            Container(
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isSelected ? _limeColor : Colors.white.withValues(alpha: 0.1),
-                  width: isSelected ? 7 : 2,
-                ),
-              ),
-              child: isSelected 
-                ? Center(
-                    child: Container(
-                      width: 6,
-                      height: 6,
-                      decoration: const BoxDecoration(
-                        color: Colors.black,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  )
-                : null,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTypographyCard() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0D0D0D),
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-      ),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(24),
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: Colors.black,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-            ),
-            child: Column(
-              children: [
-                Text(
-                  'FLICKO PREMIUM UI',
-                  style: GoogleFonts.inter(
-                    fontSize: 16 * _fontScale,
-                    fontWeight: FontWeight.w900,
-                    color: _limeColor,
-                    letterSpacing: 1,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'A new standard in communication',
-                  style: GoogleFonts.inter(
-                    fontSize: 14 * _fontScale,
-                    color: Colors.white.withValues(alpha: 0.6),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 32),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Aa', style: GoogleFonts.inter(fontSize: 14, color: Colors.white24, fontWeight: FontWeight.w900)),
-              Text('Aa', style: GoogleFonts.inter(fontSize: 26, fontWeight: FontWeight.w900, color: Colors.white)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          SliderTheme(
-            data: SliderThemeData(
-              activeTrackColor: _limeColor,
-              inactiveTrackColor: Colors.white.withValues(alpha: 0.05),
-              thumbColor: Colors.white,
-              overlayColor: _limeColor.withValues(alpha: 0.1),
-              trackHeight: 8,
-              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 12, elevation: 6),
-              overlayShape: const RoundSliderOverlayShape(overlayRadius: 24),
-            ),
-            child: Slider(
-              value: _fontScale,
-              min: 0.8,
-              max: 1.2,
-              divisions: 4,
-              onChanged: (val) => setState(() => _fontScale = val),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _buildSliderLabel('COMPACT', _fontScale < 1.0),
-                _buildSliderLabel('STANDARD', _fontScale == 1.0),
-                _buildSliderLabel('RELAXED', _fontScale > 1.0),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSliderLabel(String label, bool active) {
-    return Text(
-      label, 
-      style: GoogleFonts.inter(
-        fontSize: 9, 
-        fontWeight: FontWeight.w900, 
-        color: active ? _limeColor : Colors.white.withValues(alpha: 0.2), 
-        letterSpacing: 1.5
-      )
-    );
-  }
-
-  Widget _buildAccentSection() {
-    final List<Color> accents = [
-      const Color(0xFFC8FF00),
-      const Color(0xFF00E5FF),
-      const Color(0xFFFF3D00),
-      const Color(0xFFE040FB),
-      const Color(0xFFFFFFFF),
-    ];
-
-    return Wrap(
-      spacing: 16,
-      runSpacing: 16,
-      children: accents.map((color) {
-        final isSelected = color.toARGB32() == _limeColor.toARGB32();
-        return GestureDetector(
-          onTap: () {
-            // Future implementation for dynamic accent colors
-          },
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 250),
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(20),
-              border: isSelected ? Border.all(color: Colors.white, width: 3) : null,
-              boxShadow: isSelected ? [
-                BoxShadow(
-                  color: color.withValues(alpha: 0.4), 
-                  blurRadius: 20, 
-                  spreadRadius: 2
-                )
-              ] : [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.3),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                )
-              ],
-            ),
-            child: isSelected 
-              ? const Icon(Icons.check_rounded, color: Colors.black, size: 32) 
-              : null,
           ),
         );
       }).toList(),
     );
   }
 
-  Widget _buildActionButtons() {
-    return Row(
-      children: [
-        Expanded(
-          child: GestureDetector(
-            onTap: () => context.pop(),
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-                color: Colors.white.withValues(alpha: 0.03),
-              ),
-              child: Center(
-                child: Text(
-                  'DISCARD',
-                  style: GoogleFonts.inter(
-                    color: Colors.white, 
-                    fontWeight: FontWeight.w800, 
-                    fontSize: 13, 
-                    letterSpacing: 1.5
-                  ),
-                ),
-              ),
+  Widget _buildSettingsCard(List<Widget> children) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(FlickoColors.bgSecondary),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(children: children),
+    );
+  }
+
+  Widget _buildSliderSetting(
+    String title,
+    String subtitle,
+    double value, {
+    required double min,
+    required double max,
+    required int divisions,
+    required List<String> labels,
+    required ValueChanged<double> onChanged,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: GoogleFonts.inter(
+              color: const Color(FlickoColors.textPrimary),
+              fontWeight: FontWeight.w500,
             ),
           ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: GestureDetector(
-            onTap: () async {
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.setDouble('fontScale', _fontScale);
-              ref.read(themeProvider.notifier).setTheme(_tempThemeId);
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    backgroundColor: _limeColor,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    margin: const EdgeInsets.all(20),
-                    content: Row(
-                      children: [
-                        const Icon(Icons.check_circle_rounded, color: Colors.black, size: 20),
-                        const SizedBox(width: 12),
-                        Text(
-                          'SETTINGS UPDATED',
-                          style: GoogleFonts.inter(
-                            color: Colors.black, 
-                            fontWeight: FontWeight.w900, 
-                            fontSize: 12,
-                            letterSpacing: 1,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-                context.pop();
-              }
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              decoration: BoxDecoration(
-                color: _limeColor,
-                borderRadius: BorderRadius.circular(22),
-                boxShadow: [
-                  BoxShadow(
-                    color: _limeColor.withValues(alpha: 0.3), 
-                    blurRadius: 24, 
-                    offset: const Offset(0, 8)
-                  )
-                ],
-              ),
-              child: Center(
-                child: Text(
-                  'SAVE CHANGES',
-                  style: GoogleFonts.inter(
-                    color: Colors.black, 
-                    fontWeight: FontWeight.w900, 
-                    fontSize: 13, 
-                    letterSpacing: 1.5
-                  ),
-                ),
-              ),
+          Text(
+            subtitle,
+            style: GoogleFonts.inter(
+              color: const Color(FlickoColors.textMuted),
+              fontSize: 12,
             ),
           ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: labels.map((label) {
+              return Text(
+                label,
+                style: GoogleFonts.inter(
+                  color: const Color(FlickoColors.textMuted),
+                  fontSize: 10,
+                ),
+              );
+            }).toList(),
+          ),
+          Slider(
+            value: value,
+            min: min,
+            max: max,
+            divisions: divisions,
+            activeColor: const Color(FlickoColors.blurple),
+            inactiveColor: const Color(FlickoColors.bgTertiary),
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildToggleSetting(String title, String subtitle, bool value) {
+    return SwitchListTile(
+      value: value,
+      onChanged: (_) {},
+      title: Text(
+        title,
+        style: GoogleFonts.inter(
+          color: const Color(FlickoColors.textPrimary),
+          fontWeight: FontWeight.w500,
         ),
-      ],
+      ),
+      subtitle: Text(
+        subtitle,
+        style: GoogleFonts.inter(
+          color: const Color(FlickoColors.textMuted),
+          fontSize: 12,
+        ),
+      ),
+      activeColor: const Color(FlickoColors.blurple),
     );
   }
 }
-
-

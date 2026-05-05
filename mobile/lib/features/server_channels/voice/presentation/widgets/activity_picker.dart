@@ -26,7 +26,7 @@ class ActivityPicker extends StatefulWidget {
 class _ActivityPickerState extends State<ActivityPicker> {
   final TextEditingController _searchController = TextEditingController();
   ActivityCategory _selectedCategory = ActivityCategory.games;
-  final bool _isLoading = false;
+  bool _isLoading = false;
   String? _error;
 
   // Activity categories with icons
@@ -397,7 +397,7 @@ class _ActivityPickerState extends State<ActivityPicker> {
                     width: 60,
                     height: 60,
                     decoration: BoxDecoration(
-                      color: const Color(FlickoColors.blurple).withValues(alpha: 0.2),
+                      color: const Color(FlickoColors.blurple).withOpacity(0.2),
                       shape: BoxShape.circle,
                     ),
                     child: Center(

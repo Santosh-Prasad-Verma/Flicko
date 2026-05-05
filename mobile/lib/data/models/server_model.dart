@@ -4,7 +4,7 @@ part 'server_model.freezed.dart';
 part 'server_model.g.dart';
 
 @freezed
-abstract class ServerModel with _$ServerModel {
+class ServerModel with _$ServerModel {
   const factory ServerModel({
     required String id,
     required String name,

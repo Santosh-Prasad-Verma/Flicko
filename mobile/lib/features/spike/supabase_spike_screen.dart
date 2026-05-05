@@ -45,7 +45,7 @@ class _SupabaseSpikeScreenState extends State<SupabaseSpikeScreen> {
       // 3. Listen to Presence (Who is online)
       _channel!.onPresenceSync((payload) {
         final state = _channel!.presenceState();
-        final users = state.expand((element) => element.presences).map((e) => e.payload['user'] as String).toList();
+        final users = state.values.expand((element) => element).map((e) => e.payload['user'] as String).toList();
         setState(() {
           _onlineUsers.clear();
           _onlineUsers.addAll(users);
@@ -53,11 +53,11 @@ class _SupabaseSpikeScreenState extends State<SupabaseSpikeScreen> {
       });
 
       _channel!.onPresenceJoin((payload) {
-        debugPrint('User joined: $payload');
+        print('User joined: \$payload');
       });
 
       _channel!.onPresenceLeave((payload) {
-        debugPrint('User left: $payload');
+        print('User left: \$payload');
       });
 
       // 4. Listen to Broadcast Messages (Chat)
@@ -68,9 +68,9 @@ class _SupabaseSpikeScreenState extends State<SupabaseSpikeScreen> {
       });
 
       // 5. Subscribe to channel and track presence
-      _channel!.subscribe((status, error) async {
+      await _channel!.subscribe((status, error) async {
         if (status == RealtimeSubscribeStatus.subscribed) {
-          final userId = 'User-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
+          final userId = 'User-\${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
           await _channel!.track({'user': userId});
           setState(() => _isInit = true);
         }
@@ -121,12 +121,12 @@ class _SupabaseSpikeScreenState extends State<SupabaseSpikeScreen> {
         children: [
           Container(
             padding: const EdgeInsets.all(8),
-            color: Colors.blueAccent.withValues(alpha: 0.1),
+            color: Colors.blueAccent.withOpacity(0.1),
             child: Row(
               children: [
                 const Icon(Icons.people, color: Colors.blue),
                 const SizedBox(width: 8),
-                Text('Online: ${_onlineUsers.join(", ")}'),
+                Text('Online: \${_onlineUsers.join(', ')}'),
               ],
             ),
           ),

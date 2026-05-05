@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/flicko_colors.dart';
-import 'package:mobile/features/auth/application/auth_notifier.dart';
 
 /// Server Onboarding Settings Screen
 ///
@@ -148,7 +147,7 @@ class _OnboardingSettingsScreenState extends ConsumerState<OnboardingSettingsScr
               'is_required': rule.isRequired,
               'is_enabled': rule.isEnabled,
               'position': i,
-              'created_by': ref.read(currentUserIdProvider),
+              'created_by': _client.auth.currentUser?.id,
             }).select().single();
             rule.id == resp['id'];
           }
@@ -164,7 +163,7 @@ class _OnboardingSettingsScreenState extends ConsumerState<OnboardingSettingsScr
             'is_required': rule.isRequired,
             'is_enabled': rule.isEnabled,
             'position': i,
-            'created_by': ref.read(currentUserIdProvider),
+            'created_by': _client.auth.currentUser?.id,
           }).select().single();
         }
       }
@@ -237,7 +236,7 @@ class _OnboardingSettingsScreenState extends ConsumerState<OnboardingSettingsScr
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
+      backgroundColor: const Color(FlickoColors.bgPrimary),
       appBar: AppBar(
         backgroundColor: const Color(FlickoColors.bgSecondary),
         elevation: 0,
@@ -455,7 +454,7 @@ class _OnboardingSettingsScreenState extends ConsumerState<OnboardingSettingsScr
                                 Container(
                                   padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
-                                    color: const Color(FlickoColors.blurple).withValues(alpha: 0.15),
+                                    color: const Color(FlickoColors.blurple).withOpacity(0.15),
                                     borderRadius: BorderRadius.circular(FlickoRadius.md),
                                   ),
                                   child: const Icon(Icons.visibility_outlined, color: Color(FlickoColors.blurple), size: 22),
@@ -545,7 +544,7 @@ class _OnboardingSettingsScreenState extends ConsumerState<OnboardingSettingsScr
           Switch.adaptive(
             value: value,
             onChanged: onChanged,
-            activeThumbColor: const Color(FlickoColors.blurple),
+            activeColor: const Color(FlickoColors.blurple),
           ),
         ],
       ),
@@ -589,7 +588,7 @@ class _OnboardingSettingsScreenState extends ConsumerState<OnboardingSettingsScr
     return GestureDetector(
       onTap: () => setState(() => _previewOpen = false),
       child: Container(
-        color: Colors.black.withValues(alpha: 0.65),
+        color: Colors.black.withOpacity(0.65),
         child: Center(
           child: GestureDetector(
             onTap: () {},
@@ -602,7 +601,7 @@ class _OnboardingSettingsScreenState extends ConsumerState<OnboardingSettingsScr
                 borderRadius: BorderRadius.circular(FlickoRadius.xl),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.5),
+                    color: Colors.black.withOpacity(0.5),
                     blurRadius: 30,
                     offset: const Offset(0, 10),
                   ),
@@ -615,7 +614,7 @@ class _OnboardingSettingsScreenState extends ConsumerState<OnboardingSettingsScr
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: const Color(FlickoColors.blurple).withValues(alpha: 0.15),
+                      color: const Color(FlickoColors.blurple).withOpacity(0.15),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.waving_hand, color: Color(FlickoColors.blurple), size: 32),

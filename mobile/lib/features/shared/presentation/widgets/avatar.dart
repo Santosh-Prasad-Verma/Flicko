@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:mobile/core/constants/flicko_colors.dart';
+import 'package:mobile/features/core/constants/flicko_colors.dart';
 
 enum AvatarSize { xs, sm, md, lg, xl }
 
@@ -32,7 +32,7 @@ class Avatar extends StatelessWidget {
     AvatarSize.xl: 64.0,
   };
 
-  double get _dimension => _sizeMap[size]!;
+  double get _dimension => _sizeMap[size];
   String get _resolvedUri => uri ?? imageUrl ?? '';
   String get _label => accessibilityLabel ?? name ?? 'Avatar';
 
@@ -48,15 +48,15 @@ class Avatar extends StatelessWidget {
   Color get _statusColor {
     switch (status) {
       case StatusIndicator.online:
-        return const Color(0xFF23A559);
+        return const Color(0x23A559);
       case StatusIndicator.idle:
-        return const Color(0xFFF0B232);
+        return const Color(0xF0B232);
       case StatusIndicator.dnd:
-        return const Color(0xFFF23F43);
+        return const Color(0xF23F43);
       case StatusIndicator.offline:
-        return const Color(0xFF80848E);
+        return const Color(0x80848E);
       default:
-        return const Color(0xFF80848E);
+        return const Color(0x80848E);
     }
   }
 

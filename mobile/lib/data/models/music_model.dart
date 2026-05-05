@@ -13,7 +13,7 @@ enum MusicType {
 }
 
 @freezed
-abstract class MusicItem with _$MusicItem {
+class MusicItem with _$MusicItem {
   const factory MusicItem({
     required String id,
     required MusicType type,

@@ -5,7 +5,7 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.7.2 <4.0.0'
+  sdk: '>=3.3.0 <4.0.0'
 
 dependencies:
   flutter:
@@ -20,17 +20,15 @@ dependencies:
   
   # Navigation
   go_router: ^17.2.2
-  font_awesome_flutter: ^10.7.0
   
   # State Management & DI
-  flutter_riverpod: ^2.6.1
+  flutter_riverpod: ^3.3.1
   freezed_annotation: ^3.1.0
   json_annotation: ^4.8.1
   
   # Networking
   dio: ^5.4.3+1
-  collection: ^1.19.0
-  http: ^1.6.0
+  http: ^1.2.0
   crypto: ^3.0.3
   path: ^1.8.3
   
@@ -43,8 +41,6 @@ dependencies:
   livekit_client: ^2.0.0
   flutter_stripe: ^12.6.0
   appwrite: ^23.1.0
-  razorpay_flutter: ^1.3.5
-
   
   # Local Storage & Security
   shared_preferences: ^2.2.3
@@ -68,18 +64,11 @@ dependencies:
   path_provider: ^2.1.3
   
   # Chat & Rich Content
-  flutter_markdown_plus: ^1.0.7
+  flutter_markdown: ^0.7.3+1
   cached_network_image: ^3.4.1
   url_launcher: ^6.3.0
   markdown: ^7.2.2
   logger: ^2.3.0
-  mime: ^2.0.0
-  intl_phone_field: ^3.2.0
-  fl_country_code_picker: ^0.1.9+1
-  firebase_core: ^4.7.0
-  app_links: ^7.0.0
-  centrifuge: ^0.18.0
-  qr_flutter: ^4.1.0
 
 dev_dependencies:
   flutter_test:
@@ -92,18 +81,16 @@ dev_dependencies:
   mocktail: ^1.0.4
   freezed: ^3.2.5
   json_serializable: ^6.7.1
-  flutter_launcher_icons: ^0.14.4
+  riverpod_generator: ^4.0.3
 
 flutter:
   uses-material-design: true
 
   assets:
-    - .env
-    - assets/branding/
-    - assets/UI/
-    - assets/UI/emojis/
-    - assets/UI/emojis/static/
-    - assets/UI/emojis/animated/
+    - assets/images/
+    - assets/images/emojis/
+    - assets/images/emojis/static/
+    - assets/images/emojis/animated/
     - assets/icons/
     - assets/animations/
     - assets/translations/

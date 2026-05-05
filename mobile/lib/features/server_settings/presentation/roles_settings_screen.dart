@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../core/constants/flicko_colors.dart';
 
+/// Role data model for server roles
 class _ServerRole {
   final String id;
   final String name;
@@ -36,6 +38,10 @@ class _ServerRole {
   }
 }
 
+/// Roles Settings Screen
+///
+/// Lists all server roles, allows create/delete, and navigates to role editor.
+/// Route: /server/:serverId/settings/roles
 class RolesSettingsScreen extends ConsumerStatefulWidget {
   final String serverId;
 
@@ -51,6 +57,7 @@ class _RolesSettingsScreenState extends ConsumerState<RolesSettingsScreen> {
   bool _showCreate = false;
   bool _isSubmitting = false;
   String _newRoleName = '';
+
   final _client = Supabase.instance.client;
 
   @override
@@ -60,7 +67,6 @@ class _RolesSettingsScreenState extends ConsumerState<RolesSettingsScreen> {
   }
 
   Future<void> _loadRoles() async {
-    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       final response = await _client
@@ -69,16 +75,14 @@ class _RolesSettingsScreenState extends ConsumerState<RolesSettingsScreen> {
           .eq('server_id', widget.serverId)
           .order('position', ascending: false);
 
-      if (mounted) {
-        setState(() {
-          _roles = (response as List)
-              .map((r) => _ServerRole.fromJson(r as Map<String, dynamic>))
-              .toList();
-          _isLoading = false;
-        });
-      }
+      setState(() {
+        _roles = (response as List)
+            .map((r) => _ServerRole.fromJson(r as Map<String, dynamic>))
+            .toList();
+        _isLoading = false;
+      });
     } catch (e) {
-      if (mounted) setState(() => _isLoading = false);
+      setState(() => _isLoading = false);
     }
   }
 
@@ -92,20 +96,18 @@ class _RolesSettingsScreenState extends ConsumerState<RolesSettingsScreen> {
         'server_id': widget.serverId,
         'name': name,
         'position': _roles.length,
-        'color': '#C8FF00',
+        'color': '#99AAB5',
       });
 
-      if (mounted) {
-        setState(() {
-          _showCreate = false;
-          _newRoleName = '';
-        });
-        await _loadRoles();
-      }
+      setState(() {
+        _showCreate = false;
+        _newRoleName = '';
+      });
+      await _loadRoles();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error creating role: $e'), backgroundColor: Colors.redAccent),
+          SnackBar(content: Text('Error creating role: $e')),
         );
       }
     } finally {
@@ -121,23 +123,36 @@ class _RolesSettingsScreenState extends ConsumerState<RolesSettingsScreen> {
     final item = _roles.removeAt(oldIndex);
     _roles.insert(newIndex, item);
     
+    // Optimistic UI update
     setState(() {});
 
     try {
+      // Create batch updates
+      final updates = <Map<String, dynamic>>[];
       for (int i = 0; i < _roles.length; i++) {
+        // Only update if position actually changed
         if (_roles[i].position != _roles.length - i) {
-          await _client.from('server_roles').update({
+          updates.add({
+            'id': _roles[i].id,
             'position': _roles.length - i,
-          }).eq('id', _roles[i].id);
+          });
+        }
+      }
+
+      if (updates.isNotEmpty) {
+        for (var update in updates) {
+           await _client.from('server_roles').update({
+             'position': update['position'],
+           }).eq('id', update['id']);
         }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error saving positions: $e'), backgroundColor: Colors.redAccent),
+          SnackBar(content: Text('Error saving role positions: $e')),
         );
       }
-      await _loadRoles();
+      await _loadRoles(); // Revert
     }
   }
 
@@ -152,29 +167,33 @@ class _RolesSettingsScreenState extends ConsumerState<RolesSettingsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF0D0D0D),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: const Color(FlickoColors.bgSecondary),
         title: Text(
-          'DELETE ROLE',
+          'Delete Role',
           style: GoogleFonts.inter(
-            color: Colors.white,
-            fontWeight: FontWeight.w900,
-            fontSize: 16,
-            letterSpacing: 1,
+            color: const Color(FlickoColors.textPrimary),
+            fontWeight: FontWeight.w600,
           ),
         ),
         content: Text(
-          'Are you sure you want to delete "${role.name}"?',
-          style: GoogleFonts.inter(color: Colors.white70),
+          'Are you sure you want to delete "${role.name}"? This will remove the role from all members.',
+          style: GoogleFonts.inter(color: const Color(FlickoColors.textSecondary)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text('CANCEL', style: GoogleFonts.inter(color: Colors.white24, fontWeight: FontWeight.w800)),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
+            ),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text('DELETE', style: GoogleFonts.inter(color: Colors.redAccent, fontWeight: FontWeight.w800)),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(FlickoColors.red)),
+            child: Text(
+              'Delete',
+              style: GoogleFonts.inter(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -188,83 +207,67 @@ class _RolesSettingsScreenState extends ConsumerState<RolesSettingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error deleting role: $e'), backgroundColor: Colors.redAccent),
+          SnackBar(content: Text('Error deleting role: $e')),
         );
       }
     }
   }
 
   Color _parseColor(String? colorStr) {
-    if (colorStr == null || colorStr.isEmpty) return const Color(0xFFC8FF00);
+    if (colorStr == null || colorStr.isEmpty) return const Color(FlickoColors.textMuted);
     try {
       return Color(int.parse(colorStr.replaceAll('#', '0xFF')));
     } catch (_) {
-      return const Color(0xFFC8FF00);
+      return const Color(FlickoColors.textMuted);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: const Color(FlickoColors.bgPrimary),
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: const Color(FlickoColors.bgSecondary),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFFC8FF00), size: 20),
+          icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),
           onPressed: () => context.pop(),
         ),
-        centerTitle: true,
         title: Text(
-          'ROLES',
+          'Roles',
           style: GoogleFonts.inter(
-            color: Colors.white,
-            fontWeight: FontWeight.w900,
-            fontSize: 16,
-            letterSpacing: 2,
+            color: const Color(FlickoColors.textPrimary),
+            fontWeight: FontWeight.w600,
           ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.add_circle_outline_rounded, color: Color(0xFFC8FF00)),
+            icon: const Icon(Icons.add, color: Color(FlickoColors.blurple)),
             onPressed: () => setState(() => _showCreate = true),
           ),
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFFC8FF00)))
+          ? const Center(child: CircularProgressIndicator(color: Color(FlickoColors.blurple)))
           : Column(
               children: [
+                // Help text
                 Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0D0D0D),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFFC8FF00).withValues(alpha: 0.1)),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.info_outline_rounded, color: Color(0xFFC8FF00), size: 18),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            'Drag to reorder roles. Higher roles have priority.',
-                            style: GoogleFonts.inter(
-                              color: Colors.white54,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
+                  padding: const EdgeInsets.all(16),
+                  child: Text(
+                    'Roles are listed from highest to lowest. Members get permissions from all their roles. Tap a role to edit, long-press to delete.',
+                    style: GoogleFonts.inter(
+                      color: const Color(FlickoColors.textMuted),
+                      fontSize: 12,
+                      height: 1.5,
                     ),
                   ),
                 ),
+
+                // Role list
                 Expanded(
                   child: ReorderableListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     itemCount: _roles.length,
                     onReorder: _onReorder,
                     itemBuilder: (context, index) {
@@ -275,6 +278,8 @@ class _RolesSettingsScreenState extends ConsumerState<RolesSettingsScreen> {
                 ),
               ],
             ),
+
+      // Create Role Bottom Sheet
       bottomSheet: _showCreate ? _buildCreateSheet() : null,
     );
   }
@@ -282,125 +287,178 @@ class _RolesSettingsScreenState extends ConsumerState<RolesSettingsScreen> {
   Widget _buildRoleTile(_ServerRole role, {Key? key}) {
     final color = _parseColor(role.color);
 
-    return Container(
+    return InkWell(
       key: key,
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0D0D0D),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-      ),
-      child: ListTile(
-        onTap: () => context.push('/server/${widget.serverId}/settings/roles/${role.id}'),
-        onLongPress: () => _deleteRole(role),
-        contentPadding: const EdgeInsets.all(16),
-        leading: Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 8),
-            ],
-          ),
+      onTap: () {
+        context.push('/server/${widget.serverId}/settings/roles/${role.id}');
+      },
+      onLongPress: () => _deleteRole(role),
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        margin: const EdgeInsets.only(bottom: 4),
+        decoration: BoxDecoration(
+          color: const Color(FlickoColors.bgSecondary),
+          borderRadius: BorderRadius.circular(8),
         ),
-        title: Text(
-          role.name,
-          style: GoogleFonts.inter(
-            color: Colors.white,
-            fontWeight: FontWeight.w800,
-            fontSize: 16,
-          ),
+        child: Row(
+          children: [
+            // Drag handle
+            const Icon(Icons.drag_indicator, color: Color(FlickoColors.textMuted), size: 18),
+            const SizedBox(width: 8),
+
+            // Color indicator
+            Container(
+              width: 14,
+              height: 14,
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 14),
+
+            // Role info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    role.name,
+                    style: GoogleFonts.inter(
+                      color: color,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Position: ${role.position}${role.hoist ? ' · Hoisted' : ''}${role.mentionable ? ' · Mentionable' : ''}',
+                    style: GoogleFonts.inter(
+                      color: const Color(FlickoColors.textMuted),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Everyone badge
+            if (role.isEveryone)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(FlickoColors.bgTertiary),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  'DEFAULT',
+                  style: GoogleFonts.inter(
+                    color: const Color(FlickoColors.textMuted),
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+
+            const SizedBox(width: 8),
+            const Icon(
+              Icons.chevron_right,
+              size: 18,
+              color: Color(FlickoColors.textMuted),
+            ),
+          ],
         ),
-        subtitle: Text(
-          '${role.position} permissions configured',
-          style: GoogleFonts.inter(
-            color: Colors.white24,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        trailing: const Icon(Icons.drag_indicator_rounded, color: Colors.white12),
       ),
     );
   }
 
   Widget _buildCreateSheet() {
     return Container(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-        top: 24,
-        left: 24,
-        right: 24,
-      ),
+      padding: const EdgeInsets.all(20),
       decoration: const BoxDecoration(
-        color: Color(0xFF0D0D0D),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        color: Color(FlickoColors.bgSecondary),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'NEW ROLE',
-                style: GoogleFonts.inter(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 18,
-                  letterSpacing: 1.5,
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(FlickoColors.textMuted),
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              IconButton(
-                onPressed: () => setState(() => _showCreate = false),
-                icon: const Icon(Icons.close_rounded, color: Colors.white24),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.black,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: TextField(
+            const SizedBox(height: 16),
+            Text(
+              'Create Role',
+              style: GoogleFonts.inter(
+                color: const Color(FlickoColors.textPrimary),
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
               onChanged: (v) => setState(() => _newRoleName = v),
               autofocus: true,
-              style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700),
+              style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary)),
               decoration: InputDecoration(
-                hintText: 'Role name...',
-                hintStyle: GoogleFonts.inter(color: Colors.white10),
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(vertical: 20),
+                hintText: 'Role name',
+                hintStyle: GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
+                filled: true,
+                fillColor: const Color(FlickoColors.bgTertiary),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide.none,
+                ),
               ),
+              maxLength: 100,
             ),
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            height: 56,
-            child: ElevatedButton(
-              onPressed: _newRoleName.trim().isEmpty || _isSubmitting ? null : _createRole,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFC8FF00),
-                foregroundColor: Colors.black,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                elevation: 0,
-              ),
-              child: _isSubmitting
-                  ? const CircularProgressIndicator(color: Colors.black)
-                  : Text(
-                      'CREATE ROLE',
-                      style: GoogleFonts.inter(fontWeight: FontWeight.w900, letterSpacing: 1),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => setState(() => _showCreate = false),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(FlickoColors.bgTertiary),
+                      foregroundColor: const Color(FlickoColors.textPrimary),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
+                    child: Text('Cancel', style: GoogleFonts.inter()),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _newRoleName.trim().isEmpty || _isSubmitting ? null : _createRole,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(FlickoColors.blurple),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      disabledBackgroundColor: const Color(FlickoColors.bgTertiary),
+                    ),
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : Text('Create', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

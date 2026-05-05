@@ -1,23 +1,21 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../../../core/constants/flicko_colors.dart';
 import 'package:mobile/data/models/flicko_message.dart';
-import 'package:mobile/features/auth/application/auth_notifier.dart';
 
-class PollMessageCard extends ConsumerStatefulWidget {
+class PollMessageCard extends StatefulWidget {
   final FlickoMessage message;
 
   const PollMessageCard({super.key, required this.message});
 
   @override
-  ConsumerState<PollMessageCard> createState() => _PollMessageCardState();
+  State<PollMessageCard> createState() => _PollMessageCardState();
 }
 
-class _PollMessageCardState extends ConsumerState<PollMessageCard> {
+class _PollMessageCardState extends State<PollMessageCard> {
   late Map<String, dynamic> _pollData;
   late List<dynamic> _options;
   bool _isVoting = false;
@@ -49,14 +47,14 @@ class _PollMessageCardState extends ConsumerState<PollMessageCard> {
   bool _hasVoted(int index) {
     final option = _options[index] as Map<String, dynamic>;
     final voters = option['voters'] as List<dynamic>? ?? [];
-    final userId = ref.read(currentUserIdProvider);
+    final userId = Supabase.instance.client.auth.currentUser?.id;
     return voters.contains(userId);
   }
 
   Future<void> _handleVote(int index) async {
     if (_isVoting) return;
 
-    final userId = ref.read(currentUserIdProvider);
+    final userId = Supabase.instance.client.auth.currentUser?.id;
     if (userId == null) return;
 
     final endTimeStr = _pollData['endTime'] as String?;
@@ -202,8 +200,8 @@ class _PollMessageCardState extends ConsumerState<PollMessageCard> {
                         child: Container(
                           decoration: BoxDecoration(
                             color: hasVoted 
-                                ? const Color(FlickoColors.blurple).withValues(alpha: 0.4) 
-                                : const Color(FlickoColors.textMuted).withValues(alpha: 0.2),
+                                ? const Color(FlickoColors.blurple).withOpacity(0.4) 
+                                : const Color(FlickoColors.textMuted).withOpacity(0.2),
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),

@@ -1,7 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:livekit_client/livekit_client.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mobile/core/config/app_config.dart';
 
 class VoiceRepository {
   final SupabaseClient _supabase;
@@ -28,14 +27,12 @@ class VoiceRepository {
 
   /// Connects to a LiveKit room.
   Future<Room> connect(String token, {RoomOptions? options}) async {
-    final room = Room(roomOptions: options ?? const RoomOptions());
+    final room = Room();
     
-    final livekitUrl = AppConfig.livekitUrl;
-    if (livekitUrl.isEmpty) {
-      throw Exception('LiveKit URL not configured. Check your .env file.');
-    }
+    // In a real app, the URL would come from environment variables
+    const livekitUrl = String.fromEnvironment('LIVEKIT_URL', defaultValue: 'ws://localhost:7880');
     
-    await room.connect(livekitUrl, token);
+    await room.connect(livekitUrl, token, roomOptions: options);
     return room;
   }
 }
