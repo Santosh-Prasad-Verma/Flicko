@@ -2,509 +2,120 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/constants/flicko_colors.dart';
 
-/// Notifications Settings Screen (Sleek Brutalist Black/Neon Theme)
-class NotificationsSettingsScreen extends ConsumerStatefulWidget {
+/// Notifications Settings Screen
+///
+/// Push notification preferences and sound settings.
+class NotificationsSettingsScreen extends ConsumerWidget {
   const NotificationsSettingsScreen({super.key});
 
   @override
-  ConsumerState<NotificationsSettingsScreen> createState() => _NotificationsSettingsScreenState();
-}
-
-class _NotificationsSettingsScreenState extends ConsumerState<NotificationsSettingsScreen> {
-  bool _enableNotifications = true;
-  bool _directMessages = true;
-  bool _mentions = true;
-  bool _serverMessages = true;
-  bool _messageSound = true;
-  bool _callSound = true;
-  bool _notificationSound = true;
-  bool _quietHours = false;
-
-  static const Color _neonGreen = Color(0xFFC0F500);
-  static const Color _bgBlack = Color(0xFF050505);
-  static const Color _surfaceContainer = Color(0xFF0C0C0E);
-  static const Color _textWhite = Color(0xFFFBF9FA);
-  static const Color _textMuted = Color(0xFF71717A);
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      backgroundColor: _bgBlack,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(),
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 16),
-                      _buildHeroSection(),
-                      const SizedBox(height: 48),
-                      _buildPushSection(),
-                      const SizedBox(height: 40),
-                      _buildSoundsSection(),
-                      const SizedBox(height: 40),
-                      _buildQuietSection(),
-                      const SizedBox(height: 48),
-                      _buildFooterData(),
-                      const SizedBox(height: 40),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
+      backgroundColor: const Color(FlickoColors.bgPrimary),
+      appBar: AppBar(
+        backgroundColor: const Color(FlickoColors.bgPrimary),
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),
+          onPressed: () => context.pop(),
+        ),
+        title: Text(
+          'Notifications',
+          style: GoogleFonts.inter(
+            color: const Color(FlickoColors.textPrimary),
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: _neonGreen.withValues(alpha: 0.1), width: 1),
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      body: ListView(
+        padding: const EdgeInsets.all(16),
         children: [
-          GestureDetector(
-            onTap: () => context.pop(),
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: const BoxDecoration(
-                border: Border.fromBorderSide(BorderSide(color: Colors.transparent)),
+          _buildSectionHeader('PUSH NOTIFICATIONS'),
+          _buildSettingsCard([
+            _buildToggleSetting('Enable Notifications', 'Receive push notifications', true),
+            _buildToggleSetting('Direct Messages', 'Notify when you receive a DM', true),
+            _buildToggleSetting('Mentions', 'Notify when you are mentioned', true),
+            _buildToggleSetting('Server Messages', 'Notify for server messages', true),
+          ]),
+          const SizedBox(height: 24),
+
+          _buildSectionHeader('SOUNDS'),
+          _buildSettingsCard([
+            _buildToggleSetting('Message Sound', 'Play sound for new messages', true),
+            _buildToggleSetting('Call Sound', 'Play sound for incoming calls', true),
+            _buildToggleSetting('Notification Sound', 'Play sound for notifications', true),
+          ]),
+          const SizedBox(height: 24),
+
+          _buildSectionHeader('QUIET HOURS'),
+          _buildSettingsCard([
+            _buildToggleSetting('Enable Quiet Hours', 'Disable notifications during set hours', false),
+            ListTile(
+              title: Text(
+                'Quiet Hours Schedule',
+                style: GoogleFonts.inter(
+                  color: const Color(FlickoColors.textPrimary),
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-              child: const Icon(Icons.arrow_back, color: _textWhite, size: 20),
+              trailing: const Icon(
+                Icons.chevron_right,
+                color: Color(FlickoColors.textMuted),
+              ),
             ),
-          ),
-          Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'APP SETTINGS',
-                  style: GoogleFonts.spaceGrotesk(
-                    color: _neonGreen.withValues(alpha: 0.8),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 2.0,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'ALERT PREFERENCES',
-                  style: GoogleFonts.spaceMono(
-                    color: _textWhite.withValues(alpha: 0.3),
-                    fontSize: 8,
-                    letterSpacing: 1.0,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 36),
+          ]),
+          const SizedBox(height: 40),
         ],
       ),
     );
   }
 
-  Widget _buildHeroSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 12),
-        Text(
-          'NOTIFI\nCATIONS',
-          style: GoogleFonts.epilogue(
-            color: _textWhite,
-            fontSize: 48,
-            fontWeight: FontWeight.w900,
-            letterSpacing: -2,
-            height: 0.9,
-            fontStyle: FontStyle.italic,
-          ),
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 8, bottom: 8),
+      child: Text(
+        title,
+        style: GoogleFonts.inter(
+          color: const Color(FlickoColors.textMuted),
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 0.5,
         ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: const BoxDecoration(color: _neonGreen),
-              child: Text(
-                'ALERTS',
-                style: GoogleFonts.spaceGrotesk(
-                  color: Colors.black,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 11,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'CONFIGURE NOTIFICATIONS',
-                    style: GoogleFonts.spaceGrotesk(
-                      color: _neonGreen,
-                      fontSize: 9,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1,
-                    ),
-                  ),
-                  Text(
-                    'Push alerts, sounds & quiet hours',
-                    style: GoogleFonts.spaceMono(
-                      color: _textMuted.withValues(alpha: 0.8),
-                      fontSize: 8,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ],
+      ),
     );
   }
 
-  Widget _buildPushSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'PUSH NOTIFICATIONS',
-          style: GoogleFonts.epilogue(
-            color: _textWhite,
-            fontSize: 22,
-            fontWeight: FontWeight.w900,
-            fontStyle: FontStyle.italic,
-            letterSpacing: -0.5,
-          ),
-        ),
-        Container(
-          height: 2,
-          color: _neonGreen,
-          margin: const EdgeInsets.only(top: 6, bottom: 16),
-        ),
-        _buildAccessCard(
-          title: 'ENABLE ALL',
-          subtitle: 'Receive push notifications from Flicko.',
-          badge: 'MASTER',
-          usePrimaryBadge: true,
-          toggleWidget: _buildHardwareToggle(_enableNotifications, (val) {
-            setState(() => _enableNotifications = val);
-          }),
-        ),
-        const SizedBox(height: 14),
-        _buildAccessCard(
-          title: 'DIRECT MESSAGES',
-          subtitle: 'Notify when you receive a DM.',
-          badge: 'DM',
-          toggleWidget: _buildHardwareToggle(_directMessages, (val) {
-            setState(() => _directMessages = val);
-          }),
-        ),
-        const SizedBox(height: 14),
-        _buildAccessCard(
-          title: 'MENTIONS',
-          subtitle: 'Notify when you are mentioned.',
-          badge: '@',
-          toggleWidget: _buildHardwareToggle(_mentions, (val) {
-            setState(() => _mentions = val);
-          }),
-        ),
-        const SizedBox(height: 14),
-        _buildAccessCard(
-          title: 'SERVER MESSAGES',
-          subtitle: 'Notify for server channel messages.',
-          badge: 'CHANNEL',
-          toggleWidget: _buildHardwareToggle(_serverMessages, (val) {
-            setState(() => _serverMessages = val);
-          }),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSoundsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'SOUNDS',
-          style: GoogleFonts.epilogue(
-            color: _textWhite,
-            fontSize: 22,
-            fontWeight: FontWeight.w900,
-            fontStyle: FontStyle.italic,
-            letterSpacing: -0.5,
-          ),
-        ),
-        Container(
-          height: 2,
-          color: _neonGreen,
-          margin: const EdgeInsets.only(top: 6, bottom: 16),
-        ),
-        _buildAccessCard(
-          title: 'MESSAGE SOUND',
-          subtitle: 'Play sound for new messages.',
-          badge: 'AUDIO',
-          toggleWidget: _buildHardwareToggle(_messageSound, (val) {
-            setState(() => _messageSound = val);
-          }),
-        ),
-        const SizedBox(height: 14),
-        _buildAccessCard(
-          title: 'CALL SOUND',
-          subtitle: 'Play sound for incoming calls.',
-          badge: 'RING',
-          toggleWidget: _buildHardwareToggle(_callSound, (val) {
-            setState(() => _callSound = val);
-          }),
-        ),
-        const SizedBox(height: 14),
-        _buildAccessCard(
-          title: 'NOTIFICATION SOUND',
-          subtitle: 'Play sound for notifications.',
-          badge: 'ALERT',
-          toggleWidget: _buildHardwareToggle(_notificationSound, (val) {
-            setState(() => _notificationSound = val);
-          }),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildQuietSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'QUIET HOURS',
-          style: GoogleFonts.epilogue(
-            color: _textWhite,
-            fontSize: 22,
-            fontWeight: FontWeight.w900,
-            fontStyle: FontStyle.italic,
-            letterSpacing: -0.5,
-          ),
-        ),
-        Container(
-          height: 2,
-          color: _neonGreen,
-          margin: const EdgeInsets.only(top: 6, bottom: 16),
-        ),
-        _buildAccessCard(
-          title: 'ENABLE QUIET HOURS',
-          subtitle: 'Disable notifications during set hours.',
-          badge: 'SCHEDULE',
-          toggleWidget: _buildHardwareToggle(_quietHours, (val) {
-            setState(() => _quietHours = val);
-          }),
-        ),
-        const SizedBox(height: 14),
-        _buildAccessCard(
-          title: 'SCHEDULE',
-          subtitle: 'Configure quiet hours time range.',
-          badge: 'CONFIG',
-          usePrimaryBadge: true,
-          toggleWidget: Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              border: Border.all(color: _textWhite.withValues(alpha: 0.1)),
-            ),
-            child: const Icon(Icons.schedule, color: _textMuted, size: 20),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFooterData() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          height: 1,
-          color: _neonGreen.withValues(alpha: 0.2),
-          margin: const EdgeInsets.only(bottom: 24),
-        ),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            color: _neonGreen.withValues(alpha: 0.05),
-            border: Border.symmetric(
-              horizontal: BorderSide(color: _textWhite.withValues(alpha: 0.05)),
-            ),
-          ),
-          child: Center(
-            child: Text(
-              'FLICKO // PREFERENCES SECURE',
-              style: GoogleFonts.spaceMono(
-                color: _textWhite.withValues(alpha: 0.3),
-                fontSize: 9,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 2.0,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAccessCard({
-    required String title,
-    required String subtitle,
-    required String badge,
-    required Widget toggleWidget,
-    bool usePrimaryBadge = false,
-  }) {
+  Widget _buildSettingsCard(List<Widget> children) {
     return Container(
-      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: _surfaceContainer,
-        border: Border.all(
-          color: usePrimaryBadge ? _neonGreen.withValues(alpha: 0.4) : _textWhite.withValues(alpha: 0.05),
-          width: usePrimaryBadge ? 1.5 : 1,
-        ),
-        boxShadow: usePrimaryBadge
-            ? [
-                BoxShadow(
-                  color: _neonGreen.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  spreadRadius: 2,
-                )
-              ]
-            : [],
+        color: const Color(FlickoColors.bgSecondary),
+        borderRadius: BorderRadius.circular(12),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Wrap(
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  spacing: 8,
-                  runSpacing: 4,
-                  children: [
-                    Text(
-                      title,
-                      style: GoogleFonts.epilogue(
-                        color: _textWhite,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        fontStyle: FontStyle.italic,
-                        letterSpacing: -0.3,
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: usePrimaryBadge ? _neonGreen : Colors.transparent,
-                        border: usePrimaryBadge
-                            ? null
-                            : Border.all(color: _textWhite.withValues(alpha: 0.2)),
-                      ),
-                      child: Text(
-                        badge,
-                        style: GoogleFonts.spaceMono(
-                          color: usePrimaryBadge ? Colors.black : _textWhite.withValues(alpha: 0.4),
-                          fontSize: 9,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  subtitle,
-                  style: GoogleFonts.inter(
-                    color: _textMuted,
-                    fontSize: 12,
-                    height: 1.3,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 16),
-          toggleWidget,
-        ],
-      ),
+      child: Column(children: children),
     );
   }
 
-  Widget _buildHardwareToggle(bool value, ValueChanged<bool> onChanged) {
-    return GestureDetector(
-      onTap: () => onChanged(!value),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
-        width: 52,
-        height: 28,
-        decoration: BoxDecoration(
-          color: value ? _neonGreen : const Color(0xFF141416),
-          border: Border.all(
-            color: value ? _neonGreen : _textWhite.withValues(alpha: 0.1),
-            width: 1.5,
-          ),
-          boxShadow: value
-              ? [
-                  BoxShadow(
-                    color: _neonGreen.withValues(alpha: 0.3),
-                    blurRadius: 12,
-                    spreadRadius: 1,
-                  )
-                ]
-              : [],
-        ),
-        child: Stack(
-          children: [
-            AnimatedPositioned(
-              duration: const Duration(milliseconds: 250),
-              curve: Curves.easeInOut,
-              left: value ? 26 : 2,
-              top: 2,
-              child: Container(
-                width: 20,
-                height: 20,
-                decoration: BoxDecoration(
-                  color: value ? Colors.black : const Color(0xFF71717A),
-                ),
-                child: Center(
-                  child: Container(
-                    width: 2,
-                    height: 8,
-                    color: value
-                        ? Colors.black.withValues(alpha: 0.4)
-                        : Colors.white.withValues(alpha: 0.3),
-                  ),
-                ),
-              ),
-            ),
-          ],
+  Widget _buildToggleSetting(String title, String subtitle, bool value) {
+    return SwitchListTile(
+      value: value,
+      onChanged: (_) {},
+      title: Text(
+        title,
+        style: GoogleFonts.inter(
+          color: const Color(FlickoColors.textPrimary),
+          fontWeight: FontWeight.w500,
         ),
       ),
+      subtitle: Text(
+        subtitle,
+        style: GoogleFonts.inter(
+          color: const Color(FlickoColors.textMuted),
+          fontSize: 12,
+        ),
+      ),
+      activeColor: const Color(FlickoColors.blurple),
     );
   }
 }

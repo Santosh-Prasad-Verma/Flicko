@@ -5,7 +5,7 @@ part 'dm_models.freezed.dart';
 part 'dm_models.g.dart';
 
 @freezed
-abstract class DMConversation with _$DMConversation {
+class DMConversation with _$DMConversation {
   const factory DMConversation({
     required String id, // The other user's ID
     required UserModel participant,
@@ -21,7 +21,7 @@ abstract class DMConversation with _$DMConversation {
 }
 
 @freezed
-abstract class DMAttachment with _$DMAttachment {
+class DMAttachment with _$DMAttachment {
   const factory DMAttachment({
     required String url,
     required String type,
@@ -29,15 +29,13 @@ abstract class DMAttachment with _$DMAttachment {
     int? size,
     int? width,
     int? height,
-    @JsonKey(name: 'appwrite_file_id') String? appwriteFileId,
-    @JsonKey(name: 'appwrite_bucket_id') String? appwriteBucketId,
   }) = _DMAttachment;
 
   factory DMAttachment.fromJson(Map<String, dynamic> json) => _$DMAttachmentFromJson(json);
 }
 
 @freezed
-abstract class DMMessage with _$DMMessage {
+class DMMessage with _$DMMessage {
   const factory DMMessage({
     required String id,
     @JsonKey(name: 'sender_id') required String senderId,

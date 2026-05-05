@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
-import 'package:mobile/features/auth/application/auth_notifier.dart';
 
 class UserTimeoutModal extends ConsumerStatefulWidget {
   final String userId;
@@ -76,7 +75,7 @@ class _UserTimeoutModalState extends ConsumerState<UserTimeoutModal> {
 
     try {
       final client = Supabase.instance.client;
-      final actorId = ref.read(currentUserIdProvider);
+      final actorId = client.auth.currentUser?.id;
       final duration = _parseDuration(_selectedDuration!);
       final disabledUntil = DateTime.now().toUtc().add(duration).toIso8601String();
       final reason = _reasonController.text.trim();
@@ -225,7 +224,7 @@ class _UserTimeoutModalState extends ConsumerState<UserTimeoutModal> {
                   });
                 },
                 backgroundColor: const Color(FlickoColors.bgTertiary),
-                selectedColor: const Color(FlickoColors.blurple).withValues(alpha: 0.2),
+                selectedColor: const Color(FlickoColors.blurple).withOpacity(0.2),
                 labelStyle: GoogleFonts.inter(
                   color: isSelected
                       ? const Color(FlickoColors.blurpleLight)
@@ -301,7 +300,7 @@ class _UserTimeoutModalState extends ConsumerState<UserTimeoutModal> {
                 onPressed: _selectedDuration == null || _isSubmitting ? null : _handleTimeout,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(FlickoColors.danger),
-                  disabledBackgroundColor: const Color(FlickoColors.danger).withValues(alpha: 0.4),
+                  disabledBackgroundColor: const Color(FlickoColors.danger).withOpacity(0.4),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                   shape: RoundedRectangleBorder(

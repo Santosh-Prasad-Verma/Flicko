@@ -7,59 +7,56 @@ part of 'user_model.dart';
 // **************************************************************************
 
 _Badge _$BadgeFromJson(Map<String, dynamic> json) => _Badge(
-  id: json['id'] as String,
-  name: json['name'] as String,
-  icon: json['icon'] as String,
-  color: json['color'] as String,
-);
+      id: json['id'] as String,
+      name: json['name'] as String,
+      icon: json['icon'] as String,
+      color: json['color'] as String,
+    );
 
 Map<String, dynamic> _$BadgeToJson(_Badge instance) => <String, dynamic>{
-  'id': instance.id,
-  'name': instance.name,
-  'icon': instance.icon,
-  'color': instance.color,
-};
+      'id': instance.id,
+      'name': instance.name,
+      'icon': instance.icon,
+      'color': instance.color,
+    };
 
 _UserModel _$UserModelFromJson(Map<String, dynamic> json) => _UserModel(
-  id: json['id'] as String,
-  username: json['username'] as String,
-  displayName: json['display_name'] as String?,
-  avatarUrl: json['avatar'] as String?,
-  bannerUrl: json['banner'] as String?,
-  bio: json['bio'] as String?,
-  pronouns: json['pronouns'] as String?,
-  phone: json['phone'] as String?,
-  accentColor: json['accent_color'] as String?,
-  bannerColors:
-      (json['banner_colors'] as List<dynamic>?)
+      id: json['id'] as String,
+      username: json['username'] as String,
+      displayName: json['display_name'] as String?,
+      avatarUrl: json['avatar_url'] as String?,
+      bannerUrl: json['banner_url'] as String?,
+      bio: json['bio'] as String?,
+      pronouns: json['pronouns'] as String?,
+      phone: json['phone'] as String?,
+      accentColor: json['accent_color'] as String?,
+      bannerColors: (json['banner_colors'] as List<dynamic>?)
           ?.map((e) => e as String)
           .toList(),
-  avatarDecoration: json['avatar_decoration'] as String?,
-  onlineStatus: json['online_status'] as String? ?? 'offline',
-  customStatus: json['custom_status'] as String?,
-  customStatusEmoji: json['custom_status_emoji'] as String?,
-  badges:
-      (json['badges'] as List<dynamic>?)
-          ?.map((e) => Badge.fromJson(e as Map<String, dynamic>))
-          .toList() ??
-      const [],
-  isStaff: json['is_staff'] as bool? ?? false,
-  isPartner: json['is_partner'] as bool? ?? false,
-  hasNitro: json['has_nitro'] as bool? ?? false,
-  createdAt: DateTime.parse(json['created_at'] as String),
-  updatedAt:
-      json['updated_at'] == null
+      avatarDecoration: json['avatar_decoration'] as String?,
+      onlineStatus: json['online_status'] as String? ?? 'offline',
+      customStatus: json['custom_status'] as String?,
+      customStatusEmoji: json['custom_status_emoji'] as String?,
+      badges: (json['badges'] as List<dynamic>?)
+              ?.map((e) => Badge.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      isStaff: json['is_staff'] as bool? ?? false,
+      isPartner: json['is_partner'] as bool? ?? false,
+      hasNitro: json['has_nitro'] as bool? ?? false,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: json['updated_at'] == null
           ? null
           : DateTime.parse(json['updated_at'] as String),
-);
+    );
 
 Map<String, dynamic> _$UserModelToJson(_UserModel instance) =>
     <String, dynamic>{
       'id': instance.id,
       'username': instance.username,
       'display_name': instance.displayName,
-      'avatar': instance.avatarUrl,
-      'banner': instance.bannerUrl,
+      'avatar_url': instance.avatarUrl,
+      'banner_url': instance.bannerUrl,
       'bio': instance.bio,
       'pronouns': instance.pronouns,
       'phone': instance.phone,

@@ -1,12 +1,11 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:livekit_client/livekit_client.dart';
 import 'package:audio_session/audio_session.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:just_audio/just_audio.dart';
 import 'dart:convert';
-import 'package:mobile/data/models/soundboard_model.dart';
+import 'package:mobile/features/data/models/soundboard_model.dart';
 import 'package:mobile/features/voice/data/voice_repository.dart';
 import 'voice_state.dart';
 
@@ -50,6 +49,8 @@ class VoiceController extends StateNotifier<VoiceState> {
           dynacast: true,
           defaultAudioPublishOptions: AudioPublishOptions(
             dtx: true,
+            echoCancellation: true,
+            noiseSuppression: true,
           ),
         ),
       );
@@ -75,7 +76,7 @@ class VoiceController extends StateNotifier<VoiceState> {
   }
 
   void _setupRoomListeners(Room room) {
-    _listener = room.createListener();
+    _listener = room.createWidgetListener();
     
     _listener!
       ..on<RoomDisconnectedEvent>((event) {
@@ -106,7 +107,7 @@ class VoiceController extends StateNotifier<VoiceState> {
       await _audioPlayer.setUrl(url);
       await _audioPlayer.play();
     } catch (e) {
-      debugPrint('Error playing remote sound: $e');
+      print('Error playing remote sound: $e');
     }
   }
 
@@ -115,13 +116,13 @@ class VoiceController extends StateNotifier<VoiceState> {
     if (room == null) return;
 
     // 1. Play locally
-    _playRemoteSound(sound.url);
+    _playRemoteSound(sound.audioUrl);
 
     // 2. Send to others
     final message = jsonEncode({
       'type': 'soundboard',
       'soundId': sound.id,
-      'url': sound.url,
+      'url': sound.audioUrl,
     });
     
     await room.localParticipant?.publishData(
@@ -159,10 +160,10 @@ class VoiceController extends StateNotifier<VoiceState> {
     // In LiveKit, we might handle this by muting all remote audio tracks
     for (final p in room.remoteParticipants.values) {
       for (final sub in p.audioTrackPublications) {
-        if (!newDeafen) {
-          await sub.subscribe();
+        if (newDeafen) {
+          await sub.setSubscribed(false);
         } else {
-          await sub.unsubscribe();
+          await sub.setSubscribed(true);
         }
       }
     }

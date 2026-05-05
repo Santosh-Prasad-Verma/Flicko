@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_stripe/flutter_stripe.dart' hide Card;
+import 'package:flutter_stripe/flutter_stripe.dart';
+import 'package:dio/dio.dart';
 import 'package:mobile/core/config/app_config.dart';
 
 class StripeSpikeScreen extends StatefulWidget {
@@ -14,6 +15,8 @@ class _StripeSpikeScreenState extends State<StripeSpikeScreen> {
   bool _isLoading = false;
   String? _statusMessage;
   
+  // Replace with your actual backend endpoint to fetch standard payment intents
+  final String _backendUrl = 'https://your-flicko-backend.internal';
 
   @override
   void initState() {

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
+import 'package:mime/mime.dart';
 import 'package:mobile/features/direct_messages/domain/dm_models.dart';
 import 'package:mobile/features/direct_messages/data/dm_repository.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
@@ -127,21 +128,19 @@ class DMChatController extends StateNotifier<DMChatState> {
         final conversationId = ids.join('_');
 
         for (final file in localAttachments) {
-          final result = await _repository.uploadAttachment(
+          final url = await _repository.uploadAttachment(
             File(file.path),
             _myId,
             conversationId,
           );
           
-          final mimeType = file.mimeType ?? 'application/octet-stream';
+          final mimeType = lookupMimeType(file.path) ?? 'application/octet-stream';
           
           uploadedAttachments.add(DMAttachment(
-            url: result['url']!,
+            url: url,
             type: mimeType,
             name: file.name,
             size: await file.length(),
-            appwriteFileId: result['fileId'],
-            appwriteBucketId: result['bucketId'],
           ));
         }
       }

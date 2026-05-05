@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mobile/features/auth/application/auth_notifier.dart';
+import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/voice/presentation/widgets/voice_hud.dart';
 
 /// Flicko main navigation shell — Discord-style bottom tab bar.
@@ -14,7 +13,7 @@ import 'package:mobile/features/voice/presentation/widgets/voice_hud.dart';
 /// The [child] and [currentIndex] are driven by [GoRouter]'s
 /// [StatefulShellRoute]. The shell itself only renders the chrome
 /// (bottom bar); the active page comes from the router.
-class MainNavigationShell extends ConsumerWidget {
+class MainNavigationShell extends StatelessWidget {
   /// The routed child widget for the selected tab.
   final Widget child;
 
@@ -32,12 +31,8 @@ class MainNavigationShell extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(authNotifierProvider);
-    final avatarUrl = authState.maybeWhen(
-      authenticated: (user, profile) => profile?.avatarUrl,
-      orElse: () => null,
-    );
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
 
     return Scaffold(
       body: Stack(
@@ -59,49 +54,52 @@ class MainNavigationShell extends ConsumerWidget {
       ),
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
-          color: Colors.black, // Sleek black theme
+          color: Color(FlickoColors.bgTertiary),
+          // Subtle top border matching Discord mobile
           border: Border(
-            top: BorderSide(color: Color(0xFF1A1A1A), width: 1.0),
+            top: BorderSide(
+              color: Color(FlickoColors.bgTertiary),
+              width: 0.5,
+            ),
           ),
         ),
         child: SafeArea(
           child: SizedBox(
-            height: 60,
+            height: 56,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _NavTab(
-                  index: 1, // Messages is index 1
+                  index: 0,
                   activeIndex: currentIndex,
-                  activeIcon: Icons.chat_bubble,
+                  icon: Icons.dns_outlined,
+                  activeIcon: Icons.dns,
+                  label: 'Servers',
+                  onTap: onTabSelected,
+                ),
+                _NavTab(
+                  index: 1,
+                  activeIndex: currentIndex,
                   icon: Icons.chat_bubble_outline,
-                  label: 'MESSAGES',
+                  activeIcon: Icons.chat_bubble,
+                  label: 'Messages',
                   onTap: onTabSelected,
                 ),
                 _NavTab(
-                  index: 0, // Spaces is index 0
+                  index: 2,
                   activeIndex: currentIndex,
-                  activeIcon: Icons.grid_view_rounded,
-                  icon: Icons.grid_view_outlined,
-                  label: 'SPACES',
-                  onTap: onTabSelected,
-                ),
-                _NavTab(
-                  index: 2, // Notifications/Activity is index 2
-                  activeIndex: currentIndex,
+                  icon: Icons.notifications_outlined,
                   activeIcon: Icons.notifications,
-                  icon: Icons.notifications_none_outlined,
-                  label: 'ACTIVITY',
+                  label: 'Notifications',
                   onTap: onTabSelected,
                 ),
                 _NavTab(
-                  index: 3, // Profile is index 3
+                  index: 3,
                   activeIndex: currentIndex,
-                  activeIcon: Icons.person,
                   icon: Icons.person_outline,
-                  label: 'PROFILE',
+                  activeIcon: Icons.person,
+                  label: 'You',
                   onTap: onTabSelected,
-                  avatarUrl: avatarUrl,
                 ),
               ],
             ),
@@ -121,8 +119,6 @@ class _NavTab extends StatelessWidget {
   final String label;
   final ValueChanged<int> onTap;
 
-  final String? avatarUrl;
-
   const _NavTab({
     required this.index,
     required this.activeIndex,
@@ -130,7 +126,6 @@ class _NavTab extends StatelessWidget {
     required this.activeIcon,
     required this.label,
     required this.onTap,
-    this.avatarUrl,
   });
 
   bool get _isActive => index == activeIndex;
@@ -138,73 +133,50 @@ class _NavTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = _isActive
-        ? const Color(0xFF10B981) // Neon/emerald green punch accent color
-        : const Color(0xFF9CA3AF);
+        ? const Color(FlickoColors.textPrimary)
+        : const Color(FlickoColors.textMuted);
 
     return Expanded(
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () => onTap(index),
-        child: Container(
-          // For the "SPACES" active glow effect shown in the image
-          decoration: BoxDecoration(
-            color: _isActive && index == 0
-                ? const Color(0x3310B981) // Transparent green punch wash
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: _isActive && index == 0
-                ? [
-                    const BoxShadow(
-                      color: Color(0x3310B981),
-                      blurRadius: 16,
-                      spreadRadius: 8,
-                    )
-                  ]
-                : null,
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (index == 3)
-                Container(
-                  width: 24,
-                  height: 24,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: _isActive ? const Color(0xFF10B981) : const Color(0xFF4B5563),
-                      width: 1.5,
-                    ),
-                    image: avatarUrl != null
-                        ? DecorationImage(
-                            image: NetworkImage(avatarUrl!),
-                            fit: BoxFit.cover,
-                          )
-                        : const DecorationImage(
-                            image: NetworkImage('https://i.pravatar.cc/100'),
-                            fit: BoxFit.cover,
-                          ),
-                  ),
-                )
-              else
-                Icon(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Pill background + icon
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOutCubic,
+              width: 46,
+              height: 28,
+              decoration: BoxDecoration(
+                color: _isActive
+                    ? const Color(FlickoColors.blurple).withAlpha(38)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              alignment: Alignment.center,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: Icon(
                   _isActive ? activeIcon : icon,
-                  size: 24,
-                  color: color,
-                ),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.0,
+                  key: ValueKey(_isActive),
+                  size: 22,
                   color: color,
                 ),
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 2),
+            // Label
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+            ),
+          ],
         ),
       ),
     );

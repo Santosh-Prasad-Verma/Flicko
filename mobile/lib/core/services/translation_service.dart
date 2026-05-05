@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-
 final translationServiceProvider = StateNotifierProvider<TranslationService, Map<String, dynamic>>((ref) {
   return TranslationService();
 });
@@ -10,11 +9,14 @@ final translationServiceProvider = StateNotifierProvider<TranslationService, Map
 class TranslationService extends StateNotifier<Map<String, dynamic>> {
   TranslationService() : super({});
 
+  String _currentLocale = 'en';
+
   Future<void> loadLocale(String locale) async {
     try {
       final String jsonContent = await rootBundle.loadString('assets/translations/$locale.json');
       final Map<String, dynamic> decoded = json.decode(jsonContent);
       state = decoded;
+      _currentLocale = locale;
     } catch (e) {
       // Fallback to English if not found
       if (locale != 'en') {

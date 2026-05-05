@@ -1,96 +1,65 @@
 import 'dart:io';
 import 'package:appwrite/appwrite.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as path;
 import 'package:mobile/core/config/app_config.dart';
-import 'package:mobile/data/clients/appwrite_client.dart';
 
-final appwriteStorageServiceProvider = Provider<AppwriteStorageService>((ref) {
-  return AppwriteStorageService(
-    ref.watch(appwriteStorageProvider),
-    AppConfig.appwriteBucketId,
-  );
-});
-
-/// Storage Service using Appwrite
+/// Appwrite Storage Service for image upload and management
+/// 
+/// Handles uploading images to Appwrite Storage buckets.
+/// Used for profile avatars and banners.
 class AppwriteStorageService {
-  final Storage _storage;
-  final String _bucketId;
+  late final Client _client;
+  late final Storage _storage;
 
-  AppwriteStorageService(this._storage, this._bucketId);
-
-  Future<Map<String, String>> uploadImage(File file) async {
-    try {
-      final fileId = ID.unique();
+  AppwriteStorageService() {
+    _client = Client()
+      ..setEndpoint(AppConfig.appwritePublicEndpoint)
+      ..setProject(AppConfig.appwriteProjectId);
+      // Removed setSelfSigned(status: true) unless it's a local development server without SSL
       
-      await _storage.createFile(
-        bucketId: _bucketId,
-        fileId: fileId,
-        file: InputFile.fromPath(path: file.path),
-        permissions: [
-          Permission.read(Role.any()),
-          Permission.write(Role.any()),
-        ],
+    _storage = Storage(_client);
+  }
+
+  /// Upload an image file to Appwrite storage bucket
+  /// 
+  /// [file] - The image file to upload
+  /// Returns the secure URL of the uploaded image to be used for display
+  Future<String> uploadImage(File file) async {
+    try {
+      final fileName = path.basename(file.path);
+      
+      // We use unique ID generation for the file ID
+      final uploadedFile = await _storage.createFile(
+        bucketId: AppConfig.appwriteBucketId,
+        fileId: ID.unique(),
+        file: InputFile.fromPath(path: file.path, filename: fileName),
       );
 
-      // Construct public view URL
-      // Appwrite self-hosted/cloud public URL format:
-      // [endpoint]/storage/buckets/[bucketId]/files/[fileId]/view?project=[projectId]
-      return {
-        'url': '${AppConfig.appwritePublicEndpoint}/storage/buckets/$_bucketId/files/$fileId/view?project=${AppConfig.appwriteProjectId}',
-        'fileId': fileId,
-        'bucketId': _bucketId,
-      };
+      // Return the file view URL. We assume the bucket is public string read-only.
+      return '${AppConfig.appwritePublicEndpoint}/storage/buckets/${AppConfig.appwriteBucketId}/files/${uploadedFile.$id}/view?project=${AppConfig.appwriteProjectId}';
     } catch (e) {
-      debugPrint('Appwrite Upload error: $e');
-      throw Exception('Upload error: $e');
+      throw Exception('Appwrite upload error: $e');
     }
   }
 
-  Future<Map<String, String>> uploadAttachment(File file, String userId, String channelId) async {
+  /// Delete an image from Appwrite storage bucket
+  /// 
+  /// [fileId] - The ID of the file to delete (extracted from URL)
+  Future<void> deleteImage(String fileId) async {
     try {
-      final fileId = ID.unique();
-      
-      await _storage.createFile(
-        bucketId: _bucketId,
+      await _storage.deleteFile(
+        bucketId: AppConfig.appwriteBucketId,
         fileId: fileId,
-        file: InputFile.fromPath(path: file.path),
-        permissions: [
-          Permission.read(Role.any()),
-          Permission.write(Role.any()),
-        ],
       );
-      
-      return {
-        'url': '${AppConfig.appwritePublicEndpoint}/storage/buckets/$_bucketId/files/$fileId/view?project=${AppConfig.appwriteProjectId}',
-        'fileId': fileId,
-        'bucketId': _bucketId,
-      };
     } catch (e) {
-      debugPrint('Appwrite Attachment upload error: $e');
-      throw Exception('Attachment upload error: $e');
+      throw Exception('Appwrite delete error: $e');
     }
   }
 
-  Future<void> deleteImage(String fileUrl) async {
-    try {
-      // Extract fileId from the URL if possible
-      // Example: .../files/FILE_ID/view?project=...
-      final uri = Uri.parse(fileUrl);
-      final segments = uri.pathSegments;
-      final fileIndex = segments.indexOf('files');
-      
-      if (fileIndex != -1 && fileIndex + 1 < segments.length) {
-        final fileId = segments[fileIndex + 1];
-        await _storage.deleteFile(
-          bucketId: _bucketId,
-          fileId: fileId,
-        );
-      }
-    } catch (e) {
-      debugPrint('Appwrite Delete error: $e');
-    }
+  /// Check if Appwrite is properly configured
+  bool get isConfigured {
+    return AppConfig.appwriteProjectId.isNotEmpty &&
+        AppConfig.appwritePublicEndpoint.isNotEmpty &&
+        AppConfig.appwriteBucketId.isNotEmpty;
   }
-
-  bool get isConfigured => AppConfig.appwriteProjectId.isNotEmpty && AppConfig.appwriteBucketId.isNotEmpty;
 }

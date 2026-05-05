@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/flicko_colors.dart';
@@ -154,20 +153,19 @@ class _BotsSettingsScreenState extends ConsumerState<BotsSettingsScreen> {
   }
 
   Future<void> _toggleBot(BotInfo bot, bool enabled) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final botConfig = _availableBots.firstWhere((b) => b['name'] == bot.name);
-    final tableName = botConfig['table'] as String;
-    
     try {
-      // Check if settings already exist
-      final response = await Supabase.instance.client
+      final botConfig = _availableBots.firstWhere((b) => b['name'] == bot.name);
+      final tableName = botConfig['table'] as String;
+
+      // Check if settings exist
+      final existing = await Supabase.instance.client
           .from(tableName)
-          .select()
+          .select('*')
           .eq('server_id', widget.serverId)
           .maybeSingle();
 
-      if (response != null) {
-        // Update existing settings
+      if (existing != null) {
+        // Update existing
         await Supabase.instance.client
             .from(tableName)
             .update({'enabled': enabled})
@@ -186,14 +184,12 @@ class _BotsSettingsScreenState extends ConsumerState<BotsSettingsScreen> {
       // Refresh bot list
       await _loadBotStatuses();
     } catch (e) {
-      if (context.mounted) {
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text('Failed to toggle bot: ${e.toString()}'),
-            backgroundColor: const Color(FlickoColors.danger),
-          ),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to toggle bot: ${e.toString()}'),
+          backgroundColor: const Color(FlickoColors.danger),
+        ),
+      );
     }
   }
 
@@ -210,13 +206,13 @@ class _BotsSettingsScreenState extends ConsumerState<BotsSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
+      backgroundColor: const Color(FlickoColors.bgPrimary),
       appBar: AppBar(
-        
+        backgroundColor: const Color(FlickoColors.bgPrimary),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),
-          onPressed: () => context.pop(),
+          onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
           'Bots',
@@ -289,7 +285,7 @@ class _BotsSettingsScreenState extends ConsumerState<BotsSettingsScreen> {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF5865F2).withValues(alpha: 0.3),
+                color: const Color(0xFF5865F2).withOpacity(0.3),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -316,7 +312,7 @@ class _BotsSettingsScreenState extends ConsumerState<BotsSettingsScreen> {
               Text(
                 'Discover new bots, AI agents, and tools to enhance your server.',
                 style: GoogleFonts.inter(
-                  color: Colors.white.withValues(alpha: 0.9),
+                  color: Colors.white.withOpacity(0.9),
                   fontSize: 13,
                 ),
               ),
@@ -324,7 +320,7 @@ class _BotsSettingsScreenState extends ConsumerState<BotsSettingsScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => context.go('/server/${widget.serverId}/settings/bots/marketplace'),
+                  onPressed: () => context.push('/server/${widget.serverId}/settings/bots/marketplace'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: const Color(0xFF5865F2),
@@ -436,7 +432,7 @@ class _BotsSettingsScreenState extends ConsumerState<BotsSettingsScreen> {
                 Switch(
                   value: bot.enabled,
                   onChanged: (value) => _toggleBot(bot, value),
-                  activeThumbColor: const Color(FlickoColors.blurple),
+                  activeColor: const Color(FlickoColors.blurple),
                 ),
               ],
             ),

@@ -19,7 +19,7 @@ class SearchScreen extends ConsumerStatefulWidget {
 class _SearchScreenState extends ConsumerState<SearchScreen> {
   final _searchController = TextEditingController();
   SearchTab _activeTab = SearchTab.users;
-  final bool _isLoading = false;
+  bool _isLoading = false;
   String? _error;
 
   // Mock data for demonstration
@@ -122,7 +122,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
+      backgroundColor: const Color(FlickoColors.bgPrimary),
       appBar: AppBar(
         backgroundColor: const Color(FlickoColors.bgSecondary),
         elevation: 0,
@@ -194,7 +194,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: tabs.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
           final (tab, label, icon) = tabs[index];
           final isActive = _activeTab == tab;
@@ -305,7 +305,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     return InkWell(
       onTap: () {
         // Navigate to user profile
-        context.push('/u/${user.id}');
+        context.push('/profile/${user.id}');
       },
       borderRadius: BorderRadius.circular(8),
       child: Padding(
@@ -346,7 +346,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(FlickoColors.green).withValues(alpha: 0.2),
+                  color: const Color(FlickoColors.green).withOpacity(0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -362,7 +362,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(FlickoColors.yellow).withValues(alpha: 0.2),
+                  color: const Color(FlickoColors.yellow).withOpacity(0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(

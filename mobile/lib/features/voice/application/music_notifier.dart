@@ -1,12 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mobile/data/models/music_model.dart';
-import 'package:mobile/data/services/music_service.dart';
+import 'package:mobile/features/data/models/music_model.dart';
+import 'package:mobile/features/data/services/music_service.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'music_notifier.freezed.dart';
 
 @freezed
-abstract class MusicState with _$MusicState {
+class MusicState with _$MusicState {
   const factory MusicState({
     @Default([]) List<MusicItem> searchResults,
     @Default([]) List<MusicItem> queue,

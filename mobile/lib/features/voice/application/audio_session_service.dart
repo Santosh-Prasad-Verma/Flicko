@@ -5,13 +5,13 @@ class AudioSessionService {
   static Future<void> configure() async {
     final session = await AudioSession.instance;
     
-    await session.configure(AudioSessionConfiguration(
+    await session.configure(const AudioSessionConfiguration(
       avAudioSessionCategory: AVAudioSessionCategory.playAndRecord,
       avAudioSessionCategoryOptions:
           AVAudioSessionCategoryOptions.allowBluetooth |
           AVAudioSessionCategoryOptions.defaultToSpeaker,
       avAudioSessionMode: AVAudioSessionMode.voiceChat,
-      androidAudioAttributes: const AndroidAudioAttributes(
+      androidAudioAttributes: AndroidAudioAttributes(
         contentType: AndroidAudioContentType.speech,
         flags: AndroidAudioFlags.none,
         usage: AndroidAudioUsage.voiceCommunication,

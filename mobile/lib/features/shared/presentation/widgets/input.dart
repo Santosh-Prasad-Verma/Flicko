@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:mobile/core/constants/flicko_colors.dart';
+import 'package:mobile/features/core/constants/flicko_colors.dart';
 
 class Input extends StatefulWidget {
   final String? label;
@@ -40,12 +40,14 @@ class Input extends StatefulWidget {
 
 class _InputState extends State<Input> {
   late bool _obscureText;
+  late bool _isFocused;
   late TextEditingController _controller;
 
   @override
   void initState() {
     super.initState();
     _obscureText = widget.isPassword;
+    _isFocused = false;
     _controller = widget.controller ?? TextEditingController(text: widget.initialValue);
   }
 
@@ -86,7 +88,7 @@ class _InputState extends State<Input> {
         Container(
           decoration: BoxDecoration(
             color: hasError 
-                ? const Color(FlickoColors.danger).withValues(alpha: 0.1)
+                ? const Color(FlickoColors.danger).withOpacity(0.1)
                 : const Color(FlickoColors.bgTertiary),
             borderRadius: BorderRadius.circular(12),
             border: hasError
@@ -120,6 +122,12 @@ class _InputState extends State<Input> {
                       vertical: 14,
                     ),
                   ),
+                  onTap: () {
+                    setState(() => _isFocused = true);
+                  },
+                  onTapOutside: (_) {
+                    setState(() => _isFocused = false);
+                  },
                 ),
               ),
               if (widget.isPassword)

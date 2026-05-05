@@ -13,7 +13,7 @@ part 'payment_state.freezed.dart';
 ///   - [cancelled] → User dismissed the payment sheet without paying.
 ///   - [error]     → A Stripe or network error occurred.
 @freezed
-abstract class PaymentState with _$PaymentState {
+class PaymentState with _$PaymentState {
   const factory PaymentState.initial() = _Initial;
   const factory PaymentState.loading({String? message}) = _Loading;
   const factory PaymentState.ready() = _Ready;

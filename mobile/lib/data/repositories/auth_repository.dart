@@ -11,14 +11,35 @@ class AuthRepository {
   final supabase.SupabaseClient _client;
 
   AuthRepository(this._client);
-  
-  Future<UserModel> createProfile(UserModel user) async {
-    final response = await _client
-        .from('profiles')
-        .insert(user.toJson())
-        .select()
-        .single();
-    return UserModel.fromJson(response);
+
+  Stream<supabase.AuthState> get authStateChanges => _client.auth.onAuthStateChange;
+
+  supabase.User? get currentUser => _client.auth.currentUser;
+
+  Future<supabase.AuthResponse> signUp({
+    required String email,
+    required String password,
+    required String username,
+  }) async {
+    return await _client.auth.signUp(
+      email: email,
+      password: password,
+      data: {'username': username},
+    );
+  }
+
+  Future<supabase.AuthResponse> signIn({
+    required String email,
+    required String password,
+  }) async {
+    return await _client.auth.signInWithPassword(
+      email: email,
+      password: password,
+    );
+  }
+
+  Future<void> signOut() async {
+    await _client.auth.signOut();
   }
 
   Future<UserModel> getUserProfile(String userId) async {
@@ -28,16 +49,6 @@ class AuthRepository {
         .eq('id', userId)
         .single();
     return UserModel.fromJson(response);
-  }
-
-  Future<bool> checkUsernameExists(String username) async {
-    try {
-      final response = await _client
-          .rpc('check_username_exists', params: {'target_username': username});
-      return response == true;
-    } catch (e) {
-      return false; // If query fails (e.g. network error), let the sign up process handle validation
-    }
   }
 
   /// Update user profile fields
@@ -59,12 +70,27 @@ class AuthRepository {
         .eq('id', userId);
   }
 
+  /// Change user password
+  Future<void> changePassword(String newPassword) async {
+    await _client.auth.updateUser(
+      supabase.UserAttributes(password: newPassword),
+    );
+  }
+
+  /// Change user email
+  Future<void> changeEmail(String newEmail) async {
+    await _client.auth.updateUser(
+      supabase.UserAttributes(email: newEmail),
+    );
+  }
+
   /// Disable account (soft delete)
   Future<void> disableAccount(String userId) async {
     await _client
         .from('profiles')
         .update({'disabled': true, 'updated_at': DateTime.now().toIso8601String()})
         .eq('id', userId);
+    await _client.auth.signOut();
   }
 
   /// Delete account (mark for deletion)
@@ -73,5 +99,6 @@ class AuthRepository {
         .from('profiles')
         .update({'deleted_at': DateTime.now().toIso8601String()})
         .eq('id', userId);
+    await _client.auth.signOut();
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/flicko_colors.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 
@@ -9,7 +10,7 @@ import 'package:mobile/features/auth/application/auth_notifier.dart';
 ///
 /// Allows the authenticated user to change their account email address.
 /// Supabase will send a confirmation link to both the old and new email before committing the change.
-/// Route: /u/settings/change-email
+/// Route: /profile/settings/change-email
 class ChangeEmailScreen extends ConsumerStatefulWidget {
   const ChangeEmailScreen({super.key});
 
@@ -63,29 +64,21 @@ class _ChangeEmailScreenState extends ConsumerState<ChangeEmailScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Use the standardized AuthNotifier method
-      await ref.read(authNotifierProvider.notifier).changeEmail(trimmedEmail);
+      final error = await Supabase.instance.client.auth.updateUser(
+        UserAttributes(email: trimmedEmail),
+      );
 
-      if (mounted) {
-        _showAlert(
-          'Confirmation Sent',
-          'A confirmation link has been sent to both $_currentEmail and $trimmedEmail.\n\nFollow the links in both emails to complete the change.',
-          onOk: () => context.pop(),
-        );
-      }
+      if (error != null) throw error;
+
+      _showAlert(
+        'Confirmation Sent',
+        'A confirmation link has been sent to both $_currentEmail and $trimmedEmail.\n\nFollow the links in both emails to complete the change.',
+        onOk: () => context.pop(),
+      );
     } catch (e) {
-      if (mounted) {
-        String errorMessage = e.toString();
-        if (errorMessage.contains('AuthException')) {
-          // Try to extract a cleaner message
-          errorMessage = errorMessage.split(':').last.trim();
-        }
-        _showAlert('Error', errorMessage.isNotEmpty ? errorMessage : 'Failed to update email. Please try again.');
-      }
+      _showAlert('Error', e.toString() ?? 'Failed to update email. Please try again.');
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      setState(() => _isLoading = false);
     }
   }
 
@@ -121,9 +114,9 @@ class _ChangeEmailScreenState extends ConsumerState<ChangeEmailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
+      backgroundColor: const Color(FlickoColors.bgPrimary),
       appBar: AppBar(
-        
+        backgroundColor: const Color(FlickoColors.bgPrimary),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),
@@ -299,7 +292,7 @@ class _ChangeEmailScreenState extends ConsumerState<ChangeEmailScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(FlickoColors.bgSecondary),
-        border: Border.all(color: const Color(FlickoColors.blurple)),
+        border: Border.all(color: const Color(FlickoColors.blurple), left: BorderSide.none),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(

@@ -5,7 +5,7 @@ part 'flicko_message.freezed.dart';
 part 'flicko_message.g.dart';
 
 @freezed
-abstract class FlickoMessage with _$FlickoMessage {
+class FlickoMessage with _$FlickoMessage {
   const factory FlickoMessage({
     required String id,
     @JsonKey(name: 'channel_id') String? channelId,
@@ -32,7 +32,7 @@ abstract class FlickoMessage with _$FlickoMessage {
 }
 
 @freezed
-abstract class FlickoAttachment with _$FlickoAttachment {
+class FlickoAttachment with _$FlickoAttachment {
   const factory FlickoAttachment({
     required String id,
     required String filename,
@@ -42,15 +42,13 @@ abstract class FlickoAttachment with _$FlickoAttachment {
     @JsonKey(name: 'alt_text') String? altText,
     int? width,
     int? height,
-    @JsonKey(name: 'appwrite_file_id') String? appwriteFileId,
-    @JsonKey(name: 'appwrite_bucket_id') String? appwriteBucketId,
   }) = _FlickoAttachment;
 
   factory FlickoAttachment.fromJson(Map<String, dynamic> json) => _$FlickoAttachmentFromJson(json);
 }
 
 @freezed
-abstract class FlickoReaction with _$FlickoReaction {
+class FlickoReaction with _$FlickoReaction {
   const factory FlickoReaction({
     required String emoji,
     @Default(0) int count,

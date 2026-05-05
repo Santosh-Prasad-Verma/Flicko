@@ -69,7 +69,7 @@ class ServerRepository {
           .eq('id', id)
           .single();
 
-      return ServerModel.fromJson(response);
+      return ServerModel.fromJson(response as Map<String, dynamic>);
     } catch (e) {
       return null;
     }
@@ -82,7 +82,7 @@ class ServerRepository {
       final response = await _client
           .from('servers')
           .select('*')
-          .order('created_at', ascending: false)
+          .order('member_count', ascending: false)
           .limit(20);
 
       final List<dynamic> data = response as List<dynamic>;
@@ -118,7 +118,7 @@ class ServerRepository {
         'icon': iconUrl,
       }).select().single();
 
-      final server = ServerModel.fromJson(response);
+      final server = ServerModel.fromJson(response as Map<String, dynamic>);
 
       // Automatically join the owner to the server as 'owner'
       await _client.from('server_members').insert({
@@ -136,15 +136,6 @@ class ServerRepository {
       });
 
       return server;
-    } catch (e) {
-      rethrow;
-    }
-  }
-
-  /// Updates an existing server's details.
-  Future<void> updateServer(String serverId, Map<String, dynamic> updates) async {
-    try {
-      await _client.from('servers').update(updates).eq('id', serverId);
     } catch (e) {
       rethrow;
     }

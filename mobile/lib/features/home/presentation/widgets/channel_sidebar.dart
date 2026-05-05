@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:livekit_client/livekit_client.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/data/models/channel_model.dart';
 import 'package:mobile/data/models/server_model.dart';
 import 'package:mobile/features/home/application/servers_notifier.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
-import 'package:mobile/features/voice/presentation/controllers/voice_controller.dart';
-import 'package:mobile/features/voice/presentation/widgets/active_speaker_indicator.dart';
-import 'package:mobile/features/voice/presentation/widgets/voice_permission_dialog.dart';
+import 'package:mobile/features/home/voice/presentation/controllers/voice_controller.dart';
+import 'package:mobile/features/home/voice/domain/voice_models.dart';
+import 'package:mobile/features/home/voice/presentation/widgets/active_speaker_indicator.dart';
+import 'package:mobile/features/home/voice/presentation/widgets/voice_permission_dialog.dart';
 
 class ChannelSidebar extends ConsumerStatefulWidget {
   final ServerModel server;
@@ -54,10 +54,11 @@ class _ChannelSidebarState extends ConsumerState<ChannelSidebar> {
       ..sort((a, b) => a.position.compareTo(b.position));
 
     return Container(
+      width: 240,
       color: const Color(FlickoColors.bgSecondary),
       child: Column(
         children: [
-          _ServerHeader(server: widget.server),
+          _ServerHeader(name: widget.server.name),
           
           Expanded(
             child: ListView(
@@ -94,76 +95,36 @@ class _ChannelSidebarState extends ConsumerState<ChannelSidebar> {
   }
 }
 
-class _ServerHeader extends ConsumerWidget {
-  final ServerModel server;
-  const _ServerHeader({required this.server});
+class _ServerHeader extends StatelessWidget {
+  final String name;
+  const _ServerHeader({required this.name});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final hasBanner = server.bannerUrl != null && server.bannerUrl!.isNotEmpty;
-
-    // Check if the current user is the server owner
-    final currentUserId = ref.watch(authNotifierProvider).maybeWhen(
-      authenticated: (user, _) => user.id,
-      orElse: () => null,
-    );
-    final isOwner = currentUserId != null && currentUserId == server.ownerId;
-
-    return Column(
-      children: [
-        if (hasBanner)
-          Container(
-            height: 120,
-            width: double.infinity,
-            margin: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              image: DecorationImage(
-                image: NetworkImage(server.bannerUrl!),
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-        Container(
-          height: 48,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: const BoxDecoration(
-            border: Border(
-              bottom: BorderSide(color: Color(FlickoColors.bgTertiary), width: 1.5),
-            ),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  server.name,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              if (isOwner)
-                GestureDetector(
-                  onTap: () => context.push('/server/${server.id}/settings'),
-                  child: const Icon(Icons.settings, size: 18, color: Colors.white70),
-                )
-              else
-                GestureDetector(
-                  onTap: () => context.push('/server/${server.id}/server-options'),
-                  child: const Icon(Icons.more_vert, size: 18, color: Colors.white70),
-                ),
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: () => context.push('/server/${server.id}/server-options'),
-                child: const Icon(Icons.expand_more, color: Colors.white),
-              ),
-            ],
-          ),
+  Widget build(BuildContext context) {
+    return Container(
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: const BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: Color(FlickoColors.bgTertiary), width: 1.5),
         ),
-      ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              name,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const Icon(Icons.expand_more, color: Colors.white),
+        ],
+      ),
     );
   }
 }
@@ -217,7 +178,7 @@ class _ChannelRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (channel.type == ChannelType.voice) {
-      return _VoiceChannelRow(serverId: serverId, channel: channel);
+      return _VoiceChannelRow(channel: channel);
     }
 
     return InkWell(
@@ -252,20 +213,16 @@ class _ChannelRow extends StatelessWidget {
 }
 
 class _VoiceChannelRow extends ConsumerWidget {
-  final String serverId;
   final ChannelModel channel;
-  const _VoiceChannelRow({required this.serverId, required this.channel});
+  const _VoiceChannelRow({required this.channel});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final voiceState = ref.watch(voiceControllerProvider);
-    final participants = voiceState.participants;
+    final participants = voiceState.participants.values.toList(); // Simplified for now
 
     return InkWell(
-      onTap: () {
-        ref.read(voiceControllerProvider.notifier).joinChannel(channel.id);
-        context.push('/server/$serverId/channel/${channel.id}/voice');
-      },
+      onTap: () => ref.read(voiceControllerProvider.notifier).joinChannel(channel.id),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         child: Column(
@@ -307,7 +264,7 @@ class _VoiceChannelRow extends ConsumerWidget {
 }
 
 class _VoiceParticipantRow extends StatelessWidget {
-  final Participant participant;
+  final VoiceParticipant participant;
   const _VoiceParticipantRow({required this.participant});
 
   @override
@@ -320,7 +277,7 @@ class _VoiceParticipantRow extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              participant.name.isNotEmpty ? participant.name : participant.identity,
+              participant.displayName ?? 'User',
               style: const TextStyle(
                 color: Color(FlickoColors.textSecondary),
                 fontSize: 13,
@@ -336,7 +293,7 @@ class _VoiceParticipantRow extends StatelessWidget {
 }
 
 class _ParticipantBubble extends StatelessWidget {
-  final Participant participant;
+  final VoiceParticipant participant;
   const _ParticipantBubble({required this.participant});
 
   @override
@@ -346,14 +303,19 @@ class _ParticipantBubble extends StatelessWidget {
       child: CircleAvatar(
         radius: 9,
         backgroundColor: const Color(FlickoColors.blurple),
-        child: Text(
-          (participant.name.isNotEmpty ? participant.name : participant.identity)[0].toUpperCase(),
-          style: const TextStyle(
-            fontSize: 7,
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        backgroundImage: participant.avatarUrl != null 
+            ? NetworkImage(participant.avatarUrl!) 
+            : null,
+        child: participant.avatarUrl == null
+            ? Text(
+                (participant.displayName ?? 'U')[0].toUpperCase(),
+                style: const TextStyle(
+                  fontSize: 7,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              )
+            : null,
       ),
     );
   }
@@ -373,17 +335,15 @@ class _CurrentUserBar extends ConsumerWidget {
       color: const Color(FlickoColors.bgTertiary),
       child: Row(
         children: [
-          Expanded(
-            child: authState.maybeWhen(
-              authenticated: (user, profile) => Row(
-                children: [
-                  CircleAvatar(
+          authState.maybeWhen(
+            authenticated: (user, profile) => Row(
+              children: [
+                CircleAvatar(
                   radius: 16,
                   backgroundColor: const Color(FlickoColors.blurple),
                   backgroundImage: profile?.avatarUrl != null 
                       ? NetworkImage(profile!.avatarUrl!) 
                       : null,
-                  onBackgroundImageError: profile?.avatarUrl != null ? (e, s) {} : null,
                   child: profile?.avatarUrl == null
                       ? Text(
                           (profile?.username ?? 'U')[0].toUpperCase(),
@@ -396,39 +356,32 @@ class _CurrentUserBar extends ConsumerWidget {
                       : null,
                 ),
                 const SizedBox(width: 8),
-                Flexible(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        profile?.username ?? 'User',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      profile?.username ?? 'User',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
                       ),
-                      Text(
-                        '#${user.id.substring(0, 4)}',
-                        style: const TextStyle(
-                          color: Color(FlickoColors.textMuted),
-                          fontSize: 11,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
+                    ),
+                    Text(
+                      '#${user.id.substring(0, 4)}',
+                      style: const TextStyle(
+                        color: Color(FlickoColors.textMuted),
+                        fontSize: 11,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ],
             ),
             orElse: () => const SizedBox(),
           ),
-          ),
-          const SizedBox(width: 4),
+          const Spacer(),
           IconButton(
             icon: Icon(
               voiceState.isMuted ? Icons.mic_off : Icons.mic,
@@ -455,7 +408,9 @@ class _CurrentUserBar extends ConsumerWidget {
             icon: const Icon(Icons.settings, size: 20, color: Colors.white),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
-            onPressed: () => context.push('/u/settings'),
+            onPressed: () {
+              // TODO: Navigate to settings
+            },
           ),
         ],
       ),

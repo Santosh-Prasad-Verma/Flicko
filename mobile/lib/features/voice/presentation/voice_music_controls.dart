@@ -49,10 +49,10 @@ class VoiceMusicControls extends ConsumerWidget {
       decoration: BoxDecoration(
         color: FlickoColors.bgSecondary,
         borderRadius: BorderRadius.circular(FlickoRadius.lg),
-        border: Border.all(color: FlickoColors.border.withValues(alpha: 0.5)),
+        border: Border.all(color: FlickoColors.border.withOpacity(0.5)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
+            color: Colors.black.withOpacity(0.2),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -144,7 +144,7 @@ class VoiceMusicControls extends ConsumerWidget {
               Container(
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: FlickoColors.accentPrimary.withValues(alpha: 0.1),
+                  color: FlickoColors.accentPrimary.withOpacity(0.1),
                 ),
                 child: IconButton(
                   onPressed: () => ref.read(musicNotifierProvider.notifier).togglePlayPause(),

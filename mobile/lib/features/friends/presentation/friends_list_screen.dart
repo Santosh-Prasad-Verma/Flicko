@@ -123,7 +123,7 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
+      backgroundColor: const Color(FlickoColors.bgPrimary),
       appBar: AppBar(
         backgroundColor: const Color(FlickoColors.bgSecondary),
         elevation: 0,
@@ -247,7 +247,7 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: filters.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
           final (filter, label, count) = filters[index];
           final isActive = _activeFilter == filter;
@@ -279,7 +279,7 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                       color: isActive
-                          ? Colors.white.withValues(alpha: 0.3)
+                          ? Colors.white.withOpacity(0.3)
                           : const Color(FlickoColors.bgTertiary),
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -349,7 +349,7 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
 
   Widget _buildFriendTile(Friend friend) {
     return InkWell(
-      onTap: () => context.push('/dms/${friend.id}'),
+      onTap: () => context.push('/dm/${friend.id}'),
       borderRadius: BorderRadius.circular(8),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -411,7 +411,7 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
                     Icons.message,
                     color: Color(FlickoColors.textMuted),
                   ),
-                  onPressed: () => context.push('/dms/${friend.id}'),
+                  onPressed: () => context.push('/dm/${friend.id}'),
                 ),
                 IconButton(
                   icon: const Icon(
@@ -553,7 +553,7 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
               ),
               onTap: () {
                 Navigator.pop(context);
-                context.push('/dms/${friend.id}');
+                context.push('/dm/${friend.id}');
               },
             ),
             ListTile(
@@ -564,7 +564,7 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
               ),
               onTap: () {
                 Navigator.pop(context);
-                context.push('/u/${friend.id}');
+                context.push('/profile/${friend.id}');
               },
             ),
             ListTile(

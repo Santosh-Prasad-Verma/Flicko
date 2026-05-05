@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mobile/core/constants/flicko_colors.dart' as fc;
+import 'package:mobile/core/theme/flicko_colors.dart';
+import 'package:mobile/core/theme/flicko_radius.dart';
+import 'package:mobile/core/theme/flicko_spacing.dart';
 import 'package:mobile/core/services/flicko_haptics.dart';
+import 'package:mobile/features/voice/application/music_notifier.dart'; // Reusing volume from music logic if possible
 import 'package:mobile/data/models/soundboard_model.dart';
 import 'package:mobile/data/services/soundboard_service.dart';
-import 'package:mobile/features/voice/presentation/controllers/voice_controller.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class SoundboardSheet extends ConsumerStatefulWidget {
@@ -58,8 +60,8 @@ class _SoundboardSheetState extends ConsumerState<SoundboardSheet> with SingleTi
     return Container(
       height: MediaQuery.of(context).size.height * 0.75,
       decoration: const BoxDecoration(
-        color: Color(fc.FlickoColors.bgPrimary),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(fc.FlickoRadius.lg)),
+        color: FlickoColors.bgPrimary,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(FlickoRadius.lg)),
       ),
       child: Column(
         children: [
@@ -70,7 +72,7 @@ class _SoundboardSheetState extends ConsumerState<SoundboardSheet> with SingleTi
               height: 4,
               margin: const EdgeInsets.symmetric(vertical: 12),
               decoration: BoxDecoration(
-                color: Color(fc.FlickoColors.textMuted).withValues(alpha: 0.3),
+                color: FlickoColors.textMuted.withOpacity(0.3),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -78,7 +80,7 @@ class _SoundboardSheetState extends ConsumerState<SoundboardSheet> with SingleTi
 
           // Header
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: fc.FlickoSpacing.md),
+            padding: const EdgeInsets.symmetric(horizontal: FlickoSpacing.md),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -87,12 +89,12 @@ class _SoundboardSheetState extends ConsumerState<SoundboardSheet> with SingleTi
                   style: GoogleFonts.inter(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Color(fc.FlickoColors.textPrimary),
+                    color: FlickoColors.textPrimary,
                   ),
                 ),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close, color: Color(fc.FlickoColors.textMuted)),
+                  icon: const Icon(Icons.close, color: FlickoColors.textMuted),
                 ),
               ],
             ),
@@ -100,19 +102,19 @@ class _SoundboardSheetState extends ConsumerState<SoundboardSheet> with SingleTi
 
           // Search
           Padding(
-            padding: const EdgeInsets.all(fc.FlickoSpacing.md),
+            padding: const EdgeInsets.all(FlickoSpacing.md),
             child: TextField(
               controller: _searchController,
               onChanged: (_) => setState(() {}),
-              style: const TextStyle(color: Color(fc.FlickoColors.textPrimary)),
+              style: const TextStyle(color: FlickoColors.textPrimary),
               decoration: InputDecoration(
                 hintText: 'Search sounds...',
-                hintStyle: const TextStyle(color: Color(fc.FlickoColors.textMuted)),
-                prefixIcon: const Icon(Icons.search, color: Color(fc.FlickoColors.textMuted)),
+                hintStyle: const TextStyle(color: FlickoColors.textMuted),
+                prefixIcon: const Icon(Icons.search, color: FlickoColors.textMuted),
                 filled: true,
-                fillColor: Color(fc.FlickoColors.bgSecondary),
+                fillColor: FlickoColors.bgSecondary,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(fc.FlickoRadius.md),
+                  borderRadius: BorderRadius.circular(FlickoRadius.md),
                   borderSide: BorderSide.none,
                 ),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16),
@@ -123,38 +125,38 @@ class _SoundboardSheetState extends ConsumerState<SoundboardSheet> with SingleTi
           // Tabs
           TabBar(
             controller: _tabController,
-            labelColor: Color(fc.FlickoColors.accentPrimary),
-            unselectedLabelColor: Color(fc.FlickoColors.textMuted),
-            indicatorColor: Color(fc.FlickoColors.accentPrimary),
+            labelColor: FlickoColors.accentPrimary,
+            unselectedLabelColor: FlickoColors.textMuted,
+            indicatorColor: FlickoColors.accentPrimary,
             labelStyle: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13),
             tabs: const [
               Tab(text: 'Favorites', icon: Icon(Icons.star, size: 20)),
-              Tab(text: 'Server', icon: Icon(Icons.music_note, size: 20)),
+              Tab(text: 'Server', icon: Icon(Icons.musical_notes, size: 20)),
               Tab(text: 'Trending', icon: Icon(Icons.trending_up, size: 20)),
             ],
           ),
 
           // Volume
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: fc.FlickoSpacing.md, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: FlickoSpacing.md, vertical: 8),
             child: Row(
               children: [
                 Icon(
                   _volume == 0 ? Icons.volume_mute : Icons.volume_down,
-                  color: Color(fc.FlickoColors.textMuted),
+                  color: FlickoColors.textMuted,
                   size: 18,
                 ),
                 Expanded(
                   child: Slider(
                     value: _volume,
                     onChanged: (v) => setState(() => _volume = v),
-                    activeColor: Color(fc.FlickoColors.accentPrimary),
-                    inactiveColor: Color(fc.FlickoColors.bgTertiary),
+                    activeColor: FlickoColors.accentPrimary,
+                    inactiveColor: FlickoColors.bgTertiary,
                   ),
                 ),
                 Text(
                   '${(_volume * 100).toInt()}%',
-                  style: const TextStyle(color: Color(fc.FlickoColors.textMuted), fontSize: 12),
+                  style: const TextStyle(color: FlickoColors.textMuted, fontSize: 12),
                 ),
               ],
             ),
@@ -195,11 +197,11 @@ class _SoundboardSheetState extends ConsumerState<SoundboardSheet> with SingleTi
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.music_off, size: 48, color: Color(fc.FlickoColors.textMuted).withValues(alpha: 0.2)),
+                Icon(Icons.music_off, size: 48, color: FlickoColors.textMuted.withOpacity(0.2)),
                 const SizedBox(height: 16),
                 Text(
                   isFavorite ? 'No favorites yet' : 'No sounds found',
-                  style: const TextStyle(color: Color(fc.FlickoColors.textMuted)),
+                  style: const TextStyle(color: FlickoColors.textMuted),
                 ),
               ],
             ),
@@ -207,7 +209,7 @@ class _SoundboardSheetState extends ConsumerState<SoundboardSheet> with SingleTi
         }
 
         return GridView.builder(
-          padding: const EdgeInsets.all(fc.FlickoSpacing.md),
+          padding: const EdgeInsets.all(FlickoSpacing.md),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 3,
             mainAxisSpacing: 10,
@@ -226,13 +228,13 @@ class _SoundboardSheetState extends ConsumerState<SoundboardSheet> with SingleTi
                 FlickoHaptics.medium();
                 setState(() {}); // Refresh list
               },
-              borderRadius: BorderRadius.circular(fc.FlickoRadius.md),
+              borderRadius: BorderRadius.circular(FlickoRadius.md),
               child: Container(
                 decoration: BoxDecoration(
-                  color: isPlaying ? Color(fc.FlickoColors.accentPrimary) : Color(fc.FlickoColors.bgSecondary),
-                  borderRadius: BorderRadius.circular(fc.FlickoRadius.md),
+                  color: isPlaying ? FlickoColors.accentPrimary : FlickoColors.bgSecondary,
+                  borderRadius: BorderRadius.circular(FlickoRadius.md),
                   border: Border.all(
-                    color: isPlaying ? Color(fc.FlickoColors.accentPrimary) : Color(fc.FlickoColors.border).withValues(alpha: 0.2),
+                    color: isPlaying ? FlickoColors.accentPrimary : FlickoColors.border.withOpacity(0.2),
                   ),
                 ),
                 child: Column(
@@ -243,7 +245,7 @@ class _SoundboardSheetState extends ConsumerState<SoundboardSheet> with SingleTi
                     Text(
                       sound.name,
                       style: TextStyle(
-                        color: isPlaying ? Colors.white : Color(fc.FlickoColors.textPrimary),
+                        color: isPlaying ? Colors.white : FlickoColors.textPrimary,
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                       ),

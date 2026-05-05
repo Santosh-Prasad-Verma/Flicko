@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:mobile/features/auth/application/auth_notifier.dart';
+import '../../../../core/constants/flicko_colors.dart';
 
-class ServerSettingsHubScreen extends ConsumerStatefulWidget {
+/// Server Settings Hub Screen
+///
+/// Main navigation hub for all server settings.
+/// Mirrors the React Native Server Settings index screen.
+/// Supports permission-based filtering of settings options.
+class ServerSettingsHubScreen extends ConsumerWidget {
   final String serverId;
 
   const ServerSettingsHubScreen({
@@ -14,530 +18,396 @@ class ServerSettingsHubScreen extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<ServerSettingsHubScreen> createState() => _ServerSettingsHubScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    // TODO: Fetch server data and user permissions
+    final serverName = 'My Server'; // Placeholder
+    final isOwner = true; // Placeholder
+    final hasPermission = (String permission) => true; // Placeholder
 
-class _ServerSettingsHubScreenState extends ConsumerState<ServerSettingsHubScreen> {
-  bool _isLoading = true;
-  Map<String, dynamic>? _serverData;
-  String? _errorMessage;
+    // All settings sections with their items
+    final sections = _buildSettingsSections(
+      context: context,
+      serverId: serverId,
+      isOwner: isOwner,
+      hasPermission: hasPermission,
+    );
 
-  @override
-  void initState() {
-    super.initState();
-    _loadServerData();
-  }
+    // Filter sections based on permissions
+    final visibleSections = sections.map((section) {
+      final visibleItems = section.items.where((item) {
+        // Server delete is owner-only
+        if (item.id == 'delete') return isOwner;
+        // Check required permission
+        if (item.requiredPermission == null) return true;
+        return hasPermission(item.requiredPermission!);
+      }).toList();
+      return section.copyWith(items: visibleItems);
+    }).where((s) => s.items.isNotEmpty).toList();
 
-  Future<void> _loadServerData() async {
-    if (!mounted) return;
-    
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final authState = ref.read(authNotifierProvider);
-      final currentUser = authState.maybeWhen(
-        authenticated: (user, _) => user,
-        orElse: () => null,
-      );
-
-      if (currentUser == null) {
-        if (mounted) {
-          setState(() {
-            _errorMessage = 'Not authenticated';
-            _isLoading = false;
-          });
-        }
-        return;
-      }
-
-      final response = await Supabase.instance.client
-          .from('servers')
-          .select('*, server_members!inner(roles)')
-          .eq('id', widget.serverId)
-          .eq('server_members.user_id', currentUser.id)
-          .maybeSingle();
-
-      if (response == null) {
-        if (mounted) {
-          setState(() {
-            _errorMessage = 'You are not a member of this server';
-            _isLoading = false;
-          });
-        }
-        return;
-      }
-
-      final isOwner = response['owner_id'] == currentUser.id;
-
-      // Only the server owner can access server settings
-      if (!isOwner && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Only the server owner can edit server settings'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-        context.pop();
-        return;
-      }
-
-      if (mounted) {
-        setState(() {
-          _serverData = response;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = 'Error loading server: ${e.toString()}';
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Scaffold(
-        backgroundColor: Colors.black,
-        body: Center(child: CircularProgressIndicator(color: Color(0xFFC8FF00))),
-      );
-    }
-
-    if (_errorMessage != null) {
-      return Scaffold(
-        backgroundColor: Colors.black,
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+    return Scaffold(
+      backgroundColor: const Color(FlickoColors.bgPrimary),
+      body: CustomScrollView(
+        slivers: [
+          // Header
+          SliverAppBar(
+            backgroundColor: const Color(FlickoColors.bgSecondary),
+            elevation: 0,
+            pinned: true,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),
+              onPressed: () => context.pop(),
+            ),
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.error_outline_rounded, size: 64, color: Colors.redAccent),
-                const SizedBox(height: 20),
                 Text(
-                  'ERROR',
+                  'Server Settings',
                   style: GoogleFonts.inter(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1,
+                    color: const Color(FlickoColors.textPrimary),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(height: 12),
                 Text(
-                  _errorMessage!,
-                  style: GoogleFonts.inter(color: Colors.white54, fontSize: 14),
-                  textAlign: TextAlign.center,
+                  serverName,
+                  style: GoogleFonts.inter(
+                    color: const Color(FlickoColors.textMuted),
+                    fontSize: 13,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 32),
-                _buildRetryButton(),
               ],
             ),
           ),
-        ),
-      );
-    }
 
-    final serverName = _serverData?['name'] as String? ?? 'Unknown Server';
-    final sections = _getSections();
-
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFFC8FF00), size: 20),
-          onPressed: () => context.pop(),
-        ),
-        centerTitle: true,
-        title: Column(
-          children: [
-            Text(
-              'SERVER SETTINGS',
-              style: GoogleFonts.inter(
-                color: Colors.white,
-                fontWeight: FontWeight.w900,
-                fontSize: 16,
-                letterSpacing: 2,
-              ),
-            ),
-            Text(
-              serverName.toUpperCase(),
-              style: GoogleFonts.inter(
-                color: const Color(0xFFC8FF00),
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1,
-              ),
-            ),
-          ],
-        ),
-      ),
-      body: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-        itemCount: sections.length + 1,
-        itemBuilder: (context, index) {
-          if (index == sections.length) {
-            return _buildFooter();
-          }
-          final section = sections[index];
-          return _buildSection(section);
-        },
-      ),
-    );
-  }
-
-  Widget _buildRetryButton() {
-    return InkWell(
-      onTap: _loadServerData,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-        decoration: BoxDecoration(
-          color: const Color(0xFFC8FF00),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Text(
-          'RETRY',
-          style: GoogleFonts.inter(
-            color: Colors.black,
-            fontWeight: FontWeight.w900,
-            fontSize: 14,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFooter() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 40),
-      child: Column(
-        children: [
-          Center(
-            child: Opacity(
-              opacity: 0.2,
-              child: Image.asset(
-                'assets/branding/Flicko-for-black-background.png',
-                height: 40,
-                errorBuilder: (c, e, s) => const SizedBox(),
-              ),
+          // Settings sections
+          SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final section = visibleSections[index];
+                return _buildSection(context, section);
+              },
+              childCount: visibleSections.length,
             ),
           ),
-          const SizedBox(height: 12),
-          Text(
-            'FLICKO SERVER VERSION 1.0.4',
-            style: GoogleFonts.inter(
-              color: Colors.white.withValues(alpha: 0.1),
-              fontSize: 9,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 2,
-            ),
-          ),
+
+          // Bottom padding
+          const SliverPadding(padding: EdgeInsets.only(bottom: 32)),
         ],
       ),
     );
   }
 
-  Widget _buildSection(_SettingsSectionData section) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 16, top: 12),
-          child: Row(
-            children: [
-              Container(
-                width: 4,
-                height: 14,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFC8FF00),
-                  borderRadius: BorderRadius.circular(2),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFFC8FF00).withValues(alpha: 0.5),
-                      blurRadius: 8,
-                      spreadRadius: -2,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                section.title.toUpperCase(),
-                style: GoogleFonts.inter(
-                  color: Colors.white.withValues(alpha: 0.4),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.5,
-                ),
-              ),
-            ],
-          ),
-        ),
-        ...section.items.map((item) => _buildSettingsItem(item)),
-        const SizedBox(height: 24),
-      ],
-    );
-  }
-
-  Widget _buildSettingsItem(_SettingsItemData item) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        onTap: () => context.push(item.route),
-        borderRadius: BorderRadius.circular(24),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFF0D0D0D),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: item.isDanger 
-                ? Colors.redAccent.withValues(alpha: 0.1) 
-                : Colors.white.withValues(alpha: 0.05),
-            ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: item.isDanger 
-                    ? Colors.red.withValues(alpha: 0.1) 
-                    : const Color(0xFFC8FF00).withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Icon(
-                  item.icon, 
-                  color: item.isDanger ? Colors.redAccent : const Color(0xFFC8FF00), 
-                  size: 22,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.label,
-                      style: GoogleFonts.inter(
-                        color: item.isDanger ? Colors.redAccent : Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    if (item.description != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        item.description!,
-                        style: GoogleFonts.inter(
-                          color: Colors.white38,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.arrow_forward_ios_rounded, 
-                color: item.isDanger 
-                  ? Colors.redAccent.withValues(alpha: 0.2) 
-                  : Colors.white.withValues(alpha: 0.1), 
-                size: 14,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  List<_SettingsSectionData> _getSections() {
-    final sId = widget.serverId;
+  List<SettingsSection> _buildSettingsSections({
+    required BuildContext context,
+    required String serverId,
+    required bool isOwner,
+    required Function(String) hasPermission,
+  }) {
     return [
-      _SettingsSectionData(
-        title: 'MANAGEMENT',
+      // Server Basics
+      SettingsSection(
+        title: 'Server Basics',
         items: [
-          _SettingsItemData(
+          SettingsItem(
             id: 'overview',
-            icon: Icons.info_outline_rounded,
+            icon: Icons.info_outline,
             label: 'Overview',
-            description: 'Name, icon, and basic info',
-            route: '/server/$sId/settings/overview',
+            route: '/server/$serverId/settings/overview',
+            description: 'Server name, icon, and basic info',
+            requiredPermission: 'MANAGE_GUILD',
           ),
-          _SettingsItemData(
-            id: 'roles',
-            icon: Icons.shield_outlined,
-            label: 'Roles',
-            description: 'Manage permissions and members',
-            route: '/server/$sId/settings/roles',
-          ),
-          _SettingsItemData(
+          SettingsItem(
             id: 'channels',
-            icon: Icons.tag_rounded,
+            icon: Icons.folder_outlined,
             label: 'Channels',
-            description: 'Manage channels and categories',
-            route: '/server/$sId/settings/channels',
+            route: '/server/$serverId/settings/channels',
+            description: 'Create, edit, and organize channels',
+            requiredPermission: 'MANAGE_CHANNELS',
           ),
-          _SettingsItemData(
-            id: 'emoji',
+          SettingsItem(
+            id: 'roles',
+            icon: Icons.badge_outlined,
+            label: 'Roles',
+            route: '/server/$serverId/settings/roles',
+            description: 'Manage server roles and permissions',
+            requiredPermission: 'MANAGE_ROLES',
+          ),
+          SettingsItem(
+            id: 'emojis',
             icon: Icons.emoji_emotions_outlined,
             label: 'Emoji',
+            route: '/server/$serverId/settings/emojis',
             description: 'Upload and manage custom emojis',
-            route: '/server/$sId/settings/emojis',
+            requiredPermission: 'MANAGE_EMOJIS_AND_STICKERS',
           ),
-          _SettingsItemData(
+          SettingsItem(
             id: 'stickers',
             icon: Icons.image_outlined,
             label: 'Stickers',
+            route: '/server/$serverId/settings/stickers',
             description: 'Upload and manage stickers',
-            route: '/server/$sId/settings/stickers',
+            requiredPermission: 'MANAGE_EMOJIS_AND_STICKERS',
           ),
         ],
       ),
-      _SettingsSectionData(
-        title: 'COMMUNITY',
+
+      // Moderation
+      SettingsSection(
+        title: 'Moderation',
         items: [
-          _SettingsItemData(
+          SettingsItem(
+            id: 'moderation',
+            icon: Icons.shield_outlined,
+            label: 'Safety Setup',
+            route: '/server/$serverId/settings/moderation',
+            description: 'Verification level, content filter',
+            requiredPermission: 'MANAGE_GUILD',
+          ),
+          SettingsItem(
+            id: 'automod',
+            icon: Icons.auto_fix_high,
+            label: 'AutoMod',
+            route: '/server/$serverId/settings/automod',
+            description: 'Automated moderation rules',
+            requiredPermission: 'MANAGE_GUILD',
+          ),
+          SettingsItem(
+            id: 'audit-log',
+            icon: Icons.receipt_long_outlined,
+            label: 'Audit Log',
+            route: '/server/$serverId/settings/audit-log',
+            description: 'View all administrative actions',
+            requiredPermission: 'VIEW_AUDIT_LOG',
+          ),
+          SettingsItem(
+            id: 'bans',
+            icon: Icons.gavel_outlined,
+            label: 'Bans',
+            route: '/server/$serverId/settings/bans',
+            description: 'View and manage banned members',
+            requiredPermission: 'BAN_MEMBERS',
+          ),
+          SettingsItem(
+            id: 'invites',
+            icon: Icons.link_outlined,
+            label: 'Invites',
+            route: '/server/$serverId/settings/invites',
+            description: 'View and manage server invites',
+            requiredPermission: 'MANAGE_GUILD',
+          ),
+        ],
+      ),
+
+      // Integrations
+      SettingsSection(
+        title: 'Integrations',
+        items: [
+          SettingsItem(
+            id: 'bots',
+            icon: Icons.memory_outlined,
+            label: 'Bots',
+            route: '/server/$serverId/settings/bots',
+            description: 'Manage server bots and automation',
+            requiredPermission: 'MANAGE_GUILD',
+          ),
+          SettingsItem(
+            id: 'webhooks',
+            icon: Icons.code_outlined,
+            label: 'Webhooks',
+            route: '/server/$serverId/settings/webhooks',
+            description: 'Manage incoming webhooks',
+            requiredPermission: 'MANAGE_WEBHOOKS',
+          ),
+          SettingsItem(
             id: 'events',
             icon: Icons.event_outlined,
             label: 'Events',
+            route: '/server/$serverId/settings/events',
             description: 'Create and manage scheduled events',
-            route: '/server/$sId/settings/events',
+            requiredPermission: 'MANAGE_EVENTS',
           ),
-          _SettingsItemData(
+        ],
+      ),
+
+      // Community
+      SettingsSection(
+        title: 'Community',
+        items: [
+          SettingsItem(
             id: 'onboarding',
             icon: Icons.rocket_launch_outlined,
             label: 'Onboarding',
+            route: '/server/$serverId/settings/onboarding',
             description: 'Welcome screen and onboarding questions',
-            route: '/server/$sId/settings/onboarding',
+            requiredPermission: 'MANAGE_GUILD',
           ),
-        ],
-      ),
-      _SettingsSectionData(
-        title: 'SAFETY & SECURITY',
-        items: [
-          _SettingsItemData(
-            id: 'safety',
-            icon: Icons.security_rounded,
-            label: 'Safety Setup',
-            description: 'Verification level and content filter',
-            route: '/server/$sId/settings/moderation',
-          ),
-          _SettingsItemData(
-            id: 'automod',
-            icon: Icons.smart_toy_outlined,
-            label: 'AutoMod',
-            description: 'Automated content moderation',
-            route: '/server/$sId/settings/automod',
-          ),
-        ],
-      ),
-      _SettingsSectionData(
-        title: 'USER MANAGEMENT',
-        items: [
-          _SettingsItemData(
-            id: 'members',
-            icon: Icons.people_outline_rounded,
-            label: 'Members',
-            description: 'Manage server members',
-            route: '/server/$sId/members',
-          ),
-          _SettingsItemData(
-            id: 'invites',
-            icon: Icons.link_rounded,
-            label: 'Invites',
-            description: 'Manage active invite links',
-            route: '/server/$sId/settings/invites',
-          ),
-          _SettingsItemData(
-            id: 'bans',
-            icon: Icons.gavel_rounded,
-            label: 'Bans',
-            description: 'Manage banned users',
-            route: '/server/$sId/settings/bans',
-          ),
-        ],
-      ),
-      _SettingsSectionData(
-        title: 'ADVANCED',
-        items: [
-          _SettingsItemData(
-            id: 'webhooks',
-            icon: Icons.code_rounded,
-            label: 'Webhooks',
-            description: 'Manage incoming webhooks',
-            route: '/server/$sId/settings/webhooks',
-          ),
-          _SettingsItemData(
+          SettingsItem(
             id: 'templates',
             icon: Icons.description_outlined,
             label: 'Server Template',
+            route: '/server/$serverId/settings/templates',
             description: 'Pre-made layouts and saves',
-            route: '/server/$sId/settings/templates',
-          ),
-          _SettingsItemData(
-            id: 'audit_log',
-            icon: Icons.list_alt_rounded,
-            label: 'Audit Log',
-            description: 'History of all server changes',
-            route: '/server/$sId/settings/audit-log',
+            requiredPermission: 'MANAGE_GUILD',
           ),
         ],
       ),
-      _SettingsSectionData(
-        title: 'DANGER ZONE',
+
+      // Danger Zone
+      SettingsSection(
+        title: 'Danger Zone',
         items: [
-          _SettingsItemData(
-            id: 'delete_server',
-            icon: Icons.delete_forever_rounded,
+          SettingsItem(
+            id: 'delete',
+            icon: Icons.delete_outline,
             label: 'Delete Server',
-            description: 'Permanently remove this server',
-            route: '/server/$sId/settings/delete',
+            route: '/server/$serverId/settings/delete',
+            description: 'Permanently delete this server',
             isDanger: true,
           ),
         ],
       ),
     ];
   }
+
+  Widget _buildSection(BuildContext context, SettingsSection section) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section header
+        Padding(
+          padding: const EdgeInsets.only(left: 16, top: 24, bottom: 8),
+          child: Text(
+            section.title.toUpperCase(),
+            style: GoogleFonts.inter(
+              color: const Color(FlickoColors.textMuted),
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ),
+
+        // Section items
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: const Color(FlickoColors.bgSecondary),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            children: section.items.asMap().entries.map((entry) {
+              final index = entry.key;
+              final item = entry.value;
+              final isLast = index == section.items.length - 1;
+
+              return Column(
+                children: [
+                  _buildSettingsItem(context, item),
+                  if (!isLast)
+                    const Divider(
+                      color: Color(FlickoColors.bgTertiary),
+                      height: 1,
+                      indent: 56,
+                    ),
+                ],
+              );
+            }).toList(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSettingsItem(BuildContext context, SettingsItem item) {
+    return InkWell(
+      onTap: () => context.push(item.route),
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Icon(
+              item.icon,
+              size: 24,
+              color: item.isDanger
+                  ? const Color(FlickoColors.danger)
+                  : const Color(FlickoColors.textSecondary),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.label,
+                    style: GoogleFonts.inter(
+                      color: item.isDanger
+                          ? const Color(FlickoColors.danger)
+                          : const Color(FlickoColors.textPrimary),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  if (item.description != null)
+                    Text(
+                      item.description!,
+                      style: GoogleFonts.inter(
+                        color: const Color(FlickoColors.textMuted),
+                        fontSize: 12,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.chevron_right,
+              size: 20,
+              color: Color(FlickoColors.textMuted),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
-class _SettingsSectionData {
+/// Settings Section Data Model
+class SettingsSection {
   final String title;
-  final List<_SettingsItemData> items;
+  final List<SettingsItem> items;
 
-  _SettingsSectionData({
+  SettingsSection({
     required this.title,
     required this.items,
   });
+
+  SettingsSection copyWith({String? title, List<SettingsItem>? items}) {
+    return SettingsSection(
+      title: title ?? this.title,
+      items: items ?? this.items,
+    );
+  }
 }
 
-class _SettingsItemData {
+/// Settings Item Data Model
+class SettingsItem {
   final String id;
   final IconData icon;
   final String label;
   final String route;
   final String? description;
+  final String? requiredPermission;
   final bool isDanger;
 
-  _SettingsItemData({
+  SettingsItem({
     required this.id,
     required this.icon,
     required this.label,
     required this.route,
     this.description,
+    this.requiredPermission,
     this.isDanger = false,
   });
 }

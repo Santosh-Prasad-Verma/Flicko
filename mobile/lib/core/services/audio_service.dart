@@ -1,4 +1,3 @@
-// ignore_for_file: experimental_member_use
 import 'dart:async';
 
 import 'package:audio_session/audio_session.dart';
@@ -55,12 +54,12 @@ class AudioService {
     try {
       // Configure audio session for voice calls
       _session = await AudioSession.instance;
-      await _session!.configure(AudioSessionConfiguration(
+      await _session!.configure(const AudioSessionConfiguration(
         avAudioSessionCategory: AVAudioSessionCategory.playAndRecord,
         avAudioSessionCategoryOptions: AVAudioSessionCategoryOptions.allowBluetooth |
             AVAudioSessionCategoryOptions.defaultToSpeaker,
         avAudioSessionMode: AVAudioSessionMode.voiceChat,
-        androidAudioAttributes: const AndroidAudioAttributes(
+        androidAudioAttributes: AndroidAudioAttributes(
           contentType: AndroidAudioContentType.speech,
           flags: AndroidAudioFlags.none,
           usage: AndroidAudioUsage.voiceCommunication,
@@ -144,12 +143,12 @@ class AudioService {
     _callStateController.add(true);
 
     // Configure for voice call
-    await _session!.configure(AudioSessionConfiguration(
+    await _session!.configure(const AudioSessionConfiguration(
       avAudioSessionCategory: AVAudioSessionCategory.playAndRecord,
       avAudioSessionCategoryOptions: AVAudioSessionCategoryOptions.allowBluetooth |
           AVAudioSessionCategoryOptions.defaultToSpeaker,
       avAudioSessionMode: AVAudioSessionMode.voiceChat,
-      androidAudioAttributes: const AndroidAudioAttributes(
+      androidAudioAttributes: AndroidAudioAttributes(
         contentType: AndroidAudioContentType.speech,
         flags: AndroidAudioFlags.none,
         usage: AndroidAudioUsage.voiceCommunication,

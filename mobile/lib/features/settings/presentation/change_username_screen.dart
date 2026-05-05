@@ -6,12 +6,13 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/flicko_colors.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
+import 'package:mobile/data/models/user_model.dart';
 
 /// Change Username Screen
 ///
 /// Allows the authenticated user to change their @username.
 /// Validates format, checks uniqueness in the profiles table, then writes the update.
-/// Route: /u/settings/change-username
+/// Route: /profile/settings/change-username
 class ChangeUsernameScreen extends ConsumerStatefulWidget {
   const ChangeUsernameScreen({super.key});
 
@@ -121,7 +122,7 @@ class _ChangeUsernameScreenState extends ConsumerState<ChangeUsernameScreen> {
         setState(() => _validation = _ValidationState.taken);
         _showAlert('Username Taken', 'That username is already in use. Please choose another.');
       } else {
-        _showAlert('Error', e.toString());
+        _showAlert('Error', e.toString() ?? 'Failed to update username. Please try again.');
       }
     } finally {
       setState(() => _isLoading = false);
@@ -207,9 +208,9 @@ class _ChangeUsernameScreenState extends ConsumerState<ChangeUsernameScreen> {
     final msg = _validationMessage();
 
     return Scaffold(
-      
+      backgroundColor: const Color(FlickoColors.bgPrimary),
       appBar: AppBar(
-        
+        backgroundColor: const Color(FlickoColors.bgPrimary),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),
@@ -382,7 +383,7 @@ class _ChangeUsernameScreenState extends ConsumerState<ChangeUsernameScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(FlickoColors.bgSecondary),
-        border: Border.all(color: const Color(FlickoColors.blurple)),
+        border: Border.all(color: const Color(FlickoColors.blurple), left: BorderSide.none),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(

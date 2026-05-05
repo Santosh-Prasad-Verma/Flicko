@@ -8,7 +8,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/flicko_colors.dart';
 import '../../../../data/services/appwrite_storage_service.dart';
-import 'package:mobile/features/auth/application/auth_notifier.dart';
 
 /// Sticker data model
 class _ServerSticker {
@@ -16,8 +15,6 @@ class _ServerSticker {
   final String name;
   final String? description;
   final String imageUrl;
-  final String? appwriteFileId;
-  final String? appwriteBucketId;
   final String? tags;
   final String creatorId;
   final String? creatorUsername;
@@ -28,8 +25,6 @@ class _ServerSticker {
     required this.name,
     this.description,
     required this.imageUrl,
-    this.appwriteFileId,
-    this.appwriteBucketId,
     this.tags,
     required this.creatorId,
     this.creatorUsername,
@@ -43,8 +38,6 @@ class _ServerSticker {
       name: json['name'] as String,
       description: json['description'] as String?,
       imageUrl: json['image_url'] as String,
-      appwriteFileId: json['appwrite_file_id'] as String?,
-      appwriteBucketId: json['appwrite_bucket_id'] as String?,
       tags: json['tags'] as String?,
       creatorId: json['creator_id'] as String,
       creatorUsername: creator?['username'] as String?,
@@ -94,7 +87,7 @@ class _StickersManagementScreenState
     setState(() => _isLoading = true);
     try {
       final response = await _client
-          .from('stickers')
+          .from('server_stickers')
           .select('*, creator:profiles!creator_id(username)')
           .eq('server_id', widget.serverId)
           .order('created_at', ascending: false);
@@ -119,6 +112,9 @@ class _StickersManagementScreenState
     try {
       final image = await _imagePicker.pickImage(
         source: ImageSource.gallery,
+        maxWidth: 320,
+        maxHeight: 320,
+        imageQuality: 95,
       );
       if (image == null) return;
 
@@ -145,22 +141,28 @@ class _StickersManagementScreenState
 
     setState(() => _isUploading = true);
     try {
+      final bytes = await _selectedImage!.readAsBytes();
+      final ext = _selectedImage!.name.split('.').last.toLowerCase();
+      final mimeType = ext == 'gif' ? 'image/gif' : 'image/$ext';
+      final fileName =
+          'sticker_${_newName.trim().replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}.$ext';
+
       // Upload via Appwrite storage
-      final appwriteService = ref.read(appwriteStorageServiceProvider);
-      final result = await appwriteService.uploadImage(
-        File(_selectedImage!.path),
+      final imageUrl = await AppwriteStorageService.instance.uploadFile(
+        bucketId: 'stickers',
+        fileName: fileName,
+        fileBytes: bytes,
+        mimeType: mimeType,
       );
 
-      final userId = ref.read(currentUserIdProvider);
+      final userId = _client.auth.currentUser?.id;
       if (userId == null) throw Exception('Not authenticated');
 
-      await _client.from('stickers').insert({
+      await _client.from('server_stickers').insert({
         'server_id': widget.serverId,
         'name': _newName.trim(),
         'description': _newDescription.trim().isEmpty ? null : _newDescription.trim(),
-        'image_url': result['url'],
-        'appwrite_file_id': result['fileId'],
-        'appwrite_bucket_id': result['bucketId'],
+        'image_url': imageUrl,
         'tags': _newTag.trim().isEmpty ? null : _newTag.trim(),
         'creator_id': userId,
       });
@@ -180,7 +182,7 @@ class _StickersManagementScreenState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Sticker "$_newName" uploaded!'),
+            content: Text('Sticker "${_newName}" uploaded!'),
             backgroundColor: const Color(FlickoColors.green),
           ),
         );
@@ -218,7 +220,7 @@ class _StickersManagementScreenState
                 width: 80,
                 height: 80,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
               ),
             ),
             const SizedBox(height: FlickoSpacing.md),
@@ -252,7 +254,7 @@ class _StickersManagementScreenState
     if (confirmed != true) return;
 
     try {
-      await _client.from('stickers').delete().eq('id', sticker.id);
+      await _client.from('server_stickers').delete().eq('id', sticker.id);
       HapticFeedback.lightImpact();
       await _loadStickers();
     } catch (e) {
@@ -275,7 +277,7 @@ class _StickersManagementScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
+      backgroundColor: const Color(FlickoColors.bgPrimary),
       appBar: AppBar(
         backgroundColor: const Color(FlickoColors.bgSecondary),
         elevation: 0,
@@ -408,7 +410,7 @@ class _StickersManagementScreenState
                   sticker.imageUrl,
                   fit: BoxFit.cover,
                   width: double.infinity,
-                  errorBuilder: (context, error, stackTrace) => Container(
+                  errorBuilder: (_, __, ___) => Container(
                     color: const Color(FlickoColors.bgTertiary),
                     child: const Center(
                       child: Icon(Icons.broken_image,
@@ -472,7 +474,7 @@ class _StickersManagementScreenState
                   width: 36,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: const Color(FlickoColors.textMuted).withValues(alpha: 0.4),
+                    color: const Color(FlickoColors.textMuted).withOpacity(0.4),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -499,7 +501,7 @@ class _StickersManagementScreenState
                     color: const Color(FlickoColors.bgTertiary),
                     borderRadius: BorderRadius.circular(FlickoRadius.lg),
                     border: Border.all(
-                      color: const Color(FlickoColors.textMuted).withValues(alpha: 0.3),
+                      color: const Color(FlickoColors.textMuted).withOpacity(0.3),
                       width: 2,
                       strokeAlign: BorderSide.strokeAlignInside,
                     ),

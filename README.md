@@ -495,6 +495,17 @@ All Go service containers run with:
 
 📖 **Full deployment guide:** [docs/deployment/overview.md](docs/deployment/overview.md)
 
+### 🤖 CI/CD & Automation
+
+Flicko leverages modern automation to ensure rapid, reliable, and secure deployments:
+
+*   **Automated Backend Deployment:** Integrated GitHub Actions workflow (`backend-cd.yml`) triggers on pushes to main, managing container orchestration via Docker Compose.
+*   **Secret Management:** Doppler integration provides a single source of truth for environment variables across local, staging, and production environments.
+*   **Infrastructure-as-Code:** Service configurations and deployment scripts are version-controlled, enabling reproducible environments.
+
+---
+
+
 ---
 
 ## 🔒 Security Architecture
@@ -785,9 +796,9 @@ Until then, explore the UI via our high-fidelity mockups in the [Design Assets](
 
 | Metric | Count |
 |:---|:---:|
-| **Go backend service files** | 95 |
-| **Mobile app screens** | 86 |
-| **Supabase SQL migrations** | 94 |
+| **Go backend service files** | 105 |
+| **Mobile app screens** | 95 |
+| **Supabase SQL migrations** | 97 |
 | **Documentation files** | 121 |
 | **Built-in bots** | 8 |
 | **Permission types** | 26 |
@@ -811,7 +822,7 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 ---
 
 <p align="center">
-  <img src="mobile/assets/images/Flicko_icon.png" alt="Flicko" width="48" height="48" style="border-radius: 12px;" />
+  <img src="assets/branding/Flicko-for-black-background.png" alt="Flicko" width="48" height="48" style="border-radius: 12px;" />
 </p>
 
 <p align="center">

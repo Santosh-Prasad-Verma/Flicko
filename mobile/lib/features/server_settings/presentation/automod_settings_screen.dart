@@ -61,7 +61,7 @@ class _AutomodSettingsScreenState extends ConsumerState<AutomodSettingsScreen> {
 
   Future<void> _toggleRule(String ruleName, bool enabled, String ruleType, Map<String, dynamic> triggerConfig) async {
     // Optimistic UI update
-    
+    final wasEnabled = _activeRules.containsKey(ruleName) && _activeRules[ruleName]!['is_enabled'] == true;
     
     setState(() {
       if (enabled) {
@@ -137,7 +137,7 @@ class _AutomodSettingsScreenState extends ConsumerState<AutomodSettingsScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        
+        backgroundColor: const Color(FlickoColors.bgPrimary),
         appBar: AppBar(
           backgroundColor: const Color(FlickoColors.bgSecondary),
           elevation: 0,
@@ -157,9 +157,11 @@ class _AutomodSettingsScreenState extends ConsumerState<AutomodSettingsScreen> {
       );
     }
 
+    // Has any rule enabled
+    bool isAnyEnabled = _activeRules.values.any((r) => r['is_enabled'] == true);
 
     return Scaffold(
-      
+      backgroundColor: const Color(FlickoColors.bgPrimary),
       appBar: AppBar(
         backgroundColor: const Color(FlickoColors.bgSecondary),
         elevation: 0,
@@ -364,7 +366,7 @@ class _AutomodSettingsScreenState extends ConsumerState<AutomodSettingsScreen> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeThumbColor: const Color(FlickoColors.blurple),
+            activeColor: const Color(FlickoColors.blurple),
           ),
         ],
       ),

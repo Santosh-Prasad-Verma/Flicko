@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:mobile/core/constants/flicko_colors.dart';
+import 'package:mobile/features/core/constants/flicko_colors.dart';
 
 class ErrorBoundary extends StatefulWidget {
   final Widget child;
@@ -102,7 +102,7 @@ class _ErrorBoundaryState extends State<ErrorBoundary> {
       );
     }
 
-    ErrorWidget.builder = (details) {
+    return ErrorWidget.builder = (details) {
       _handleError(details.exception);
       return const SizedBox.shrink();
     };

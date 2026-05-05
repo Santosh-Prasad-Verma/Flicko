@@ -26,7 +26,7 @@ class _SoundboardState extends State<Soundboard> {
   final AudioPlayer _audioPlayer = AudioPlayer();
   
   String _activeTab = 'favorites';
-  final bool _isLoading = false;
+  bool _isLoading = false;
   String? _currentlyPlayingId;
   double _volume = 0.8;
 
@@ -365,7 +365,7 @@ class _SoundboardState extends State<Soundboard> {
               boxShadow: isPlaying
                   ? [
                       BoxShadow(
-                        color: const Color(FlickoColors.blurple).withValues(alpha: 0.4),
+                        color: const Color(FlickoColors.blurple).withOpacity(0.4),
                         blurRadius: 8,
                         spreadRadius: 2,
                       ),
@@ -381,7 +381,7 @@ class _SoundboardState extends State<Soundboard> {
                   height: 48,
                   decoration: BoxDecoration(
                     color: isPlaying
-                        ? Colors.white.withValues(alpha: 0.2)
+                        ? Colors.white.withOpacity(0.2)
                         : const Color(FlickoColors.bgSecondary),
                     shape: BoxShape.circle,
                   ),
@@ -426,7 +426,7 @@ class _SoundboardState extends State<Soundboard> {
                       width: 20,
                       height: 3,
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.5),
+                        color: Colors.white.withOpacity(0.5),
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),

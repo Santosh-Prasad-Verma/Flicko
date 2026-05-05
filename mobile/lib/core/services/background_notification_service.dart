@@ -1,7 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui';
+
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:workmanager/workmanager.dart';
@@ -44,6 +47,7 @@ Future<void> _checkPendingNotifications() async {
 
 /// Cleanup old notifications
 Future<void> _cleanupOldNotifications() async {
+  final plugin = FlutterLocalNotificationsPlugin();
   // Cancel notifications older than 7 days
   // In a real app, you'd track notification IDs and timestamps
   debugPrint('🧹 Cleaning up old notifications...');
@@ -80,6 +84,7 @@ class BackgroundNotificationService {
       // Initialize Workmanager for background tasks
       await Workmanager().initialize(
         callbackDispatcher,
+        isInDebugMode: kDebugMode,
       );
 
       // Register periodic tasks
@@ -103,7 +108,7 @@ class BackgroundNotificationService {
         networkType: NetworkType.connected,
         requiresBatteryNotLow: true,
       ),
-      existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
+      existingWorkPolicy: ExistingWorkPolicy.keep,
     );
 
     // Cleanup old notifications daily
@@ -111,7 +116,7 @@ class BackgroundNotificationService {
       _cleanupTask,
       _cleanupTask,
       frequency: const Duration(hours: 24),
-      existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
+      existingWorkPolicy: ExistingWorkPolicy.keep,
     );
 
     // Sync unread counts every 30 minutes
@@ -122,7 +127,7 @@ class BackgroundNotificationService {
       constraints: Constraints(
         networkType: NetworkType.connected,
       ),
-      existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
+      existingWorkPolicy: ExistingWorkPolicy.keep,
     );
   }
 
@@ -184,10 +189,10 @@ class BackgroundNotificationService {
     );
 
     await _notifications.show(
-      id: 999999,
-      title: 'Ongoing Call',
-      body: 'In call with $callerName in $channelName',
-      notificationDetails: details,
+      999999, // Special ID for ongoing call
+      'Ongoing Call',
+      'In call with $callerName in $channelName',
+      details,
       payload: jsonEncode({
         'type': 'ongoing_call',
         'channel_name': channelName,
@@ -198,7 +203,7 @@ class BackgroundNotificationService {
 
   /// Remove ongoing call notification
   Future<void> removeOngoingCallNotification() async {
-    await _notifications.cancel(id: 999999);
+    await _notifications.cancel(999999);
   }
 
   /// Show summary notification for multiple unread messages
@@ -206,7 +211,7 @@ class BackgroundNotificationService {
     required int unreadCount,
     required Map<String, int> serverUnreadCounts,
   }) async {
-    final androidDetails = AndroidNotificationDetails(
+    const androidDetails = AndroidNotificationDetails(
       'summary_channel',
       'Message Summary',
       channelDescription: 'Summary of unread messages',
@@ -221,24 +226,24 @@ class BackgroundNotificationService {
       ),
     );
 
-    final darwinDetails = DarwinNotificationDetails(
+    const darwinDetails = DarwinNotificationDetails(
       presentAlert: unreadCount > 0,
       presentBadge: true,
       presentSound: false,
       badgeNumber: unreadCount,
     );
 
-    final details = NotificationDetails(
+    const details = NotificationDetails(
       android: androidDetails,
       iOS: darwinDetails,
       macOS: darwinDetails,
     );
 
     await _notifications.show(
-      id: 0,
-      title: '$unreadCount new messages',
-      body: 'You have unread messages',
-      notificationDetails: details,
+      0, // ID 0 for summary
+      '$unreadCount new messages',
+      'You have unread messages',
+      details,
     );
   }
 
@@ -276,12 +281,12 @@ class BackgroundNotificationService {
     );
 
     await _notifications.show(
-      id: messageId?.hashCode ?? DateTime.now().millisecondsSinceEpoch ~/ 1000,
-      title: '$senderName mentioned you in #$channelName',
-      body: messageContent.length > 100 
+      messageId?.hashCode ?? DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      '$senderName mentioned you in #$channelName',
+      messageContent.length > 100 
           ? '${messageContent.substring(0, 100)}...' 
           : messageContent,
-      notificationDetails: details,
+      details,
       payload: jsonEncode({
         'type': 'mention',
         'server_id': serverId,
@@ -321,12 +326,12 @@ class BackgroundNotificationService {
     );
 
     await _notifications.show(
-      id: messageId?.hashCode ?? DateTime.now().millisecondsSinceEpoch ~/ 1000,
-      title: senderName,
-      body: messageContent.length > 100 
+      messageId?.hashCode ?? DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      senderName,
+      messageContent.length > 100 
           ? '${messageContent.substring(0, 100)}...' 
           : messageContent,
-      notificationDetails: details,
+      details,
       payload: jsonEncode({
         'type': 'dm',
         'sender_id': senderId,
@@ -374,10 +379,10 @@ class BackgroundNotificationService {
     );
 
     await _notifications.show(
-      id: senderId.hashCode,
-      title: 'New Friend Request',
-      body: '$senderName wants to be your friend',
-      notificationDetails: details,
+      senderId.hashCode,
+      'New Friend Request',
+      '$senderName wants to be your friend',
+      details,
       payload: jsonEncode({
         'type': 'friend_request',
         'sender_id': senderId,
@@ -387,7 +392,7 @@ class BackgroundNotificationService {
 
   /// Cancel notification by ID
   Future<void> cancelNotification(int id) async {
-    await _notifications.cancel(id: id);
+    await _notifications.cancel(id);
   }
 
   /// Cancel all notifications

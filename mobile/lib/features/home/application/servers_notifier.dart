@@ -58,10 +58,10 @@ class ServersNotifier extends StateNotifier<ServersState> {
     state = state.copyWith(
       selectedServerId: serverId,
       selectedServerChannels: [],
-      isLoading: serverId != null && serverId != 'gaming',
+      isLoading: serverId != null,
     );
 
-    if (serverId != null && serverId != 'gaming') {
+    if (serverId != null) {
       try {
         final channels = await _repository.getServerChannels(serverId);
         state = state.copyWith(

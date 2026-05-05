@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:mobile/features/direct_messages/domain/dm_models.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
-import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 class MessageBubble extends StatelessWidget {
@@ -16,7 +16,7 @@ class MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final senderName = message.sender?.displayName ?? message.sender?.username ?? 'Unknown';
+    final senderName = message.sender?.name ?? 'Unknown';
     final avatarUrl = message.sender?.avatarUrl;
     final timeStr = DateFormat('h:mm a').format(message.createdAt);
 
@@ -43,15 +43,12 @@ class MessageBubble extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.baseline,
                   textBaseline: TextBaseline.alphabetic,
                   children: [
-                    Flexible(
-                      child: Text(
-                        senderName,
-                        style: const TextStyle(
-                          color: Color(FlickoColors.textPrimary),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                        overflow: TextOverflow.ellipsis,
+                    Text(
+                      senderName,
+                      style: const TextStyle(
+                        color: Color(FlickoColors.textPrimary),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
                       ),
                     ),
                     const SizedBox(width: FlickoSpacing.sm),

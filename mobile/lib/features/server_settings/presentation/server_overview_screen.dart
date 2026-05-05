@@ -3,11 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 import '../../../../core/constants/flicko_colors.dart';
-import '../../../../data/repositories/server_repository.dart';
-import '../../../../data/services/appwrite_storage_service.dart';
-import 'package:mobile/features/auth/application/auth_notifier.dart';
 
 /// Server Overview Settings Screen
 ///
@@ -26,48 +22,11 @@ class ServerOverviewScreen extends ConsumerStatefulWidget {
 }
 
 class _ServerOverviewScreenState extends ConsumerState<ServerOverviewScreen> {
-  final _nameController = TextEditingController();
+  final _nameController = TextEditingController(text: 'My Server');
   final _descriptionController = TextEditingController();
   String? _iconUrl;
   String? _bannerUrl;
   bool _isLoading = false;
-  bool _isOwner = false;
-  String? _ownerId;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadServerData();
-  }
-
-  Future<void> _loadServerData() async {
-    setState(() => _isLoading = true);
-    try {
-      final repository = ref.read(serverRepositoryProvider);
-      final server = await repository.getServer(widget.serverId);
-      if (server != null) {
-        _nameController.text = server.name;
-        _descriptionController.text = server.description ?? '';
-        _iconUrl = server.iconUrl;
-        _bannerUrl = server.bannerUrl;
-        _ownerId = server.ownerId;
-
-        // Check ownership
-        final authState = ref.read(authNotifierProvider);
-        final currentUserId = authState.maybeWhen(
-          authenticated: (user, _) => user.id,
-          orElse: () => null,
-        );
-        _isOwner = _ownerId == currentUserId;
-      }
-    } catch (e) {
-      debugPrint('Error loading server data: $e');
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
 
   @override
   void dispose() {
@@ -80,20 +39,8 @@ class _ServerOverviewScreenState extends ConsumerState<ServerOverviewScreen> {
     final picker = ImagePicker();
     final image = await picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
-      setState(() => _isLoading = true);
-      try {
-        final storage = ref.read(appwriteStorageServiceProvider);
-        final result = await storage.uploadImage(File(image.path));
-        setState(() => _iconUrl = result['url']);
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Upload failed: $e'), backgroundColor: Colors.red),
-          );
-        }
-      } finally {
-        setState(() => _isLoading = false);
-      }
+      // TODO: Upload to server
+      setState(() => _iconUrl = image.path);
     }
   }
 
@@ -101,57 +48,31 @@ class _ServerOverviewScreenState extends ConsumerState<ServerOverviewScreen> {
     final picker = ImagePicker();
     final image = await picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
-      setState(() => _isLoading = true);
-      try {
-        final storage = ref.read(appwriteStorageServiceProvider);
-        final result = await storage.uploadImage(File(image.path));
-        setState(() => _bannerUrl = result['url']);
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Upload failed: $e'), backgroundColor: Colors.red),
-          );
-        }
-      } finally {
-        setState(() => _isLoading = false);
-      }
+      // TODO: Upload to server
+      setState(() => _bannerUrl = image.path);
     }
   }
 
   Future<void> _saveChanges() async {
     setState(() => _isLoading = true);
-    try {
-      final repository = ref.read(serverRepositoryProvider);
-      await repository.updateServer(widget.serverId, {
-        'name': _nameController.text,
-        'description': _descriptionController.text,
-        'icon': _iconUrl,
-        'banner': _bannerUrl,
-      });
+    // TODO: Save to API
+    await Future.delayed(const Duration(seconds: 1));
+    setState(() => _isLoading = false);
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Changes saved!', style: GoogleFonts.inter()),
-            backgroundColor: const Color(FlickoColors.success),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Save failed: $e'), backgroundColor: Colors.red),
-        );
-      }
-    } finally {
-      setState(() => _isLoading = false);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Changes saved!', style: GoogleFonts.inter()),
+          backgroundColor: const Color(FlickoColors.success),
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
+      backgroundColor: const Color(FlickoColors.bgPrimary),
       appBar: AppBar(
         backgroundColor: const Color(FlickoColors.bgSecondary),
         elevation: 0,
@@ -176,7 +97,7 @@ class _ServerOverviewScreenState extends ConsumerState<ServerOverviewScreen> {
                 child: CircularProgressIndicator(strokeWidth: 2),
               ),
             )
-          else if (_isOwner)
+          else
             TextButton(
               onPressed: _saveChanges,
               child: Text(
@@ -240,7 +161,7 @@ class _ServerOverviewScreenState extends ConsumerState<ServerOverviewScreen> {
         ),
         const SizedBox(height: 8),
         GestureDetector(
-          onTap: _isOwner ? _pickBanner : null,
+          onTap: _pickBanner,
           child: Container(
             height: 120,
             decoration: BoxDecoration(
@@ -343,7 +264,7 @@ class _ServerOverviewScreenState extends ConsumerState<ServerOverviewScreen> {
         ),
         const SizedBox(height: 8),
         GestureDetector(
-          onTap: _isOwner ? _pickIcon : null,
+          onTap: _pickIcon,
           child: Container(
             width: 100,
             height: 100,
@@ -398,7 +319,6 @@ class _ServerOverviewScreenState extends ConsumerState<ServerOverviewScreen> {
     int? maxLength,
     int maxLines = 1,
     String? hint,
-    bool enabled = true,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -417,7 +337,6 @@ class _ServerOverviewScreenState extends ConsumerState<ServerOverviewScreen> {
           controller: controller,
           maxLines: maxLines,
           maxLength: maxLength,
-          enabled: enabled && _isOwner,
           style: GoogleFonts.inter(
             color: const Color(FlickoColors.textPrimary),
           ),
@@ -479,13 +398,11 @@ class _ServerOverviewScreenState extends ConsumerState<ServerOverviewScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Expanded(
-            child: Text(
-              label,
-              style: GoogleFonts.inter(
-                color: const Color(FlickoColors.textSecondary),
-                fontSize: 14,
-              ),
+          Text(
+            label,
+            style: GoogleFonts.inter(
+              color: const Color(FlickoColors.textSecondary),
+              fontSize: 14,
             ),
           ),
           Text(

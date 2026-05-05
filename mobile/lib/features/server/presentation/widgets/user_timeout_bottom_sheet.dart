@@ -145,7 +145,7 @@ class _UserTimeoutBottomSheetState extends State<UserTimeoutBottomSheet> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(FlickoColors.warning).withValues(alpha: 0.15),
+                color: const Color(FlickoColors.warning).withOpacity(0.15),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(

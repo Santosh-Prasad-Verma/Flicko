@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mobile/core/constants/flicko_colors.dart';
+import 'package:mobile/features/core/constants/flicko_colors.dart';
 
 class SwitcherItem {
   final String id;
@@ -41,7 +41,7 @@ class _QuickSwitcherState extends ConsumerState<QuickSwitcher> {
   final _searchController = TextEditingController();
   final _focusNode = FocusNode();
   List<SwitcherItem> _results = [];
-  final List<SwitcherItem> _recentItems = [];
+  List<SwitcherItem> _recentItems = [];
   bool _isLoading = false;
 
   @override

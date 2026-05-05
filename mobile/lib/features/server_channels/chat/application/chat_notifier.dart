@@ -6,7 +6,6 @@ import 'package:mime/mime.dart';
 import 'package:mobile/data/models/flicko_message.dart';
 import 'package:mobile/data/repositories/message_repository.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
-import 'package:mobile/data/models/auth_state.dart' as app_auth;
 import 'chat_state.dart';
 
 /// Notifier for managing chat messages in a specific channel.
@@ -98,7 +97,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
       
       if (localAttachments != null && localAttachments.isNotEmpty) {
         for (final file in localAttachments) {
-          final result = await _repository.uploadAttachment(
+          final url = await _repository.uploadAttachment(
             File(file.path),
             _myId,
             _channelId,
@@ -108,12 +107,10 @@ class ChatNotifier extends StateNotifier<ChatState> {
           
           uploadedAttachments.add(FlickoAttachment(
             id: DateTime.now().toIso8601String(), // Temporary ID for model
-            url: result['url']!,
+            url: url,
             contentType: mimeType,
             filename: file.name,
             size: await file.length(),
-            appwriteFileId: result['fileId'],
-            appwriteBucketId: result['bucketId'],
           ));
         }
       }
@@ -179,7 +176,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
 /// Provider for [ChatNotifier] scoped to a specific [channelId].
 final chatNotifierProvider = StateNotifierProvider.autoDispose.family<ChatNotifier, ChatState, String>((ref, channelId) {
   final repository = ref.watch(messageRepositoryProvider);
-  final app_auth.AuthState authState = ref.watch(authNotifierProvider);
+  final authState = ref.watch(authNotifierProvider);
   final myId = authState.maybeWhen(
     authenticated: (user, _) => user.id,
     orElse: () => '',

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:mobile/core/constants/flicko_colors.dart';
+import 'package:mobile/features/core/constants/flicko_colors.dart';
 
 class VoiceActivitiesRouteScreen extends ConsumerStatefulWidget {
   final String channelId;
@@ -45,9 +45,9 @@ class _VoiceActivitiesRouteScreenState extends ConsumerState<VoiceActivitiesRout
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
+      backgroundColor: const Color(FlickoColors.bgPrimary),
       appBar: AppBar(
-        
+        backgroundColor: const Color(FlickoColors.bgPrimary),
         elevation: 0,
         title: Text(
           _currentActivity ?? 'Activities',

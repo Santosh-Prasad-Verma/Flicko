@@ -6,18 +6,20 @@ import 'package:mobile/features/spike/spike_dashboard_screen.dart';
 import 'package:mobile/features/spike/livekit_spike_screen.dart';
 import 'package:mobile/features/spike/stripe_spike_screen.dart';
 import 'package:mobile/features/spike/supabase_spike_screen.dart';
-import 'package:mobile/features/auth/presentation/screens/login_screen.dart';
+import 'package:mobile/features/auth/presentation/login_screen.dart';
+import 'package:mobile/features/auth/presentation/signup_screen.dart';
 import 'package:mobile/features/auth/presentation/screens/register_screen.dart';
 import 'package:mobile/features/auth/presentation/screens/forgot_password_screen.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/home/presentation/servers_screen.dart';
-import 'package:mobile/features/profile/presentation/profile_view_screen.dart';
+import 'package:mobile/features/home/presentation/notifications_screen.dart';
+import 'package:mobile/features/profile/presentation/profile_screen.dart';
+import 'package:mobile/features/profile/presentation/public_profile_screen.dart';
 import 'package:mobile/features/shared/presentation/main_navigation_shell.dart';
 import 'package:mobile/features/server_channels/chat/presentation/screens/chat_screen.dart';
 import 'package:mobile/features/direct_messages/presentation/screens/dm_list_screen.dart';
 import 'package:mobile/features/direct_messages/presentation/screens/dm_chat_screen.dart';
 import 'package:mobile/features/direct_messages/presentation/screens/group_dm_list_screen.dart';
-import 'package:mobile/features/server/presentation/add_space_screen.dart';
 import 'package:mobile/features/server/presentation/create_server_screen.dart';
 import 'package:mobile/features/server/presentation/discover_servers_screen.dart';
 import 'package:mobile/features/server/presentation/server_members_screen.dart';
@@ -33,23 +35,25 @@ import 'package:mobile/features/settings/presentation/accessibility_settings_scr
 import 'package:mobile/features/settings/presentation/voice_settings_screen.dart';
 import 'package:mobile/features/settings/presentation/help_screen.dart';
 import 'package:mobile/features/settings/presentation/language_screen.dart';
+import 'package:mobile/features/settings/presentation/storage_screen.dart';
 import 'package:mobile/features/settings/presentation/status_screen.dart';
 import 'package:mobile/features/settings/presentation/server_profiles_screen.dart';
 import 'package:mobile/features/settings/presentation/change_email_screen.dart';
 import 'package:mobile/features/settings/presentation/change_username_screen.dart';
 import 'package:mobile/features/settings/presentation/change_password_screen.dart';
-import 'package:mobile/features/settings/presentation/share_profile_screen.dart';
 
+// Premium
+import 'package:mobile/features/premium/presentation/flicko_plus_screen.dart';
 import 'package:mobile/features/premium/presentation/nitro_screen.dart';
-import 'package:mobile/features/premium/presentation/premium_billing_screen.dart';
-import 'package:mobile/features/voice/presentation/sonic_drip_screen.dart';
 
 // Friends
+import 'package:mobile/features/friends/presentation/friend_requests_screen.dart';
+import 'package:mobile/features/friends/presentation/friends_list_screen.dart';
+
+// Server Settings
 import 'package:mobile/features/server_settings/presentation/server_settings_hub_screen.dart';
-import 'package:mobile/features/server_settings/presentation/safety_settings_screen.dart';
-import 'package:mobile/features/server_settings/presentation/events_settings_screen.dart';
-import 'package:mobile/features/server_settings/presentation/emoji_management_screen.dart';
 import 'package:mobile/features/server_settings/presentation/server_overview_screen.dart';
+import 'package:mobile/features/server_settings/presentation/placeholder_settings_screens.dart';
 import 'package:mobile/features/server_settings/presentation/channels_settings_screen.dart';
 import 'package:mobile/features/server_settings/presentation/roles_settings_screen.dart';
 import 'package:mobile/features/server_settings/presentation/audit_log_screen.dart';
@@ -76,22 +80,19 @@ import 'package:mobile/features/server_settings/presentation/invites_settings_sc
 import 'package:mobile/features/server_settings/presentation/leaderboard_settings_screen.dart';
 import 'package:mobile/features/server_settings/presentation/overview_settings_screen.dart';
 import 'package:mobile/features/notifications/presentation/notifications_screen.dart';
-import 'package:mobile/features/server_settings/presentation/placeholder_settings_screens.dart' hide EmojisSettingsScreen, StickersSettingsScreen, BotsSettingsScreen, OnboardingSettingsScreen, ModerationSettingsScreen, EventsSettingsScreen, ServerDetailScreen;
+import 'package:mobile/features/profile/presentation/profile_view_screen.dart';
+import 'package:mobile/features/server_settings/presentation/webhooks_settings_screen.dart';
+import 'package:mobile/features/server_settings/presentation/templates_settings_screen.dart';
 import 'package:mobile/features/server_settings/presentation/onboarding_settings_screen.dart';
 import 'package:mobile/features/server_settings/presentation/stickers_management_screen.dart';
 import 'package:mobile/features/server_settings/presentation/bot_marketplace_screen.dart';
-import 'package:mobile/features/gaming/presentation/screens/gaming_hub_screen.dart';
-import 'package:mobile/features/gaming/presentation/screens/matchmaking_screen.dart';
-import 'package:mobile/features/calling/presentation/incoming_call_screen.dart';
-import 'package:mobile/features/calling/presentation/outgoing_call_screen.dart';
-import 'package:mobile/features/calling/presentation/active_call_screen.dart';
 
-
+// Voice
 import 'package:mobile/features/server_channels/voice/presentation/screens/voice_activities_screen.dart';
 import 'package:mobile/features/server_channels/voice/presentation/screens/voice_channel_screen.dart';
 
 // Forum
-import 'package:mobile/features/server_channels/forum/presentation/screens/forum_channel_screen.dart' hide ThreadViewScreen;
+import 'package:mobile/features/server_channels/forum/presentation/screens/forum_channel_screen.dart';
 
 // Stage
 import 'package:mobile/features/server_channels/stage/presentation/screens/stage_channel_screen.dart';
@@ -102,39 +103,24 @@ import 'package:mobile/features/server_channels/thread/presentation/screens/thre
 /// The global navigation key for the root navigator.
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
-/// A [ChangeNotifier] that signals GoRouter to re-run redirects
-/// without recreating the entire router instance.
-final _authRefreshNotifier = ValueNotifier<Object?>(null);
-
 /// Provides the [GoRouter] instance to the entire app via Riverpod.
 final appRouterProvider = Provider<GoRouter>((ref) {
-  // Listen to auth state changes and notify GoRouter to refresh redirects,
-  // instead of recreating the entire GoRouter (which disposes all screens).
-  ref.listen(authNotifierProvider, (_, _) {
-    _authRefreshNotifier.value = Object();
-  });
+  final authState = ref.watch(authNotifierProvider);
 
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/',
-    refreshListenable: _authRefreshNotifier,
     redirect: (context, state) {
-      final authState = ref.read(authNotifierProvider);
       final location = state.matchedLocation;
-      final isAuthRoute = location == '/login' || 
-                          location == '/signup' || 
-                          location == '/register' || 
-                          location == '/forgot-password';
+      final isAuthRoute = location == '/login' || location == '/signup';
       final isSpikeRoute = location.startsWith('/spike');
 
       if (isSpikeRoute) return null;
 
       return authState.maybeWhen(
-        authenticated: (_, _) => isAuthRoute ? '/' : null,
+        authenticated: (_, __) => isAuthRoute ? '/' : null,
         unauthenticated: () => isAuthRoute ? null : '/login',
-        needsVerification: (email, phone, isPhone) => null,
-        error: (_) => isAuthRoute ? null : '/login',
-        orElse: () => isAuthRoute ? null : '/login', // Default to login for initial/loading if not on auth route
+        orElse: () => null,
       );
     },
     routes: [
@@ -261,63 +247,57 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/u/@me',
-                pageBuilder: (context, state) {
-                  final authState = ref.read(authNotifierProvider);
-                  final userId = authState.maybeWhen(
-                    authenticated: (user, _) => user.id,
-                    orElse: () => '',
-                  );
-                  return NoTransitionPage(
-                    child: ProfileViewScreen(userId: userId),
-                  );
-                },
+                path: '/profile',
+                pageBuilder: (context, state) => const NoTransitionPage(
+                  child: ProfileScreen(),
+                ),
+                routes: [
+                  GoRoute(
+                    path: ':userId',
+                    builder: (context, state) => PublicProfileScreen(
+                      userId: state.pathParameters['userId']!,
+                    ),
+                  ),
+                  GoRoute(
+                    path: 'settings',
+                    builder: (context, state) => const SettingsScreen(),
+                    routes: [
+                      GoRoute(path: 'account', builder: (context, state) => const AccountSettingsScreen()),
+                      GoRoute(path: 'edit-profile', builder: (context, state) => const EditProfileScreen()),
+                      GoRoute(path: 'appearance', builder: (context, state) => const AppearanceSettingsScreen()),
+                      GoRoute(path: 'privacy', builder: (context, state) => const PrivacySettingsScreen()),
+                      GoRoute(path: 'chat', builder: (context, state) => const ChatSettingsScreen()),
+                      GoRoute(path: 'notifications', builder: (context, state) => const NotificationsSettingsScreen()),
+                      GoRoute(path: 'voice', builder: (context, state) => const VoiceSettingsScreen()),
+                      GoRoute(path: 'accessibility', builder: (context, state) => const AccessibilitySettingsScreen()),
+                      GoRoute(path: 'help', builder: (context, state) => const HelpScreen()),
+                      GoRoute(path: 'language', builder: (context, state) => const LanguageScreen()),
+                      GoRoute(path: 'storage', builder: (context, state) => const StorageSettingsScreen()),
+                      GoRoute(path: 'status', builder: (context, state) => const StatusScreen()),
+                      GoRoute(path: 'server-profiles', builder: (context, state) => const ServerProfilesScreen()),
+                      GoRoute(path: 'change-email', builder: (context, state) => const ChangeEmailScreen()),
+                      GoRoute(path: 'change-username', builder: (context, state) => const ChangeUsernameScreen()),
+                      GoRoute(path: 'change-password', builder: (context, state) => const ChangePasswordScreen()),
+                    ],
+                  ),
+                ],
               ),
             ],
           ),
         ],
       ),
 
-      // ── Settings (Outside Shell) ──
-      GoRoute(
-        path: '/u/settings',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const SettingsScreen(),
-        routes: [
-          GoRoute(path: 'account', builder: (context, state) => const AccountSettingsScreen()),
-          GoRoute(path: 'edit-profile', builder: (context, state) => const EditProfileScreen()),
-          GoRoute(path: 'appearance', builder: (context, state) => const AppearanceSettingsScreen()),
-          GoRoute(path: 'privacy', builder: (context, state) => const PrivacySettingsScreen()),
-          GoRoute(path: 'chat', builder: (context, state) => const ChatSettingsScreen()),
-          GoRoute(path: 'notifications', builder: (context, state) => const NotificationsSettingsScreen()),
-          GoRoute(path: 'voice', builder: (context, state) => const VoiceSettingsScreen()),
-          GoRoute(path: 'accessibility', builder: (context, state) => const AccessibilitySettingsScreen()),
-          GoRoute(path: 'help', builder: (context, state) => const HelpScreen()),
-          GoRoute(path: 'language', builder: (context, state) => const LanguageScreen()),
-          GoRoute(path: 'storage', builder: (context, state) => const StorageSettingsScreen()),
-          GoRoute(path: 'status', builder: (context, state) => const StatusScreen()),
-          GoRoute(path: 'server-profiles', builder: (context, state) => const ServerProfilesScreen()),
-          GoRoute(path: 'change-email', builder: (context, state) => const ChangeEmailScreen()),
-          GoRoute(path: 'change-username', builder: (context, state) => const ChangeUsernameScreen()),
-          GoRoute(path: 'change-password', builder: (context, state) => const ChangePasswordScreen()),
-          GoRoute(path: 'share-profile', builder: (context, state) => const ShareProfileScreen()),
-          GoRoute(path: 'billing', builder: (context, state) => const PremiumBillingScreen()),
-          GoRoute(path: 'sonic-drip', builder: (context, state) => const SonicDripScreen()),
-        ],
-      ),
-
       // ── Auth Routes ──
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
-      GoRoute(path: '/signup', builder: (context, state) => const RegisterScreen()),
+      GoRoute(path: '/signup', builder: (context, state) => const SignupScreen()),
       GoRoute(path: '/register', builder: (context, state) => const RegisterScreen()),
       GoRoute(path: '/forgot-password', builder: (context, state) => const ForgotPasswordScreen()),
 
       // ── Server Routes ──
-      GoRoute(path: '/server/create', builder: (context, state) => const AddSpaceScreen()),
-      GoRoute(path: '/server/build', builder: (context, state) => const CreateServerScreen()),
+      GoRoute(path: '/server/create', builder: (context, state) => const CreateServerScreen()),
       GoRoute(
         path: '/server/:serverId',
-        builder: (context, state) => ServerOverviewScreen(serverId: state.pathParameters['serverId']!),
+        builder: (context, state) => const ServerDetailScreen(),
         routes: [
           GoRoute(
             path: 'members',
@@ -335,9 +315,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(path: 'channels', builder: (context, state) => ChannelsSettingsScreen(serverId: state.pathParameters['serverId']!)),
               GoRoute(path: 'roles', builder: (context, state) => RolesSettingsScreen(serverId: state.pathParameters['serverId']!)),
               GoRoute(path: 'roles/:roleId', builder: (context, state) => RoleEditorScreen(serverId: state.pathParameters['serverId']!, roleId: state.pathParameters['roleId']!)),
-              GoRoute(path: 'emojis', builder: (context, state) => EmojiManagementScreen(serverId: state.pathParameters['serverId']!)),
+              GoRoute(path: 'emojis', builder: (context, state) => EmojisSettingsScreen(serverId: state.pathParameters['serverId']!)),
               GoRoute(path: 'stickers', builder: (context, state) => StickersManagementScreen(serverId: state.pathParameters['serverId']!)),
-              GoRoute(path: 'moderation', builder: (context, state) => SafetySettingsScreen(serverId: state.pathParameters['serverId']!)),
+              GoRoute(path: 'moderation', builder: (context, state) => ModerationSettingsScreen(serverId: state.pathParameters['serverId']!)),
               GoRoute(path: 'automod', builder: (context, state) => AutomodSettingsScreen(serverId: state.pathParameters['serverId']!)),
               GoRoute(path: 'audit-log', builder: (context, state) => AuditLogScreen(serverId: state.pathParameters['serverId']!)),
               GoRoute(path: 'bans', builder: (context, state) => BansScreen(serverId: state.pathParameters['serverId']!)),
@@ -386,79 +366,39 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
 
-      // Public User Profile
+      // Notifications
+      GoRoute(path: '/notifications', builder: (context, state) => const NotificationsScreen()),
+
+      // Profile
+      GoRoute(path: '/profile/:userId', builder: (context, state) => ProfileViewScreen(userId: state.pathParameters['userId']!)),
+
+      // Friends
       GoRoute(
-        path: '/u/:userId',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => ProfileViewScreen(
-          userId: state.pathParameters['userId']!,
-        ),
+        path: '/friends',
+        builder: (context, state) => const FriendsListScreen(),
+        routes: [
+          GoRoute(path: 'requests', builder: (context, state) => const FriendRequestsScreen()),
+        ],
       ),
 
-      // Premium
-      GoRoute(path: '/premium/nitro', builder: (context, state) => const NitroScreen()),
-
-      // Gaming Hub
+      // Direct Messages
       GoRoute(
-        path: '/gaming',
-        builder: (context, state) => const GamingHubScreen(),
+        path: '/dm',
+        builder: (context, state) => const DirectMessagesScreen(),
         routes: [
+          GoRoute(path: ':conversationId', builder: (context, state) => DMChatScreen(conversationId: state.pathParameters['conversationId']!)),
           GoRoute(
-            path: 'matchmaking',
-            builder: (context, state) => MatchmakingScreen(
-              activityName: state.uri.queryParameters['activity'] ?? 'Chess',
-            ),
+            path: 'groups',
+            builder: (context, state) => const GroupDMListScreen(),
           ),
         ],
       ),
 
-      // Incoming Call
-      GoRoute(
-        path: '/call/incoming',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) {
-          final extra = state.extra as Map<String, dynamic>? ?? {};
-          return IncomingCallScreen(
-            callerName: extra['callerName'] as String? ?? 'Unknown',
-            callerAvatarUrl: extra['callerAvatarUrl'] as String?,
-            callType: extra['callType'] as String? ?? 'voice',
-            onAccept: extra['onAccept'] as VoidCallback?,
-            onDecline: extra['onDecline'] as VoidCallback?,
-          );
-        },
-      ),
+      // Premium
+      GoRoute(path: '/premium/plus', builder: (context, state) => const FlickoPlusScreen()),
+      GoRoute(path: '/premium/nitro', builder: (context, state) => const NitroScreen()),
 
-      // Outgoing Call
-      GoRoute(
-        path: '/call/outgoing',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) {
-          final extra = state.extra as Map<String, dynamic>? ?? {};
-          return OutgoingCallScreen(
-            calleeName: extra['calleeName'] as String? ?? 'Unknown',
-            calleeAvatarUrl: extra['calleeAvatarUrl'] as String?,
-            callType: extra['callType'] as String? ?? 'voice',
-            onCancel: extra['onCancel'] as VoidCallback?,
-            onConnected: extra['onConnected'] as VoidCallback?,
-          );
-        },
-      ),
-
-      // Active Call
-      GoRoute(
-        path: '/call/active',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) {
-          final extra = state.extra as Map<String, dynamic>? ?? {};
-          return ActiveCallScreen(
-            peerName: extra['peerName'] as String? ?? 'Unknown',
-            peerAvatarUrl: extra['peerAvatarUrl'] as String?,
-            isVideo: extra['isVideo'] as bool? ?? false,
-            onHangUp: extra['onHangUp'] as VoidCallback?,
-          );
-        },
-      ),
-
+      // ── Spike / Dev Routes ──
       GoRoute(path: '/spike', builder: (context, state) => const SpikeDashboardScreen()),
       GoRoute(path: '/spike/livekit', builder: (context, state) => const LiveKitSpikeScreen()),
       GoRoute(path: '/spike/stripe', builder: (context, state) => const StripeSpikeScreen()),

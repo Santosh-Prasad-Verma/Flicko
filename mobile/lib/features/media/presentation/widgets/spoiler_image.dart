@@ -109,7 +109,7 @@ class _SpoilerImageState extends State<SpoilerImage>
                     ),
                     child: Container(
                       color: const Color(FlickoColors.bgTertiary)
-                          .withValues(alpha: 0.75),
+                          .withOpacity(0.75),
                     ),
                   );
                 },
@@ -126,7 +126,7 @@ class _SpoilerImageState extends State<SpoilerImage>
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.5),
+                          color: Colors.black.withOpacity(0.5),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(Icons.visibility_off,

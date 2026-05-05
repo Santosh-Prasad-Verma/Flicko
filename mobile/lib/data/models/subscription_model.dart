@@ -39,7 +39,7 @@ enum SubscriptionStatus {
 
 /// Represents a user's subscription returned from the backend.
 @freezed
-abstract class SubscriptionModel with _$SubscriptionModel {
+class SubscriptionModel with _$SubscriptionModel {
   const factory SubscriptionModel({
     required String id,
     @JsonKey(name: 'user_id') required String userId,

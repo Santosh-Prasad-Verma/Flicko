@@ -97,11 +97,13 @@ jobs:
 
             # 5. Wait and print logs for any unhealthy containers
             sleep 20
-            for svc in backend ws-gateway msg-service; do
-              status=$(docker inspect --format='{{.State.Health.Status}}' flicko-$svc 2>/dev/null || echo "missing")
+            for svc in nginx backend ws-gateway msg-service mail-gateway; do
+              # We use the container name as defined in docker-compose.prod.yml
+              container_name="flicko-$svc"
+              status=$(docker inspect --format='{{.State.Health.Status}}' $container_name 2>/dev/null || echo "missing")
               echo "$svc health: $status"
               if [ "$status" != "healthy" ]; then
                 echo "=== $svc logs ==="
-                docker logs --tail=50 flicko-$svc 2>&1 || true
+                docker logs --tail=50 $container_name 2>&1 || true
               fi
             done

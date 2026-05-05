@@ -1,11 +1,12 @@
-import 'package:flutter/material.dart' hide Card;
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/flicko_colors.dart';
+import 'package:mobile/auth/application/auth_notifier.dart';
 import 'package:mobile/features/shared/presentation/widgets/button.dart';
 import 'package:mobile/features/shared/presentation/widgets/card.dart';
+import 'package:mobile/features/shared/presentation/widgets/input.dart';
 import 'package:mobile/features/shared/presentation/widgets/modal.dart';
 
 class TemplatesSettingsScreen extends ConsumerStatefulWidget {
@@ -24,6 +25,11 @@ class _TemplatesSettingsScreenState extends ConsumerState<TemplatesSettingsScree
   bool _isLoading = true;
   List<Map<String, dynamic>> _templates = [];
   String? _errorMessage;
+  bool _showCreateModal = false;
+  final _nameController = TextEditingController();
+  final _descController = TextEditingController();
+  bool _isCreating = false;
+  String? _addingPreset;
 
   final _starterPresets = [
     {
@@ -69,120 +75,6 @@ class _TemplatesSettingsScreenState extends ConsumerState<TemplatesSettingsScree
         {'name': 'Member', 'color': '#EB459E'},
       ],
     },
-    {
-      'id': 'business',
-      'title': 'Business/Corporate',
-      'description': 'Team channels, announcements, project rooms',
-      'channels': [
-        {'name': 'announcements', 'type': 'text'},
-        {'name': 'general', 'type': 'text'},
-        {'name': 'projects', 'type': 'text'},
-        {'name': 'Meeting Room', 'type': 'voice'},
-      ],
-      'roles': [
-        {'name': 'CEO', 'color': '#ED4245'},
-        {'name': 'Manager', 'color': '#FEE75C'},
-        {'name': 'Employee', 'color': '#5865F2'},
-      ],
-    },
-    {
-      'id': 'music',
-      'title': 'Music & Streaming',
-      'description': 'Music sharing, streaming, voice channels',
-      'channels': [
-        {'name': 'music-share', 'type': 'text'},
-        {'name': 'general', 'type': 'text'},
-        {'name': 'streaming', 'type': 'text'},
-        {'name': 'Music Lounge', 'type': 'voice'},
-      ],
-      'roles': [
-        {'name': 'DJ', 'color': '#EB459E'},
-        {'name': 'Listener', 'color': '#57F287'},
-      ],
-    },
-    {
-      'id': 'education',
-      'title': 'Education/Online Course',
-      'description': 'Lecture halls, Q&A, resource sharing',
-      'channels': [
-        {'name': 'announcements', 'type': 'text'},
-        {'name': 'general', 'type': 'text'},
-        {'name': 'homework-help', 'type': 'text'},
-        {'name': 'resources', 'type': 'text'},
-        {'name': 'Lecture Hall', 'type': 'voice'},
-      ],
-      'roles': [
-        {'name': 'Instructor', 'color': '#ED4245'},
-        {'name': 'Teaching Assistant', 'color': '#FEE75C'},
-        {'name': 'Student', 'color': '#5865F2'},
-      ],
-    },
-    {
-      'id': 'support',
-      'title': 'Support/Help Desk',
-      'description': 'Ticket system, FAQ, support channels',
-      'channels': [
-        {'name': 'announcements', 'type': 'text'},
-        {'name': 'faq', 'type': 'text'},
-        {'name': 'support-tickets', 'type': 'text'},
-        {'name': 'general', 'type': 'text'},
-      ],
-      'roles': [
-        {'name': 'Support Lead', 'color': '#ED4245'},
-        {'name': 'Support Agent', 'color': '#57F287'},
-        {'name': 'User', 'color': '#99AAB5'},
-      ],
-    },
-    {
-      'id': 'development',
-      'title': 'Development/Coding',
-      'description': 'Code sharing, project collaboration, tech talk',
-      'channels': [
-        {'name': 'announcements', 'type': 'text'},
-        {'name': 'general', 'type': 'text'},
-        {'name': 'code-review', 'type': 'text'},
-        {'name': 'projects', 'type': 'text'},
-        {'name': 'Dev Lounge', 'type': 'voice'},
-      ],
-      'roles': [
-        {'name': 'Lead Developer', 'color': '#ED4245'},
-        {'name': 'Developer', 'color': '#5865F2'},
-        {'name': 'Contributor', 'color': '#57F287'},
-      ],
-    },
-    {
-      'id': 'creative',
-      'title': 'Art & Creative',
-      'description': 'Art sharing, feedback, collaboration',
-      'channels': [
-        {'name': 'showcase', 'type': 'text'},
-        {'name': 'general', 'type': 'text'},
-        {'name': 'feedback', 'type': 'text'},
-        {'name': 'collaboration', 'type': 'text'},
-        {'name': 'Art Studio', 'type': 'voice'},
-      ],
-      'roles': [
-        {'name': 'Featured Artist', 'color': '#EB459E'},
-        {'name': 'Artist', 'color': '#57F287'},
-        {'name': 'Member', 'color': '#99AAB5'},
-      ],
-    },
-    {
-      'id': 'fitness',
-      'title': 'Fitness & Health',
-      'description': 'Workout plans, nutrition, motivation',
-      'channels': [
-        {'name': 'announcements', 'type': 'text'},
-        {'name': 'general', 'type': 'text'},
-        {'name': 'workout-plans', 'type': 'text'},
-        {'name': 'nutrition', 'type': 'text'},
-        {'name': 'Motivation', 'type': 'voice'},
-      ],
-      'roles': [
-        {'name': 'Coach', 'color': '#ED4245'},
-        {'name': 'Member', 'color': '#57F287'},
-      ],
-    },
   ];
 
   @override
@@ -193,6 +85,8 @@ class _TemplatesSettingsScreenState extends ConsumerState<TemplatesSettingsScree
 
   @override
   void dispose() {
+    _nameController.dispose();
+    _descController.dispose();
     super.dispose();
   }
 
@@ -209,72 +103,138 @@ class _TemplatesSettingsScreenState extends ConsumerState<TemplatesSettingsScree
           .eq('source_server_id', widget.serverId)
           .order('created_at', ascending: false);
 
-      final templates = (response as List).cast<Map<String, dynamic>>();
-
-      // Convert starter presets to template format for display
-      final presetTemplates = _starterPresets.map((preset) => {
-        'id': preset['id'],
-        'code': preset['id'],
-        'name': preset['title'],
-        'description': preset['description'],
-        'serialized_data': {
-          'channels': preset['channels'],
-          'roles': preset['roles'],
-        },
-        'usage_count': 0,
-        'created_at': DateTime.now().toIso8601String(),
-        'is_preset': true,
-      }).toList();
-
       setState(() {
-        _templates = [...presetTemplates, ...templates];
+        _templates = (response as List).cast<Map<String, dynamic>>();
         _isLoading = false;
       });
     } catch (e) {
-      // If database query fails, still show starter presets
-      final presetTemplates = _starterPresets.map((preset) => {
-        'id': preset['id'],
-        'code': preset['id'],
-        'name': preset['title'],
-        'description': preset['description'],
-        'serialized_data': {
-          'channels': preset['channels'],
-          'roles': preset['roles'],
-        },
-        'usage_count': 0,
-        'created_at': DateTime.now().toIso8601String(),
-        'is_preset': true,
-      }).toList();
-
       setState(() {
-        _templates = presetTemplates;
+        _errorMessage = e.toString();
         _isLoading = false;
       });
     }
   }
 
+  Future<void> _addPreset(Map<String, dynamic> preset) async {
+    setState(() => _addingPreset = preset['id']);
 
-  Future<void> _deleteTemplate(String templateId) async {
-    final template = _templates.firstWhere((t) => t['id'] == templateId);
-    if (template['is_preset'] == true) {
+    try {
+      final currentUser = ref.read(authNotifierProvider).maybeWhen(
+        authenticated: (user, _) => user,
+        orElse: () => null,
+      );
+
+      final response = await Supabase.instance.client
+          .from('server_templates')
+          .insert({
+            'name': preset['title'],
+            'description': preset['description'],
+            'source_server_id': widget.serverId,
+            'creator_id': currentUser?.id,
+            'serialized_data': {
+              'channels': preset['channels'],
+              'roles': preset['roles'],
+            },
+            'usage_count': 0,
+            'created_at': DateTime.now().toIso8601String(),
+          })
+          .select()
+          .single();
+
+      setState(() {
+        _templates.insert(0, response);
+        _addingPreset = null;
+      });
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Cannot delete pre-made templates'),
-            backgroundColor: Color(FlickoColors.danger),
+            content: Text('Template added'),
+            backgroundColor: Color(FlickoColors.success),
           ),
         );
       }
+    } catch (e) {
+      setState(() => _addingPreset = null);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to add template: ${e.toString()}'),
+            backgroundColor: const Color(FlickoColors.danger),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _createTemplate() async {
+    final name = _nameController.text.trim();
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Name is required')),
+      );
       return;
     }
 
+    setState(() => _isCreating = true);
+
+    try {
+      final currentUser = ref.read(authNotifierProvider).maybeWhen(
+        authenticated: (user, _) => user,
+        orElse: () => null,
+      );
+
+      final response = await Supabase.instance.client
+          .from('server_templates')
+          .insert({
+            'name': name,
+            'description': _descController.text.trim(),
+            'source_server_id': widget.serverId,
+            'creator_id': currentUser?.id,
+            'serialized_data': {'channels': [], 'roles': []},
+            'usage_count': 0,
+            'created_at': DateTime.now().toIso8601String(),
+          })
+          .select()
+          .single();
+
+      setState(() {
+        _templates.insert(0, response);
+        _showCreateModal = false;
+        _nameController.clear();
+        _descController.clear();
+        _isCreating = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Template created'),
+            backgroundColor: Color(FlickoColors.success),
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() => _isCreating = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to create template: ${e.toString()}'),
+            backgroundColor: const Color(FlickoColors.danger),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteTemplate(String templateId) async {
     bool confirmed = false;
     if (mounted) {
       confirmed = await showModalBottomSheet<bool>(
         context: context,
         builder: (context) => Modal(
           visible: true,
-          onClose: () => Navigator.pop(context),
+          onClose: () => Navigator.of(context).pop(false),
           title: 'Delete Template',
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -344,13 +304,13 @@ class _TemplatesSettingsScreenState extends ConsumerState<TemplatesSettingsScree
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
+      backgroundColor: const Color(FlickoColors.bgPrimary),
       appBar: AppBar(
-        
+        backgroundColor: const Color(FlickoColors.bgPrimary),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),
-          onPressed: () => context.pop(),
+          onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
           'Templates',
@@ -360,6 +320,12 @@ class _TemplatesSettingsScreenState extends ConsumerState<TemplatesSettingsScree
             fontWeight: FontWeight.w600,
           ),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add, color: Color(FlickoColors.blurple)),
+            onPressed: () => setState(() => _showCreateModal = true),
+          ),
+        ],
       ),
       body: _buildBody(),
     );
@@ -396,8 +362,93 @@ class _TemplatesSettingsScreenState extends ConsumerState<TemplatesSettingsScree
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        _buildStarterPresets(),
+        const SizedBox(height: 24),
         _buildYourTemplates(),
       ],
+    );
+  }
+
+  Widget _buildStarterPresets() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'STARTER TEMPLATES',
+          style: GoogleFonts.inter(
+            color: const Color(FlickoColors.textMuted),
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Add a ready-made channel and role layout to this server as a reusable template.',
+          style: GoogleFonts.inter(
+            color: const Color(FlickoColors.textSecondary),
+            fontSize: 13,
+          ),
+        ),
+        const SizedBox(height: 12),
+        ..._starterPresets.map((preset) => _buildPresetCard(preset)),
+        const SizedBox(height: 24),
+        Text(
+          'YOUR TEMPLATES',
+          style: GoogleFonts.inter(
+            color: const Color(FlickoColors.textMuted),
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPresetCard(Map<String, dynamic> preset) {
+    final isLoading = _addingPreset == preset['id'];
+    return Card(
+      elevation: CardElevation.subtle,
+      margin: const EdgeInsets.only(bottom: 8),
+      onPress: isLoading ? null : () => _addPreset(preset),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    preset['title'],
+                    style: GoogleFonts.inter(
+                      color: const Color(FlickoColors.textPrimary),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    preset['description'],
+                    style: GoogleFonts.inter(
+                      color: const Color(FlickoColors.textSecondary),
+                      fontSize: 13,
+                    ),
+                  ),
+                  ],
+                ),
+              ),
+              isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Color(FlickoColors.blurple)),
+                    )
+                  : const Icon(Icons.add_circle_outline, color: Color(FlickoColors.blurple), size: 26),
+            ],
+        ),
+      ),
     );
   }
 
@@ -412,26 +463,24 @@ class _TemplatesSettingsScreenState extends ConsumerState<TemplatesSettingsScree
               'No saved templates yet',
               style: GoogleFonts.inter(color: const Color(FlickoColors.textSecondary), fontSize: 16),
             ),
+            const SizedBox(height: 8),
+            Text(
+              'Use starters above or snapshot your current server',
+              style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted), fontSize: 12),
+            ),
+            const SizedBox(height: 16),
+            Button(
+              title: 'Create from server',
+              onPress: () => setState(() => _showCreateModal = true),
+              variant: ButtonVariant.primary,
+            ),
           ],
         ),
       );
     }
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'TEMPLATES',
-          style: GoogleFonts.inter(
-            color: const Color(FlickoColors.textMuted),
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.5,
-          ),
-        ),
-        const SizedBox(height: 12),
-        ..._templates.map((template) => _buildTemplateCard(template)),
-      ],
+      children: _templates.map((template) => _buildTemplateCard(template)).toList(),
     );
   }
 
@@ -496,6 +545,47 @@ class _TemplatesSettingsScreenState extends ConsumerState<TemplatesSettingsScree
                 label: const Text('Delete'),
                 style: TextButton.styleFrom(foregroundColor: const Color(FlickoColors.danger)),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showCreateModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => Modal(
+        visible: true,
+        onClose: () {
+          setState(() => _showCreateModal = false);
+          Navigator.of(context).pop();
+        },
+        title: 'Create Template',
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Input(
+              controller: _nameController,
+              label: 'Name',
+              hint: 'Enter template name',
+            ),
+            const SizedBox(height: 16),
+            Input(
+              controller: _descController,
+              label: 'Description (optional)',
+              hint: 'Enter description',
+              maxLines: 3,
+            ),
+            const SizedBox(height: 24),
+            Button(
+              title: 'Create',
+              onPress: _isCreating ? () {} : _createTemplate,
+              variant: ButtonVariant.primary,
+              loading: _isCreating,
+              fullWidth: true,
             ),
           ],
         ),

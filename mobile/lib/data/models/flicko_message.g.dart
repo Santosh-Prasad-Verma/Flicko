@@ -15,36 +15,30 @@ _FlickoMessage _$FlickoMessageFromJson(Map<String, dynamic> json) =>
       type: json['type'] as String? ?? 'default',
       replyToId: json['reply_to_id'] as String?,
       threadId: json['thread_id'] as String?,
-      attachments:
-          (json['attachments'] as List<dynamic>?)
+      attachments: (json['attachments'] as List<dynamic>?)
               ?.map((e) => FlickoAttachment.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
-      reactions:
-          (json['reactions'] as List<dynamic>?)
+      reactions: (json['reactions'] as List<dynamic>?)
               ?.map((e) => FlickoReaction.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
       pinned: json['pinned'] as bool? ?? false,
       edited: json['edited'] as bool? ?? false,
-      editedAt:
-          json['edited_at'] == null
-              ? null
-              : DateTime.parse(json['edited_at'] as String),
+      editedAt: json['edited_at'] == null
+          ? null
+          : DateTime.parse(json['edited_at'] as String),
       createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt:
-          json['updated_at'] == null
-              ? null
-              : DateTime.parse(json['updated_at'] as String),
+      updatedAt: json['updated_at'] == null
+          ? null
+          : DateTime.parse(json['updated_at'] as String),
       recipientId: json['recipient_id'] as String?,
-      author:
-          json['author'] == null
-              ? null
-              : UserModel.fromJson(json['author'] as Map<String, dynamic>),
-      replyTo:
-          json['replyTo'] == null
-              ? null
-              : FlickoMessage.fromJson(json['replyTo'] as Map<String, dynamic>),
+      author: json['author'] == null
+          ? null
+          : UserModel.fromJson(json['author'] as Map<String, dynamic>),
+      replyTo: json['replyTo'] == null
+          ? null
+          : FlickoMessage.fromJson(json['replyTo'] as Map<String, dynamic>),
     );
 
 Map<String, dynamic> _$FlickoMessageToJson(_FlickoMessage instance) =>
@@ -78,8 +72,6 @@ _FlickoAttachment _$FlickoAttachmentFromJson(Map<String, dynamic> json) =>
       altText: json['alt_text'] as String?,
       width: (json['width'] as num?)?.toInt(),
       height: (json['height'] as num?)?.toInt(),
-      appwriteFileId: json['appwrite_file_id'] as String?,
-      appwriteBucketId: json['appwrite_bucket_id'] as String?,
     );
 
 Map<String, dynamic> _$FlickoAttachmentToJson(_FlickoAttachment instance) =>
@@ -92,8 +84,6 @@ Map<String, dynamic> _$FlickoAttachmentToJson(_FlickoAttachment instance) =>
       'alt_text': instance.altText,
       'width': instance.width,
       'height': instance.height,
-      'appwrite_file_id': instance.appwriteFileId,
-      'appwrite_bucket_id': instance.appwriteBucketId,
     };
 
 _FlickoReaction _$FlickoReactionFromJson(Map<String, dynamic> json) =>
@@ -103,7 +93,7 @@ _FlickoReaction _$FlickoReactionFromJson(Map<String, dynamic> json) =>
       me: json['me'] as bool? ?? false,
       users:
           (json['users'] as List<dynamic>?)?.map((e) => e as String).toList() ??
-          const [],
+              const [],
     );
 
 Map<String, dynamic> _$FlickoReactionToJson(_FlickoReaction instance) =>

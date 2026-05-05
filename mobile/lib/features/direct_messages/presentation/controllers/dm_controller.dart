@@ -2,7 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mobile/features/direct_messages/domain/dm_models.dart';
 import 'package:mobile/features/direct_messages/data/dm_repository.dart';
-import 'package:mobile/features/auth/application/auth_notifier.dart';
+import 'package:mobile/features/features/auth/application/auth_notifier.dart';
+import 'package:mobile/features/data/models/user_model.dart';
 import 'dart:developer' as dev;
 
 class DMState {
@@ -33,7 +34,7 @@ final dmControllerProvider = StateNotifierProvider<DMController, DMState>((ref) 
   final repository = ref.watch(dmRepositoryProvider);
   final authState = ref.watch(authNotifierProvider);
   
-  final controller = DMController(repository);
+  final controller = DMController(repository, ref);
   
   // Initialize when user is authenticated
   authState.maybeWhen(
@@ -48,10 +49,11 @@ final dmControllerProvider = StateNotifierProvider<DMController, DMState>((ref) 
 
 class DMController extends StateNotifier<DMState> {
   final DMRepository _repository;
+  final Ref _ref;
   RealtimeChannel? _subscription;
   String? _currentUserId;
 
-  DMController(this._repository) : super(DMState());
+  DMController(this._repository, this._ref) : super(DMState());
 
   Future<void> init(String userId) async {
     if (_currentUserId == userId) return;
