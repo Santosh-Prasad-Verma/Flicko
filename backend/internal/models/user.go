@@ -9,15 +9,30 @@ import (
 var emailRegex = regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,4}$`)
 
 type User struct {
-	ID        string    `json:"id" db:"id"`
-	Username  string    `json:"username" db:"username"`
-	Email     string    `json:"email" db:"email"`
-	Password  string    `json:"-" db:"password_hash"`
-	AvatarURL string    `json:"avatar_url" db:"avatar_url"`
-	BannerURL string    `json:"banner_url" db:"banner_url"`
-	Theme     string    `json:"theme" db:"theme"`
-	CreatedAt time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+	ID                  string     `json:"id" db:"id"`
+	Username            string     `json:"username" db:"username"`
+	Discriminator       string     `json:"discriminator" db:"discriminator"`
+	DisplayName         *string    `json:"display_name" db:"display_name"`
+	Pronouns            *string    `json:"pronouns" db:"pronouns"`
+	Email               string     `json:"email" db:"email"`
+	AvatarURL           *string    `json:"avatar" db:"avatar"`
+	BannerURL           *string    `json:"banner" db:"banner"`
+	Bio                 *string    `json:"bio" db:"bio"`
+	Status              string     `json:"status" db:"status"`
+	CustomStatus        *string    `json:"custom_status" db:"custom_status"`
+	CustomStatusEmoji   *string    `json:"custom_status_emoji" db:"custom_status_emoji"`
+	CustomStatusExpires *time.Time `json:"custom_status_expires_at" db:"custom_status_expires_at"`
+	AccentColor         string     `json:"accent_color" db:"accent_color"`
+	Badges              []byte     `json:"badges" db:"badges"` // JSONB
+	Flags               int        `json:"flags" db:"flags"`
+	Verified            bool       `json:"verified" db:"verified"`
+	Theme               string     `json:"theme" db:"theme"`
+	Password            string     `json:"-" db:"password_hash"`
+	CreatedAt           time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt           time.Time  `json:"updated_at" db:"updated_at"`
+	LastSeen            time.Time  `json:"last_seen" db:"last_seen"`
+	Phone               *string    `json:"phone" db:"phone"`
+	TwoFactorEnabled    bool       `json:"two_factor_enabled" db:"two_factor_enabled"`
 }
 
 type PresenceStatus string
@@ -42,9 +57,6 @@ func (u *User) Validate() error {
 	}
 	if !emailRegex.MatchString(u.Email) {
 		return errors.New("invalid email format")
-	}
-	if u.Password != "" && len(u.Password) < 8 {
-		return errors.New("password must be at least 8 characters")
 	}
 	return nil
 }

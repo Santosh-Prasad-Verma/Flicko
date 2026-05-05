@@ -168,7 +168,7 @@ class _EmojiManagementScreenState extends ConsumerState<EmojiManagementScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Emoji "${_newName}" uploaded!'),
+            content: Text('Emoji "$_newName" uploaded!'),
             backgroundColor: const Color(FlickoColors.success),
           ),
         );
@@ -255,7 +255,7 @@ class _EmojiManagementScreenState extends ConsumerState<EmojiManagementScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(FlickoColors.bgPrimary),
+      
       appBar: AppBar(
         backgroundColor: const Color(FlickoColors.bgSecondary),
         elevation: 0,

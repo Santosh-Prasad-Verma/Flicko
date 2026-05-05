@@ -22,6 +22,8 @@ type DatabaseClient interface {
 	Ping(ctx context.Context) error
 	// Pool returns the underlying pgxpool.Pool for services that need direct pool access.
 	Pool() *pgxpool.Pool
+	// Begin starts a transaction.
+	Begin(ctx context.Context) (pgx.Tx, error)
 }
 
 // MED-005: Default query timeout and slow query detection.
@@ -224,4 +226,8 @@ func (c *pgxClient) Ping(ctx context.Context) error {
 
 func (c *pgxClient) Pool() *pgxpool.Pool {
 	return c.pool
+}
+
+func (c *pgxClient) Begin(ctx context.Context) (pgx.Tx, error) {
+	return c.pool.Begin(ctx)
 }

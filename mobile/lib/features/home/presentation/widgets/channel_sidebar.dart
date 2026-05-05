@@ -217,7 +217,7 @@ class _ChannelRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (channel.type == ChannelType.voice) {
-      return _VoiceChannelRow(channel: channel);
+      return _VoiceChannelRow(serverId: serverId, channel: channel);
     }
 
     return InkWell(
@@ -252,8 +252,9 @@ class _ChannelRow extends StatelessWidget {
 }
 
 class _VoiceChannelRow extends ConsumerWidget {
+  final String serverId;
   final ChannelModel channel;
-  const _VoiceChannelRow({required this.channel});
+  const _VoiceChannelRow({required this.serverId, required this.channel});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -261,7 +262,10 @@ class _VoiceChannelRow extends ConsumerWidget {
     final participants = voiceState.participants;
 
     return InkWell(
-      onTap: () => ref.read(voiceControllerProvider.notifier).joinChannel(channel.id),
+      onTap: () {
+        ref.read(voiceControllerProvider.notifier).joinChannel(channel.id);
+        context.push('/server/$serverId/channel/${channel.id}/voice');
+      },
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         child: Column(

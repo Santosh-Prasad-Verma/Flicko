@@ -75,10 +75,7 @@ func (s *crosspostService) CrosspostMessage(ctx context.Context, userID, origina
 		Content:   msg.Content,
 	}
 
-	// Typically Discord shows it as sent by the original author but in an embed or special flag.
-	// We'll set AuthorID to the user performing the crossposting or the original.
-	// Let's stick to the original author, or the crossposter. We'll use the crossposter to avoid permission issues if original author isn't in new server.
-	newMsg.AuthorID = userUUID.String()
+	newMsg.AuthorID = &userID
 
 	_, err = tx.Exec(ctx, "INSERT INTO public.messages (id, channel_id, author_id, content) VALUES ($1, $2, $3, $4)",
 		newMsgID, targetChanUUID, newMsg.AuthorID, newMsg.Content)

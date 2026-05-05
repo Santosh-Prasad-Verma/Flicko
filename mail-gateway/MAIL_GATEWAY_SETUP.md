@@ -15,12 +15,12 @@
 Add to your `.env` file:
 
 ```bash
-# SMTP Configuration (Gmail)
-SMTP_HOST=smtp.gmail.com
+# SMTP Configuration (Brevo)
+SMTP_HOST=smtp-relay.brevo.com
 SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASS=your-gmail-app-password
-SMTP_FROM=noreply@flicko.focko.tech
+SMTP_USERNAME=your-brevo-username@smtp-brevo.com
+SMTP_PASSWORD=xkeysib-your-long-api-key
+SMTP_FROM=noreply@focko.tech   # Must be a verified domain in Brevo
 
 # Webhook Secret (generate with: openssl rand -hex 32)
 WEBHOOK_SECRET=your-random-secret-here
@@ -29,16 +29,10 @@ WEBHOOK_SECRET=your-random-secret-here
 DOMAIN=flicko.focko.tech
 ```
 
-### 2. Get Gmail App Password
-
-1. Go to: https://myaccount.google.com/security
-2. Enable **2-Factor Authentication**
-3. Go to: https://myaccount.google.com/apppasswords
-4. Create new app password:
-   - App: Mail
-   - Device: Other (Custom name) → "Flicko Mail Gateway"
-5. Copy the 16-character password (remove spaces)
-6. Use as `SMTP_PASS` in .env
+1. Go to: https://app.brevo.com/settings/keys/smtp
+2. Create a new SMTP Key
+3. Copy the key and use as `SMTP_PASSWORD`
+4. Ensure your sender domain (`focko.tech`) is verified in Brevo
 
 ### 3. Generate Webhook Secret
 
@@ -76,14 +70,16 @@ docker compose -f docker-compose.prod.yml logs -f mail-gateway
    - **Secrets**:
      - Key: `webhook_secret`
      - Value: [same as WEBHOOK_SECRET from .env]
-   - **Events to trigger**:
-     - ✅ `auth.signup`
-     - ✅ `auth.recovery`
-     - ✅ `auth.magiclink`
-     - ✅ `auth.email_change`
-     - ✅ `auth.reauthentication`
-   - **Timeout**: `5000` ms
-4. Click **"Create hook"**
+    - **Events to trigger**:
+      - ✅ `auth.signup`
+      - ✅ `auth.recovery` (Password Reset)
+      - ✅ `auth.magiclink`
+      - ✅ `auth.email_change`
+      - ✅ `auth.invite`
+      - ✅ `auth.reauthentication`
+    - **Timeout**: `5000` ms
+4. **Enable OTP Support**: In Supabase Auth Settings → Email Templates, ensure you use `{{ .Token }}` in your message bodies if you want 6-digit codes to appear.
+5. Click **"Create hook"**
 
 ---
 

@@ -207,9 +207,9 @@ class _ChangeUsernameScreenState extends ConsumerState<ChangeUsernameScreen> {
     final msg = _validationMessage();
 
     return Scaffold(
-      backgroundColor: const Color(FlickoColors.bgPrimary),
+      
       appBar: AppBar(
-        backgroundColor: const Color(FlickoColors.bgPrimary),
+        
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),

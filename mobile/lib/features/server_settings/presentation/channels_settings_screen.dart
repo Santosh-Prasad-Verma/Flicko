@@ -26,17 +26,15 @@ class _ChannelsSettingsScreenState extends ConsumerState<ChannelsSettingsScreen>
   bool _showCreate = false;
   bool _isSubmitting = false;
 
-  // Create form
+  // Form state
+  late TextEditingController _nameController;
+  late TextEditingController _topicController;
   String _newName = '';
   ChannelType _newType = ChannelType.text;
   String _newTopic = '';
   bool _newNsfw = false;
-
-  // Edit form
   ChannelModel? _editChannel;
-  String _editName = '';
-  String _editTopic = '';
-  bool _editNsfw = false;
+
 
   final _client = Supabase.instance.client;
 
@@ -62,7 +60,16 @@ class _ChannelsSettingsScreenState extends ConsumerState<ChannelsSettingsScreen>
   @override
   void initState() {
     super.initState();
+    _nameController = TextEditingController();
+    _topicController = TextEditingController();
     _loadChannels();
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _topicController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadChannels() async {
@@ -85,6 +92,32 @@ class _ChannelsSettingsScreenState extends ConsumerState<ChannelsSettingsScreen>
     }
   }
 
+  Future<void> _updateChannel() async {
+    if (_editChannel == null) return;
+    final name = _newName.trim();
+    if (name.isEmpty) return;
+
+    setState(() => _isSubmitting = true);
+    try {
+      await _client.from('channels').update({
+        'name': name,
+        'type': _newType.name,
+        'topic': _newTopic.trim().isNotEmpty ? _newTopic.trim() : null,
+        'nsfw': _newNsfw,
+      }).eq('id', _editChannel!.id);
+
+      await _loadChannels();
+      _resetForms();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Channel updated')),
+        );
+      }
+    } catch (e) {
+      setState(() => _isSubmitting = false);
+    }
+  }
+
   Future<void> _createChannel() async {
     final name = _newName.trim();
     if (name.isEmpty) return;
@@ -100,7 +133,7 @@ class _ChannelsSettingsScreenState extends ConsumerState<ChannelsSettingsScreen>
         'position': _channels.length,
       });
 
-      _resetCreateForm();
+      _resetForms();
       await _loadChannels();
     } catch (e) {
       if (mounted) {
@@ -163,22 +196,30 @@ class _ChannelsSettingsScreenState extends ConsumerState<ChannelsSettingsScreen>
     }
   }
 
-  void _resetCreateForm() {
+  void _resetForms() {
     setState(() {
       _showCreate = false;
+      _editChannel = null;
+      _isSubmitting = false;
       _newName = '';
       _newType = ChannelType.text;
       _newTopic = '';
       _newNsfw = false;
+      _nameController.clear();
+      _topicController.clear();
     });
   }
 
   void _startEdit(ChannelModel channel) {
     setState(() {
       _editChannel = channel;
-      _editName = channel.name;
-      _editTopic = channel.topic ?? '';
-      _editNsfw = channel.nsfw;
+      _showCreate = false;
+      _newName = channel.name;
+      _newType = channel.type;
+      _newTopic = channel.topic ?? '';
+      _newNsfw = channel.nsfw;
+      _nameController.text = channel.name;
+      _topicController.text = channel.topic ?? '';
     });
   }
 
@@ -195,42 +236,45 @@ class _ChannelsSettingsScreenState extends ConsumerState<ChannelsSettingsScreen>
     final ungrouped = _channels.where((c) => c.type != ChannelType.category && c.parentId == null).toList();
 
     return Scaffold(
-      backgroundColor: const Color(FlickoColors.bgPrimary),
+      backgroundColor: Colors.black,
       appBar: AppBar(
-        backgroundColor: const Color(FlickoColors.bgSecondary),
+        backgroundColor: Colors.black,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),
+          icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFFC8FF00), size: 20),
           onPressed: () => context.pop(),
         ),
+        centerTitle: true,
         title: Text(
-          'Channels (${_channels.length})',
+          'CHANNELS',
           style: GoogleFonts.inter(
-            color: const Color(FlickoColors.textPrimary),
-            fontWeight: FontWeight.w600,
+            color: Colors.white,
+            fontWeight: FontWeight.w900,
+            fontSize: 16,
+            letterSpacing: 2,
           ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.add, color: Color(FlickoColors.blurple)),
+            icon: const Icon(Icons.add_rounded, color: Color(0xFFC8FF00)),
             onPressed: () => setState(() => _showCreate = true),
           ),
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(FlickoColors.blurple)))
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFFC8FF00)))
           : _channels.isEmpty
               ? _buildEmptyState()
               : ReorderableListView(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(24),
                   onReorder: _onReorder,
-                  buildDefaultDragHandles: false, // We'll add our own icons or just rely on long press
+                  buildDefaultDragHandles: false,
                   children: [
                     // Ungrouped channels
                     if (ungrouped.isNotEmpty) ...[
-                      _buildSectionHeader('CHANNELS', key: const ValueKey('ungrouped_header')),
+                      _buildSectionHeader('UNGROUPED', key: const ValueKey('ungrouped_header')),
                       ...ungrouped.map((ch) => _buildChannelTile(ch, key: ValueKey('channel_${ch.id}'))),
-                      const SizedBox(key: ValueKey('ungrouped_spacer'), height: 16),
+                      const SizedBox(key: ValueKey('ungrouped_spacer'), height: 32),
                     ],
 
                     // Grouped by category
@@ -242,41 +286,38 @@ class _ChannelsSettingsScreenState extends ConsumerState<ChannelsSettingsScreen>
                         if (children.isEmpty)
                           Padding(
                             key: ValueKey('cat_empty_${cat.id}'),
-                            padding: const EdgeInsets.only(left: 32, top: 4),
+                            padding: const EdgeInsets.only(left: 32, top: 4, bottom: 16),
                             child: Text(
-                              'No channels in this category',
+                              'Empty category',
                               style: GoogleFonts.inter(
-                                color: const Color(FlickoColors.textMuted),
-                                fontSize: 13,
-                                fontStyle: FontStyle.italic,
+                                color: Colors.white24,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ),
-                        SizedBox(key: ValueKey('cat_spacer_${cat.id}'), height: 16),
+                        SizedBox(key: ValueKey('cat_spacer_${cat.id}'), height: 24),
                       ];
                     }),
                   ],
                 ),
-
-      // Create Modal
-      bottomSheet: _showCreate ? _buildCreateSheet() : null,
-
-      // Edit Modal
-      floatingActionButton: _editChannel != null ? null : null,
+      bottomSheet: _showCreate 
+          ? _buildCreateSheet() 
+          : (_editChannel != null ? _buildEditSheet() : null),
     );
   }
 
   Widget _buildSectionHeader(String title, {Key? key}) {
     return Padding(
       key: key,
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(left: 4, bottom: 12),
       child: Text(
         title,
         style: GoogleFonts.inter(
-          color: const Color(FlickoColors.textMuted),
+          color: Colors.white.withValues(alpha: 0.4),
           fontSize: 11,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 0.6,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 1.5,
         ),
       ),
     );
@@ -285,30 +326,28 @@ class _ChannelsSettingsScreenState extends ConsumerState<ChannelsSettingsScreen>
   Widget _buildCategoryHeader(ChannelModel category, {Key? key}) {
     return Padding(
       key: key,
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(left: 4, bottom: 12),
       child: Row(
         children: [
-          const Icon(Icons.expand_more, size: 14, color: Color(FlickoColors.textMuted)),
-          const SizedBox(width: 4),
           Text(
             category.name.toUpperCase(),
             style: GoogleFonts.inter(
-              color: const Color(FlickoColors.textMuted),
+              color: Colors.white.withValues(alpha: 0.4),
               fontSize: 11,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.6,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.5,
             ),
           ),
           const Spacer(),
           IconButton(
-            icon: const Icon(Icons.edit, size: 14, color: Color(FlickoColors.textMuted)),
+            icon: const Icon(Icons.edit_rounded, size: 14, color: Colors.white38),
             onPressed: () => _startEdit(category),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
           ),
           const SizedBox(width: 12),
           IconButton(
-            icon: const Icon(Icons.delete, size: 14, color: Color(FlickoColors.red)),
+            icon: const Icon(Icons.delete_rounded, size: 14, color: Colors.redAccent),
             onPressed: () => _deleteChannel(category),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
@@ -320,78 +359,90 @@ class _ChannelsSettingsScreenState extends ConsumerState<ChannelsSettingsScreen>
 
   Widget _buildChannelTile(ChannelModel channel, {bool indent = false, Key? key}) {
     return ReorderableDragStartListener(
-      index: _channels.indexOf(channel), // Will not be completely accurate with categories mapped to flat list
+      index: _channels.indexOf(channel),
       key: key,
       child: Container(
-      margin: EdgeInsets.only(bottom: 4, left: indent ? 20 : 0),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: const Color(FlickoColors.bgSecondary),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            _typeIcons[channel.type] ?? Icons.chat_bubble_outline,
-            size: 18,
-            color: const Color(FlickoColors.textMuted),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  channel.name,
-                  style: GoogleFonts.inter(
-                    color: const Color(FlickoColors.textPrimary),
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                if (channel.topic != null && channel.topic!.isNotEmpty)
-                  Text(
-                    channel.topic!,
-                    style: GoogleFonts.inter(
-                      color: const Color(FlickoColors.textMuted),
-                      fontSize: 12,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-              ],
-            ),
-          ),
-          if (channel.nsfw)
+        margin: EdgeInsets.only(bottom: 8, left: indent ? 16 : 0),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0D0D0D),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        ),
+        child: Row(
+          children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: const Color(FlickoColors.red).withValues(alpha: 0.13),
-                borderRadius: BorderRadius.circular(4),
+                color: Colors.black,
+                borderRadius: BorderRadius.circular(12),
               ),
-              child: Text(
-                'NSFW',
-                style: GoogleFonts.inter(
-                  color: const Color(FlickoColors.red),
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                ),
+              child: Icon(
+                _typeIcons[channel.type] ?? Icons.chat_bubble_outline,
+                size: 18,
+                color: const Color(0xFFC8FF00).withValues(alpha: 0.7),
               ),
             ),
-          IconButton(
-            icon: const Icon(Icons.edit, size: 16, color: Color(FlickoColors.textSecondary)),
-            onPressed: () => _startEdit(channel),
-            padding: const EdgeInsets.all(8),
-            constraints: const BoxConstraints(),
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete, size: 16, color: Color(FlickoColors.red)),
-            onPressed: () => _deleteChannel(channel),
-            padding: const EdgeInsets.all(8),
-            constraints: const BoxConstraints(),
-          ),
-        ],
-      ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    channel.name,
+                    style: GoogleFonts.inter(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  if (channel.topic != null && channel.topic!.isNotEmpty)
+                    Text(
+                      channel.topic!,
+                      style: GoogleFonts.inter(
+                        color: Colors.white38,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                ],
+              ),
+            ),
+            if (channel.nsfw)
+              Container(
+                margin: const EdgeInsets.only(right: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.redAccent.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: Colors.redAccent.withValues(alpha: 0.2)),
+                ),
+                child: Text(
+                  'NSFW',
+                  style: GoogleFonts.inter(
+                    color: Colors.redAccent,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            IconButton(
+              icon: const Icon(Icons.edit_rounded, size: 18, color: Colors.white24),
+              onPressed: () => _startEdit(channel),
+              padding: const EdgeInsets.all(4),
+              constraints: const BoxConstraints(),
+            ),
+            const SizedBox(width: 4),
+            IconButton(
+              icon: Icon(Icons.delete_rounded, size: 18, color: Colors.redAccent.withValues(alpha: 0.5)),
+              onPressed: () => _deleteChannel(channel),
+              padding: const EdgeInsets.all(4),
+              constraints: const BoxConstraints(),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -401,20 +452,49 @@ class _ChannelsSettingsScreenState extends ConsumerState<ChannelsSettingsScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.chat_bubble_outline, size: 48, color: Color(FlickoColors.textMuted)),
-          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0D0D0D),
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFFC8FF00).withValues(alpha: 0.1)),
+            ),
+            child: const Icon(Icons.chat_bubble_outline_rounded, size: 48, color: Color(0xFFC8FF00)),
+          ),
+          const SizedBox(height: 24),
           Text(
-            'No channels',
+            'NO CHANNELS',
             style: GoogleFonts.inter(
-              color: const Color(FlickoColors.textPrimary),
+              color: Colors.white,
               fontSize: 18,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Text(
-            'Create your first channel to get started',
-            style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
+            'Start by creating your first space',
+            style: GoogleFonts.inter(
+              color: Colors.white38,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 32),
+          ElevatedButton.icon(
+            onPressed: () {
+              _resetForms();
+              setState(() => _showCreate = true);
+            },
+            icon: const Icon(Icons.add_rounded),
+            label: const Text('CREATE CHANNEL'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFC8FF00),
+              foregroundColor: Colors.black,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              textStyle: GoogleFonts.inter(fontWeight: FontWeight.w900, letterSpacing: 1),
+            ),
           ),
         ],
       ),
@@ -423,163 +503,347 @@ class _ChannelsSettingsScreenState extends ConsumerState<ChannelsSettingsScreen>
 
   Widget _buildCreateSheet() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       decoration: const BoxDecoration(
-        color: Color(FlickoColors.bgSecondary),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        color: Color(0xFF0D0D0D),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
       ),
       child: SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Handle
             Center(
               child: Container(
-                width: 36,
+                width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: const Color(FlickoColors.textMuted),
+                  color: Colors.white10,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
-            const SizedBox(height: 16),
-
-            Text(
-              'Create Channel',
-              style: GoogleFonts.inter(
-                color: const Color(FlickoColors.textPrimary),
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Type chips
-            Text(
-              'CHANNEL TYPE',
-              style: GoogleFonts.inter(
-                color: const Color(FlickoColors.textMuted),
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.6,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              children: _channelTypes.map((type) {
-                final isSelected = _newType == type.$1;
-                return ChoiceChip(
-                  label: Text(type.$2),
-                  selected: isSelected,
-                  onSelected: (_) => setState(() => _newType = type.$1),
-                  backgroundColor: const Color(FlickoColors.bgTertiary),
-                  selectedColor: const Color(FlickoColors.blurple),
-                  labelStyle: GoogleFonts.inter(
-                    color: isSelected ? Colors.white : const Color(FlickoColors.textSecondary),
-                    fontSize: 13,
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 16),
-
-            // Name
-            TextField(
-              onChanged: (v) => setState(() => _newName = v),
-              style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary)),
-              decoration: InputDecoration(
-                labelText: 'Channel Name',
-                labelStyle: GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
-                filled: true,
-                fillColor: const Color(FlickoColors.bgTertiary),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-              maxLength: 100,
-            ),
-            const SizedBox(height: 8),
-
-            // Topic
-            TextField(
-              onChanged: (v) => setState(() => _newTopic = v),
-              style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary)),
-              decoration: InputDecoration(
-                labelText: 'Topic (optional)',
-                labelStyle: GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
-                filled: true,
-                fillColor: const Color(FlickoColors.bgTertiary),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-              maxLength: 1024,
-              maxLines: 2,
-            ),
-            const SizedBox(height: 8),
-
-            // NSFW switch
+            const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'NSFW',
+                  'NEW CHANNEL',
                   style: GoogleFonts.inter(
-                    color: const Color(FlickoColors.textPrimary),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1,
                   ),
                 ),
-                Switch(
-                  value: _newNsfw,
-                  onChanged: (v) => setState(() => _newNsfw = v),
-                  activeThumbColor: const Color(FlickoColors.blurple),
+                IconButton(
+                  onPressed: _resetForms,
+                  icon: const Icon(Icons.close_rounded, color: Colors.white38),
                 ),
               ],
+            ),
+            const SizedBox(height: 24),
+            _buildSectionHeader('CHANNEL TYPE'),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: _channelTypes.map((type) {
+                  final isSelected = _newType == type.$1;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text(type.$2.toUpperCase()),
+                      selected: isSelected,
+                      onSelected: (_) => setState(() => _newType = type.$1),
+                      backgroundColor: Colors.black,
+                      selectedColor: const Color(0xFFC8FF00),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      labelStyle: GoogleFonts.inter(
+                        color: isSelected ? Colors.black : Colors.white38,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                      ),
+                      showCheckmark: false,
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+            const SizedBox(height: 24),
+            _buildSectionHeader('CHANNEL NAME'),
+            _buildSheetTextField(
+              hint: 'e.g. general',
+              controller: _nameController,
+              onChanged: (v) => setState(() => _newName = v),
+              prefix: const Icon(Icons.tag_rounded, color: Colors.white24, size: 20),
             ),
             const SizedBox(height: 16),
+            _buildSectionHeader('TOPIC'),
+            _buildSheetTextField(
+              hint: 'What\'s this channel about?',
+              controller: _topicController,
+              onChanged: (v) => setState(() => _newTopic = v),
+              maxLines: 2,
+            ),
+            const SizedBox(height: 24),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'NSFW CHANNEL',
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      Text(
+                        'Age-restricted content',
+                        style: GoogleFonts.inter(
+                          color: Colors.white38,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Switch(
+                    value: _newNsfw,
+                    onChanged: (v) => setState(() => _newNsfw = v),
+                    activeThumbColor: const Color(0xFFC8FF00),
+                    activeTrackColor: const Color(0xFFC8FF00).withValues(alpha: 0.3),
+                    inactiveThumbColor: Colors.white24,
+                    inactiveTrackColor: Colors.white10,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _newName.trim().isEmpty || _isSubmitting ? null : _createChannel,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFC8FF00),
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  disabledBackgroundColor: Colors.white10,
+                ),
+                child: _isSubmitting
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                      )
+                    : Text(
+                        'CREATE CHANNEL',
+                        style: GoogleFonts.inter(fontWeight: FontWeight.w900, letterSpacing: 1),
+                      ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-            // Buttons
+  Widget _buildEditSheet() {
+    if (_editChannel == null) return const SizedBox();
+    
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: const BoxDecoration(
+        color: Color(0xFF0D0D0D),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white10,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _resetCreateForm,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(FlickoColors.bgTertiary),
-                      foregroundColor: const Color(FlickoColors.textPrimary),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    child: Text('Cancel', style: GoogleFonts.inter()),
+                Text(
+                  'EDIT CHANNEL',
+                  style: GoogleFonts.inter(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1,
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _newName.trim().isEmpty || _isSubmitting ? null : _createChannel,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(FlickoColors.blurple),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      disabledBackgroundColor: const Color(FlickoColors.bgTertiary),
-                    ),
-                    child: _isSubmitting
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                          )
-                        : Text('Create', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
-                  ),
+                IconButton(
+                  onPressed: _resetForms,
+                  icon: const Icon(Icons.close_rounded, color: Colors.white38),
                 ),
               ],
             ),
+            const SizedBox(height: 24),
+            _buildSectionHeader('CHANNEL TYPE'),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: _channelTypes.map((type) {
+                  final isSelected = _newType == type.$1;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text(type.$2.toUpperCase()),
+                      selected: isSelected,
+                      onSelected: (_) => setState(() => _newType = type.$1),
+                      backgroundColor: Colors.black,
+                      selectedColor: const Color(0xFFC8FF00),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      labelStyle: GoogleFonts.inter(
+                        color: isSelected ? Colors.black : Colors.white38,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                      ),
+                      showCheckmark: false,
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+            const SizedBox(height: 24),
+            _buildSectionHeader('CHANNEL NAME'),
+            _buildSheetTextField(
+              hint: 'e.g. general',
+              controller: _nameController,
+              onChanged: (v) => setState(() => _newName = v),
+              prefix: const Icon(Icons.tag_rounded, color: Colors.white24, size: 20),
+            ),
+            const SizedBox(height: 16),
+            _buildSectionHeader('TOPIC'),
+            _buildSheetTextField(
+              hint: 'What\'s this channel about?',
+              controller: _topicController,
+              onChanged: (v) => setState(() => _newTopic = v),
+              maxLines: 2,
+            ),
+            const SizedBox(height: 24),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'NSFW CHANNEL',
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      Text(
+                        'Age-restricted content',
+                        style: GoogleFonts.inter(
+                          color: Colors.white38,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Switch(
+                    value: _newNsfw,
+                    onChanged: (v) => setState(() => _newNsfw = v),
+                    activeThumbColor: const Color(0xFFC8FF00),
+                    activeTrackColor: const Color(0xFFC8FF00).withValues(alpha: 0.3),
+                    inactiveThumbColor: Colors.white24,
+                    inactiveTrackColor: Colors.white10,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _newName.trim().isEmpty || _isSubmitting ? null : _updateChannel,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFC8FF00),
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  disabledBackgroundColor: Colors.white10,
+                ),
+                child: _isSubmitting
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                      )
+                    : Text(
+                        'SAVE CHANGES',
+                        style: GoogleFonts.inter(fontWeight: FontWeight.w900, letterSpacing: 1),
+                      ),
+              ),
+            ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSheetTextField({
+    required String hint,
+    required ValueChanged<String> onChanged,
+    TextEditingController? controller,
+    int maxLines = 1,
+    Widget? prefix,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: TextField(
+        controller: controller,
+        onChanged: onChanged,
+        maxLines: maxLines,
+        style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: GoogleFonts.inter(color: Colors.white24),
+          border: InputBorder.none,
+          prefixIcon: prefix,
+          contentPadding: const EdgeInsets.symmetric(vertical: 16),
         ),
       ),
     );

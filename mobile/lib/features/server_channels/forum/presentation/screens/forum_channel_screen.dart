@@ -220,7 +220,7 @@ class _ForumChannelScreenState extends ConsumerState<ForumChannelScreen> with Ti
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(FlickoColors.bgPrimary),
+      
       extendBodyBehindAppBar: true,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(70),
@@ -819,7 +819,7 @@ class ThreadViewScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(FlickoColors.bgPrimary),
+      
       appBar: AppBar(
         title: const Text('Thread'),
         backgroundColor: Colors.transparent,

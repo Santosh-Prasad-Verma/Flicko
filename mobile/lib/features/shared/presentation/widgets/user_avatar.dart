@@ -41,17 +41,26 @@ class UserAvatar extends StatelessWidget {
 
   Widget _buildAvatar() {
     if (imageUrl != null && imageUrl!.isNotEmpty) {
+      final isAsset = imageUrl!.startsWith('assets/');
+      
       return Container(
         decoration: const BoxDecoration(shape: BoxShape.circle),
         clipBehavior: Clip.antiAlias,
-        child: CachedNetworkImage(
-          imageUrl: imageUrl!,
-          width: size,
-          height: size,
-          fit: BoxFit.cover,
-          placeholder: (context, url) => _buildFallback(),
-          errorWidget: (context, url, error) => _buildFallback(),
-        ),
+        child: isAsset 
+          ? Image.asset(
+              imageUrl!,
+              width: size,
+              height: size,
+              fit: BoxFit.cover,
+            )
+          : CachedNetworkImage(
+              imageUrl: imageUrl!,
+              width: size,
+              height: size,
+              fit: BoxFit.cover,
+              placeholder: (context, url) => _buildFallback(),
+              errorWidget: (context, url, error) => _buildFallback(),
+            ),
       );
     }
     return _buildFallback();

@@ -7,7 +7,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:mobile/data/services/clerk_auth_service.dart';
 
 /// Provider for PushNotificationService
 final pushNotificationServiceProvider = Provider<PushNotificationService>((ref) {
@@ -239,8 +238,8 @@ class PushNotificationService {
   Future<void> _registerTokenWithSupabase(String token) async {
     try {
       final supabase = Supabase.instance.client;
-      // Get User ID from Clerk
-      final userId = ClerkAuthService.currentAuthState?.user?.id;
+      // Get User ID from Supabase
+      final userId = supabase.auth.currentUser?.id;
 
       if (userId == null) {
         debugPrint('⚠️ No user logged in, cannot register FCM token');
@@ -268,7 +267,7 @@ class PushNotificationService {
       await _fcm.deleteToken();
       
       final supabase = Supabase.instance.client;
-      final userId = ClerkAuthService.currentAuthState?.user?.id;
+      final userId = supabase.auth.currentUser?.id;
       
       if (userId != null && _fcmToken != null) {
         await supabase

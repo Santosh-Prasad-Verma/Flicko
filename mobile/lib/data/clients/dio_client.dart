@@ -1,9 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mobile/core/config/app_config.dart';
 import 'package:mobile/core/services/app_logger.dart';
-import 'package:mobile/data/services/clerk_auth_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Provides a global implementation of Dio for external API calls.
 ///
@@ -30,14 +29,9 @@ final dioProvider = Provider<Dio>((ref) {
   dio.interceptors.add(
     InterceptorsWrapper(
       onRequest: (options, handler) async {
-        final clerk = ClerkAuthService.currentAuthState;
-        if (clerk != null) {
-          try {
-            final sessionToken = await clerk.sessionToken();
-            options.headers['Authorization'] = 'Bearer ${sessionToken.jwt}';
-          } catch (_) {
-            // Handle error or skip
-          }
+        final session = Supabase.instance.client.auth.currentSession;
+        if (session != null) {
+          options.headers['Authorization'] = 'Bearer ${session.accessToken}';
         }
         return handler.next(options);
       },

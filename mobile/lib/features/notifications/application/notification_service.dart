@@ -4,15 +4,14 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logger/logger.dart';
 
-final notificationServiceProvider = Provider((ref) => NotificationService(ref));
+final notificationServiceProvider = Provider((ref) => NotificationService());
 
 class NotificationService {
-  final Ref _ref;
   final FirebaseMessaging _fcm = FirebaseMessaging.instance;
   final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
   final _logger = Logger();
 
-  NotificationService(this._ref);
+  NotificationService();
 
   Future<void> init() async {
     // Request permissions (especially for iOS and Android 13+)

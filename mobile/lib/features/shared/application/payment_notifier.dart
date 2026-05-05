@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:mobile/data/models/payment_state.dart';
 import 'package:mobile/data/models/subscription_model.dart';

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UPGRADE COMPLETE</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #000000;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      color: #FFFFFF;
+      -webkit-font-smoothing: antialiased;
+    }
+  </style>
+</head>
+<body style="margin:0;padding:0;background-color:#000000;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Open Sans','Helvetica Neue',sans-serif;color:#FFFFFF;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;">
+    Your Flicko subscription has been updated.
+  </div>
+
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;background-color:#000000; background-image: radial-gradient(circle at 1px 1px, #1a1a1a 1px, transparent 0); background-size: 24px 24px;">
+    <tr>
+      <td align="center" style="padding:40px 16px;">
+        
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:500px;background-color:#000000;">
+          
+          
+          <!-- LOGO -->
+          <tr>
+            <td align="center" style="padding-bottom:40px;">
+              {{if .LogoURL}}
+                <img src="{{.LogoURL}}" alt="Flicko Logo" width="60" style="display:block;" />
+              {{else}}
+                
+                <svg width="60" height="60" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+                  <path d="M18 12H46V24H34V34H46V46H18V12Z" fill="#CBEF17"/>
+                  <path d="M24 18H40V24H24V18Z" fill="white"/>
+                  <path d="M24 34H40V40H24V34Z" fill="white"/>
+                </svg>
+
+              {{end}}
+            </td>
+          </tr>
+
+          <!-- HEADING -->
+          <tr>
+            <td align="center" style="padding-bottom:12px;">
+              <h1 style="margin:0;font-size:48px;font-weight:900;line-height:1;letter-spacing:-2px;text-transform:uppercase;color:#FFFFFF;">
+                UPGRADE<br/>COMPLETE
+              </h1>
+            </td>
+          </tr>
+
+          <!-- SUBHEADING -->
+          <tr>
+            <td align="center" style="padding-bottom:48px;">
+              <p style="margin:0;font-size:15px;font-weight:700;color:#888888;letter-spacing:1px;text-transform:uppercase;">
+                YOUR SUBSCRIPTION HAS BEEN UPDATED.
+              </p>
+            </td>
+          </tr>
+
+          <!-- CONTENT -->
+          
+          
+          <!-- RECEIPT BLOCK -->
+          <tr>
+            <td align="center" style="padding-bottom:48px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#0d0d0d; border:1px solid #333333; text-align:left;">
+                <tr>
+                  <td style="padding:24px;">
+                    <p style="margin:0 0 20px;font-size:12px;color:#CBEF17;font-weight:900;letter-spacing:2px;text-transform:uppercase;">// RECEIPT_DATA</p>
+                    
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-family:monospace;">
+                      <tr>
+                        <td style="padding-bottom:12px; color:#666666; font-size:11px; text-transform:uppercase; letter-spacing:1px;">TRANSACTION_ID</td>
+                        <td style="padding-bottom:12px; text-align:right; color:#FFFFFF; font-size:12px;">{{if .TransactionID}}{{.TransactionID}}{{else}}N/A{{end}}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding-bottom:12px; color:#666666; font-size:11px; text-transform:uppercase; letter-spacing:1px;">BILLING_CYCLE</td>
+                        <td style="padding-bottom:12px; text-align:right; color:#FFFFFF; font-size:12px;">{{if .BillingCycle}}{{.BillingCycle}}{{else}}MONTHLY{{end}}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding-bottom:12px; color:#666666; font-size:11px; text-transform:uppercase; letter-spacing:1px;">AMOUNT</td>
+                        <td style="padding-bottom:12px; text-align:right; color:#FFFFFF; font-size:12px;">{{if .TotalAmount}}{{.TotalAmount}}{{else}}N/A{{end}}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding-top:12px; border-top:1px dashed #333333; color:#666666; font-size:11px; text-transform:uppercase; letter-spacing:1px;">STATUS</td>
+                        <td style="padding-top:12px; border-top:1px dashed #333333; text-align:right; color:#CBEF17; font-size:12px; font-weight:900;">✓ VERIFIED</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+    
+          
+          <!-- BUTTON WITH OFFSET -->
+          <tr>
+            <td align="center" style="padding-bottom:60px;">
+              <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 0 auto;">
+                <tr>
+                  <td style="background-color: #FFFFFF; padding: 0;">
+                    <table role="presentation" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td style="background-color: #000000; padding: 0; transform: translate(-8px, -8px);">
+                          <a href="{{.AppURL}}/settings" style="display:inline-block; background-color:#CBEF17; color:#000000 !important; text-decoration:none; font-weight:900; font-size:20px; padding:20px 45px; text-transform:uppercase; letter-spacing:1.5px; border:3px solid #000000;">
+                            MANAGE ACCOUNT
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+    
+        
+
+          <!-- FOOTER LINE -->
+          <tr>
+            <td>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td style="border-top:1px solid #333333; width:35%;"></td>
+                  <td align="center" style="padding:0 10px; font-size:12px; color:#444444; letter-spacing:3px; font-weight:900;">
+                    SUBSCRIPTION_UPDATED
+                  </td>
+                  <td style="border-top:1px solid #333333; width:35%;"></td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- LEGAL -->
+          <tr>
+            <td align="center" style="padding-top:40px;">
+              <p style="margin:0;font-size:11px;color:#444444;line-height:1.6;font-weight:700;letter-spacing:1px;text-transform:uppercase;">
+                ALL NETWORK DATA IS SUBJECT TO COMMUNITY<br/>
+                GUIDELINES. SYSTEM_V4.1.3_STABLE
+              </p>
+              <p style="margin:16px 0 0;font-size:10px;color:#222222;">
+                © {{if .Year}}{{.Year}}{{else}}2024{{end}} {{if .AppName}}{{.AppName}}{{else}}Flicko{{end}} · ALL RIGHTS RESERVED
+              </p>
+            </td>
+          </tr>
+
+        </table>
+
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

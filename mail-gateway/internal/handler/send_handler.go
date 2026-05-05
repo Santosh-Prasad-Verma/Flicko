@@ -31,14 +31,20 @@ type SendRequest struct {
 	// To is the recipient email address
 	To string `json:"to"`
 
-	// Type is the email to send: "welcome" (more types can be added later)
-	Type string `json:"type"`
-
-	// Username is an optional display name shown in the email
+	// Username is the user's display name
 	Username string `json:"username,omitempty"`
+
+	// Type is the email to send: "welcome", "flicko_plus", etc.
+	Type string `json:"type"`
 
 	// AvatarURL is an optional profile picture URL
 	AvatarURL string `json:"avatar_url,omitempty"`
+
+	// TransactionID is the payment reference for receipts
+	TransactionID string `json:"transaction_id,omitempty"`
+
+	// TotalAmount is the formatted price for receipts
+	TotalAmount string `json:"total_amount,omitempty"`
 }
 
 // NewSendHandler creates a new SendHandler. apiKey must match the header
@@ -115,14 +121,16 @@ func (h *SendHandler) HandleSend(w http.ResponseWriter, r *http.Request) {
 		Subject:      subject,
 		TemplateName: templateName,
 		Data: models.EmailData{
-			To:          req.To,
-			Username:    username,
-			AvatarURL:   avatarURL,
-			Subject:     subject,
-			AppName:     h.cfg.AppName,
-			AppURL:      h.cfg.AppURL,
-			MemberSince: time.Now().Format("January 2006"), // e.g. "February 2026"
-			Year:        time.Now().Year(),
+			To:            req.To,
+			Username:      username,
+			AvatarURL:     avatarURL,
+			Subject:       subject,
+			AppName:       h.cfg.AppName,
+			AppURL:        h.cfg.AppURL,
+			MemberSince:   time.Now().Format("January 02, 2006"),
+			TransactionID: req.TransactionID,
+			TotalAmount:   req.TotalAmount,
+			Year:          time.Now().Year(),
 		},
 		CreatedAt: time.Now(),
 	}
@@ -149,10 +157,14 @@ func (h *SendHandler) routeSendType(sendType string) (templateName, subject stri
 	switch sendType {
 	case "welcome":
 		return "welcome",
-			fmt.Sprintf("🎉 Welcome to %s — you're in!", h.cfg.AppName),
+			fmt.Sprintf("Welcome to %s — Let's get started!", h.cfg.AppName),
+			nil
+	case "flicko_plus":
+		return "flicko_plus",
+			fmt.Sprintf("✨ Welcome to %s Plus — You're in!", h.cfg.AppName),
 			nil
 	default:
-		return "", "", fmt.Errorf("unknown send type: %q (supported: welcome)", sendType)
+		return "", "", fmt.Errorf("unknown send type: %q (supported: welcome, flicko_plus)", sendType)
 	}
 }
 

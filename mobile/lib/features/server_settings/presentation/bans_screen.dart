@@ -4,13 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../../core/constants/flicko_colors.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 
-/// Bans Screen
-///
-/// Lists banned members with unban functionality.
-/// Connected to Supabase `server_bans` table with `profiles` join.
 class BansScreen extends ConsumerStatefulWidget {
   final String serverId;
   const BansScreen({super.key, required this.serverId});
@@ -52,6 +47,7 @@ class _BansScreenState extends ConsumerState<BansScreen> {
   }
 
   Future<void> _loadBans() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       final response = await _client
@@ -67,29 +63,34 @@ class _BansScreenState extends ConsumerState<BansScreen> {
           .eq('server_id', widget.serverId)
           .order('created_at', ascending: false);
 
-      setState(() {
-        _bans = (response as List).map((row) {
-          final user = row['banned_user'] as Map<String, dynamic>?;
-          final executor = row['executor'] as Map<String, dynamic>?;
-          return _Ban(
-            id: row['id'] as String? ?? '',
-            userId: row['user_id'] as String,
-            username: user?['display_name'] ?? user?['username'],
-            avatarUrl: user?['avatar_url'],
-            reason: row['reason'],
-            executorName: executor?['display_name'] ?? executor?['username'],
-            bannedAt: row['created_at'] != null
-                ? DateTime.tryParse(row['created_at'])
-                : null,
-          );
-        }).toList();
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _bans = (response as List).map((row) {
+            final user = row['banned_user'] as Map<String, dynamic>?;
+            final executor = row['executor'] as Map<String, dynamic>?;
+            return _Ban(
+              id: row['id'] as String? ?? '',
+              userId: row['user_id'] as String,
+              username: user?['display_name'] ?? user?['username'],
+              avatarUrl: user?['avatar_url'],
+              reason: row['reason'],
+              executorName: executor?['display_name'] ?? executor?['username'],
+              bannedAt: row['created_at'] != null
+                  ? DateTime.tryParse(row['created_at'])
+                  : null,
+            );
+          }).toList();
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading bans: $e')),
+          SnackBar(
+            content: Text('Error loading bans: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
         );
       }
     }
@@ -100,12 +101,14 @@ class _BansScreenState extends ConsumerState<BansScreen> {
       await _client.from('server_bans').delete().eq('id', banId);
 
       // Write audit log
-      final actorId = ref.read(currentUserIdProvider);
-      if (actorId != null) {
+      final authState = ref.read(authNotifierProvider);
+      final currentUser = authState.maybeWhen(authenticated: (u, _) => u, orElse: () => null);
+      
+      if (currentUser != null) {
         final unbannedUser = _bans.firstWhere((b) => b.userId == userId);
         await _client.from('audit_logs').insert({
           'server_id': widget.serverId,
-          'actor_id': actorId,
+          'actor_id': currentUser.id,
           'action_type': 'member_unban',
           'target_type': 'member',
           'target_id': userId,
@@ -121,14 +124,14 @@ class _BansScreenState extends ConsumerState<BansScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('User unbanned'),
-            backgroundColor: Color(FlickoColors.green),
+            backgroundColor: Color(0xFFC8FF00),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.redAccent),
         );
       }
     }
@@ -138,28 +141,28 @@ class _BansScreenState extends ConsumerState<BansScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(FlickoColors.bgSecondary),
+        backgroundColor: const Color(0xFF0D0D0D),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(FlickoRadius.lg),
+          borderRadius: BorderRadius.circular(24),
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
         ),
         title: Text(
-          'Unban ${ban.username ?? 'User'}?',
+          'UNBAN ${ban.username?.toUpperCase() ?? 'USER'}',
           style: GoogleFonts.inter(
-            color: const Color(FlickoColors.textPrimary),
-            fontWeight: FontWeight.w600,
+            color: Colors.white,
+            fontWeight: FontWeight.w900,
+            fontSize: 16,
+            letterSpacing: 1,
           ),
         ),
         content: Text(
           'This user will be able to rejoin the server with a new invite.',
-          style: GoogleFonts.inter(
-            color: const Color(FlickoColors.textSecondary),
-            fontSize: 14,
-          ),
+          style: GoogleFonts.inter(color: Colors.white70, fontSize: 14),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted))),
+            child: Text('CANCEL', style: GoogleFonts.inter(color: Colors.white24, fontWeight: FontWeight.w800)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -167,10 +170,12 @@ class _BansScreenState extends ConsumerState<BansScreen> {
               _unban(ban.id, ban.userId);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(FlickoColors.danger),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(FlickoRadius.md)),
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              elevation: 0,
             ),
-            child: Text('Unban', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600)),
+            child: Text('UNBAN', style: GoogleFonts.inter(fontWeight: FontWeight.w900)),
           ),
         ],
       ),
@@ -201,76 +206,72 @@ class _BansScreenState extends ConsumerState<BansScreen> {
     final filtered = _filteredBans;
 
     return Scaffold(
-      backgroundColor: const Color(FlickoColors.bgPrimary),
+      backgroundColor: Colors.black,
       appBar: AppBar(
-        backgroundColor: const Color(FlickoColors.bgSecondary),
+        backgroundColor: Colors.black,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),
+          icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFFC8FF00), size: 20),
           onPressed: () => context.pop(),
         ),
+        centerTitle: true,
         title: Text(
-          'Bans (${_bans.length})',
+          'BANNED USERS',
           style: GoogleFonts.inter(
-            color: const Color(FlickoColors.textPrimary),
-            fontWeight: FontWeight.w600,
+            color: Colors.white,
+            fontWeight: FontWeight.w900,
+            fontSize: 16,
+            letterSpacing: 2,
           ),
         ),
       ),
       body: Column(
         children: [
-          // ── Search bar ──
-          Container(
-            padding: const EdgeInsets.all(12),
-            color: const Color(FlickoColors.bgSecondary),
-            child: TextField(
-              onChanged: (v) => setState(() => _searchQuery = v),
-              style: GoogleFonts.inter(
-                color: const Color(FlickoColors.textPrimary),
-                fontSize: 14,
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF0D0D0D),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
               ),
-              decoration: InputDecoration(
-                hintText: 'Search banned members...',
-                hintStyle: GoogleFonts.inter(
-                  color: const Color(FlickoColors.textMuted),
-                  fontSize: 14,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: TextField(
+                onChanged: (v) => setState(() => _searchQuery = v),
+                style: GoogleFonts.inter(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+                decoration: InputDecoration(
+                  hintText: 'Search bans...',
+                  hintStyle: GoogleFonts.inter(color: Colors.white24, fontSize: 14),
+                  prefixIcon: const Icon(Icons.search, color: Color(0xFFC8FF00), size: 20),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 16),
                 ),
-                prefixIcon: const Icon(Icons.search, color: Color(FlickoColors.textMuted), size: 20),
-                filled: true,
-                fillColor: const Color(FlickoColors.bgTertiary),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(FlickoRadius.md),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 10),
               ),
             ),
           ),
-
-          // ── Ban list ──
           Expanded(
             child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(color: Color(FlickoColors.blurple)),
-                  )
+                ? const Center(child: CircularProgressIndicator(color: Color(0xFFC8FF00)))
                 : filtered.isEmpty
                     ? Center(
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              _searchQuery.isNotEmpty ? Icons.search_off : Icons.gavel_outlined,
-                              size: 48,
-                              color: const Color(FlickoColors.textMuted),
+                              _searchQuery.isNotEmpty ? Icons.search_off_rounded : Icons.gavel_rounded,
+                              size: 64,
+                              color: Colors.white.withValues(alpha: 0.05),
                             ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 16),
                             Text(
                               _searchQuery.isNotEmpty
-                                  ? 'No bans matching "$_searchQuery"'
-                                  : 'No banned members',
+                                  ? 'NO RESULTS FOR "$_searchQuery"'
+                                  : 'NO BANNED USERS',
                               style: GoogleFonts.inter(
-                                color: const Color(FlickoColors.textMuted),
-                                fontSize: 15,
+                                color: Colors.white24,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 1,
                               ),
                             ),
                           ],
@@ -278,9 +279,10 @@ class _BansScreenState extends ConsumerState<BansScreen> {
                       )
                     : RefreshIndicator(
                         onRefresh: _loadBans,
-                        color: const Color(FlickoColors.blurple),
+                        color: const Color(0xFFC8FF00),
+                        backgroundColor: const Color(0xFF0D0D0D),
                         child: ListView.builder(
-                          padding: const EdgeInsets.all(12),
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
                           itemCount: filtered.length,
                           itemBuilder: (context, index) {
                             final ban = filtered[index];
@@ -296,33 +298,40 @@ class _BansScreenState extends ConsumerState<BansScreen> {
 
   Widget _buildBanTile(_Ban ban) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(FlickoColors.bgSecondary),
-        borderRadius: BorderRadius.circular(FlickoRadius.lg),
+        color: const Color(0xFF0D0D0D),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Row(
         children: [
-          // Avatar
-          CircleAvatar(
-            radius: 20,
-            backgroundColor: const Color(FlickoColors.bgTertiary),
-            backgroundImage: ban.avatarUrl != null ? NetworkImage(ban.avatarUrl!) : null,
-            child: ban.avatarUrl == null
-                ? Text(
-                    (ban.username ?? '?')[0].toUpperCase(),
-                    style: GoogleFonts.inter(
-                      color: const Color(FlickoColors.textMuted),
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: Colors.black,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: ban.avatarUrl != null 
+                ? Image.network(ban.avatarUrl!, fit: BoxFit.cover)
+                : Center(
+                    child: Text(
+                      (ban.username ?? '?')[0].toUpperCase(),
+                      style: GoogleFonts.inter(
+                        color: const Color(0xFFC8FF00),
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
-                  )
-                : null,
+                  ),
+            ),
           ),
-          const SizedBox(width: 14),
-
-          // Name + reason + metadata
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -330,9 +339,9 @@ class _BansScreenState extends ConsumerState<BansScreen> {
                 Text(
                   ban.username ?? 'Unknown User',
                   style: GoogleFonts.inter(
-                    color: const Color(FlickoColors.textPrimary),
+                    color: Colors.white,
                     fontSize: 15,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
                 if (ban.reason != null && ban.reason!.isNotEmpty) ...[
@@ -340,63 +349,72 @@ class _BansScreenState extends ConsumerState<BansScreen> {
                   Text(
                     ban.reason!,
                     style: GoogleFonts.inter(
-                      color: const Color(FlickoColors.textMuted),
+                      color: Colors.white38,
                       fontSize: 12,
+                      fontWeight: FontWeight.w500,
                     ),
-                    maxLines: 2,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    if (ban.executorName != null) ...[
-                      Icon(Icons.person_outline, size: 12, color: const Color(FlickoColors.textMuted).withValues(alpha: 0.7)),
-                      const SizedBox(width: 3),
-                      Text(
-                        'by ${ban.executorName}',
-                        style: GoogleFonts.inter(
-                          color: const Color(FlickoColors.textMuted).withValues(alpha: 0.7),
-                          fontSize: 11,
-                        ),
+                    Icon(Icons.person_outline_rounded, size: 10, color: Colors.white24),
+                    const SizedBox(width: 4),
+                    Text(
+                      'BY ${ban.executorName?.toUpperCase() ?? 'ADMIN'}',
+                      style: GoogleFonts.inter(
+                        color: Colors.white24,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
                       ),
-                    ],
-                    if (ban.bannedAt != null) ...[
-                      if (ban.executorName != null) const SizedBox(width: 8),
-                      Icon(Icons.access_time, size: 12, color: const Color(FlickoColors.textMuted).withValues(alpha: 0.7)),
-                      const SizedBox(width: 3),
-                      Text(
-                        _formatDate(ban.bannedAt),
-                        style: GoogleFonts.inter(
-                          color: const Color(FlickoColors.textMuted).withValues(alpha: 0.7),
-                          fontSize: 11,
-                        ),
+                    ),
+                    const SizedBox(width: 8),
+                    Icon(Icons.access_time_rounded, size: 10, color: Colors.white24),
+                    const SizedBox(width: 4),
+                    Text(
+                      _formatDate(ban.bannedAt).toUpperCase(),
+                      style: GoogleFonts.inter(
+                        color: Colors.white24,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
                       ),
-                    ],
+                    ),
                   ],
                 ),
               ],
             ),
           ),
-
-          // Unban button
-          TextButton(
-            onPressed: () => _confirmUnban(ban),
-            style: TextButton.styleFrom(
-              backgroundColor: const Color(FlickoColors.danger).withValues(alpha: 0.1),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(FlickoRadius.md)),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            ),
-            child: Text(
-              'Unban',
-              style: GoogleFonts.inter(
-                color: const Color(FlickoColors.danger),
-                fontWeight: FontWeight.w600,
-                fontSize: 13,
-              ),
-            ),
-          ),
+          const SizedBox(width: 8),
+          _buildSmallActionButton('UNBAN', () => _confirmUnban(ban), isDanger: true),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSmallActionButton(String label, VoidCallback onTap, {bool isDanger = false}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isDanger ? Colors.redAccent.withValues(alpha: 0.1) : const Color(0xFFC8FF00).withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isDanger ? Colors.redAccent.withValues(alpha: 0.2) : const Color(0xFFC8FF00).withValues(alpha: 0.2),
+          ),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.inter(
+            color: isDanger ? Colors.redAccent : const Color(0xFFC8FF00),
+            fontSize: 10,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 0.5,
+          ),
+        ),
       ),
     );
   }

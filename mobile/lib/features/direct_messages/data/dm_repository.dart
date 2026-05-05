@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:io';
 import 'package:mobile/data/clients/supabase_client.dart';
 import 'package:mobile/features/direct_messages/domain/dm_models.dart';
@@ -30,8 +31,8 @@ class DMRepository {
 
       return (response as List).map((json) => DMMessage.fromJson(json)).toList();
     } catch (e, stack) {
-      print('DEBUG: DMRepository.fetchRecentMessages error: $e');
-      print('DEBUG: StackTrace: $stack');
+      debugPrint('DEBUG: DMRepository.fetchRecentMessages error: $e');
+      debugPrint('DEBUG: StackTrace: $stack');
       rethrow;
     }
   }
@@ -59,9 +60,9 @@ class DMRepository {
       final response = await query.order('created_at', ascending: false).limit(limit);
       return (response as List).map((json) => DMMessage.fromJson(json)).toList();
     } catch (e, stack) {
-      print('DEBUG: DMRepository.fetchMessagesWithPagination error: $e');
-      print('DEBUG: myId: $myId, otherUserId: $otherUserId');
-      print('DEBUG: StackTrace: $stack');
+      debugPrint('DEBUG: DMRepository.fetchMessagesWithPagination error: $e');
+      debugPrint('DEBUG: myId: $myId, otherUserId: $otherUserId');
+      debugPrint('DEBUG: StackTrace: $stack');
       rethrow;
     }
   }
@@ -74,7 +75,7 @@ class DMRepository {
     List<DMAttachment>? attachments,
   }) async {
     try {
-      print('DEBUG: DMRepository.sendMessage sending from $senderId to $recipientId');
+      debugPrint('DEBUG: DMRepository.sendMessage sending from $senderId to $recipientId');
       final response = await _client.from('direct_messages').insert({
         'sender_id': senderId,
         'recipient_id': recipientId,
@@ -84,9 +85,9 @@ class DMRepository {
 
       return DMMessage.fromJson(response);
     } catch (e, stack) {
-      print('DEBUG: DMRepository.sendMessage error: $e');
-      print('DEBUG: Params: senderId=$senderId, recipientId=$recipientId, content=$content');
-      print('DEBUG: StackTrace: $stack');
+      debugPrint('DEBUG: DMRepository.sendMessage error: $e');
+      debugPrint('DEBUG: Params: senderId=$senderId, recipientId=$recipientId, content=$content');
+      debugPrint('DEBUG: StackTrace: $stack');
       rethrow;
     }
   }

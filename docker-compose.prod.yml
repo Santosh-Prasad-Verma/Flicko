@@ -158,12 +158,14 @@ services:
         condition: service_healthy   # Don't start until msg-service is ready
       backend:
         condition: service_healthy
+      mail-gateway:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget --spider -q http://localhost:80/health || exit 1"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80/health"]
       interval: 15s
       timeout: 5s
       retries: 3
-      start_period: 5s
+      start_period: 15s
 
   # ──────────────────────────────────────────────────────────────────────────
   # WS GATEWAY — WebSocket Connection Manager
@@ -185,36 +187,27 @@ services:
     dns:
       - 8.8.8.8
       - 1.1.1.1
+    env_file:
+      - .env.prod
+    volumes:
+      - ./.env.prod:/app/.env:ro
     environment:
-      <<: *common-env
       ENVIRONMENT: "production"
       SERVICE_NAME: "ws-gateway"
       WS_PORT: "8080"
       METRICS_PORT: "9102"
-      REDIS_URL: "${REDIS_URL}"
       JWT_PUBLIC_KEY_PATH: "/run/secrets/jwt_public_key"
-      # ── Connection tuning ─────────────────────────────────────────────
-      MAX_CONNECTIONS: "6000"        # Hard cap (5K target + 20% headroom)
-      READ_BUFFER_SIZE: "1024"       # 1 KB per-conn read buffer
-      WRITE_BUFFER_SIZE: "1024"      # 1 KB per-conn write buffer
-      WRITE_WAIT: "10s"              # Max time to write a frame
-      PONG_WAIT: "60s"               # Client must pong within 60s
-      PING_PERIOD: "54s"             # Server pings every 54s (< pong_wait)
-      MAX_MESSAGE_SIZE: "4096"       # 4 KB max inbound frame
-      SLOW_CONSUMER_TIMEOUT: "5s"    # Drop clients that can't keep up
-      # ── Rate limiting ─────────────────────────────────────────────────
-      RATE_LIMIT_MSG_PER_SEC: "10"   # Per-connection message rate
-      RATE_LIMIT_BURST: "20"         # Burst allowance
     deploy:
       resources:
         limits:
-          memory: 1536M              # 1.5 GB — holds all WS connections
+          memory: 1536M
           cpus: "1.5"
         reservations:
-          memory: 512M               # Guaranteed minimum
+          memory: 512M
     secrets:
       - jwt_public_key
     healthcheck:
+      test: ["CMD-SHELL", "wget -qO /dev/null http://localhost:8080/healthz || exit 1"]
       interval: 10s
       timeout: 3s
       retries: 5
@@ -247,30 +240,17 @@ services:
     dns:
       - 8.8.8.8
       - 1.1.1.1
+    env_file:
+      - .env.prod
+    volumes:
+      - ./.env.prod:/app/.env:ro
+      - dead_letter_data:/data/dead_letter
     environment:
-      <<: *common-env
       ENVIRONMENT: "production"
       SERVICE_NAME: "msg-service"
       HTTP_PORT: "8081"
       METRICS_PORT: "9101"
-      # ── Database (Supabase PostgreSQL via pooler) ─────────────────────
-      DATABASE_URL: "${DATABASE_URL}"
-      DATABASE_POOL_MAX: "20"        # Supabase free tier: ~60 pooler conns
-      DATABASE_POOL_MIN: "5"
-      # ── Redis ─────────────────────────────────────────────────────────
-      REDIS_URL: "${REDIS_URL}"
-      # ── Cloudinary (Media Storage) ────────────────────────────────────
-      CLOUDINARY_CLOUD_NAME: "${CLOUDINARY_CLOUD_NAME}"
-      CLOUDINARY_API_KEY: "${CLOUDINARY_API_KEY}"
-      CLOUDINARY_API_SECRET: "${CLOUDINARY_API_SECRET}"
-      # ── Auth ──────────────────────────────────────────────────────────
       JWT_PUBLIC_KEY_PATH: "/run/secrets/jwt_public_key"
-      # ── Batcher ───────────────────────────────────────────────────────
-      BATCH_INSERT_SIZE: "50"        # Flush at 50 messages
-      BATCH_INSERT_WINDOW: "50ms"    # Or every 50ms, whichever comes first
-      DLQ_DIR: "/data/dead_letter"   # Dead-letter queue directory
-      # ── Idempotency ──────────────────────────────────────────────────
-      IDEMPOTENCY_TTL: "300s"         # 5 min dedup window
     deploy:
       resources:
         limits:
@@ -280,8 +260,6 @@ services:
           memory: 256M
     secrets:
       - jwt_public_key
-    volumes:
-      - dead_letter_data:/data/dead_letter     # Persist DLQ across restarts
     healthcheck:
       test: ["CMD-SHELL", "wget -qO /dev/null http://localhost:8081/healthz || exit 1"]
       interval: 10s
@@ -303,21 +281,14 @@ services:
     dns:
       - 8.8.8.8
       - 1.1.1.1
+    env_file:
+      - .env.prod
+    volumes:
+      - ./.env.prod:/app/.env:ro
     environment:
-      <<: *common-env
       ENVIRONMENT: "production"
       PORT_HTTP: "8080"
       PORT_WS: "8081"
-      DATABASE_URL: "${DATABASE_URL}"
-      REDIS_URL: "${REDIS_URL}"
-      JWT_SECRET: "${JWT_SECRET}"
-      SUPABASE_URL: "${SUPABASE_URL}"
-      SUPABASE_SERVICE_ROLE_KEY: "${SUPABASE_SERVICE_ROLE_KEY}"
-      ENCRYPTION_KEY: "${ENCRYPTION_KEY}"
-      CLOUDINARY_CLOUD_NAME: "${CLOUDINARY_CLOUD_NAME}"
-      CLOUDINARY_API_KEY: "${CLOUDINARY_API_KEY}"
-      CLOUDINARY_API_SECRET: "${CLOUDINARY_API_SECRET}"
-      CLOUDINARY_UPLOAD_PRESET: "${CLOUDINARY_UPLOAD_PRESET:-flickochat_media}"
     deploy:
       resources:
         limits:
@@ -350,32 +321,22 @@ services:
     dns:
       - 8.8.8.8
       - 1.1.1.1
+    env_file:
+      - .env.prod
+    volumes:
+      - ./.env.prod:/app/.env:ro
     environment:
-      <<: *common-env
-      ENVIRONMENT: "production"
+      APP_ENV: "production"
       PORT: "8082"
-      # ── SMTP Configuration ────────────────────────────────────────────
-      SMTP_HOST: "${SMTP_HOST}"
-      SMTP_PORT: "${SMTP_PORT}"
-      SMTP_USER: "${SMTP_USER}"
-      SMTP_PASS: "${SMTP_PASS}"
-      SMTP_FROM: "${SMTP_FROM}"
-      # ── App Configuration ─────────────────────────────────────────────
       APP_NAME: "Flicko"
       APP_URL: "https://flicko.focko.tech"
-      SUPABASE_URL: "${SUPABASE_URL}"
-      WEBHOOK_SECRET: "${WEBHOOK_SECRET}"
-      # ── Queue Configuration ───────────────────────────────────────────
-      QUEUE_SIZE: "1000"             # Max queued emails
-      WORKER_COUNT: "4"              # Concurrent email senders
-      RETRY_MAX: "3"                 # Max retry attempts per email
     deploy:
       resources:
         limits:
-          memory: 256M
-          cpus: "0.5"
+          memory: 512M
+          cpus: "1.0"
         reservations:
-          memory: 128M
+          memory: 256M
     healthcheck:
       test: ["CMD-SHELL", "wget -qO /dev/null http://localhost:8082/health || exit 1"]
       interval: 10s

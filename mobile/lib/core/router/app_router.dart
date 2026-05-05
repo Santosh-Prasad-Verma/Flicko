@@ -11,12 +11,13 @@ import 'package:mobile/features/auth/presentation/screens/register_screen.dart';
 import 'package:mobile/features/auth/presentation/screens/forgot_password_screen.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/home/presentation/servers_screen.dart';
-import 'package:mobile/features/profile/presentation/profile_screen.dart';
+import 'package:mobile/features/profile/presentation/profile_view_screen.dart';
 import 'package:mobile/features/shared/presentation/main_navigation_shell.dart';
 import 'package:mobile/features/server_channels/chat/presentation/screens/chat_screen.dart';
 import 'package:mobile/features/direct_messages/presentation/screens/dm_list_screen.dart';
 import 'package:mobile/features/direct_messages/presentation/screens/dm_chat_screen.dart';
 import 'package:mobile/features/direct_messages/presentation/screens/group_dm_list_screen.dart';
+import 'package:mobile/features/server/presentation/add_space_screen.dart';
 import 'package:mobile/features/server/presentation/create_server_screen.dart';
 import 'package:mobile/features/server/presentation/discover_servers_screen.dart';
 import 'package:mobile/features/server/presentation/server_members_screen.dart';
@@ -37,8 +38,11 @@ import 'package:mobile/features/settings/presentation/server_profiles_screen.dar
 import 'package:mobile/features/settings/presentation/change_email_screen.dart';
 import 'package:mobile/features/settings/presentation/change_username_screen.dart';
 import 'package:mobile/features/settings/presentation/change_password_screen.dart';
+import 'package:mobile/features/settings/presentation/share_profile_screen.dart';
 
 import 'package:mobile/features/premium/presentation/nitro_screen.dart';
+import 'package:mobile/features/premium/presentation/premium_billing_screen.dart';
+import 'package:mobile/features/voice/presentation/sonic_drip_screen.dart';
 
 // Friends
 import 'package:mobile/features/server_settings/presentation/server_settings_hub_screen.dart';
@@ -76,6 +80,12 @@ import 'package:mobile/features/server_settings/presentation/placeholder_setting
 import 'package:mobile/features/server_settings/presentation/onboarding_settings_screen.dart';
 import 'package:mobile/features/server_settings/presentation/stickers_management_screen.dart';
 import 'package:mobile/features/server_settings/presentation/bot_marketplace_screen.dart';
+import 'package:mobile/features/gaming/presentation/screens/gaming_hub_screen.dart';
+import 'package:mobile/features/gaming/presentation/screens/matchmaking_screen.dart';
+import 'package:mobile/features/calling/presentation/incoming_call_screen.dart';
+import 'package:mobile/features/calling/presentation/outgoing_call_screen.dart';
+import 'package:mobile/features/calling/presentation/active_call_screen.dart';
+
 
 import 'package:mobile/features/server_channels/voice/presentation/screens/voice_activities_screen.dart';
 import 'package:mobile/features/server_channels/voice/presentation/screens/voice_channel_screen.dart';
@@ -100,7 +110,7 @@ final _authRefreshNotifier = ValueNotifier<Object?>(null);
 final appRouterProvider = Provider<GoRouter>((ref) {
   // Listen to auth state changes and notify GoRouter to refresh redirects,
   // instead of recreating the entire GoRouter (which disposes all screens).
-  ref.listen(authNotifierProvider, (_, __) {
+  ref.listen(authNotifierProvider, (_, _) {
     _authRefreshNotifier.value = Object();
   });
 
@@ -120,9 +130,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (isSpikeRoute) return null;
 
       return authState.maybeWhen(
-        authenticated: (_, __) => isAuthRoute ? '/' : null,
+        authenticated: (_, _) => isAuthRoute ? '/' : null,
         unauthenticated: () => isAuthRoute ? null : '/login',
-        orElse: () => null,
+        needsVerification: (email, phone, isPhone) => null,
+        error: (_) => isAuthRoute ? null : '/login',
+        orElse: () => isAuthRoute ? null : '/login', // Default to login for initial/loading if not on auth route
       );
     },
     routes: [
@@ -250,9 +262,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/u/@me',
-                pageBuilder: (context, state) => const NoTransitionPage(
-                  child: ProfileScreen(),
-                ),
+                pageBuilder: (context, state) {
+                  final authState = ref.read(authNotifierProvider);
+                  final userId = authState.maybeWhen(
+                    authenticated: (user, _) => user.id,
+                    orElse: () => '',
+                  );
+                  return NoTransitionPage(
+                    child: ProfileViewScreen(userId: userId),
+                  );
+                },
               ),
             ],
           ),
@@ -281,6 +300,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(path: 'change-email', builder: (context, state) => const ChangeEmailScreen()),
           GoRoute(path: 'change-username', builder: (context, state) => const ChangeUsernameScreen()),
           GoRoute(path: 'change-password', builder: (context, state) => const ChangePasswordScreen()),
+          GoRoute(path: 'share-profile', builder: (context, state) => const ShareProfileScreen()),
+          GoRoute(path: 'billing', builder: (context, state) => const PremiumBillingScreen()),
+          GoRoute(path: 'sonic-drip', builder: (context, state) => const SonicDripScreen()),
         ],
       ),
 
@@ -291,7 +313,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/forgot-password', builder: (context, state) => const ForgotPasswordScreen()),
 
       // ── Server Routes ──
-      GoRoute(path: '/server/create', builder: (context, state) => const CreateServerScreen()),
+      GoRoute(path: '/server/create', builder: (context, state) => const AddSpaceScreen()),
+      GoRoute(path: '/server/build', builder: (context, state) => const CreateServerScreen()),
       GoRoute(
         path: '/server/:serverId',
         builder: (context, state) => ServerOverviewScreen(serverId: state.pathParameters['serverId']!),
@@ -363,10 +386,79 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
 
+      // Public User Profile
+      GoRoute(
+        path: '/u/:userId',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => ProfileViewScreen(
+          userId: state.pathParameters['userId']!,
+        ),
+      ),
+
       // Premium
       GoRoute(path: '/premium/nitro', builder: (context, state) => const NitroScreen()),
 
-      // ── Spike / Dev Routes ──
+      // Gaming Hub
+      GoRoute(
+        path: '/gaming',
+        builder: (context, state) => const GamingHubScreen(),
+        routes: [
+          GoRoute(
+            path: 'matchmaking',
+            builder: (context, state) => MatchmakingScreen(
+              activityName: state.uri.queryParameters['activity'] ?? 'Chess',
+            ),
+          ),
+        ],
+      ),
+
+      // Incoming Call
+      GoRoute(
+        path: '/call/incoming',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>? ?? {};
+          return IncomingCallScreen(
+            callerName: extra['callerName'] as String? ?? 'Unknown',
+            callerAvatarUrl: extra['callerAvatarUrl'] as String?,
+            callType: extra['callType'] as String? ?? 'voice',
+            onAccept: extra['onAccept'] as VoidCallback?,
+            onDecline: extra['onDecline'] as VoidCallback?,
+          );
+        },
+      ),
+
+      // Outgoing Call
+      GoRoute(
+        path: '/call/outgoing',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>? ?? {};
+          return OutgoingCallScreen(
+            calleeName: extra['calleeName'] as String? ?? 'Unknown',
+            calleeAvatarUrl: extra['calleeAvatarUrl'] as String?,
+            callType: extra['callType'] as String? ?? 'voice',
+            onCancel: extra['onCancel'] as VoidCallback?,
+            onConnected: extra['onConnected'] as VoidCallback?,
+          );
+        },
+      ),
+
+      // Active Call
+      GoRoute(
+        path: '/call/active',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>? ?? {};
+          return ActiveCallScreen(
+            peerName: extra['peerName'] as String? ?? 'Unknown',
+            peerAvatarUrl: extra['peerAvatarUrl'] as String?,
+            isVideo: extra['isVideo'] as bool? ?? false,
+            onHangUp: extra['onHangUp'] as VoidCallback?,
+          );
+        },
+      ),
+
       GoRoute(path: '/spike', builder: (context, state) => const SpikeDashboardScreen()),
       GoRoute(path: '/spike/livekit', builder: (context, state) => const LiveKitSpikeScreen()),
       GoRoute(path: '/spike/stripe', builder: (context, state) => const StripeSpikeScreen()),

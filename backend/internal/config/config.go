@@ -24,6 +24,10 @@ type Config struct {
 	LiveKitAPIKey      string
 	LiveKitAPISecret   string
 	LiveKitURL         string
+	RazorpayKeyID      string
+	RazorpayKeySecret  string
+	MailGatewayURL     string
+	InternalToken      string
 }
 
 func Load() (*Config, error) {
@@ -122,5 +126,9 @@ func Load() (*Config, error) {
 		LiveKitAPIKey:      os.Getenv("LIVEKIT_API_KEY"),
 		LiveKitAPISecret:   os.Getenv("LIVEKIT_API_SECRET"),
 		LiveKitURL:         os.Getenv("LIVEKIT_URL"),
+		RazorpayKeyID:      os.Getenv("RAZORPAY_KEY_ID"),
+		RazorpayKeySecret:  os.Getenv("RAZORPAY_KEY_SECRET"),
+		MailGatewayURL:     os.Getenv("MAIL_GATEWAY_URL"),
+		InternalToken:      os.Getenv("INTERNAL_TOKEN"),
 	}, nil
 }

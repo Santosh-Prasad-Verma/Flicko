@@ -15,7 +15,7 @@ func TestUserSettingsService_Validation(t *testing.T) {
 	// Verifies that invalid theme values are rejected and proper errors returned.
 
 	ctx := context.Background()
-	mc := &mockCache{store: make(map[string]string)}
+	mc := NewMockCache()
 
 	// We pass nil for DB since validation happens before DB query
 	svc := services.NewUserSettingsService(nil, mc)

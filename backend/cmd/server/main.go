@@ -16,10 +16,12 @@ import (
 	"github.com/flicko-org/flicko-backend/internal/config"
 	"github.com/flicko-org/flicko-backend/internal/database"
 	"github.com/flicko-org/flicko-backend/internal/events"
+	"github.com/flicko-org/flicko-backend/internal/gaming"
 	"github.com/flicko-org/flicko-backend/internal/handlers"
 	"github.com/flicko-org/flicko-backend/internal/middleware"
 	"github.com/flicko-org/flicko-backend/internal/services"
 	"github.com/gorilla/mux"
+	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -256,7 +258,8 @@ func main() {
 	moderationActionsHandler := handlers.NewModerationActionsHandler(db.Pool(), logger)
 	stageHandler := handlers.NewStageHandler(db.Pool(), logger)
 	voiceAdminHandler := handlers.NewVoiceAdminHandler(db.Pool(), logger)
-	premiumHandler := handlers.NewPremiumHandler(db.Pool(), logger)
+	mailService := services.NewMailService(cfg.MailGatewayURL, cfg.InternalToken, logger)
+	premiumHandler := handlers.NewPremiumHandler(db.Pool(), logger, mailService, cfg.RazorpayKeyID, cfg.RazorpayKeySecret)
 	appInstallHandler := handlers.NewAppInstallHandler(db.Pool(), logger)
 	interactionsHandler := handlers.NewInteractionsHandler(db.Pool(), logger)
 	appDirectoryHandler := handlers.NewAppDirectoryHandler(db.Pool(), logger)
@@ -325,6 +328,8 @@ func main() {
 	protected.HandleFunc("/premium/boost-credits/apply", premiumHandler.ApplyBoostCredit).Methods("POST")
 	protected.HandleFunc("/premium/cosmetics", premiumHandler.ListCosmetics).Methods("GET")
 	protected.HandleFunc("/profile/cosmetics/apply", premiumHandler.ApplyCosmetic).Methods("POST")
+	protected.HandleFunc("/premium/orders", premiumHandler.CreateOrder).Methods("POST")
+	protected.HandleFunc("/premium/verify", premiumHandler.VerifyPayment).Methods("POST")
 	protected.HandleFunc("/apps/{id}/oauth/authorize", appInstallHandler.AuthorizeApp).Methods("GET")
 	protected.HandleFunc("/apps/{id}/install/callback", appInstallHandler.InstallCallback).Methods("POST")
 	protected.HandleFunc("/apps/{id}/installs/{installId}/permissions", appInstallHandler.UpdateInstallPermissions).Methods("PATCH")
@@ -339,6 +344,12 @@ func main() {
 	internalRouter := api.PathPrefix("/").Subrouter()
 	internalRouter.Use(middleware.InternalAuth)
 	internalRouter.HandleFunc("/parity/status", parityHandler.GetParityStatus).Methods("GET")
+
+	// ── Gaming Hub Initialization ───────────────────────────────────────────
+	hub, err := gaming.Initialize(context.Background(), logger, db.Pool(), redisCache.GetRedisClient().(*redis.Client), r)
+	if err != nil {
+		logger.Fatal("failed to initialize gaming hub", zap.Error(err))
+	}
 
 	// Custom Emojis
 	emojiHandler := handlers.NewEmojiHandler(db.Pool(), logger)
@@ -413,7 +424,11 @@ func main() {
 
 	// Shutdown bots first
 	registry.ShutdownAll()
-	logger.Info("bots shut down")
+	
+	// Shutdown gaming hub
+	hub.Shutdown()
+	
+	logger.Info("bots and gaming hub shut down")
 
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer shutdownCancel()

@@ -2,7 +2,7 @@
 CREATE TABLE IF NOT EXISTS public.external_bots (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     server_id UUID NULL REFERENCES public.servers(id) ON DELETE CASCADE,
-    creator_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    creator_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
     description TEXT,
     webhook_url TEXT NOT NULL,

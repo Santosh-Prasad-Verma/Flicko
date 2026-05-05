@@ -1,4 +1,4 @@
-import 'package:flutter_riverpod/legacy.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:livekit_client/livekit_client.dart' hide ParticipantState;
 import 'package:mobile/data/services/livekit_service.dart';
 import 'package:mobile/features/server_channels/shared/models/participant_state.dart';

@@ -1,122 +1,149 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Complete your {{.AppName}} security check</title>
+  <title>REAUTHENTICATE SESSION</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #000000;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      color: #FFFFFF;
+      -webkit-font-smoothing: antialiased;
+    }
+  </style>
 </head>
-
-<body style="margin:0;padding:0;background-color:#0f1115;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#dcddde;">
+<body style="margin:0;padding:0;background-color:#000000;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Open Sans','Helvetica Neue',sans-serif;color:#FFFFFF;">
   <div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;">
-    Complete the security check for your {{.AppName}} account.
+    Re-authenticate your Flicko session.
   </div>
 
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;background-color:#0f1115;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;background-color:#000000; background-image: radial-gradient(circle at 1px 1px, #1a1a1a 1px, transparent 0); background-size: 24px 24px;">
     <tr>
-      <td align="center" style="padding:28px 16px;">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:620px;background-color:#18191c;border:1px solid #313338;border-radius:28px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,0.45);">
+      <td align="center" style="padding:40px 16px;">
+        
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:500px;background-color:#000000;">
+          
+          
+          <!-- LOGO -->
           <tr>
-            <td style="padding:14px 14px 0;background-color:#18191c;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:linear-gradient(135deg,#f0b232 0%,#d69e2e 100%);border-radius:22px;">
+            <td align="center" style="padding-bottom:40px;">
+              {{if .LogoURL}}
+                <img src="{{.LogoURL}}" alt="Flicko Logo" width="60" style="display:block;" />
+              {{else}}
+                
+                <svg width="60" height="60" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+                  <path d="M18 12H46V24H34V34H46V46H18V12Z" fill="#CBEF17"/>
+                  <path d="M24 18H40V24H24V18Z" fill="white"/>
+                  <path d="M24 34H40V40H24V34Z" fill="white"/>
+                </svg>
+
+              {{end}}
+            </td>
+          </tr>
+
+          <!-- HEADING -->
+          <tr>
+            <td align="center" style="padding-bottom:12px;">
+              <h1 style="margin:0;font-size:48px;font-weight:900;line-height:1;letter-spacing:-2px;text-transform:uppercase;color:#FFFFFF;">
+                REAUTHENTICATE<br/>SESSION
+              </h1>
+            </td>
+          </tr>
+
+          <!-- SUBHEADING -->
+          <tr>
+            <td align="center" style="padding-bottom:48px;">
+              <p style="margin:0;font-size:15px;font-weight:700;color:#888888;letter-spacing:1px;text-transform:uppercase;">
+                PLEASE CONFIRM YOUR IDENTITY TO CONTINUE YOUR SESSION.
+              </p>
+            </td>
+          </tr>
+
+          <!-- CONTENT -->
+          
+          
+          {{if .Token}}
+          <!-- TOKEN LABEL -->
+          <tr>
+            <td align="center" style="padding-bottom:16px;">
+              <p style="margin:0;font-size:14px;font-weight:900;color:#FFFFFF;letter-spacing:1px;text-transform:uppercase;">
+                YOUR VERIFICATION CODE
+              </p>
+            </td>
+          </tr>
+
+          <!-- TOKEN DISPLAY (Brutalist Style) -->
+          <tr>
+            <td align="center" style="padding-bottom:48px;">
+              <div style="display:inline-block; border: 3px solid #333333; background-color: #0d0d0d; padding: 20px 30px;">
+                <span style="font-family: 'Courier New', Courier, monospace; font-size: 42px; font-weight: 900; color: #CBEF17; letter-spacing: 12px; margin-right: -12px;">
+                  {{ .Token }}
+                </span>
+              </div>
+            </td>
+          </tr>
+          {{end}}
+    
+          
+          <!-- BUTTON WITH OFFSET -->
+          <tr>
+            <td align="center" style="padding-bottom:60px;">
+              <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 0 auto;">
                 <tr>
-                  <td style="padding:28px 28px 30px;">
+                  <td style="background-color: #FFFFFF; padding: 0;">
                     <table role="presentation" cellspacing="0" cellpadding="0">
                       <tr>
-                        <td style="width:54px;vertical-align:middle;">
-                          {{template "brand_mark" .}}
-                        </td>
-                        <td style="padding-left:14px;vertical-align:middle;">
-                          <p style="margin:0;color:#ffffff;font-size:28px;line-height:1;font-weight:800;letter-spacing:-0.04em;">
-                            {{.AppName}}
-                          </p>
-                          <p style="margin:6px 0 0;color:rgba(255,255,255,0.82);font-size:12px;line-height:1.4;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;">
-                            Security Check
-                          </p>
+                        <td style="background-color: #000000; padding: 0; transform: translate(-8px, -8px);">
+                          <a href="{{.ActionURL}}" style="display:inline-block; background-color:#CBEF17; color:#000000 !important; text-decoration:none; font-weight:900; font-size:20px; padding:20px 45px; text-transform:uppercase; letter-spacing:1.5px; border:3px solid #000000;">
+                            CONFIRM IDENTITY
+                          </a>
                         </td>
                       </tr>
                     </table>
-                    <h1 style="margin:22px 0 10px;color:#ffffff;font-size:34px;line-height:1.12;font-weight:800;letter-spacing:-0.03em;">
-                      Confirm it's you
-                    </h1>
-                    <p style="margin:0;max-width:470px;color:rgba(255,255,255,0.9);font-size:16px;line-height:1.7;">
-                      A protected action on your {{.AppName}} account needs one more confirmation before it can continue.
-                    </p>
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
+    
+        
 
+          <!-- FOOTER LINE -->
           <tr>
-            <td style="padding:34px 36px 18px;background-color:#18191c;">
-              <p style="margin:0 0 14px;color:#ffffff;font-size:16px;line-height:1.7;">Hi {{.Username}},</p>
-              <p style="margin:0 0 24px;color:#b9bbbe;font-size:15px;line-height:1.8;">
-                Continue below to complete the security check. This link should only be used by the owner of the account.
-              </p>
-
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:24px;background-color:#202225;border:1px solid #313338;border-radius:18px;">
+            <td>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
                 <tr>
-                  <td style="padding:22px 22px 20px;">
-                    <p style="margin:0 0 8px;color:#ffffff;font-size:13px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;">Account email</p>
-                    <p style="margin:0;color:#dcddde;font-size:15px;line-height:1.7;word-break:break-all;">{{.To}}</p>
+                  <td style="border-top:1px solid #333333; width:35%;"></td>
+                  <td align="center" style="padding:0 10px; font-size:12px; color:#444444; letter-spacing:3px; font-weight:900;">
+                    SECURITY_CHECK
                   </td>
-                </tr>
-              </table>
-
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:18px;">
-                <tr>
-                  <td align="center">
-                    <a href="{{.ActionURL}}" target="_blank" style="display:inline-block;background-color:#f0b232;border-radius:14px;color:#ffffff;font-size:16px;font-weight:700;line-height:20px;padding:16px 30px;text-decoration:none;box-shadow:0 12px 28px rgba(240,178,50,0.28);">
-                      Continue Securely
-                    </a>
-                  </td>
-                </tr>
-              </table>
-
-              {{if .ValidFor}}
-              <p style="margin:0 0 24px;color:#8e9297;font-size:13px;line-height:1.6;text-align:center;">
-                This link expires in <strong style="color:#ffffff;">{{.ValidFor}}</strong>.
-              </p>
-              {{end}}
-
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:24px;background-color:#202225;border:1px solid #313338;border-radius:18px;">
-                <tr>
-                  <td style="padding:20px 22px;">
-                    <p style="margin:0 0 8px;color:#ffffff;font-size:13px;font-weight:700;">Open link directly</p>
-                    <p style="margin:0;word-break:break-all;font-size:13px;line-height:1.7;">
-                      <a href="{{.ActionURL}}" target="_blank" style="color:#f6dc98;text-decoration:none;">{{.ActionURL}}</a>
-                    </p>
-                  </td>
-                </tr>
-              </table>
-
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:14px;background-color:#362d18;border:1px solid #5f4a1d;border-radius:18px;">
-                <tr>
-                  <td style="padding:18px 20px;">
-                    <p style="margin:0;color:#f6dc98;font-size:13px;line-height:1.7;">
-                      If you did not initiate this action, ignore this email and review your recent account activity.
-                    </p>
-                  </td>
+                  <td style="border-top:1px solid #333333; width:35%;"></td>
                 </tr>
               </table>
             </td>
           </tr>
 
+          <!-- LEGAL -->
           <tr>
-            <td style="padding:24px 36px 30px;background-color:#18191c;border-top:1px solid #2a2d31;">
-              <p style="margin:0 0 6px;color:#8e9297;font-size:12px;line-height:1.6;">
-                This email was sent because a security-sensitive action was requested for {{.AppName}}.
+            <td align="center" style="padding-top:40px;">
+              <p style="margin:0;font-size:11px;color:#444444;line-height:1.6;font-weight:700;letter-spacing:1px;text-transform:uppercase;">
+                ALL NETWORK DATA IS SUBJECT TO COMMUNITY<br/>
+                GUIDELINES. SYSTEM_V4.1.3_STABLE
               </p>
-              <p style="margin:0;color:#6d727a;font-size:12px;line-height:1.6;">
-                <a href="{{.AppURL}}" target="_blank" style="color:#f6dc98;text-decoration:none;">{{.AppURL}}</a> · © {{.Year}} {{.AppName}}
+              <p style="margin:16px 0 0;font-size:10px;color:#222222;">
+                © {{if .Year}}{{.Year}}{{else}}2024{{end}} {{if .AppName}}{{.AppName}}{{else}}Flicko{{end}} · ALL RIGHTS RESERVED
               </p>
             </td>
           </tr>
+
         </table>
+
       </td>
     </tr>
   </table>
 </body>
-
 </html>

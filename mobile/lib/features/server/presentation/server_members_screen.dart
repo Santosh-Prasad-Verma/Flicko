@@ -151,7 +151,7 @@ class _ServerMembersScreenState extends ConsumerState<ServerMembersScreen> {
   Widget build(BuildContext context) {
     final grouped = _groupedMembers;
     return Scaffold(
-      backgroundColor: const Color(FlickoColors.bgPrimary),
+      
       body: SafeArea(
         child: Column(
           children: [

@@ -12,6 +12,7 @@ import (
 
 type PermissionService interface {
 	HasPermission(ctx context.Context, userID uuid.UUID, channelID uuid.UUID, permissionName string) (bool, error)
+	HasServerPermission(ctx context.Context, userID uuid.UUID, serverID uuid.UUID, permissionName string) (bool, error)
 	InvalidatePermissionCache(ctx context.Context, userID uuid.UUID, channelID uuid.UUID) error
 }
 
@@ -55,6 +56,37 @@ func (s *permissionService) HasPermission(ctx context.Context, userID uuid.UUID,
 	if err != nil {
 		// Log cache error, but don't fail the permission check
 		fmt.Printf("warning: failed to cache permission: %v\n", err)
+	}
+
+	return hasPerm, nil
+}
+
+// HasServerPermission checks if a user has a specific permission at the server level.
+func (s *permissionService) HasServerPermission(ctx context.Context, userID uuid.UUID, serverID uuid.UUID, permissionName string) (bool, error) {
+	cacheKey := fmt.Sprintf("perm_srv:%s:%s:%s", userID.String(), serverID.String(), permissionName)
+
+	// 1. Try Cache First
+	hasPermStr, err := s.redis.Get(ctx, cacheKey)
+	if err == nil && hasPermStr != "" {
+		return hasPermStr == "true", nil
+	}
+
+	// 2. Cache Miss: Query DB (uses the has_server_permission SQL function)
+	var hasPerm bool
+	err = s.db.QueryRow(ctx, "SELECT public.has_server_permission($1, $2, $3)", userID, serverID, permissionName).Scan(&hasPerm)
+	if err != nil {
+		return false, fmt.Errorf("failed to calculate server permission: %w", err)
+	}
+
+	// 3. Cache Result
+	permStr := "false"
+	if hasPerm {
+		permStr = "true"
+	}
+
+	err = s.redis.Set(ctx, cacheKey, permStr, 5*time.Minute)
+	if err != nil {
+		fmt.Printf("warning: failed to cache server permission: %v\n", err)
 	}
 
 	return hasPerm, nil

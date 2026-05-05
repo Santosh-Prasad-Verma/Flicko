@@ -23,7 +23,7 @@ class MessageThreadService {
       final response = await _dio.post(
         '$_apiBaseUrl/messages/$messageId/thread',
         data: {
-          'title': ?title,
+          if (title != null) 'title': title,
         },
       );
 

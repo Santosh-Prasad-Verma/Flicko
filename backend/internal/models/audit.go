@@ -20,7 +20,12 @@ const (
 	ActionPermissionOverwriteCreate AuditLogAction = "permission_overwrite_create"
 	ActionPermissionOverwriteUpdate AuditLogAction = "permission_overwrite_update"
 	ActionPermissionOverwriteDelete AuditLogAction = "permission_overwrite_delete"
-	ActionMessageCrosspost         AuditLogAction = "message_crosspost"
+	ActionMessageCrosspost          AuditLogAction = "message_crosspost"
+	ActionServerCreate              AuditLogAction = "server_create"
+	ActionServerUpdate              AuditLogAction = "server_update"
+	ActionServerDelete              AuditLogAction = "server_delete"
+	ActionMemberJoin                AuditLogAction = "member_join"
+	ActionMemberLeave               AuditLogAction = "member_leave"
 )
 
 type AuditLog struct {

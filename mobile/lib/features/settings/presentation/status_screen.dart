@@ -72,7 +72,7 @@ class _StatusScreenState extends ConsumerState<StatusScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(FlickoColors.bgPrimary),
+      
       appBar: AppBar(
         backgroundColor: const Color(FlickoColors.bgSecondary),
         elevation: 0,
@@ -368,9 +368,6 @@ class _StatusScreenState extends ConsumerState<StatusScreen> {
 
       await repository.updateProfile(user.id, updates);
       
-      // Refresh auth state to show new status everywhere
-      ref.invalidate(authNotifierProvider);
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -380,6 +377,9 @@ class _StatusScreenState extends ConsumerState<StatusScreen> {
           ),
         );
         context.pop();
+        Future.microtask(() {
+          ref.invalidate(authNotifierProvider);
+        });
       }
     } catch (e) {
       if (mounted) {

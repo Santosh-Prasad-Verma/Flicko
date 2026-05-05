@@ -28,7 +28,7 @@ This PR adds a production-ready mail gateway service with SMTP support and migra
 - ✅ Complete Flutter 3.22+ mobile app implementation
 - ✅ 86 production-ready screens
 - ✅ 50+ Riverpod providers for state management
-- ✅ Clerk authentication integration
+- ✅ Supabase authentication integration
 - ✅ LiveKit WebRTC for voice/video
 - ✅ Appwrite Storage for media uploads
 - ✅ Stripe payment integration
@@ -97,11 +97,11 @@ Configure in Supabase Dashboard:
 - **Events**: `auth.signup`, `auth.recovery`, `auth.magiclink`, `auth.email_change`
 - **Secret**: Same as `WEBHOOK_SECRET`
 
-### 3. Clerk OAuth Configuration
+### 3. Supabase Auth Configuration
 
-- Enable custom credentials in Clerk Dashboard
-- Add Google OAuth client ID and secret
-- Configure redirect URI: `https://casual-oyster-66.clerk.accounts.dev/v1/oauth_callback`
+- Enable Google and GitHub OAuth in Supabase Dashboard
+- Configure redirect URIs for mobile and web
+- Set up email templates in Supabase Auth settings
 
 ## 🚀 Deployment Steps
 

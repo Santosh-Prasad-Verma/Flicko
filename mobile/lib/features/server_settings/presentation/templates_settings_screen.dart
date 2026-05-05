@@ -344,9 +344,9 @@ class _TemplatesSettingsScreenState extends ConsumerState<TemplatesSettingsScree
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(FlickoColors.bgPrimary),
+      
       appBar: AppBar(
-        backgroundColor: const Color(FlickoColors.bgPrimary),
+        
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),

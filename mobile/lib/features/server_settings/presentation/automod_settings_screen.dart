@@ -137,7 +137,7 @@ class _AutomodSettingsScreenState extends ConsumerState<AutomodSettingsScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: const Color(FlickoColors.bgPrimary),
+        
         appBar: AppBar(
           backgroundColor: const Color(FlickoColors.bgSecondary),
           elevation: 0,
@@ -159,7 +159,7 @@ class _AutomodSettingsScreenState extends ConsumerState<AutomodSettingsScreen> {
 
 
     return Scaffold(
-      backgroundColor: const Color(FlickoColors.bgPrimary),
+      
       appBar: AppBar(
         backgroundColor: const Color(FlickoColors.bgSecondary),
         elevation: 0,
