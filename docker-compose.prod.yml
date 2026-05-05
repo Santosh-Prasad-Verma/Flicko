@@ -161,11 +161,11 @@ services:
       mail-gateway:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget --spider -q http://localhost:80/health || exit 1"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80/health"]
       interval: 15s
       timeout: 5s
       retries: 3
-      start_period: 5s
+      start_period: 15s
 
   # ──────────────────────────────────────────────────────────────────────────
   # WS GATEWAY — WebSocket Connection Manager

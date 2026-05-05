@@ -57,6 +57,18 @@ type EmailData struct {
 	// MemberSince is the join date shown in the welcome email (e.g. "February 2026")
 	MemberSince string
 
+        // LogoURL is the URL for the app or server logo
+        LogoURL string
+
+	// TransactionID is the payment reference (e.g. "ch_3Nabc...")
+	TransactionID string
+
+	// TotalAmount is the formatted price paid (e.g. "$9.99")
+	TotalAmount string
+
+	// Token is the verification code (e.g. "816327")
+	Token string
+
 	// Year is the current year for copyright notices
 	Year int
 }

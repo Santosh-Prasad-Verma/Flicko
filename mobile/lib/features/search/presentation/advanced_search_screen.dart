@@ -79,9 +79,9 @@ class _AdvancedSearchScreenState extends ConsumerState<AdvancedSearchScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(FlickoColors.bgPrimary),
+      
       appBar: AppBar(
-        backgroundColor: const Color(FlickoColors.bgPrimary),
+        
         elevation: 0,
         title: Text(
           'Search Messages',

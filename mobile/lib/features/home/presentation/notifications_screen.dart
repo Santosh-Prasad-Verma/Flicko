@@ -27,7 +27,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     final textTheme = theme.textTheme;
 
     return Scaffold(
-      backgroundColor: const Color(FlickoColors.bgPrimary),
+      
       body: SafeArea(
         child: Column(
           children: [

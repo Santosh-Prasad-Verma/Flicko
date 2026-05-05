@@ -1,11 +1,10 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
+import 'package:mobile/features/shared/presentation/widgets/brutalist_widgets.dart';
 
-/// Forgot Password Screen — Premium Discord-inspired with Supabase
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
   const ForgotPasswordScreen({super.key});
 
@@ -27,25 +26,36 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> wit
   bool _isLoading = false;
   bool _emailSent = false;
 
+  // Design Tokens
+  static const kBackgroundColor = Color(0xFF050505);
+  static const kSurfaceColor = Color(0xFF0C0C0E);
+  static const kAccentColor = Color(0xFFC0F500); // Neon Lime
+  static const kMutedColor = Color(0xFF71717A);
+  static const kPrimaryTextColor = Color(0xFFFBF9FA);
+  static const kErrorColor = Color(0xFFFF4B4B);
+  static const kSuccessColor = Color(0xFF23A559);
+
   @override
   void initState() {
     super.initState();
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1000),
+      duration: const Duration(milliseconds: 800),
     );
     _fadeAnimation = CurvedAnimation(
       parent: _animationController,
       curve: Curves.easeIn,
     );
     _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.1),
+      begin: const Offset(0, 0.05),
       end: Offset.zero,
     ).animate(CurvedAnimation(
       parent: _animationController,
       curve: Curves.easeOutCubic,
     ));
     _animationController.forward();
+
+    _emailFocusNode.addListener(() => setState(() {}));
   }
 
   @override
@@ -70,10 +80,10 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> wit
 
     final trimmedEmail = _emailController.text.trim();
     if (trimmedEmail.isEmpty) {
-      setState(() => _emailError = 'Email is required');
+      setState(() => _emailError = 'EMAIL IS REQUIRED');
       return false;
     } else if (!_validateEmail(trimmedEmail)) {
-      setState(() => _emailError = 'Enter a valid email address');
+      setState(() => _emailError = 'INVALID EMAIL FORMAT');
       return false;
     }
 
@@ -90,16 +100,14 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> wit
 
     try {
       final sanitizedEmail = _emailController.text.trim().toLowerCase();
-      
       await ref.read(authNotifierProvider.notifier).resetPassword(sanitizedEmail);
 
       setState(() {
         _emailSent = true;
-        _successMessage = 'Check your email! We\'ve sent a link to reset your password.';
+        _successMessage = 'CHECK YOUR EMAIL! WE\'VE SENT A LINK TO RESET YOUR PASSWORD.';
       });
     } catch (e) {
-      debugPrint('Forgot password error: $e');
-      setState(() => _generalError = 'Failed to send reset email. Please try again.');
+      setState(() => _generalError = 'FAILED TO SEND RESET EMAIL. PLEASE TRY AGAIN.');
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -110,211 +118,158 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> wit
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: [
-          // Background Gradient
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFF1E1F22),
-                  Color(0xFF2B2D31),
-                  Color(0xFF1E1F22),
-                ],
-              ),
-            ),
-          ),
-          
-          SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: SlideTransition(
-                    position: _slideAnimation,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Logo & Brand
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.center,
+      backgroundColor: kBackgroundColor,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: SlideTransition(
+                position: _slideAnimation,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Brand Logo
+                    Hero(
+                      tag: 'app_logo',
+                      child: Image.asset(
+                        'assets/branding/Flicko-for-black-background.png',
+                        width: 48,
+                        height: 48,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) => const Icon(
+                          Icons.flash_on,
+                          color: kAccentColor,
+                          size: 40,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+
+                    Text(
+                      'FORGOT\nPASSWORD?',
+                      style: GoogleFonts.epilogue(
+                        color: kPrimaryTextColor,
+                        fontSize: 48,
+                        fontWeight: FontWeight.w900,
+                        height: 0.9,
+                        letterSpacing: -2,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      "ENTER YOUR EMAIL TO RECEIVE A RESET LINK",
+                      style: GoogleFonts.spaceGrotesk(
+                        color: kMutedColor,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+
+                    if (_generalError != null) ...[
+                      BrutalistCard(
+                        backgroundColor: kErrorColor.withOpacity(0.1),
+                        borderColor: kErrorColor,
+                        shadowColor: kErrorColor,
+                        shadowOffset: const Offset(4, 4),
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
                           children: [
-                            Hero(
-                              tag: 'app_logo',
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(16),
-                                child: Image.asset(
-                                  'assets/images/Flicko-con-without-background.png',
-                                  width: 60,
-                                  height: 60,
-                                  fit: BoxFit.contain,
-                                  errorBuilder: (context, error, stackTrace) => Container(
-                                    width: 60,
-                                    height: 60,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF5865F2),
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                    child: const Icon(Icons.flash_on, color: Colors.white, size: 30),
-                                  ),
+                            const Icon(Icons.error_outline, color: kErrorColor, size: 20),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                _generalError!.toUpperCase(),
+                                style: GoogleFonts.spaceGrotesk(
+                                  color: kErrorColor,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
                                 ),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Text(
-                              'Flicko',
-                              style: GoogleFonts.inter(
-                                color: Colors.white,
-                                fontSize: 32,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: -1,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 32),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
 
-                        // Card
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(24),
-                          child: BackdropFilter(
-                            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                            child: Container(
-                              padding: const EdgeInsets.all(24),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.05),
-                                borderRadius: BorderRadius.circular(24),
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.1),
-                                  width: 1,
-                                ),
+                    if (_emailSent) ...[
+                      BrutalistCard(
+                        backgroundColor: kSuccessColor.withOpacity(0.1),
+                        borderColor: kSuccessColor,
+                        shadowColor: kSuccessColor,
+                        shadowOffset: const Offset(4, 4),
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          children: [
+                            const Icon(Icons.check_circle_outline, color: kSuccessColor, size: 48),
+                            const SizedBox(height: 16),
+                            Text(
+                              _successMessage!,
+                              style: GoogleFonts.spaceGrotesk(
+                                color: kSuccessColor,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
                               ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Forgot password?',
-                                    style: GoogleFonts.inter(
-                                      color: Colors.white,
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    "Enter your email to receive a password reset link.",
-                                    style: GoogleFonts.inter(color: const Color(0xFFB9BBBE), fontSize: 14),
-                                  ),
-                                  const SizedBox(height: 24),
-
-                                  if (_generalError != null) ...[
-                                    Container(
-                                      padding: const EdgeInsets.all(12),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFDA373C).withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(color: const Color(0xFFDA373C).withValues(alpha: 0.3)),
-                                      ),
-                                      child: Text(
-                                        _generalError!,
-                                        style: GoogleFonts.inter(color: const Color(0xFFDA373C), fontSize: 13),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 16),
-                                  ],
-
-                                  if (_emailSent) ...[
-                                    Container(
-                                      padding: const EdgeInsets.all(16),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF23A559).withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(color: const Color(0xFF23A559).withValues(alpha: 0.3)),
-                                      ),
-                                      child: Column(
-                                        children: [
-                                          const Icon(Icons.check_circle_outline, color: Color(0xFF23A559), size: 40),
-                                          const SizedBox(height: 12),
-                                          Text(
-                                            _successMessage!,
-                                            style: GoogleFonts.inter(color: const Color(0xFF23A559), fontSize: 15, fontWeight: FontWeight.w600),
-                                            textAlign: TextAlign.center,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(height: 24),
-                                    SizedBox(
-                                      width: double.infinity,
-                                      height: 52,
-                                      child: ElevatedButton(
-                                        onPressed: () => context.pop(),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: const Color(0xFF5865F2),
-                                          foregroundColor: Colors.white,
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                        ),
-                                        child: Text('Done', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700)),
-                                      ),
-                                    ),
-                                  ] else ...[
-                                    _buildInput(
-                                      label: 'EMAIL',
-                                      placeholder: 'name@example.com',
-                                      controller: _emailController,
-                                      focusNode: _emailFocusNode,
-                                      error: _emailError,
-                                      keyboardType: TextInputType.emailAddress,
-                                      icon: Icons.alternate_email,
-                                    ),
-                                    const SizedBox(height: 8),
-                                    SizedBox(
-                                      width: double.infinity,
-                                      height: 52,
-                                      child: ElevatedButton(
-                                        onPressed: _isLoading ? null : _handleSendReset,
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: const Color(0xFF5865F2),
-                                          foregroundColor: Colors.white,
-                                          disabledBackgroundColor: const Color(0xFF5865F2).withValues(alpha: 0.5),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                          elevation: 0,
-                                        ),
-                                        child: _isLoading
-                                            ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.5, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)))
-                                            : Text('Send Link', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700)),
-                                      ),
-                                    ),
-                                  ],
-
-                                  const SizedBox(height: 24),
-
-                                  Center(
-                                    child: TextButton(
-                                      onPressed: () => context.pop(),
-                                      child: Text(
-                                        'Back to Login',
-                                        style: GoogleFonts.inter(color: const Color(0xFF5865F2), fontSize: 14, fontWeight: FontWeight.w700),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                              textAlign: TextAlign.center,
                             ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      BrutalistButton(
+                        text: 'DONE',
+                        onTap: () => context.pop(),
+                        color: kAccentColor,
+                        shadowColor: kPrimaryTextColor,
+                      ),
+                    ] else ...[
+                      _buildInput(
+                        label: 'EMAIL ADDRESS',
+                        placeholder: 'NAME@EXAMPLE.COM',
+                        controller: _emailController,
+                        focusNode: _emailFocusNode,
+                        error: _emailError,
+                        keyboardType: TextInputType.emailAddress,
+                      ),
+                      const SizedBox(height: 24),
+                      BrutalistButton(
+                        text: 'SEND RESET LINK',
+                        onTap: _handleSendReset,
+                        isLoading: _isLoading,
+                        color: kAccentColor,
+                        shadowColor: kPrimaryTextColor,
+                      ),
+                    ],
+
+                    const SizedBox(height: 32),
+
+                    Center(
+                      child: TextButton(
+                        onPressed: () => context.pop(),
+                        style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                        child: Text(
+                          'BACK TO LOGIN',
+                          style: GoogleFonts.spaceGrotesk(
+                            color: kMutedColor,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
-                      ],
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 40),
+                    const BrutalistLegalFooter(),
+                  ],
                 ),
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -324,68 +279,74 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> wit
     required String placeholder,
     required TextEditingController controller,
     required FocusNode focusNode,
-    IconData? icon,
     String? error,
     TextInputType? keyboardType,
   }) {
+    final hasFocus = focusNode.hasFocus;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 8),
-          child: Text(
-            label,
-            style: GoogleFonts.inter(
-              color: error != null ? const Color(0xFFDA373C) : const Color(0xFFB9BBBE).withValues(alpha: 0.7),
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.2,
-            ),
+        Text(
+          label,
+          style: GoogleFonts.spaceGrotesk(
+            color: error != null ? kErrorColor : (hasFocus ? kAccentColor : kMutedColor),
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.5,
           ),
         ),
+        const SizedBox(height: 10),
         Container(
           decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(16),
+            color: kSurfaceColor,
             border: Border.all(
               color: error != null 
-                  ? const Color(0xFFDA373C).withValues(alpha: 0.5) 
-                  : focusNode.hasFocus 
-                      ? const Color(0xFF5865F2).withValues(alpha: 0.5)
-                      : Colors.white.withValues(alpha: 0.05),
-              width: 1.5,
+                  ? kErrorColor 
+                  : (hasFocus ? kAccentColor : Colors.white.withOpacity(0.05)),
+              width: 2,
             ),
+            boxShadow: hasFocus ? [
+              const BoxShadow(
+                color: kAccentColor,
+                offset: Offset(4, 4),
+              ),
+            ] : null,
           ),
           child: TextField(
             controller: controller,
             focusNode: focusNode,
             keyboardType: keyboardType,
             onChanged: (v) => setState(() {}),
-            onTap: () => setState(() {}),
-            style: GoogleFonts.inter(color: Colors.white, fontSize: 15),
+            style: GoogleFonts.spaceGrotesk(
+              color: kPrimaryTextColor,
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+            ),
             decoration: InputDecoration(
               hintText: placeholder,
-              hintStyle: GoogleFonts.inter(color: const Color(0xFF72767D), fontSize: 15),
-              prefixIcon: icon != null ? Icon(icon, color: focusNode.hasFocus ? const Color(0xFF5865F2) : const Color(0xFF72767D), size: 20) : null,
+              hintStyle: GoogleFonts.spaceGrotesk(
+                color: kMutedColor.withOpacity(0.5),
+                fontSize: 14,
+              ),
               border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
             ),
           ),
         ),
         if (error != null)
           Padding(
-            padding: const EdgeInsets.only(left: 4, top: 4),
+            padding: const EdgeInsets.only(top: 8),
             child: Text(
               error,
-              style: GoogleFonts.inter(
-                color: const Color(0xFFDA373C),
-                fontSize: 11,
-                fontWeight: FontWeight.w400,
-                fontStyle: FontStyle.italic,
+              style: GoogleFonts.spaceGrotesk(
+                color: kErrorColor,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.5,
               ),
             ),
           ),
-        const SizedBox(height: 16),
       ],
     );
   }

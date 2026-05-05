@@ -73,6 +73,8 @@ func main() {
 	hookHandler := handler.NewHookHandler(cfg, emailQueue)
 	healthHandler := handler.NewHealthHandler(emailQueue, cfg.WorkerPool)
 	sendHandler := handler.NewSendHandler(cfg, emailQueue)
+	paymentHandler := handler.NewPaymentHandler(cfg, emailQueue)
+	moonclerkHandler := handler.NewMoonclerkHandler(cfg, emailQueue)
 
 	// ===== 8. SETUP CHI ROUTER WITH MIDDLEWARE =====
 	r := chi.NewRouter()
@@ -90,11 +92,19 @@ func main() {
 	// Protected by x-api-key header (set SEND_API_KEY in .env)
 	r.Post("/send", sendHandler.HandleSend)
 
+	// Payment routes
+	r.Route("/api/payments", func(r chi.Router) {
+		r.Post("/razorpay/create-order", paymentHandler.HandleCreateOrder)
+		r.Post("/razorpay/verify", paymentHandler.HandleVerifyPayment)
+	})
+
 	// Webhook endpoint with rate limiting: 60 req/min per IP
 	r.Group(func(r chi.Router) {
 		r.Use(httprate.LimitByIP(60, time.Minute))
 		r.Post("/hooks/email", hookHandler.HandleEmail)
+		r.Post("/hooks/moonclerk", moonclerkHandler.HandleWebhook)
 	})
+
 
 	// ===== 9. CREATE HTTP SERVER =====
 	server := &http.Server{

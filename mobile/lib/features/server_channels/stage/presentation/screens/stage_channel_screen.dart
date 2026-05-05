@@ -236,7 +236,7 @@ class _StageChannelScreenState extends ConsumerState<StageChannelScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(FlickoColors.bgPrimary),
+      
       body: SafeArea(
         child: Column(
           children: [

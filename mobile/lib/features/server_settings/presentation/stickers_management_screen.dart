@@ -119,9 +119,6 @@ class _StickersManagementScreenState
     try {
       final image = await _imagePicker.pickImage(
         source: ImageSource.gallery,
-        maxWidth: 320,
-        maxHeight: 320,
-        imageQuality: 95,
       );
       if (image == null) return;
 
@@ -278,7 +275,7 @@ class _StickersManagementScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(FlickoColors.bgPrimary),
+      
       appBar: AppBar(
         backgroundColor: const Color(FlickoColors.bgSecondary),
         elevation: 0,

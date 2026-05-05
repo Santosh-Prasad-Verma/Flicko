@@ -23,8 +23,8 @@ RUN go build -trimpath -ldflags="-s -w" -o flicko-backend ./cmd/server/main.go
 FROM alpine:3.19
 WORKDIR /app
 
-# Install CA certs for outbound TLS (Supabase, Cloudinary) + timezone data
-RUN apk add --no-cache ca-certificates tzdata wget
+# Install CA certs for outbound TLS (Supabase, Cloudinary) + timezone data + stockfish for chess bot
+RUN apk add --no-cache ca-certificates tzdata wget stockfish
 
 # Add a non-root user
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup

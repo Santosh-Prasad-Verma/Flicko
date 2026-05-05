@@ -4,38 +4,11 @@ import (
 	"context"
 	"testing"
 
-	"github.com/flicko-org/flicko-backend/internal/models"
 	"github.com/flicko-org/flicko-backend/internal/services"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
-// MockPermissionService for Crosspost testing
-type MockPermissionService struct {
-	mock.Mock
-}
-
-func (m *MockPermissionService) HasPermission(ctx context.Context, userID, channelID uuid.UUID, permission string) (bool, error) {
-	args := m.Called(ctx, userID, channelID, permission)
-	return args.Bool(0), args.Error(1)
-}
-func (m *MockPermissionService) InvalidatePermissionCache(ctx context.Context, userID, channelID uuid.UUID) error {
-	return nil
-}
-
-// MockAuditLogService for testing
-type MockAuditLogService struct {
-	mock.Mock
-}
-
-func (m *MockAuditLogService) CreateLog(ctx context.Context, serverID string, actorID *string, actionType models.AuditLogAction, targetType string, targetID, reason *string, changes map[string]interface{}) error {
-	return nil
-}
-
-func (m *MockAuditLogService) GetLogs(ctx context.Context, serverID, executorID string, actionType, actorID, targetType *string, limit, offset int) ([]*models.AuditLog, error) {
-	return nil, nil
-}
 
 func TestCrosspostService_Validation(t *testing.T) {
 	// Property 18: Crossposting Validation

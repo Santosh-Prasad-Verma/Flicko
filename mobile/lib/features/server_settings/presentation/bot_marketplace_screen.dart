@@ -37,7 +37,7 @@ class _BotMarketplaceScreenState extends State<BotMarketplaceScreen> with Single
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(FlickoColors.bgPrimary),
+      
       body: CustomScrollView(
         slivers: [
           _buildAppBar(),
@@ -319,7 +319,7 @@ class _BotMarketplaceScreenState extends State<BotMarketplaceScreen> with Single
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(FlickoColors.bgPrimary),
+      
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),

@@ -38,7 +38,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     
     try {
       final supabase = Supabase.instance.client;
-      final user = ref.read(authProvider).user;
+      final user = ref.read(currentUserProvider);
       
       if (user == null) {
         setState(() => _isLoading = false);
@@ -113,7 +113,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       orElse: () => {},
     );
     
-    final user = ref.read(authProvider).user;
+    final user = ref.read(currentUserProvider);
     final isOwner = selectedServer['owner_id'] == user?.id;
     
     if (isOwner) {
@@ -125,7 +125,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = ref.watch(authProvider).user;
+    final user = ref.watch(currentUserProvider);
     
     if (_isLoading) {
       return const Scaffold(
@@ -256,7 +256,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                   // Discover button
                   return _buildRailButton(
                     isActive: false,
-                    onTap: () => context.push('/server/discover'),
+                    onTap: () => context.push('/discover'),
                     child: Container(
                       width: _serverIconSize,
                       height: _serverIconSize,

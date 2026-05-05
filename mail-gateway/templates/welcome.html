@@ -1,143 +1,137 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Welcome to {{.AppName}}</title>
+  <title>WELCOME TO FLICKO</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #000000;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      color: #FFFFFF;
+      -webkit-font-smoothing: antialiased;
+    }
+  </style>
 </head>
-
-<body style="margin:0;padding:0;background-color:#0f1115;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#dcddde;">
+<body style="margin:0;padding:0;background-color:#000000;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Open Sans','Helvetica Neue',sans-serif;color:#FFFFFF;">
   <div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;">
-    Welcome to {{.AppName}}. Your account is ready.
+    Welcome to Flicko.
   </div>
 
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;background-color:#0f1115;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;background-color:#000000; background-image: radial-gradient(circle at 1px 1px, #1a1a1a 1px, transparent 0); background-size: 24px 24px;">
     <tr>
-      <td align="center" style="padding:28px 16px;">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:620px;background-color:#18191c;border:1px solid #313338;border-radius:28px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,0.45);">
+      <td align="center" style="padding:40px 16px;">
+        
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:500px;background-color:#000000;">
+          
+          
+          <!-- LOGO -->
           <tr>
-            <td style="padding:14px 14px 0;background-color:#18191c;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:linear-gradient(135deg,#5865f2 0%,#eb459f 100%);border-radius:22px;">
+            <td align="center" style="padding-bottom:40px;">
+              {{if .LogoURL}}
+                <img src="{{.LogoURL}}" alt="Flicko Logo" width="60" style="display:block;" />
+              {{else}}
+                
+                <svg width="60" height="60" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+                  <path d="M18 12H46V24H34V34H46V46H18V12Z" fill="#CBEF17"/>
+                  <path d="M24 18H40V24H24V18Z" fill="white"/>
+                  <path d="M24 34H40V40H24V34Z" fill="white"/>
+                </svg>
+
+              {{end}}
+            </td>
+          </tr>
+
+          <!-- HEADING -->
+          <tr>
+            <td align="center" style="padding-bottom:12px;">
+              <h1 style="margin:0;font-size:48px;font-weight:900;line-height:1;letter-spacing:-2px;text-transform:uppercase;color:#FFFFFF;">
+                WELCOME<br/>TO<br/>FLICKO
+              </h1>
+            </td>
+          </tr>
+
+          <!-- SUBHEADING -->
+          <tr>
+            <td align="center" style="padding-bottom:48px;">
+              <p style="margin:0;font-size:15px;font-weight:700;color:#888888;letter-spacing:1px;text-transform:uppercase;">
+                YOUR ACCOUNT IS ACTIVE. THE SIGNAL IS STRONG.
+              </p>
+            </td>
+          </tr>
+
+          <!-- CONTENT -->
+          
+          <!-- USER GREETING -->
+          <tr>
+            <td align="center" style="padding-bottom:32px;">
+              <p style="margin:0;font-size:16px;color:#FFFFFF;font-weight:700;">
+                HEY {{if .Username}}{{.Username}}{{else}}THERE{{end}},
+              </p>
+              <p style="margin:12px 0 0;font-size:14px;color:#888888;line-height:1.6;font-weight:500;">
+                Welcome to the unpolished edge. Your account is ready. Start exploring trending spaces and moments now.
+              </p>
+            </td>
+          </tr>
+          
+          <!-- BUTTON WITH OFFSET -->
+          <tr>
+            <td align="center" style="padding-bottom:60px;">
+              <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 0 auto;">
                 <tr>
-                  <td style="padding:28px 28px 30px;">
+                  <td style="background-color: #FFFFFF; padding: 0;">
                     <table role="presentation" cellspacing="0" cellpadding="0">
                       <tr>
-                        <td style="width:54px;vertical-align:middle;">
-                          {{template "brand_mark" .}}
-                        </td>
-                        <td style="padding-left:14px;vertical-align:middle;">
-                          <p style="margin:0;color:#ffffff;font-size:28px;line-height:1;font-weight:800;letter-spacing:-0.04em;">
-                            {{.AppName}}
-                          </p>
-                          <p style="margin:6px 0 0;color:rgba(255,255,255,0.82);font-size:12px;line-height:1.4;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;">
-                            Welcome
-                          </p>
+                        <td style="background-color: #000000; padding: 0; transform: translate(-8px, -8px);">
+                          <a href="https://flicko.app" style="display:inline-block; background-color:#CBEF17; color:#000000 !important; text-decoration:none; font-weight:900; font-size:20px; padding:20px 45px; text-transform:uppercase; letter-spacing:1.5px; border:3px solid #000000;">
+                            ENTER THE VOID
+                          </a>
                         </td>
                       </tr>
                     </table>
-                    <h1 style="margin:22px 0 10px;color:#ffffff;font-size:34px;line-height:1.12;font-weight:800;letter-spacing:-0.03em;">
-                      Welcome to {{.AppName}}
-                    </h1>
-                    <p style="margin:0;max-width:470px;color:rgba(255,255,255,0.9);font-size:16px;line-height:1.7;">
-                      Your account is ready. Build your profile, find your people, and start talking.
-                    </p>
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
+    
+        
 
+          <!-- FOOTER LINE -->
           <tr>
-            <td style="padding:34px 36px 18px;background-color:#18191c;">
-              <p style="margin:0 0 18px;color:#ffffff;font-size:16px;line-height:1.7;">Hi {{.Username}},</p>
-
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:24px;background-color:#202225;border:1px solid #313338;border-radius:18px;">
+            <td>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
                 <tr>
-                  <td style="padding:22px;">
-                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
-                      <tr>
-                        <td style="width:72px;vertical-align:top;">
-                          <img src="{{.AvatarURL}}" alt="{{.Username}}" width="56" height="56" style="display:block;width:56px;height:56px;border-radius:18px;border:2px solid #3f4452;" />
-                        </td>
-                        <td style="vertical-align:middle;">
-                          <p style="margin:0 0 4px;color:#ffffff;font-size:18px;line-height:1.5;font-weight:700;">{{.Username}}</p>
-                          <p style="margin:0 0 6px;color:#b9bbbe;font-size:13px;line-height:1.6;word-break:break-all;">{{.To}}</p>
-                          <span style="display:inline-block;padding:6px 12px;border-radius:999px;background-color:#1d3123;border:1px solid #295438;color:#aee7c3;font-size:12px;font-weight:700;">
-                            Member since {{.MemberSince}}
-                          </span>
-                        </td>
-                      </tr>
-                    </table>
+                  <td style="border-top:1px solid #333333; width:35%;"></td>
+                  <td align="center" style="padding:0 10px; font-size:12px; color:#444444; letter-spacing:3px; font-weight:900;">
+                    SYSTEM_INIT
                   </td>
-                </tr>
-              </table>
-
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:24px;">
-                <tr>
-                  <td style="padding-bottom:12px;">
-                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#202225;border:1px solid #313338;border-radius:18px;">
-                      <tr>
-                        <td style="padding:18px 20px;">
-                          <p style="margin:0 0 6px;color:#ffffff;font-size:14px;font-weight:700;">1. Set up your profile</p>
-                          <p style="margin:0;color:#b9bbbe;font-size:14px;line-height:1.7;">Add your photo, refine your display name, and make the account feel like yours.</p>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding-bottom:12px;">
-                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#202225;border:1px solid #313338;border-radius:18px;">
-                      <tr>
-                        <td style="padding:18px 20px;">
-                          <p style="margin:0 0 6px;color:#ffffff;font-size:14px;font-weight:700;">2. Join or create a server</p>
-                          <p style="margin:0;color:#b9bbbe;font-size:14px;line-height:1.7;">Find a community around your interests or start a new space and invite people in.</p>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-                <tr>
-                  <td>
-                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#202225;border:1px solid #313338;border-radius:18px;">
-                      <tr>
-                        <td style="padding:18px 20px;">
-                          <p style="margin:0 0 6px;color:#ffffff;font-size:14px;font-weight:700;">3. Start the first conversation</p>
-                          <p style="margin:0;color:#b9bbbe;font-size:14px;line-height:1.7;">Send a message, react to someone else, or jump into voice when you are ready.</p>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-              </table>
-
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:14px;">
-                <tr>
-                  <td align="center">
-                    <a href="{{.AppURL}}" target="_blank" style="display:inline-block;background-color:#5865f2;border-radius:14px;color:#ffffff;font-size:16px;font-weight:700;line-height:20px;padding:16px 30px;text-decoration:none;box-shadow:0 12px 28px rgba(88,101,242,0.28);">
-                      Open {{.AppName}}
-                    </a>
-                  </td>
+                  <td style="border-top:1px solid #333333; width:35%;"></td>
                 </tr>
               </table>
             </td>
           </tr>
 
+          <!-- LEGAL -->
           <tr>
-            <td style="padding:24px 36px 30px;background-color:#18191c;border-top:1px solid #2a2d31;">
-              <p style="margin:0 0 6px;color:#8e9297;font-size:12px;line-height:1.6;">
-                This email was sent because you created a {{.AppName}} account.
+            <td align="center" style="padding-top:40px;">
+              <p style="margin:0;font-size:11px;color:#444444;line-height:1.6;font-weight:700;letter-spacing:1px;text-transform:uppercase;">
+                ALL NETWORK DATA IS SUBJECT TO COMMUNITY<br/>
+                GUIDELINES. SYSTEM_V4.1.3_STABLE
               </p>
-              <p style="margin:0;color:#6d727a;font-size:12px;line-height:1.6;">
-                <a href="{{.AppURL}}" target="_blank" style="color:#c9cdfb;text-decoration:none;">{{.AppURL}}</a> · © {{.Year}} {{.AppName}}
+              <p style="margin:16px 0 0;font-size:10px;color:#222222;">
+                © {{if .Year}}{{.Year}}{{else}}2024{{end}} {{if .AppName}}{{.AppName}}{{else}}Flicko{{end}} · ALL RIGHTS RESERVED
               </p>
             </td>
           </tr>
+
         </table>
+
       </td>
     </tr>
   </table>
 </body>
-
 </html>

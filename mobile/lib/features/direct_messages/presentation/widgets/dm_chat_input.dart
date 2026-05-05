@@ -20,11 +20,26 @@ class _DMChatInputState extends State<DMChatInput> {
   final ImagePicker _picker = ImagePicker();
   final List<XFile> _selectedFiles = [];
 
+  static const Color _neon = Color(0xFFC0F500);
+  static const Color _bg = Color(0xFF050505);
+  static const Color _surface = Color(0xFF0C0C0E);
+  static const Color _white = Color(0xFFFBF9FA);
+  static const Color _muted = Color(0xFF71717A);
+
   void _handlePickImage() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
       setState(() {
         _selectedFiles.add(image);
+      });
+    }
+  }
+
+  void _handlePickVideo() async {
+    final XFile? video = await _picker.pickVideo(source: ImageSource.gallery);
+    if (video != null) {
+      setState(() {
+        _selectedFiles.add(video);
       });
     }
   }
@@ -41,27 +56,40 @@ class _DMChatInputState extends State<DMChatInput> {
     });
   }
 
+  void _showEmojiSoon() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('EMOJI PICKER — COMING SOON', style: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.w800, color: Colors.black)),
+        backgroundColor: _neon,
+        behavior: SnackBarBehavior.floating,
+        shape: const RoundedRectangleBorder(),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).padding.bottom + 16,
-        top: 8,
-        left: 16,
-        right: 16,
+        bottom: MediaQuery.of(context).padding.bottom + 12,
+        top: 12,
+        left: 12,
+        right: 12,
       ),
-      decoration: const BoxDecoration(
-        color: Color(0xFF36393F),
+      decoration: BoxDecoration(
+        color: _bg,
+        border: Border(top: BorderSide(color: _white.withValues(alpha: 0.1), width: 1)),
       ),
       child: SafeArea(
         top: false,
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (_selectedFiles.isNotEmpty)
               Container(
-                height: 80,
-                padding: const EdgeInsets.only(bottom: 8),
+                height: 72,
+                margin: const EdgeInsets.only(bottom: 12),
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
                   itemCount: _selectedFiles.length,
@@ -70,18 +98,21 @@ class _DMChatInputState extends State<DMChatInput> {
                       padding: const EdgeInsets.only(right: 8),
                       child: Stack(
                         children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
+                          Container(
+                            width: 64,
+                            height: 64,
+                            decoration: BoxDecoration(
+                              border: Border.all(color: _neon, width: 2),
+                              color: _surface,
+                            ),
                             child: Image.file(
                               File(_selectedFiles[index].path),
-                              width: 68,
-                              height: 68,
                               fit: BoxFit.cover,
                             ),
                           ),
                           Positioned(
-                            top: 2,
-                            right: 2,
+                            top: 0,
+                            right: 0,
                             child: GestureDetector(
                               onTap: () {
                                 setState(() {
@@ -89,15 +120,18 @@ class _DMChatInputState extends State<DMChatInput> {
                                 });
                               },
                               child: Container(
-                                padding: const EdgeInsets.all(2),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.6),
-                                  shape: BoxShape.circle,
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: Colors.black,
+                                  border: Border(
+                                    bottom: BorderSide(color: _neon, width: 2),
+                                    left: BorderSide(color: _neon, width: 2),
+                                  ),
                                 ),
                                 child: const Icon(
                                   Icons.close,
-                                  size: 12,
-                                  color: Colors.white,
+                                  size: 14,
+                                  color: _neon,
                                 ),
                               ),
                             ),
@@ -108,63 +142,81 @@ class _DMChatInputState extends State<DMChatInput> {
                   },
                 ),
               ),
-            Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF40444B),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  // + attach button (inside the bar)
-                  IconButton(
-                    icon: const Icon(Icons.add_circle_outline, color: Color(0xFFB5BAC1), size: 24),
-                    onPressed: _handlePickImage,
-                    padding: const EdgeInsets.only(left: 12, right: 4, top: 12, bottom: 12),
-                    constraints: const BoxConstraints(),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                // Attach button
+                GestureDetector(
+                  onTap: _handlePickImage,
+                  onLongPress: _handlePickVideo, // Long press for video
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: _surface,
+                      border: Border.all(color: _white.withValues(alpha: 0.15)),
+                    ),
+                    child: const Icon(Icons.add, color: _white, size: 24),
                   ),
-                  // Text field
-                  Expanded(
-                    child: TextField(
-                      controller: _controller,
-                      maxLines: 5,
-                      minLines: 1,
-                      style: GoogleFonts.inter(
-                        color: const Color(0xFFDBDEE1),
-                        fontSize: 15,
-                        height: 1.4,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: 'Message @username',
-                        hintStyle: GoogleFonts.inter(
-                          color: const Color(0xFF6D6F78),
-                          fontSize: 15,
+                ),
+                const SizedBox(width: 8),
+                // Text field
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: _surface,
+                      border: Border.all(color: _white.withValues(alpha: 0.15)),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _controller,
+                            maxLines: 5,
+                            minLines: 1,
+                            style: GoogleFonts.inter(
+                              color: _white,
+                              fontSize: 14,
+                            ),
+                            cursorColor: _neon,
+                            decoration: InputDecoration(
+                              hintText: 'TYPE MESSAGE...',
+                              hintStyle: GoogleFonts.spaceMono(
+                                color: _muted,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                              border: InputBorder.none,
+                            ),
+                          ),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                        border: InputBorder.none,
-                        focusedBorder: InputBorder.none,
-                        enabledBorder: InputBorder.none,
-                        isDense: true,
-                      ),
-                      onSubmitted: (_) => _handleSend(),
+                        GestureDetector(
+                          onTap: _showEmojiSoon,
+                          child: const Padding(
+                            padding: EdgeInsets.all(12),
+                            child: Icon(Icons.emoji_emotions_outlined, color: _muted, size: 20),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  // Right side buttons (inside the bar)
-                  IconButton(
-                    icon: const Icon(Icons.emoji_emotions_outlined, color: Color(0xFFB5BAC1), size: 24),
-                    onPressed: () {},
-                    padding: const EdgeInsets.all(4),
-                    constraints: const BoxConstraints(),
+                ),
+                const SizedBox(width: 8),
+                // Send button
+                GestureDetector(
+                  onTap: _handleSend,
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: const BoxDecoration(
+                      color: _neon,
+                    ),
+                    child: const Icon(Icons.send, color: Colors.black, size: 20),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.send, color: Color(0xFFB5BAC1), size: 24),
-                    onPressed: _handleSend,
-                    padding: const EdgeInsets.all(4),
-                    constraints: const BoxConstraints(),
-                  ),
-                  const SizedBox(width: 8),
-                ],
-              ),
+                ),
+              ],
             ),
           ],
         ),

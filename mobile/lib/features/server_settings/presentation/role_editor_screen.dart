@@ -197,27 +197,30 @@ class _RoleEditorScreenState extends ConsumerState<RoleEditorScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator(color: Color(FlickoColors.blurple))),
+        backgroundColor: Colors.black,
+        body: Center(child: CircularProgressIndicator(color: Color(0xFFC8FF00))),
       );
     }
 
-    final isAdmin = _permissions['ADMINISTRATOR'] ?? false;
     final categories = _categoryLabels.keys.toList();
 
     return Scaffold(
-      backgroundColor: const Color(FlickoColors.bgPrimary),
+      backgroundColor: Colors.black,
       appBar: AppBar(
-        backgroundColor: const Color(FlickoColors.bgSecondary),
+        backgroundColor: Colors.black,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),
+          icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFFC8FF00), size: 20),
           onPressed: () => context.pop(),
         ),
+        centerTitle: true,
         title: Text(
-          'Edit Role',
+          'EDIT ROLE',
           style: GoogleFonts.inter(
-            color: const Color(FlickoColors.textPrimary),
-            fontWeight: FontWeight.w600,
+            color: Colors.white,
+            fontWeight: FontWeight.w900,
+            fontSize: 16,
+            letterSpacing: 2,
           ),
         ),
         actions: [
@@ -225,159 +228,64 @@ class _RoleEditorScreenState extends ConsumerState<RoleEditorScreen> {
             TextButton(
               onPressed: _isSaving ? null : _save,
               child: _isSaving
-                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : Text('Save', style: GoogleFonts.inter(color: const Color(FlickoColors.green), fontWeight: FontWeight.w600)),
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFC8FF00)))
+                  : Text(
+                      'SAVE',
+                      style: GoogleFonts.inter(
+                        color: const Color(0xFFC8FF00),
+                        fontWeight: FontWeight.w900,
+                        fontSize: 14,
+                      ),
+                    ),
             ),
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(24),
         children: [
-          // Role Name
-          _buildSection(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('ROLE NAME', style: _sectionLabelStyle()),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: TextEditingController(text: _name)..selection = TextSelection.collapsed(offset: _name.length),
-                  onChanged: (v) { setState(() { _name = v; _dirty = true; }); },
-                  enabled: !_isEveryone,
-                  style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary)),
-                  decoration: InputDecoration(
-                    hintText: 'Role name',
-                    hintStyle: GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
-                    filled: true,
-                    fillColor: const Color(FlickoColors.bgTertiary),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  ),
-                  maxLength: 100,
-                ),
-              ],
-            ),
-          ),
+          _buildSectionHeader('ROLE NAME'),
+          _buildTextField(),
+          const SizedBox(height: 32),
 
-          // Role Color
-          _buildSection(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('ROLE COLOR', style: _sectionLabelStyle()),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    ..._colorPresets.map((c) => GestureDetector(
-                      onTap: () => setState(() { _roleColor = c; _dirty = true; }),
-                      child: Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: Color(int.parse(c.replaceFirst('#', '0xFF'))),
-                          shape: BoxShape.circle,
-                          border: _roleColor == c ? Border.all(color: Colors.white, width: 3) : null,
-                        ),
-                      ),
-                    )),
-                    GestureDetector(
-                      onTap: () => setState(() { _roleColor = null; _dirty = true; }),
-                      child: Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: const Color(FlickoColors.bgTertiary),
-                          shape: BoxShape.circle,
-                          border: Border.all(color: const Color(FlickoColors.textMuted)),
-                        ),
-                        child: const Icon(Icons.close, size: 14, color: Color(FlickoColors.textMuted)),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+          _buildSectionHeader('ROLE COLOR'),
+          _buildColorPicker(),
+          const SizedBox(height: 32),
 
-          // Toggles
-          _buildSection(
-            child: Column(
-              children: [
-                _buildToggleRow(
-                  'Display role members separately',
-                  'Members with this role will be shown separately in the member list',
-                  _hoist,
-                  (v) => setState(() { _hoist = v; _dirty = true; }),
-                ),
-                const Divider(height: 1, color: Color(0xFF232428)),
-                _buildToggleRow(
-                  'Allow anyone to @mention this role',
-                  'Members can mention this role in messages',
-                  _mentionable,
-                  (v) => setState(() { _mentionable = v; _dirty = true; }),
-                ),
-              ],
+          _buildSectionHeader('SETTINGS'),
+          _buildSettingsCard([
+            _buildToggleRow(
+              'Display separately',
+              'Show members separately in the list',
+              _hoist,
+              (v) => setState(() { _hoist = v; _dirty = true; }),
             ),
-          ),
-
-          // Admin warning
-          if (isAdmin)
-            Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0x14FAA61A),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.warning, size: 16, color: Color(0xFFFAA61A)),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Administrator permission grants ALL permissions and bypasses channel overrides.',
-                      style: GoogleFonts.inter(color: const Color(0xFFFAA61A), fontSize: 13),
-                    ),
-                  ),
-                ],
-              ),
+            _buildToggleRow(
+              'Allow @mention',
+              'Allow anyone to mention this role',
+              _mentionable,
+              (v) => setState(() { _mentionable = v; _dirty = true; }),
             ),
+          ]),
+          const SizedBox(height: 32),
 
-          // Permissions by category
           ...categories.expand((cat) {
             final catPerms = _allPermissions.where((p) => p.category == cat).toList();
             if (catPerms.isEmpty) return <Widget>[];
             return [
-              Padding(
-                padding: const EdgeInsets.only(left: 4, bottom: 8),
-                child: Text(
-                  _categoryLabels[cat]!.toUpperCase(),
-                  style: _sectionLabelStyle(),
-                ),
+              _buildSectionHeader(_categoryLabels[cat]!.toUpperCase()),
+              _buildSettingsCard(
+                catPerms.map((perm) {
+                  final enabled = _permissions[perm.name] ?? false;
+                  return _buildToggleRow(
+                    perm.label,
+                    perm.description,
+                    enabled,
+                    (_) => _togglePerm(perm.name),
+                    isDangerous: perm.dangerous,
+                  );
+                }).toList(),
               ),
-              _buildSection(
-                child: Column(
-                  children: catPerms.asMap().entries.map((entry) {
-                    final perm = entry.value;
-                    final enabled = _permissions[perm.name] ?? false;
-                    return Column(
-                      children: [
-                        if (entry.key > 0) const Divider(height: 1, color: Color(0xFF232428)),
-                        _buildToggleRow(
-                          '${perm.label}${perm.dangerous ? ' ⚠️' : ''}',
-                          perm.description,
-                          enabled,
-                          (_) => _togglePerm(perm.name),
-                          isDangerous: perm.dangerous && enabled,
-                        ),
-                      ],
-                    );
-                  }).toList(),
-                ),
-              ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 32),
             ];
           }),
         ],
@@ -385,30 +293,108 @@ class _RoleEditorScreenState extends ConsumerState<RoleEditorScreen> {
     );
   }
 
-  Widget _buildSection({required Widget child}) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(FlickoColors.bgSecondary),
-        borderRadius: BorderRadius.circular(12),
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 12),
+      child: Text(
+        title,
+        style: GoogleFonts.inter(
+          color: Colors.white.withValues(alpha: 0.4),
+          fontSize: 11,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 1.5,
+        ),
       ),
-      child: child,
     );
   }
 
-  TextStyle _sectionLabelStyle() {
-    return GoogleFonts.inter(
-      color: const Color(FlickoColors.textMuted),
-      fontSize: 11,
-      fontWeight: FontWeight.bold,
-      letterSpacing: 0.5,
+  Widget _buildTextField() {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF0D0D0D),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: TextField(
+        controller: TextEditingController(text: _name)..selection = TextSelection.collapsed(offset: _name.length),
+        onChanged: (v) { _name = v; _dirty = true; setState(() {}); },
+        enabled: !_isEveryone,
+        style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700),
+        decoration: InputDecoration(
+          hintText: 'Role name',
+          hintStyle: GoogleFonts.inter(color: Colors.white10),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 20),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildColorPicker() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0D0D0D),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+      ),
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        children: [
+          ..._colorPresets.map((c) {
+            final color = Color(int.parse(c.replaceFirst('#', '0xFF')));
+            final isSelected = _roleColor == c;
+            return GestureDetector(
+              onTap: () => setState(() { _roleColor = c; _dirty = true; }),
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(14),
+                  border: isSelected ? Border.all(color: Colors.white, width: 3) : null,
+                  boxShadow: isSelected ? [
+                    BoxShadow(color: color.withValues(alpha: 0.4), blurRadius: 12, spreadRadius: 2),
+                  ] : null,
+                ),
+                child: isSelected ? const Icon(Icons.check, color: Colors.white, size: 20) : null,
+              ),
+            );
+          }),
+          GestureDetector(
+            onTap: () => setState(() { _roleColor = null; _dirty = true; }),
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.white10),
+              ),
+              child: const Icon(Icons.close, size: 20, color: Colors.white24),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSettingsCard(List<Widget> children) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF0D0D0D),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+      ),
+      child: Column(children: children),
     );
   }
 
   Widget _buildToggleRow(String label, String description, bool value, ValueChanged<bool> onChanged, {bool isDangerous = false}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.all(20),
       child: Row(
         children: [
           Expanded(
@@ -418,25 +404,29 @@ class _RoleEditorScreenState extends ConsumerState<RoleEditorScreen> {
                 Text(
                   label,
                   style: GoogleFonts.inter(
-                    color: isDangerous ? const Color(FlickoColors.red) : const Color(FlickoColors.textPrimary),
+                    color: isDangerous && value ? Colors.redAccent : Colors.white,
                     fontSize: 15,
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
+                const SizedBox(height: 4),
                 Text(
                   description,
                   style: GoogleFonts.inter(
-                    color: const Color(FlickoColors.textMuted),
+                    color: Colors.white38,
                     fontSize: 12,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
             ),
           ),
-          Switch(
+          Switch.adaptive(
             value: value,
             onChanged: onChanged,
-            activeThumbColor: isDangerous ? const Color(FlickoColors.red) : const Color(FlickoColors.blurple),
+            activeTrackColor: const Color(0xFFC8FF00),
+            activeThumbColor: Colors.black,
+            inactiveTrackColor: Colors.white10,
           ),
         ],
       ),

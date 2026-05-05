@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/data/repositories/server_repository.dart';
 import 'servers_state.dart';
@@ -59,10 +58,10 @@ class ServersNotifier extends StateNotifier<ServersState> {
     state = state.copyWith(
       selectedServerId: serverId,
       selectedServerChannels: [],
-      isLoading: serverId != null,
+      isLoading: serverId != null && serverId != 'gaming',
     );
 
-    if (serverId != null) {
+    if (serverId != null && serverId != 'gaming') {
       try {
         final channels = await _repository.getServerChannels(serverId);
         state = state.copyWith(

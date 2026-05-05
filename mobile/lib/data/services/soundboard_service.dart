@@ -1,7 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/data/models/soundboard_model.dart';
-import 'package:mobile/data/services/clerk_auth_service.dart';
 
 final soundboardServiceProvider = Provider<SoundboardService>((ref) {
   return SoundboardService(Supabase.instance.client);
@@ -23,7 +22,7 @@ class SoundboardService {
   }
 
   Future<List<SoundboardSound>> getFavoriteSounds() async {
-    final userId = ClerkAuthService.currentAuthState?.user?.id;
+    final userId = _supabase.auth.currentUser?.id;
     if (userId == null) return [];
 
     final response = await _supabase
@@ -37,7 +36,7 @@ class SoundboardService {
   }
 
   Future<void> toggleFavorite(String soundId) async {
-    final userId = ClerkAuthService.currentAuthState?.user?.id;
+    final userId = _supabase.auth.currentUser?.id;
     if (userId == null) return;
 
     final existing = await _supabase

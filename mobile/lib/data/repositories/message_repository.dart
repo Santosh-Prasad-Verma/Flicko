@@ -24,7 +24,7 @@ class MessageRepository {
     try {
       var query = _client.from('messages').select('''
           *,
-          author:profiles!user_id(id, username, display_name, avatar_url:avatar),
+          author:profiles!author_id(id, username, display_name, avatar_url:avatar),
           reactions(emoji, user_id),
           attachments(id, url, content_type:mime_type, filename, size, width, height)
         ''').eq('channel_id', channelId).isFilter('thread_id', null);
@@ -40,7 +40,7 @@ class MessageRepository {
         
         // Ensure proper mapping to FlickoMessage structure
         msg['type'] = 'channel';
-        msg['author_id'] = msg['user_id']; // Map user_id to author_id for FlickoMessage
+        msg['user_id'] = msg['author_id']; // Map author_id to user_id for FlickoMessage if needed
         
         if (msg['author'] != null && msg['author']['avatar_url'] != null) {
           msg['author']['avatar'] = msg['author']['avatar_url'];
@@ -99,7 +99,7 @@ class MessageRepository {
 
     final payload = <String, dynamic>{
       'channel_id': channelId,
-      'user_id': userId,
+      'author_id': userId,
       'content': content,
       'type': replyToId != null ? 'reply' : 'default',
     };

@@ -9,11 +9,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'core/config/env.dart';
 import 'core/config/app_config.dart';
 import 'core/router/app_router.dart';
-import 'core/theme/app_theme.dart';
 import 'core/services/translation_service.dart';
-import 'features/notifications/application/notification_service.dart';
-import 'package:clerk_flutter/clerk_flutter.dart';
-import 'data/services/clerk_auth_service.dart';
+import 'core/theme/theme_provider.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -50,21 +47,10 @@ void main() async {
   final container = ProviderContainer();
   await container.read(translationServiceProvider.notifier).loadLocale('en');
   
-  // Initialize Notification Service
-  await container.read(notificationServiceProvider).init();
-
-  // Initialize Clerk
-  final ClerkAuthState clerkAuthState = await ClerkAuthService.getAuthState();
-
-  Widget app = const FlickoApp();
-
   runApp(
     UncontrolledProviderScope(
       container: container,
-      child: ClerkAuth(
-        authState: clerkAuthState,
-        child: app,
-      ),
+      child: const FlickoApp(),
     ),
   );
 }
@@ -75,15 +61,32 @@ class FlickoApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
+    final currentThemeId = ref.watch(themeProvider);
+    final currentThemeData = ref.watch(themeDataProvider);
 
     return MaterialApp.router(
+      key: ValueKey(currentThemeId),
       title: 'Flicko',
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.dark,
+      theme: currentThemeData,
+      darkTheme: currentThemeData,
+      themeMode: currentThemeData.brightness == Brightness.dark ? ThemeMode.dark : ThemeMode.light,
       routerConfig: router,
       debugShowCheckedModeBanner: false,
+      builder: (context, child) {
+        return Stack(
+          children: [
+            Positioned.fill(
+              child: Image.asset(
+                'assets/branding/Flicko-for-black-background.png',
+                fit: BoxFit.cover,
+                opacity: const AlwaysStoppedAnimation(0.05), // very subtle
+                errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+              ),
+            ),
+            if (child != null) child,
+          ],
+        );
+      },
     );
   }
 }
-

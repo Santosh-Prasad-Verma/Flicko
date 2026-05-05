@@ -8,7 +8,7 @@ import '../../../../core/constants/flicko_colors.dart';
 /// Change Password Screen
 ///
 /// Allows the authenticated user to update their password.
-/// Uses Clerk Auth's updateUserPassword() via AuthNotifier.
+/// Uses Supabase Auth's updateUser() via AuthNotifier.
 /// Route: /u/settings/change-password
 class ChangePasswordScreen extends ConsumerStatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -69,7 +69,6 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
 
     try {
       await ref.read(authNotifierProvider.notifier).changePassword(
-        _currentPassword,
         _newPassword,
       );
 
@@ -119,9 +118,9 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
     final passwordsMatch = _confirmPassword.isNotEmpty && _confirmPassword == _newPassword;
 
     return Scaffold(
-      backgroundColor: const Color(FlickoColors.bgPrimary),
+      
       appBar: AppBar(
-        backgroundColor: const Color(FlickoColors.bgPrimary),
+        
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),

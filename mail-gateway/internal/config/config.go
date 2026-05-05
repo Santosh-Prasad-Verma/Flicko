@@ -47,7 +47,15 @@ type Config struct {
 
 	// Supabase project URL (for building verification links)
 	SupabaseURL string // e.g. https://xxxxx.supabase.co
+
+	// Razorpay configuration
+	RazorpayKeyID     string
+	RazorpayKeySecret string
+
+	// Moonclerk configuration
+	MoonclerkWebhookSecret string
 }
+
 
 // Load reads environment variables from .env (if present) and returns
 // a validated Config struct. Panics on missing required secrets.
@@ -84,7 +92,13 @@ func Load() *Config {
 		LogFormat: getEnv("LOG_FORMAT", "json"),
 
 		SupabaseURL: os.Getenv("SUPABASE_URL"),
+		
+		RazorpayKeyID:     os.Getenv("RAZORPAY_KEY_ID"),
+		RazorpayKeySecret: os.Getenv("RAZORPAY_KEY_SECRET"),
+
+		MoonclerkWebhookSecret: os.Getenv("MOONCLERK_WEBHOOK_SECRET"),
 	}
+
 
 	cfg.validate()
 	return cfg
@@ -137,6 +151,14 @@ func (c *Config) validate() {
 	if c.SupabaseURL == "" {
 		slog.Warn("SUPABASE_URL not set — verification links will use APP_URL as fallback")
 		c.SupabaseURL = c.AppURL
+	}
+	
+	// Razorpay credentials
+	if c.RazorpayKeyID == "" {
+		slog.Warn("RAZORPAY_KEY_ID not set — payment features will be disabled")
+	}
+	if c.RazorpayKeySecret == "" {
+		slog.Warn("RAZORPAY_KEY_SECRET not set — payment verification will fail")
 	}
 }
 

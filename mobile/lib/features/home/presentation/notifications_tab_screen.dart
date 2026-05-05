@@ -33,7 +33,7 @@ class _NotificationsTabScreenState extends ConsumerState<NotificationsTabScreen>
   }
 
   Future<void> _loadNotifications() async {
-    final user = ref.read(authProvider).user;
+    final user = ref.read(currentUserProvider);
     if (user == null) {
       setState(() => _isLoading = false);
       return;
@@ -96,7 +96,7 @@ class _NotificationsTabScreenState extends ConsumerState<NotificationsTabScreen>
   }
 
   Future<void> _markAllAsRead() async {
-    final user = ref.read(authProvider).user;
+    final user = ref.read(currentUserProvider);
     if (user == null || _unreadCount == 0) return;
 
     setState(() {
@@ -317,7 +317,7 @@ class _NotificationsTabScreenState extends ConsumerState<NotificationsTabScreen>
     final topPadding = MediaQuery.of(context).padding.top;
 
     return Scaffold(
-      backgroundColor: const Color(FlickoColors.bgPrimary),
+      
       body: Column(
         children: [
           // Header

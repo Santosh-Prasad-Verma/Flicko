@@ -19,6 +19,7 @@ class FlickoColors {
   static const int red = 0xFFED4245;
   static const int fuchsia = 0xFFF47FFF;
   static const int gold = 0xFFFAA61A;
+  static const int lime = 0xFFC8FF00;
 
   // ── Dark Theme Backgrounds ──
   static const int bgPrimary = 0xFF313338;

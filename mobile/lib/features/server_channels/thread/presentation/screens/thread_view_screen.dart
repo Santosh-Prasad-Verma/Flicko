@@ -244,7 +244,7 @@ class _ThreadViewScreenState extends ConsumerState<ThreadViewScreen> with Ticker
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
             child: AppBar(
-              backgroundColor: const Color(FlickoColors.bgPrimary).withValues(alpha: 0.7),
+              backgroundColor: Colors.transparent,
               elevation: 0,
               centerTitle: false,
               titleSpacing: 0,

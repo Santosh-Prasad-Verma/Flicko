@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/data/models/server_model.dart';
 import 'package:mobile/data/repositories/server_repository.dart';
 import 'package:mobile/features/home/application/servers_notifier.dart';
@@ -17,6 +16,12 @@ class ServerDiscoveryScreen extends ConsumerStatefulWidget {
 class _ServerDiscoveryScreenState extends ConsumerState<ServerDiscoveryScreen> {
   bool _isLoading = true;
   List<ServerModel> _servers = [];
+
+  static const Color _neon = Color(0xFFC0F500);
+  static const Color _bg = Color(0xFF050505);
+  static const Color _surface = Color(0xFF0C0C0E);
+  static const Color _white = Color(0xFFFBF9FA);
+  static const Color _muted = Color(0xFF71717A);
 
   @override
   void initState() {
@@ -52,15 +57,22 @@ class _ServerDiscoveryScreenState extends ConsumerState<ServerDiscoveryScreen> {
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Joined ${server.name}!')),
+          SnackBar(
+            content: Text('Joined ${server.name}!', style: GoogleFonts.spaceGrotesk(color: Colors.black, fontWeight: FontWeight.bold)),
+            backgroundColor: _neon,
+            shape: const RoundedRectangleBorder(),
+          ),
         );
         Navigator.pop(context);
-        // We could also navigate to the newly joined server here
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to join server: $e')),
+          SnackBar(
+            content: Text('Failed to join server: $e', style: GoogleFonts.spaceGrotesk(color: _white, fontWeight: FontWeight.bold)),
+            backgroundColor: const Color(0xFFED4245),
+            shape: const RoundedRectangleBorder(),
+          ),
         );
       }
     }
@@ -69,20 +81,28 @@ class _ServerDiscoveryScreenState extends ConsumerState<ServerDiscoveryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(FlickoColors.bgPrimary),
+      backgroundColor: _bg,
       appBar: AppBar(
-        backgroundColor: const Color(FlickoColors.bgSecondary),
+        backgroundColor: _bg,
         elevation: 0,
+        iconTheme: const IconThemeData(color: _white),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1.0),
+          child: Container(color: _white.withValues(alpha: 0.1), height: 1.0),
+        ),
         title: Text(
-          'Explore Servers',
-          style: GoogleFonts.inter(
-            color: const Color(FlickoColors.textPrimary),
-            fontWeight: FontWeight.bold,
+          'EXPLORE SERVERS',
+          style: GoogleFonts.epilogue(
+            color: _white,
+            fontSize: 20,
+            fontWeight: FontWeight.w900,
+            fontStyle: FontStyle.italic,
+            letterSpacing: -0.5,
           ),
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: _neon))
           : _servers.isEmpty
               ? _buildEmptyState()
               : _buildServerList(),
@@ -94,11 +114,15 @@ class _ServerDiscoveryScreenState extends ConsumerState<ServerDiscoveryScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.search_off, size: 64, color: Color(FlickoColors.textMuted)),
+          const Icon(Icons.search_off, size: 64, color: _muted),
           const SizedBox(height: 16),
           Text(
-            'No servers found to explore.',
-            style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
+            'NO SERVERS FOUND',
+            style: GoogleFonts.spaceGrotesk(
+              color: _muted,
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ],
       ),
@@ -107,98 +131,133 @@ class _ServerDiscoveryScreenState extends ConsumerState<ServerDiscoveryScreen> {
 
   Widget _buildServerList() {
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
+      physics: const BouncingScrollPhysics(),
       itemCount: _servers.length,
       itemBuilder: (context, index) {
         final server = _servers[index];
-        return Card(
-          color: const Color(FlickoColors.bgSecondary),
-          margin: const EdgeInsets.only(bottom: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        return Container(
+          margin: const EdgeInsets.only(bottom: 24),
+          decoration: BoxDecoration(
+            color: _surface,
+            border: Border.all(color: _white.withValues(alpha: 0.1)),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (server.bannerUrl != null)
-                ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                  child: Image.network(
-                    server.bannerUrl!,
-                    height: 120,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        height: 120,
-                        width: double.infinity,
-                        color: const Color(FlickoColors.blurple),
-                      );
-                    },
+                Container(
+                  height: 140,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    border: Border(bottom: BorderSide(color: _white.withValues(alpha: 0.1))),
+                    image: DecorationImage(
+                      image: NetworkImage(server.bannerUrl!),
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 )
               else
                 Container(
                   height: 60,
                   width: double.infinity,
-                  decoration: const BoxDecoration(
-                    color: Color(FlickoColors.blurple),
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+                  decoration: BoxDecoration(
+                    color: _surface,
+                    border: Border(bottom: BorderSide(color: _white.withValues(alpha: 0.1))),
                   ),
                 ),
-              ListTile(
-                contentPadding: const EdgeInsets.all(16),
-                leading: CircleAvatar(
-                  radius: 24,
-                  backgroundColor: const Color(FlickoColors.bgTertiary),
-                  backgroundImage: server.iconUrl != null ? NetworkImage(server.iconUrl!) : null,
-                  onBackgroundImageError: server.iconUrl != null ? (e, s) {} : null,
-                  child: server.iconUrl == null
-                      ? Text(
-                          server.name.substring(0, 1).toUpperCase(),
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                        )
-                      : null,
-                ),
-                title: Text(
-                  server.name,
-                  style: GoogleFonts.inter(
-                    color: const Color(FlickoColors.textPrimary),
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                subtitle: Column(
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (server.description != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4.0),
-                        child: Text(
-                          server.description!,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.inter(color: const Color(FlickoColors.textSecondary), fontSize: 13),
-                        ),
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: _bg,
+                        border: Border.all(color: _neon),
+                        image: server.iconUrl != null
+                            ? DecorationImage(image: NetworkImage(server.iconUrl!), fit: BoxFit.cover)
+                            : null,
                       ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Icon(Icons.people, size: 14, color: Color(FlickoColors.textMuted)),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${server.memberCount} members',
-                          style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted), fontSize: 12),
-                        ),
-                      ],
+                      child: server.iconUrl == null
+                          ? Center(
+                              child: Text(
+                                server.name.substring(0, 1).toUpperCase(),
+                                style: GoogleFonts.epilogue(
+                                  color: _neon,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            )
+                          : null,
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            server.name.toUpperCase(),
+                            style: GoogleFonts.epilogue(
+                              color: _white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                              fontStyle: FontStyle.italic,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          if (server.description != null) ...[
+                            const SizedBox(height: 6),
+                            Text(
+                              server.description!,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.inter(color: _white.withValues(alpha: 0.7), fontSize: 13, height: 1.4),
+                            ),
+                          ],
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              const Icon(Icons.people, size: 14, color: _muted),
+                              const SizedBox(width: 6),
+                              Text(
+                                '${server.memberCount} MEMBERS',
+                                style: GoogleFonts.spaceMono(color: _muted, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
-                trailing: ElevatedButton(
-                  onPressed: () => _joinServer(server),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(FlickoColors.blurple),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                decoration: BoxDecoration(
+                  border: Border(top: BorderSide(color: _white.withValues(alpha: 0.05))),
+                ),
+                child: GestureDetector(
+                  onTap: () => _joinServer(server),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: const BoxDecoration(color: _neon),
+                    child: Center(
+                      child: Text(
+                        'JOIN SERVER',
+                        style: GoogleFonts.spaceGrotesk(
+                          color: Colors.black,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                    ),
                   ),
-                  child: const Text('Join'),
                 ),
               ),
             ],

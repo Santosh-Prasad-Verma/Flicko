@@ -38,7 +38,7 @@ class ServerRail extends ConsumerWidget {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(selectedId == null ? 16 : 24),
                 child: Image.asset(
-                  'assets/images/Flicko_icon.png',
+                  'assets/branding/Flicko-for-black-background.png',
                   width: 48,
                   height: 48,
                   fit: BoxFit.cover,
@@ -62,6 +62,21 @@ class ServerRail extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(24),
               ),
               child: const Icon(Icons.chat_bubble, color: Colors.white, size: 22),
+            ),
+          ),
+
+          // Gaming button
+          _ServerRailIcon(
+            isActive: false,
+            onTap: () => context.push('/gaming'),
+            child: Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: const Color(FlickoColors.bgSecondary),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: const Icon(Icons.sports_esports, color: Colors.white, size: 22),
             ),
           ),
 

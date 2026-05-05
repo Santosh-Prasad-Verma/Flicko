@@ -56,6 +56,8 @@ func (h *HookHandler) HandleEmail(w http.ResponseWriter, r *http.Request) {
 	if !h.verifySignature(r, body) {
 		slog.Warn("webhook signature verification failed",
 			"remote_addr", r.RemoteAddr,
+			"signature_header", r.Header.Get("x-supabase-signature"),
+			"ua", r.UserAgent(),
 		)
 		http.Error(w, `{"error":"invalid signature"}`, http.StatusUnauthorized)
 		return
@@ -171,14 +173,24 @@ func (h *HookHandler) verifySignature(r *http.Request, body []byte) bool {
 		return false
 	}
 
-	// Strip "v1," prefix if present (Auth Hook format)
+	// The signature header format is "v1,SIGNATURE"
 	rawSignature := signature
 	if len(signature) > 3 && signature[:3] == "v1," {
 		rawSignature = signature[3:]
 	}
 
+	// The secret might also have prefixes if copied incorrectly
+	// (e.g. "v1," or "whsec_")
+	secret := h.cfg.WebhookSecret
+	if len(secret) > 3 && secret[:3] == "v1," {
+		secret = secret[3:]
+	}
+	if len(secret) > 6 && secret[:6] == "whsec_" {
+		secret = secret[6:]
+	}
+
 	// Compute expected HMAC-SHA256
-	mac := hmac.New(sha256.New, []byte(h.cfg.WebhookSecret))
+	mac := hmac.New(sha256.New, []byte(secret))
 	mac.Write(body)
 	expectedMAC := hex.EncodeToString(mac.Sum(nil))
 
@@ -215,6 +227,7 @@ func (h *HookHandler) buildEmailJob(payload models.SupabaseHookPayload) models.E
 			ActionURL: actionURL,
 			AppName:   h.cfg.AppName,
 			AppURL:    h.cfg.AppURL,
+			Token:     payload.Data.Token,
 			ValidFor:  validFor,
 			Year:      time.Now().Year(),
 		},
@@ -265,7 +278,11 @@ func (h *HookHandler) routeEmailType(eventType string) (templateName, subject st
 	case "magiclink":
 		return "magic_link", fmt.Sprintf("Your %s login link", h.cfg.AppName)
 	case "email_change":
-		return "verify", fmt.Sprintf("Confirm your new %s email", h.cfg.AppName)
+		return "confirm_email_change", fmt.Sprintf("Confirm your new %s email", h.cfg.AppName)
+	case "invite":
+		return "invite", fmt.Sprintf("You've been invited to %s", h.cfg.AppName)
+	case "reauthentication":
+		return "reauthentication", fmt.Sprintf("Confirm your identity on %s", h.cfg.AppName)
 	default:
 		return "verify", fmt.Sprintf("%s notification", h.cfg.AppName)
 	}

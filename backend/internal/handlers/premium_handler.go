@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -10,9 +12,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/flicko-org/flicko-backend/internal/services"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/razorpay/razorpay-go"
 	"go.uber.org/zap"
 )
 
@@ -22,8 +26,12 @@ const (
 )
 
 type PremiumHandler struct {
-	db     *pgxpool.Pool
-	logger *zap.Logger
+	db          *pgxpool.Pool
+	logger      *zap.Logger
+	mailService *services.MailService
+	rzpKeyID    string
+	rzpSecret   string
+	rzpClient   *razorpay.Client
 }
 
 type createGiftRequest struct {
@@ -39,6 +47,17 @@ type applyBoostCreditRequest struct {
 	ServerID string `json:"server_id"`
 }
 
+type createOrderRequest struct {
+	Plan string `json:"plan"` // "nitro_basic" or "nitro_full"
+}
+
+type verifyPaymentRequest struct {
+	OrderID   string `json:"razorpay_order_id"`
+	PaymentID string `json:"razorpay_payment_id"`
+	Signature string `json:"razorpay_signature"`
+	Plan      string `json:"plan"`
+}
+
 type boostCreditResponse struct {
 	ID                 string     `json:"id"`
 	IssuedAt           time.Time  `json:"issued_at"`
@@ -52,10 +71,15 @@ type applyCosmeticRequest struct {
 	CosmeticID string `json:"cosmetic_id"`
 }
 
-func NewPremiumHandler(db *pgxpool.Pool, logger *zap.Logger) *PremiumHandler {
+func NewPremiumHandler(db *pgxpool.Pool, logger *zap.Logger, mailSvc *services.MailService, rzpID, rzpSecret string) *PremiumHandler {
+	client := razorpay.NewClient(rzpID, rzpSecret)
 	return &PremiumHandler{
-		db:     db,
-		logger: logger.Named("handler.premium"),
+		db:          db,
+		logger:      logger.Named("handler.premium"),
+		mailService: mailSvc,
+		rzpKeyID:    rzpID,
+		rzpSecret:   rzpSecret,
+		rzpClient:   client,
 	}
 }
 
@@ -622,6 +646,129 @@ func (h *PremiumHandler) ApplyCosmetic(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (h *PremiumHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
+	userID := getUserID(r)
+	if userID == "" {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	req := createOrderRequest{}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request")
+		return
+	}
+
+	amount := 29900 // Default 299 INR in paise
+	if req.Plan == nitroFullPlan {
+		amount = 99900
+	}
+
+	data := map[string]interface{}{
+		"amount":          amount,
+		"currency":        "INR",
+		"receipt":         uuid.New().String(),
+		"partial_payment": false,
+		"notes": map[string]interface{}{
+			"user_id": userID,
+			"plan":    req.Plan,
+		},
+	}
+
+	body, err := h.rzpClient.Order.Create(data, nil)
+	if err != nil {
+		h.logger.Error("failed to create razorpay order", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to initiate payment")
+		return
+	}
+
+	// The Razorpay SDK returns the body as a map[string]interface{}
+	// We need to extract the order ID from it.
+	orderID, ok := body["id"].(string)
+	if !ok {
+		h.logger.Error("razorpay response missing order id", zap.Any("body", body))
+		writeError(w, http.StatusInternalServerError, "failed to initiate payment")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"order_id": orderID,
+		"amount":   amount,
+		"currency": "INR",
+		"key_id":   h.rzpKeyID,
+	})
+}
+
+func (h *PremiumHandler) VerifyPayment(w http.ResponseWriter, r *http.Request) {
+	userID := getUserID(r)
+	if userID == "" {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	userUUID, _ := uuid.Parse(userID)
+
+	req := verifyPaymentRequest{}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request")
+		return
+	}
+
+	// Verify Signature
+	// Generated Signature = hmac_sha256(order_id + "|" + payment_id, secret)
+	data := req.OrderID + "|" + req.PaymentID
+	mac := hmac.New(sha256.New, []byte(h.rzpSecret))
+	mac.Write([]byte(data))
+	expectedSignature := hex.EncodeToString(mac.Sum(nil))
+
+	if expectedSignature != req.Signature {
+		h.logger.Warn("invalid payment signature", 
+			zap.String("user", userID), 
+			zap.String("order", req.OrderID))
+		writeError(w, http.StatusBadRequest, "invalid signature")
+		return
+	}
+
+	// Grant Premium
+	duration := 30 // days
+	plan := req.Plan
+	if plan == "" {
+		plan = nitroBasicPlan
+	}
+
+	_, err := h.db.Exec(r.Context(), `
+		INSERT INTO public.entitlements (user_id, type, source, source_id, granted_at, expires_at, revoked)
+		VALUES ($1, $2, 'payment', $3, NOW(), NOW() + ($4 * INTERVAL '1 day'), FALSE)
+	`, userUUID, plan, req.PaymentID, duration)
+
+	if err != nil {
+		h.logger.Error("failed to grant premium entitlement", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "internal error")
+		return
+	}
+
+	// Send Confirmation Email
+	// In a real app, we'd fetch the user's email from the DB first
+	var email, username string
+	err = h.db.QueryRow(r.Context(), "SELECT email, username FROM public.users WHERE id = $1", userUUID).Scan(&email, &username)
+	if err == nil {
+		amountStr := "₹299.00"
+		if plan == nitroFullPlan {
+			amountStr = "₹999.00"
+		}
+		
+		go func() {
+			if err := h.mailService.SendFlickoPlusConfirmation(email, username, req.PaymentID, amountStr); err != nil {
+				h.logger.Error("failed to send payment confirmation email", zap.Error(err))
+			}
+		}()
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"status": "success",
+		"plan":   plan,
+	})
+}
+
 func generateGiftCode() (string, error) {
 	b := make([]byte, 16)
 	if _, err := rand.Read(b); err != nil {
@@ -629,3 +776,4 @@ func generateGiftCode() (string, error) {
 	}
 	return strings.ToUpper(hex.EncodeToString(b)), nil
 }
+

@@ -117,7 +117,7 @@ func (p *SupabaseHookPayload) Validate() error {
 // IsKnownType returns true if the event type is one we handle.
 func (p *SupabaseHookPayload) IsKnownType() bool {
 	switch p.Type {
-	case "signup", "recovery", "magiclink", "email_change":
+	case "signup", "recovery", "magiclink", "email_change", "invite", "reauthentication":
 		return true
 	default:
 		return false

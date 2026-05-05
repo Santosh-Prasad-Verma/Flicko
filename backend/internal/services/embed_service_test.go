@@ -34,7 +34,7 @@ func TestEmbedService_HTMLParsing(t *testing.T) {
 	defer srv.Close()
 
 	// Initialize service with mock cache
-	mc := &mockCache{store: make(map[string]string)}
+	mc := NewMockCache()
 	// EmbedService requires db and cache. We pass nil for db since we only test the fetch part here.
 	svc := services.NewEmbedService(nil, mc)
 

@@ -17,7 +17,7 @@ func TestSessionService_RefreshAndBlacklist(t *testing.T) {
 	// Validates generating refresh tokens and then terminating them via redis blacklist.
 
 	ctx := context.Background()
-	mc := &mockCache{store: make(map[string]string)}
+	mc := NewMockCache()
 
 	// Note: NewSessionService requires a valid DB connection to do token rotation.
 	// We'll mock the interface directly here since we can't spin up PG easily.
@@ -39,10 +39,12 @@ func TestSessionService_RefreshAndBlacklist(t *testing.T) {
 
 	// Terminate (blacklist)
 	// Usually service does db query then Redis cache. Here we simulate the redis call directly matching the service logic
+	mc.On("Set", ctx, "blacklist:rt:"+token, "true", 24*time.Hour).Return(nil).Once()
 	mc.Set(ctx, "blacklist:rt:"+token, "true", 24*time.Hour)
 
 	// Now try to refresh
 	// service calls redis.Exists("blacklist:rt:"+token)
+	mc.On("Exists", ctx, "blacklist:rt:"+token).Return(true, nil).Once()
 	blacklisted, _ := mc.Exists(ctx, "blacklist:rt:"+token)
 	assert.True(t, blacklisted, "The refresh token should be blacklisted")
 

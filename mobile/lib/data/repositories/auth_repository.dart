@@ -30,6 +30,16 @@ class AuthRepository {
     return UserModel.fromJson(response);
   }
 
+  Future<bool> checkUsernameExists(String username) async {
+    try {
+      final response = await _client
+          .rpc('check_username_exists', params: {'target_username': username});
+      return response == true;
+    } catch (e) {
+      return false; // If query fails (e.g. network error), let the sign up process handle validation
+    }
+  }
+
   /// Update user profile fields
   Future<UserModel> updateProfile(String userId, Map<String, dynamic> updates) async {
     final response = await _client
