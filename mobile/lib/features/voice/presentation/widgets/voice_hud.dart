@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/voice/presentation/controllers/voice_controller.dart';
-import 'package:mobile/features/voice/presentation/controllers/voice_state.dart';
 
 class VoiceHUD extends ConsumerWidget {
   const VoiceHUD({super.key});
@@ -24,7 +23,7 @@ class VoiceHUD extends ConsumerWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
+            color: Colors.black.withOpacity(0.3),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -64,7 +63,7 @@ class VoiceHUD extends ConsumerWidget {
     );
   }
 
-  Widget _buildStatusIndicator(VoiceState voiceState) {
+  Widget _buildStatusIndicator(voiceState) {
     return Container(
       width: 40,
       height: 40,
@@ -73,14 +72,14 @@ class VoiceHUD extends ConsumerWidget {
         shape: BoxShape.circle,
       ),
       child: Icon(
-        voiceState.isConnecting ? Icons.hourglass_empty : Icons.wifi_calling_3,
+        voiceState.isConnecting ? Icons.hour_glass_empty : Icons.wifi_calling_3,
         color: voiceState.isConnected ? const Color(FlickoColors.green) : const Color(FlickoColors.textMuted),
         size: 20,
       ),
     );
   }
 
-  Widget _buildActionButtons(WidgetRef ref, VoiceState voiceState) {
+  Widget _buildActionButtons(WidgetRef ref, voiceState) {
     final controller = ref.read(voiceControllerProvider.notifier);
     
     return Row(

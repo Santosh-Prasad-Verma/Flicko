@@ -16,11 +16,11 @@ class MessageActions extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final VoidCallback onCopy;
-  final VoidCallback? onPin;
-  final VoidCallback? onThread;
-  final VoidCallback? onMarkUnread;
-  final VoidCallback? onViewProfile;
-  final VoidCallback? onMention;
+  final VoidCallback onPin;
+  final VoidCallback onThread;
+  final VoidCallback onMarkUnread;
+  final VoidCallback onViewProfile;
+  final VoidCallback onMention;
 
   const MessageActions({
     super.key,
@@ -65,7 +65,7 @@ class MessageActions extends StatelessWidget {
             ),
             
             // Quick reactions row
-            _buildQuickReactions(context),
+            _buildQuickReactions(),
             
             const Divider(color: Color(FlickoColors.bgTertiary), height: 1),
             
@@ -177,7 +177,7 @@ class MessageActions extends StatelessWidget {
     );
   }
 
-  Widget _buildQuickReactions(BuildContext context) {
+  Widget _buildQuickReactions() {
     final quickEmojis = ['👍', '❤️', '😂', '😮', '😢', '🎉'];
     
     return Container(
@@ -198,7 +198,7 @@ class MessageActions extends StatelessWidget {
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? const Color(FlickoColors.blurple).withValues(alpha: 0.3)
+                    ? const Color(FlickoColors.blurple).withOpacity(0.3)
                     : const Color(FlickoColors.bgTertiary),
                 borderRadius: BorderRadius.circular(20),
                 border: isSelected

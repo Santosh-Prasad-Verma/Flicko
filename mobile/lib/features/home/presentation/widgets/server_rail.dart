@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/home/application/servers_notifier.dart';
 import 'package:mobile/data/models/server_model.dart';
-
+import 'package:mobile/features/home/server_channels/presentation/widgets/create_server_dialog.dart';
 
 class ServerRail extends ConsumerWidget {
   const ServerRail({super.key});
@@ -35,13 +35,12 @@ class ServerRail extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(selectedId == null ? 16 : 24),
               ),
               alignment: Alignment.center,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(selectedId == null ? 16 : 24),
-                child: Image.asset(
-                  'assets/branding/Flicko-for-black-background.png',
-                  width: 48,
-                  height: 48,
-                  fit: BoxFit.cover,
+              child: const Text(
+                'F',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ),
@@ -49,10 +48,9 @@ class ServerRail extends ConsumerWidget {
           
           // DMs button
           _ServerRailIcon(
-            isActive: false, // Default to false as it navigates away from this branch
+            isActive: false, 
             onTap: () {
-              // Direct navigation to branch root for more reliable shell switching
-              context.go('/dms');
+              // TODO: Navigate to DMs tab
             },
             child: Container(
               width: 48,
@@ -62,21 +60,6 @@ class ServerRail extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(24),
               ),
               child: const Icon(Icons.chat_bubble, color: Colors.white, size: 22),
-            ),
-          ),
-
-          // Gaming button
-          _ServerRailIcon(
-            isActive: false,
-            onTap: () => context.push('/gaming'),
-            child: Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: const Color(FlickoColors.bgSecondary),
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: const Icon(Icons.sports_esports, color: Colors.white, size: 22),
             ),
           ),
 
@@ -102,7 +85,7 @@ class ServerRail extends ConsumerWidget {
                 if (index == servers.length) {
                   return _ServerRailIcon(
                     isActive: false,
-                    onTap: () => context.push('/server/create'),
+                    onTap: () => CreateServerDialog.show(context),
                     child: const _CircleIconButton(
                       icon: Icons.add,
                       color: Color(FlickoColors.green),

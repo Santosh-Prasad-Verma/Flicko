@@ -21,9 +21,9 @@ class ServerView extends StatelessWidget {
               color: Color(FlickoColors.textMuted),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'No channel selected',
-              style: TextStyle(
+            Text(
+              'Welcome to ${server.name}',
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 24,
                 fontWeight: FontWeight.bold,

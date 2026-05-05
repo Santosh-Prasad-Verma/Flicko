@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:mobile/core/constants/flicko_colors.dart';
-import 'package:mobile/data/models/flicko_message.dart';
-import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
-import 'package:mobile/features/shared/presentation/widgets/avatar.dart';
+import 'package:mobile/features/core/constants/flicko_colors.dart';
+import 'package:mobile/features/data/models/flicko_message.dart';
+import 'package:mobile/features/server_channels/shared/presentation/widgets/user_avatar.dart';
 
 class MessageItem extends StatelessWidget {
   final FlickoMessage message;
@@ -67,7 +66,7 @@ class MessageItem extends StatelessWidget {
               imageUrl: message.author?.avatarUrl,
               name: message.author?.displayName ?? message.author?.username ?? '?',
               size: 40,
-              status: _mapStatus(message.author?.onlineStatus) as StatusIndicator?,
+              status: _mapStatus(message.author?.onlineStatus),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -250,7 +249,7 @@ class MessageItem extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
                 color: r.me 
-                    ? const Color(FlickoColors.blurple).withValues(alpha: 0.2)
+                    ? const Color(FlickoColors.blurple).withOpacity(0.2)
                     : const Color(FlickoColors.bgTertiary),
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(
@@ -284,16 +283,16 @@ class MessageItem extends StatelessWidget {
     );
   }
 
-  StatusIndicator _mapStatus(String? status) {
+  UserStatus _mapStatus(String? status) {
     switch (status) {
       case 'online':
-        return StatusIndicator.online;
+        return UserStatus.online;
       case 'idle':
-        return StatusIndicator.idle;
+        return UserStatus.idle;
       case 'dnd':
-        return StatusIndicator.dnd;
+        return UserStatus.dnd;
       default:
-        return StatusIndicator.offline;
+        return UserStatus.offline;
     }
   }
 }

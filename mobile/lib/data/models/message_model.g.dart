@@ -15,35 +15,29 @@ _MessageModel _$MessageModelFromJson(Map<String, dynamic> json) =>
       type: json['type'] as String? ?? 'default',
       replyToId: json['reply_to_id'] as String?,
       threadId: json['thread_id'] as String?,
-      attachments:
-          (json['attachments'] as List<dynamic>?)
+      attachments: (json['attachments'] as List<dynamic>?)
               ?.map((e) => AttachmentModel.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
-      reactions:
-          (json['reactions'] as List<dynamic>?)
+      reactions: (json['reactions'] as List<dynamic>?)
               ?.map((e) => ReactionModel.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
       pinned: json['pinned'] as bool? ?? false,
       edited: json['edited'] as bool? ?? false,
-      editedAt:
-          json['edited_at'] == null
-              ? null
-              : DateTime.parse(json['edited_at'] as String),
+      editedAt: json['edited_at'] == null
+          ? null
+          : DateTime.parse(json['edited_at'] as String),
       createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt:
-          json['updated_at'] == null
-              ? null
-              : DateTime.parse(json['updated_at'] as String),
-      author:
-          json['author'] == null
-              ? null
-              : UserModel.fromJson(json['author'] as Map<String, dynamic>),
-      replyTo:
-          json['replyTo'] == null
-              ? null
-              : MessageModel.fromJson(json['replyTo'] as Map<String, dynamic>),
+      updatedAt: json['updated_at'] == null
+          ? null
+          : DateTime.parse(json['updated_at'] as String),
+      author: json['author'] == null
+          ? null
+          : UserModel.fromJson(json['author'] as Map<String, dynamic>),
+      replyTo: json['replyTo'] == null
+          ? null
+          : MessageModel.fromJson(json['replyTo'] as Map<String, dynamic>),
     );
 
 Map<String, dynamic> _$MessageModelToJson(_MessageModel instance) =>
@@ -95,7 +89,7 @@ _ReactionModel _$ReactionModelFromJson(Map<String, dynamic> json) =>
       me: json['me'] as bool? ?? false,
       users:
           (json['users'] as List<dynamic>?)?.map((e) => e as String).toList() ??
-          const [],
+              const [],
     );
 
 Map<String, dynamic> _$ReactionModelToJson(_ReactionModel instance) =>

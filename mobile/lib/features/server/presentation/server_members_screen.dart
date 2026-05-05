@@ -6,7 +6,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/flicko_colors.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
 import 'widgets/user_timeout_bottom_sheet.dart';
-import 'package:mobile/features/auth/application/auth_notifier.dart';
 
 /// Server Member List Screen
 ///
@@ -27,7 +26,6 @@ class _Member {
   final String username;
   final String? avatarUrl;
   final String? status;
-  final String? customStatus;
   final String roleLabel;
   final DateTime? timeoutUntil;
 
@@ -38,7 +36,6 @@ class _Member {
     required this.username,
     this.avatarUrl,
     this.status,
-    this.customStatus,
     required this.roleLabel,
     this.timeoutUntil,
   });
@@ -75,10 +72,10 @@ class _ServerMembersScreenState extends ConsumerState<ServerMembersScreen> {
 
       final data = await _client
           .from('server_members')
-          .select('id, user_id, roles, timeout_until, profiles!user_id(id, username, display_name, avatar, status, custom_status)')
+          .select('id, user_id, roles, timeout_until, profiles!user_id(id, username, display_name, avatar, status)')
           .eq('server_id', widget.serverId);
 
-      final currentUserId = ref.read(currentUserIdProvider);
+      final currentUserId = _client.auth.currentUser?.id;
       bool canMod = false;
 
       setState(() {
@@ -107,7 +104,6 @@ class _ServerMembersScreenState extends ConsumerState<ServerMembersScreen> {
             displayName: profile?['display_name'] as String?,
             avatarUrl: profile?['avatar'] as String?,
             status: profile?['status'] as String?,
-            customStatus: profile?['custom_status'] as String?,
             roleLabel: roleLabel,
             timeoutUntil: m['timeout_until'] != null ? DateTime.tryParse(m['timeout_until'] as String) : null,
           );
@@ -151,7 +147,7 @@ class _ServerMembersScreenState extends ConsumerState<ServerMembersScreen> {
   Widget build(BuildContext context) {
     final grouped = _groupedMembers;
     return Scaffold(
-      
+      backgroundColor: const Color(FlickoColors.bgPrimary),
       body: SafeArea(
         child: Column(
           children: [
@@ -197,7 +193,7 @@ class _ServerMembersScreenState extends ConsumerState<ServerMembersScreen> {
                         )
                       : ListView.builder(
                           padding: const EdgeInsets.all(12),
-                          itemCount: grouped.entries.fold<int>(0, (sum, e) => sum + e.value.length + 1),
+                          itemCount: grouped.entries.fold(0, (sum, e) => sum + e.value.length + 1),
                           itemBuilder: (context, index) {
                             int current = 0;
                             for (final entry in grouped.entries) {
@@ -234,8 +230,8 @@ class _ServerMembersScreenState extends ConsumerState<ServerMembersScreen> {
   }
 
   void _onMemberTap(_Member member) {
-    if (!_canModerate || member.userId == ref.read(currentUserIdProvider)) {
-      context.push('/u/${member.userId}');
+    if (!_canModerate || member.userId == _client.auth.currentUser?.id) {
+      context.push('/profile/${member.userId}');
       return;
     }
 
@@ -266,7 +262,7 @@ class _ServerMembersScreenState extends ConsumerState<ServerMembersScreen> {
                 title: Text('View Profile', style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary))),
                 onTap: () {
                   context.pop();
-                  context.push('/u/${member.userId}');
+                  context.push('/profile/${member.userId}');
                 },
               ),
               ListTile(
@@ -275,14 +271,16 @@ class _ServerMembersScreenState extends ConsumerState<ServerMembersScreen> {
                 onTap: () async {
                   context.pop();
                   // We need to import UserTimeoutBottomSheet at the top
-                  await UserTimeoutBottomSheet.show(
+                  final changed = await UserTimeoutBottomSheet.show(
                     context,
                     serverId: widget.serverId,
                     userId: member.userId,
                     username: member.displayName ?? member.username,
                     currentTimeout: member.timeoutUntil,
                   );
-                  _loadMembers();
+                  if (changed == true) {
+                    _loadMembers();
+                  }
                 },
               ),
               ListTile(
@@ -326,14 +324,13 @@ class _ServerMembersScreenState extends ConsumerState<ServerMembersScreen> {
           ),
           TextButton(
             onPressed: () async {
-              final messenger = ScaffoldMessenger.of(context);
-              Navigator.of(context).pop();
+              context.pop();
               try {
                 if (isBan) {
                   await _client.from('bans').insert({
                     'server_id': widget.serverId,
                     'user_id': member.userId,
-                    'banned_by': ref.read(currentUserIdProvider),
+                    'banned_by': _client.auth.currentUser!.id,
                     'reason': 'Banned via Moderator UI',
                   });
                 }
@@ -353,8 +350,8 @@ class _ServerMembersScreenState extends ConsumerState<ServerMembersScreen> {
                     
                 _loadMembers();
               } catch (e) {
-                if (context.mounted) {
-                  messenger.showSnackBar(SnackBar(content: Text('Failed to $action: $e')));
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to $action: $e')));
                 }
               }
             },
@@ -367,6 +364,7 @@ class _ServerMembersScreenState extends ConsumerState<ServerMembersScreen> {
 
   Widget _buildMemberRow(_Member member) {
     final displayName = member.displayName ?? member.username;
+    final isOnline = member.status == 'online' || member.status == 'idle';
     final isTimedOut = member.timeoutUntil != null && member.timeoutUntil!.isAfter(DateTime.now());
 
     return InkWell(
@@ -421,21 +419,11 @@ class _ServerMembersScreenState extends ConsumerState<ServerMembersScreen> {
                         ),
                       ),
                       const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          member.customStatus != null && member.customStatus!.trim().isNotEmpty
-                              ? member.customStatus!
-                              : (member.status == 'online'
-                                  ? 'Online'
-                                  : member.status == 'idle'
-                                      ? 'Idle'
-                                      : 'Offline'),
-                          style: GoogleFonts.inter(
-                            color: const Color(FlickoColors.textMuted),
-                            fontSize: 12,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                      Text(
+                        member.status == 'online' ? 'Online' : member.status == 'idle' ? 'Idle' : 'Offline',
+                        style: GoogleFonts.inter(
+                          color: const Color(FlickoColors.textMuted),
+                          fontSize: 12,
                         ),
                       ),
                     ],
@@ -445,7 +433,7 @@ class _ServerMembersScreenState extends ConsumerState<ServerMembersScreen> {
             ),
             if (member.roleLabel == 'Owner')
               const Icon(Icons.shield, size: 16, color: Color(FlickoColors.blurple)),
-            if (_canModerate && member.userId != ref.read(currentUserIdProvider))
+            if (_canModerate && member.userId != _client.auth.currentUser?.id)
                const Icon(Icons.more_vert, size: 18, color: Color(FlickoColors.textMuted)),
           ],
         ),

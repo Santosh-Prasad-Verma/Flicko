@@ -14,7 +14,7 @@ enum ChannelType {
 }
 
 @freezed
-abstract class ChannelModel with _$ChannelModel {
+class ChannelModel with _$ChannelModel {
   const factory ChannelModel({
     required String id,
     @JsonKey(name: 'server_id') required String serverId,

@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
@@ -86,6 +85,8 @@ class BiometricsService {
   /// Returns true if authentication succeeds
   Future<bool> authenticate({
     String localizedReason = 'Authenticate to access your account',
+    bool useErrorDialogs = true,
+    bool stickyAuth = false,
     bool biometricOnly = false,
   }) async {
     try {
@@ -96,6 +97,8 @@ class BiometricsService {
 
       final didAuthenticate = await _localAuth.authenticate(
         localizedReason: localizedReason,
+        useErrorDialogs: useErrorDialogs,
+        stickyAuth: stickyAuth,
         biometricOnly: biometricOnly,
       );
 
@@ -131,6 +134,8 @@ class BiometricsService {
         return 'Strong Biometric';
       case BiometricType.weak:
         return 'Weak Biometric';
+      case BiometricType.none:
+        return 'None';
     }
   }
 

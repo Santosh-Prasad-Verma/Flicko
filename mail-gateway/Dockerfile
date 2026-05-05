@@ -41,9 +41,9 @@ COPY --from=builder /app/templates/ ./templates/
 # Expose the server port
 EXPOSE 8080
 
-# Health check
+# Health check using dynamic port
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-    CMD wget -qO- http://localhost:8080/health || exit 1
+    CMD wget -qO- http://localhost:${PORT:-8080}/health || exit 1
 
 # Run the server
 CMD ["./server"]

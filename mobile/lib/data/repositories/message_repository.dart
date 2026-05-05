@@ -1,18 +1,22 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:io';
+import 'package:path/path.dart' as p;
 import 'package:mobile/data/models/flicko_message.dart';
-import 'package:mobile/data/services/appwrite_storage_service.dart';
+import 'package:mobile/core/network/dio_client.dart';
+import 'package:mobile/core/services/appwrite_storage_service.dart';
 
 /// Repository for handling channel message-related data operations.
 /// 
-/// Interacts with Supabase directly to fetch message history,
+/// Interacts with Supabase and the backend API to fetch message history,
 /// handle real-time subscriptions, and perform message mutations.
 class MessageRepository {
   final SupabaseClient _client;
+  final Dio _dio;
   final AppwriteStorageService _appwriteStorage;
 
-  MessageRepository(this._client, this._appwriteStorage);
+  MessageRepository(this._client, this._dio, this._appwriteStorage);
 
   /// Fetches a page of messages for a specific [channelId].
   /// Uses [cursor] (timestamp) for infinite scrolling.
@@ -24,23 +28,23 @@ class MessageRepository {
     try {
       var query = _client.from('messages').select('''
           *,
-          author:profiles!author_id(id, username, display_name, avatar_url:avatar),
+          author:profiles!user_id(id, username, display_name, avatar_url:avatar),
           reactions(emoji, user_id),
           attachments(id, url, content_type:mime_type, filename, size, width, height)
-        ''').eq('channel_id', channelId).isFilter('thread_id', null);
+        ''').eq('channel_id', channelId).isFilter('thread_id', null).order('created_at', ascending: false).limit(limit);
 
       if (cursor != null) {
         query = query.lt('created_at', cursor.toIso8601String());
       }
 
-      final List<dynamic> response = await query.order('created_at', ascending: false).limit(limit);
+      final List<dynamic> response = await query;
       
       return response.map((json) {
         final Map<String, dynamic> msg = Map<String, dynamic>.from(json);
         
         // Ensure proper mapping to FlickoMessage structure
         msg['type'] = 'channel';
-        msg['user_id'] = msg['author_id']; // Map author_id to user_id for FlickoMessage if needed
+        msg['author_id'] = msg['user_id']; // Map user_id to author_id for FlickoMessage
         
         if (msg['author'] != null && msg['author']['avatar_url'] != null) {
           msg['author']['avatar'] = msg['author']['avatar_url'];
@@ -86,7 +90,7 @@ class MessageRepository {
     }
   }
 
-  /// Sends a new message to a channel via direct Supabase insert.
+  /// Sends a new message to a channel via the backend API.
   Future<String> sendMessage({
     required String channelId,
     required String content,
@@ -94,55 +98,42 @@ class MessageRepository {
     bool isSilent = false,
     List<FlickoAttachment>? attachments,
   }) async {
-    final userId = _client.auth.currentSession?.user.id;
-    if (userId == null) throw Exception('Not authenticated');
-
-    final payload = <String, dynamic>{
-      'channel_id': channelId,
-      'author_id': userId,
+    final payload = {
       'content': content,
       'type': replyToId != null ? 'reply' : 'default',
+      'reply_to_id': replyToId,
+      'is_silent': isSilent,
+      'attachments': attachments?.map((e) => e.toJson()).toList(),
     };
 
-    if (replyToId != null) {
-      payload['thread_id'] = replyToId;
-    }
-
-    if (attachments != null && attachments.isNotEmpty) {
-      // Attachments are stored in a separate table; insert them after the message
-    }
-
-    final response = await _client
-        .from('messages')
-        .insert(payload)
-        .select('id')
-        .single();
-
-    final messageId = response['id'] as String;
-
-    // Insert attachments if any
-    if (attachments != null && attachments.isNotEmpty) {
-      final attachmentRows = attachments.map((a) => {
-        'message_id': messageId,
-        'url': a.url,
-        'mime_type': a.contentType,
-        'filename': a.filename,
-        'size': a.size,
-        'width': a.width,
-        'height': a.height,
-        'appwrite_file_id': a.appwriteFileId,
-        'appwrite_bucket_id': a.appwriteBucketId,
-      }).toList();
-
-      await _client.from('attachments').insert(attachmentRows);
-    }
-
-    return messageId;
+    final response = await _dio.post('/api/v1/channels/$channelId/messages', data: payload);
+    
+    // The API returns { id: "..." }
+    return response.data['id'] as String;
   }
 
-  /// Uploads an attachment to Appwrite Storage and returns metadata.
-  Future<Map<String, String>> uploadAttachment(File file, String userId, String channelId) async {
+  /// Uploads an attachment to Appwrite Storage.
+  Future<String> uploadAttachment(File file, String userId, String channelId) async {
     return await _appwriteStorage.uploadAttachment(file, userId, channelId);
+    /* Supabase / Cloudinary code commented as requested
+    try {
+      final extension = p.extension(file.path);
+      final fileName = '${userId}_${DateTime.now().millisecondsSinceEpoch}$extension';
+      final storagePath = 'channels/$channelId/$fileName';
+
+      await _client.storage.from('attachments').upload(
+            storagePath,
+            file,
+            fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
+          );
+
+      // Get signed URL for access (matching RN pattern)
+      final signedUrl = await _client.storage.from('attachments').createSignedUrl(storagePath, 60 * 60 * 24 * 7); // 1 week
+      return signedUrl;
+    } catch (e) {
+      rethrow;
+    }
+    */
   }
 
   /// Updates an existing message's content.
@@ -195,6 +186,10 @@ class MessageRepository {
   /// Sends a typing indicator.
   Future<void> sendTyping(String channelId, String userId, bool isTyping) async {
     final channel = _client.channel('typing:$channelId');
+    // Ensure we are subscribed before broadcasting
+    if (channel.state != RealtimeSubscribeState.subscribed) {
+      await channel.subscribe();
+    }
     await channel.sendBroadcastMessage(
       event: 'typing',
       payload: {
@@ -233,6 +228,7 @@ class MessageRepository {
 final messageRepositoryProvider = Provider<MessageRepository>((ref) {
   return MessageRepository(
     Supabase.instance.client,
+    ref.watch(dioClientProvider),
     ref.watch(appwriteStorageServiceProvider),
   );
 });

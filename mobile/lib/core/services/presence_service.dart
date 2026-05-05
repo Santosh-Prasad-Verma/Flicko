@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:web_socket_channel/io_websocket_channel.dart';
 
 /// Provider for PresenceService
 final presenceServiceProvider = Provider<PresenceService>((ref) {
@@ -37,6 +39,7 @@ class PresenceService {
   
   String? _currentUserId;
   String _currentStatus = 'online';
+  String? _currentChannelId;
   
   bool _connected = false;
   
@@ -67,13 +70,17 @@ class PresenceService {
     try {
       // Get Supabase realtime token
       final supabase = Supabase.instance.client;
-      final token = supabase.realtime.headers['apikey'] ?? '';
+      final token = supabase.realtime.headers['apikey'] ?? supabase.supabaseKey;
       
       // Connect to WebSocket
       final wsUrl = _buildWebSocketUrl(token);
       
-      _channel = WebSocketChannel.connect(
-        Uri.parse(wsUrl),
+      _channel = IOWebSocketChannel.connect(
+        wsUrl,
+        headers: {
+          'apikey': token,
+          'Authorization': 'Bearer ${supabase.auth.currentSession?.accessToken}',
+        },
       );
 
       // Listen for messages
@@ -106,7 +113,7 @@ class PresenceService {
   /// Build WebSocket URL
   String _buildWebSocketUrl(String token) {
     final supabase = Supabase.instance.client;
-    final url = supabase.rest.url.toString().replaceFirst('/rest/v1', '').replaceFirst('https://', 'wss://');
+    final url = supabase.supabaseUrl.replaceFirst('https://', 'wss://');
     return '$url/realtime/v1/websocket?apikey=$token&vsn=1.0.0';
   }
 
@@ -264,6 +271,7 @@ class PresenceService {
   Future<void> setTyping(String channelId, bool isTyping) async {
     if (_currentUserId == null) return;
 
+    _currentChannelId = channelId;
 
     _sendMessage({
       'topic': 'channel:$channelId',

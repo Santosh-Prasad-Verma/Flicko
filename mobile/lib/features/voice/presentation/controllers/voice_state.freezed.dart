@@ -11,299 +11,547 @@ part of 'voice_state.dart';
 
 // dart format off
 T _$identity<T>(T value) => value;
+
 /// @nodoc
 mixin _$VoiceState {
+  Room? get room;
+  bool get isConnected;
+  bool get isConnecting;
+  bool get isMuted;
+  bool get isDeafened;
+  List<Participant> get participants;
+  Set<String> get speakingParticipants; // Set of sids who are speaking
+  String? get error;
+  String? get activeChannelId;
 
- Room? get room; bool get isConnected; bool get isConnecting; bool get isMuted; bool get isDeafened; List<Participant> get participants; Set<String> get speakingParticipants;// Set of sids who are speaking
- String? get error; String? get activeChannelId;
-/// Create a copy of VoiceState
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-$VoiceStateCopyWith<VoiceState> get copyWith => _$VoiceStateCopyWithImpl<VoiceState>(this as VoiceState, _$identity);
+  /// Create a copy of VoiceState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
+  $VoiceStateCopyWith<VoiceState> get copyWith =>
+      _$VoiceStateCopyWithImpl<VoiceState>(this as VoiceState, _$identity);
 
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is VoiceState &&
+            (identical(other.room, room) || other.room == room) &&
+            (identical(other.isConnected, isConnected) ||
+                other.isConnected == isConnected) &&
+            (identical(other.isConnecting, isConnecting) ||
+                other.isConnecting == isConnecting) &&
+            (identical(other.isMuted, isMuted) || other.isMuted == isMuted) &&
+            (identical(other.isDeafened, isDeafened) ||
+                other.isDeafened == isDeafened) &&
+            const DeepCollectionEquality()
+                .equals(other.participants, participants) &&
+            const DeepCollectionEquality()
+                .equals(other.speakingParticipants, speakingParticipants) &&
+            (identical(other.error, error) || other.error == error) &&
+            (identical(other.activeChannelId, activeChannelId) ||
+                other.activeChannelId == activeChannelId));
+  }
 
+  @override
+  int get hashCode => Object.hash(
+      runtimeType,
+      room,
+      isConnected,
+      isConnecting,
+      isMuted,
+      isDeafened,
+      const DeepCollectionEquality().hash(participants),
+      const DeepCollectionEquality().hash(speakingParticipants),
+      error,
+      activeChannelId);
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is VoiceState&&(identical(other.room, room) || other.room == room)&&(identical(other.isConnected, isConnected) || other.isConnected == isConnected)&&(identical(other.isConnecting, isConnecting) || other.isConnecting == isConnecting)&&(identical(other.isMuted, isMuted) || other.isMuted == isMuted)&&(identical(other.isDeafened, isDeafened) || other.isDeafened == isDeafened)&&const DeepCollectionEquality().equals(other.participants, participants)&&const DeepCollectionEquality().equals(other.speakingParticipants, speakingParticipants)&&(identical(other.error, error) || other.error == error)&&(identical(other.activeChannelId, activeChannelId) || other.activeChannelId == activeChannelId));
-}
-
-
-@override
-int get hashCode => Object.hash(runtimeType,room,isConnected,isConnecting,isMuted,isDeafened,const DeepCollectionEquality().hash(participants),const DeepCollectionEquality().hash(speakingParticipants),error,activeChannelId);
-
-@override
-String toString() {
-  return 'VoiceState(room: $room, isConnected: $isConnected, isConnecting: $isConnecting, isMuted: $isMuted, isDeafened: $isDeafened, participants: $participants, speakingParticipants: $speakingParticipants, error: $error, activeChannelId: $activeChannelId)';
-}
-
-
+  @override
+  String toString() {
+    return 'VoiceState(room: $room, isConnected: $isConnected, isConnecting: $isConnecting, isMuted: $isMuted, isDeafened: $isDeafened, participants: $participants, speakingParticipants: $speakingParticipants, error: $error, activeChannelId: $activeChannelId)';
+  }
 }
 
 /// @nodoc
-abstract mixin class $VoiceStateCopyWith<$Res>  {
-  factory $VoiceStateCopyWith(VoiceState value, $Res Function(VoiceState) _then) = _$VoiceStateCopyWithImpl;
-@useResult
-$Res call({
- Room? room, bool isConnected, bool isConnecting, bool isMuted, bool isDeafened, List<Participant> participants, Set<String> speakingParticipants, String? error, String? activeChannelId
-});
-
-
-
-
+abstract mixin class $VoiceStateCopyWith<$Res> {
+  factory $VoiceStateCopyWith(
+          VoiceState value, $Res Function(VoiceState) _then) =
+      _$VoiceStateCopyWithImpl;
+  @useResult
+  $Res call(
+      {Room? room,
+      bool isConnected,
+      bool isConnecting,
+      bool isMuted,
+      bool isDeafened,
+      List<Participant> participants,
+      Set<String> speakingParticipants,
+      String? error,
+      String? activeChannelId});
 }
+
 /// @nodoc
-class _$VoiceStateCopyWithImpl<$Res>
-    implements $VoiceStateCopyWith<$Res> {
+class _$VoiceStateCopyWithImpl<$Res> implements $VoiceStateCopyWith<$Res> {
   _$VoiceStateCopyWithImpl(this._self, this._then);
 
   final VoiceState _self;
   final $Res Function(VoiceState) _then;
 
-/// Create a copy of VoiceState
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? room = freezed,Object? isConnected = null,Object? isConnecting = null,Object? isMuted = null,Object? isDeafened = null,Object? participants = null,Object? speakingParticipants = null,Object? error = freezed,Object? activeChannelId = freezed,}) {
-  return _then(_self.copyWith(
-room: freezed == room ? _self.room : room // ignore: cast_nullable_to_non_nullable
-as Room?,isConnected: null == isConnected ? _self.isConnected : isConnected // ignore: cast_nullable_to_non_nullable
-as bool,isConnecting: null == isConnecting ? _self.isConnecting : isConnecting // ignore: cast_nullable_to_non_nullable
-as bool,isMuted: null == isMuted ? _self.isMuted : isMuted // ignore: cast_nullable_to_non_nullable
-as bool,isDeafened: null == isDeafened ? _self.isDeafened : isDeafened // ignore: cast_nullable_to_non_nullable
-as bool,participants: null == participants ? _self.participants : participants // ignore: cast_nullable_to_non_nullable
-as List<Participant>,speakingParticipants: null == speakingParticipants ? _self.speakingParticipants : speakingParticipants // ignore: cast_nullable_to_non_nullable
-as Set<String>,error: freezed == error ? _self.error : error // ignore: cast_nullable_to_non_nullable
-as String?,activeChannelId: freezed == activeChannelId ? _self.activeChannelId : activeChannelId // ignore: cast_nullable_to_non_nullable
-as String?,
-  ));
+  /// Create a copy of VoiceState
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? room = freezed,
+    Object? isConnected = null,
+    Object? isConnecting = null,
+    Object? isMuted = null,
+    Object? isDeafened = null,
+    Object? participants = null,
+    Object? speakingParticipants = null,
+    Object? error = freezed,
+    Object? activeChannelId = freezed,
+  }) {
+    return _then(_self.copyWith(
+      room: freezed == room
+          ? _self.room
+          : room // ignore: cast_nullable_to_non_nullable
+              as Room?,
+      isConnected: null == isConnected
+          ? _self.isConnected
+          : isConnected // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isConnecting: null == isConnecting
+          ? _self.isConnecting
+          : isConnecting // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isMuted: null == isMuted
+          ? _self.isMuted
+          : isMuted // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isDeafened: null == isDeafened
+          ? _self.isDeafened
+          : isDeafened // ignore: cast_nullable_to_non_nullable
+              as bool,
+      participants: null == participants
+          ? _self.participants
+          : participants // ignore: cast_nullable_to_non_nullable
+              as List<Participant>,
+      speakingParticipants: null == speakingParticipants
+          ? _self.speakingParticipants
+          : speakingParticipants // ignore: cast_nullable_to_non_nullable
+              as Set<String>,
+      error: freezed == error
+          ? _self.error
+          : error // ignore: cast_nullable_to_non_nullable
+              as String?,
+      activeChannelId: freezed == activeChannelId
+          ? _self.activeChannelId
+          : activeChannelId // ignore: cast_nullable_to_non_nullable
+              as String?,
+    ));
+  }
 }
-
-}
-
 
 /// Adds pattern-matching-related methods to [VoiceState].
 extension VoiceStatePatterns on VoiceState {
-/// A variant of `map` that fallback to returning `orElse`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
+  /// A variant of `map` that fallback to returning `orElse`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _VoiceState value)?  $default,{required TResult orElse(),}){
-final _that = this;
-switch (_that) {
-case _VoiceState() when $default != null:
-return $default(_that);case _:
-  return orElse();
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>(
+    TResult Function(_VoiceState value)? $default, {
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case _VoiceState() when $default != null:
+        return $default(_that);
+      case _:
+        return orElse();
+    }
+  }
 
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// Callbacks receives the raw object, upcasted.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case final Subclass2 value:
-///     return ...;
-/// }
-/// ```
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// Callbacks receives the raw object, upcasted.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case final Subclass2 value:
+  ///     return ...;
+  /// }
+  /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _VoiceState value)  $default,){
-final _that = this;
-switch (_that) {
-case _VoiceState():
-return $default(_that);case _:
-  throw StateError('Unexpected subclass');
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>(
+    TResult Function(_VoiceState value) $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _VoiceState():
+        return $default(_that);
+      case _:
+        throw StateError('Unexpected subclass');
+    }
+  }
 
-}
-}
-/// A variant of `map` that fallback to returning `null`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
+  /// A variant of `map` that fallback to returning `null`.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case final Subclass value:
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _VoiceState value)?  $default,){
-final _that = this;
-switch (_that) {
-case _VoiceState() when $default != null:
-return $default(_that);case _:
-  return null;
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>(
+    TResult? Function(_VoiceState value)? $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _VoiceState() when $default != null:
+        return $default(_that);
+      case _:
+        return null;
+    }
+  }
 
-}
-}
-/// A variant of `when` that fallback to an `orElse` callback.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
+  /// A variant of `when` that fallback to an `orElse` callback.
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return orElse();
+  /// }
+  /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( Room? room,  bool isConnected,  bool isConnecting,  bool isMuted,  bool isDeafened,  List<Participant> participants,  Set<String> speakingParticipants,  String? error,  String? activeChannelId)?  $default,{required TResult orElse(),}) {final _that = this;
-switch (_that) {
-case _VoiceState() when $default != null:
-return $default(_that.room,_that.isConnected,_that.isConnecting,_that.isMuted,_that.isDeafened,_that.participants,_that.speakingParticipants,_that.error,_that.activeChannelId);case _:
-  return orElse();
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>(
+    TResult Function(
+            Room? room,
+            bool isConnected,
+            bool isConnecting,
+            bool isMuted,
+            bool isDeafened,
+            List<Participant> participants,
+            Set<String> speakingParticipants,
+            String? error,
+            String? activeChannelId)?
+        $default, {
+    required TResult orElse(),
+  }) {
+    final _that = this;
+    switch (_that) {
+      case _VoiceState() when $default != null:
+        return $default(
+            _that.room,
+            _that.isConnected,
+            _that.isConnecting,
+            _that.isMuted,
+            _that.isDeafened,
+            _that.participants,
+            _that.speakingParticipants,
+            _that.error,
+            _that.activeChannelId);
+      case _:
+        return orElse();
+    }
+  }
 
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// As opposed to `map`, this offers destructuring.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case Subclass2(:final field2):
-///     return ...;
-/// }
-/// ```
+  /// A `switch`-like method, using callbacks.
+  ///
+  /// As opposed to `map`, this offers destructuring.
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case Subclass2(:final field2):
+  ///     return ...;
+  /// }
+  /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( Room? room,  bool isConnected,  bool isConnecting,  bool isMuted,  bool isDeafened,  List<Participant> participants,  Set<String> speakingParticipants,  String? error,  String? activeChannelId)  $default,) {final _that = this;
-switch (_that) {
-case _VoiceState():
-return $default(_that.room,_that.isConnected,_that.isConnecting,_that.isMuted,_that.isDeafened,_that.participants,_that.speakingParticipants,_that.error,_that.activeChannelId);case _:
-  throw StateError('Unexpected subclass');
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>(
+    TResult Function(
+            Room? room,
+            bool isConnected,
+            bool isConnecting,
+            bool isMuted,
+            bool isDeafened,
+            List<Participant> participants,
+            Set<String> speakingParticipants,
+            String? error,
+            String? activeChannelId)
+        $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _VoiceState():
+        return $default(
+            _that.room,
+            _that.isConnected,
+            _that.isConnecting,
+            _that.isMuted,
+            _that.isDeafened,
+            _that.participants,
+            _that.speakingParticipants,
+            _that.error,
+            _that.activeChannelId);
+      case _:
+        throw StateError('Unexpected subclass');
+    }
+  }
 
-}
-}
-/// A variant of `when` that fallback to returning `null`
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
+  /// A variant of `when` that fallback to returning `null`
+  ///
+  /// It is equivalent to doing:
+  /// ```dart
+  /// switch (sealedClass) {
+  ///   case Subclass(:final field):
+  ///     return ...;
+  ///   case _:
+  ///     return null;
+  /// }
+  /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( Room? room,  bool isConnected,  bool isConnecting,  bool isMuted,  bool isDeafened,  List<Participant> participants,  Set<String> speakingParticipants,  String? error,  String? activeChannelId)?  $default,) {final _that = this;
-switch (_that) {
-case _VoiceState() when $default != null:
-return $default(_that.room,_that.isConnected,_that.isConnecting,_that.isMuted,_that.isDeafened,_that.participants,_that.speakingParticipants,_that.error,_that.activeChannelId);case _:
-  return null;
-
-}
-}
-
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>(
+    TResult? Function(
+            Room? room,
+            bool isConnected,
+            bool isConnecting,
+            bool isMuted,
+            bool isDeafened,
+            List<Participant> participants,
+            Set<String> speakingParticipants,
+            String? error,
+            String? activeChannelId)?
+        $default,
+  ) {
+    final _that = this;
+    switch (_that) {
+      case _VoiceState() when $default != null:
+        return $default(
+            _that.room,
+            _that.isConnected,
+            _that.isConnecting,
+            _that.isMuted,
+            _that.isDeafened,
+            _that.participants,
+            _that.speakingParticipants,
+            _that.error,
+            _that.activeChannelId);
+      case _:
+        return null;
+    }
+  }
 }
 
 /// @nodoc
-
 
 class _VoiceState implements VoiceState {
-  const _VoiceState({this.room, this.isConnected = false, this.isConnecting = false, this.isMuted = false, this.isDeafened = false, final  List<Participant> participants = const [], final  Set<String> speakingParticipants = const {}, this.error, this.activeChannelId}): _participants = participants,_speakingParticipants = speakingParticipants;
-  
+  const _VoiceState(
+      {this.room,
+      this.isConnected = false,
+      this.isConnecting = false,
+      this.isMuted = false,
+      this.isDeafened = false,
+      final List<Participant> participants = const [],
+      final Set<String> speakingParticipants = const {},
+      this.error,
+      this.activeChannelId})
+      : _participants = participants,
+        _speakingParticipants = speakingParticipants;
 
-@override final  Room? room;
-@override@JsonKey() final  bool isConnected;
-@override@JsonKey() final  bool isConnecting;
-@override@JsonKey() final  bool isMuted;
-@override@JsonKey() final  bool isDeafened;
- final  List<Participant> _participants;
-@override@JsonKey() List<Participant> get participants {
-  if (_participants is EqualUnmodifiableListView) return _participants;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(_participants);
-}
+  @override
+  final Room? room;
+  @override
+  @JsonKey()
+  final bool isConnected;
+  @override
+  @JsonKey()
+  final bool isConnecting;
+  @override
+  @JsonKey()
+  final bool isMuted;
+  @override
+  @JsonKey()
+  final bool isDeafened;
+  final List<Participant> _participants;
+  @override
+  @JsonKey()
+  List<Participant> get participants {
+    if (_participants is EqualUnmodifiableListView) return _participants;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_participants);
+  }
 
- final  Set<String> _speakingParticipants;
-@override@JsonKey() Set<String> get speakingParticipants {
-  if (_speakingParticipants is EqualUnmodifiableSetView) return _speakingParticipants;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableSetView(_speakingParticipants);
-}
+  final Set<String> _speakingParticipants;
+  @override
+  @JsonKey()
+  Set<String> get speakingParticipants {
+    if (_speakingParticipants is EqualUnmodifiableSetView)
+      return _speakingParticipants;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableSetView(_speakingParticipants);
+  }
 
 // Set of sids who are speaking
-@override final  String? error;
-@override final  String? activeChannelId;
+  @override
+  final String? error;
+  @override
+  final String? activeChannelId;
 
-/// Create a copy of VoiceState
-/// with the given fields replaced by the non-null parameter values.
-@override @JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-_$VoiceStateCopyWith<_VoiceState> get copyWith => __$VoiceStateCopyWithImpl<_VoiceState>(this, _$identity);
+  /// Create a copy of VoiceState
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
+  _$VoiceStateCopyWith<_VoiceState> get copyWith =>
+      __$VoiceStateCopyWithImpl<_VoiceState>(this, _$identity);
 
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _VoiceState &&
+            (identical(other.room, room) || other.room == room) &&
+            (identical(other.isConnected, isConnected) ||
+                other.isConnected == isConnected) &&
+            (identical(other.isConnecting, isConnecting) ||
+                other.isConnecting == isConnecting) &&
+            (identical(other.isMuted, isMuted) || other.isMuted == isMuted) &&
+            (identical(other.isDeafened, isDeafened) ||
+                other.isDeafened == isDeafened) &&
+            const DeepCollectionEquality()
+                .equals(other._participants, _participants) &&
+            const DeepCollectionEquality()
+                .equals(other._speakingParticipants, _speakingParticipants) &&
+            (identical(other.error, error) || other.error == error) &&
+            (identical(other.activeChannelId, activeChannelId) ||
+                other.activeChannelId == activeChannelId));
+  }
 
+  @override
+  int get hashCode => Object.hash(
+      runtimeType,
+      room,
+      isConnected,
+      isConnecting,
+      isMuted,
+      isDeafened,
+      const DeepCollectionEquality().hash(_participants),
+      const DeepCollectionEquality().hash(_speakingParticipants),
+      error,
+      activeChannelId);
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _VoiceState&&(identical(other.room, room) || other.room == room)&&(identical(other.isConnected, isConnected) || other.isConnected == isConnected)&&(identical(other.isConnecting, isConnecting) || other.isConnecting == isConnecting)&&(identical(other.isMuted, isMuted) || other.isMuted == isMuted)&&(identical(other.isDeafened, isDeafened) || other.isDeafened == isDeafened)&&const DeepCollectionEquality().equals(other._participants, _participants)&&const DeepCollectionEquality().equals(other._speakingParticipants, _speakingParticipants)&&(identical(other.error, error) || other.error == error)&&(identical(other.activeChannelId, activeChannelId) || other.activeChannelId == activeChannelId));
-}
-
-
-@override
-int get hashCode => Object.hash(runtimeType,room,isConnected,isConnecting,isMuted,isDeafened,const DeepCollectionEquality().hash(_participants),const DeepCollectionEquality().hash(_speakingParticipants),error,activeChannelId);
-
-@override
-String toString() {
-  return 'VoiceState(room: $room, isConnected: $isConnected, isConnecting: $isConnecting, isMuted: $isMuted, isDeafened: $isDeafened, participants: $participants, speakingParticipants: $speakingParticipants, error: $error, activeChannelId: $activeChannelId)';
-}
-
-
+  @override
+  String toString() {
+    return 'VoiceState(room: $room, isConnected: $isConnected, isConnecting: $isConnecting, isMuted: $isMuted, isDeafened: $isDeafened, participants: $participants, speakingParticipants: $speakingParticipants, error: $error, activeChannelId: $activeChannelId)';
+  }
 }
 
 /// @nodoc
-abstract mixin class _$VoiceStateCopyWith<$Res> implements $VoiceStateCopyWith<$Res> {
-  factory _$VoiceStateCopyWith(_VoiceState value, $Res Function(_VoiceState) _then) = __$VoiceStateCopyWithImpl;
-@override @useResult
-$Res call({
- Room? room, bool isConnected, bool isConnecting, bool isMuted, bool isDeafened, List<Participant> participants, Set<String> speakingParticipants, String? error, String? activeChannelId
-});
-
-
-
-
+abstract mixin class _$VoiceStateCopyWith<$Res>
+    implements $VoiceStateCopyWith<$Res> {
+  factory _$VoiceStateCopyWith(
+          _VoiceState value, $Res Function(_VoiceState) _then) =
+      __$VoiceStateCopyWithImpl;
+  @override
+  @useResult
+  $Res call(
+      {Room? room,
+      bool isConnected,
+      bool isConnecting,
+      bool isMuted,
+      bool isDeafened,
+      List<Participant> participants,
+      Set<String> speakingParticipants,
+      String? error,
+      String? activeChannelId});
 }
+
 /// @nodoc
-class __$VoiceStateCopyWithImpl<$Res>
-    implements _$VoiceStateCopyWith<$Res> {
+class __$VoiceStateCopyWithImpl<$Res> implements _$VoiceStateCopyWith<$Res> {
   __$VoiceStateCopyWithImpl(this._self, this._then);
 
   final _VoiceState _self;
   final $Res Function(_VoiceState) _then;
 
-/// Create a copy of VoiceState
-/// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? room = freezed,Object? isConnected = null,Object? isConnecting = null,Object? isMuted = null,Object? isDeafened = null,Object? participants = null,Object? speakingParticipants = null,Object? error = freezed,Object? activeChannelId = freezed,}) {
-  return _then(_VoiceState(
-room: freezed == room ? _self.room : room // ignore: cast_nullable_to_non_nullable
-as Room?,isConnected: null == isConnected ? _self.isConnected : isConnected // ignore: cast_nullable_to_non_nullable
-as bool,isConnecting: null == isConnecting ? _self.isConnecting : isConnecting // ignore: cast_nullable_to_non_nullable
-as bool,isMuted: null == isMuted ? _self.isMuted : isMuted // ignore: cast_nullable_to_non_nullable
-as bool,isDeafened: null == isDeafened ? _self.isDeafened : isDeafened // ignore: cast_nullable_to_non_nullable
-as bool,participants: null == participants ? _self._participants : participants // ignore: cast_nullable_to_non_nullable
-as List<Participant>,speakingParticipants: null == speakingParticipants ? _self._speakingParticipants : speakingParticipants // ignore: cast_nullable_to_non_nullable
-as Set<String>,error: freezed == error ? _self.error : error // ignore: cast_nullable_to_non_nullable
-as String?,activeChannelId: freezed == activeChannelId ? _self.activeChannelId : activeChannelId // ignore: cast_nullable_to_non_nullable
-as String?,
-  ));
-}
-
-
+  /// Create a copy of VoiceState
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $Res call({
+    Object? room = freezed,
+    Object? isConnected = null,
+    Object? isConnecting = null,
+    Object? isMuted = null,
+    Object? isDeafened = null,
+    Object? participants = null,
+    Object? speakingParticipants = null,
+    Object? error = freezed,
+    Object? activeChannelId = freezed,
+  }) {
+    return _then(_VoiceState(
+      room: freezed == room
+          ? _self.room
+          : room // ignore: cast_nullable_to_non_nullable
+              as Room?,
+      isConnected: null == isConnected
+          ? _self.isConnected
+          : isConnected // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isConnecting: null == isConnecting
+          ? _self.isConnecting
+          : isConnecting // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isMuted: null == isMuted
+          ? _self.isMuted
+          : isMuted // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isDeafened: null == isDeafened
+          ? _self.isDeafened
+          : isDeafened // ignore: cast_nullable_to_non_nullable
+              as bool,
+      participants: null == participants
+          ? _self._participants
+          : participants // ignore: cast_nullable_to_non_nullable
+              as List<Participant>,
+      speakingParticipants: null == speakingParticipants
+          ? _self._speakingParticipants
+          : speakingParticipants // ignore: cast_nullable_to_non_nullable
+              as Set<String>,
+      error: freezed == error
+          ? _self.error
+          : error // ignore: cast_nullable_to_non_nullable
+              as String?,
+      activeChannelId: freezed == activeChannelId
+          ? _self.activeChannelId
+          : activeChannelId // ignore: cast_nullable_to_non_nullable
+              as String?,
+    ));
+  }
 }
 
 // dart format on

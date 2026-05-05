@@ -4,11 +4,11 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/flicko_colors.dart';
-import 'package:mobile/features/auth/application/auth_notifier.dart';
 
 /// Invites Screen
 ///
 /// Lists active invites with create/delete.
+/// Route: /server/:serverId/settings/invites
 class InvitesScreen extends ConsumerStatefulWidget {
   final String serverId;
   const InvitesScreen({super.key, required this.serverId});
@@ -22,7 +22,7 @@ class _Invite {
   final String code;
   final int uses;
   final int? maxUses;
-  final String creatorName;
+  final String? creatorName;
   final DateTime? expiresAt;
 
   _Invite({
@@ -30,7 +30,7 @@ class _Invite {
     required this.code,
     required this.uses,
     this.maxUses,
-    required this.creatorName,
+    this.creatorName,
     this.expiresAt,
   });
 }
@@ -38,6 +38,7 @@ class _Invite {
 class _InvitesScreenState extends ConsumerState<InvitesScreen> {
   bool _isLoading = true;
   List<_Invite> _invites = [];
+  final _client = Supabase.instance.client;
 
   @override
   void initState() {
@@ -48,95 +49,34 @@ class _InvitesScreenState extends ConsumerState<InvitesScreen> {
   Future<void> _loadInvites() async {
     setState(() => _isLoading = true);
     try {
-      final response = await Supabase.instance.client
-          .from('invites')
-          .select('*, auth.users!inviter_id(username)')
-          .eq('server_id', widget.serverId)
-          .order('created_at', ascending: false);
-
+      // Mock data — replace with Supabase query when invites table exists
+      await Future.delayed(const Duration(milliseconds: 300));
       setState(() {
-        _invites = (response as List).map((r) {
-          final data = r as Map<String, dynamic>;
-          final users = data['auth']?['users'] as Map<String, dynamic>?;
-          return _Invite(
-            id: data['id']?.toString() ?? data['code']?.toString() ?? '',
-            code: data['code'] as String,
-            uses: data['uses'] as int? ?? 0,
-            maxUses: data['max_uses'] as int?,
-            creatorName: users?['username'] as String? ?? 'Unknown',
-            expiresAt: data['expires_at'] != null ? DateTime.parse(data['expires_at'] as String) : null,
-          );
-        }).toList();
+        _invites = [];
         _isLoading = false;
       });
     } catch (e) {
       setState(() => _isLoading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading invites: ${e.toString()}')),
-        );
-      }
     }
   }
 
   Future<void> _createInvite() async {
-    try {
-      final code = DateTime.now().millisecondsSinceEpoch.toRadixString(36).substring(0, 8).toUpperCase();
-      final currentUserId = ref.read(currentUserIdProvider);
-      
-      if (currentUserId == null) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('You must be logged in to create an invite'),
-              backgroundColor: Color(FlickoColors.danger),
-            ),
-          );
-        }
-        return;
-      }
-      
-      await Supabase.instance.client
-          .from('invites')
-          .insert({
-            'server_id': widget.serverId,
-            'code': code,
-            'inviter_id': currentUserId,
-            'created_at': DateTime.now().toIso8601String(),
-            'expires_at': DateTime.now().add(const Duration(days: 7)).toIso8601String(),
-            'uses': 0,
-          });
-
-      await _loadInvites();
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Invite created: $code'),
-            backgroundColor: const Color(FlickoColors.success),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to create invite: ${e.toString()}'),
-            backgroundColor: const Color(FlickoColors.danger),
-          ),
-        );
-      }
-    }
+    // Mock — generate a random code
+    final code = DateTime.now().millisecondsSinceEpoch.toRadixString(36).substring(0, 8).toUpperCase();
+    setState(() {
+      _invites.insert(0, _Invite(id: code, code: code, uses: 0));
+    });
   }
 
   void _shareInvite(_Invite invite) {
+    // In real app, use share_plus package
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('flicko.app/invite/${invite.code}')),
     );
   }
 
-  void _deleteInvite(_Invite invite) async {
-    final confirmed = await showDialog<bool>(
+  void _deleteInvite(_Invite invite) {
+    showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(FlickoColors.bgSecondary),
@@ -150,52 +90,26 @@ class _InvitesScreenState extends ConsumerState<InvitesScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(context),
             child: Text('Cancel', style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted))),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(FlickoColors.danger)),
+            onPressed: () {
+              Navigator.pop(context);
+              setState(() => _invites.removeWhere((i) => i.id == invite.id));
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(FlickoColors.red)),
             child: Text('Delete', style: GoogleFonts.inter(color: Colors.white)),
           ),
         ],
       ),
     );
-
-    if (confirmed != true) return;
-
-    try {
-      await Supabase.instance.client
-          .from('invites')
-          .delete()
-          .eq('id', invite.id);
-      
-      await _loadInvites();
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Invite deleted'),
-            backgroundColor: Color(FlickoColors.success),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to delete invite: ${e.toString()}'),
-            backgroundColor: const Color(FlickoColors.danger),
-          ),
-        );
-      }
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
+      backgroundColor: const Color(FlickoColors.bgPrimary),
       appBar: AppBar(
         backgroundColor: const Color(FlickoColors.bgSecondary),
         elevation: 0,
@@ -207,13 +121,12 @@ class _InvitesScreenState extends ConsumerState<InvitesScreen> {
           'Invites',
           style: GoogleFonts.inter(
             color: const Color(FlickoColors.textPrimary),
-            fontSize: 20,
             fontWeight: FontWeight.w600,
           ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.add, color: Color(FlickoColors.blurple)),
+            icon: const Icon(Icons.add_circle_outline, color: Color(FlickoColors.blurple)),
             onPressed: _createInvite,
           ),
         ],
@@ -222,122 +135,69 @@ class _InvitesScreenState extends ConsumerState<InvitesScreen> {
           ? const Center(child: CircularProgressIndicator(color: Color(FlickoColors.blurple)))
           : _invites.isEmpty
               ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.link_off, size: 48, color: Color(FlickoColors.textMuted)),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No invites yet',
-                        style: GoogleFonts.inter(color: const Color(FlickoColors.textSecondary)),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Create an invite to share this server',
-                        style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        onPressed: _createInvite,
-                        icon: const Icon(Icons.add),
-                        label: const Text('Create Invite'),
-                      ),
-                    ],
+                  child: Text(
+                    'No invites',
+                    style: GoogleFonts.inter(
+                      color: const Color(FlickoColors.textMuted),
+                      fontSize: 15,
+                    ),
                   ),
                 )
               : ListView.builder(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(12),
                   itemCount: _invites.length,
-                  itemBuilder: (context, index) => _buildInviteCard(_invites[index]),
+                  itemBuilder: (context, index) {
+                    final invite = _invites[index];
+                    final expired = invite.expiresAt != null && invite.expiresAt!.isBefore(DateTime.now());
+                    return Opacity(
+                      opacity: expired ? 0.5 : 1,
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: const Color(FlickoColors.bgSecondary),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    invite.code,
+                                    style: GoogleFonts.inter(
+                                      color: const Color(FlickoColors.blurple),
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  Text(
+                                    '${invite.uses}${invite.maxUses != null ? '/${invite.maxUses}' : ''} uses'
+                                    '${invite.creatorName != null ? ' \u2022 by ${invite.creatorName}' : ''}'
+                                    '${expired ? ' \u2022 Expired' : ''}',
+                                    style: GoogleFonts.inter(
+                                      color: const Color(FlickoColors.textMuted),
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.share_outlined, size: 18, color: Color(FlickoColors.textSecondary)),
+                              onPressed: () => _shareInvite(invite),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline, size: 18, color: Color(FlickoColors.red)),
+                              onPressed: () => _deleteInvite(invite),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
                 ),
     );
-  }
-
-  Widget _buildInviteCard(_Invite invite) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(FlickoColors.bgSecondary),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(FlickoColors.blurple).withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  invite.code,
-                  style: GoogleFonts.inter(
-                    color: const Color(FlickoColors.blurple),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              const Spacer(),
-              IconButton(
-                icon: const Icon(Icons.share, color: Color(FlickoColors.textMuted)),
-                onPressed: () => _shareInvite(invite),
-              ),
-              IconButton(
-                icon: const Icon(Icons.delete_outline, color: Color(FlickoColors.danger)),
-                onPressed: () => _deleteInvite(invite),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              const Icon(Icons.person, size: 16, color: Color(FlickoColors.textMuted)),
-              const SizedBox(width: 8),
-              Text(
-                'Created by ${invite.creatorName}',
-                style: GoogleFonts.inter(
-                  color: const Color(FlickoColors.textSecondary),
-                  fontSize: 12,
-                ),
-              ),
-              const SizedBox(width: 16),
-              const Icon(Icons.people, size: 16, color: Color(FlickoColors.textMuted)),
-              const SizedBox(width: 8),
-              Text(
-                '${invite.uses} uses${invite.maxUses != null ? ' / ${invite.maxUses}' : ''}',
-                style: GoogleFonts.inter(
-                  color: const Color(FlickoColors.textSecondary),
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-          if (invite.expiresAt != null) ...[
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                const Icon(Icons.access_time, size: 16, color: Color(FlickoColors.textMuted)),
-                const SizedBox(width: 8),
-                Text(
-                  'Expires: ${_formatDate(invite.expiresAt!)}',
-                  style: GoogleFonts.inter(
-                    color: const Color(FlickoColors.textMuted),
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
   }
 }

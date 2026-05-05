@@ -1,14 +1,13 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:mobile/core/constants/flicko_colors.dart';
-import 'package:mobile/features/auth/application/auth_notifier.dart';
-import 'package:mobile/features/server_channels/chat/presentation/widgets/enhanced_message_item.dart';
-import 'package:mobile/features/server_channels/chat/presentation/widgets/message_actions.dart';
-import 'package:mobile/features/server_channels/chat/presentation/widgets/enhanced_message_input.dart';
-import 'package:mobile/data/models/flicko_message.dart';
+import 'package:mobile/features/core/constants/flicko_colors.dart';
+import 'package:mobile/features/server_channels/auth/application/auth_notifier.dart';
+import 'package:mobile/features/server_channels/thread/chat/presentation/widgets/enhanced_message_item.dart';
+import 'package:mobile/features/server_channels/thread/chat/presentation/widgets/message_actions.dart';
+import 'package:mobile/features/server_channels/thread/chat/presentation/widgets/enhanced_message_input.dart';
+import 'package:mobile/features/data/models/flicko_message.dart';
 
 class ThreadViewScreen extends ConsumerStatefulWidget {
   final String serverId;
@@ -26,7 +25,7 @@ class ThreadViewScreen extends ConsumerStatefulWidget {
   ConsumerState<ThreadViewScreen> createState() => _ThreadViewScreenState();
 }
 
-class _ThreadViewScreenState extends ConsumerState<ThreadViewScreen> with TickerProviderStateMixin {
+class _ThreadViewScreenState extends ConsumerState<ThreadViewScreen> {
   bool _isLoading = true;
   bool _isLoadingMore = false;
   Map<String, dynamic>? _thread;
@@ -35,15 +34,10 @@ class _ThreadViewScreenState extends ConsumerState<ThreadViewScreen> with Ticker
   FlickoMessage? _replyTo;
   int _currentPage = 1;
   bool _hasNextPage = false;
-  late final AnimationController _listController;
 
   @override
   void initState() {
     super.initState();
-    _listController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    );
     _loadData();
     _scrollController.addListener(_onScroll);
   }
@@ -51,7 +45,6 @@ class _ThreadViewScreenState extends ConsumerState<ThreadViewScreen> with Ticker
   @override
   void dispose() {
     _scrollController.dispose();
-    _listController.dispose();
     super.dispose();
   }
 
@@ -69,7 +62,6 @@ class _ThreadViewScreenState extends ConsumerState<ThreadViewScreen> with Ticker
       _loadMessages(),
     ]);
     setState(() => _isLoading = false);
-    _listController.forward(from: 0);
   }
 
   Future<void> _loadThread() async {
@@ -114,10 +106,6 @@ class _ThreadViewScreenState extends ConsumerState<ThreadViewScreen> with Ticker
         _hasNextPage = newMessages.length == 50;
         _isLoadingMore = false;
       });
-      
-      if (reset && !_isLoading) {
-        _listController.forward(from: 0);
-      }
     } catch (e) {
       setState(() => _isLoadingMore = false);
     }
@@ -237,101 +225,69 @@ class _ThreadViewScreenState extends ConsumerState<ThreadViewScreen> with Ticker
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(FlickoColors.bgTertiary),
-      extendBodyBehindAppBar: true,
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(kToolbarHeight),
-        child: ClipRRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-            child: AppBar(
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              centerTitle: false,
-              titleSpacing: 0,
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),
-                onPressed: () => Navigator.of(context).pop(),
+      appBar: AppBar(
+        backgroundColor: const Color(FlickoColors.bgPrimary),
+        elevation: 0,
+        titleSpacing: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Thread',
+              style: GoogleFonts.inter(
+                color: const Color(FlickoColors.textMuted),
+                fontSize: 12,
+                letterSpacing: 0.5,
               ),
-              title: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Thread',
-                    style: GoogleFonts.inter(
-                      color: const Color(FlickoColors.blurpleLight).withValues(alpha: 0.8),
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                  Text(
-                    _thread?['name'] ?? 'Loading...',
-                    style: GoogleFonts.inter(
-                      color: const Color(FlickoColors.textPrimary),
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+            ),
+            Text(
+              _thread?['name'] ?? 'Thread',
+              style: GoogleFonts.inter(
+                color: const Color(FlickoColors.textPrimary),
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
               ),
-              actions: [
-                if (_thread != null)
-                  Container(
-                    margin: const EdgeInsets.only(right: 16),
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.05),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.chat_bubble_outline,
-                            color: Color(FlickoColors.textMuted), size: 12),
-                        const SizedBox(width: 6),
-                        Text(
-                          '${_thread?['message_count'] ?? 0}',
-                          style: GoogleFonts.inter(
-                            color: const Color(FlickoColors.textSecondary),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: Row(
+              children: [
+                const Icon(Icons.chat_bubble_outline,
+                    color: Color(FlickoColors.textMuted), size: 14),
+                const SizedBox(width: 4),
+                Text(
+                  '${_thread?['message_count'] ?? 0}',
+                  style: GoogleFonts.inter(
+                    color: const Color(FlickoColors.textMuted),
+                    fontSize: 12,
                   ),
+                ),
               ],
             ),
           ),
-        ),
+        ],
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF1E1F22),
-              Color(FlickoColors.bgTertiary),
-            ],
+      body: Column(
+        children: [
+          Expanded(
+            child: _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      color: Color(FlickoColors.blurple),
+                    ),
+                  )
+                : _buildMessageList(),
           ),
-        ),
-        child: Column(
-          children: [
-            Expanded(
-              child: _isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(
-                        color: Color(FlickoColors.blurple),
-                      ),
-                    )
-                  : _buildMessageList(),
-            ),
-            _buildInputArea(),
-          ],
-        ),
+          _buildInputArea(),
+        ],
       ),
     );
   }
@@ -342,33 +298,17 @@ class _ThreadViewScreenState extends ConsumerState<ThreadViewScreen> with Ticker
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.03),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.chat_bubble_outline,
-                size: 48,
-                color: Color(FlickoColors.textMuted),
-              ),
+            const Icon(
+              Icons.chat_bubble_outline,
+              size: 48,
+              color: Color(FlickoColors.textMuted),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             Text(
-              'Welcome to the beginning of the thread',
+              'No messages yet',
               style: GoogleFonts.inter(
-                color: const Color(FlickoColors.textPrimary),
+                color: const Color(FlickoColors.textSecondary),
                 fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'No messages yet. Say hi!',
-              style: GoogleFonts.inter(
-                color: const Color(FlickoColors.textMuted),
-                fontSize: 14,
               ),
             ),
           ],
@@ -380,10 +320,7 @@ class _ThreadViewScreenState extends ConsumerState<ThreadViewScreen> with Ticker
       onRefresh: _loadData,
       child: ListView.builder(
         controller: _scrollController,
-        padding: EdgeInsets.only(
-          top: MediaQuery.of(context).padding.top + kToolbarHeight + 8,
-          bottom: 16,
-        ),
+        padding: const EdgeInsets.symmetric(vertical: 8),
         itemCount: _messages.length + 1,
         itemBuilder: (context, index) {
           if (index == _messages.length) {
@@ -398,67 +335,21 @@ class _ThreadViewScreenState extends ConsumerState<ThreadViewScreen> with Ticker
                   )
                 : const SizedBox();
           }
-          final message = _messages[index];
-          final prevMessage = index > 0 ? _messages[index - 1] : null;
-
-          bool isContinuation = false;
-          if (prevMessage != null && 
-              prevMessage.authorId == message.authorId &&
-              prevMessage.type != 'system') {
-            final diff = message.createdAt.difference(prevMessage.createdAt).abs();
-            if (diff.inMinutes < 5) {
-              isContinuation = true;
-            }
-          }
-
-          // Staggered animation
-          final animation = CurvedAnimation(
-            parent: _listController,
-            curve: Interval(
-              (index / (_messages.length.clamp(1, 15))).clamp(0.0, 1.0),
-              1.0,
-              curve: Curves.easeOutCubic,
+          return EnhancedMessageItem(
+            message: _messages[index],
+            currentUserId: ref.read(authNotifierProvider).maybeWhen(
+              authenticated: (user, _) => user.id,
+              orElse: () => '',
             ),
-          );
-
-          return AnimatedBuilder(
-            animation: animation,
-            builder: (context, child) {
-              return Transform.translate(
-                offset: Offset(0, 30 * (1 - animation.value)),
-                child: Opacity(
-                  opacity: animation.value,
-                  child: child,
-                ),
-              );
+            onReaction: (emoji) => _toggleReaction(_messages[index].id, emoji),
+            onReply: () => setState(() => _replyTo = _messages[index]),
+            onEdit: () {
+              // Edit is handled inline
             },
-            child: EnhancedMessageItem(
-              message: message,
-              isContinuation: isContinuation,
-              onReactionToggle: (emoji) => _toggleReaction(message.id, emoji),
-              onLongPress: () => _onMessageLongPress(message),
-              onEdit: (newContent) async {
-                try {
-                  await Supabase.instance.client
-                      .from('messages')
-                      .update({'content': newContent})
-                      .eq('id', message.id);
-                  _loadMessages(reset: false);
-                } catch (e) {
-                  // Error
-                }
-              },
-              onDelete: () => _deleteMessage(message.id),
-              onReply: () => setState(() => _replyTo = message),
-              onCopy: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Copied to clipboard', style: GoogleFonts.inter()),
-                    duration: const Duration(seconds: 1),
-                  ),
-                );
-              },
-            ),
+            onDelete: () => _deleteMessage(_messages[index].id),
+            onLongPress: () => _onMessageLongPress(_messages[index]),
+            replyTo: _replyTo,
+            onCancelReply: () => setState(() => _replyTo = null),
           );
         },
       ),
@@ -467,23 +358,19 @@ class _ThreadViewScreenState extends ConsumerState<ThreadViewScreen> with Ticker
 
   Widget _buildInputArea() {
     return Container(
-      padding: EdgeInsets.only(
-        left: 8,
-        right: 8,
-        top: 8,
-        bottom: MediaQuery.of(context).padding.bottom + 8,
-      ),
-      decoration: BoxDecoration(
-        color: const Color(FlickoColors.bgPrimary).withValues(alpha: 0.95),
+      padding: const EdgeInsets.all(8),
+      decoration: const BoxDecoration(
+        color: Color(FlickoColors.bgPrimary),
         border: Border(
-          top: BorderSide(color: Colors.white.withValues(alpha: 0.05), width: 1),
+          top: BorderSide(color: Color(FlickoColors.border), width: 1),
         ),
       ),
       child: EnhancedMessageInput(
-        onSend: (content, {attachments, gifUrl, stickerUrl}) {
+        channelId: widget.channelId,
+        onSend: (content, attachments, options) {
           _sendMessage(content);
         },
-        replyToName: _replyTo?.author?.displayName ?? _replyTo?.author?.username,
+        replyTo: _replyTo,
         onCancelReply: () => setState(() => _replyTo = null),
       ),
     );

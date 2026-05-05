@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:mobile/core/constants/flicko_colors.dart';
+import 'package:mobile/features/core/constants/flicko_colors.dart';
 
 class Modal extends StatefulWidget {
   final bool visible;
@@ -76,7 +77,7 @@ class _ModalState extends State<Modal> with SingleTickerProviderStateMixin {
           child: GestureDetector(
             onTap: _handleClose,
             child: Container(
-              color: Colors.black.withValues(alpha: _fadeAnimation.value),
+              color: Colors.black.withOpacity(_fadeAnimation.value),
               child: GestureDetector(
                 onTap: () {},
                 child: Align(
@@ -112,7 +113,7 @@ class _ModalState extends State<Modal> with SingleTickerProviderStateMixin {
                                 width: 36,
                                 height: 4,
                                 decoration: BoxDecoration(
-                                  color: const Color(FlickoColors.textMuted).withValues(alpha: 0.4),
+                                  color: const Color(FlickoColors.textMuted).withOpacity(0.4),
                                   borderRadius: BorderRadius.circular(2),
                                 ),
                               ),

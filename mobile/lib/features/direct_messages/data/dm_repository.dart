@@ -1,10 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:flutter/foundation.dart';
 import 'dart:io';
+import 'package:path/path.dart' as p;
 import 'package:mobile/data/clients/supabase_client.dart';
 import 'package:mobile/features/direct_messages/domain/dm_models.dart';
-import 'package:mobile/data/services/appwrite_storage_service.dart';
+import 'package:mobile/data/models/user_model.dart';
+import 'package:mobile/core/services/appwrite_storage_service.dart';
 
 final dmRepositoryProvider = Provider<DMRepository>((ref) {
   return DMRepository(
@@ -30,9 +31,7 @@ class DMRepository {
           .limit(500);
 
       return (response as List).map((json) => DMMessage.fromJson(json)).toList();
-    } catch (e, stack) {
-      debugPrint('DEBUG: DMRepository.fetchRecentMessages error: $e');
-      debugPrint('DEBUG: StackTrace: $stack');
+    } catch (e) {
       rethrow;
     }
   }
@@ -45,24 +44,20 @@ class DMRepository {
     int limit = 50,
   }) async {
     try {
-      // Simplified query to avoid complex 'and' inside 'or' if possible
-      // But for DMs we need both directions. 
-      // Correct syntax for or with and: 'and(sender_id.eq.A,recipient_id.eq.B),and(sender_id.eq.B,recipient_id.eq.A)'
       var query = _client
           .from('direct_messages')
           .select('*, sender:profiles!sender_id(*), recipient:profiles!recipient_id(*)')
-          .or('and(sender_id.eq.$myId,recipient_id.eq.$otherUserId),and(sender_id.eq.$otherUserId,recipient_id.eq.$myId)');
+          .or('and(sender_id.eq.$myId,recipient_id.eq.$otherUserId),and(sender_id.eq.$otherUserId,recipient_id.eq.$myId)')
+          .order('created_at', ascending: false)
+          .limit(limit);
 
       if (before != null) {
         query = query.lt('created_at', before.toIso8601String());
       }
 
-      final response = await query.order('created_at', ascending: false).limit(limit);
+      final response = await query;
       return (response as List).map((json) => DMMessage.fromJson(json)).toList();
-    } catch (e, stack) {
-      debugPrint('DEBUG: DMRepository.fetchMessagesWithPagination error: $e');
-      debugPrint('DEBUG: myId: $myId, otherUserId: $otherUserId');
-      debugPrint('DEBUG: StackTrace: $stack');
+    } catch (e) {
       rethrow;
     }
   }
@@ -75,7 +70,6 @@ class DMRepository {
     List<DMAttachment>? attachments,
   }) async {
     try {
-      debugPrint('DEBUG: DMRepository.sendMessage sending from $senderId to $recipientId');
       final response = await _client.from('direct_messages').insert({
         'sender_id': senderId,
         'recipient_id': recipientId,
@@ -84,18 +78,14 @@ class DMRepository {
       }).select('*, sender:profiles!sender_id(*), recipient:profiles!recipient_id(*)').single();
 
       return DMMessage.fromJson(response);
-    } catch (e, stack) {
-      debugPrint('DEBUG: DMRepository.sendMessage error: $e');
-      debugPrint('DEBUG: Params: senderId=$senderId, recipientId=$recipientId, content=$content');
-      debugPrint('DEBUG: StackTrace: $stack');
+    } catch (e) {
       rethrow;
     }
   }
 
-  /// Uploads an attachment to Appwrite Storage and returns metadata.
-  Future<Map<String, String>> uploadAttachment(File file, String userId, String conversationId) async {
+  /// Uploads an attachment to Appwrite Storage.
+  Future<String> uploadAttachment(File file, String userId, String conversationId) async {
     return await _appwriteStorage.uploadAttachment(file, userId, conversationId);
-  }
     /* Supabase / Cloudinary code commented as requested
     try {
       final extension = p.extension(file.path);
@@ -115,6 +105,7 @@ class DMRepository {
       rethrow;
     }
     */
+  }
 
   /// Listens for real-time changes in the direct_messages table.
   RealtimeChannel subscribeToDMs(String userId, void Function() onUpdate) {
@@ -148,7 +139,7 @@ class DMRepository {
   /// Targeted subscription for a specific conversation
   RealtimeChannel subscribeToConversation(String myId, String otherUserId, void Function(DMMessage newMessage) onNewMessage) {
     return _client
-        .channel('dm_convo_${myId}_$otherUserId')
+        .channel('dm_convo_${myId}_${otherUserId}')
         .onPostgresChanges(
           event: PostgresChangeEvent.insert,
           schema: 'public',

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/branding/Flicko_icon.png" alt="Flicko Logo" width="140" height="140" style="border-radius: 28px;" />
+  <img src="assets/branding/Flicko-for-black-background.png" alt="Flicko Logo" width="140" height="140" style="border-radius: 28px;" />
 </p>
 
 <h1 align="center">Flicko</h1>
@@ -32,7 +32,7 @@
 ---
 
 <p align="center">
-  <img src="assets/branding/flicko_banner_enhanced.png" alt="Flicko App Banner" style="max-width: 100%; border-radius: 12px; margin: 16px 0;" />
+  <img src="assets/branding/Flicko-banner.png" alt="Flicko App Banner" style="max-width: 100%; border-radius: 12px; margin: 16px 0;" />
 </p>
 
 ## 📖 Table of Contents
@@ -64,7 +64,7 @@ Flicko is a **complete, open-source communication platform** — think Discord, 
 
 The entire platform runs on a **single 8 GB VPS** serving **3,000–5,000 concurrent users**, orchestrated through Docker Compose with 10 containers across 3 isolated networks, monitored by a full Prometheus + Grafana + Loki observability stack.
 
-> **This is not a toy project.** Flicko has **94 database migrations**, **95 core backend service files**, **86 production-ready screens**, **50+ Riverpod providers**, **45 Go unit test suites**, **26 granular permission types**, and **121 professionally written documentation files**. Every feature is fully implemented end-to-end, from mobile UI to database queries.
+> **This is not a toy project.** Flicko has **97 database migrations**, **105 core backend service files**, **95 production-ready screens**, **50+ Riverpod providers**, **45 Go unit test suites**, **26 granular permission types**, and **122 professionally written documentation files**. Every feature is fully implemented end-to-end, from mobile UI to database queries.
 
 ### Why Flicko?
 
@@ -329,7 +329,7 @@ Flicko is organized as a polyglot monorepo, separating the core bot monolithic b
 Flicko/
 │
 ├── 📱 mobile/                          # Flutter mobile application
-│   ├── lib/                            # Application source code
+│   ├── lib/                            # Application source code (95 screens)
 │   │   ├── features/                   # Modular feature-first architecture
 │   │   ├── core/                       # Shared models, services, & logic
 │   │   └── main.dart                   # App entry point
@@ -340,7 +340,7 @@ Flicko/
 │   ├── internal/
 │   │   ├── bots/                       # 8 built-in bots + registry
 │   │   ├── middleware/                 # 10-layer security middleware
-│   │   └── services/                   # 95 service files (business logic)
+│   │   └── services/                   # 105 service files (business logic)
 │   └── migrations/                     # 3 SQL migration files
 │
 ├── 🔌 services/                        # Go microservices (production split)
@@ -349,16 +349,22 @@ Flicko/
 │   └── shared/                         # Shared Go packages
 │
 ├── 🐘 supabase/                        # Supabase configuration
-│   ├── migrations/                     # 94 SQL migration files
+│   ├── migrations/                     # 97 SQL migration files
 │   │   ├── 001_initial_schema.sql      # Users, servers, channels, messages
 │   │   ├── 034_advanced_rls.sql        # RLS policies (13.3 KB)
-│   │   └── ...91 more migrations
+│   │   └── ...94 more migrations
 │   └── functions/                      # Supabase Edge Functions
 │
 ├── 📧 mail-gateway/                    # Email service (Go)
-├── 🔀 nginx/                           # NGINX reverse proxy config
+├── 🔀 nginx/                           # NGINX reverse proxy config (232 lines)
 ├── 📊 monitoring/                      # Prometheus, Grafana, Loki configs
-└── docker-compose.prod.yml              # Production stack
+├── 🔧 scripts/                         # Deploy, setup, health check scripts
+├── 📄 docs/                            # 122 documentation files
+├── docker-compose.prod.yml             # Production stack (9 containers)
+├── docker-compose.dev.yml              # Development stack
+├── .env.example                        # Environment template (169 variables)
+├── setup.sh                            # Interactive setup wizard (9.7 KB)
+└── package.json                        # Root: Husky, Prettier, lint-staged
 ```
 </details>
 
@@ -397,7 +403,7 @@ Flicko/
 | Technology | Purpose |
 |-----------|---------|
 | **Supabase (PostgreSQL 15+)** | Primary database with RLS, Edge Functions, Realtime |
-| **94 SQL migrations** | Schema versioning with up/down migrations |
+| **97 SQL migrations** | Schema versioning with up/down migrations |
 | **Row-Level Security** | Database-level authorization policies |
 | **Upstash Redis** | Pub/Sub, session cache, rate limiting, DLQ |
 | **Supabase Storage** | Secure file storage for attachments and user data |
@@ -419,57 +425,7 @@ Flicko/
 
 ---
 
-<details>
-<summary>📂 <strong>Click to view full directory breakdown</strong></summary>
 
-```
-Flicko/
-│
-├── 📱 mobile/                          # Flutter mobile application
-│   ├── lib/                            # Application source code
-│   │   ├── features/                   # Modular feature-first architecture
-│   │   ├── core/                       # Shared models, services, & logic
-│   │   └── main.dart                   # App entry point
-│   ├── MOBILE_STATUS.md                # Project completion status
-│   └── pubspec.yaml                    # Flutter dependencies
-│
-├── 🔩 backend/                         # Go monolith — Bot system & commands
-│   ├── internal/
-│   │   ├── bots/                       # 8 built-in bots + registry
-│   │   ├── middleware/                 # 10-layer security middleware
-│   │   └── services/                   # 95 service files (business logic)
-│   └── migrations/                     # 3 SQL migration files
-│
-├── 🔌 services/                        # Go microservices (production split)
-│   ├── ws-gateway/                     # WebSocket gateway service
-│   ├── msg-service/                    # Message REST API service
-│   └── shared/                         # Shared Go packages
-│
-├── 🐘 supabase/                        # Supabase configuration
-│   ├── migrations/                     # 94 SQL migration files
-│   │   ├── 001_initial_schema.sql      # Users, servers, channels, messages
-│   │   ├── 034_advanced_rls.sql        # RLS policies (13.3 KB)
-│   │   └── ...91 more migrations
-│   └── functions/                      # Supabase Edge Functions
-│
-├── 📧 mail-gateway/                    # Email service (Go)
-├── 🔀 nginx/                           # NGINX reverse proxy config
-├── 📊 monitoring/                      # Prometheus, Grafana, Loki configs
-└── docker-compose.prod.yml              # Production stack
-```
-</details>
-│
-├── 📧 mail-gateway/                    # Email service (Go)
-├── 🔀 nginx/                           # NGINX reverse proxy config (232 lines)
-├── 📊 monitoring/                      # Prometheus, Grafana, Loki configs
-├── 🔧 scripts/                         # Deploy, setup, health check scripts
-├── 📄 docs/                            # 121 documentation files
-├── docker-compose.prod.yml             # Production stack (455 lines, 9 containers)
-├── docker-compose.dev.yml              # Development stack
-├── .env.example                        # Environment template (169 variables)
-├── setup.sh                            # Interactive setup wizard (9.7 KB)
-└── package.json                        # Root: Husky, Prettier, lint-staged
-```
 
 📖 **Full annotated tree:** [docs/architecture/folder-structure.md](docs/architecture/folder-structure.md)
 
@@ -538,6 +494,17 @@ All Go service containers run with:
 | **Azure** | B2s | 4 GB / 2 vCPU | Free with $100 student credit |
 
 📖 **Full deployment guide:** [docs/deployment/overview.md](docs/deployment/overview.md)
+
+### 🤖 CI/CD & Automation
+
+Flicko leverages modern automation to ensure rapid, reliable, and secure deployments:
+
+*   **Automated Backend Deployment:** Integrated GitHub Actions workflow (`backend-cd.yml`) triggers on pushes to main, managing container orchestration via Docker Compose.
+*   **Secret Management:** Doppler integration provides a single source of truth for environment variables across local, staging, and production environments.
+*   **Infrastructure-as-Code:** Service configurations and deployment scripts are version-controlled, enabling reproducible environments.
+
+---
+
 
 ---
 
@@ -829,9 +796,9 @@ Until then, explore the UI via our high-fidelity mockups in the [Design Assets](
 
 | Metric | Count |
 |:---|:---:|
-| **Go backend service files** | 95 |
-| **Mobile app screens** | 86 |
-| **Supabase SQL migrations** | 94 |
+| **Go backend service files** | 105 |
+| **Mobile app screens** | 95 |
+| **Supabase SQL migrations** | 97 |
 | **Documentation files** | 121 |
 | **Built-in bots** | 8 |
 | **Permission types** | 26 |
@@ -855,7 +822,7 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 ---
 
 <p align="center">
-  <img src="mobile/assets/images/Flicko_icon.png" alt="Flicko" width="48" height="48" style="border-radius: 12px;" />
+  <img src="assets/branding/Flicko-for-black-background.png" alt="Flicko" width="48" height="48" style="border-radius: 12px;" />
 </p>
 
 <p align="center">

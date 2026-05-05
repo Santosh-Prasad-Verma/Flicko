@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/flicko_colors.dart';
-import 'package:mobile/features/auth/application/auth_notifier.dart';
+import 'package:mobile/features/auth/providers/auth_provider.dart';
 
 /// Feed/Home Screen — Discord Mobile Style
 ///
@@ -38,7 +38,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     
     try {
       final supabase = Supabase.instance.client;
-      final user = ref.read(currentUserProvider);
+      final user = ref.read(authProvider).user;
       
       if (user == null) {
         setState(() => _isLoading = false);
@@ -113,7 +113,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       orElse: () => {},
     );
     
-    final user = ref.read(currentUserProvider);
+    final user = ref.read(authProvider).user;
     final isOwner = selectedServer['owner_id'] == user?.id;
     
     if (isOwner) {
@@ -125,7 +125,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = ref.watch(currentUserProvider);
+    final user = ref.watch(authProvider).user;
     
     if (_isLoading) {
       return const Scaffold(
@@ -256,7 +256,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                   // Discover button
                   return _buildRailButton(
                     isActive: false,
-                    onTap: () => context.push('/discover'),
+                    onTap: () => context.push('/server/discover'),
                     child: Container(
                       width: _serverIconSize,
                       height: _serverIconSize,
@@ -389,6 +389,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
         // Header
         _buildHeader(
           title: 'Flicko',
+          subtitle: 'Welcome back, ${user?.userMetadata?['username'] ?? 'User'}',
           actions: [
             IconButton(
               icon: const Icon(Icons.search, color: Color(FlickoColors.textSecondary)),
@@ -402,6 +403,11 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
+              // Welcome Card
+              _buildWelcomeCard(),
+              
+              const SizedBox(height: 24),
+              
               // Your Servers heading
               if (_servers.isNotEmpty) ...[
                 Text(
@@ -428,6 +434,9 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       (s) => s['id'] == _selectedServerId,
       orElse: () => {},
     );
+    
+    final user = ref.read(authProvider).user;
+    final isOwner = selectedServer['owner_id'] == user?.id;
 
     return Column(
       children: [
@@ -476,6 +485,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
 
   Widget _buildHeader({
     required String title,
+    String? subtitle,
     List<Widget>? actions,
   }) {
     return Container(
@@ -494,10 +504,68 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
+                if (subtitle != null)
+                  Text(
+                    subtitle,
+                    style: GoogleFonts.inter(
+                      color: const Color(FlickoColors.textMuted),
+                      fontSize: 14,
+                    ),
+                  ),
               ],
             ),
           ),
           if (actions != null) ...actions,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWelcomeCard() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(FlickoColors.blurple),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Welcome to Flicko',
+                  style: GoogleFonts.inter(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Connect with friends, join communities, and explore servers',
+                  style: GoogleFonts.inter(
+                    color: Colors.white.withOpacity(0.9),
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.chat_bubble,
+              color: Colors.white,
+              size: 32,
+            ),
+          ),
         ],
       ),
     );
@@ -605,16 +673,13 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
               size: 16,
             ),
             const SizedBox(width: 4),
-            Expanded(
-              child: Text(
-                channelName.toUpperCase(),
-                style: GoogleFonts.inter(
-                  color: const Color(FlickoColors.textMuted),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.5,
-                ),
-                overflow: TextOverflow.ellipsis,
+            Text(
+              channelName.toUpperCase(),
+              style: GoogleFonts.inter(
+                color: const Color(FlickoColors.textMuted),
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.5,
               ),
             ),
           ],
@@ -651,15 +716,12 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
               size: 20,
             ),
             const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                channelName,
-                style: GoogleFonts.inter(
-                  color: const Color(FlickoColors.textSecondary),
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                ),
-                overflow: TextOverflow.ellipsis,
+            Text(
+              channelName,
+              style: GoogleFonts.inter(
+                color: const Color(FlickoColors.textSecondary),
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],

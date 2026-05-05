@@ -1,6 +1,5 @@
-import 'package:flutter/material.dart' hide Card;
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/flicko_colors.dart';
@@ -25,6 +24,7 @@ class _WebhooksSettingsScreenState extends ConsumerState<WebhooksSettingsScreen>
   bool _isLoading = true;
   List<Map<String, dynamic>> _webhooks = [];
   String? _errorMessage;
+  bool _showCreateModal = false;
   final _nameController = TextEditingController();
   final _channelIdController = TextEditingController();
   bool _isCreating = false;
@@ -94,6 +94,7 @@ class _WebhooksSettingsScreenState extends ConsumerState<WebhooksSettingsScreen>
 
       setState(() {
         _webhooks.add(response);
+        _showCreateModal = false;
         _nameController.clear();
         _channelIdController.clear();
         _isCreating = false;
@@ -127,7 +128,7 @@ class _WebhooksSettingsScreenState extends ConsumerState<WebhooksSettingsScreen>
         context: context,
         builder: (context) => Modal(
           visible: true,
-          onClose: () => Navigator.pop(context),
+          onClose: () => Navigator.of(context).pop(false),
           title: 'Delete Webhook',
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -197,20 +198,20 @@ class _WebhooksSettingsScreenState extends ConsumerState<WebhooksSettingsScreen>
   void _copyWebhookUrl(Map<String, dynamic> webhook) {
     final url = 'https://api.flicko.app/webhooks/${webhook['id']}';
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Webhook URL copied: $url')),
+      const SnackBar(content: Text('URL copied to clipboard')),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
+      backgroundColor: const Color(FlickoColors.bgPrimary),
       appBar: AppBar(
-        
+        backgroundColor: const Color(FlickoColors.bgPrimary),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),
-          onPressed: () => context.pop(),
+          onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
           'Webhooks',
@@ -223,7 +224,7 @@ class _WebhooksSettingsScreenState extends ConsumerState<WebhooksSettingsScreen>
         actions: [
           IconButton(
             icon: const Icon(Icons.add, color: Color(FlickoColors.blurple)),
-            onPressed: _openCreateModal,
+            onPressed: () => setState(() => _showCreateModal = true),
           ),
         ],
       ),
@@ -270,7 +271,7 @@ class _WebhooksSettingsScreenState extends ConsumerState<WebhooksSettingsScreen>
             const SizedBox(height: 16),
             Button(
               title: 'Create Webhook',
-              onPress: _openCreateModal,
+              onPress: () => setState(() => _showCreateModal = true),
               variant: ButtonVariant.primary,
             ),
           ],
@@ -354,14 +355,15 @@ class _WebhooksSettingsScreenState extends ConsumerState<WebhooksSettingsScreen>
     );
   }
 
-  void _openCreateModal() {
+  void _showCreateModal() {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       builder: (context) => Modal(
         visible: true,
         onClose: () {
-          Navigator.pop(context);
+          setState(() => _showCreateModal = false);
+          Navigator.of(context).pop();
         },
         title: 'New Webhook',
         child: Column(

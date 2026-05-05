@@ -21,13 +21,15 @@ void startCallback() {
 /// Handles the foreground task execution for voice calls.
 /// Keeps the app alive in background and manages call state.
 class VoiceCallTaskHandler extends TaskHandler {
+  SendPort? _sendPort;
   Timer? _timer;
   int _elapsedSeconds = 0;
   bool _isMuted = false;
   bool _isDeafened = false;
 
   @override
-  Future<void> onStart(DateTime timestamp, TaskStarter starter) async {
+  Future<void> onStart(DateTime timestamp, SendPort? sendPort) async {
+    _sendPort = sendPort;
     _elapsedSeconds = 0;
 
     // Update notification every second to show call duration
@@ -36,47 +38,50 @@ class VoiceCallTaskHandler extends TaskHandler {
       _updateNotification();
     });
 
-    FlutterForegroundTask.sendDataToMain({
+    // Notify main isolate
+    _sendPort?.send({
       'type': 'call_started',
       'timestamp': timestamp.toIso8601String(),
     });
   }
 
   @override
-  void onRepeatEvent(DateTime timestamp) {
+  Future<void> onEvent(DateTime timestamp, SendPort? sendPort) async {
     // Periodic events can be handled here
   }
 
   @override
-  Future<void> onDestroy(DateTime timestamp, bool isTimeout) async {
+  Future<void> onDestroy(DateTime timestamp, bool? isKilledBySystem) async {
     _timer?.cancel();
 
-    FlutterForegroundTask.sendDataToMain({
+    // Notify main isolate
+    _sendPort?.send({
       'type': 'call_ended',
       'duration': _elapsedSeconds,
+      'killed_by_system': isKilledBySystem,
     });
   }
 
   @override
-  void onNotificationButtonPressed(String id) {
+  void onButtonPressed(String id) {
     // Handle notification button presses
     switch (id) {
       case 'mute':
         _isMuted = !_isMuted;
-        FlutterForegroundTask.sendDataToMain({
+        _sendPort?.send({
           'type': 'mute_toggled',
           'is_muted': _isMuted,
         });
         break;
       case 'deafen':
         _isDeafened = !_isDeafened;
-        FlutterForegroundTask.sendDataToMain({
+        _sendPort?.send({
           'type': 'deafen_toggled',
           'is_deafened': _isDeafened,
         });
         break;
       case 'disconnect':
-        FlutterForegroundTask.sendDataToMain({
+        _sendPort?.send({
           'type': 'disconnect_pressed',
         });
         break;
@@ -85,10 +90,16 @@ class VoiceCallTaskHandler extends TaskHandler {
 
   @override
   void onNotificationPressed() {
-    FlutterForegroundTask.sendDataToMain({
+    // Bring app to foreground
+    _sendPort?.send({
       'type': 'notification_pressed',
     });
     FlutterForegroundTask.launchApp('/voice-call');
+  }
+
+  @override
+  void onRepeatEvent(DateTime timestamp) {
+    // Handle repeat events if needed
   }
 
   void _updateNotification() {
@@ -172,23 +183,36 @@ class ForegroundService {
 
       // Start foreground task
       final result = await FlutterForegroundTask.startService(
-        serviceId: 256,
+        serviceId: 256, // Unique service ID
         notificationTitle: 'Voice Call in Progress',
         notificationText: 'In $channelName on $serverName',
         notificationIcon: const NotificationIcon(
-          metaDataName: 'com.flicko.app.NOTIFICATION_ICON',
+          metaData: 'android.app.Service',
+          name: 'ic_notification',
         ),
         notificationButtons: [
-          const NotificationButton(id: 'mute', text: 'Mute'),
-          const NotificationButton(id: 'deafen', text: 'Deafen'),
-          const NotificationButton(id: 'disconnect', text: 'Disconnect'),
+          const NotificationButton(
+            id: 'mute',
+            text: 'Mute',
+          ),
+          const NotificationButton(
+            id: 'deafen',
+            text: 'Deafen',
+          ),
+          const NotificationButton(
+            id: 'disconnect',
+            text: 'Disconnect',
+          ),
         ],
         callback: startCallback,
       );
 
-      _isRunning = result is ServiceRequestSuccess;
-      debugPrint('✅ Voice call foreground service started: $_isRunning');
-      return _isRunning;
+      if (result) {
+        _isRunning = true;
+        debugPrint('✅ Voice call foreground service started');
+      }
+
+      return result;
     } catch (e) {
       debugPrint('❌ Error starting foreground service: $e');
       return false;
@@ -201,13 +225,15 @@ class ForegroundService {
 
     try {
       final result = await FlutterForegroundTask.stopService();
-      if (result is ServiceRequestSuccess) {
+      
+      if (result) {
         _isRunning = false;
         _receivePort?.close();
         _receivePort = null;
         debugPrint('🛑 Voice call foreground service stopped');
       }
-      return result is ServiceRequestSuccess;
+
+      return result;
     } catch (e) {
       debugPrint('❌ Error stopping foreground service: $e');
       return false;
@@ -267,7 +293,7 @@ class ForegroundService {
   Future<void> sendDataToTask(Map<String, dynamic> data) async {
     if (!_isRunning) return;
     
-    FlutterForegroundTask.sendDataToTask(data);
+    await FlutterForegroundTask.sendDataToTask(data);
   }
 
   /// Save data that persists between foreground task restarts
@@ -292,22 +318,22 @@ class ForegroundService {
 
   /// Wake up screen (for incoming calls)
   static Future<void> wakeUpScreen() async {
-    FlutterForegroundTask.wakeUpScreen();
+    await FlutterForegroundTask.wakeUpScreen();
   }
 
   /// Check if app is in foreground
   static Future<bool> isAppInForeground() async {
-    return await FlutterForegroundTask.isRunningService;
+    return await FlutterForegroundTask.isAppInForeground;
   }
 
   /// Minimize app to background
   static Future<void> minimizeApp() async {
-    FlutterForegroundTask.minimizeApp();
+    await FlutterForegroundTask.minimizeApp();
   }
 
   /// Launch app with route
   static Future<void> launchApp([String? route]) async {
-    FlutterForegroundTask.launchApp(route);
+    await FlutterForegroundTask.launchApp(route);
   }
 
   /// Set ignore battery optimization (Android)
@@ -317,12 +343,12 @@ class ForegroundService {
 
   /// Check if battery optimization is ignored
   static Future<bool> get isIgnoringBatteryOptimization async {
-    return await FlutterForegroundTask.isIgnoringBatteryOptimizations;
+    return await FlutterForegroundTask.isIgnoringBatteryOptimization;
   }
 
   /// Open battery optimization settings
   static Future<void> openBatteryOptimizationSettings() async {
-    await FlutterForegroundTask.requestIgnoreBatteryOptimization();
+    await FlutterForegroundTask.openBatteryOptimizationSettings();
   }
 
   /// Dispose resources

@@ -5,13 +5,12 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/flicko_colors.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
-import 'package:mobile/features/auth/application/auth_notifier.dart';
 
 /// Per-Server Profile Selector
 ///
 /// Lists all servers the user is a member of, allowing them
 /// to customise their nickname per-server.
-/// Route: /u/settings/server-profiles
+/// Route: /profile/settings/server-profiles
 class ServerProfilesScreen extends ConsumerStatefulWidget {
   const ServerProfilesScreen({super.key});
 
@@ -45,7 +44,7 @@ class _ServerProfilesScreenState extends ConsumerState<ServerProfilesScreen> {
   Future<void> _loadServers() async {
     setState(() => _isLoading = true);
     try {
-      final userId = ref.read(currentUserIdProvider);
+      final userId = _client.auth.currentUser?.id;
       if (userId == null) {
         setState(() => _isLoading = false);
         return;
@@ -71,7 +70,7 @@ class _ServerProfilesScreenState extends ConsumerState<ServerProfilesScreen> {
   }
 
   Future<void> _saveNickname(String serverId) async {
-    final userId = ref.read(currentUserIdProvider);
+    final userId = _client.auth.currentUser?.id;
     if (userId == null) return;
 
     try {
@@ -98,7 +97,7 @@ class _ServerProfilesScreenState extends ConsumerState<ServerProfilesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
+      backgroundColor: const Color(FlickoColors.bgPrimary),
       appBar: AppBar(
         backgroundColor: const Color(FlickoColors.bgSecondary),
         elevation: 0,

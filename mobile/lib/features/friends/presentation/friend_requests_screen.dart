@@ -19,7 +19,7 @@ class FriendRequestsScreen extends ConsumerStatefulWidget {
 class _FriendRequestsScreenState extends ConsumerState<FriendRequestsScreen> {
   final _searchController = TextEditingController();
   FriendTab _activeTab = FriendTab.incoming;
-  final bool _isLoading = false;
+  bool _isLoading = false;
 
   // Mock data
   final List<FriendRequest> _incomingRequests = [
@@ -92,7 +92,7 @@ class _FriendRequestsScreenState extends ConsumerState<FriendRequestsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
+      backgroundColor: const Color(FlickoColors.bgPrimary),
       appBar: AppBar(
         backgroundColor: const Color(FlickoColors.bgSecondary),
         elevation: 0,
@@ -190,7 +190,7 @@ class _FriendRequestsScreenState extends ConsumerState<FriendRequestsScreen> {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: tabs.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
           final (tab, label, count) = tabs[index];
           final isActive = _activeTab == tab;
@@ -223,7 +223,7 @@ class _FriendRequestsScreenState extends ConsumerState<FriendRequestsScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
                         color: isActive
-                            ? Colors.white.withValues(alpha: 0.3)
+                            ? Colors.white.withOpacity(0.3)
                             : const Color(FlickoColors.red),
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -403,7 +403,7 @@ class _FriendRequestsScreenState extends ConsumerState<FriendRequestsScreen> {
 
   Widget _buildRequestTile(FriendRequest request, {required bool isIncoming}) {
     return InkWell(
-      onTap: () => context.push('/u/${request.user.id}'),
+      onTap: () => context.push('/profile/${request.user.id}'),
       borderRadius: BorderRadius.circular(8),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -506,7 +506,7 @@ class _FriendRequestsScreenState extends ConsumerState<FriendRequestsScreen> {
 
   Widget _buildSuggestedUserTile(FriendUser user) {
     return InkWell(
-      onTap: () => context.push('/u/${user.id}'),
+      onTap: () => context.push('/profile/${user.id}'),
       borderRadius: BorderRadius.circular(8),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),

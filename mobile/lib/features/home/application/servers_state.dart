@@ -1,11 +1,11 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:mobile/data/models/server_model.dart';
-import 'package:mobile/data/models/channel_model.dart';
+import 'package:mobile/features/data/models/server_model.dart';
+import 'package:mobile/features/data/models/channel_model.dart';
 
 part 'servers_state.freezed.dart';
 
 @freezed
-abstract class ServersState with _$ServersState {
+class ServersState with _$ServersState {
   const factory ServersState({
     @Default([]) List<ServerModel> servers,
     @Default([]) List<ChannelModel> selectedServerChannels,

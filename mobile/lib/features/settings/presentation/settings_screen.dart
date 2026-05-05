@@ -1,102 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/constants/flicko_colors.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
-  // Exact theme color hex tokens from the design system
-  static const Color _neonGreen = Color(0xFFC0F500);
-  static const Color _bgBlack = Color(0xFF050505);
-  static const Color _surfaceContainer = Color(0xFF0C0C0E);
-  static const Color _textWhite = Color(0xFFFBF9FA);
-  static const Color _textMuted = Color(0xFF71717A);
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authNotifierProvider);
 
-    return Scaffold(
-      backgroundColor: _bgBlack,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(context),
-            Expanded(
-              child: authState.maybeWhen(
-                authenticated: (user, profile) => _buildSettings(context, ref, user, profile),
-                orElse: () => const Center(
-                  child: Text(
-                    'Logged out',
-                    style: TextStyle(color: _textWhite),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: _neonGreen.withValues(alpha: 0.1), width: 1),
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          GestureDetector(
-            onTap: () => context.pop(),
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: const BoxDecoration(
-                border: Border.fromBorderSide(BorderSide(color: Colors.transparent)),
-              ),
-              child: const Icon(
-                Icons.arrow_back,
-                color: _textWhite,
-                size: 20,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'USER SETTINGS',
-                  style: GoogleFonts.spaceGrotesk(
-                    color: _neonGreen.withValues(alpha: 0.8),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 2.0,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'MANAGE PROFILE AND PREFERENCES',
-                  style: GoogleFonts.spaceMono(
-                    color: _textWhite.withValues(alpha: 0.3),
-                    fontSize: 8,
-                    letterSpacing: 1.0,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 36), // Balanced spacing for back button
-        ],
-      ),
+    return authState.maybeWhen(
+      authenticated: (user, profile) => _buildSettings(context, ref, user, profile),
+      orElse: () => const Scaffold(body: Center(child: Text('Logged out'))),
     );
   }
 
@@ -104,351 +22,181 @@ class SettingsScreen extends ConsumerWidget {
     final displayName = profile?.displayName ?? profile?.username ?? 'User';
     final username = profile?.username ?? 'user';
 
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 24),
-            // Hero heading
-            Text(
-              'USER\nSETTINGS',
-              style: GoogleFonts.epilogue(
-                color: _textWhite,
-                fontSize: 48,
-                fontWeight: FontWeight.w900,
-                letterSpacing: -2,
-                height: 0.9,
-                fontStyle: FontStyle.italic,
-              ),
-            ),
-            const SizedBox(height: 24),
-            // Profile Header
-            _buildProfileSection(context, displayName, username, profile?.avatarUrl),
-            const SizedBox(height: 40),
-
-            _buildSectionHeader('USER PREFERENCES'),
-            _buildSettingsRow(
-              context, 
-              Icons.person_outline_rounded, 
-              'My Account', 
-              () => context.push('/u/settings/account'),
-            ),
-            _buildSettingsRow(
-              context, 
-              Icons.edit_note_rounded, 
-              'Edit Profile', 
-              () => context.push('/u/settings/edit-profile'),
-            ),
-            _buildSettingsRow(
-              context, 
-              Icons.verified_user_outlined, 
-              'Privacy & Safety', 
-              () => context.push('/u/settings/privacy'),
-            ),
-            const SizedBox(height: 32),
-
-            _buildSectionHeader('PREMIUM SERVICES'),
-            _buildSettingsRow(
-              context, 
-              Icons.credit_card_rounded, 
-              'Premium Billing', 
-              () => context.push('/u/settings/billing'),
-            ),
-            _buildSettingsRow(
-              context, 
-              Icons.water_drop_rounded, 
-              'Sonic Drop', 
-              () => context.push('/u/settings/sonic-drip'),
-              trailing: _buildPremiumBadge('PRO'),
-            ),
-            const SizedBox(height: 32),
-
-            _buildSectionHeader('APP EXPERIENCE'),
-            _buildSettingsRow(
-              context, 
-              Icons.palette_outlined, 
-              'Appearance', 
-              () => context.push('/u/settings/appearance'),
-              trailing: _buildPremiumBadge('NEW'),
-            ),
-            _buildSettingsRow(
-              context, 
-              Icons.accessibility_new_rounded, 
-              'Accessibility', 
-              () => context.push('/u/settings/accessibility'),
-            ),
-            _buildSettingsRow(
-              context, 
-              Icons.chat_bubble_outline_rounded, 
-              'Chat', 
-              () => context.push('/u/settings/chat'),
-            ),
-            _buildSettingsRow(
-              context, 
-              Icons.notifications_active_outlined, 
-              'Notifications', 
-              () => context.push('/u/settings/notifications'),
-            ),
-            _buildSettingsRow(
-              context, 
-              Icons.mic_none_rounded, 
-              'Voice & Video', 
-              () => context.push('/u/settings/voice'),
-            ),
-            _buildSettingsRow(
-              context, 
-              Icons.language_rounded, 
-              'Language', 
-              () => context.push('/u/settings/language'),
-              subtitle: 'English (US)',
-            ),
-            _buildSettingsRow(
-              context, 
-              Icons.data_usage_rounded, 
-              'Data & Storage', 
-              () => context.push('/u/settings/storage'),
-            ),
-            _buildPremiumBanner(context),
-            const SizedBox(height: 32),
-
-            _buildSectionHeader('SYSTEM CONTROLS'),
-            _buildSettingsRow(
-              context, 
-              Icons.developer_mode_rounded, 
-              'Developer Mode', 
-              () {}, 
-              isSwitch: true,
-            ),
-            _buildSettingsRow(
-              context, 
-              Icons.bug_report_outlined, 
-              'Bug Report', 
-              () {}, 
-            ),
-            const SizedBox(height: 32),
-
-            _buildSectionHeader('ACCOUNT ACTIONS'),
-            _buildSettingsRow(
-              context,
-              Icons.logout_rounded,
-              'Log Out',
-              () => ref.read(authNotifierProvider.notifier).signOut(),
-              isDanger: true,
-            ),
-
-            const SizedBox(height: 32),
-            Center(
-              child: Column(
-                children: [
-                  Image.asset(
-                    'assets/branding/Flicko-for-black-background.png',
-                    height: 48,
-                    errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'FLICKO // SYSTEM_OK v1.2.4',
-                    style: GoogleFonts.spaceMono(
-                      color: _textWhite.withValues(alpha: 0.15),
-                      fontSize: 9,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 2.0,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 48),
-          ],
+    return Scaffold(
+      backgroundColor: const Color(FlickoColors.bgPrimary),
+      appBar: AppBar(
+        backgroundColor: const Color(FlickoColors.bgPrimary),
+        elevation: 0,
+        title: Text(
+          'Settings',
+          style: GoogleFonts.inter(
+            color: const Color(FlickoColors.textPrimary),
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
-    );
-  }
-
-  Widget _buildProfileSection(BuildContext context, String name, String username, String? avatarUrl) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: _surfaceContainer,
-        border: Border.all(
-          color: _textWhite.withValues(alpha: 0.05),
-          width: 1,
-        ),
-      ),
-      child: Column(
+      body: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         children: [
-          Row(
-            children: [
-              Stack(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: _neonGreen, width: 1.5),
-                    ),
-                    child: Container(
-                      clipBehavior: Clip.antiAlias,
-                      decoration: const BoxDecoration(
-                        color: _bgBlack,
-                        shape: BoxShape.circle,
-                      ),
-                      padding: const EdgeInsets.all(2),
-                      child: UserAvatar(
-                        imageUrl: avatarUrl,
-                        status: 'online',
-                        size: 72,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(width: 18),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      name.toUpperCase(),
-                      style: GoogleFonts.epilogue(
-                        color: _textWhite,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                        fontStyle: FontStyle.italic,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '@$username',
-                      style: GoogleFonts.spaceMono(
-                        color: _neonGreen,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          // Profile Card Entry
+          _buildProfileCard(context, displayName, username, profile?.avatarUrl),
+          const SizedBox(height: 12),
+
+          // Nitro Banner
+          _buildNitroBanner(context),
+          const SizedBox(height: 24),
+
+          _buildSectionHeader('USER SETTINGS'),
+          _buildSettingsRow(context, Icons.person_outline, 'My Account', () => context.push('account')),
+          _buildSettingsRow(context, Icons.create_outlined, 'Edit Profile', () => context.push('edit-profile')),
+          _buildSettingsRow(context, Icons.shield_checkmark_outlined, 'Privacy & Safety', () => context.push('privacy')),
+          const SizedBox(height: 24),
+
+          _buildSectionHeader('APP SETTINGS'),
+          _buildSettingsRow(context, Icons.color_palette_outlined, 'Appearance', () => context.push('appearance')),
+          _buildSettingsRow(context, Icons.accessibility_new_outlined, 'Accessibility', () => context.push('accessibility')),
+          _buildSettingsRow(context, Icons.chat_bubble_outline, 'Chat', () => context.push('chat')),
+          _buildSettingsRow(context, Icons.notifications_none_outlined, 'Notifications', () => context.push('notifications')),
+          _buildSettingsRow(context, Icons.mic_none_outlined, 'Voice & Video', () => context.push('voice')),
+          _buildSettingsRow(context, Icons.language_outlined, 'Language', () => context.push('language')),
+          _buildSettingsRow(context, Icons.storage_outlined, 'Data & Storage', () => context.push('storage')),
+          const SizedBox(height: 24),
+
+          _buildSectionHeader('PROFILE'),
+          _buildSettingsRow(context, Icons.emoji_emotions_outlined, 'Status', () => context.push('status')),
+          _buildSettingsRow(context, Icons.dns_outlined, 'Server Profiles', () => context.push('server-profiles')),
+          const SizedBox(height: 24),
+
+          _buildSectionHeader('BILLING'),
+          _buildSettingsRow(context, Icons.auto_awesome, 'Nitro', () => context.push('/premium/nitro')),
+          const SizedBox(height: 24),
+
+          _buildSectionHeader('ADVANCED'),
+          _buildSettingsRow(context, Icons.code, 'Developer Mode', () {}, isSwitch: true),
+          const SizedBox(height: 24),
+
+          // Logout
+          _buildSettingsRow(
+            context,
+            Icons.logout,
+            'Log Out',
+            () => ref.read(authNotifierProvider.notifier).signOut(),
+            isDanger: true,
           ),
-          const SizedBox(height: 18),
-          Row(
-            children: [
-              Expanded(
-                child: _buildProfileActionButton(
-                  'EDIT PROFILE', 
-                  Icons.edit_rounded, 
-                  () => context.push('/u/settings/edit-profile'),
-                ),
+
+          const SizedBox(height: 32),
+          Center(
+            child: Text(
+              'Flicko Flutter v1.0.0',
+              style: GoogleFonts.inter(
+                color: const Color(FlickoColors.textMuted),
+                fontSize: 12,
               ),
-              const SizedBox(width: 12),
-              _buildProfileActionButton(
-                '', 
-                Icons.share_rounded, 
-                () => context.push('/u/settings/share-profile'),
-                isIconOnly: true,
-              ),
-            ],
+            ),
           ),
+          const SizedBox(height: 40),
         ],
       ),
     );
   }
 
-  Widget _buildProfileActionButton(String label, IconData icon, VoidCallback onTap, {bool isIconOnly = false}) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        height: 42,
-        padding: EdgeInsets.symmetric(horizontal: isIconOnly ? 0 : 16),
-        width: isIconOnly ? 42 : null,
-        decoration: BoxDecoration(
-          color: _bgBlack,
-          border: Border.all(color: _textWhite.withValues(alpha: 0.1)),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: _textWhite, size: 16),
-            if (!isIconOnly) ...[
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: GoogleFonts.spaceGrotesk(
-                  color: _textWhite,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 11,
-                  letterSpacing: 1.5,
+  Widget _buildProfileCard(BuildContext context, String name, String username, String? avatarUrl) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(FlickoColors.bgSecondary),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          UserAvatar(
+            imageUrl: avatarUrl,
+            status: 'online',
+            size: 56,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: GoogleFonts.inter(
+                    color: const Color(FlickoColors.textPrimary),
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-            ],
-          ],
-        ),
+                Text(
+                  '@$username',
+                  style: GoogleFonts.inter(
+                    color: const Color(FlickoColors.textMuted),
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right, color: Color(FlickoColors.textMuted)),
+        ],
       ),
     );
   }
 
-  Widget _buildPremiumBanner(BuildContext context) {
-    return InkWell(
+  Widget _buildNitroBanner(BuildContext context) {
+    return GestureDetector(
       onTap: () => context.push('/premium/nitro'),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: _surfaceContainer,
-          border: Border.all(
-            color: _neonGreen.withValues(alpha: 0.4),
-            width: 1.5,
+          gradient: const LinearGradient(
+            colors: [Color(0xFF5865F2), Color(0xFF8547C6), Color(0xFFEB459E)],
+            begin: Alignment.bottomLeft,
+            end: Alignment.topRight,
           ),
+          borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: _neonGreen.withValues(alpha: 0.05),
+              color: Colors.black.withOpacity(0.2),
               blurRadius: 10,
-              spreadRadius: 2,
-            )
+              offset: const Offset(0, 4),
+            ),
           ],
         ),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: _neonGreen.withValues(alpha: 0.1),
-                border: Border.all(color: _neonGreen.withValues(alpha: 0.2)),
+              padding: const EdgeInsets.all(8),
+              decoration: const BoxDecoration(
+                color: Colors.white24,
+                shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.bolt_rounded, color: _neonGreen, size: 24),
+              child: const Icon(Icons.auto_awesome, color: Colors.white, size: 28),
             ),
             const SizedBox(width: 16),
-            Expanded(
+            const Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'FLICKO PLUS',
-                    style: GoogleFonts.epilogue(
-                      color: _textWhite,
-                      fontWeight: FontWeight.w900,
-                      fontStyle: FontStyle.italic,
+                    'Get Nitro',
+                    style: TextStyle(
+                      color: Colors.white,
                       fontSize: 18,
-                      letterSpacing: -0.5,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 2),
                   Text(
-                    'Unlock maximum hardware and visual perks',
-                    style: GoogleFonts.spaceMono(
-                      color: _textMuted.withValues(alpha: 0.8),
-                      fontSize: 9,
-                      fontWeight: FontWeight.w500,
+                    'Unlock premium perks, bots, and more!',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios_rounded, color: _neonGreen, size: 16),
+            const Icon(Icons.chevron_right, color: Colors.white70),
           ],
         ),
       ),
@@ -456,25 +204,17 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   Widget _buildSectionHeader(String title) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: GoogleFonts.epilogue(
-            color: _textWhite,
-            fontSize: 22,
-            fontWeight: FontWeight.w900,
-            fontStyle: FontStyle.italic,
-            letterSpacing: -0.5,
-          ),
+    return Padding(
+      padding: const EdgeInsets.only(left: 8, bottom: 8),
+      child: Text(
+        title,
+        style: GoogleFonts.inter(
+          color: const Color(FlickoColors.textMuted),
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 0.5,
         ),
-        Container(
-          height: 2,
-          color: _neonGreen,
-          margin: const EdgeInsets.only(top: 6, bottom: 16),
-        ),
-      ],
+      ),
     );
   }
 
@@ -485,156 +225,27 @@ class SettingsScreen extends ConsumerWidget {
     VoidCallback onTap, {
     bool isDanger = false,
     bool isSwitch = false,
-    Widget? trailing,
-    String? subtitle,
   }) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 2),
       decoration: BoxDecoration(
-        color: _surfaceContainer,
-        border: Border.all(
-          color: isDanger
-              ? Colors.red.withValues(alpha: 0.2)
-              : _textWhite.withValues(alpha: 0.05),
-          width: 1,
-        ),
+        color: const Color(FlickoColors.bgSecondary),
+        borderRadius: BorderRadius.circular(4),
       ),
-      child: InkWell(
+      child: ListTile(
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: isDanger
-                      ? Colors.red.withValues(alpha: 0.1)
-                      : _neonGreen.withValues(alpha: 0.05),
-                  border: Border.all(
-                    color: isDanger
-                        ? Colors.red.withValues(alpha: 0.2)
-                        : _neonGreen.withValues(alpha: 0.1),
-                  ),
-                ),
-                child: Icon(
-                  icon,
-                  color: isDanger ? Colors.redAccent : _neonGreen,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      label.toUpperCase(),
-                      style: GoogleFonts.spaceGrotesk(
-                        color: isDanger ? Colors.redAccent : _textWhite,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.0,
-                      ),
-                    ),
-                    if (subtitle != null) ...[
-                      const SizedBox(height: 3),
-                      Text(
-                        subtitle,
-                        style: GoogleFonts.spaceMono(
-                          color: _textMuted.withValues(alpha: 0.8),
-                          fontSize: 9,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              if (isSwitch)
-                _buildHardwareToggle(false, (val) {})
-              else
-                trailing ??
-                    Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      color: _textWhite.withValues(alpha: 0.15),
-                      size: 14,
-                    ),
-            ],
+        visualDensity: VisualDensity.compact,
+        leading: Icon(icon, color: isDanger ? Colors.red : const Color(FlickoColors.textPrimary), size: 22),
+        title: Text(
+          label,
+          style: GoogleFonts.inter(
+            color: isDanger ? Colors.red : const Color(FlickoColors.textPrimary),
+            fontSize: 16,
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildPremiumBadge(String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: const BoxDecoration(
-        color: _neonGreen,
-      ),
-      child: Text(
-        text.toUpperCase(),
-        style: GoogleFonts.spaceGrotesk(
-          color: Colors.black,
-          fontSize: 9,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 0.5,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHardwareToggle(bool value, ValueChanged<bool> onChanged) {
-    return GestureDetector(
-      onTap: () => onChanged(!value),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
-        width: 52,
-        height: 28,
-        decoration: BoxDecoration(
-          color: value ? _neonGreen : const Color(0xFF141416),
-          border: Border.all(
-            color: value ? _neonGreen : _textWhite.withValues(alpha: 0.1),
-            width: 1.5,
-          ),
-          boxShadow: value
-              ? [
-                  BoxShadow(
-                    color: _neonGreen.withValues(alpha: 0.3),
-                    blurRadius: 12,
-                    spreadRadius: 1,
-                  )
-                ]
-              : [],
-        ),
-        child: Stack(
-          children: [
-            AnimatedPositioned(
-              duration: const Duration(milliseconds: 250),
-              curve: Curves.easeInOut,
-              left: value ? 26 : 2,
-              top: 2,
-              child: Container(
-                width: 20,
-                height: 20,
-                decoration: BoxDecoration(
-                  color: value ? Colors.black : const Color(0xFF71717A),
-                ),
-                child: Center(
-                  child: Container(
-                    width: 2,
-                    height: 8,
-                    color: value
-                        ? Colors.black.withValues(alpha: 0.4)
-                        : Colors.white.withValues(alpha: 0.3),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+        trailing: isSwitch 
+          ? Switch(value: false, onChanged: (v) {}, activeColor: const Color(FlickoColors.blurple))
+          : const Icon(Icons.chevron_right, color: Color(FlickoColors.textMuted), size: 20),
       ),
     );
   }

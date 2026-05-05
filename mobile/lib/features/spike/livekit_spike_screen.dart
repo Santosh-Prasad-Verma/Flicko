@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart' hide ConnectionState;
+import 'package:flutter/material.dart';
 import 'package:livekit_client/livekit_client.dart';
 import 'package:mobile/core/config/app_config.dart';
 
@@ -9,7 +9,7 @@ class LiveKitSpikeScreen extends StatefulWidget {
   State<LiveKitSpikeScreen> createState() => _LiveKitSpikeScreenState();
 }
 
-class _LiveKitSpikeScreenState extends State<LiveKitSpikeScreen> {
+class _LiveKitSpikeScreenState extends State<LiveKitSpikeScreen> with EventsListener<RoomEvent> {
   late final Room _room;
   late final EventsListener<RoomEvent> _listener;
 
@@ -63,7 +63,7 @@ class _LiveKitSpikeScreenState extends State<LiveKitSpikeScreen> {
     List<ParticipantTrack> tracks = [];
     if (_room.localParticipant != null) {
       for (var trackPub in _room.localParticipant!.videoTrackPublications) {
-        if (trackPub.track is VideoTrack) {
+        if (trackPub.track != null) {
           tracks.add(ParticipantTrack(
               participant: _room.localParticipant!, videoTrack: trackPub.track as VideoTrack));
         }
@@ -71,7 +71,7 @@ class _LiveKitSpikeScreenState extends State<LiveKitSpikeScreen> {
     }
     for (var participant in _room.remoteParticipants.values) {
       for (var trackPub in participant.videoTrackPublications) {
-        if (trackPub.track is VideoTrack) {
+        if (trackPub.track != null) {
           tracks.add(ParticipantTrack(
               participant: participant, videoTrack: trackPub.track as VideoTrack));
         }
@@ -105,7 +105,7 @@ class _LiveKitSpikeScreenState extends State<LiveKitSpikeScreen> {
 
       _sortParticipants();
     } catch (e) {
-      setState(() => _errorMessage = 'Connection failed: ${e.toString()}');
+      setState(() => _errorMessage = 'Connection failed: \${e.toString()}');
     } finally {
       setState(() => _isConnecting = false);
     }
@@ -195,7 +195,7 @@ class _LiveKitSpikeScreenState extends State<LiveKitSpikeScreen> {
             children: [
               VideoTrackRenderer(
                 track.videoTrack,
-                fit: VideoViewFit.cover,
+                fit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
               ),
               Positioned(
                 bottom: 8,

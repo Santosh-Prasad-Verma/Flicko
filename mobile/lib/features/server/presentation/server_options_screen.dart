@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/flicko_colors.dart';
-import 'package:mobile/features/auth/application/auth_notifier.dart';
+import 'package:mobile/auth/application/auth_notifier.dart';
 
 class ServerOptionsScreen extends ConsumerStatefulWidget {
   final String serverId;
@@ -44,21 +44,19 @@ class _ServerOptionsScreenState extends ConsumerState<ServerOptionsScreen> {
           .eq('id', widget.serverId)
           .single();
 
-      final currentUser = ref.read(currentUserProvider);
+      final currentUser = Supabase.instance.client.auth.currentUser;
       bool canModerate = false;
 
       if (currentUser != null) {
         final memberResponse = await Supabase.instance.client
             .from('server_members')
-            .select('roles')
+            .select('role')
             .eq('server_id', widget.serverId)
             .eq('user_id', currentUser.id)
             .maybeSingle();
 
         final isOwner = response['owner_id'] == currentUser.id;
-        final roles = memberResponse?['roles'] as List?;
-        final hasAdminRole = roles != null && roles.isNotEmpty;
-        final isAdmin = hasAdminRole;
+        final isAdmin = memberResponse?['role'] == 'admin' || memberResponse?['role'] == 'moderator';
         canModerate = isOwner || isAdmin;
       }
 
@@ -150,9 +148,9 @@ class _ServerOptionsScreenState extends ConsumerState<ServerOptionsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
+      backgroundColor: const Color(FlickoColors.bgPrimary),
       appBar: AppBar(
-        
+        backgroundColor: const Color(FlickoColors.bgPrimary),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.close, color: Color(FlickoColors.textPrimary)),
@@ -255,7 +253,7 @@ class _ServerOptionsScreenState extends ConsumerState<ServerOptionsScreen> {
             Container(
               height: 70,
               decoration: BoxDecoration(
-                color: const Color(FlickoColors.blurple).withValues(alpha: 0.2),
+                color: const Color(FlickoColors.blurple).withOpacity(0.2),
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
               ),
             )
@@ -263,7 +261,7 @@ class _ServerOptionsScreenState extends ConsumerState<ServerOptionsScreen> {
             Container(
               height: 70,
               decoration: BoxDecoration(
-                color: const Color(FlickoColors.blurple).withValues(alpha: 0.2),
+                color: const Color(FlickoColors.blurple).withOpacity(0.2),
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
               ),
             ),
@@ -365,7 +363,7 @@ class _ServerOptionsScreenState extends ConsumerState<ServerOptionsScreen> {
               width: 38,
               height: 38,
               decoration: BoxDecoration(
-                color: iconColor.withValues(alpha: 0.13),
+                color: iconColor.withOpacity(0.13),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(icon, color: iconColor, size: 20),

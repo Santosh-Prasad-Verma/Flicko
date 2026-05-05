@@ -58,24 +58,7 @@ class _ServerEventsScreenState extends ConsumerState<ServerEventsScreen> {
     try {
       await Future.delayed(const Duration(milliseconds: 300));
       setState(() {
-        _events = [
-          _Event(
-            id: '1',
-            name: 'Community Hangout',
-            description: 'Join us for a chill talk about the future of Flicko.',
-            startTime: DateTime.now().add(const Duration(hours: 2)),
-            status: 'scheduled',
-            channelName: 'general',
-            interestedCount: 15,
-          ),
-          _Event(
-            id: '2',
-            name: 'Voice Night',
-            startTime: DateTime.now().add(const Duration(days: 1)),
-            status: 'scheduled',
-            interestedCount: 5,
-          ),
-        ];
+        _events = [];
         _isLoading = false;
       });
     } catch (e) {
@@ -119,7 +102,7 @@ class _ServerEventsScreenState extends ConsumerState<ServerEventsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
+      backgroundColor: const Color(FlickoColors.bgPrimary),
       appBar: AppBar(
         backgroundColor: const Color(FlickoColors.bgSecondary),
         elevation: 0,

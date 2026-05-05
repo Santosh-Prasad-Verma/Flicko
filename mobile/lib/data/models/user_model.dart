@@ -4,7 +4,7 @@ part 'user_model.freezed.dart';
 part 'user_model.g.dart';
 
 @freezed
-abstract class Badge with _$Badge {
+class Badge with _$Badge {
   const factory Badge({
     required String id,
     required String name,
@@ -16,13 +16,13 @@ abstract class Badge with _$Badge {
 }
 
 @freezed
-abstract class UserModel with _$UserModel {
+class UserModel with _$UserModel {
   const factory UserModel({
     required String id,
     required String username,
     @JsonKey(name: 'display_name') String? displayName,
-    @JsonKey(name: 'avatar') String? avatarUrl,
-    @JsonKey(name: 'banner') String? bannerUrl,
+    @JsonKey(name: 'avatar_url') String? avatarUrl,
+    @JsonKey(name: 'banner_url') String? bannerUrl,
     String? bio,
     String? pronouns,
     String? phone,

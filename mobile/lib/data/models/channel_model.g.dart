@@ -11,8 +11,7 @@ _ChannelModel _$ChannelModelFromJson(Map<String, dynamic> json) =>
       id: json['id'] as String,
       serverId: json['server_id'] as String,
       name: json['name'] as String,
-      type:
-          $enumDecodeNullable(_$ChannelTypeEnumMap, json['type']) ??
+      type: $enumDecodeNullable(_$ChannelTypeEnumMap, json['type']) ??
           ChannelType.text,
       topic: json['topic'] as String?,
       position: (json['position'] as num?)?.toInt() ?? 0,
@@ -21,10 +20,9 @@ _ChannelModel _$ChannelModelFromJson(Map<String, dynamic> json) =>
       slowmodeSeconds: (json['slowmode_seconds'] as num?)?.toInt() ?? 0,
       lastMessageId: json['last_message_id'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt:
-          json['updated_at'] == null
-              ? null
-              : DateTime.parse(json['updated_at'] as String),
+      updatedAt: json['updated_at'] == null
+          ? null
+          : DateTime.parse(json['updated_at'] as String),
     );
 
 Map<String, dynamic> _$ChannelModelToJson(_ChannelModel instance) =>

@@ -43,7 +43,7 @@ class VideoGrid extends StatelessWidget {
     }
 
     // Grid layout (default)
-    return _buildGridLayout(context, videoParticipants);
+    return _buildGridLayout(videoParticipants);
   }
 
   Widget _buildSpotlightLayout(String focusedId, bool hasScreenShare) {
@@ -193,10 +193,10 @@ class VideoGrid extends StatelessWidget {
     );
   }
 
-  Widget _buildGridLayout(BuildContext context, List<VideoParticipant> videoParticipants) {
+  Widget _buildGridLayout(List<VideoParticipant> videoParticipants) {
     // Calculate grid layout
     final count = videoParticipants.length;
-    final gridConfig = _calculateGridLayout(context, count);
+    final gridConfig = _calculateGridLayout(count);
 
     return Container(
       padding: const EdgeInsets.all(4),
@@ -222,9 +222,9 @@ class VideoGrid extends StatelessWidget {
     );
   }
 
-  GridLayoutConfig _calculateGridLayout(BuildContext context, int count) {
+  GridLayoutConfig _calculateGridLayout(int count) {
     const gap = 4.0;
-    final screenSize = MediaQueryData.fromView(View.of(context));
+    final screenSize = MediaQueryData.fromView(WidgetsBinding.instance.window);
     final availableWidth = screenSize.size.width - gap * 2;
     final availableHeight = screenSize.size.height - 200;
 
@@ -375,7 +375,7 @@ class VideoTile extends StatelessWidget {
                       begin: Alignment.bottomCenter,
                       end: Alignment.topCenter,
                       colors: [
-                        Colors.black.withValues(alpha: 0.7),
+                        Colors.black.withOpacity(0.7),
                         Colors.transparent,
                       ],
                     ),

@@ -7,17 +7,17 @@ part of 'music_model.dart';
 // **************************************************************************
 
 _MusicItem _$MusicItemFromJson(Map<String, dynamic> json) => _MusicItem(
-  id: json['id'] as String,
-  type: $enumDecode(_$MusicTypeEnumMap, json['type']),
-  name: json['name'] as String,
-  artistName: json['artistName'] as String,
-  albumName: json['albumName'] as String?,
-  durationMs: (json['durationMs'] as num?)?.toInt(),
-  imageUrl: json['imageUrl'] as String?,
-  previewUrl: json['previewUrl'] as String?,
-  externalUrl: json['externalUrl'] as String?,
-  source: json['source'] as String? ?? 'appleMusic',
-);
+      id: json['id'] as String,
+      type: $enumDecode(_$MusicTypeEnumMap, json['type']),
+      name: json['name'] as String,
+      artistName: json['artistName'] as String,
+      albumName: json['albumName'] as String?,
+      durationMs: (json['durationMs'] as num?)?.toInt(),
+      imageUrl: json['imageUrl'] as String?,
+      previewUrl: json['previewUrl'] as String?,
+      externalUrl: json['externalUrl'] as String?,
+      source: json['source'] as String? ?? 'appleMusic',
+    );
 
 Map<String, dynamic> _$MusicItemToJson(_MusicItem instance) =>
     <String, dynamic>{

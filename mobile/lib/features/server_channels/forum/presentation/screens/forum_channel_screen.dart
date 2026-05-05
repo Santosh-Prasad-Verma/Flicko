@@ -1,11 +1,9 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:mobile/core/constants/flicko_colors.dart';
-import 'package:mobile/features/shared/presentation/widgets/flicko_card.dart';
-import 'package:mobile/features/shared/presentation/widgets/safe_image.dart';
+import 'package:mobile/features/core/constants/flicko_colors.dart';
+import 'package:mobile/features/server_channels/auth/application/auth_notifier.dart';
 
 enum SortMode { latestActivity, creationDate }
 
@@ -86,32 +84,22 @@ class ForumChannelScreen extends ConsumerStatefulWidget {
   ConsumerState<ForumChannelScreen> createState() => _ForumChannelScreenState();
 }
 
-class _ForumChannelScreenState extends ConsumerState<ForumChannelScreen> with TickerProviderStateMixin {
+class _ForumChannelScreenState extends ConsumerState<ForumChannelScreen> {
   SortMode _sort = SortMode.latestActivity;
   String? _filterTagId;
+  bool _createVisible = false;
   bool _isLoading = true;
   bool _isLoadingMore = false;
   List<ForumPostItem> _posts = [];
   List<ForumTag> _tags = [];
   Map<String, dynamic>? _channel;
   int _currentPage = 1;
-
-  late final AnimationController _staggerController;
+  bool _hasNextPage = false;
 
   @override
   void initState() {
     super.initState();
-    _staggerController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1000),
-    );
     _loadData();
-  }
-
-  @override
-  void dispose() {
-    _staggerController.dispose();
-    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -122,7 +110,6 @@ class _ForumChannelScreenState extends ConsumerState<ForumChannelScreen> with Ti
       _loadPosts(),
     ]);
     setState(() => _isLoading = false);
-    _staggerController.forward(from: 0);
   }
 
   Future<void> _loadChannel() async {
@@ -161,20 +148,19 @@ class _ForumChannelScreenState extends ConsumerState<ForumChannelScreen> with Ti
     }
 
     try {
-      var query = Supabase.instance.client
+      final query = Supabase.instance.client
           .from('threads')
           .select('*, creator:profiles(id, username, display_name, avatar_url), tags:forum_tags(*)')
-          .eq('channel_id', widget.channelId);
-
-      if (_filterTagId != null) {
-        query = query.contains('tag_ids', [_filterTagId]);
-      }
-
-      final response = await query
+          .eq('channel_id', widget.channelId)
           .order(_sort == SortMode.latestActivity ? 'last_message_at' : 'created_at',
               ascending: false)
           .range((_currentPage - 1) * 20, _currentPage * 20 - 1);
 
+      if (_filterTagId != null) {
+        query.contains('tag_ids', [_filterTagId]);
+      }
+
+      final response = await query;
       final newPosts = (response as List)
           .map((p) => ForumPostItem.fromJson(p as Map<String, dynamic>))
           .toList();
@@ -185,6 +171,7 @@ class _ForumChannelScreenState extends ConsumerState<ForumChannelScreen> with Ti
         } else {
           _posts.addAll(newPosts);
         }
+        _hasNextPage = newPosts.length == 20;
         _isLoadingMore = false;
       });
     } catch (e) {
@@ -193,6 +180,7 @@ class _ForumChannelScreenState extends ConsumerState<ForumChannelScreen> with Ti
   }
 
   void _handlePostPress(ForumPostItem post) {
+    // Navigate to thread view
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => ThreadViewScreen(
@@ -204,6 +192,16 @@ class _ForumChannelScreenState extends ConsumerState<ForumChannelScreen> with Ti
     );
   }
 
+  void _handleLoadMore() {
+    if (_hasNextPage && !_isLoadingMore) {
+      setState(() {
+        _isLoadingMore = true;
+        _currentPage++;
+      });
+      _loadPosts(reset: false);
+    }
+  }
+
   String _formatTimeAgo(String? timestamp) {
     if (timestamp == null) return '';
     final diff = DateTime.now().difference(DateTime.parse(timestamp));
@@ -213,101 +211,67 @@ class _ForumChannelScreenState extends ConsumerState<ForumChannelScreen> with Ti
     final hrs = diff.inHours;
     if (hrs < 24) return '${hrs}h ago';
     final days = diff.inDays;
-    if (days < 7) return '${days}d ago';
-    return '${days ~/ 7}w ago';
+    return '${days}d ago';
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
-      extendBodyBehindAppBar: true,
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(70),
-        child: _buildGlassHeader(),
-      ),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(
-                color: Color(FlickoColors.blurple),
-              ),
-            )
-          : Stack(
-              children: [
-                // Background Gradient Glow
-                Positioned(
-                  top: -100,
-                  right: -100,
-                  child: Container(
-                    width: 300,
-                    height: 300,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: const Color(FlickoColors.blurple).withValues(alpha: 0.05),
-                    ),
-                  ),
-                ),
-                _buildPostList(),
-              ],
+      backgroundColor: const Color(FlickoColors.bgPrimary),
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(),
+            Expanded(
+              child: _isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(FlickoColors.blurple),
+                      ),
+                    )
+                  : _buildPostList(),
             ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {},
-        label: Text(
-          'Post',
-          style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.white),
+          ],
         ),
-        icon: const Icon(Icons.add, color: Colors.white),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => setState(() => _createVisible = true),
         backgroundColor: const Color(FlickoColors.blurple),
-        elevation: 8,
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
 
-  Widget _buildGlassHeader() {
-    return ClipRRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          color: const Color(FlickoColors.bgSecondary).withValues(alpha: 0.7),
-          child: SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new, 
-                      color: Color(FlickoColors.textPrimary), size: 18),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                  const SizedBox(width: 4),
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: const Color(FlickoColors.blurple).withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.forum_outlined, 
-                      color: Color(FlickoColors.blurple), size: 20),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      _channel?['name'] ?? 'Forum',
-                      style: GoogleFonts.inter(
-                        color: const Color(FlickoColors.textPrimary),
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.5,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: const BoxDecoration(
+        color: Color(FlickoColors.bgSecondary),
+        border: Border(
+          bottom: BorderSide(color: Color(FlickoColors.border), width: 1),
+        ),
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          const SizedBox(width: 8),
+          const Icon(Icons.newspaper, color: Color(FlickoColors.textMuted), size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              _channel?['name'] ?? 'Forum',
+              style: GoogleFonts.inter(
+                color: const Color(FlickoColors.textPrimary),
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
               ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -315,52 +279,27 @@ class _ForumChannelScreenState extends ConsumerState<ForumChannelScreen> with Ti
   Widget _buildPostList() {
     return RefreshIndicator(
       onRefresh: _loadData,
-      displacement: 100,
-      backgroundColor: const Color(FlickoColors.bgSecondary),
-      color: const Color(FlickoColors.blurple),
       child: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
         slivers: [
-          const SliverToBoxAdapter(child: SizedBox(height: 100)),
           SliverToBoxAdapter(child: _buildTopicAndFilters()),
-          SliverPersistentHeader(
-            pinned: true,
-            delegate: _SliverSortBarDelegate(_buildSortBar()),
-          ),
+          SliverToBoxAdapter(child: _buildSortBar()),
           if (_posts.isEmpty)
             SliverFillRemaining(
-              hasScrollBody: false,
               child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: const Color(FlickoColors.bgSecondary),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.speaker_notes_off_outlined,
-                        size: 48,
-                        color: Color(FlickoColors.textMuted),
-                      ),
+                    const Icon(
+                      Icons.chat_bubble_outline,
+                      size: 48,
+                      color: Color(FlickoColors.textMuted),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
                     Text(
-                      'This forum is quiet...',
-                      style: GoogleFonts.inter(
-                        color: const Color(FlickoColors.textPrimary),
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Be the first to share something!',
+                      'No posts yet — be the first!',
                       style: GoogleFonts.inter(
                         color: const Color(FlickoColors.textSecondary),
-                        fontSize: 14,
+                        fontSize: 16,
                       ),
                     ),
                   ],
@@ -368,49 +307,29 @@ class _ForumChannelScreenState extends ConsumerState<ForumChannelScreen> with Ti
               ),
             )
           else
-            SliverPadding(
-              padding: const EdgeInsets.only(bottom: 100),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    if (index == _posts.length) {
-                      return _isLoadingMore
-                          ? const Padding(
-                              padding: EdgeInsets.all(32),
-                              child: Center(
-                                child: CircularProgressIndicator(
-                                  color: Color(FlickoColors.blurple),
-                                ),
+            SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  if (index == _posts.length) {
+                    return _isLoadingMore
+                        ? const Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: Color(FlickoColors.blurple),
                               ),
-                            )
-                          : const SizedBox(height: 40);
-                    }
-
-                    return AnimatedBuilder(
-                      animation: _staggerController,
-                      builder: (context, child) {
-                        final delay = index * 0.05;
-                        final double animValue = Curves.easeOutCubic.transform(
-                          (_staggerController.value - delay).clamp(0.0, 1.0),
-                        );
-                        return Transform.translate(
-                          offset: Offset(0, 50 * (1 - animValue)),
-                          child: Opacity(
-                            opacity: animValue,
-                            child: child,
-                          ),
-                        );
-                      },
-                      child: _ForumPostCard(
-                        post: _posts[index],
-                        tags: _tags,
-                        onPress: () => _handlePostPress(_posts[index]),
-                        formatTimeAgo: _formatTimeAgo,
-                      ),
-                    );
-                  },
-                  childCount: _posts.length + 1,
-                ),
+                            ),
+                          )
+                        : const SizedBox();
+                  }
+                  return _ForumPostCard(
+                    post: _posts[index],
+                    tags: _tags,
+                    onPress: () => _handlePostPress(_posts[index]),
+                    formatTimeAgo: _formatTimeAgo,
+                  );
+                },
+                childCount: _posts.length + 1,
               ),
             ),
         ],
@@ -424,63 +343,45 @@ class _ForumChannelScreenState extends ConsumerState<ForumChannelScreen> with Ti
       children: [
         if (_channel?['topic'] != null)
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
-            child: FlickoCard(
-              opacity: 0.05,
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                children: [
-                  const Icon(Icons.info_outline, size: 16, color: Color(FlickoColors.textSecondary)),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      _channel!['topic'],
-                      style: GoogleFonts.inter(
-                        color: const Color(FlickoColors.textSecondary),
-                        fontSize: 13,
-                        height: 1.4,
-                      ),
-                    ),
-                  ),
-                ],
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: Text(
+              _channel!['topic'],
+              style: GoogleFonts.inter(
+                color: const Color(FlickoColors.textSecondary),
+                fontSize: 14,
               ),
             ),
           ),
         if (_tags.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: SizedBox(
-              height: 44,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: _tags.length + 1,
-                itemBuilder: (context, index) {
-                  if (index == 0) {
-                    return _buildTagChip(
-                      label: 'All',
-                      isSelected: _filterTagId == null,
-                      onTap: () {
-                        setState(() => _filterTagId = null);
-                        _loadPosts();
-                      },
-                    );
-                  }
-                  final tag = _tags[index - 1];
+          SizedBox(
+            height: 40,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: _tags.length + 1,
+              itemBuilder: (context, index) {
+                if (index == 0) {
                   return _buildTagChip(
-                    label: tag.name,
-                    emoji: tag.emoji,
-                    isSelected: _filterTagId == tag.id,
+                    label: 'All',
+                    isSelected: _filterTagId == null,
                     onTap: () {
-                      setState(() {
-                        _filterTagId = _filterTagId == tag.id ? null : tag.id;
-                      });
+                      setState(() => _filterTagId = null);
                       _loadPosts();
                     },
                   );
-                },
-              ),
+                }
+                final tag = _tags[index - 1];
+                return _buildTagChip(
+                  label: '${tag.emoji ?? ''} ${tag.name}'.trim(),
+                  isSelected: _filterTagId == tag.id,
+                  onTap: () {
+                    setState(() {
+                      _filterTagId = _filterTagId == tag.id ? null : tag.id;
+                    });
+                    _loadPosts();
+                  },
+                );
+              },
             ),
           ),
       ],
@@ -489,52 +390,26 @@ class _ForumChannelScreenState extends ConsumerState<ForumChannelScreen> with Ti
 
   Widget _buildTagChip({
     required String label,
-    String? emoji,
     required bool isSelected,
     required VoidCallback onTap,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(right: 10),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              gradient: isSelected ? const LinearGradient(colors: FlickoColors.blurpleGradient) : null,
-              color: isSelected ? null : const Color(FlickoColors.bgSecondary),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: isSelected ? Colors.transparent : const Color(FlickoColors.border),
-                width: 1,
-              ),
-              boxShadow: isSelected ? [
-                BoxShadow(
-                  color: const Color(FlickoColors.blurple).withValues(alpha: 0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                )
-              ] : null,
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (emoji != null) ...[
-                  Text(emoji, style: const TextStyle(fontSize: 14)),
-                  const SizedBox(width: 8),
-                ],
-                Text(
-                  label,
-                  style: GoogleFonts.inter(
-                    color: isSelected ? Colors.white : const Color(FlickoColors.textSecondary),
-                    fontSize: 13,
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  ),
-                ),
-              ],
+      padding: const EdgeInsets.only(right: 8),
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? const Color(FlickoColors.blurple)
+                : const Color(FlickoColors.bgTertiary),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            label,
+            style: GoogleFonts.inter(
+              color: isSelected ? Colors.white : const Color(FlickoColors.textSecondary),
+              fontSize: 12,
             ),
           ),
         ),
@@ -544,21 +419,23 @@ class _ForumChannelScreenState extends ConsumerState<ForumChannelScreen> with Ti
 
   Widget _buildSortBar() {
     return Container(
-      color: const Color(FlickoColors.bgPrimary),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: const BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: Color(FlickoColors.border), width: 1),
+        ),
+      ),
       child: Row(
         children: [
           _buildSortButton(
-            label: 'Latest',
+            label: 'Latest Activity',
             isActive: _sort == SortMode.latestActivity,
             onTap: () {
               setState(() => _sort = SortMode.latestActivity);
               _loadPosts();
             },
           ),
-          const SizedBox(width: 12),
           _buildSortButton(
-            label: 'Newest',
+            label: 'Creation Date',
             isActive: _sort == SortMode.creationDate,
             onTap: () {
               setState(() => _sort = SortMode.creationDate);
@@ -575,21 +452,29 @@ class _ForumChannelScreenState extends ConsumerState<ForumChannelScreen> with Ti
     required bool isActive,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isActive ? const Color(FlickoColors.bgSecondary) : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Text(
-          label,
-          style: GoogleFonts.inter(
-            color: isActive ? const Color(FlickoColors.blurple) : const Color(FlickoColors.textMuted),
-            fontSize: 13,
-            fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                color: isActive ? const Color(FlickoColors.blurple) : Colors.transparent,
+                width: 2,
+              ),
+            ),
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.inter(
+              color: isActive
+                  ? const Color(FlickoColors.blurple)
+                  : const Color(FlickoColors.textMuted),
+              fontSize: 14,
+              fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+            ),
           ),
         ),
       ),
@@ -613,197 +498,120 @@ class _ForumPostCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final postTags = post.tags ?? [];
-    final creatorName = post.creator?['display_name'] ?? post.creator?['username'] ?? 'Anonymous';
-    final avatarUrl = post.creator?['avatar_url'] as String?;
+    final creatorName =
+        post.creator?['display_name'] ?? post.creator?['username'] ?? 'Unknown';
 
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      child: FlickoCard(
-        opacity: 0.05,
-        borderRadius: BorderRadius.circular(16),
-        padding: EdgeInsets.zero,
-        child: InkWell(
-          onTap: onPress,
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            post.name,
-                            style: GoogleFonts.inter(
-                              color: const Color(FlickoColors.textPrimary),
-                              fontSize: 17,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: -0.2,
-                              height: 1.3,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          if (post.firstMessage != null) ...[
-                            const SizedBox(height: 8),
-                            Text(
-                              post.firstMessage!,
-                              style: GoogleFonts.inter(
-                                color: const Color(FlickoColors.textSecondary),
-                                fontSize: 13,
-                                height: 1.5,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    _buildMessageBadge(post.messageCount),
-                  ],
+    return GestureDetector(
+      onTap: onPress,
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(FlickoColors.bgSecondary),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              post.name,
+              style: GoogleFonts.inter(
+                color: const Color(FlickoColors.textPrimary),
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            if (post.firstMessage != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                post.firstMessage!,
+                style: GoogleFonts.inter(
+                  color: const Color(FlickoColors.textSecondary),
+                  fontSize: 14,
                 ),
-                if (postTags.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: postTags.map((tag) => _smallTag(tag)).toList(),
-                  ),
-                ],
-                const SizedBox(height: 16),
-                const Divider(color: Colors.white10, height: 1),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    _buildAvatar(avatarUrl, creatorName),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            creatorName,
-                            style: GoogleFonts.inter(
-                              color: const Color(FlickoColors.textPrimary),
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+            if (postTags.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: postTags.map((tag) {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: const Color(FlickoColors.bgTertiary),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      '${tag.emoji ?? ''} ${tag.name}'.trim(),
+                      style: GoogleFonts.inter(
+                        color: const Color(FlickoColors.textSecondary),
+                        fontSize: 11,
                       ),
                     ),
+                  );
+                }).toList(),
+              ),
+            ],
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  creatorName,
+                  style: GoogleFonts.inter(
+                    color: const Color(FlickoColors.textMuted),
+                    fontSize: 12,
+                  ),
+                ),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.chat_bubble_outline,
+                      size: 12,
+                      color: Color(FlickoColors.textMuted),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${post.messageCount}',
+                      style: GoogleFonts.inter(
+                        color: const Color(FlickoColors.textMuted),
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '·',
+                      style: GoogleFonts.inter(
+                        color: const Color(FlickoColors.textMuted),
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
                     Text(
                       formatTimeAgo(post.lastMessageAt ?? post.createdAt),
                       style: GoogleFonts.inter(
                         color: const Color(FlickoColors.textMuted),
                         fontSize: 12,
-                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
                 ),
               ],
             ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAvatar(String? url, String name) {
-    return Container(
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white10, width: 1.5),
-      ),
-      child: SafeImage(
-        path: url,
-        width: 24,
-        height: 24,
-        borderRadius: BorderRadius.circular(12),
-        placeholder: Text(
-          name.isNotEmpty ? name[0].toUpperCase() : '?',
-          style: GoogleFonts.inter(
-            color: const Color(FlickoColors.textMuted),
-            fontSize: 10,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMessageBadge(int count) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: const Color(FlickoColors.bgTertiary),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.chat_bubble_rounded, size: 12, color: Color(FlickoColors.blurple)),
-          const SizedBox(width: 6),
-          Text(
-            '$count',
-            style: GoogleFonts.inter(
-              color: const Color(FlickoColors.textPrimary),
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _smallTag(ForumTag tag) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: const Color(FlickoColors.bgTertiary).withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05), width: 1),
-      ),
-      child: Text(
-        '${tag.emoji ?? ''} ${tag.name}'.trim(),
-        style: GoogleFonts.inter(
-          color: const Color(FlickoColors.textSecondary),
-          fontSize: 10,
-          fontWeight: FontWeight.w600,
+          ],
         ),
       ),
     );
   }
 }
 
-class _SliverSortBarDelegate extends SliverPersistentHeaderDelegate {
-  final Widget child;
-  _SliverSortBarDelegate(this.child);
-
-  @override
-  double get minExtent => 50;
-  @override
-  double get maxExtent => 50;
-
-  @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return child;
-  }
-
-  @override
-  bool shouldRebuild(_SliverSortBarDelegate oldDelegate) => true;
-}
-
-// ThreadViewScreen placeholder
+// Placeholder for Thread View - will be implemented separately
 class ThreadViewScreen extends StatelessWidget {
   final String serverId;
   final String channelId;
@@ -819,14 +627,11 @@ class ThreadViewScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
       appBar: AppBar(
         title: const Text('Thread'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
       ),
       body: const Center(
-        child: Text('Premium Thread View coming soon...', style: TextStyle(color: Colors.white)),
+        child: Text('Thread View - Coming Soon'),
       ),
     );
   }

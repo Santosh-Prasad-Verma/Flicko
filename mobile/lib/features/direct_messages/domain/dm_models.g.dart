@@ -9,9 +9,8 @@ part of 'dm_models.dart';
 _DMConversation _$DMConversationFromJson(Map<String, dynamic> json) =>
     _DMConversation(
       id: json['id'] as String,
-      participant: UserModel.fromJson(
-        json['participant'] as Map<String, dynamic>,
-      ),
+      participant:
+          UserModel.fromJson(json['participant'] as Map<String, dynamic>),
       lastMessage: json['lastMessage'] as String,
       lastMessageAt: DateTime.parse(json['lastMessageAt'] as String),
       unreadCount: (json['unreadCount'] as num?)?.toInt() ?? 0,
@@ -40,8 +39,6 @@ _DMAttachment _$DMAttachmentFromJson(Map<String, dynamic> json) =>
       size: (json['size'] as num?)?.toInt(),
       width: (json['width'] as num?)?.toInt(),
       height: (json['height'] as num?)?.toInt(),
-      appwriteFileId: json['appwrite_file_id'] as String?,
-      appwriteBucketId: json['appwrite_bucket_id'] as String?,
     );
 
 Map<String, dynamic> _$DMAttachmentToJson(_DMAttachment instance) =>
@@ -52,29 +49,24 @@ Map<String, dynamic> _$DMAttachmentToJson(_DMAttachment instance) =>
       'size': instance.size,
       'width': instance.width,
       'height': instance.height,
-      'appwrite_file_id': instance.appwriteFileId,
-      'appwrite_bucket_id': instance.appwriteBucketId,
     };
 
 _DMMessage _$DMMessageFromJson(Map<String, dynamic> json) => _DMMessage(
-  id: json['id'] as String,
-  senderId: json['sender_id'] as String,
-  recipientId: json['recipient_id'] as String,
-  content: json['content'] as String,
-  createdAt: DateTime.parse(json['created_at'] as String),
-  sender:
-      json['sender'] == null
+      id: json['id'] as String,
+      senderId: json['sender_id'] as String,
+      recipientId: json['recipient_id'] as String,
+      content: json['content'] as String,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      sender: json['sender'] == null
           ? null
           : UserModel.fromJson(json['sender'] as Map<String, dynamic>),
-  recipient:
-      json['recipient'] == null
+      recipient: json['recipient'] == null
           ? null
           : UserModel.fromJson(json['recipient'] as Map<String, dynamic>),
-  attachments:
-      (json['attachments'] as List<dynamic>?)
+      attachments: (json['attachments'] as List<dynamic>?)
           ?.map((e) => DMAttachment.fromJson(e as Map<String, dynamic>))
           .toList(),
-);
+    );
 
 Map<String, dynamic> _$DMMessageToJson(_DMMessage instance) =>
     <String, dynamic>{

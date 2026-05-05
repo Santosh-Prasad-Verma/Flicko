@@ -7,7 +7,7 @@ import '../../../../core/constants/flicko_colors.dart';
 /// Data & Storage Settings Screen
 ///
 /// Cache management and media download settings.
-/// Route: /u/settings/storage
+/// Route: /profile/settings/storage
 class StorageScreen extends ConsumerStatefulWidget {
   const StorageScreen({super.key});
 
@@ -23,9 +23,9 @@ class _StorageScreenState extends ConsumerState<StorageScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
+      backgroundColor: const Color(FlickoColors.bgPrimary),
       appBar: AppBar(
-        
+        backgroundColor: const Color(FlickoColors.bgPrimary),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),
@@ -169,7 +169,7 @@ class _StorageScreenState extends ConsumerState<StorageScreen> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeThumbColor: const Color(FlickoColors.blurple),
+            activeColor: const Color(FlickoColors.blurple),
           ),
         ],
       ),

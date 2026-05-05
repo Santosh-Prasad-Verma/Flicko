@@ -12,6 +12,8 @@ class LiveKitService {
   Room? get currentRoom => _room;
 
   Future<void> connect(String token, {RoomOptions? roomOptions, ConnectOptions? connectOptions}) async {
+    _room = Room();
+
     final roomOps = roomOptions ?? const RoomOptions(
       adaptiveStream: true,
       dynacast: true,
@@ -21,11 +23,10 @@ class LiveKitService {
       autoSubscribe: true,
     );
 
-    _room = Room(roomOptions: roomOps);
-
     await _room!.connect(
       AppConfig.livekitUrl,
       token,
+      roomOptions: roomOps,
       connectOptions: connOps,
     );
   }

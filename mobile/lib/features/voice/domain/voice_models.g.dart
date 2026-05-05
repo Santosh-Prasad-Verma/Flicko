@@ -7,15 +7,15 @@ part of 'voice_models.dart';
 // **************************************************************************
 
 _VoiceState _$VoiceStateFromJson(Map<String, dynamic> json) => _VoiceState(
-  channelId: json['channelId'] as String,
-  userId: json['userId'] as String,
-  isMuted: json['isMuted'] as bool? ?? false,
-  isDeafened: json['isDeafened'] as bool? ?? false,
-  isVideoEnabled: json['isVideoEnabled'] as bool? ?? false,
-  joinedAt: DateTime.parse(json['joinedAt'] as String),
-  avatarUrl: json['avatarUrl'] as String?,
-  displayName: json['displayName'] as String?,
-);
+      channelId: json['channelId'] as String,
+      userId: json['userId'] as String,
+      isMuted: json['isMuted'] as bool? ?? false,
+      isDeafened: json['isDeafened'] as bool? ?? false,
+      isVideoEnabled: json['isVideoEnabled'] as bool? ?? false,
+      joinedAt: DateTime.parse(json['joinedAt'] as String),
+      avatarUrl: json['avatarUrl'] as String?,
+      displayName: json['displayName'] as String?,
+    );
 
 Map<String, dynamic> _$VoiceStateToJson(_VoiceState instance) =>
     <String, dynamic>{
@@ -37,7 +37,7 @@ _VoiceParticipant _$VoiceParticipantFromJson(Map<String, dynamic> json) =>
       isSpeaking: json['isSpeaking'] as bool? ?? false,
       isDeafened: json['isDeafened'] as bool? ?? false,
       isLocal: json['isLocal'] as bool? ?? false,
-      isVideoEnabled: json['isVideoEnabled'] as bool?,
+      isVideoEnabled: json['isVideoEnabled'] as bool? ?? null,
       joinedAt: DateTime.parse(json['joinedAt'] as String),
       avatarUrl: json['avatarUrl'] as String?,
       displayName: json['displayName'] as String?,

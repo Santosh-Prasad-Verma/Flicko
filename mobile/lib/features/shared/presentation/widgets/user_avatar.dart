@@ -8,13 +8,13 @@ class UserAvatar extends StatelessWidget {
   final String? imageUrl;
   final String name;
   final double size;
-  final Object? status;
+  final UserStatus status;
   final bool showStatus;
 
   const UserAvatar({
     super.key,
     this.imageUrl,
-    this.name = '',
+    required this.name,
     this.size = 40,
     this.status = UserStatus.offline,
     this.showStatus = true,
@@ -41,26 +41,17 @@ class UserAvatar extends StatelessWidget {
 
   Widget _buildAvatar() {
     if (imageUrl != null && imageUrl!.isNotEmpty) {
-      final isAsset = imageUrl!.startsWith('assets/');
-      
       return Container(
         decoration: const BoxDecoration(shape: BoxShape.circle),
         clipBehavior: Clip.antiAlias,
-        child: isAsset 
-          ? Image.asset(
-              imageUrl!,
-              width: size,
-              height: size,
-              fit: BoxFit.cover,
-            )
-          : CachedNetworkImage(
-              imageUrl: imageUrl!,
-              width: size,
-              height: size,
-              fit: BoxFit.cover,
-              placeholder: (context, url) => _buildFallback(),
-              errorWidget: (context, url, error) => _buildFallback(),
-            ),
+        child: CachedNetworkImage(
+          imageUrl: imageUrl!,
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          placeholder: (context, url) => _buildFallback(),
+          errorWidget: (context, url, error) => _buildFallback(),
+        ),
       );
     }
     return _buildFallback();
@@ -89,18 +80,7 @@ class UserAvatar extends StatelessWidget {
 
   Widget _buildStatusIndicator() {
     final Color color;
-    final normalizedStatus = switch (status) {
-      UserStatus value => value,
-      String value => switch (value.toLowerCase()) {
-        'online' => UserStatus.online,
-        'idle' => UserStatus.idle,
-        'dnd' || 'do_not_disturb' => UserStatus.dnd,
-        _ => UserStatus.offline,
-      },
-      _ => UserStatus.offline,
-    };
-
-    switch (normalizedStatus) {
+    switch (status) {
       case UserStatus.online:
         color = const Color(FlickoColors.statusOnline);
       case UserStatus.idle:

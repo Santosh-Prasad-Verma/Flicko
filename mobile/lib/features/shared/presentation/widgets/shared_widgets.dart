@@ -31,7 +31,7 @@ class LoadingSpinner extends StatelessWidget {
 
     if (fullScreen) {
       return Scaffold(
-        
+        backgroundColor: const Color(FlickoColors.bgPrimary),
         body: Center(child: spinner),
       );
     }
