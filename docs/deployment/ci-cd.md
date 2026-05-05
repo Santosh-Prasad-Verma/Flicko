@@ -52,21 +52,31 @@ jobs:
 
 When a developer merges a feature into `main`, GitHub Actions automatically connects to the production VPS and triggers a rolling Docker-Compose rebuild.
 
-**File:** `.github/workflows/backend-cd.yml`
+**File:** `.github/workflows/vps-deploy.yml`
 
-*Requires GitHub Repository Secrets:* `VPS_IP`, `VPS_SSH_KEY`, `VPS_USER`
+*Requires GitHub Repository Secrets:* `VPS_IP`, `VPS_SSH_KEY`, `VPS_USER`, `DOPPLER_TOKEN`, `GITHUB_TOKEN`
 
 ```yaml
-name: Deploy Backend
+name: Deploy Flicko to VPS
 
 on:
   push:
     branches: [ "main" ]
+    paths:
+      - 'backend/**'
+      - 'services/**'
+      - 'docker-compose.prod.yml'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+    - uses: actions/checkout@v4
+
+    - name: Fetch Secrets from Doppler
+      uses: dopplerhq/cli-action@v3
+      # Materializes .env.production via Doppler Token
+
     - name: Deploy to VPS via SSH
       uses: appleboy/ssh-action@v1.0.3
       with:
@@ -74,11 +84,12 @@ jobs:
         username: ${{ secrets.VPS_USER }}
         key: ${{ secrets.VPS_SSH_KEY }}
         script: |
-          cd /opt/flicko
+          cd ~/Flicko
           git pull origin main
+          mv .env.production .env
           docker compose -f docker-compose.prod.yml up -d --build
 ```
-This ensures zero drift between the `main` GitHub branch and actual production servers.
+This ensures zero drift between the `main` GitHub branch and actual production servers, while securely managing environment variables via Doppler.
 
 ---
 

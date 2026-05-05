@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/branding/Flicko_icon.png" alt="Flicko Logo" width="140" height="140" style="border-radius: 28px;" />
+  <img src="assets/branding/Flicko-for-black-background.png" alt="Flicko Logo" width="140" height="140" style="border-radius: 28px;" />
 </p>
 
 <h1 align="center">Flicko</h1>
@@ -32,7 +32,7 @@
 ---
 
 <p align="center">
-  <img src="assets/branding/flicko_banner_enhanced.png" alt="Flicko App Banner" style="max-width: 100%; border-radius: 12px; margin: 16px 0;" />
+  <img src="assets/branding/Flicko-banner.png" alt="Flicko App Banner" style="max-width: 100%; border-radius: 12px; margin: 16px 0;" />
 </p>
 
 ## 📖 Table of Contents
