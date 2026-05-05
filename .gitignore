@@ -300,5 +300,6 @@ skills-lock.json
 *.py
 replace_logos.sh
 UI/
+ci.log
 l.txt
 *.bak
