@@ -11,10 +11,11 @@ enum ChannelType {
   @JsonValue('forum') forum,
   @JsonValue('stage') stage,
   @JsonValue('dm') dm,
+  @JsonValue('photo_album') photoAlbum,
 }
 
 @freezed
-class ChannelModel with _$ChannelModel {
+abstract class ChannelModel with _$ChannelModel {
   const factory ChannelModel({
     required String id,
     @JsonKey(name: 'server_id') required String serverId,

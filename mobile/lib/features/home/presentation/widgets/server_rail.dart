@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/home/application/servers_notifier.dart';
 import 'package:mobile/data/models/server_model.dart';
-import 'package:mobile/features/home/server_channels/presentation/widgets/create_server_dialog.dart';
+import 'package:mobile/features/server_channels/presentation/widgets/create_server_dialog.dart';
 
 class ServerRail extends ConsumerWidget {
   const ServerRail({super.key});

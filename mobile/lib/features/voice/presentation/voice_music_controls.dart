@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mobile/core/theme/flicko_colors.dart';
-import 'package:mobile/core/theme/flicko_radius.dart';
-import 'package:mobile/core/theme/flicko_spacing.dart';
+import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/voice/application/music_notifier.dart';
 import 'music_search_sheet.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -32,8 +30,8 @@ class VoiceMusicControls extends ConsumerWidget {
           icon: const Icon(Icons.music_note),
           label: const Text('Play Music'),
           style: ElevatedButton.styleFrom(
-            backgroundColor: FlickoColors.bgSecondary,
-            foregroundColor: FlickoColors.textPrimary,
+            backgroundColor: const Color(FlickoColors.bgSecondary),
+            foregroundColor: const Color(FlickoColors.textPrimary),
             minimumSize: const Size(double.infinity, 48),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(FlickoRadius.md),
@@ -47,12 +45,12 @@ class VoiceMusicControls extends ConsumerWidget {
       margin: const EdgeInsets.all(FlickoSpacing.md),
       padding: const EdgeInsets.all(FlickoSpacing.md),
       decoration: BoxDecoration(
-        color: FlickoColors.bgSecondary,
+        color: const Color(FlickoColors.bgSecondary),
         borderRadius: BorderRadius.circular(FlickoRadius.lg),
-        border: Border.all(color: FlickoColors.border.withOpacity(0.5)),
+        border: Border.all(color: const Color(FlickoColors.border).withValues(alpha: 0.5)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withValues(alpha: 0.2),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -76,7 +74,7 @@ class VoiceMusicControls extends ConsumerWidget {
                       : null,
                 ),
                 child: nowPlaying.imageUrl == null
-                    ? const Icon(Icons.music_note, color: FlickoColors.accentPrimary)
+                    ? const Icon(Icons.music_note, color: Color(FlickoColors.accentPrimary))
                     : null,
               ),
               const SizedBox(width: 12),
@@ -87,7 +85,7 @@ class VoiceMusicControls extends ConsumerWidget {
                     Text(
                       nowPlaying.name,
                       style: GoogleFonts.inter(
-                        color: FlickoColors.textPrimary,
+                        color: const Color(FlickoColors.textPrimary),
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
                       ),
@@ -97,7 +95,7 @@ class VoiceMusicControls extends ConsumerWidget {
                     Text(
                       nowPlaying.artistName,
                       style: GoogleFonts.inter(
-                        color: FlickoColors.textMuted,
+                        color: const Color(FlickoColors.textMuted),
                         fontSize: 13,
                       ),
                       maxLines: 1,
@@ -108,7 +106,7 @@ class VoiceMusicControls extends ConsumerWidget {
               ),
               IconButton(
                 onPressed: () => _showSearch(context),
-                icon: const Icon(Icons.queue_music, color: FlickoColors.accentPrimary),
+                icon: const Icon(Icons.queue_music, color: Color(FlickoColors.accentPrimary)),
                 tooltip: 'Add to queue',
               ),
             ],
@@ -119,8 +117,8 @@ class VoiceMusicControls extends ConsumerWidget {
           // Progress (Mock)
           LinearProgressIndicator(
             value: 0.3, // Mock value
-            backgroundColor: FlickoColors.bgPrimary,
-            valueColor: const AlwaysStoppedAnimation<Color>(FlickoColors.accentPrimary),
+            backgroundColor: const Color(FlickoColors.bgPrimary),
+            valueColor: const AlwaysStoppedAnimation<Color>(Color(FlickoColors.accentPrimary)),
             minHeight: 4,
             borderRadius: BorderRadius.circular(2),
           ),
@@ -134,17 +132,17 @@ class VoiceMusicControls extends ConsumerWidget {
               IconButton(
                 onPressed: () {}, // Shuffle logic
                 icon: const Icon(Icons.shuffle, size: 20),
-                color: FlickoColors.textMuted,
+                color: const Color(FlickoColors.textMuted),
               ),
               IconButton(
                 onPressed: () {}, // Skip back
                 icon: const Icon(Icons.skip_previous, size: 28),
-                color: FlickoColors.textPrimary,
+                color: const Color(FlickoColors.textPrimary),
               ),
               Container(
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: FlickoColors.accentPrimary.withOpacity(0.1),
+                  color: const Color(FlickoColors.accentPrimary).withValues(alpha: 0.1),
                 ),
                 child: IconButton(
                   onPressed: () => ref.read(musicNotifierProvider.notifier).togglePlayPause(),
@@ -152,18 +150,18 @@ class VoiceMusicControls extends ConsumerWidget {
                     state.isPaused ? Icons.play_arrow : Icons.pause,
                     size: 32,
                   ),
-                  color: FlickoColors.accentPrimary,
+                  color: const Color(FlickoColors.accentPrimary),
                 ),
               ),
               IconButton(
                 onPressed: () => ref.read(musicNotifierProvider.notifier).skipForward(),
                 icon: const Icon(Icons.skip_next, size: 28),
-                color: FlickoColors.textPrimary,
+                color: const Color(FlickoColors.textPrimary),
               ),
               IconButton(
                 onPressed: () => ref.read(musicNotifierProvider.notifier).stop(),
                 icon: const Icon(Icons.stop, size: 20),
-                color: FlickoColors.textDanger,
+                color: const Color(FlickoColors.textDanger),
               ),
             ],
           ),

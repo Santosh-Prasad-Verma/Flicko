@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:livekit_client/livekit_client.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:mobile/features/core/constants/flicko_colors.dart';
-import 'package:mobile/features/server_channels/auth/application/auth_notifier.dart';
-import 'package:mobile/features/server_channels/collaboration/presentation/shared_whiteboard.dart';
-import 'package:mobile/features/server_channels/voice/voice/presentation/controllers/voice_controller.dart';
-import '../../voice/presentation/controllers/voice_state.dart' as voice_state;
-import 'package:mobile/features/server_channels/voice/voice/presentation/soundboard_sheet.dart';
+import 'package:mobile/core/constants/flicko_colors.dart';
+import 'package:mobile/features/auth/application/auth_notifier.dart';
+import 'package:mobile/features/collaboration/presentation/shared_whiteboard.dart';
+import 'package:mobile/features/voice/presentation/controllers/voice_controller.dart';
+import 'package:mobile/features/voice/presentation/controllers/voice_state.dart' as voice_state;
+import 'package:mobile/features/voice/presentation/soundboard_sheet.dart';
 
 // Removed legacy VoiceParticipant model
 
@@ -135,7 +136,7 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen> {
                 leading: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: const Color(FlickoColors.blurple).withOpacity(0.15),
+                    color: const Color(FlickoColors.blurple).withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Icon(Icons.brush, color: Color(FlickoColors.blurple)),
@@ -151,7 +152,7 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen> {
                 leading: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: const Color(FlickoColors.success).withOpacity(0.15),
+                    color: const Color(FlickoColors.success).withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Icon(Icons.music_note, color: Color(FlickoColors.success)),

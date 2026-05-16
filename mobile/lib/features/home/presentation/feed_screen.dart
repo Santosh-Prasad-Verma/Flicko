@@ -4,7 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/flicko_colors.dart';
-import 'package:mobile/features/auth/providers/auth_provider.dart';
+import 'package:mobile/features/auth/application/auth_notifier.dart';
+import 'package:mobile/data/models/auth_state.dart' as app_auth;
 
 /// Feed/Home Screen — Discord Mobile Style
 ///
@@ -38,7 +39,11 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     
     try {
       final supabase = Supabase.instance.client;
-      final user = ref.read(authProvider).user;
+      final authState = ref.read(authNotifierProvider);
+      final user = authState.maybeWhen(
+        authenticated: (authUser, _) => authUser,
+        orElse: () => null,
+      );
       
       if (user == null) {
         setState(() => _isLoading = false);
@@ -113,7 +118,11 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       orElse: () => {},
     );
     
-    final user = ref.read(authProvider).user;
+    final authState = ref.read(authNotifierProvider);
+    final user = authState.maybeWhen(
+      authenticated: (authUser, _) => authUser,
+      orElse: () => null,
+    );
     final isOwner = selectedServer['owner_id'] == user?.id;
     
     if (isOwner) {
@@ -125,7 +134,11 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = ref.watch(authProvider).user;
+    final authState = ref.watch(authNotifierProvider);
+    final user = authState.maybeWhen(
+      authenticated: (authUser, _) => authUser,
+      orElse: () => null,
+    );
     
     if (_isLoading) {
       return const Scaffold(
@@ -435,7 +448,11 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       orElse: () => {},
     );
     
-    final user = ref.read(authProvider).user;
+    final authState = ref.read(authNotifierProvider);
+    final user = authState.maybeWhen(
+      authenticated: (authUser, _) => authUser,
+      orElse: () => null,
+    );
     final isOwner = selectedServer['owner_id'] == user?.id;
 
     return Column(
@@ -546,7 +563,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                 Text(
                   'Connect with friends, join communities, and explore servers',
                   style: GoogleFonts.inter(
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                     fontSize: 14,
                   ),
                 ),
@@ -557,7 +574,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
             width: 60,
             height: 60,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(

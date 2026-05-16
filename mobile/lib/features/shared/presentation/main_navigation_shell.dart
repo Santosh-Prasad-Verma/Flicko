@@ -5,14 +5,7 @@ import 'package:mobile/features/voice/presentation/widgets/voice_hud.dart';
 /// Flicko main navigation shell — Discord-style bottom tab bar.
 ///
 /// Wraps the current tab page in a [Scaffold] with a custom-styled
-/// [BottomNavigationBar] that matches the React Native tab layout:
-///   - Servers (index 0)
-///   - Notifications (index 1)
-///   - You / Profile (index 2)
-///
-/// The [child] and [currentIndex] are driven by [GoRouter]'s
-/// [StatefulShellRoute]. The shell itself only renders the chrome
-/// (bottom bar); the active page comes from the router.
+/// [BottomNavigationBar] that matches the new UI (dark theme with purple active states).
 class MainNavigationShell extends StatelessWidget {
   /// The routed child widget for the selected tab.
   final Widget child;
@@ -32,9 +25,8 @@ class MainNavigationShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
+      backgroundColor: const Color(0xFF0D0B14),
       body: Stack(
         children: [
           child,
@@ -46,42 +38,40 @@ class MainNavigationShell extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const VoiceHUD(),
-                // Add a small spacer if needed, but the HUD has its own margins
               ],
             ),
           ),
         ],
       ),
       bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          color: Color(FlickoColors.bgTertiary),
-          // Subtle top border matching Discord mobile
+        decoration: BoxDecoration(
+          color: const Color(0xFF0A0812), // Same as sidebar bg
           border: Border(
             top: BorderSide(
-              color: Color(FlickoColors.bgTertiary),
-              width: 0.5,
+              color: Colors.white.withValues(alpha: 0.06),
+              width: 1.5,
             ),
           ),
         ),
         child: SafeArea(
           child: SizedBox(
-            height: 56,
+            height: 65, // Matches CSS height:65px
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _NavTab(
                   index: 0,
                   activeIndex: currentIndex,
-                  icon: Icons.dns_outlined,
-                  activeIcon: Icons.dns,
-                  label: 'Servers',
+                  icon: Icons.home_outlined,
+                  activeIcon: Icons.home_filled,
+                  label: 'Home',
                   onTap: onTabSelected,
                 ),
                 _NavTab(
                   index: 1,
                   activeIndex: currentIndex,
-                  icon: Icons.chat_bubble_outline,
-                  activeIcon: Icons.chat_bubble,
+                  icon: Icons.chat_bubble_outline_rounded,
+                  activeIcon: Icons.chat_bubble_rounded,
                   label: 'Messages',
                   onTap: onTabSelected,
                 ),
@@ -90,15 +80,15 @@ class MainNavigationShell extends StatelessWidget {
                   activeIndex: currentIndex,
                   icon: Icons.notifications_outlined,
                   activeIcon: Icons.notifications,
-                  label: 'Notifications',
+                  label: 'Activity',
                   onTap: onTabSelected,
                 ),
                 _NavTab(
                   index: 3,
                   activeIndex: currentIndex,
-                  icon: Icons.person_outline,
-                  activeIcon: Icons.person,
-                  label: 'You',
+                  icon: Icons.person_outline_rounded,
+                  activeIcon: Icons.person_rounded,
+                  label: 'Profile',
                   onTap: onTabSelected,
                 ),
               ],
@@ -132,9 +122,11 @@ class _NavTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _isActive
-        ? const Color(FlickoColors.textPrimary)
-        : const Color(FlickoColors.textMuted);
+    // Obsidian Dark Violet UI colors
+    const activeColor = Color(0xFF8B5CF6); // Main purple
+    final inactiveColor = Colors.white.withValues(alpha: 0.35);
+
+    final color = _isActive ? activeColor : inactiveColor;
 
     return Expanded(
       child: GestureDetector(
@@ -143,37 +135,19 @@ class _NavTab extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Pill background + icon
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeOutCubic,
-              width: 46,
-              height: 28,
-              decoration: BoxDecoration(
-                color: _isActive
-                    ? const Color(FlickoColors.blurple).withAlpha(38)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              alignment: Alignment.center,
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                child: Icon(
-                  _isActive ? activeIcon : icon,
-                  key: ValueKey(_isActive),
-                  size: 22,
-                  color: color,
-                ),
-              ),
+            Icon(
+              _isActive ? activeIcon : icon,
+              size: 22,
+              color: color,
             ),
-            const SizedBox(height: 2),
-            // Label
+            const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
+                fontSize: 10.5,
+                fontWeight: FontWeight.w500,
                 color: color,
+                fontFamily: 'Inter',
               ),
             ),
           ],

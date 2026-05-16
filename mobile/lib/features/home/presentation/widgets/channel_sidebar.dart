@@ -6,10 +6,10 @@ import 'package:mobile/data/models/channel_model.dart';
 import 'package:mobile/data/models/server_model.dart';
 import 'package:mobile/features/home/application/servers_notifier.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
-import 'package:mobile/features/home/voice/presentation/controllers/voice_controller.dart';
-import 'package:mobile/features/home/voice/domain/voice_models.dart';
-import 'package:mobile/features/home/voice/presentation/widgets/active_speaker_indicator.dart';
-import 'package:mobile/features/home/voice/presentation/widgets/voice_permission_dialog.dart';
+import 'package:mobile/features/voice/presentation/controllers/voice_controller.dart';
+import 'package:livekit_client/livekit_client.dart';
+import 'package:mobile/features/voice/presentation/widgets/active_speaker_indicator.dart';
+import 'package:mobile/features/voice/presentation/widgets/voice_permission_dialog.dart';
 
 class ChannelSidebar extends ConsumerStatefulWidget {
   final ServerModel server;
@@ -219,7 +219,7 @@ class _VoiceChannelRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final voiceState = ref.watch(voiceControllerProvider);
-    final participants = voiceState.participants.values.toList(); // Simplified for now
+    final participants = voiceState.participants;
 
     return InkWell(
       onTap: () => ref.read(voiceControllerProvider.notifier).joinChannel(channel.id),
@@ -264,7 +264,7 @@ class _VoiceChannelRow extends ConsumerWidget {
 }
 
 class _VoiceParticipantRow extends StatelessWidget {
-  final VoiceParticipant participant;
+  final Participant participant;
   const _VoiceParticipantRow({required this.participant});
 
   @override
@@ -277,7 +277,7 @@ class _VoiceParticipantRow extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              participant.displayName ?? 'User',
+              participant.name.isNotEmpty ? participant.name : participant.identity,
               style: const TextStyle(
                 color: Color(FlickoColors.textSecondary),
                 fontSize: 13,
@@ -293,7 +293,7 @@ class _VoiceParticipantRow extends StatelessWidget {
 }
 
 class _ParticipantBubble extends StatelessWidget {
-  final VoiceParticipant participant;
+  final Participant participant;
   const _ParticipantBubble({required this.participant});
 
   @override
@@ -303,19 +303,17 @@ class _ParticipantBubble extends StatelessWidget {
       child: CircleAvatar(
         radius: 9,
         backgroundColor: const Color(FlickoColors.blurple),
-        backgroundImage: participant.avatarUrl != null 
-            ? NetworkImage(participant.avatarUrl!) 
-            : null,
-        child: participant.avatarUrl == null
-            ? Text(
-                (participant.displayName ?? 'U')[0].toUpperCase(),
+        child: Text(
+                ((participant.name.isNotEmpty ? participant.name : participant.identity).isNotEmpty
+                        ? (participant.name.isNotEmpty ? participant.name : participant.identity)[0]
+                        : 'U')
+                    .toUpperCase(),
                 style: const TextStyle(
                   fontSize: 7,
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
                 ),
               )
-            : null,
       ),
     );
   }

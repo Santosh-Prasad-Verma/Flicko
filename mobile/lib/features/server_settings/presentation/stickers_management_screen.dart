@@ -474,7 +474,7 @@ class _StickersManagementScreenState
                   width: 36,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: const Color(FlickoColors.textMuted).withOpacity(0.4),
+                    color: const Color(FlickoColors.textMuted).withValues(alpha: 0.4),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -501,7 +501,7 @@ class _StickersManagementScreenState
                     color: const Color(FlickoColors.bgTertiary),
                     borderRadius: BorderRadius.circular(FlickoRadius.lg),
                     border: Border.all(
-                      color: const Color(FlickoColors.textMuted).withOpacity(0.3),
+                      color: const Color(FlickoColors.textMuted).withValues(alpha: 0.3),
                       width: 2,
                       strokeAlign: BorderSide.strokeAlignInside,
                     ),

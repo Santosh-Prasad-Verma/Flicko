@@ -124,7 +124,7 @@ class _WelcomeCard extends StatelessWidget {
           Text(
             'Connect with friends, join communities, and explore servers',
             style: textTheme.bodyMedium?.copyWith(
-              color: Colors.white.withOpacity(0.9),
+              color: Colors.white.withValues(alpha: 0.9),
             ),
           ),
         ],

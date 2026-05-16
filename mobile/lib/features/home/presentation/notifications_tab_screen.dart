@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/flicko_colors.dart';
-import 'package:mobile/features/auth/providers/auth_provider.dart';
+import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/shared/presentation/widgets/avatar.dart';
 
 /// Notifications Tab Screen
@@ -34,7 +34,11 @@ class _NotificationsTabScreenState extends ConsumerState<NotificationsTabScreen>
   }
 
   Future<void> _loadNotifications() async {
-    final user = ref.read(authProvider).user;
+    final authState = ref.read(authNotifierProvider);
+    final user = authState.maybeWhen(
+      authenticated: (authUser, _) => authUser,
+      orElse: () => null,
+    );
     if (user == null) {
       setState(() => _isLoading = false);
       return;
@@ -99,7 +103,11 @@ class _NotificationsTabScreenState extends ConsumerState<NotificationsTabScreen>
   }
 
   Future<void> _markAllAsRead() async {
-    final user = ref.read(authProvider).user;
+    final authState = ref.read(authNotifierProvider);
+    final user = authState.maybeWhen(
+      authenticated: (authUser, _) => authUser,
+      orElse: () => null,
+    );
     if (user == null || _unreadCount == 0) return;
 
     setState(() {

@@ -1,17 +1,20 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show User;
-import '../../../data/models/auth_state.dart' as app_auth;
+import '../../../data/models/auth_state.dart';
 import 'package:mobile/data/repositories/auth_repository.dart';
 
-final authNotifierProvider = StateNotifierProvider<AuthNotifier, app_auth.AuthState>((ref) {
-  return AuthNotifier(ref.watch(authRepositoryProvider));
-});
+export 'package:mobile/data/models/auth_state.dart';
 
-class AuthNotifier extends StateNotifier<app_auth.AuthState> {
-  final AuthRepository _repository;
+final authNotifierProvider = NotifierProvider<AuthNotifier, AuthState>(AuthNotifier.new);
 
-  AuthNotifier(this._repository) : super(const app_auth.AuthState.initial()) {
+class AuthNotifier extends Notifier<AuthState> {
+  late final AuthRepository _repository;
+
+  @override
+  AuthState build() {
+    _repository = ref.watch(authRepositoryProvider);
     _init();
+    return const AuthState.initial();
   }
 
   void _init() {
@@ -20,26 +23,26 @@ class AuthNotifier extends StateNotifier<app_auth.AuthState> {
       if (session != null && session.user != null) {
         try {
           final profile = await _repository.getUserProfile(session.user!.id);
-          state = app_auth.AuthState.authenticated(
+          state = AuthState.authenticated(
             authUser: session.user!,
             userProfile: profile,
           );
         } catch (e) {
-          state = app_auth.AuthState.authenticated(
+          state = AuthState.authenticated(
             authUser: session.user!,
           );
         }
       } else {
-        state = const app_auth.AuthState.unauthenticated();
+        state = const AuthState.unauthenticated();
       }
     });
 
     final currentUser = _repository.currentUser;
     if (currentUser != null) {
-      state = app_auth.AuthState.authenticated(authUser: currentUser);
+      state = AuthState.authenticated(authUser: currentUser);
       _fetchProfile(currentUser.id);
     } else {
-      state = const app_auth.AuthState.unauthenticated();
+      state = const AuthState.unauthenticated();
     }
   }
 
@@ -48,7 +51,7 @@ class AuthNotifier extends StateNotifier<app_auth.AuthState> {
       final profile = await _repository.getUserProfile(userId);
       state.maybeWhen(
         authenticated: (user, _) {
-          state = app_auth.AuthState.authenticated(
+          state = AuthState.authenticated(
             authUser: user,
             userProfile: profile,
           );
@@ -60,32 +63,32 @@ class AuthNotifier extends StateNotifier<app_auth.AuthState> {
 
   Future<void> signIn(String email, String password) async {
     try {
-      state = const app_auth.AuthState.loading();
+      state = const AuthState.loading();
       await _repository.signIn(email: email, password: password);
     } catch (e) {
-      state = app_auth.AuthState.error(e.toString());
-      state = const app_auth.AuthState.unauthenticated();
+      state = AuthState.error(e.toString());
+      state = const AuthState.unauthenticated();
       rethrow;
     }
   }
 
   Future<void> signUp(String email, String password, String username) async {
     try {
-      state = const app_auth.AuthState.loading();
+      state = const AuthState.loading();
       await _repository.signUp(email: email, password: password, username: username);
     } catch (e) {
-      state = app_auth.AuthState.error(e.toString());
-      state = const app_auth.AuthState.unauthenticated();
+      state = AuthState.error(e.toString());
+      state = const AuthState.unauthenticated();
       rethrow;
     }
   }
 
   Future<void> signOut() async {
     try {
-      state = const app_auth.AuthState.loading();
+      state = const AuthState.loading();
       await _repository.signOut();
     } catch (e) {
-      state = app_auth.AuthState.error(e.toString());
+      state = AuthState.error(e.toString());
     }
   }
 }

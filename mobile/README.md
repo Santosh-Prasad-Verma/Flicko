@@ -70,7 +70,7 @@ The project follows a **Modular Feature-First** architecture (Slices):
    ```
 4. Launch with Doppler:
    ```bash
-   doppler run -- flutter run
+   doppler run -- ./flutter-start.sh
    ```
 
 ## 📊 Project Tracking
@@ -79,4 +79,3 @@ The project follows a **Modular Feature-First** architecture (Slices):
 
 ---
 © 2024 Flicko Contributors. Licensed under MIT.
-

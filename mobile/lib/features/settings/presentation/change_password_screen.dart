@@ -69,8 +69,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
 
     try {
       // Verify current password by re-authenticating
-      final sessionData = await Supabase.instance.client.auth.getSession();
-      final email = sessionData.session?.user.email;
+      final email = Supabase.instance.client.auth.currentSession?.user.email;
 
       if (email == null) {
         _showAlert('Error', 'Unable to verify identity. Please log in again.');
@@ -78,23 +77,15 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
         return;
       }
 
-      final signInError = await Supabase.instance.client.auth.signInWithPassword(
+      await Supabase.instance.client.auth.signInWithPassword(
         email: email,
         password: _currentPassword,
       );
 
-      if (signInError.error != null) {
-        _showAlert('Incorrect Password', 'Your current password is incorrect.');
-        setState(() => _isLoading = false);
-        return;
-      }
-
       // Update to new password
-      final updateError = await Supabase.instance.client.auth.updateUser(
+      await Supabase.instance.client.auth.updateUser(
         UserAttributes(password: _newPassword),
       );
-
-      if (updateError != null) throw updateError;
 
       _showAlert(
         'Password Updated',
@@ -102,7 +93,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
         onOk: () => context.pop(),
       );
     } catch (e) {
-      _showAlert('Error', e.toString() ?? 'Failed to update password. Please try again.');
+      _showAlert('Error', e.toString());
     } finally {
       setState(() => _isLoading = false);
     }

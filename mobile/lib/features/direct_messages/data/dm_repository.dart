@@ -47,15 +47,13 @@ class DMRepository {
       var query = _client
           .from('direct_messages')
           .select('*, sender:profiles!sender_id(*), recipient:profiles!recipient_id(*)')
-          .or('and(sender_id.eq.$myId,recipient_id.eq.$otherUserId),and(sender_id.eq.$otherUserId,recipient_id.eq.$myId)')
-          .order('created_at', ascending: false)
-          .limit(limit);
+          .or('and(sender_id.eq.$myId,recipient_id.eq.$otherUserId),and(sender_id.eq.$otherUserId,recipient_id.eq.$myId)');
 
       if (before != null) {
         query = query.lt('created_at', before.toIso8601String());
       }
 
-      final response = await query;
+      final response = await query.order('created_at', ascending: false).limit(limit);
       return (response as List).map((json) => DMMessage.fromJson(json)).toList();
     } catch (e) {
       rethrow;

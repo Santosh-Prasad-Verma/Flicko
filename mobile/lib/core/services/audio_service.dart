@@ -54,7 +54,7 @@ class AudioService {
     try {
       // Configure audio session for voice calls
       _session = await AudioSession.instance;
-      await _session!.configure(const AudioSessionConfiguration(
+      await _session!.configure(AudioSessionConfiguration(
         avAudioSessionCategory: AVAudioSessionCategory.playAndRecord,
         avAudioSessionCategoryOptions: AVAudioSessionCategoryOptions.allowBluetooth |
             AVAudioSessionCategoryOptions.defaultToSpeaker,
@@ -143,7 +143,7 @@ class AudioService {
     _callStateController.add(true);
 
     // Configure for voice call
-    await _session!.configure(const AudioSessionConfiguration(
+    await _session!.configure(AudioSessionConfiguration(
       avAudioSessionCategory: AVAudioSessionCategory.playAndRecord,
       avAudioSessionCategoryOptions: AVAudioSessionCategoryOptions.allowBluetooth |
           AVAudioSessionCategoryOptions.defaultToSpeaker,

@@ -303,7 +303,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             controller: _displayNameController,
             hintText: 'What should people call you?',
             maxLength: 32,
-            onChanged: (_) => _onFieldChanged(),
+            onChanged: _onFieldChanged,
           ),
           const SizedBox(height: 16),
 
@@ -312,7 +312,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             controller: _pronounsController,
             hintText: 'Add your pronouns',
             maxLength: 20,
-            onChanged: (_) => _onFieldChanged(),
+            onChanged: _onFieldChanged,
           ),
           const SizedBox(height: 16),
 
@@ -322,7 +322,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             hintText: 'Tell the world about yourself',
             maxLength: 190,
             maxLines: 4,
-            onChanged: (_) => _onFieldChanged(),
+            onChanged: _onFieldChanged,
           ),
           const SizedBox(height: 24),
 
@@ -375,7 +375,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           top: 8,
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.5),
+              color: Colors.black.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(8),
             ),
             child: IconButton(

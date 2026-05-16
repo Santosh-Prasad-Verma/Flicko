@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/flicko_colors.dart';
-import 'package:mobile/auth/application/auth_notifier.dart';
+import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/shared/presentation/widgets/button.dart';
-import 'package:mobile/features/shared/presentation/widgets/card.dart';
+import 'package:mobile/features/shared/presentation/widgets/card.dart' as flicko_card;
 import 'package:mobile/features/shared/presentation/widgets/input.dart';
 import 'package:mobile/features/shared/presentation/widgets/modal.dart';
 
@@ -323,7 +323,7 @@ class _TemplatesSettingsScreenState extends ConsumerState<TemplatesSettingsScree
         actions: [
           IconButton(
             icon: const Icon(Icons.add, color: Color(FlickoColors.blurple)),
-            onPressed: () => setState(() => _showCreateModal = true),
+            onPressed: () => _openCreateModal(),
           ),
         ],
       ),
@@ -408,8 +408,8 @@ class _TemplatesSettingsScreenState extends ConsumerState<TemplatesSettingsScree
 
   Widget _buildPresetCard(Map<String, dynamic> preset) {
     final isLoading = _addingPreset == preset['id'];
-    return Card(
-      elevation: CardElevation.subtle,
+    return flicko_card.Card(
+      elevation: flicko_card.CardElevation.subtle,
       margin: const EdgeInsets.only(bottom: 8),
       onPress: isLoading ? null : () => _addPreset(preset),
       child: Padding(
@@ -471,7 +471,7 @@ class _TemplatesSettingsScreenState extends ConsumerState<TemplatesSettingsScree
             const SizedBox(height: 16),
             Button(
               title: 'Create from server',
-              onPress: () => setState(() => _showCreateModal = true),
+              onPress: () => _openCreateModal(),
               variant: ButtonVariant.primary,
             ),
           ],
@@ -489,8 +489,8 @@ class _TemplatesSettingsScreenState extends ConsumerState<TemplatesSettingsScree
     final channels = (data['channels'] as List?)?.length ?? 0;
     final roles = (data['roles'] as List?)?.length ?? 0;
 
-    return Card(
-      elevation: CardElevation.subtle,
+    return flicko_card.Card(
+      elevation: flicko_card.CardElevation.subtle,
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -552,7 +552,7 @@ class _TemplatesSettingsScreenState extends ConsumerState<TemplatesSettingsScree
     );
   }
 
-  void _showCreateModal() {
+  void _openCreateModal() {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,

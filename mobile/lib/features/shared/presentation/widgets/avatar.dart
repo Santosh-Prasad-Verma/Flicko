@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:mobile/features/core/constants/flicko_colors.dart';
+import 'package:mobile/core/constants/flicko_colors.dart';
 
 enum AvatarSize { xs, sm, md, lg, xl }
 
@@ -10,7 +10,7 @@ class Avatar extends StatelessWidget {
   final String? uri;
   final String? imageUrl;
   final String? name;
-  final AvatarSize size;
+  final Object size;
   final StatusIndicator? status;
   final String? accessibilityLabel;
 
@@ -32,7 +32,12 @@ class Avatar extends StatelessWidget {
     AvatarSize.xl: 64.0,
   };
 
-  double get _dimension => _sizeMap[size];
+  double get _dimension {
+    final value = size;
+    if (value is AvatarSize) return _sizeMap[value] ?? 40.0;
+    if (value is num) return value.toDouble();
+    return 40.0;
+  }
   String get _resolvedUri => uri ?? imageUrl ?? '';
   String get _label => accessibilityLabel ?? name ?? 'Avatar';
 

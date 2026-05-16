@@ -13,9 +13,7 @@ class DMListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(dmControllerProvider);
-    final theme = Theme.of(context);
 
-    // Filter online friends for the row
     final onlineFriends = state.conversations
         .where((c) => c.participant.onlineStatus == 'online')
         .map((c) => c.participant)
@@ -23,122 +21,181 @@ class DMListScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: const Color(FlickoColors.bgPrimary),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(FlickoColors.brandLime),
+        foregroundColor: const Color(FlickoColors.black),
+        shape: const RoundedRectangleBorder(),
+        onPressed: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('New DM flow coming soon!')),
+          );
+        },
+        child: const Icon(Icons.edit_outlined),
+      ),
       body: SafeArea(
         child: Column(
           children: [
-            // Header
             Padding(
-              padding: const EdgeInsets.all(FlickoSpacing.md),
-              child: Row(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
+              child: Column(
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Messages',
-                          style: theme.textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: () {},
+                        icon: const Icon(Icons.menu,
+                            color: Color(FlickoColors.textPrimary)),
+                      ),
+                      const Expanded(
+                        child: Text(
+                          'FLICKO',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Color(FlickoColors.textPrimary),
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.6,
                           ),
                         ),
-                        const SizedBox(height: 8),
+                      ),
+                      IconButton(
+                        onPressed: () => context.push('/search'),
+                        icon: const Icon(Icons.search,
+                            color: Color(FlickoColors.textPrimary)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'INBOX',
+                      style: TextStyle(
+                        color: Color(FlickoColors.textPrimary),
+                        fontSize: 42,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -1.5,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    height: 110,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: OnlineFriendsRow(
+                            friends: onlineFriends,
+                            onFriendTap: (friend) =>
+                                context.push('/dms/${friend.id}'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
                         GestureDetector(
-                          onTap: () => context.push('/search'),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: const Color(FlickoColors.bgTertiary),
-                              borderRadius: BorderRadius.circular(FlickoRadius.md),
-                            ),
-                            child: const Row(
-                              children: [
-                                Icon(Icons.search, size: 18, color: Color(FlickoColors.textMuted)),
-                                SizedBox(width: 8),
-                                Text(
-                                  'Search',
-                                  style: TextStyle(color: Color(FlickoColors.textMuted)),
+                          onTap: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text(
+                                      'New conversation flow coming soon!')),
+                            );
+                          },
+                          child: Column(
+                            children: [
+                              Container(
+                                width: 64,
+                                height: 64,
+                                decoration: BoxDecoration(
+                                  color: const Color(FlickoColors.bgSecondary),
+                                  border: Border.all(
+                                    color: const Color(FlickoColors.border),
+                                    width: 1.5,
+                                  ),
                                 ),
-                              ],
-                            ),
+                                child: const Icon(
+                                  Icons.add,
+                                  color: Color(FlickoColors.textPrimary),
+                                  size: 28,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              const SizedBox(
+                                width: 64,
+                                child: Text(
+                                  'NEW',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: Color(FlickoColors.textSecondary),
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  IconButton(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('New DM coming soon!')),
-                      );
-                    },
-                    icon: const Icon(Icons.edit_note, size: 28),
-                    color: const Color(FlickoColors.textSecondary),
-                    style: IconButton.styleFrom(
-                      backgroundColor: const Color(FlickoColors.bgTertiary),
-                      padding: const EdgeInsets.all(8),
-                    ),
-                  ),
                 ],
               ),
             ),
-
-            // Content
             Expanded(
               child: state.isLoading && state.conversations.isEmpty
                   ? const LoadingSpinner(message: 'Loading messages...')
                   : state.error != null
-                      ? _buildErrorState(state.error!, () => ref.read(dmControllerProvider.notifier).fetchConversations())
+                      ? _buildErrorState(
+                          state.error!,
+                          () => ref
+                              .read(dmControllerProvider.notifier)
+                              .fetchConversations())
                       : state.conversations.isEmpty
                           ? const EmptyState(
                               icon: Icons.chat_bubble_outline,
                               title: 'No conversations yet',
-                              message: 'Messages from friends will show up here',
+                              message:
+                                  'Messages from friends will show up here',
                             )
                           : RefreshIndicator(
-                              onRefresh: () => ref.read(dmControllerProvider.notifier).fetchConversations(),
-                              color: const Color(FlickoColors.blurple),
+                              onRefresh: () => ref
+                                  .read(dmControllerProvider.notifier)
+                                  .fetchConversations(),
+                              color: const Color(FlickoColors.brandLime),
                               child: CustomScrollView(
                                 slivers: [
-                                  // Online Friends Row
-                                  if (onlineFriends.isNotEmpty)
-                                    SliverToBoxAdapter(
-                                      child: OnlineFriendsRow(
-                                        friends: onlineFriends,
-                                        onFriendTap: (friend) => context.push('/dm/${friend.id}'),
-                                      ),
-                                    ),
-
-                                  // List Sections
                                   const SliverToBoxAdapter(
                                     child: Padding(
-                                      padding: EdgeInsets.fromLTRB(FlickoSpacing.md, FlickoSpacing.lg, FlickoSpacing.md, FlickoSpacing.sm),
+                                      padding: EdgeInsets.fromLTRB(
+                                          FlickoSpacing.md,
+                                          FlickoSpacing.lg,
+                                          FlickoSpacing.md,
+                                          FlickoSpacing.sm),
                                       child: Text(
                                         'DIRECT MESSAGES',
                                         style: TextStyle(
-                                          color: Color(FlickoColors.textMuted),
+                                          color: Color(FlickoColors.brandLime),
                                           fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                          letterSpacing: 0.5,
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: 1.1,
                                         ),
                                       ),
                                     ),
                                   ),
-
                                   SliverList(
                                     delegate: SliverChildBuilderDelegate(
                                       (context, index) {
-                                        final conversation = state.conversations[index];
+                                        final conversation =
+                                            state.conversations[index];
                                         return DMRow(
                                           conversation: conversation,
-                                          onTap: () => context.push('/dm/${conversation.id}'),
+                                          onTap: () => context
+                                              .push('/dms/${conversation.id}'),
                                         );
                                       },
                                       childCount: state.conversations.length,
                                     ),
                                   ),
-                                  
-                                  const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
+                                  const SliverPadding(
+                                      padding: EdgeInsets.only(bottom: 100)),
                                 ],
                               ),
                             ),
@@ -154,18 +211,24 @@ class DMListScreen extends ConsumerWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 48, color: const Color(FlickoColors.danger).withOpacity(0.5)),
+          Icon(Icons.error_outline,
+              size: 48,
+              color: const Color(FlickoColors.danger).withValues(alpha: 0.5)),
           const SizedBox(height: 16),
           Text(
             'Failed to load messages',
-            style: const TextStyle(color: Color(FlickoColors.textPrimary), fontSize: 16, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+                color: Color(FlickoColors.textPrimary),
+                fontSize: 16,
+                fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 40),
             child: Text(
               error,
-              style: const TextStyle(color: Color(FlickoColors.textMuted), fontSize: 13),
+              style: const TextStyle(
+                  color: Color(FlickoColors.textMuted), fontSize: 13),
               textAlign: TextAlign.center,
             ),
           ),

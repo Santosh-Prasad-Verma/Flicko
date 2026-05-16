@@ -6,10 +6,6 @@ import '../../../../core/constants/flicko_colors.dart';
 import '../../../../data/services/stripe_service.dart';
 import '../../../../data/models/subscription_model.dart';
 
-/// Flicko Plus — Premium Subscription Screen
-///
-/// Pricing page with two tiers, feature comparison, and animated gradient branding.
-/// Route: /premium/plus
 class FlickoPlusScreen extends ConsumerStatefulWidget {
   const FlickoPlusScreen({super.key});
 
@@ -17,621 +13,145 @@ class FlickoPlusScreen extends ConsumerStatefulWidget {
   ConsumerState<FlickoPlusScreen> createState() => _FlickoPlusScreenState();
 }
 
-class _PlanFeature {
-  final String text;
-  final bool included;
-
-  _PlanFeature({required this.text, required this.included});
-}
-
-class _Plan {
-  final String id;
-  final String name;
-  final String tagline;
-  final String monthlyPrice;
-  final String yearlyPrice;
-  final String yearlySaving;
-  final IconData icon;
-  final List<Color> gradient;
-  final List<_PlanFeature> features;
-
-  _Plan({
-    required this.id,
-    required this.name,
-    required this.tagline,
-    required this.monthlyPrice,
-    required this.yearlyPrice,
-    required this.yearlySaving,
-    required this.icon,
-    required this.gradient,
-    required this.features,
-  });
-}
-
-class _Perk {
-  final IconData icon;
-  final String title;
-  final String description;
-  final List<Color> gradient;
-
-  _Perk({required this.icon, required this.title, required this.description, required this.gradient});
-}
-
 class _FlickoPlusScreenState extends ConsumerState<FlickoPlusScreen> {
   String _selectedPlan = 'plus';
   String _billing = 'monthly';
   bool _isPurchasing = false;
 
-  late final List<_Plan> _plans;
-  late final List<_Perk> _perks;
-
-  @override
-  void initState() {
-    super.initState();
-    _plans = [
-      _Plan(
-        id: 'basic',
-        name: 'Flicko Basic',
-        tagline: 'Great for casual users',
-        monthlyPrice: '\u20B9249',
-        yearlyPrice: '\u20B92,499',
-        yearlySaving: 'Save 16%',
-        icon: Icons.flash_on,
-        gradient: [const Color(0xFF5865F2), const Color(0xFF7289DA)],
-        features: [
-          _PlanFeature(text: '50MB file uploads', included: true),
-          _PlanFeature(text: 'Custom emoji anywhere', included: true),
-          _PlanFeature(text: 'HD video streaming (720p)', included: true),
-          _PlanFeature(text: 'Animated avatar', included: true),
-          _PlanFeature(text: 'Custom status badge', included: true),
-          _PlanFeature(text: '2 Server Boosts', included: true),
-          _PlanFeature(text: 'Custom profiles & banners', included: false),
-          _PlanFeature(text: '4K video streaming', included: false),
-          _PlanFeature(text: 'Longer messages (4000 chars)', included: false),
-          _PlanFeature(text: 'Custom server icons (GIF)', included: false),
-        ],
-      ),
-      _Plan(
-        id: 'plus',
-        name: 'Flicko Plus',
-        tagline: 'The ultimate Flicko experience',
-        monthlyPrice: '\u20B9849',
-        yearlyPrice: '\u20B98,499',
-        yearlySaving: 'Save 17%',
-        icon: Icons.diamond,
-        gradient: [const Color(0xFF5865F2), const Color(0xFFEB459E)],
-        features: [
-          _PlanFeature(text: '500MB file uploads', included: true),
-          _PlanFeature(text: 'Custom emoji anywhere', included: true),
-          _PlanFeature(text: '4K video streaming (2160p)', included: true),
-          _PlanFeature(text: 'Animated avatar & banner', included: true),
-          _PlanFeature(text: 'Custom status badge', included: true),
-          _PlanFeature(text: '2 Server Boosts included', included: true),
-          _PlanFeature(text: 'Custom profiles & themes', included: true),
-          _PlanFeature(text: 'Longer messages (4000 chars)', included: true),
-          _PlanFeature(text: 'Custom server icons (GIF)', included: true),
-          _PlanFeature(text: 'Early access to new features', included: true),
-        ],
-      ),
-    ];
-
-    _perks = [
-      _Perk(icon: Icons.cloud_upload, title: 'Bigger Uploads', description: 'Share files up to 500MB with your friends.', gradient: [const Color(0xFF5865F2), const Color(0xFF7289DA)]),
-      _Perk(icon: Icons.emoji_emotions, title: 'Custom Emoji', description: 'Use your custom emoji in any server.', gradient: [const Color(0xFFFEE75C), const Color(0xFFF0B232)]),
-      _Perk(icon: Icons.videocam, title: 'HD Streaming', description: 'Stream in stunning 4K quality for everyone to enjoy.', gradient: [const Color(0xFF57F287), const Color(0xFF248046)]),
-      _Perk(icon: Icons.person, title: 'Custom Profiles', description: 'Stand out with animated avatars, banners, and themes.', gradient: [const Color(0xFFEB459E), const Color(0xFFFE73B1)]),
-      _Perk(icon: Icons.rocket_launch, title: 'Server Boosts', description: '2 free boosts to level up your favorite servers.', gradient: [const Color(0xFFF47FFF), const Color(0xFFC472ED)]),
-      _Perk(icon: Icons.auto_awesome, title: 'Early Access', description: 'Be the first to try upcoming Flicko features.', gradient: [const Color(0xFF5865F2), const Color(0xFFEB459E)]),
-    ];
-  }
+  final List<Map<String, dynamic>> _featureMatrix = [
+    {'feature': 'File Upload Size', 'basic': '50MB', 'plus': '500MB'},
+    {'feature': 'Video Streaming', 'basic': 'HD (720p)', 'plus': '4K UHD (2160p)'},
+    {'feature': 'Custom Status Badges', 'basic': true, 'plus': true},
+    {'feature': 'Custom Emojis Everywhere', 'basic': true, 'plus': true},
+    {'feature': 'Profile Banner/Theme', 'basic': false, 'plus': true},
+    {'feature': 'Long Messages (4K chars)', 'basic': false, 'plus': true},
+    {'feature': 'GIF Server Icons', 'basic': false, 'plus': true},
+    {'feature': 'Early Feature Access', 'basic': false, 'plus': true},
+  ];
 
   @override
   Widget build(BuildContext context) {
-    final plan = _plans.firstWhere((p) => p.id == _selectedPlan);
-    final price = _billing == 'monthly' ? plan.monthlyPrice : plan.yearlyPrice;
+    final isPlus = _selectedPlan == 'plus';
+    final price = _billing == 'monthly' 
+        ? (isPlus ? '\u20B9849' : '\u20B9249')
+        : (isPlus ? '\u20B98,499' : '\u20B92,499');
+    final accentColor = isPlus ? const Color(FlickoColors.pink) : const Color(FlickoColors.blurple);
 
     return Scaffold(
       backgroundColor: const Color(FlickoColors.bgPrimary),
-      body: CustomScrollView(
-        slivers: [
-  // Hero header with animated gradient and pulse
-  SliverToBoxAdapter(
-    child: Container(
-      height: 380,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF5865F2), Color(0xFFEB459E), Color(0xFFFEE75C)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          stops: [0.0, 0.5, 1.0],
+      appBar: AppBar(
+        backgroundColor: const Color(FlickoColors.bgPrimary),
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),
+          onPressed: () => context.pop(),
         ),
       ),
-      child: Stack(
-        children: [
-          // Background animated decorations
-          Positioned(
-            top: -50,
-            right: -50,
-            child: Icon(
-              Icons.diamond,
-              size: 200,
-              color: Colors.white.withOpacity(0.05),
+      body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'FLICKO',
+              style: GoogleFonts.spaceGrotesk(
+                fontSize: 42,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 2,
+                color: const Color(FlickoColors.textPrimary),
+                height: 0.9,
+              ),
             ),
-          ),
-          
-          SafeArea(
-            child: Column(
+            Text(
+              'PREMIUM',
+              style: GoogleFonts.playfairDisplay(
+                fontSize: 42,
+                fontStyle: FontStyle.italic,
+                fontWeight: FontWeight.w700,
+                color: accentColor,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Boost your digital environment with custom configurations, elite file thresholds, and visual identity layers.',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                color: const Color(FlickoColors.textSecondary),
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 32),
+            
+            // Plan Cards
+            Row(
               children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.white),
-                        onPressed: () => context.pop(),
-                      ),
-                      const Spacer(),
-                      const Icon(Icons.auto_awesome, color: Colors.white, size: 24),
-                      const SizedBox(width: 16),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-                // Animated Plus Icon
-                TweenAnimationBuilder<double>(
-                  tween: Tween(begin: 0.0, end: 1.0),
-                  duration: const Duration(seconds: 1),
-                  curve: Curves.elasticOut,
-                  builder: (context, value, child) {
-                    return Transform.scale(
-                      scale: value,
-                      child: Container(
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFFEB459E).withOpacity(0.5),
-                              blurRadius: 30,
-                              spreadRadius: 5,
-                            ),
-                          ],
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFFFEE75C), Color(0xFFEB459E)],
-                          ),
-                        ),
-                        child: const Icon(Icons.diamond, color: Colors.white, size: 56),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  'FLICKO PLUS',
-                  style: GoogleFonts.inter(
-                    color: Colors.white,
-                    fontSize: 32,
-                    fontWeight: FontWeight.black,
-                    letterSpacing: 2.0,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 40),
-                  child: Text(
-                    'The ultimate premium experience. Customize your profile, unlock larger uploads, and support the community.',
-                    style: GoogleFonts.inter(
-                      color: Colors.white.withOpacity(0.9),
-                      fontSize: 15,
-                      height: 1.5,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
+                Expanded(child: _buildPlanSelectCard('basic', 'BASIC', '\u20B9249', const Color(FlickoColors.blurple))),
+                const SizedBox(width: 16),
+                Expanded(child: _buildPlanSelectCard('plus', 'PLUS', '\u20B9849', const Color(FlickoColors.pink))),
               ],
             ),
-          ),
-        ],
-      ),
-    ),
-  ),
+            
+            const SizedBox(height: 24),
 
-          // Content
-          SliverPadding(
-            padding: const EdgeInsets.all(16),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                // Plan selector tabs
-                Container(
-                  decoration: BoxDecoration(
-                    color: const Color(FlickoColors.bgSecondary),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    children: _plans.map((p) {
-                      final active = _selectedPlan == p.id;
-                      return InkWell(
-                        onTap: () => setState(() => _selectedPlan = p.id),
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          decoration: BoxDecoration(
-                            border: active
-                                ? const Border(left: BorderSide(color: Color(FlickoColors.blurple), width: 3))
-                                : null,
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 30,
-                                height: 30,
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(colors: p.gradient),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(p.icon, size: 16, color: Colors.white),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  p.name,
-                                  style: GoogleFonts.inter(
-                                    color: active
-                                        ? const Color(FlickoColors.textPrimary)
-                                        : const Color(FlickoColors.textSecondary),
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                              if (active)
-                                const Icon(Icons.check_circle, size: 18, color: Color(FlickoColors.blurple)),
-                            ],
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-                const SizedBox(height: 12),
+            // Billing Cycle Toggle
+            _buildBillingCycleToggle(),
 
-                // Billing toggle
-                Container(
-                  decoration: BoxDecoration(
-                    color: const Color(FlickoColors.bgSecondary),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  padding: const EdgeInsets.all(4),
-                  child: Row(
-                    children: ['monthly', 'yearly'].map((cycle) {
-                      final active = _billing == cycle;
-                      return Expanded(
-                        child: InkWell(
-                          onTap: () => setState(() => _billing = cycle),
-                          borderRadius: BorderRadius.circular(8),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            decoration: BoxDecoration(
-                              color: active ? const Color(FlickoColors.blurple) : null,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  cycle == 'monthly' ? 'Monthly' : 'Yearly',
-                                  style: GoogleFonts.inter(
-                                    color: active ? Colors.white : const Color(FlickoColors.textSecondary),
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                if (cycle == 'yearly') ...[
-                                  const SizedBox(width: 6),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF57F287),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Text(
-                                      plan.yearlySaving,
-                                      style: GoogleFonts.inter(
-                                        color: Colors.black,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                // Price card
-                Container(
-                  decoration: BoxDecoration(
-                    color: const Color(FlickoColors.bgSecondary),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    children: [
-                      Container(
-                        height: 4,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(colors: plan.gradient),
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  plan.name,
-                                  style: GoogleFonts.inter(
-                                    color: const Color(FlickoColors.textPrimary),
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                Text(
-                                  plan.tagline,
-                                  style: GoogleFonts.inter(
-                                    color: const Color(FlickoColors.textSecondary),
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  price,
-                                  style: GoogleFonts.inter(
-                                    color: const Color(FlickoColors.textPrimary),
-                                    fontSize: 26,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                Text(
-                                  '/${_billing == 'monthly' ? 'mo' : 'yr'}',
-                                  style: GoogleFonts.inter(
-                                    color: const Color(FlickoColors.textMuted),
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Features list
-                Text(
-                  'WHAT YOU GET',
-                  style: GoogleFonts.inter(
-                    color: const Color(FlickoColors.textMuted),
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  decoration: BoxDecoration(
-                    color: const Color(FlickoColors.bgSecondary),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    children: plan.features.asMap().entries.map((entry) {
-                      final i = entry.key;
-                      final feat = entry.value;
-                      return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        decoration: BoxDecoration(
-                          border: i < plan.features.length - 1
-                              ? const Border(bottom: BorderSide(color: Color(0xFF232428)))
-                              : null,
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              feat.included ? Icons.check_circle : Icons.cancel,
-                              size: 20,
-                              color: feat.included ? const Color(0xFF57F287) : const Color(FlickoColors.textMuted),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                feat.text,
-                                style: GoogleFonts.inter(
-                                  color: feat.included
-                                      ? const Color(FlickoColors.textPrimary)
-                                      : const Color(FlickoColors.textMuted),
-                                  fontSize: 14,
-                                  decoration: feat.included ? null : TextDecoration.lineThrough,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Perks grid
-                Text(
-                  'WHY GO PREMIUM',
-                  style: GoogleFonts.inter(
-                    color: const Color(FlickoColors.textMuted),
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 1.3,
-                    crossAxisSpacing: 8,
-                    mainAxisSpacing: 8,
-                  ),
-                  itemCount: _perks.length,
-                  itemBuilder: (context, index) {
-                    final perk = _perks[index];
-                    return Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(FlickoColors.bgSecondary),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(colors: perk.gradient),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(perk.icon, size: 20, color: Colors.white),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            perk.title,
-                            style: GoogleFonts.inter(
-                              color: const Color(FlickoColors.textPrimary),
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            perk.description,
-                            style: GoogleFonts.inter(
-                              color: const Color(FlickoColors.textSecondary),
-                              fontSize: 11,
-                              height: 1.4,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 24),
-
-                // FAQ note
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(FlickoColors.bgSecondary),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.info_outline, size: 20, color: Color(FlickoColors.textMuted)),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'Subscriptions are managed through your app store. You can cancel anytime from your device settings.',
-                          style: GoogleFonts.inter(
-                            color: const Color(FlickoColors.textSecondary),
-                            fontSize: 12,
-                            height: 1.5,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Dev badge
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0x14FAA61A),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0x33FAA61A)),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.construction, size: 14, color: Color(0xFFFAA61A)),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Dev Mode — No real charges. Subscriptions are mocked.',
-                          style: GoogleFonts.inter(
-                            color: const Color(0xFFFAA61A),
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 100),
-              ]),
+            const SizedBox(height: 32),
+            
+            // Feature Matrix
+            Text(
+              'FEATURE CAPABILITY MATRIX',
+              style: GoogleFonts.spaceGrotesk(
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.5,
+                color: const Color(FlickoColors.textMuted),
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 12),
+            _buildMatrixTable(),
+            
+            const SizedBox(height: 32),
+            
+            // Stripe Banner
+            _buildSecurityBanner(),
+            const SizedBox(height: 40),
+          ],
+        ),
       ),
       bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         decoration: const BoxDecoration(
-          color: Color(FlickoColors.bgPrimary),
-          border: Border(top: BorderSide(color: Color(0xFF232428))),
+          color: Color(0xFF000000),
+          border: Border(top: BorderSide(color: Color(0xFF232428), width: 2)),
         ),
         child: SafeArea(
           child: ElevatedButton(
-            onPressed: _isPurchasing ? null : () => _handlePurchase(plan),
+            onPressed: _isPurchasing ? null : _handlePurchase,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(FlickoColors.blurple),
+              backgroundColor: accentColor,
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              disabledBackgroundColor: const Color(FlickoColors.bgTertiary),
+              padding: const EdgeInsets.symmetric(vertical: 18),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 0,
             ),
             child: _isPurchasing
                 ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
                   )
-                  : Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(plan.icon, size: 18),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Subscribe — $price/${_billing == 'monthly' ? 'month' : 'year'}',
-                        style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600),
-                      ),
-                    ],
+                : Text(
+                    'DEPLOY SYSTEM — $price / ${_billing == 'monthly' ? 'mo' : 'yr'}',
+                    style: GoogleFonts.spaceGrotesk(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 15,
+                      letterSpacing: 1.0,
+                    ),
                   ),
           ),
         ),
@@ -639,7 +159,248 @@ class _FlickoPlusScreenState extends ConsumerState<FlickoPlusScreen> {
     );
   }
 
-  Future<void> _handlePurchase(_Plan plan) async {
+  Widget _buildPlanSelectCard(String planId, String title, String basePrice, Color color) {
+    final isSelected = _selectedPlan == planId;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedPlan = planId),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFF000000),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? color : const Color(0xFF232428),
+            width: isSelected ? 2.5 : 2.0,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: GoogleFonts.spaceGrotesk(
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+                color: isSelected ? color : const Color(FlickoColors.textMuted),
+                letterSpacing: 1.5,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              basePrice,
+              style: GoogleFonts.spaceGrotesk(
+                fontSize: 24,
+                fontWeight: FontWeight.w900,
+                color: const Color(FlickoColors.textPrimary),
+              ),
+            ),
+            Text(
+              'Base monthly rate',
+              style: GoogleFonts.inter(fontSize: 11, color: const Color(FlickoColors.textSecondary)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBillingCycleToggle() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(6),
+      decoration: BoxDecoration(
+        color: const Color(0xFF000000),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF232428), width: 2),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _billing = 'monthly'),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: _billing == 'monthly' ? const Color(0xFF18191C) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Center(
+                  child: Text(
+                    'MONTHLY BILLING',
+                    style: GoogleFonts.spaceGrotesk(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 11,
+                      letterSpacing: 1.0,
+                      color: _billing == 'monthly' ? const Color(FlickoColors.textPrimary) : const Color(FlickoColors.textMuted),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _billing = 'yearly'),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: _billing == 'yearly' ? const Color(0xFF18191C) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Center(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'YEARLY PROTOCOL',
+                        style: GoogleFonts.spaceGrotesk(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 11,
+                          letterSpacing: 1.0,
+                          color: _billing == 'yearly' ? const Color(FlickoColors.textPrimary) : const Color(FlickoColors.textMuted),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(FlickoColors.green).withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          'SAVE',
+                          style: GoogleFonts.spaceGrotesk(fontSize: 8, fontWeight: FontWeight.w900, color: const Color(FlickoColors.green)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMatrixTable() {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF000000),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF232428), width: 2),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Table(
+        border: const TableBorder(
+          horizontalInside: BorderSide(color: Color(0xFF232428), width: 1.5),
+          verticalInside: BorderSide(color: Color(0xFF232428), width: 1.5),
+        ),
+        columnWidths: const {
+          0: FlexColumnWidth(2),
+          1: FlexColumnWidth(1),
+          2: FlexColumnWidth(1),
+        },
+        children: [
+          TableRow(
+            decoration: const BoxDecoration(color: Color(0xFF0D0E10)),
+            children: [
+              _buildTableCell('FEATURE', isHeader: true),
+              _buildTableCell('BASIC', isHeader: true, align: TextAlign.center),
+              _buildTableCell('PLUS', isHeader: true, align: TextAlign.center),
+            ],
+          ),
+          ..._featureMatrix.map((row) {
+            return TableRow(
+              children: [
+                _buildTableCell(row['feature'], isFeatureName: true),
+                _buildTableCellValue(row['basic']),
+                _buildTableCellValue(row['plus'], isPremiumColumn: true),
+              ],
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTableCell(String text, {bool isHeader = false, bool isFeatureName = false, TextAlign align = TextAlign.left}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      child: Text(
+        text,
+        textAlign: align,
+        style: GoogleFonts.spaceGrotesk(
+          fontSize: isHeader ? 10 : 13,
+          fontWeight: isHeader ? FontWeight.w900 : (isFeatureName ? FontWeight.bold : FontWeight.w500),
+          letterSpacing: isHeader ? 1.0 : 0.0,
+          color: isHeader 
+              ? const Color(FlickoColors.textMuted) 
+              : (isFeatureName ? const Color(FlickoColors.textPrimary) : const Color(FlickoColors.textSecondary)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTableCellValue(dynamic val, {bool isPremiumColumn = false}) {
+    if (val is bool) {
+      return Container(
+        height: 50,
+        alignment: Alignment.center,
+        child: Icon(
+          val ? Icons.check_circle_rounded : Icons.circle_outlined,
+          size: 16,
+          color: val 
+              ? (isPremiumColumn ? const Color(FlickoColors.pink) : const Color(FlickoColors.blurple))
+              : const Color(0xFF232428),
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Text(
+        val.toString(),
+        textAlign: TextAlign.center,
+        style: GoogleFonts.spaceGrotesk(
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+          color: isPremiumColumn ? const Color(FlickoColors.textPrimary) : const Color(FlickoColors.textSecondary),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSecurityBanner() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0D0E10),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF232428), width: 1),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.lock_outline, color: Color(FlickoColors.textMuted), size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'SECURE PAYMENT VIA STRIPE.\nTransactions are encrypted and fully compliant with global finance standards.',
+              style: GoogleFonts.inter(
+                fontSize: 11,
+                color: const Color(FlickoColors.textMuted),
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handlePurchase() async {
     setState(() => _isPurchasing = true);
 
     try {
@@ -647,7 +408,7 @@ class _FlickoPlusScreenState extends ConsumerState<FlickoPlusScreen> {
       
       // 1. Create PaymentIntent on backend
       final paymentData = await stripeService.createPaymentIntent(
-        plan: plan.id == 'plus' ? SubscriptionPlan.plus : SubscriptionPlan.basic,
+        plan: _selectedPlan == 'plus' ? SubscriptionPlan.plus : SubscriptionPlan.basic,
         billingCycle: _billing == 'monthly' ? BillingCycle.monthly : BillingCycle.yearly,
       );
 
@@ -665,7 +426,7 @@ class _FlickoPlusScreenState extends ConsumerState<FlickoPlusScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Welcome to Flicko ${plan.name}!'),
+          content: Text('Successfully subscribed to Flicko ${_selectedPlan.toUpperCase()}!'),
           backgroundColor: Colors.green,
         ),
       );
@@ -674,7 +435,7 @@ class _FlickoPlusScreenState extends ConsumerState<FlickoPlusScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Payment failed: ${e.toString()}'),
+          content: Text('System integration failed: ${e.toString()}'),
           backgroundColor: Colors.red,
         ),
       );

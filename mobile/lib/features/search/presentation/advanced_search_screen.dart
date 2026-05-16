@@ -46,22 +46,20 @@ class _AdvancedSearchScreenState extends ConsumerState<AdvancedSearchScreen> {
 
     try {
       // Search messages in Supabase
-      final queryBuilder = Supabase.instance.client
+      var queryBuilder = Supabase.instance.client
           .from('messages')
           .select('*, profiles!inner(username, display_name, avatar_url)')
-          .ilike('content', '%$query%')
-          .order('created_at', ascending: false)
-          .limit(50);
+          .ilike('content', '%$query%');
 
       if (widget.channelId != null) {
-        queryBuilder.eq('channel_id', widget.channelId);
+        queryBuilder = queryBuilder.eq('channel_id', widget.channelId!);
       }
 
       if (widget.serverId != null) {
-        queryBuilder.eq('server_id', widget.serverId);
+        queryBuilder = queryBuilder.eq('server_id', widget.serverId!);
       }
 
-      final response = await queryBuilder;
+      final response = await queryBuilder.order('created_at', ascending: false).limit(50);
 
       setState(() {
         _results = (response as List).cast<Map<String, dynamic>>();

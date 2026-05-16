@@ -4,7 +4,7 @@ part 'voice_models.freezed.dart';
 part 'voice_models.g.dart';
 
 @freezed
-class VoiceState with _$VoiceState {
+abstract class VoiceState with _$VoiceState {
   const factory VoiceState({
     required String channelId,
     required String userId,
@@ -20,7 +20,7 @@ class VoiceState with _$VoiceState {
 }
 
 @freezed
-class VoiceParticipant with _$VoiceParticipant {
+abstract class VoiceParticipant with _$VoiceParticipant {
   const factory VoiceParticipant({
     required String participantSid, // LiveKit SID
     required String userId,         // Supabase user ID

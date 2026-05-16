@@ -29,9 +29,7 @@ class _AuditLogScreenState extends ConsumerState<AuditLogScreen> {
       var query = Supabase.instance.client
           .from('audit_logs')
           .select('*, profiles:actor_id(id, username, avatar)')
-          .eq('server_id', widget.serverId)
-          .order('created_at', ascending: false)
-          .limit(100);
+          .eq('server_id', widget.serverId);
 
       // Filtering logic based on typical action types
       if (_selectedFilter == 'Member Updates') {
@@ -42,7 +40,7 @@ class _AuditLogScreenState extends ConsumerState<AuditLogScreen> {
         query = query.inFilter('action_type', ['role_create', 'role_update', 'role_delete']);
       }
 
-      final response = await query;
+      final response = await query.order('created_at', ascending: false).limit(100);
       if (mounted) {
         setState(() {
           _logs = List<Map<String, dynamic>>.from(response);

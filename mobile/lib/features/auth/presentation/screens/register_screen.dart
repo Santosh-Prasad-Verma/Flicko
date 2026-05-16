@@ -6,7 +6,8 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
-import 'package:mobile/features/auth/providers/auth_provider.dart';
+import 'package:mobile/features/shared/presentation/widgets/keyboard_dismiss_on_tap.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 /// Register Screen — Discord-inspired
 ///
@@ -34,10 +35,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   bool _isLoading = false;
   bool _tosAccepted = false;
   String? _tosError;
-  bool _checkingUsername = false;
   bool _showResend = false;
   bool _resendLoading = false;
-  String? _resendMessage;
   String? _oauthLoading;
   
   Timer? _usernameCheckTimer;
@@ -89,8 +88,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 
   Future<void> _checkUsernameAvailability(String name) async {
-    setState(() => _checkingUsername = true);
-    
     try {
       final supabase = Supabase.instance.client;
       final data = await supabase
@@ -99,13 +96,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           .ilike('username', name)
           .limit(1);
           
-      if (data != null && data.isNotEmpty) {
+      if (data.isNotEmpty) {
         setState(() => _usernameError = 'Username is already taken');
       }
-    } catch (e) {
-      // Silently ignore network errors during check
     } finally {
-      setState(() => _checkingUsername = false);
     }
   }
 
@@ -185,7 +179,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     
     setState(() {
       _resendLoading = true;
-      _resendMessage = null;
+      _successMessage = null;
     });
 
     try {
@@ -196,10 +190,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       );
       
       setState(() => 
-        _resendMessage = 'Confirmation email sent! Check your inbox and spam folder.'
+        _successMessage = 'Confirmation email sent! Check your inbox and spam folder.'
       );
     } catch (e) {
-      setState(() => _resendMessage = 'Could not resend — try again in a minute.');
+      setState(() => _generalError = 'Could not resend — try again in a minute.');
     } finally {
       setState(() => _resendLoading = false);
     }
@@ -224,7 +218,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           .ilike('username', trimmedUsername)
           .limit(1);
           
-      if (existing != null && existing.isNotEmpty) {
+      if (existing.isNotEmpty) {
         setState(() => _usernameError = 'Username is already taken');
         setState(() => _isLoading = false);
         return;
@@ -262,8 +256,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           );
           
           if (signInResponse.user != null) {
-            ref.read(authProvider.notifier).setAuthenticated(true);
-            ref.read(authProvider.notifier).setUser(signInResponse.user!);
+            // Auth state automatically updated via authNotifierProvider listener
             if (mounted) {
               context.go('/');
             }
@@ -282,8 +275,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
       // Registration successful
       if (response.session != null) {
-        ref.read(authProvider.notifier).setAuthenticated(true);
-        ref.read(authProvider.notifier).setUser(response.user!);
+        // Auth state automatically updated via authNotifierProvider listener
         if (mounted) {
           context.go('/');
         }
@@ -338,58 +330,59 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     final topPadding = MediaQuery.of(context).padding.top;
 
     return Scaffold(
-      backgroundColor: const Color(FlickoColors.bgPrimary),
-      body: GestureDetector(
-        onTap: () => FocusScope.of(context).unfocus(),
-        behavior: HitTestBehavior.translucent,
+      backgroundColor: const Color(FlickoColors.black),
+      body: KeyboardDismissOnTap(
         child: SingleChildScrollView(
           padding: EdgeInsets.only(
-            top: topPadding + 24,
-            bottom: bottomPadding + 30,
-            left: 28,
-            right: 28,
+            top: topPadding + 60,
+            bottom: bottomPadding + 40,
+            left: 24,
+            right: 24,
           ),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight: MediaQuery.of(context).size.height - topPadding - bottomPadding - 54,
-            ),
-            child: IntrinsicHeight(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Back button
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: GestureDetector(
-                      onTap: _navigateToLogin,
-                      child: Text(
-                        '< Back',
-                        style: GoogleFonts.inter(
-                          color: const Color(FlickoColors.textSecondary),
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                        ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Logo
+              _buildLogo(),
+              
+              const SizedBox(height: 40),
+              
+              // Header
+              _buildHeader(),
+              
+              const SizedBox(height: 48),
+              
+              // Form
+              _buildForm(),
+              
+              const SizedBox(height: 40),
+              
+              // Footer
+              Center(
+                child: GestureDetector(
+                  onTap: _navigateToLogin,
+                  child: RichText(
+                    text: TextSpan(
+                      style: GoogleFonts.inter(
+                        color: const Color(FlickoColors.textMuted),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.5,
                       ),
+                      children: [
+                        const TextSpan(text: 'ALREADY HAVE AN ACCOUNT? '),
+                        TextSpan(
+                          text: 'LOG IN',
+                          style: TextStyle(
+                            color: const Color(FlickoColors.brandLime),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  
-                  const SizedBox(height: 12),
-                  
-                  // Logo
-                  _buildLogo(),
-                  
-                  const SizedBox(height: 12),
-                  
-                  // Header
-                  _buildHeader(),
-                  
-                  const SizedBox(height: 20),
-                  
-                  // Form
-                  _buildForm(),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),
@@ -397,44 +390,48 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 
   Widget _buildLogo() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: const Color(FlickoColors.blurple),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: const Icon(
-            Icons.chat_bubble,
-            color: Colors.white,
-            size: 26,
-          ),
+    return Image.asset(
+      'assets/images/Flicko-for-black-background.png',
+      width: 120,
+      height: 40,
+      fit: BoxFit.contain,
+      errorBuilder: (context, error, stackTrace) => Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: const Color(FlickoColors.brandLime),
+          borderRadius: BorderRadius.circular(8),
         ),
-        const SizedBox(width: 10),
-        Text(
-          'Flicko',
-          style: GoogleFonts.pacifico(
-            color: const Color(FlickoColors.textPrimary),
-            fontSize: 28,
-            letterSpacing: 0.5,
-          ),
-        ),
-      ],
+        child: const Icon(Icons.flash_on, color: Colors.black),
+      ),
     );
   }
 
   Widget _buildHeader() {
-    return Text(
-      'Create an account',
-      style: GoogleFonts.inter(
-        color: const Color(FlickoColors.textPrimary),
-        fontSize: 25,
-        fontWeight: FontWeight.w700,
-        letterSpacing: -0.3,
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'CREATE\nACCOUNT.',
+          style: GoogleFonts.inter(
+            color: const Color(FlickoColors.textPrimary),
+            fontSize: 48,
+            fontWeight: FontWeight.w900,
+            height: 0.9,
+            letterSpacing: -1.5,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          "JOIN THE FLICKO COMMUNITY",
+          style: GoogleFonts.inter(
+            color: const Color(FlickoColors.textMuted),
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.2,
+          ),
+        ),
+      ],
     );
   }
 
@@ -451,159 +448,238 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         // Email Field
         _buildTextField(
           label: 'EMAIL',
-          hint: 'Enter your email address',
+          hint: 'YOUR@EMAIL.COM',
           controller: _emailController,
           error: _emailError,
           keyboardType: TextInputType.emailAddress,
-          onChanged: () {
+          onChanged: (val) {
             if (_emailError != null) {
               setState(() => _emailError = null);
             }
           },
         ),
         
-        const SizedBox(height: 16),
+        const SizedBox(height: 24),
         
         // Username Field
         _buildTextField(
           label: 'USERNAME',
-          hint: 'Choose a username',
+          hint: 'CHOOSE_A_NAME',
           controller: _usernameController,
           error: _usernameError,
-          hintText: _checkingUsername ? 'Checking availability...' : null,
           onChanged: _handleUsernameChange,
         ),
         
-        const SizedBox(height: 16),
+        const SizedBox(height: 24),
         
         // Password Field
         _buildTextField(
           label: 'PASSWORD',
-          hint: 'Create a password',
+          hint: '••••••••',
           controller: _passwordController,
           error: _passwordError,
           isPassword: true,
-          onChanged: () {
+          onChanged: (val) {
             if (_passwordError != null) {
               setState(() => _passwordError = null);
             }
           },
         ),
         
-        const SizedBox(height: 16),
+        const SizedBox(height: 24),
         
         // Confirm Password Field
         _buildTextField(
           label: 'CONFIRM PASSWORD',
-          hint: 'Confirm your password',
+          hint: '••••••••',
           controller: _confirmPasswordController,
           error: _confirmError,
           isPassword: true,
           onSubmitted: _handleRegister,
-          onChanged: () {
+          onChanged: (val) {
             if (_confirmError != null) {
               setState(() => _confirmError = null);
             }
           },
         ),
         
-        const SizedBox(height: 16),
+        const SizedBox(height: 24),
         
         // TOS Checkbox
         _buildTOSCheckbox(),
         
         if (_tosError != null) ...[
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
           Text(
             _tosError!,
             style: GoogleFonts.inter(
               color: const Color(FlickoColors.danger),
-              fontSize: 11,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
         
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
         
         // Register Button
+        _buildStyledButton(
+          label: 'CREATE ACCOUNT',
+          onPressed: _isLoading ? null : _handleRegister,
+          isLoading: _isLoading,
+          color: const Color(FlickoColors.brandLime),
+          textColor: Colors.black,
+        ),
+        
+        const SizedBox(height: 16),
+        
+        // OAuth Divider
+        _buildOAuthDivider(),
+        
+        const SizedBox(height: 16),
+        
+        // OAuth Buttons
+        Row(
+          children: [
+            Expanded(
+              child: _buildSocialButton(
+                label: 'GOOGLE',
+                iconPath: 'assets/icons/google.svg',
+                onTap: () => _handleOAuth('google'),
+                loading: _oauthLoading == 'google',
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildSocialButton(
+                label: 'GITHUB',
+                iconPath: 'assets/icons/github.svg',
+                onTap: () => _handleOAuth('github'),
+                loading: _oauthLoading == 'github',
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStyledButton({
+    required String label,
+    required VoidCallback? onPressed,
+    bool isLoading = false,
+    required Color color,
+    required Color textColor,
+  }) {
+    return Stack(
+      children: [
+        // Shadow Box
+        Container(
+          width: double.infinity,
+          height: 56,
+          margin: const EdgeInsets.only(top: 4, left: 4),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: Colors.white, width: 2),
+          ),
+        ),
+        // Main Button
         SizedBox(
           width: double.infinity,
-          height: 44,
+          height: 56,
           child: ElevatedButton(
-            onPressed: _isLoading ? null : _handleRegister,
+            onPressed: onPressed,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(FlickoColors.blurple),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(3),
+              backgroundColor: color,
+              foregroundColor: textColor,
+              elevation: 0,
+              shape: const RoundedRectangleBorder(
+                side: BorderSide(color: Colors.black, width: 2),
               ),
-              disabledBackgroundColor: const Color(FlickoColors.blurple).withOpacity(0.5),
+              padding: EdgeInsets.zero,
             ),
-            child: _isLoading
+            child: isLoading
                 ? const SizedBox(
                     width: 20,
                     height: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
                     ),
                   )
                 : Text(
-                    'Continue',
+                    label,
                     style: GoogleFonts.inter(
                       fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.0,
                     ),
                   ),
           ),
         ),
-        
-        const SizedBox(height: 20),
-        
-        // OAuth Divider
-        _buildOAuthDivider(),
-        
-        const SizedBox(height: 20),
-        
-        // OAuth Buttons
-        _buildOAuthButton(
-          icon: Icons.g_mobiledata,
-          label: _oauthLoading == 'google' ? 'Signing up...' : 'Continue with Google',
-          onTap: () => _handleOAuth('google'),
-          loading: _oauthLoading == 'google',
+      ],
+    );
+  }
+
+  Widget _buildSocialButton({
+    required String label,
+    required String iconPath,
+    required VoidCallback onTap,
+    bool loading = false,
+  }) {
+    return Stack(
+      children: [
+        // Lime Shadow
+        Container(
+          width: double.infinity,
+          height: 50,
+          margin: const EdgeInsets.only(top: 4, left: 4),
+          decoration: BoxDecoration(
+            color: const Color(FlickoColors.brandLime),
+          ),
         ),
-        
-        const SizedBox(height: 10),
-        
-        _buildOAuthButton(
-          icon: Icons.discord,
-          label: _oauthLoading == 'discord' ? 'Signing up...' : 'Continue with Discord',
-          onTap: () => _handleOAuth('discord'),
-          iconColor: const Color(0xFF5865F2),
-          loading: _oauthLoading == 'discord',
-        ),
-        
-        const SizedBox(height: 10),
-        
-        _buildOAuthButton(
-          icon: Icons.code,
-          label: _oauthLoading == 'github' ? 'Signing up...' : 'Continue with GitHub',
-          onTap: () => _handleOAuth('github'),
-          loading: _oauthLoading == 'github',
-        ),
-        
-        const SizedBox(height: 16),
-        
-        // Login Link
-        GestureDetector(
-          onTap: _navigateToLogin,
-          child: Text(
-            'Already have an account?',
-            style: GoogleFonts.inter(
-              color: const Color(FlickoColors.blurple),
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
+        // Button
+        SizedBox(
+          width: double.infinity,
+          height: 50,
+          child: OutlinedButton(
+            onPressed: loading ? null : onTap,
+            style: OutlinedButton.styleFrom(
+              backgroundColor: Colors.black,
+              foregroundColor: Colors.white,
+              side: const BorderSide(color: Colors.white, width: 1.5),
+              shape: const RoundedRectangleBorder(),
+              padding: EdgeInsets.zero,
             ),
+            child: loading
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SvgPicture.asset(
+                        iconPath,
+                        width: 20,
+                        height: 20,
+                        placeholderBuilder: (context) => const Icon(Icons.login, size: 20, color: Colors.white),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        label,
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
           ),
         ),
       ],
@@ -616,7 +692,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       padding: const EdgeInsets.all(12),
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: const Color(FlickoColors.success).withOpacity(0.1),
+        color: const Color(FlickoColors.success).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -626,35 +702,24 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             style: GoogleFonts.inter(
               color: const Color(FlickoColors.success),
               fontSize: 14,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600,
             ),
             textAlign: TextAlign.center,
           ),
           if (_showResend) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             GestureDetector(
               onTap: _resendLoading ? null : _handleResend,
               child: Text(
-                _resendLoading ? 'Sending...' : 'Resend confirmation email',
+                _resendLoading ? 'SENDING...' : 'RESEND VERIFICATION',
                 style: GoogleFonts.inter(
-                  color: const Color(FlickoColors.blurple),
+                  color: const Color(FlickoColors.brandLime),
                   fontSize: 13,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w800,
                   decoration: TextDecoration.underline,
                 ),
               ),
             ),
-            if (_resendMessage != null) ...[
-              const SizedBox(height: 6),
-              Text(
-                _resendMessage!,
-                style: GoogleFonts.inter(
-                  color: const Color(FlickoColors.success),
-                  fontSize: 12,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
           ],
         ],
       ),
@@ -667,7 +732,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       padding: const EdgeInsets.all(12),
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: const Color(FlickoColors.danger).withOpacity(0.1),
+        color: const Color(FlickoColors.danger).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
@@ -675,7 +740,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         style: GoogleFonts.inter(
           color: const Color(FlickoColors.danger),
           fontSize: 14,
-          fontWeight: FontWeight.w500,
+          fontWeight: FontWeight.w600,
         ),
         textAlign: TextAlign.center,
       ),
@@ -701,11 +766,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           style: GoogleFonts.inter(
             color: const Color(FlickoColors.textSecondary),
             fontSize: 12,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.5,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.0,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         TextField(
           controller: controller,
           obscureText: isPassword,
@@ -713,9 +778,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           onChanged: onChanged,
           onSubmitted: (_) => onSubmitted?.call(),
           style: GoogleFonts.inter(
-            color: const Color(FlickoColors.textPrimary),
+            color: Colors.white,
             fontSize: 16,
+            fontWeight: FontWeight.w600,
           ),
+          cursorColor: const Color(FlickoColors.brandLime),
           decoration: InputDecoration(
             hintText: hint,
             helperText: hintText,
@@ -724,32 +791,64 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               fontSize: 12,
             ),
             hintStyle: GoogleFonts.inter(
-              color: const Color(FlickoColors.textMuted),
+              color: const Color(0xFF333333),
               fontSize: 16,
+              fontWeight: FontWeight.w600,
             ),
             filled: true,
-            fillColor: const Color(FlickoColors.bgSecondary),
+            fillColor: const Color(0xFF0F0F0F),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(3),
-              borderSide: BorderSide.none,
+              borderRadius: BorderRadius.zero,
+              borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1), width: 1),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(3),
-              borderSide: BorderSide.none,
+              borderRadius: BorderRadius.zero,
+              borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1), width: 1),
             ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(3),
-              borderSide: const BorderSide(color: Color(FlickoColors.blurple)),
+            focusedBorder: const OutlineInputBorder(
+              borderRadius: BorderRadius.zero,
+              borderSide: BorderSide(color: Color(FlickoColors.brandLime), width: 2),
             ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(3),
-              borderSide: const BorderSide(color: Color(FlickoColors.danger)),
+            errorBorder: const OutlineInputBorder(
+              borderRadius: BorderRadius.zero,
+              borderSide: BorderSide(color: Colors.red, width: 1),
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
-              vertical: 12,
+              vertical: 18,
             ),
             errorText: error,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildOAuthDivider() {
+    return Row(
+      children: [
+        Expanded(
+          child: Container(
+            height: 1,
+            color: Colors.white.withValues(alpha: 0.1),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Text(
+            'OR',
+            style: GoogleFonts.inter(
+              color: const Color(FlickoColors.textMuted),
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Container(
+            height: 1,
+            color: Colors.white.withValues(alpha: 0.1),
           ),
         ),
       ],
@@ -765,135 +864,59 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         });
       },
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            width: 20,
-            height: 20,
-            margin: const EdgeInsets.only(top: 1),
+            width: 24,
+            height: 24,
             decoration: BoxDecoration(
               color: _tosAccepted 
-                  ? const Color(FlickoColors.blurple) 
+                  ? const Color(FlickoColors.brandLime) 
                   : Colors.transparent,
               border: Border.all(
                 color: _tosError != null 
                     ? const Color(FlickoColors.danger)
                     : _tosAccepted 
-                        ? const Color(FlickoColors.blurple)
-                        : const Color(FlickoColors.textMuted),
+                        ? const Color(FlickoColors.brandLime)
+                        : Colors.white.withValues(alpha: 0.3),
                 width: 2,
               ),
-              borderRadius: BorderRadius.circular(5),
+              borderRadius: BorderRadius.zero,
             ),
             child: _tosAccepted
                 ? const Icon(
                     Icons.check,
-                    color: Colors.white,
-                    size: 14,
+                    color: Colors.black,
+                    size: 16,
+                    weight: 900,
                   )
                 : null,
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Expanded(
             child: RichText(
               text: TextSpan(
                 style: GoogleFonts.inter(
                   color: const Color(FlickoColors.textMuted),
                   fontSize: 12,
-                  height: 1.5,
+                  fontWeight: FontWeight.w600,
                 ),
                 children: [
-                  const TextSpan(text: 'I agree to Flicko\'s '),
+                  const TextSpan(text: 'I AGREE TO THE '),
                   TextSpan(
-                    text: 'Terms of Service',
-                    style: GoogleFonts.inter(
-                      color: const Color(FlickoColors.blurple),
-                      fontWeight: FontWeight.w600,
-                    ),
+                    text: 'TERMS OF SERVICE',
+                    style: TextStyle(color: const Color(FlickoColors.brandLime)),
                   ),
-                  const TextSpan(text: ' and '),
+                  const TextSpan(text: ' AND '),
                   TextSpan(
-                    text: 'Privacy Policy',
-                    style: GoogleFonts.inter(
-                      color: const Color(FlickoColors.blurple),
-                      fontWeight: FontWeight.w600,
-                    ),
+                    text: 'PRIVACY POLICY',
+                    style: TextStyle(color: const Color(FlickoColors.brandLime)),
                   ),
                 ],
               ),
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildOAuthDivider() {
-    return Row(
-      children: [
-        Expanded(
-          child: Container(
-            height: 1,
-            color: const Color(FlickoColors.bgTertiary),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Text(
-            'OR',
-            style: GoogleFonts.inter(
-              color: const Color(FlickoColors.textMuted),
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1,
-            ),
-          ),
-        ),
-        Expanded(
-          child: Container(
-            height: 1,
-            color: const Color(FlickoColors.bgTertiary),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildOAuthButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-    Color? iconColor,
-    bool loading = false,
-  }) {
-    return GestureDetector(
-      onTap: loading ? null : onTap,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: const Color(FlickoColors.bgSecondary),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              color: iconColor ?? const Color(FlickoColors.textPrimary),
-              size: 20,
-            ),
-            const SizedBox(width: 10),
-            Text(
-              label,
-              style: GoogleFonts.inter(
-                color: const Color(FlickoColors.textPrimary),
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

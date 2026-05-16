@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mobile/core/theme/flicko_colors.dart';
-import 'package:mobile/core/theme/flicko_radius.dart';
-import 'package:mobile/core/theme/flicko_spacing.dart';
+import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/voice/application/music_notifier.dart';
 import 'package:mobile/data/models/music_model.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -35,7 +33,7 @@ class _MusicSearchSheetState extends ConsumerState<MusicSearchSheet> {
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
       decoration: BoxDecoration(
-        color: FlickoColors.bgPrimary,
+        color: const Color(FlickoColors.bgPrimary),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(FlickoRadius.lg)),
       ),
       child: Column(
@@ -47,7 +45,7 @@ class _MusicSearchSheetState extends ConsumerState<MusicSearchSheet> {
               height: 4,
               margin: const EdgeInsets.symmetric(vertical: 12),
               decoration: BoxDecoration(
-                color: FlickoColors.textMuted.withOpacity(0.3),
+                color: const Color(FlickoColors.textMuted).withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -64,12 +62,12 @@ class _MusicSearchSheetState extends ConsumerState<MusicSearchSheet> {
                   style: GoogleFonts.inter(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: FlickoColors.textPrimary,
+                    color: const Color(FlickoColors.textPrimary),
                   ),
                 ),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close, color: FlickoColors.textMuted),
+                  icon: const Icon(Icons.close, color: Color(FlickoColors.textMuted)),
                 ),
               ],
             ),
@@ -81,13 +79,13 @@ class _MusicSearchSheetState extends ConsumerState<MusicSearchSheet> {
             child: TextField(
               controller: _searchController,
               onChanged: _onSearch,
-              style: const TextStyle(color: FlickoColors.textPrimary),
+              style: const TextStyle(color: Color(FlickoColors.textPrimary)),
               decoration: InputDecoration(
                 hintText: 'Search for songs, artists, or albums...',
-                hintStyle: const TextStyle(color: FlickoColors.textMuted),
-                prefixIcon: const Icon(Icons.search, color: FlickoColors.textMuted),
+                hintStyle: const TextStyle(color: Color(FlickoColors.textMuted)),
+                prefixIcon: const Icon(Icons.search, color: Color(FlickoColors.textMuted)),
                 filled: true,
-                fillColor: FlickoColors.bgSecondary,
+                fillColor: const Color(FlickoColors.bgSecondary),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(FlickoRadius.md),
                   borderSide: BorderSide.none,
@@ -115,10 +113,10 @@ class _MusicSearchSheetState extends ConsumerState<MusicSearchSheet> {
                         _onSearch(_searchController.text);
                       }
                     },
-                    selectedColor: FlickoColors.accentPrimary,
-                    backgroundColor: FlickoColors.bgSecondary,
+                    selectedColor: const Color(FlickoColors.accentPrimary),
+                    backgroundColor: const Color(FlickoColors.bgSecondary),
                     labelStyle: TextStyle(
-                      color: isSelected ? Colors.white : FlickoColors.textMuted,
+                      color: isSelected ? Colors.white : const Color(FlickoColors.textMuted),
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
                     ),
@@ -147,7 +145,7 @@ class _MusicSearchSheetState extends ConsumerState<MusicSearchSheet> {
                               height: 50,
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(FlickoRadius.sm),
-                                color: FlickoColors.bgSecondary,
+                                color: const Color(FlickoColors.bgSecondary),
                                 image: item.imageUrl != null
                                     ? DecorationImage(
                                         image: NetworkImage(item.imageUrl!),
@@ -156,13 +154,13 @@ class _MusicSearchSheetState extends ConsumerState<MusicSearchSheet> {
                                     : null,
                               ),
                               child: item.imageUrl == null
-                                  ? const Icon(Icons.music_note, color: FlickoColors.textMuted)
+                                  ? const Icon(Icons.music_note, color: Color(FlickoColors.textMuted))
                                   : null,
                             ),
                             title: Text(
                               item.name,
                               style: const TextStyle(
-                                color: FlickoColors.textPrimary,
+                                color: Color(FlickoColors.textPrimary),
                                 fontWeight: FontWeight.bold,
                               ),
                               maxLines: 1,
@@ -170,12 +168,12 @@ class _MusicSearchSheetState extends ConsumerState<MusicSearchSheet> {
                             ),
                             subtitle: Text(
                               item.artistName,
-                              style: const TextStyle(color: FlickoColors.textMuted),
+                              style: const TextStyle(color: Color(FlickoColors.textMuted)),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
                             trailing: IconButton(
-                              icon: const Icon(Icons.add_circle_outline, color: FlickoColors.accentPrimary),
+                              icon: const Icon(Icons.add_circle_outline, color: Color(FlickoColors.accentPrimary)),
                               onPressed: () {
                                 ref.read(musicNotifierProvider.notifier).addToQueue(item);
                                 ScaffoldMessenger.of(context).showSnackBar(
@@ -200,11 +198,11 @@ class _MusicSearchSheetState extends ConsumerState<MusicSearchSheet> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.library_music, size: 64, color: FlickoColors.textMuted.withOpacity(0.2)),
+          Icon(Icons.library_music, size: 64, color: const Color(FlickoColors.textMuted).withValues(alpha: 0.2)),
           const SizedBox(height: 16),
           Text(
             _searchController.text.isEmpty ? 'Search for music to play in the channel' : 'No results found',
-            style: const TextStyle(color: FlickoColors.textMuted),
+            style: const TextStyle(color: Color(FlickoColors.textMuted)),
           ),
         ],
       ),

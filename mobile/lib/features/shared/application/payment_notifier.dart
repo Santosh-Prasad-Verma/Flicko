@@ -10,9 +10,7 @@ import 'package:mobile/data/services/stripe_service.dart';
 ///   CreatePaymentIntent → InitPaymentSheet → PresentPaymentSheet
 ///
 /// Also exposes subscription management (fetch, cancel, restore).
-final paymentNotifierProvider = StateNotifierProvider<PaymentNotifier, PaymentState>((ref) {
-  return PaymentNotifier(ref.watch(stripeServiceProvider));
-});
+final paymentNotifierProvider = NotifierProvider<PaymentNotifier, PaymentState>(PaymentNotifier.new);
 
 /// Convenience provider that exposes the current user subscription.
 ///
@@ -23,16 +21,20 @@ final currentSubscriptionProvider = FutureProvider<SubscriptionModel?>((ref) asy
   return stripeService.fetchSubscription();
 });
 
-/// State notifier that orchestrates the Stripe payment flow.
+/// Notifier that orchestrates the Stripe payment flow.
 ///
 /// Pattern mirrors [AuthNotifier]:
 ///   - Union-based states via freezed ([PaymentState])
-///   - Single service dependency injected via constructor
+///   - Single service dependency injected via build()
 ///   - Methods correspond 1:1 to user-facing actions
-class PaymentNotifier extends StateNotifier<PaymentState> {
-  final StripeService _stripeService;
+class PaymentNotifier extends Notifier<PaymentState> {
+  late final StripeService _stripeService;
 
-  PaymentNotifier(this._stripeService) : super(const PaymentState.initial());
+  @override
+  PaymentState build() {
+    _stripeService = ref.watch(stripeServiceProvider);
+    return const PaymentState.initial();
+  }
 
   /// Full purchase flow: create intent → init sheet → present sheet.
   ///

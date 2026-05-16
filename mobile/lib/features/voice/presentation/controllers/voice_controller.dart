@@ -5,22 +5,33 @@ import 'package:audio_session/audio_session.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:just_audio/just_audio.dart';
 import 'dart:convert';
-import 'package:mobile/features/data/models/soundboard_model.dart';
+import 'package:mobile/data/models/soundboard_model.dart';
 import 'package:mobile/features/voice/data/voice_repository.dart';
 import 'voice_state.dart';
 
+final voiceControllerProvider = NotifierProvider<VoiceController, VoiceState>(VoiceController.new);
 
-class VoiceController extends StateNotifier<VoiceState> {
-  final VoiceRepository _repository;
+class VoiceController extends Notifier<VoiceState> {
+  late final VoiceRepository _repository;
   EventsListener<RoomEvent>? _listener;
   final AudioPlayer _audioPlayer = AudioPlayer();
 
-  VoiceController(this._repository) : super(const VoiceState());
+  @override
+  VoiceState build() {
+    _repository = ref.watch(voiceRepositoryProvider);
 
+    ref.onDispose(() {
+      _listener?.dispose();
+      state.room?.disconnect();
+      _audioPlayer.dispose();
+    });
+
+    return const VoiceState();
+  }
 
   Future<void> joinChannel(String channelId) async {
     if (state.activeChannelId == channelId && state.isConnected) return;
-    
+
     // 1. Request Permissions
     final status = await Permission.microphone.request();
     if (status != PermissionStatus.granted) {
@@ -49,8 +60,6 @@ class VoiceController extends StateNotifier<VoiceState> {
           dynacast: true,
           defaultAudioPublishOptions: AudioPublishOptions(
             dtx: true,
-            echoCancellation: true,
-            noiseSuppression: true,
           ),
         ),
       );
@@ -76,8 +85,8 @@ class VoiceController extends StateNotifier<VoiceState> {
   }
 
   void _setupRoomListeners(Room room) {
-    _listener = room.createWidgetListener();
-    
+    _listener = room.createListener();
+
     _listener!
       ..on<RoomDisconnectedEvent>((event) {
         state = const VoiceState();
@@ -116,15 +125,15 @@ class VoiceController extends StateNotifier<VoiceState> {
     if (room == null) return;
 
     // 1. Play locally
-    _playRemoteSound(sound.audioUrl);
+    _playRemoteSound(sound.url);
 
     // 2. Send to others
     final message = jsonEncode({
       'type': 'soundboard',
       'soundId': sound.id,
-      'url': sound.audioUrl,
+      'url': sound.url,
     });
-    
+
     await room.localParticipant?.publishData(
       utf8.encode(message),
       reliable: true,
@@ -161,13 +170,13 @@ class VoiceController extends StateNotifier<VoiceState> {
     for (final p in room.remoteParticipants.values) {
       for (final sub in p.audioTrackPublications) {
         if (newDeafen) {
-          await sub.setSubscribed(false);
+          await sub.unsubscribe();
         } else {
-          await sub.setSubscribed(true);
+          await sub.subscribe();
         }
       }
     }
-    
+
     if (newDeafen && !state.isMuted) {
       await toggleMute();
     } else if (!newDeafen && state.isMuted) {
@@ -207,18 +216,4 @@ class VoiceController extends StateNotifier<VoiceState> {
     final session = await AudioSession.instance;
     await session.setActive(false);
   }
-
-  @override
-  void dispose() {
-    _listener?.dispose();
-    state.room?.disconnect();
-    _audioPlayer.dispose();
-    super.dispose();
-  }
-
 }
-
-final voiceControllerProvider = StateNotifierProvider<VoiceController, VoiceState>((ref) {
-  final repository = ref.watch(voiceRepositoryProvider);
-  return VoiceController(repository);
-});

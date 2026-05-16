@@ -353,7 +353,7 @@ class _SharedWhiteboardState extends State<SharedWhiteboard> {
       child: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: isActive ? const Color(FlickoColors.blurple).withOpacity(0.15) : Colors.transparent,
+          color: isActive ? const Color(FlickoColors.blurple).withValues(alpha: 0.15) : Colors.transparent,
           borderRadius: BorderRadius.circular(6),
         ),
         child: Icon(
@@ -395,7 +395,7 @@ class _SharedWhiteboardState extends State<SharedWhiteboard> {
       child: Container(
         padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
-          color: isActive ? const Color(FlickoColors.blurple).withOpacity(0.15) : Colors.transparent,
+          color: isActive ? const Color(FlickoColors.blurple).withValues(alpha: 0.15) : Colors.transparent,
           borderRadius: BorderRadius.circular(4),
         ),
         child: Container(

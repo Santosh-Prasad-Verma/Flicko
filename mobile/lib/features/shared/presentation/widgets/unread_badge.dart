@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:mobile/features/core/constants/flicko_colors.dart';
+import 'package:mobile/core/constants/flicko_colors.dart';
 
 enum BadgeSize { small, medium, large }
 
@@ -58,7 +58,8 @@ class UnreadBadge extends StatelessWidget {
     return Container(
       constraints: BoxConstraints(
         minWidth: sizeConfig['minWidth']!,
-        height: sizeConfig['height']!,
+        minHeight: sizeConfig['height']!,
+        maxHeight: sizeConfig['height']!,
       ),
       padding: EdgeInsets.symmetric(horizontal: sizeConfig['padding']!),
       decoration: BoxDecoration(

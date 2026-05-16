@@ -40,9 +40,9 @@ class _CreateServerDialogState extends ConsumerState<CreateServerDialog> {
     if (name.isEmpty) return;
 
     final userId = ref.read(authNotifierProvider).maybeWhen(
-      authenticated: (user, _) => user.id,
-      orElse: () => null,
-    );
+          authenticated: (user, _) => user.id,
+          orElse: () => null,
+        );
 
     if (userId == null) return;
 
@@ -57,10 +57,10 @@ class _CreateServerDialogState extends ConsumerState<CreateServerDialog> {
       }
 
       final server = await ref.read(serverRepositoryProvider).createServer(
-        name: name,
-        ownerId: userId,
-        iconUrl: iconUrl,
-      );
+            name: name,
+            ownerId: userId,
+            iconUrl: iconUrl,
+          );
 
       // Refresh servers and select the new one
       await ref.read(serversNotifierProvider.notifier).refresh();
@@ -86,19 +86,42 @@ class _CreateServerDialogState extends ConsumerState<CreateServerDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: const Color(FlickoColors.bgSecondary),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      backgroundColor: const Color(FlickoColors.bgPrimary),
+      shape: const RoundedRectangleBorder(),
       child: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(FlickoColors.brandLime),
+                  border: Border.all(
+                      color: const Color(FlickoColors.black), width: 2),
+                ),
+                child: Text(
+                  'NEW SERVER',
+                  style: GoogleFonts.inter(
+                    color: const Color(FlickoColors.black),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
             Text(
               'Create Your Server',
+              textAlign: TextAlign.center,
               style: GoogleFonts.inter(
                 color: const Color(FlickoColors.textPrimary),
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
+                fontSize: 30,
+                fontWeight: FontWeight.w900,
               ),
             ),
             const SizedBox(height: 8),
@@ -108,6 +131,7 @@ class _CreateServerDialogState extends ConsumerState<CreateServerDialog> {
               style: GoogleFonts.inter(
                 color: const Color(FlickoColors.textSecondary),
                 fontSize: 14,
+                height: 1.45,
               ),
             ),
             const SizedBox(height: 24),
@@ -120,8 +144,11 @@ class _CreateServerDialogState extends ConsumerState<CreateServerDialog> {
                     width: 80,
                     height: 80,
                     decoration: BoxDecoration(
-                      color: const Color(FlickoColors.bgTertiary),
-                      shape: BoxShape.circle,
+                      color: const Color(FlickoColors.bgSecondary),
+                      border: Border.all(
+                        color: const Color(FlickoColors.brandLime),
+                        width: 2,
+                      ),
                       image: _selectedIcon != null
                           ? DecorationImage(
                               image: FileImage(File(_selectedIcon!.path)),
@@ -130,17 +157,20 @@ class _CreateServerDialogState extends ConsumerState<CreateServerDialog> {
                           : null,
                     ),
                     child: _selectedIcon == null
-                        ? const Icon(Icons.camera_alt_outlined, size: 32, color: Color(FlickoColors.textMuted))
+                        ? const Icon(Icons.add_a_photo_outlined,
+                            size: 32, color: Color(FlickoColors.brandLime))
                         : null,
                   ),
                   if (_selectedIcon != null)
                     Container(
                       padding: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(
-                        color: Color(FlickoColors.blurple),
-                        shape: BoxShape.circle,
+                      decoration: BoxDecoration(
+                        color: const Color(FlickoColors.brandLime),
+                        border: Border.all(
+                            color: const Color(FlickoColors.black), width: 1.4),
                       ),
-                      child: const Icon(Icons.edit, size: 14, color: Colors.white),
+                      child: const Icon(Icons.edit,
+                          size: 14, color: Color(FlickoColors.black)),
                     ),
                 ],
               ),
@@ -148,21 +178,35 @@ class _CreateServerDialogState extends ConsumerState<CreateServerDialog> {
             const SizedBox(height: 24),
             TextField(
               controller: _nameController,
-              style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary)),
+              style: GoogleFonts.inter(
+                  color: const Color(FlickoColors.textPrimary)),
               decoration: InputDecoration(
                 labelText: 'SERVER NAME',
                 labelStyle: GoogleFonts.inter(
                   color: const Color(FlickoColors.textMuted),
                   fontSize: 12,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.7,
                 ),
                 filled: true,
-                fillColor: const Color(FlickoColors.bgTertiary),
+                fillColor: const Color(FlickoColors.bgSecondary),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide.none,
+                  borderRadius: BorderRadius.zero,
+                  borderSide: const BorderSide(
+                      color: Color(FlickoColors.brandLime), width: 2),
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.zero,
+                  borderSide: const BorderSide(
+                      color: Color(FlickoColors.border), width: 2),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.zero,
+                  borderSide: const BorderSide(
+                      color: Color(FlickoColors.brandLime), width: 2),
+                ),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
             ),
             const SizedBox(height: 24),
@@ -173,25 +217,34 @@ class _CreateServerDialogState extends ConsumerState<CreateServerDialog> {
                   onPressed: () => Navigator.pop(context),
                   child: Text(
                     'Cancel',
-                    style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary)),
+                    style: GoogleFonts.inter(
+                      color: const Color(FlickoColors.textSecondary),
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
                 ElevatedButton(
                   onPressed: _isLoading ? null : _handleCreate,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(FlickoColors.blurple),
-                    foregroundColor: Colors.white,
+                    backgroundColor: const Color(FlickoColors.brandLime),
+                    foregroundColor: const Color(FlickoColors.black),
                     minimumSize: const Size(120, 48),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: const RoundedRectangleBorder(),
+                    elevation: 0,
                   ),
                   child: _isLoading
                       ? const SizedBox(
                           width: 20,
                           height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Color(FlickoColors.black)),
                         )
-                      : const Text('Create Server'),
+                      : Text(
+                          'CREATE',
+                          style: GoogleFonts.inter(
+                              fontWeight: FontWeight.w900, letterSpacing: 0.8),
+                        ),
                 ),
               ],
             ),

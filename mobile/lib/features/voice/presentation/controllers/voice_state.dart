@@ -4,7 +4,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'voice_state.freezed.dart';
 
 @freezed
-class VoiceState with _$VoiceState {
+abstract class VoiceState with _$VoiceState {
   const factory VoiceState({
     Room? room,
     @Default(false) bool isConnected,

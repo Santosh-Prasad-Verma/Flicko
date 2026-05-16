@@ -23,7 +23,7 @@ class VoiceHUD extends ConsumerWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -72,7 +72,7 @@ class VoiceHUD extends ConsumerWidget {
         shape: BoxShape.circle,
       ),
       child: Icon(
-        voiceState.isConnecting ? Icons.hour_glass_empty : Icons.wifi_calling_3,
+        voiceState.isConnecting ? Icons.hourglass_empty : Icons.wifi_calling_3,
         color: voiceState.isConnected ? const Color(FlickoColors.green) : const Color(FlickoColors.textMuted),
         size: 20,
       ),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:mobile/features/core/constants/flicko_colors.dart';
+import 'package:mobile/core/constants/flicko_colors.dart';
 
 enum ButtonVariant { primary, secondary, danger, ghost }
 
@@ -145,7 +145,7 @@ class _ButtonState extends State<Button> with SingleTickerProviderStateMixin {
 
   Color _getBackgroundColor() {
     if (widget.disabled || widget.loading) {
-      return _getVariantColor().withOpacity(0.5);
+      return _getVariantColor().withValues(alpha: 0.5);
     }
     return _getVariantColor();
   }

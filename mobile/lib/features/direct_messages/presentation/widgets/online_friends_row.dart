@@ -17,22 +17,14 @@ class OnlineFriendsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     if (friends.isEmpty) return const SizedBox.shrink();
 
-    return Container(
-      height: 90,
-      padding: const EdgeInsets.symmetric(vertical: FlickoSpacing.sm),
-      decoration: const BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: Color(FlickoColors.bgTertiary),
-            width: 1,
-          ),
-        ),
-      ),
+    return SizedBox(
+      height: 104,
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: FlickoSpacing.md),
         scrollDirection: Axis.horizontal,
         itemCount: friends.length,
-        separatorBuilder: (context, index) => const SizedBox(width: FlickoSpacing.md),
+        separatorBuilder: (context, index) =>
+            const SizedBox(width: FlickoSpacing.md),
         itemBuilder: (context, index) {
           final friend = friends[index];
           return _OnlineFriendItem(
@@ -61,13 +53,27 @@ class _OnlineFriendItem extends StatelessWidget {
       child: Column(
         children: [
           Stack(
+            clipBehavior: Clip.none,
             children: [
               Container(
-                width: 52,
-                height: 52,
+                width: 64,
+                height: 64,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(FlickoColors.bgTertiary),
+                  color: const Color(FlickoColors.bgSecondary),
+                  border: Border.all(
+                    color: const Color(FlickoColors.border),
+                    width: 1.5,
+                  ),
+                  boxShadow: user.onlineStatus == 'online'
+                      ? const [
+                          BoxShadow(
+                            color: Color(FlickoColors.brandLime),
+                            blurRadius: 14,
+                            spreadRadius: -6,
+                          ),
+                        ]
+                      : null,
                   image: user.avatarUrl != null
                       ? DecorationImage(
                           image: CachedNetworkImageProvider(user.avatarUrl!),
@@ -76,34 +82,37 @@ class _OnlineFriendItem extends StatelessWidget {
                       : null,
                 ),
                 child: user.avatarUrl == null
-                    ? const Icon(Icons.person, color: Color(FlickoColors.textMuted))
+                    ? const Icon(Icons.person,
+                        color: Color(FlickoColors.textMuted))
                     : null,
               ),
               Positioned(
-                right: 0,
-                bottom: 0,
+                right: 2,
+                bottom: -1,
                 child: Container(
-                  width: 16,
-                  height: 16,
+                  width: 14,
+                  height: 14,
                   decoration: BoxDecoration(
                     color: _getStatusColor(user.onlineStatus),
                     shape: BoxShape.circle,
                     border: Border.all(
                       color: const Color(FlickoColors.bgPrimary),
-                      width: 3,
+                      width: 2,
                     ),
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
           SizedBox(
-            width: 60,
+            width: 72,
             child: Text(
               user.displayName ?? user.username,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    fontSize: 11,
+                    fontSize: 13,
+                    color: const Color(FlickoColors.textPrimary),
+                    fontWeight: FontWeight.w600,
                     overflow: TextOverflow.ellipsis,
                   ),
               textAlign: TextAlign.center,

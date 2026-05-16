@@ -12,16 +12,24 @@ import 'core/services/translation_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Load environment variables
-  await dotenv.load(fileName: Env.fileName);
+  await dotenv.load(fileName: Env.fileName, isOptional: true);
 
   // Initialize AppConfig
   AppConfig.init();
 
+  final missingStartupConfig = AppConfig.missingStartupConfig;
+  if (missingStartupConfig.isNotEmpty) {
+    runApp(ConfigErrorApp(missingKeys: missingStartupConfig));
+    return;
+  }
+
   // Initialize Stripe SDK
-  Stripe.publishableKey = AppConfig.stripePublishableKey;
-  await Stripe.instance.applySettings();
+  if (AppConfig.stripePublishableKey.isNotEmpty) {
+    Stripe.publishableKey = AppConfig.stripePublishableKey;
+    await Stripe.instance.applySettings();
+  }
 
   // Initialize Supabase
   await Supabase.initialize(
@@ -52,9 +60,54 @@ class FlickoApp extends ConsumerWidget {
       title: 'Flicko',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.dark, // Default to dark mode based on Discord-like request
+      themeMode:
+          ThemeMode.dark, // Default to dark mode based on Discord-like request
       routerConfig: router,
       debugShowCheckedModeBanner: false,
+    );
+  }
+}
+
+class ConfigErrorApp extends StatelessWidget {
+  const ConfigErrorApp({super.key, required this.missingKeys});
+
+  final List<String> missingKeys;
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Flicko',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData.dark(),
+      home: Scaffold(
+        body: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Missing Flicko configuration',
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Launch with doppler run -- ./flutter-start.sh or pass these values with --dart-define:',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 12),
+                    SelectableText(missingKeys.join('\n')),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

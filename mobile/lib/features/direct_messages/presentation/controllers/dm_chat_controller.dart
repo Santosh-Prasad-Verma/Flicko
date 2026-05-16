@@ -6,6 +6,7 @@ import 'package:mime/mime.dart';
 import 'package:mobile/features/direct_messages/domain/dm_models.dart';
 import 'package:mobile/features/direct_messages/data/dm_repository.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
+import 'package:mobile/data/services/media_processor_service.dart';
 
 class DMChatState {
   final List<DMMessage> messages;
@@ -39,36 +40,44 @@ class DMChatState {
   }
 }
 
-final dmChatControllerProvider = StateNotifierProvider.family<DMChatController, DMChatState, String>((ref, otherUserId) {
-  final repository = ref.watch(dmRepositoryProvider);
-  final authState = ref.watch(authNotifierProvider);
-  final myId = authState.maybeWhen(
-    authenticated: (user, _) => user.id,
-    orElse: () => '',
-  );
-  
-  return DMChatController(repository, myId, otherUserId)..init();
-});
+final dmChatControllerProvider =
+    NotifierProvider.autoDispose.family<DMChatController, DMChatState, String>(
+  DMChatController.new,
+);
 
-class DMChatController extends StateNotifier<DMChatState> {
-  final DMRepository _repository;
-  final String _myId;
-  final String _otherUserId;
+class DMChatController extends Notifier<DMChatState> {
+  late final DMRepository _repository;
+  late final String _myId;
+  late final String _otherUserId;
   RealtimeChannel? _subscription;
 
-  DMChatController(this._repository, this._myId, this._otherUserId) : super(DMChatState());
-
-  void init() {
-    fetchMessages();
-    _setupSubscription();
-  }
+  final String otherUserId;
+  DMChatController(this.otherUserId);
 
   @override
-  void dispose() {
-    if (_subscription != null) {
-      _repository.unsubscribe(_subscription!);
-    }
-    super.dispose();
+  DMChatState build() {
+    _otherUserId = otherUserId;
+    _repository = ref.watch(dmRepositoryProvider);
+    final authState = ref.watch(authNotifierProvider);
+    _myId = authState.maybeWhen(
+      authenticated: (user, _) => user.id,
+      orElse: () => '',
+    );
+
+    ref.onDispose(() {
+      if (_subscription != null) {
+        _repository.unsubscribe(_subscription!);
+      }
+    });
+
+    // Defer async initialization until after the first state exists.
+    Future.microtask(_initChat);
+    return DMChatState();
+  }
+
+  void _initChat() {
+    fetchMessages();
+    _setupSubscription();
   }
 
   Future<void> fetchMessages({bool loadMore = false}) async {
@@ -80,8 +89,8 @@ class DMChatController extends StateNotifier<DMChatState> {
     }
 
     try {
-      final lastTimestamp = loadMore && state.messages.isNotEmpty 
-          ? state.messages.last.createdAt 
+      final lastTimestamp = loadMore && state.messages.isNotEmpty
+          ? state.messages.last.createdAt
           : null;
 
       final newMessages = await _repository.fetchMessagesWithPagination(
@@ -103,44 +112,47 @@ class DMChatController extends StateNotifier<DMChatState> {
   void _setupSubscription() {
     if (_myId.isEmpty) return;
 
-    _subscription = _repository.subscribeToConversation(_myId, _otherUserId, (newMessage) {
-      // Check if we already have this message (e.g. from optimistic update or race condition)
-      if (state.messages.any((m) => m.id == newMessage.id)) return;
-
-      // Append new message to the top (since list is inverted)
-      state = state.copyWith(
-        messages: [newMessage, ...state.messages],
-      );
+    _subscription =
+        _repository.subscribeToConversation(_myId, _otherUserId, (newMessage) {
+      // Fetching messages guarantees the full profile is loaded via join
+      fetchMessages();
     });
   }
 
-  Future<void> sendMessage(String content, {List<XFile>? localAttachments}) async {
-    if (content.trim().isEmpty && (localAttachments == null || localAttachments.isEmpty)) return;
+  Future<void> sendMessage(String content,
+      {List<XFile>? localAttachments}) async {
+    if (content.trim().isEmpty &&
+        (localAttachments == null || localAttachments.isEmpty)) {
+      return;
+    }
 
     state = state.copyWith(isSending: true);
 
     try {
       final List<DMAttachment> uploadedAttachments = [];
-      
+
       if (localAttachments != null && localAttachments.isNotEmpty) {
-        // Conversation ID is traditionally sort(myId, otherUserId) to keep it consistent
         final ids = [_myId, _otherUserId]..sort();
         final conversationId = ids.join('_');
 
         for (final file in localAttachments) {
+          final originalFile = File(file.path);
+          final processedFile = await MediaProcessorService.processMedia(originalFile);
+
           final url = await _repository.uploadAttachment(
-            File(file.path),
+            processedFile,
             _myId,
             conversationId,
           );
-          
-          final mimeType = lookupMimeType(file.path) ?? 'application/octet-stream';
-          
+
+          final mimeType =
+              lookupMimeType(processedFile.path) ?? 'application/octet-stream';
+
           uploadedAttachments.add(DMAttachment(
             url: url,
             type: mimeType,
             name: file.name,
-            size: await file.length(),
+            size: await processedFile.length(),
           ));
         }
       }
@@ -151,7 +163,6 @@ class DMChatController extends StateNotifier<DMChatState> {
         content: content,
         attachments: uploadedAttachments.isEmpty ? null : uploadedAttachments,
       );
-      // Real-time listener will pick up the new message
       state = state.copyWith(isSending: false);
     } catch (e) {
       state = state.copyWith(isSending: false, error: e.toString());

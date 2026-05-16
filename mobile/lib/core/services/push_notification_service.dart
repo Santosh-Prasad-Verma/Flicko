@@ -4,7 +4,7 @@ import 'dart:io';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_local_notifications/flutterLocalNotificationsPlugin.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -56,10 +56,10 @@ Future<void> _showLocalNotification(
   final body = message.notification?.body ?? message.data['body'] ?? '';
 
   await plugin.show(
-    message.hashCode,
-    title,
-    body,
-    details,
+    id: message.hashCode,
+    title: title,
+    body: body,
+    notificationDetails: details,
     payload: jsonEncode(message.data),
   );
 }
@@ -154,7 +154,7 @@ class PushNotificationService {
     );
 
     await _localNotifications.initialize(
-      settings,
+      settings: settings,
       onDidReceiveNotificationResponse: _onLocalNotificationTap,
       onDidReceiveBackgroundNotificationResponse: _onBackgroundNotificationResponse,
     );

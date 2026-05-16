@@ -224,7 +224,7 @@ class _UserTimeoutModalState extends ConsumerState<UserTimeoutModal> {
                   });
                 },
                 backgroundColor: const Color(FlickoColors.bgTertiary),
-                selectedColor: const Color(FlickoColors.blurple).withOpacity(0.2),
+                selectedColor: const Color(FlickoColors.blurple).withValues(alpha: 0.2),
                 labelStyle: GoogleFonts.inter(
                   color: isSelected
                       ? const Color(FlickoColors.blurpleLight)
@@ -300,7 +300,7 @@ class _UserTimeoutModalState extends ConsumerState<UserTimeoutModal> {
                 onPressed: _selectedDuration == null || _isSubmitting ? null : _handleTimeout,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(FlickoColors.danger),
-                  disabledBackgroundColor: const Color(FlickoColors.danger).withOpacity(0.4),
+                  disabledBackgroundColor: const Color(FlickoColors.danger).withValues(alpha: 0.4),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                   shape: RoundedRectangleBorder(

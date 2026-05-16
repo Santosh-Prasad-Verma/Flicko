@@ -3,22 +3,29 @@ import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/data/repositories/server_repository.dart';
 import 'servers_state.dart';
 
+/// Provider for [ServersNotifier].
+/// Uses [serverRepositoryProvider] and provides the [ServersState].
+final serversNotifierProvider =
+    NotifierProvider<ServersNotifier, ServersState>(ServersNotifier.new);
+
 /// Notifier for managing the Servers tab state.
-/// 
+///
 /// Handles fetching the user's servers, tracking the selected server,
 /// and fetching channels when a server is selected.
-class ServersNotifier extends StateNotifier<ServersState> {
-  final ServerRepository _repository;
-  final Ref _ref;
+class ServersNotifier extends Notifier<ServersState> {
+  late final ServerRepository _repository;
 
-  ServersNotifier(this._repository, this._ref) : super(const ServersState()) {
+  @override
+  ServersState build() {
+    _repository = ref.watch(serverRepositoryProvider);
     _init();
+    return const ServersState();
   }
 
   /// Initializes the notifier by fetching joined servers for the current user.
   Future<void> _init() async {
-    final authState = _ref.read(authNotifierProvider);
-    
+    final authState = ref.read(authNotifierProvider);
+
     authState.maybeWhen(
       authenticated: (user, _) async {
         await fetchServers(user.id);
@@ -27,7 +34,7 @@ class ServersNotifier extends StateNotifier<ServersState> {
     );
 
     // Listen for auth changes to refetch servers if user logs in/out
-    _ref.listen(authNotifierProvider, (previous, next) {
+    ref.listen(authNotifierProvider, (previous, next) {
       next.maybeWhen(
         authenticated: (user, _) => fetchServers(user.id),
         unauthenticated: () => state = const ServersState(),
@@ -42,12 +49,30 @@ class ServersNotifier extends StateNotifier<ServersState> {
     try {
       final servers = await _repository.getUserServers(userId);
       state = state.copyWith(servers: servers, isLoading: false);
+      if (servers.isNotEmpty && state.selectedServerId == null) {
+        await selectServer(servers.first.id);
+      }
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
         errorMessage: 'Failed to load servers: $e',
       );
     }
+  }
+
+  /// Refreshes servers for the currently authenticated user.
+  Future<void> refresh() async {
+    final userId = ref.read(authNotifierProvider).maybeWhen(
+          authenticated: (user, _) => user.id,
+          orElse: () => null,
+        );
+
+    if (userId == null) {
+      state = const ServersState();
+      return;
+    }
+
+    await fetchServers(userId);
   }
 
   /// Selects a server and fetches its channels.
@@ -77,9 +102,3 @@ class ServersNotifier extends StateNotifier<ServersState> {
     }
   }
 }
-
-/// Provider for [ServersNotifier].
-/// Uses [serverRepositoryProvider] and provides the [ServersState].
-final serversNotifierProvider = StateNotifierProvider<ServersNotifier, ServersState>((ref) {
-  return ServersNotifier(ref.watch(serverRepositoryProvider), ref);
-});

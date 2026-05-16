@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_stripe/flutter_stripe.dart';
+import 'package:flutter_stripe/flutter_stripe.dart' hide Card;
 import 'package:dio/dio.dart';
 import 'package:mobile/core/config/app_config.dart';
 

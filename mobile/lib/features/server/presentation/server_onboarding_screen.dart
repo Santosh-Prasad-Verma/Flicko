@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/flicko_colors.dart';
-import 'package:mobile/auth/application/auth_notifier.dart';
+import 'package:mobile/features/auth/application/auth_notifier.dart';
 
 class ServerOnboardingScreen extends ConsumerStatefulWidget {
   final String serverId;

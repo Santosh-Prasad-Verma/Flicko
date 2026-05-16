@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:mobile/features/core/constants/flicko_colors.dart';
-import 'package:mobile/features/server_channels/auth/application/auth_notifier.dart';
+import 'package:mobile/core/constants/flicko_colors.dart';
+import 'package:mobile/features/auth/application/auth_notifier.dart';
 
 enum SortMode { latestActivity, creationDate }
 
@@ -148,19 +148,19 @@ class _ForumChannelScreenState extends ConsumerState<ForumChannelScreen> {
     }
 
     try {
-      final query = Supabase.instance.client
+      var query = Supabase.instance.client
           .from('threads')
           .select('*, creator:profiles(id, username, display_name, avatar_url), tags:forum_tags(*)')
-          .eq('channel_id', widget.channelId)
+          .eq('channel_id', widget.channelId);
+
+      if (_filterTagId != null) {
+        query = query.contains('tag_ids', [_filterTagId]);
+      }
+
+      final response = await query
           .order(_sort == SortMode.latestActivity ? 'last_message_at' : 'created_at',
               ascending: false)
           .range((_currentPage - 1) * 20, _currentPage * 20 - 1);
-
-      if (_filterTagId != null) {
-        query.contains('tag_ids', [_filterTagId]);
-      }
-
-      final response = await query;
       final newPosts = (response as List)
           .map((p) => ForumPostItem.fromJson(p as Map<String, dynamic>))
           .toList();

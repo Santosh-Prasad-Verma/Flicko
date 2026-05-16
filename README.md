@@ -291,7 +291,7 @@ doppler run -- cd services && go run ./msg-service/cmd/server
 # Terminal 3: Mobile App
 cd mobile
 flutter pub get
-doppler run -- flutter run
+doppler run -- ./flutter-start.sh
 ```
 
 ---
@@ -300,7 +300,7 @@ doppler run -- flutter run
 
 Flicko leverages **Doppler** for centralized, encrypted secrets management across development, staging, and production. This ensures that sensitive credentials (Supabase keys, Stripe secrets, Appwrite project IDs) are never committed to version control and are easily synced across team members.
 
-- **Development**: Environment variables are injected into the Flutter and Go processes at runtime via `doppler run`.
+- **Development**: Environment variables are injected into Go processes via `doppler run`; Flutter values are passed as `--dart-define` flags by `mobile/flutter-start.sh`.
 - **Production**: Doppler connects to the VPS deployment via a service token, providing real-time secret updates to the Docker Compose stack.
 - **Security**: Local `.env` files are only used as fallback; primary truth resides in Doppler's encrypted vaults.
 

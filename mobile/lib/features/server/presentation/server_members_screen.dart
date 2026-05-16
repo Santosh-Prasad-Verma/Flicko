@@ -193,7 +193,7 @@ class _ServerMembersScreenState extends ConsumerState<ServerMembersScreen> {
                         )
                       : ListView.builder(
                           padding: const EdgeInsets.all(12),
-                          itemCount: grouped.entries.fold(0, (sum, e) => sum + e.value.length + 1),
+                          itemCount: grouped.entries.fold<int>(0, (sum, e) => sum + e.value.length + 1),
                           itemBuilder: (context, index) {
                             int current = 0;
                             for (final entry in grouped.entries) {

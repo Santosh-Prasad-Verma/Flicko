@@ -6,17 +6,40 @@ import 'package:mime/mime.dart';
 import 'package:mobile/data/models/flicko_message.dart';
 import 'package:mobile/data/repositories/message_repository.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
+import 'package:mobile/data/services/media_processor_service.dart';
 import 'chat_state.dart';
 
+/// Provider for [ChatNotifier] scoped to a specific [channelId].
+final chatNotifierProvider = NotifierProvider.autoDispose.family<ChatNotifier, ChatState, String>(
+  ChatNotifier.new,
+);
+
 /// Notifier for managing chat messages in a specific channel.
-class ChatNotifier extends StateNotifier<ChatState> {
-  final MessageRepository _repository;
-  final String _channelId;
-  final String _myId;
+class ChatNotifier extends Notifier<ChatState> {
+  late final MessageRepository _repository;
+  late final String _channelId;
+  late final String _myId;
   RealtimeChannel? _subscription;
 
-  ChatNotifier(this._repository, this._channelId, this._myId) : super(const ChatState()) {
+  final String channelId;
+  ChatNotifier(this.channelId);
+
+  @override
+  ChatState build() {
+    _channelId = channelId;
+    _repository = ref.watch(messageRepositoryProvider);
+    final authState = ref.watch(authNotifierProvider);
+    _myId = authState.maybeWhen(
+      authenticated: (user, _) => user.id,
+      orElse: () => '',
+    );
+
+    ref.onDispose(() {
+      _subscription?.unsubscribe();
+    });
+
     init();
+    return const ChatState();
   }
 
   /// Initializes the chat state: fetches initial messages and sets up real-time listener.
@@ -41,13 +64,11 @@ class ChatNotifier extends StateNotifier<ChatState> {
 
   void _setupSubscription() {
     _subscription = _repository.subscribeToChannel(_channelId, (eventType, payload) {
-      // In this modular version, we refresh to ensure all joined data (author profiles, etc.)
-      // and nested models (reactions) are correctly parsed through the repository's logic.
       _refreshMessages();
     });
 
     _repository.subscribeToTyping(_channelId, (userId, isTyping) {
-      if (userId == _myId) return; // Ignore own typing events
+      if (userId == _myId) return;
       final currentTyping = Set<String>.from(state.typingUsers);
       if (isTyping) {
         currentTyping.add(userId);
@@ -97,20 +118,23 @@ class ChatNotifier extends StateNotifier<ChatState> {
       
       if (localAttachments != null && localAttachments.isNotEmpty) {
         for (final file in localAttachments) {
+          final originalFile = File(file.path);
+          final processedFile = await MediaProcessorService.processMedia(originalFile);
+          
           final url = await _repository.uploadAttachment(
-            File(file.path),
+            processedFile,
             _myId,
             _channelId,
           );
           
-          final mimeType = lookupMimeType(file.path) ?? 'application/octet-stream';
+          final mimeType = lookupMimeType(processedFile.path) ?? 'application/octet-stream';
           
           uploadedAttachments.add(FlickoAttachment(
-            id: DateTime.now().toIso8601String(), // Temporary ID for model
+            id: DateTime.now().toIso8601String(),
             url: url,
             contentType: mimeType,
             filename: file.name,
-            size: await file.length(),
+            size: await processedFile.length(),
           ));
         }
       }
@@ -150,7 +174,6 @@ class ChatNotifier extends StateNotifier<ChatState> {
   Future<void> editMessage(String messageId, String newContent) async {
     try {
       await _repository.editMessage(messageId, newContent);
-      // Refresh messages to show the edited content
       await _refreshMessages();
     } catch (e) {
       state = state.copyWith(errorMessage: 'Failed to edit message: $e');
@@ -165,22 +188,4 @@ class ChatNotifier extends StateNotifier<ChatState> {
       // Intentionally ignore failure to send typing indicator
     }
   }
-
-  @override
-  void dispose() {
-    _subscription?.unsubscribe();
-    super.dispose();
-  }
 }
-
-/// Provider for [ChatNotifier] scoped to a specific [channelId].
-final chatNotifierProvider = StateNotifierProvider.autoDispose.family<ChatNotifier, ChatState, String>((ref, channelId) {
-  final repository = ref.watch(messageRepositoryProvider);
-  final authState = ref.watch(authNotifierProvider);
-  final myId = authState.maybeWhen(
-    authenticated: (user, _) => user.id,
-    orElse: () => '',
-  );
-  
-  return ChatNotifier(repository, channelId, myId);
-});

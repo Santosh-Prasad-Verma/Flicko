@@ -28,23 +28,23 @@ class MessageRepository {
     try {
       var query = _client.from('messages').select('''
           *,
-          author:profiles!user_id(id, username, display_name, avatar_url:avatar),
+          author:profiles!author_id(id, username, display_name, avatar_url:avatar),
           reactions(emoji, user_id),
           attachments(id, url, content_type:mime_type, filename, size, width, height)
-        ''').eq('channel_id', channelId).isFilter('thread_id', null).order('created_at', ascending: false).limit(limit);
+        ''').eq('channel_id', channelId).isFilter('thread_id', null);
 
       if (cursor != null) {
         query = query.lt('created_at', cursor.toIso8601String());
       }
 
-      final List<dynamic> response = await query;
+      final List<dynamic> response = await query.order('created_at', ascending: false).limit(limit);
       
       return response.map((json) {
         final Map<String, dynamic> msg = Map<String, dynamic>.from(json);
         
         // Ensure proper mapping to FlickoMessage structure
         msg['type'] = 'channel';
-        msg['author_id'] = msg['user_id']; // Map user_id to author_id for FlickoMessage
+        // author_id is inherently present from DB SELECT *
         
         if (msg['author'] != null && msg['author']['avatar_url'] != null) {
           msg['author']['avatar'] = msg['author']['avatar_url'];
@@ -186,10 +186,7 @@ class MessageRepository {
   /// Sends a typing indicator.
   Future<void> sendTyping(String channelId, String userId, bool isTyping) async {
     final channel = _client.channel('typing:$channelId');
-    // Ensure we are subscribed before broadcasting
-    if (channel.state != RealtimeSubscribeState.subscribed) {
-      await channel.subscribe();
-    }
+    channel.subscribe();
     await channel.sendBroadcastMessage(
       event: 'typing',
       payload: {
@@ -228,7 +225,7 @@ class MessageRepository {
 final messageRepositoryProvider = Provider<MessageRepository>((ref) {
   return MessageRepository(
     Supabase.instance.client,
-    ref.watch(dioClientProvider),
+    ref.watch(dioProvider),
     ref.watch(appwriteStorageServiceProvider),
   );
 });

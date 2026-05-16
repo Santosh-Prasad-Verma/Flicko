@@ -233,7 +233,7 @@ class _InvitesSettingsScreenState extends ConsumerState<InvitesSettingsScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: const Color(FlickoColors.blurple).withOpacity(0.2),
+                  color: const Color(FlickoColors.blurple).withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(

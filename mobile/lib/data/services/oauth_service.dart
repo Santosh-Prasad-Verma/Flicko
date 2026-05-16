@@ -7,25 +7,35 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// Handles OAuth 2.0 authentication with third-party providers.
 /// Supports Google, Apple, and Discord login.
 class OAuthService {
-  final GoogleSignIn _googleSignIn = GoogleSignIn(
-    scopes: ['email', 'profile'],
-  );
+  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
+  Future<void>? _googleInitialization;
+
+  Future<void> _ensureGoogleInitialized() {
+    return _googleInitialization ??= _googleSignIn.initialize();
+  }
 
   /// Authenticate with Google
   /// 
   /// Returns the OAuth credentials for Supabase authentication
   Future<OAuthResponse> signInWithGoogle() async {
     try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) {
-        return OAuthResponse(success: false, error: 'Google sign-in cancelled');
-      }
+      await _ensureGoogleInitialized();
 
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-      final accessToken = googleAuth.accessToken;
+      final GoogleSignInAccount googleUser = await _googleSignIn.authenticate(
+        scopeHint: const ['email', 'profile'],
+      );
+
+      final GoogleSignInAuthentication googleAuth = googleUser.authentication;
+      final authz = await googleUser.authorizationClient.authorizationForScopes(
+            const ['email', 'profile'],
+          ) ??
+          await googleUser.authorizationClient.authorizeScopes(
+            const ['email', 'profile'],
+          );
+      final accessToken = authz.accessToken;
       final idToken = googleAuth.idToken;
 
-      if (accessToken == null || idToken == null) {
+      if (idToken == null) {
         return OAuthResponse(success: false, error: 'Failed to get Google tokens');
       }
 
@@ -109,6 +119,7 @@ class OAuthService {
   /// Sign out from all OAuth providers
   Future<void> signOut() async {
     try {
+      await _ensureGoogleInitialized();
       await _googleSignIn.signOut();
       // Apple doesn't have a sign-out method, as it's handled by the OS
     } catch (e) {
@@ -120,7 +131,8 @@ class OAuthService {
   Future<bool> isProviderAvailable(String provider) async {
     switch (provider.toLowerCase()) {
       case 'google':
-        return await _googleSignIn.isSignedIn() || true; // Google is always available
+        await _ensureGoogleInitialized();
+        return _googleSignIn.supportsAuthenticate();
       case 'apple':
         return await SignInWithApple.isAvailable();
       case 'discord':

@@ -5,7 +5,7 @@ part 'dm_models.freezed.dart';
 part 'dm_models.g.dart';
 
 @freezed
-class DMConversation with _$DMConversation {
+abstract class DMConversation with _$DMConversation {
   const factory DMConversation({
     required String id, // The other user's ID
     required UserModel participant,
@@ -21,7 +21,7 @@ class DMConversation with _$DMConversation {
 }
 
 @freezed
-class DMAttachment with _$DMAttachment {
+abstract class DMAttachment with _$DMAttachment {
   const factory DMAttachment({
     required String url,
     required String type,
@@ -35,7 +35,7 @@ class DMAttachment with _$DMAttachment {
 }
 
 @freezed
-class DMMessage with _$DMMessage {
+abstract class DMMessage with _$DMMessage {
   const factory DMMessage({
     required String id,
     @JsonKey(name: 'sender_id') required String senderId,

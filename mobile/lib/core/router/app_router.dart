@@ -6,13 +6,13 @@ import 'package:mobile/features/spike/spike_dashboard_screen.dart';
 import 'package:mobile/features/spike/livekit_spike_screen.dart';
 import 'package:mobile/features/spike/stripe_spike_screen.dart';
 import 'package:mobile/features/spike/supabase_spike_screen.dart';
-import 'package:mobile/features/auth/presentation/login_screen.dart';
-import 'package:mobile/features/auth/presentation/signup_screen.dart';
+import 'package:mobile/features/auth/presentation/screens/login_screen.dart';
 import 'package:mobile/features/auth/presentation/screens/register_screen.dart';
 import 'package:mobile/features/auth/presentation/screens/forgot_password_screen.dart';
+import 'package:mobile/features/auth/presentation/screens/reset_password_screen.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/home/presentation/servers_screen.dart';
-import 'package:mobile/features/home/presentation/notifications_screen.dart';
+// NotificationsScreen imported from features/notifications instead
 import 'package:mobile/features/profile/presentation/profile_screen.dart';
 import 'package:mobile/features/profile/presentation/public_profile_screen.dart';
 import 'package:mobile/features/shared/presentation/main_navigation_shell.dart';
@@ -41,10 +41,10 @@ import 'package:mobile/features/settings/presentation/server_profiles_screen.dar
 import 'package:mobile/features/settings/presentation/change_email_screen.dart';
 import 'package:mobile/features/settings/presentation/change_username_screen.dart';
 import 'package:mobile/features/settings/presentation/change_password_screen.dart';
+import 'package:mobile/features/settings/presentation/billing_settings_screen.dart';
 
 // Premium
 import 'package:mobile/features/premium/presentation/flicko_plus_screen.dart';
-import 'package:mobile/features/premium/presentation/nitro_screen.dart';
 
 // Friends
 import 'package:mobile/features/friends/presentation/friend_requests_screen.dart';
@@ -53,7 +53,7 @@ import 'package:mobile/features/friends/presentation/friends_list_screen.dart';
 // Server Settings
 import 'package:mobile/features/server_settings/presentation/server_settings_hub_screen.dart';
 import 'package:mobile/features/server_settings/presentation/server_overview_screen.dart';
-import 'package:mobile/features/server_settings/presentation/placeholder_settings_screens.dart';
+import 'package:mobile/features/server_settings/presentation/placeholder_settings_screens.dart' hide BotsSettingsScreen, WebhooksSettingsScreen, OnboardingSettingsScreen, TemplatesSettingsScreen;
 import 'package:mobile/features/server_settings/presentation/channels_settings_screen.dart';
 import 'package:mobile/features/server_settings/presentation/roles_settings_screen.dart';
 import 'package:mobile/features/server_settings/presentation/audit_log_screen.dart';
@@ -92,7 +92,7 @@ import 'package:mobile/features/server_channels/voice/presentation/screens/voice
 import 'package:mobile/features/server_channels/voice/presentation/screens/voice_channel_screen.dart';
 
 // Forum
-import 'package:mobile/features/server_channels/forum/presentation/screens/forum_channel_screen.dart';
+import 'package:mobile/features/server_channels/forum/presentation/screens/forum_channel_screen.dart' hide ThreadViewScreen;
 
 // Stage
 import 'package:mobile/features/server_channels/stage/presentation/screens/stage_channel_screen.dart';
@@ -112,13 +112,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     initialLocation: '/',
     redirect: (context, state) {
       final location = state.matchedLocation;
-      final isAuthRoute = location == '/login' || location == '/signup';
+      final isAuthRoute = [
+        '/login',
+        '/signup',
+        '/register',
+        '/forgot-password',
+        '/reset-password'
+      ].contains(location);
       final isSpikeRoute = location.startsWith('/spike');
 
       if (isSpikeRoute) return null;
 
       return authState.maybeWhen(
-        authenticated: (_, __) => isAuthRoute ? '/' : null,
+        authenticated: (_, __) {
+          if (location == '/reset-password') return null;
+          return isAuthRoute ? '/' : null;
+        },
         unauthenticated: () => isAuthRoute ? null : '/login',
         orElse: () => null,
       );
@@ -253,12 +262,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 ),
                 routes: [
                   GoRoute(
-                    path: ':userId',
-                    builder: (context, state) => PublicProfileScreen(
-                      userId: state.pathParameters['userId']!,
-                    ),
-                  ),
-                  GoRoute(
                     path: 'settings',
                     builder: (context, state) => const SettingsScreen(),
                     routes: [
@@ -278,7 +281,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                       GoRoute(path: 'change-email', builder: (context, state) => const ChangeEmailScreen()),
                       GoRoute(path: 'change-username', builder: (context, state) => const ChangeUsernameScreen()),
                       GoRoute(path: 'change-password', builder: (context, state) => const ChangePasswordScreen()),
+                      GoRoute(path: 'billing', builder: (context, state) => const BillingSettingsScreen()),
                     ],
+                  ),
+                  GoRoute(
+                    path: ':userId',
+                    builder: (context, state) => PublicProfileScreen(
+                      userId: state.pathParameters['userId']!,
+                    ),
                   ),
                 ],
               ),
@@ -289,9 +299,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       // ── Auth Routes ──
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
-      GoRoute(path: '/signup', builder: (context, state) => const SignupScreen()),
+      GoRoute(path: '/signup', builder: (context, state) => const RegisterScreen()),
       GoRoute(path: '/register', builder: (context, state) => const RegisterScreen()),
       GoRoute(path: '/forgot-password', builder: (context, state) => const ForgotPasswordScreen()),
+      GoRoute(path: '/reset-password', builder: (context, state) => const ResetPasswordScreen()),
 
       // ── Server Routes ──
       GoRoute(path: '/server/create', builder: (context, state) => const CreateServerScreen()),
@@ -384,9 +395,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // Direct Messages
       GoRoute(
         path: '/dm',
-        builder: (context, state) => const DirectMessagesScreen(),
+        builder: (context, state) => const DMListScreen(),
         routes: [
-          GoRoute(path: ':conversationId', builder: (context, state) => DMChatScreen(conversationId: state.pathParameters['conversationId']!)),
+          GoRoute(path: ':conversationId', builder: (context, state) => DMChatScreen(userId: state.pathParameters['conversationId']!)),
           GoRoute(
             path: 'groups',
             builder: (context, state) => const GroupDMListScreen(),
@@ -396,7 +407,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       // Premium
       GoRoute(path: '/premium/plus', builder: (context, state) => const FlickoPlusScreen()),
-      GoRoute(path: '/premium/nitro', builder: (context, state) => const NitroScreen()),
+      GoRoute(path: '/premium/nitro', builder: (context, state) => const FlickoPlusScreen()),
 
       // ── Spike / Dev Routes ──
       GoRoute(path: '/spike', builder: (context, state) => const SpikeDashboardScreen()),

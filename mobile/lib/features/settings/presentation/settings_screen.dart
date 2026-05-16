@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/flicko_colors.dart';
+import 'package:mobile/data/models/auth_state.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
 
@@ -42,33 +44,34 @@ class SettingsScreen extends ConsumerWidget {
           _buildProfileCard(context, displayName, username, profile?.avatarUrl),
           const SizedBox(height: 12),
 
-          // Nitro Banner
-          _buildNitroBanner(context),
+          // Flicko Plus Banner
+          _buildFlickoPlusBanner(context),
           const SizedBox(height: 24),
 
           _buildSectionHeader('USER SETTINGS'),
-          _buildSettingsRow(context, Icons.person_outline, 'My Account', () => context.push('account')),
-          _buildSettingsRow(context, Icons.create_outlined, 'Edit Profile', () => context.push('edit-profile')),
-          _buildSettingsRow(context, Icons.shield_checkmark_outlined, 'Privacy & Safety', () => context.push('privacy')),
+          _buildSettingsRow(context, Icons.person_outline, 'My Account', () => context.push('/profile/settings/account')),
+          _buildSettingsRow(context, Icons.create_outlined, 'Edit Profile', () => context.push('/profile/settings/edit-profile')),
+          _buildSettingsRow(context, Icons.verified_user_outlined, 'Privacy & Safety', () => context.push('/profile/settings/privacy')),
           const SizedBox(height: 24),
 
           _buildSectionHeader('APP SETTINGS'),
-          _buildSettingsRow(context, Icons.color_palette_outlined, 'Appearance', () => context.push('appearance')),
-          _buildSettingsRow(context, Icons.accessibility_new_outlined, 'Accessibility', () => context.push('accessibility')),
-          _buildSettingsRow(context, Icons.chat_bubble_outline, 'Chat', () => context.push('chat')),
-          _buildSettingsRow(context, Icons.notifications_none_outlined, 'Notifications', () => context.push('notifications')),
-          _buildSettingsRow(context, Icons.mic_none_outlined, 'Voice & Video', () => context.push('voice')),
-          _buildSettingsRow(context, Icons.language_outlined, 'Language', () => context.push('language')),
-          _buildSettingsRow(context, Icons.storage_outlined, 'Data & Storage', () => context.push('storage')),
+          _buildSettingsRow(context, Icons.palette_outlined, 'Appearance', () => context.push('/profile/settings/appearance')),
+          _buildSettingsRow(context, Icons.accessibility_new_outlined, 'Accessibility', () => context.push('/profile/settings/accessibility')),
+          _buildSettingsRow(context, Icons.chat_bubble_outline, 'Chat', () => context.push('/profile/settings/chat')),
+          _buildSettingsRow(context, Icons.notifications_none_outlined, 'Notifications', () => context.push('/profile/settings/notifications')),
+          _buildSettingsRow(context, Icons.mic_none_outlined, 'Voice & Video', () => context.push('/profile/settings/voice')),
+          _buildSettingsRow(context, Icons.language_outlined, 'Language', () => context.push('/profile/settings/language')),
+          _buildSettingsRow(context, Icons.storage_outlined, 'Data & Storage', () => context.push('/profile/settings/storage')),
           const SizedBox(height: 24),
 
           _buildSectionHeader('PROFILE'),
-          _buildSettingsRow(context, Icons.emoji_emotions_outlined, 'Status', () => context.push('status')),
-          _buildSettingsRow(context, Icons.dns_outlined, 'Server Profiles', () => context.push('server-profiles')),
+          _buildSettingsRow(context, Icons.emoji_emotions_outlined, 'Status', () => context.push('/profile/settings/status')),
+          _buildSettingsRow(context, Icons.dns_outlined, 'Server Profiles', () => context.push('/profile/settings/server-profiles')),
           const SizedBox(height: 24),
 
           _buildSectionHeader('BILLING'),
-          _buildSettingsRow(context, Icons.auto_awesome, 'Nitro', () => context.push('/premium/nitro')),
+          _buildSettingsRow(context, Icons.credit_card, 'Billing & Subscriptions', () => context.push('/profile/settings/billing')),
+          _buildSettingsRow(context, Icons.auto_awesome, 'Flicko Plus', () => context.push('/premium/plus')),
           const SizedBox(height: 24),
 
           _buildSectionHeader('ADVANCED'),
@@ -111,7 +114,8 @@ class SettingsScreen extends ConsumerWidget {
         children: [
           UserAvatar(
             imageUrl: avatarUrl,
-            status: 'online',
+            name: name,
+            status: UserStatus.online,
             size: 56,
           ),
           const SizedBox(width: 12),
@@ -143,9 +147,9 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildNitroBanner(BuildContext context) {
+  Widget _buildFlickoPlusBanner(BuildContext context) {
     return GestureDetector(
-      onTap: () => context.push('/premium/nitro'),
+      onTap: () => context.push('/premium/plus'),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -157,7 +161,7 @@ class SettingsScreen extends ConsumerWidget {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.2),
+              color: Colors.black.withValues(alpha: 0.2),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -179,7 +183,7 @@ class SettingsScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Get Nitro',
+                    'Get Flicko Plus',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 18,
@@ -187,7 +191,7 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                   ),
                   Text(
-                    'Unlock premium perks, bots, and more!',
+                    'Unlock premium perks, custom themes, and more!',
                     style: TextStyle(
                       color: Colors.white70,
                       fontSize: 14,

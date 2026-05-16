@@ -350,24 +350,24 @@ class _BansScreenState extends ConsumerState<BansScreen> {
                 Row(
                   children: [
                     if (ban.executorName != null) ...[
-                      Icon(Icons.person_outline, size: 12, color: const Color(FlickoColors.textMuted).withOpacity(0.7)),
+                      Icon(Icons.person_outline, size: 12, color: const Color(FlickoColors.textMuted).withValues(alpha: 0.7)),
                       const SizedBox(width: 3),
                       Text(
                         'by ${ban.executorName}',
                         style: GoogleFonts.inter(
-                          color: const Color(FlickoColors.textMuted).withOpacity(0.7),
+                          color: const Color(FlickoColors.textMuted).withValues(alpha: 0.7),
                           fontSize: 11,
                         ),
                       ),
                     ],
                     if (ban.bannedAt != null) ...[
                       if (ban.executorName != null) const SizedBox(width: 8),
-                      Icon(Icons.access_time, size: 12, color: const Color(FlickoColors.textMuted).withOpacity(0.7)),
+                      Icon(Icons.access_time, size: 12, color: const Color(FlickoColors.textMuted).withValues(alpha: 0.7)),
                       const SizedBox(width: 3),
                       Text(
                         _formatDate(ban.bannedAt),
                         style: GoogleFonts.inter(
-                          color: const Color(FlickoColors.textMuted).withOpacity(0.7),
+                          color: const Color(FlickoColors.textMuted).withValues(alpha: 0.7),
                           fontSize: 11,
                         ),
                       ),
@@ -382,7 +382,7 @@ class _BansScreenState extends ConsumerState<BansScreen> {
           TextButton(
             onPressed: () => _confirmUnban(ban),
             style: TextButton.styleFrom(
-              backgroundColor: const Color(FlickoColors.danger).withOpacity(0.1),
+              backgroundColor: const Color(FlickoColors.danger).withValues(alpha: 0.1),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(FlickoRadius.md)),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             ),

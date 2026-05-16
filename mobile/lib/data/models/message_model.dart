@@ -5,7 +5,7 @@ part 'message_model.freezed.dart';
 part 'message_model.g.dart';
 
 @freezed
-class MessageModel with _$MessageModel {
+abstract class MessageModel with _$MessageModel {
   const factory MessageModel({
     required String id,
     @JsonKey(name: 'channel_id') required String channelId,
@@ -30,7 +30,7 @@ class MessageModel with _$MessageModel {
 }
 
 @freezed
-class AttachmentModel with _$AttachmentModel {
+abstract class AttachmentModel with _$AttachmentModel {
   const factory AttachmentModel({
     required String id,
     required String filename,
@@ -45,7 +45,7 @@ class AttachmentModel with _$AttachmentModel {
 }
 
 @freezed
-class ReactionModel with _$ReactionModel {
+abstract class ReactionModel with _$ReactionModel {
   const factory ReactionModel({
     required String emoji,
     @Default(0) int count,

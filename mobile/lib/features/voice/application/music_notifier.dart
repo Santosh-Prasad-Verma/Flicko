@@ -1,12 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mobile/features/data/models/music_model.dart';
-import 'package:mobile/features/data/services/music_service.dart';
+import 'package:mobile/data/models/music_model.dart';
+import 'package:mobile/data/services/music_service.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'music_notifier.freezed.dart';
 
 @freezed
-class MusicState with _$MusicState {
+abstract class MusicState with _$MusicState {
   const factory MusicState({
     @Default([]) List<MusicItem> searchResults,
     @Default([]) List<MusicItem> queue,
@@ -18,14 +18,16 @@ class MusicState with _$MusicState {
   }) = _MusicState;
 }
 
-final musicNotifierProvider = StateNotifierProvider<MusicNotifier, MusicState>((ref) {
-  return MusicNotifier(ref.watch(musicServiceProvider));
-});
+final musicNotifierProvider = NotifierProvider<MusicNotifier, MusicState>(MusicNotifier.new);
 
-class MusicNotifier extends StateNotifier<MusicState> {
-  final MusicService _musicService;
+class MusicNotifier extends Notifier<MusicState> {
+  late final MusicService _musicService;
 
-  MusicNotifier(this._musicService) : super(const MusicState());
+  @override
+  MusicState build() {
+    _musicService = ref.watch(musicServiceProvider);
+    return const MusicState();
+  }
 
   Future<void> search(String query, {MusicType type = MusicType.track}) async {
     if (query.isEmpty) {

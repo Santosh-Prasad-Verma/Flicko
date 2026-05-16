@@ -149,11 +149,14 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       )).toList();
     });
 
+    final currentUserId = _currentUserId;
+    if (currentUserId == null) return;
+
     try {
       await Supabase.instance.client
           .from('notifications')
           .update({'read': true})
-          .eq('user_id', _currentUserId)
+          .eq('user_id', currentUserId)
           .eq('read', false);
     } catch (e) {
       if (mounted) {
@@ -428,17 +431,18 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
   Future<void> _handleAcceptFriend(String notifId, String? senderId) async {
     if (senderId == null || _currentUserId == null) return;
+    final currentUserId = _currentUserId!;
 
     try {
       await Supabase.instance.client
           .from('friend_requests')
           .update({'status': 'accepted'})
           .eq('sender_id', senderId)
-          .eq('receiver_id', _currentUserId);
+          .eq('receiver_id', currentUserId);
 
       await Supabase.instance.client.from('friendships').insert([
-        {'user_id': _currentUserId, 'friend_id': senderId},
-        {'user_id': senderId, 'friend_id': _currentUserId},
+        {'user_id': currentUserId, 'friend_id': senderId},
+        {'user_id': senderId, 'friend_id': currentUserId},
       ]);
 
       await _markAsRead(notifId);
@@ -456,13 +460,14 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
   Future<void> _handleDeclineFriend(String notifId, String? senderId) async {
     if (senderId == null || _currentUserId == null) return;
+    final currentUserId = _currentUserId!;
 
     try {
       await Supabase.instance.client
           .from('friend_requests')
           .update({'status': 'declined'})
           .eq('sender_id', senderId)
-          .eq('receiver_id', _currentUserId);
+          .eq('receiver_id', currentUserId);
 
       await _markAsRead(notifId);
     } catch (e) {

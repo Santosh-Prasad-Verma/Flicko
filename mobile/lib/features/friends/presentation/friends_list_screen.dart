@@ -279,7 +279,7 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                       color: isActive
-                          ? Colors.white.withOpacity(0.3)
+                          ? Colors.white.withValues(alpha: 0.3)
                           : const Color(FlickoColors.bgTertiary),
                       borderRadius: BorderRadius.circular(10),
                     ),

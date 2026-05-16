@@ -13,9 +13,9 @@ class HelpScreen extends StatelessWidget {
 
   final List<_HelpRow> _helpRows = const [
     _HelpRow(icon: Icons.book_outlined, label: 'FAQ', description: 'Frequently asked questions'),
-    _HelpRow(icon: Icons.chat_bubbles_outlined, label: 'Community', description: 'Join our community server'),
+    _HelpRow(icon: Icons.chat_bubble_outline, label: 'Community', description: 'Join our community server'),
     _HelpRow(icon: Icons.description_outlined, label: 'Terms of Service', description: 'Read our terms of service'),
-    _HelpRow(icon: Icons.shield_check_outlined, label: 'Privacy Policy', description: 'Read our privacy policy'),
+    _HelpRow(icon: Icons.verified_user_outlined, label: 'Privacy Policy', description: 'Read our privacy policy'),
     _HelpRow(icon: Icons.bug_report_outlined, label: 'Report a Bug', description: 'Help us fix issues'),
     _HelpRow(icon: Icons.info_outline, label: 'App Version', description: 'Flicko v1.0.0'),
   ];

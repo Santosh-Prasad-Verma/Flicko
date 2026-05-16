@@ -20,32 +20,45 @@ class DMRow extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        margin: const EdgeInsets.symmetric(
           horizontal: FlickoSpacing.md,
-          vertical: 10,
+          vertical: 8,
+        ),
+        padding: const EdgeInsets.all(FlickoSpacing.md),
+        decoration: BoxDecoration(
+          color: const Color(FlickoColors.bgSecondary),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: conversation.unreadCount > 0
+                ? const Color(FlickoColors.brandLime)
+                : const Color(FlickoColors.border),
+            width: 1.4,
+          ),
         ),
         child: Row(
           children: [
-            // Avatar with Presence
             Stack(
+              clipBehavior: Clip.none,
               children: [
                 CircleAvatar(
-                  radius: 20,
+                  radius: 28,
                   backgroundColor: const Color(FlickoColors.bgTertiary),
                   backgroundImage: user.avatarUrl != null
                       ? CachedNetworkImageProvider(user.avatarUrl!)
                       : null,
                   child: user.avatarUrl == null
-                      ? const Icon(Icons.person, size: 20, color: Color(FlickoColors.textMuted))
+                      ? const Icon(Icons.person,
+                          size: 20, color: Color(FlickoColors.textMuted))
                       : null,
                 ),
                 Positioned(
-                  right: 0,
-                  bottom: 0,
+                  right: -1,
+                  bottom: -1,
                   child: Container(
-                    width: 12,
-                    height: 12,
+                    width: 15,
+                    height: 15,
                     decoration: BoxDecoration(
                       color: _getStatusColor(user.onlineStatus),
                       shape: BoxShape.circle,
@@ -59,8 +72,6 @@ class DMRow extends StatelessWidget {
               ],
             ),
             const SizedBox(width: FlickoSpacing.md),
-            
-            // Content
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -72,25 +83,30 @@ class DMRow extends StatelessWidget {
                         user.displayName ?? user.username,
                         style: theme.textTheme.titleSmall?.copyWith(
                           color: const Color(FlickoColors.textPrimary),
+                          fontWeight: FontWeight.w800,
+                          fontSize: 18,
                         ),
                       ),
                       Text(
                         _formatTimestamp(conversation.lastMessageAt),
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: const Color(FlickoColors.textMuted),
-                          fontSize: 11,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 8),
                   Text(
                     conversation.lastMessage,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: conversation.unreadCount > 0 
-                          ? const Color(FlickoColors.textPrimary) 
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: conversation.unreadCount > 0
+                          ? const Color(FlickoColors.textPrimary)
                           : const Color(FlickoColors.textSecondary),
-                      fontWeight: conversation.unreadCount > 0 ? FontWeight.w600 : FontWeight.normal,
+                      fontWeight: conversation.unreadCount > 0
+                          ? FontWeight.w600
+                          : FontWeight.normal,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -98,21 +114,23 @@ class DMRow extends StatelessWidget {
                 ],
               ),
             ),
-            
             if (conversation.unreadCount > 0)
               Container(
                 margin: const EdgeInsets.only(left: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
                 decoration: BoxDecoration(
-                  color: const Color(FlickoColors.danger),
-                  borderRadius: BorderRadius.circular(10),
+                  color: const Color(FlickoColors.brandLime),
+                  borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
-                  conversation.unreadCount > 99 ? '99+' : conversation.unreadCount.toString(),
+                  conversation.unreadCount > 99
+                      ? '99+'
+                      : conversation.unreadCount.toString(),
                   style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
+                    color: Color(FlickoColors.black),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
               ),
@@ -137,11 +155,15 @@ class DMRow extends StatelessWidget {
 
   String _formatTimestamp(DateTime timestamp) {
     final now = DateTime.now();
-    if (now.year == timestamp.year && now.month == timestamp.month && now.day == timestamp.day) {
+    if (now.year == timestamp.year &&
+        now.month == timestamp.month &&
+        now.day == timestamp.day) {
       return '${timestamp.hour.toString().padLeft(2, '0')}:${timestamp.minute.toString().padLeft(2, '0')}';
     }
     final yesterday = now.subtract(const Duration(days: 1));
-    if (yesterday.year == timestamp.year && yesterday.month == timestamp.month && yesterday.day == timestamp.day) {
+    if (yesterday.year == timestamp.year &&
+        yesterday.month == timestamp.month &&
+        yesterday.day == timestamp.day) {
       return 'Yesterday';
     }
     return '${timestamp.day}/${timestamp.month}/${timestamp.year}';

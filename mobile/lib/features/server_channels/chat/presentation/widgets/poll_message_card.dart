@@ -200,8 +200,8 @@ class _PollMessageCardState extends State<PollMessageCard> {
                         child: Container(
                           decoration: BoxDecoration(
                             color: hasVoted 
-                                ? const Color(FlickoColors.blurple).withOpacity(0.4) 
-                                : const Color(FlickoColors.textMuted).withOpacity(0.2),
+                                ? const Color(FlickoColors.blurple).withValues(alpha: 0.4) 
+                                : const Color(FlickoColors.textMuted).withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),

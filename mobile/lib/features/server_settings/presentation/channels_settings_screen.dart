@@ -278,7 +278,7 @@ class _ChannelsSettingsScreenState extends ConsumerState<ChannelsSettingsScreen>
                               ),
                             ),
                           ),
-                        const SizedBox(key: ValueKey('cat_spacer_${cat.id}'), height: 16),
+                        SizedBox(key: ValueKey('cat_spacer_${cat.id}'), height: 16),
                       ];
                     }),
                   ],
@@ -392,7 +392,7 @@ class _ChannelsSettingsScreenState extends ConsumerState<ChannelsSettingsScreen>
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: const Color(FlickoColors.red).withOpacity(0.13),
+                color: const Color(FlickoColors.red).withValues(alpha: 0.13),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(

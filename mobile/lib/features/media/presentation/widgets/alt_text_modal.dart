@@ -91,7 +91,7 @@ class _AltTextModalState extends State<AltTextModal> {
                   width: 36,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: const Color(FlickoColors.textMuted).withOpacity(0.4),
+                    color: const Color(FlickoColors.textMuted).withValues(alpha: 0.4),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -267,7 +267,7 @@ class AltBadge extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
           decoration: BoxDecoration(
-            color: const Color(FlickoColors.bgPrimary).withOpacity(0.8),
+            color: const Color(FlickoColors.bgPrimary).withValues(alpha: 0.8),
             borderRadius: BorderRadius.circular(FlickoRadius.sm),
           ),
           child: Text(

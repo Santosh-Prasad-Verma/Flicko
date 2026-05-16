@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide ConnectionState;
 import 'package:livekit_client/livekit_client.dart';
 import 'package:mobile/core/config/app_config.dart';
 
@@ -9,7 +9,7 @@ class LiveKitSpikeScreen extends StatefulWidget {
   State<LiveKitSpikeScreen> createState() => _LiveKitSpikeScreenState();
 }
 
-class _LiveKitSpikeScreenState extends State<LiveKitSpikeScreen> with EventsListener<RoomEvent> {
+class _LiveKitSpikeScreenState extends State<LiveKitSpikeScreen> {
   late final Room _room;
   late final EventsListener<RoomEvent> _listener;
 
@@ -195,7 +195,7 @@ class _LiveKitSpikeScreenState extends State<LiveKitSpikeScreen> with EventsList
             children: [
               VideoTrackRenderer(
                 track.videoTrack,
-                fit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                fit: VideoViewFit.cover,
               ),
               Positioned(
                 bottom: 8,

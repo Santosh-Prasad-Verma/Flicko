@@ -397,7 +397,7 @@ class _ActivityPickerState extends State<ActivityPicker> {
                     width: 60,
                     height: 60,
                     decoration: BoxDecoration(
-                      color: const Color(FlickoColors.blurple).withOpacity(0.2),
+                      color: const Color(FlickoColors.blurple).withValues(alpha: 0.2),
                       shape: BoxShape.circle,
                     ),
                     child: Center(

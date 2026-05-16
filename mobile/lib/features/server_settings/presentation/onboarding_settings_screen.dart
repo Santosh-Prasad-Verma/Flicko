@@ -454,7 +454,7 @@ class _OnboardingSettingsScreenState extends ConsumerState<OnboardingSettingsScr
                                 Container(
                                   padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
-                                    color: const Color(FlickoColors.blurple).withOpacity(0.15),
+                                    color: const Color(FlickoColors.blurple).withValues(alpha: 0.15),
                                     borderRadius: BorderRadius.circular(FlickoRadius.md),
                                   ),
                                   child: const Icon(Icons.visibility_outlined, color: Color(FlickoColors.blurple), size: 22),
@@ -588,7 +588,7 @@ class _OnboardingSettingsScreenState extends ConsumerState<OnboardingSettingsScr
     return GestureDetector(
       onTap: () => setState(() => _previewOpen = false),
       child: Container(
-        color: Colors.black.withOpacity(0.65),
+        color: Colors.black.withValues(alpha: 0.65),
         child: Center(
           child: GestureDetector(
             onTap: () {},
@@ -601,7 +601,7 @@ class _OnboardingSettingsScreenState extends ConsumerState<OnboardingSettingsScr
                 borderRadius: BorderRadius.circular(FlickoRadius.xl),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.5),
+                    color: Colors.black.withValues(alpha: 0.5),
                     blurRadius: 30,
                     offset: const Offset(0, 10),
                   ),
@@ -614,7 +614,7 @@ class _OnboardingSettingsScreenState extends ConsumerState<OnboardingSettingsScr
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: const Color(FlickoColors.blurple).withOpacity(0.15),
+                      color: const Color(FlickoColors.blurple).withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.waving_hand, color: Color(FlickoColors.blurple), size: 32),

@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:mobile/features/core/constants/flicko_colors.dart';
-import 'package:mobile/features/server_channels/auth/application/auth_notifier.dart';
-import 'package:mobile/features/server_channels/thread/chat/presentation/widgets/enhanced_message_item.dart';
-import 'package:mobile/features/server_channels/thread/chat/presentation/widgets/message_actions.dart';
-import 'package:mobile/features/server_channels/thread/chat/presentation/widgets/enhanced_message_input.dart';
-import 'package:mobile/features/data/models/flicko_message.dart';
+import 'package:mobile/core/constants/flicko_colors.dart';
+import 'package:mobile/data/models/auth_state.dart';
+import 'package:mobile/features/auth/application/auth_notifier.dart';
+import 'package:mobile/features/server_channels/chat/presentation/widgets/enhanced_message_item.dart';
+import 'package:mobile/features/server_channels/chat/presentation/widgets/message_actions.dart';
+import 'package:mobile/features/server_channels/chat/presentation/widgets/enhanced_message_input.dart';
+import 'package:mobile/data/models/flicko_message.dart';
 
 class ThreadViewScreen extends ConsumerStatefulWidget {
   final String serverId;
@@ -337,19 +338,15 @@ class _ThreadViewScreenState extends ConsumerState<ThreadViewScreen> {
           }
           return EnhancedMessageItem(
             message: _messages[index],
-            currentUserId: ref.read(authNotifierProvider).maybeWhen(
-              authenticated: (user, _) => user.id,
-              orElse: () => '',
-            ),
-            onReaction: (emoji) => _toggleReaction(_messages[index].id, emoji),
+            isContinuation: false,
+            onReactionToggle: (emoji) => _toggleReaction(_messages[index].id, emoji),
             onReply: () => setState(() => _replyTo = _messages[index]),
-            onEdit: () {
+            onEdit: (_) {
               // Edit is handled inline
             },
             onDelete: () => _deleteMessage(_messages[index].id),
             onLongPress: () => _onMessageLongPress(_messages[index]),
-            replyTo: _replyTo,
-            onCancelReply: () => setState(() => _replyTo = null),
+            onCopy: () {},
           );
         },
       ),
@@ -366,11 +363,10 @@ class _ThreadViewScreenState extends ConsumerState<ThreadViewScreen> {
         ),
       ),
       child: EnhancedMessageInput(
-        channelId: widget.channelId,
-        onSend: (content, attachments, options) {
+        replyToName: _replyTo?.author?.displayName ?? _replyTo?.author?.username,
+        onSend: (content, {attachments, gifUrl, stickerUrl}) {
           _sendMessage(content);
         },
-        replyTo: _replyTo,
         onCancelReply: () => setState(() => _replyTo = null),
       ),
     );

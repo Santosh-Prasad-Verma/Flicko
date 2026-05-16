@@ -3,10 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/flicko_colors.dart';
-import 'package:mobile/auth/application/auth_notifier.dart';
+import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/shared/presentation/widgets/avatar.dart';
 import 'package:mobile/features/shared/presentation/widgets/button.dart';
-import 'package:mobile/features/shared/presentation/widgets/card.dart';
+import 'package:mobile/features/shared/presentation/widgets/card.dart' as flicko_card;
 import 'package:mobile/features/shared/presentation/widgets/input.dart';
 import 'package:mobile/features/shared/presentation/widgets/modal.dart';
 
@@ -363,8 +363,8 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Color(int.parse(accentColor.replace('#', '0xFF'))),
-            Color(int.parse(accentColor.replace('#', '0xFF'))).withOpacity(0.6),
+            Color(int.parse(accentColor.replaceFirst('#', '0xFF'))),
+            Color(int.parse(accentColor.replaceFirst('#', '0xFF'))).withValues(alpha: 0.6),
             const Color(FlickoColors.bgPrimary),
           ],
           begin: Alignment.topLeft,
@@ -378,8 +378,8 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       transform: Matrix4.translationValues(0, -50, 0),
-      child: Card(
-        elevation: CardElevation.subtle,
+      child: flicko_card.Card(
+        elevation: flicko_card.CardElevation.subtle,
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(

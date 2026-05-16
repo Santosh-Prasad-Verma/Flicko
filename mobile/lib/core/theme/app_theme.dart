@@ -86,13 +86,14 @@ class AppTheme {
   // ──────────────────────────────────────────────────────────
 
   static ThemeData get darkTheme {
-    const primary = Color(FlickoColors.blurple);
+    const primary = Color(FlickoColors.brandLime);
     const bgPrimary = Color(FlickoColors.bgPrimary);
     const bgSecondary = Color(FlickoColors.bgSecondary);
     const bgTertiary = Color(FlickoColors.bgTertiary);
     const textPrimary = Color(FlickoColors.textPrimary);
     const textSecondary = Color(FlickoColors.textSecondary);
     const textMuted = Color(FlickoColors.textMuted);
+    const onPrimary = Color(FlickoColors.black);
 
     return ThemeData(
       brightness: Brightness.dark,
@@ -100,10 +101,10 @@ class AppTheme {
       scaffoldBackgroundColor: bgPrimary,
       colorScheme: ColorScheme.dark(
         primary: primary,
-        secondary: const Color(FlickoColors.pink),
+        secondary: const Color(FlickoColors.green),
         surface: bgSecondary,
         error: const Color(FlickoColors.danger),
-        onPrimary: textPrimary,
+        onPrimary: onPrimary,
         onSecondary: textPrimary,
         onSurface: textPrimary,
         onError: textPrimary,
@@ -121,12 +122,13 @@ class AppTheme {
           fontSize: 20,
           fontWeight: FontWeight.w700,
           color: textPrimary,
+          letterSpacing: 0.2,
         ),
-        iconTheme: const IconThemeData(color: textSecondary),
+        iconTheme: const IconThemeData(color: Color(FlickoColors.brandLime)),
       ),
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
-        backgroundColor: bgTertiary,
-        selectedItemColor: textPrimary,
+        backgroundColor: bgSecondary,
+        selectedItemColor: primary,
         unselectedItemColor: textMuted,
         type: BottomNavigationBarType.fixed,
         showSelectedLabels: true,
@@ -143,20 +145,34 @@ class AppTheme {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: primary,
-          foregroundColor: textPrimary,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          foregroundColor: onPrimary,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-          textStyle: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600),
+          textStyle:
+              GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: bgTertiary,
         hintStyle: GoogleFonts.inter(color: textMuted),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide.none,
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(FlickoColors.border)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(FlickoColors.border)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(
+            color: Color(FlickoColors.brandLime),
+            width: 1.4,
+          ),
         ),
       ),
       iconTheme: const IconThemeData(color: textSecondary),
@@ -182,7 +198,8 @@ class AppTheme {
         surface: const Color(0xFFF2F3F5),
         error: const Color(FlickoColors.danger),
       ),
-      textTheme: _buildTextTheme(const Color(0xFF2E3338), const Color(0xFF4F5660)),
+      textTheme:
+          _buildTextTheme(const Color(0xFF2E3338), const Color(0xFF4F5660)),
     );
   }
 }

@@ -383,7 +383,11 @@ class _ChangeUsernameScreenState extends ConsumerState<ChangeUsernameScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(FlickoColors.bgSecondary),
-        border: Border.all(color: const Color(FlickoColors.blurple), left: BorderSide.none),
+        border: const Border(
+          top: BorderSide(color: Color(FlickoColors.blurple)),
+          right: BorderSide(color: Color(FlickoColors.blurple)),
+          bottom: BorderSide(color: Color(FlickoColors.blurple)),
+        ),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(

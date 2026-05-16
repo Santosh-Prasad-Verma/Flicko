@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
-import 'package:web_socket_channel/io_websocket_channel.dart';
+import 'package:web_socket_channel/io.dart';
+import 'package:mobile/core/config/app_config.dart';
 
 /// Provider for PresenceService
 final presenceServiceProvider = Provider<PresenceService>((ref) {
@@ -70,7 +70,7 @@ class PresenceService {
     try {
       // Get Supabase realtime token
       final supabase = Supabase.instance.client;
-      final token = supabase.realtime.headers['apikey'] ?? supabase.supabaseKey;
+      final token = supabase.realtime.headers['apikey'] ?? AppConfig.supabaseAnonKey;
       
       // Connect to WebSocket
       final wsUrl = _buildWebSocketUrl(token);
@@ -112,8 +112,7 @@ class PresenceService {
 
   /// Build WebSocket URL
   String _buildWebSocketUrl(String token) {
-    final supabase = Supabase.instance.client;
-    final url = supabase.supabaseUrl.replaceFirst('https://', 'wss://');
+    final url = AppConfig.supabaseUrl.replaceFirst('https://', 'wss://');
     return '$url/realtime/v1/websocket?apikey=$token&vsn=1.0.0';
   }
 

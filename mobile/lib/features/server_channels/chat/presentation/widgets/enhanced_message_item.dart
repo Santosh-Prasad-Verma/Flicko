@@ -467,7 +467,7 @@ class _EnhancedMessageItemState extends State<EnhancedMessageItem> {
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
               color: isMe
-                  ? const Color(FlickoColors.blurple).withOpacity(0.3)
+                  ? const Color(FlickoColors.blurple).withValues(alpha: 0.3)
                   : const Color(FlickoColors.bgSecondary),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
@@ -568,7 +568,7 @@ class _ImageAttachmentWidgetState extends State<_ImageAttachmentWidget> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.6),
+              color: Colors.black.withValues(alpha: 0.6),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Text(
@@ -625,7 +625,7 @@ class _ImageAttachmentWidgetState extends State<_ImageAttachmentWidget> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.7),
+                    color: Colors.black.withValues(alpha: 0.7),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(

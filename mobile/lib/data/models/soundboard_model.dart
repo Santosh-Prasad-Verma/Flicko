@@ -4,7 +4,7 @@ part 'soundboard_model.freezed.dart';
 part 'soundboard_model.g.dart';
 
 @freezed
-class SoundboardSound with _$SoundboardSound {
+abstract class SoundboardSound with _$SoundboardSound {
   const factory SoundboardSound({
     required String id,
     required String serverId,

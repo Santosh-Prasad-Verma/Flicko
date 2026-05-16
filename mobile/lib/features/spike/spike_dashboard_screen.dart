@@ -58,7 +58,7 @@ class SpikeDashboardScreen extends StatelessWidget {
               const SizedBox(height: 8),
               Chip(
                 label: Text(status),
-                backgroundColor: Colors.orange.withOpacity(0.2),
+                backgroundColor: Colors.orange.withValues(alpha: 0.2),
                 labelStyle: const TextStyle(color: Colors.orange),
               ),
             ],

@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/flicko_colors.dart';
-import 'package:mobile/auth/application/auth_notifier.dart';
+import 'package:mobile/features/auth/application/auth_notifier.dart';
 
 class ServerOptionsScreen extends ConsumerStatefulWidget {
   final String serverId;
@@ -253,7 +253,7 @@ class _ServerOptionsScreenState extends ConsumerState<ServerOptionsScreen> {
             Container(
               height: 70,
               decoration: BoxDecoration(
-                color: const Color(FlickoColors.blurple).withOpacity(0.2),
+                color: const Color(FlickoColors.blurple).withValues(alpha: 0.2),
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
               ),
             )
@@ -261,7 +261,7 @@ class _ServerOptionsScreenState extends ConsumerState<ServerOptionsScreen> {
             Container(
               height: 70,
               decoration: BoxDecoration(
-                color: const Color(FlickoColors.blurple).withOpacity(0.2),
+                color: const Color(FlickoColors.blurple).withValues(alpha: 0.2),
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
               ),
             ),
@@ -363,7 +363,7 @@ class _ServerOptionsScreenState extends ConsumerState<ServerOptionsScreen> {
               width: 38,
               height: 38,
               decoration: BoxDecoration(
-                color: iconColor.withOpacity(0.13),
+                color: iconColor.withValues(alpha: 0.13),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(icon, color: iconColor, size: 20),

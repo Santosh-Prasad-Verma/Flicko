@@ -303,22 +303,68 @@ fi
 
 gap
 
-BUILD_CMD="flutter run"
+BUILD_ARGS=(flutter run)
+BUILD_DISPLAY_ARGS=(flutter run)
 
 if [ "$BUILD_MODE" != "debug" ]; then
-  BUILD_CMD="$BUILD_CMD --$BUILD_MODE"
+  BUILD_ARGS+=("--$BUILD_MODE")
+  BUILD_DISPLAY_ARGS+=("--$BUILD_MODE")
 fi
 
 if [ -n "$DEVICE_ID" ]; then
-  BUILD_CMD="$BUILD_CMD -d $DEVICE_ID"
+  BUILD_ARGS+=("-d" "$DEVICE_ID")
+  BUILD_DISPLAY_ARGS+=("-d" "$DEVICE_ID")
   info "Target device: ${CYAN}${DEVICE_ID}${R}"
 fi
+
+DART_DEFINE_KEYS=(
+  FLICKO_SUPABASE_URL
+  FLICKO_SUPABASE_ANON_KEY
+  FLICKO_LIVEKIT_URL
+  FLICKO_STRIPE_PUBLISHABLE_KEY
+  FLICKO_API_URL
+  FLICKO_GIPHY_API_KEY
+  FLICKO_APPWRITE_PROJECT_ID
+  FLICKO_APPWRITE_PROJECT_NAME
+  FLICKO_APPWRITE_PUBLIC_ENDPOINT
+  FLICKO_APPWRITE_BUCKET_ID
+  SUPABASE_URL
+  SUPABASE_ANON_KEY
+  LIVEKIT_URL
+  STRIPE_PUBLISHABLE_KEY
+  API_BASE_URL
+  GIPHY_API_KEY
+  APPWRITE_PROJECT_ID
+  APPWRITE_PROJECT_NAME
+  APPWRITE_PUBLIC_ENDPOINT
+  APPWRITE_BUCKET_ID
+)
+
+DART_DEFINE_COUNT=0
+for key in "${DART_DEFINE_KEYS[@]}"; do
+  if [ -n "${!key:-}" ]; then
+    BUILD_ARGS+=("--dart-define=$key=${!key}")
+    DART_DEFINE_COUNT=$((DART_DEFINE_COUNT + 1))
+  fi
+done
+
+if [ "$DART_DEFINE_COUNT" -gt 0 ]; then
+  info "Passing ${CYAN}${DART_DEFINE_COUNT}${R}${GRAY} Dart defines from environment"
+  BUILD_DISPLAY_ARGS+=("--dart-define=<${DART_DEFINE_COUNT} env values>")
+fi
+
+BUILD_CMD_DISPLAY=""
+for arg in "${BUILD_DISPLAY_ARGS[@]}"; do
+  printf -v quoted "%q" "$arg"
+  BUILD_CMD_DISPLAY+="$quoted "
+done
+BUILD_CMD_DISPLAY="${BUILD_CMD_DISPLAY% }"
 
 gap
 printf "  ${GREEN}$(repeat_char '═' $(( COLS - 4 )))${R}\n"
 gap
 printf "  ${BOLD}${GREEN}>>  ${R}"
-printf "${CYAN}${BOLD}%s${R}\n" "$BUILD_CMD"
+printf "${CYAN}${BOLD}%s${R}\n" "$BUILD_CMD_DISPLAY"
 gap
 printf "  ${GRAY}Keybindings:  ${CYAN}r${R}${GRAY} hot reload  |  ${CYAN}R${R}${GRAY} hot restart  |  ${CYAN}q${R}${GRAY} quit${R}\n"
 gap
@@ -348,6 +394,6 @@ gap
 #  EXECUTE
 # ─────────────────────────────────────────────────────────────────────────────
 cd "$SCRIPT_DIR" || exit 1
-eval $BUILD_CMD
+"${BUILD_ARGS[@]}"
 FLUTTER_STATUS=$?
 exit "$FLUTTER_STATUS"

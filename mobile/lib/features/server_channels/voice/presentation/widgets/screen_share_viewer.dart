@@ -391,7 +391,7 @@ class _GoLiveModalState extends State<GoLiveModal> {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(FlickoColors.blurple).withOpacity(0.2)
+              ? const Color(FlickoColors.blurple).withValues(alpha: 0.2)
               : const Color(FlickoColors.bgTertiary),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(

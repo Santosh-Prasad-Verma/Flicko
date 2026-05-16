@@ -6,8 +6,8 @@ class FlickoColors {
   FlickoColors._();
 
   // ── Primary Brand ──
-  static const int blurple = 0xFF5865F2;
-  static const int blurpleLight = 0xFF7289DA;
+  static const int blurple = 0xFF8B5CF6; // Rebranded to Purple
+  static const int blurpleLight = 0xFFA78BFA; // Rebranded to light violet
   static const int pink = 0xFFEB459E;
   static const int green = 0xFF57F287;
   static const int greenDark = 0xFF248046;
@@ -16,29 +16,38 @@ class FlickoColors {
   static const int fuchsia = 0xFFF47FFF;
   static const int gold = 0xFFFAA61A;
 
-  // ── Dark Theme Backgrounds ──
-  static const int bgPrimary = 0xFF313338;
-  static const int bgSecondary = 0xFF2B2D31;
-  static const int bgTertiary = 0xFF1E1F22;
-  static const int bgFloating = 0xFF232428;
+  static const int brandLime = 0xFF8B5CF6; // Rebranded to Purple
+  static const int black = 0xFF000000;
+  static const int bgPrimary = 0xFF0D0B14; // Rebranded Background
+  static const int bgSecondary = 0xFF141124;
+  static const int bgTertiary = 0xFF1A1730;
+  static const int bgFloating = 0xFF0D0B14;
 
   // ── Dark Theme Text ──
   static const int textPrimary = 0xFFFFFFFF;
-  static const int textSecondary = 0xFFB5BAC1;
-  static const int textMuted = 0xFF80848E;
-  static const int textLink = 0xFF00A8FC;
+  static const int textSecondary = 0xFFC4B5FD; // Rebranded to light violet
+  static const int textMuted = 0xFF7A7593;
+  static const int textLink = 0xFFC4B5FD;
 
   // ── Status ──
-  static const int statusOnline = 0xFF23A559;
+  static const int statusOnline = 0xFF22C55E; // Green for online
   static const int statusIdle = 0xFFF0B232;
   static const int statusDnd = 0xFFED4245;
   static const int statusOffline = 0xFF80848E;
 
   // ── Semantic ──
-  static const int success = 0xFF57F287;
+  static const int success = 0xFF22C55E; // Green for success
   static const int warning = 0xFFFEE75C;
   static const int danger = 0xFFED4245;
-  static const int info = 0xFF5865F2;
+  static const int info = 0xFF8B5CF6;
+
+  // ── Accent / Aliases ──
+  static const int accentPrimary = brandLime;
+  static const int accentSecondary = 0xFFA78BFA; // Rebranded to light violet
+  static const int textDanger = danger;
+
+  // ── Border ──
+  static const int border = 0xFF2A2540; // Rebranded border
 }
 
 /// Standard spacing values used throughout the app.

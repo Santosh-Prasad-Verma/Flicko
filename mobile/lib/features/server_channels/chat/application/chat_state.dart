@@ -4,7 +4,7 @@ import 'package:mobile/data/models/flicko_message.dart';
 part 'chat_state.freezed.dart';
 
 @freezed
-class ChatState with _$ChatState {
+abstract class ChatState with _$ChatState {
   const factory ChatState({
     @Default([]) List<FlickoMessage> messages,
     @Default(<String>{}) Set<String> typingUsers,

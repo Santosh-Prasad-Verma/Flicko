@@ -2,8 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mobile/features/direct_messages/domain/dm_models.dart';
 import 'package:mobile/features/direct_messages/data/dm_repository.dart';
-import 'package:mobile/features/features/auth/application/auth_notifier.dart';
-import 'package:mobile/features/data/models/user_model.dart';
+import 'package:mobile/features/auth/application/auth_notifier.dart';
+import 'package:mobile/data/models/user_model.dart';
 import 'dart:developer' as dev;
 
 class DMState {
@@ -30,42 +30,45 @@ class DMState {
   }
 }
 
-final dmControllerProvider = StateNotifierProvider<DMController, DMState>((ref) {
-  final repository = ref.watch(dmRepositoryProvider);
-  final authState = ref.watch(authNotifierProvider);
-  
-  final controller = DMController(repository, ref);
-  
-  // Initialize when user is authenticated
-  authState.maybeWhen(
-    authenticated: (user, profile) {
-      controller.init(user.id);
-    },
-    orElse: () {},
-  );
-  
-  return controller;
-});
+final dmControllerProvider = NotifierProvider<DMController, DMState>(DMController.new);
 
-class DMController extends StateNotifier<DMState> {
-  final DMRepository _repository;
-  final Ref _ref;
+class DMController extends Notifier<DMState> {
+  late final DMRepository _repository;
   RealtimeChannel? _subscription;
   String? _currentUserId;
 
-  DMController(this._repository, this._ref) : super(DMState());
+  @override
+  DMState build() {
+    _repository = ref.watch(dmRepositoryProvider);
+    final authState = ref.watch(authNotifierProvider);
+
+    ref.onDispose(() {
+      _subscription?.unsubscribe();
+    });
+
+    // Initialize when user is authenticated
+    authState.maybeWhen(
+      authenticated: (user, profile) {
+        // Use Future.microtask to avoid modifying state during build
+        Future.microtask(() => init(user.id));
+      },
+      orElse: () {},
+    );
+
+    return DMState();
+  }
 
   Future<void> init(String userId) async {
     if (_currentUserId == userId) return;
     _currentUserId = userId;
-    
+
     await fetchConversations();
     _setupSubscription(userId);
   }
 
   Future<void> fetchConversations() async {
     if (_currentUserId == null) return;
-    
+
     state = state.copyWith(isLoading: true, error: null);
     try {
       final messages = await _repository.fetchRecentMessages(_currentUserId!);
@@ -86,30 +89,23 @@ class DMController extends StateNotifier<DMState> {
 
   List<DMConversation> _transformMessagesToConversations(List<DMMessage> messages, String currentUserId) {
     final conversationMap = <String, DMConversation>{};
-    
+
     for (final msg in messages) {
       final otherUserId = msg.senderId == currentUserId ? msg.recipientId : msg.senderId;
       final otherUser = msg.senderId == currentUserId ? msg.recipient : msg.sender;
-      
+
       if (otherUser == null) continue;
-      
+
       if (!conversationMap.containsKey(otherUserId)) {
         conversationMap[otherUserId] = DMConversation(
           id: otherUserId,
           participant: otherUser,
           lastMessage: msg.content,
           lastMessageAt: msg.createdAt,
-          // Pinned, Muted, Unread would come from other tables/preferences in a full implementation
         );
       }
     }
-    
-    return conversationMap.values.toList();
-  }
 
-  @override
-  void dispose() {
-    _subscription?.unsubscribe();
-    super.dispose();
+    return conversationMap.values.toList();
   }
 }

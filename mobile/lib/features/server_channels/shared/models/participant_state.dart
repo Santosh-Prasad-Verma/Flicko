@@ -4,7 +4,7 @@ import 'package:livekit_client/livekit_client.dart';
 part 'participant_state.freezed.dart';
 
 @freezed
-class ParticipantState with _$ParticipantState {
+abstract class ParticipantState with _$ParticipantState {
   const factory ParticipantState({
     required Participant participant,
     VideoTrack? videoTrack,
@@ -15,7 +15,7 @@ class ParticipantState with _$ParticipantState {
 }
 
 @freezed
-class RoomState with _$RoomState {
+abstract class RoomState with _$RoomState {
   const factory RoomState.disconnected() = _Disconnected;
   const factory RoomState.connecting() = _Connecting;
   const factory RoomState.connected({

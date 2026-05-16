@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:mobile/features/core/constants/flicko_colors.dart';
-import 'package:mobile/features/data/models/flicko_message.dart';
-import 'package:mobile/features/server_channels/auth/application/auth_notifier.dart';
-import 'package:mobile/features/server_channels/chat/presentation/application/chat_notifier.dart';
+import 'package:mobile/core/constants/flicko_colors.dart';
+import 'package:mobile/data/models/flicko_message.dart';
+import 'package:mobile/features/auth/application/auth_notifier.dart';
+import 'package:mobile/features/server_channels/chat/application/chat_notifier.dart';
 import 'package:mobile/features/server_channels/chat/presentation/widgets/enhanced_message_item.dart';
 import 'package:mobile/features/server_channels/chat/presentation/widgets/message_actions.dart';
 import 'package:mobile/features/server_channels/chat/presentation/widgets/enhanced_message_input.dart';
 import 'package:mobile/features/server_channels/chat/presentation/widgets/poll_creator_modal.dart';
+
+import 'package:mobile/core/widgets/particle_fx_engine.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   final String serverId;
@@ -28,7 +30,9 @@ class ChatScreen extends ConsumerStatefulWidget {
 
 class _ChatScreenState extends ConsumerState<ChatScreen> {
   final ScrollController _scrollController = ScrollController();
+  final ParticleController _particleController = ParticleController();
   FlickoMessage? _replyTo;
+  int _lastMessageCount = 0;
 
   @override
   void initState() {
@@ -122,12 +126,32 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: chatState.isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : ListView.builder(
+      body: ParticleFxEngine(
+        controller: _particleController,
+        child: Column(
+          children: [
+            Expanded(
+              child: chatState.isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : Builder(
+                      builder: (context) {
+                        // Check if new messages arrived and contain trigger words
+                        if (chatState.messages.length > _lastMessageCount) {
+                          final newMessages = chatState.messages.sublist(
+                              0, chatState.messages.length - _lastMessageCount);
+                          _lastMessageCount = chatState.messages.length;
+
+                          for (var msg in newMessages) {
+                            if (ParticleFxEngine.shouldTriggerFx(msg.content)) {
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                _particleController.play();
+                              });
+                              break; // Only play once per batch
+                            }
+                          }
+                        }
+
+                        return ListView.builder(
                     controller: _scrollController,
                     reverse: true, // Discord style lists newest at bottom
                     padding: const EdgeInsets.symmetric(vertical: 16),
@@ -183,8 +207,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         },
                       );
                     },
-                  ),
-          ),
+                  );
+                },
+              ),
+            ),
           if (chatState.typingUsers.isNotEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -229,7 +255,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               ref.read(chatNotifierProvider(widget.channelId).notifier).sendTyping(false);
             },
           ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -237,6 +264,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _particleController.dispose();
     super.dispose();
   }
 }

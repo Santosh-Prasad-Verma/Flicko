@@ -745,7 +745,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                           width: 30,
                           height: 30,
                           decoration: BoxDecoration(
-                            color: _accentColor.withOpacity(0.13),
+                            color: _accentColor.withValues(alpha: 0.13),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(Icons.calendar_today, size: 14, color: _accentColor),
@@ -797,7 +797,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
       ),
 
       // Floating Nav Buttons
-      SafeArea(
+      floatingActionButton: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Row(
@@ -809,6 +809,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
           ),
         ),
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerTop,
     );
   }
 
@@ -832,7 +833,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                   end: Alignment.bottomRight,
                   colors: [
                     _accentColor,
-                    _accentColor.withOpacity(0.67),
+                    _accentColor.withValues(alpha: 0.67),
                     const Color(FlickoColors.bgTertiary),
                   ],
                 ),
@@ -976,7 +977,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.13),
+        color: color.withValues(alpha: 0.13),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -1004,7 +1005,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
         width: 30,
         height: 30,
         decoration: BoxDecoration(
-          color: (badge['color'] as Color).withOpacity(0.13),
+          color: (badge['color'] as Color).withValues(alpha: 0.13),
           shape: BoxShape.circle,
         ),
         child: Icon(
@@ -1045,7 +1046,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        border: Border.all(color: color.withOpacity(0.4)),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Row(
@@ -1213,7 +1214,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
   Widget _buildNavButton(IconData icon, VoidCallback onPressed) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.45),
+        color: Colors.black.withValues(alpha: 0.45),
         shape: BoxShape.circle,
       ),
       child: IconButton(

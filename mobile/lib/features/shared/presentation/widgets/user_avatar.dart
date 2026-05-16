@@ -8,13 +8,13 @@ class UserAvatar extends StatelessWidget {
   final String? imageUrl;
   final String name;
   final double size;
-  final UserStatus status;
+  final Object? status;
   final bool showStatus;
 
   const UserAvatar({
     super.key,
     this.imageUrl,
-    required this.name,
+    this.name = 'User',
     this.size = 40,
     this.status = UserStatus.offline,
     this.showStatus = true,
@@ -79,8 +79,9 @@ class UserAvatar extends StatelessWidget {
   }
 
   Widget _buildStatusIndicator() {
+    final resolvedStatus = _resolveStatus(status);
     final Color color;
-    switch (status) {
+    switch (resolvedStatus) {
       case UserStatus.online:
         color = const Color(FlickoColors.statusOnline);
       case UserStatus.idle:
@@ -103,5 +104,16 @@ class UserAvatar extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  UserStatus _resolveStatus(Object? value) {
+    if (value is UserStatus) return value;
+    if (value is String) {
+      return UserStatus.values.firstWhere(
+        (status) => status.name == value,
+        orElse: () => UserStatus.offline,
+      );
+    }
+    return UserStatus.offline;
   }
 }

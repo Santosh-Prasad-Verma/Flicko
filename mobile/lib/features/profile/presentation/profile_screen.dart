@@ -67,7 +67,7 @@ class ProfileScreen extends ConsumerWidget {
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [accentColor, accentColor.withOpacity(0.6), const Color(FlickoColors.bgPrimary)],
+                  colors: [accentColor, accentColor.withValues(alpha: 0.6), const Color(FlickoColors.bgPrimary)],
                 ),
               ),
             ),
@@ -157,7 +157,7 @@ class ProfileScreen extends ConsumerWidget {
       margin: const EdgeInsets.only(left: 8),
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         shape: BoxShape.circle,
       ),
       child: Icon(icon, size: 18, color: color),

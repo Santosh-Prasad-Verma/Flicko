@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
+import 'package:mobile/features/shared/presentation/widgets/keyboard_dismiss_on_tap.dart';
 
 /// Forgot Password Screen — Discord-inspired
 ///
@@ -71,7 +72,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         return;
       }
 
-      if (sanitizedEmail.contains('\0')) {
+      if (sanitizedEmail.contains('\x00')) {
         setState(() => _generalError = 'Invalid characters in email');
         return;
       }
@@ -86,12 +87,12 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         _emailSent = true;
         _successMessage = 'Password reset email sent! Check your inbox and spam folder.';
       });
-    } on AuthException catch (e) {
+    } on AuthException catch (_) {
       // Don't expose whether email exists for security
-      setState(() => 
-        _successMessage = 'If an account exists with this email, you will receive a password reset link.'
-      );
-      setState(() => _emailSent = true);
+      setState(() {
+        _emailSent = true;
+        _successMessage = 'If an account exists with this email, you will receive a password reset link.';
+      });
     } catch (e) {
       debugPrint('Forgot password error: $e');
       setState(() => _generalError = 'Failed to send reset email. Please try again.');
@@ -110,58 +111,85 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     final topPadding = MediaQuery.of(context).padding.top;
 
     return Scaffold(
-      backgroundColor: const Color(FlickoColors.bgPrimary),
-      body: GestureDetector(
-        onTap: () => FocusScope.of(context).unfocus(),
-        behavior: HitTestBehavior.translucent,
+      backgroundColor: const Color(FlickoColors.black),
+      body: KeyboardDismissOnTap(
         child: SingleChildScrollView(
           padding: EdgeInsets.only(
-            top: topPadding + 24,
-            bottom: bottomPadding + 30,
-            left: 28,
-            right: 28,
+            top: topPadding + 60,
+            bottom: bottomPadding + 40,
+            left: 24,
+            right: 24,
           ),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight: MediaQuery.of(context).size.height - topPadding - bottomPadding - 54,
-            ),
-            child: IntrinsicHeight(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Back button
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: GestureDetector(
-                      onTap: _navigateToLogin,
-                      child: Text(
-                        '< Back',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Back Button
+              GestureDetector(
+                onTap: () => context.pop(),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.arrow_back_ios_new, color: Color(FlickoColors.textMuted), size: 14),
+                      const SizedBox(width: 8),
+                      Text(
+                        'BACK',
                         style: GoogleFonts.inter(
-                          color: const Color(FlickoColors.textSecondary),
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
+                          color: const Color(FlickoColors.textMuted),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.0,
                         ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              
+              const SizedBox(height: 32),
+              
+              // Logo
+              _buildLogo(),
+              
+              const SizedBox(height: 24),
+              
+              // Header
+              _buildHeader(),
+              
+              const SizedBox(height: 48),
+              
+              // Form or Success
+              _emailSent ? _buildSuccessView() : _buildForm(),
+              
+              if (!_emailSent) ...[
+                const SizedBox(height: 40),
+                Center(
+                  child: GestureDetector(
+                    onTap: _navigateToLogin,
+                    child: RichText(
+                      text: TextSpan(
+                        style: GoogleFonts.inter(
+                          color: const Color(FlickoColors.textMuted),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.5,
+                        ),
+                        children: [
+                          const TextSpan(text: 'REMEMBERED IT? '),
+                          TextSpan(
+                            text: 'LOG IN',
+                            style: TextStyle(
+                              color: const Color(FlickoColors.brandLime),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                  
-                  const SizedBox(height: 24),
-                  
-                  // Logo
-                  _buildLogo(),
-                  
-                  const SizedBox(height: 24),
-                  
-                  // Header
-                  _buildHeader(),
-                  
-                  const SizedBox(height: 32),
-                  
-                  // Form or Success
-                  _emailSent ? _buildSuccessView() : _buildForm(),
-                ],
-              ),
-            ),
+                ),
+              ],
+            ],
           ),
         ),
       ),
@@ -169,56 +197,46 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   }
 
   Widget _buildLogo() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Container(
-          width: 52,
-          height: 52,
-          decoration: BoxDecoration(
-            color: const Color(FlickoColors.blurple),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: const Icon(
-            Icons.chat_bubble,
-            color: Colors.white,
-            size: 28,
-          ),
+    return Image.asset(
+      'assets/images/Flicko-for-black-background.png',
+      width: 120,
+      height: 40,
+      fit: BoxFit.contain,
+      errorBuilder: (context, error, stackTrace) => Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: const Color(FlickoColors.brandLime),
+          borderRadius: BorderRadius.circular(8),
         ),
-        const SizedBox(width: 10),
-        Text(
-          'Flicko',
-          style: GoogleFonts.pacifico(
-            color: const Color(FlickoColors.textPrimary),
-            fontSize: 30,
-            letterSpacing: 0.5,
-          ),
-        ),
-      ],
+        child: const Icon(Icons.flash_on, color: Colors.black),
+      ),
     );
   }
 
   Widget _buildHeader() {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Forgot Password?',
+          'FORGOT\nPASSWORD?',
           style: GoogleFonts.inter(
             color: const Color(FlickoColors.textPrimary),
-            fontSize: 25,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.3,
+            fontSize: 48,
+            fontWeight: FontWeight.w900,
+            height: 0.9,
+            letterSpacing: -1.5,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 16),
         Text(
-          "Enter your email and we'll send you a link to reset your password.",
+          "WE'LL SEND YOU A RESET LINK",
           style: GoogleFonts.inter(
-            color: const Color(FlickoColors.textSecondary),
-            fontSize: 15,
-            height: 1.5,
+            color: const Color(FlickoColors.textMuted),
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.2,
           ),
-          textAlign: TextAlign.center,
         ),
       ],
     );
@@ -233,8 +251,8 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         
         // Email Field
         _buildTextField(
-          label: 'EMAIL',
-          hint: 'Enter your email address',
+          label: 'EMAIL ADDRESS',
+          hint: 'YOUR@EMAIL.COM',
           controller: _emailController,
           error: _emailError,
           keyboardType: TextInputType.emailAddress,
@@ -246,54 +264,15 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
           },
         ),
         
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
         
         // Send Reset Button
-        SizedBox(
-          width: double.infinity,
-          height: 44,
-          child: ElevatedButton(
-            onPressed: _isLoading ? null : _handleSendReset,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(FlickoColors.blurple),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(3),
-              ),
-              disabledBackgroundColor: const Color(FlickoColors.blurple).withOpacity(0.5),
-            ),
-            child: _isLoading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  )
-                : Text(
-                    'Send Reset Link',
-                    style: GoogleFonts.inter(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-          ),
-        ),
-        
-        const SizedBox(height: 20),
-        
-        // Back to Login
-        GestureDetector(
-          onTap: _navigateToLogin,
-          child: Text(
-            'Back to Login',
-            style: GoogleFonts.inter(
-              color: const Color(FlickoColors.blurple),
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+        _buildStyledButton(
+          label: 'SEND RESET LINK',
+          onPressed: _isLoading ? null : _handleSendReset,
+          isLoading: _isLoading,
+          color: const Color(FlickoColors.brandLime),
+          textColor: Colors.black,
         ),
       ],
     );
@@ -301,70 +280,64 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
 
   Widget _buildSuccessView() {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: const Color(FlickoColors.success).withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            children: [
-              const Icon(
-                Icons.check_circle,
-                color: Color(FlickoColors.success),
-                size: 48,
+        Stack(
+          children: [
+            // Shadow Box
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(top: 4, left: 4),
+              padding: const EdgeInsets.all(24),
+              decoration: const BoxDecoration(
+                color: Colors.white,
               ),
-              const SizedBox(height: 16),
-              Text(
-                _successMessage!,
-                style: GoogleFonts.inter(
-                  color: const Color(FlickoColors.success),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-                textAlign: TextAlign.center,
+              child: const Opacity(opacity: 0, child: Text('placeholder')),
+            ),
+            // Main Success Box
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F0F0F),
+                border: Border.all(color: Colors.white, width: 2),
               ),
-              const SizedBox(height: 12),
-              Text(
-                'Check your inbox for the reset link. If you don\'t see it, check your spam folder.',
-                style: GoogleFonts.inter(
-                  color: const Color(FlickoColors.textSecondary),
-                  fontSize: 14,
-                  height: 1.5,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-        
-        const SizedBox(height: 24),
-        
-        SizedBox(
-          width: double.infinity,
-          height: 44,
-          child: ElevatedButton(
-            onPressed: _navigateToLogin,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(FlickoColors.blurple),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(3),
+              child: Column(
+                children: [
+                  const Icon(
+                    Icons.mark_email_read,
+                    color: Color(FlickoColors.brandLime),
+                    size: 48,
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'EMAIL SENT!',
+                    style: GoogleFonts.inter(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.0,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    _successMessage ?? 'Check your inbox for the reset link.',
+                    style: GoogleFonts.inter(
+                      color: const Color(FlickoColors.textMuted),
+                      fontSize: 14,
+                      height: 1.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
               ),
             ),
-            child: Text(
-              'Back to Login',
-              style: GoogleFonts.inter(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
+          ],
         ),
         
-        const SizedBox(height: 12),
+        const SizedBox(height: 32),
         
         GestureDetector(
           onTap: () {
@@ -374,12 +347,83 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
               _emailController.clear();
             });
           },
-          child: Text(
-            'Try different email',
-            style: GoogleFonts.inter(
-              color: const Color(FlickoColors.textMuted),
-              fontSize: 14,
+          child: Center(
+            child: Text(
+              'TRY DIFFERENT EMAIL',
+              style: GoogleFonts.inter(
+                color: const Color(FlickoColors.textSecondary),
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.0,
+                decoration: TextDecoration.underline,
+              ),
             ),
+          ),
+        ),
+        
+        const SizedBox(height: 24),
+        
+        _buildStyledButton(
+          label: 'RETURN TO LOGIN',
+          onPressed: _navigateToLogin,
+          color: const Color(FlickoColors.brandLime),
+          textColor: Colors.black,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStyledButton({
+    required String label,
+    required VoidCallback? onPressed,
+    bool isLoading = false,
+    required Color color,
+    required Color textColor,
+  }) {
+    return Stack(
+      children: [
+        // Shadow Box
+        Container(
+          width: double.infinity,
+          height: 56,
+          margin: const EdgeInsets.only(top: 4, left: 4),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: Colors.white, width: 2),
+          ),
+        ),
+        // Main Button
+        SizedBox(
+          width: double.infinity,
+          height: 56,
+          child: ElevatedButton(
+            onPressed: onPressed,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: color,
+              foregroundColor: textColor,
+              elevation: 0,
+              shape: const RoundedRectangleBorder(
+                side: BorderSide(color: Colors.black, width: 2),
+              ),
+              padding: EdgeInsets.zero,
+            ),
+            child: isLoading
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                    ),
+                  )
+                : Text(
+                    label,
+                    style: GoogleFonts.inter(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
           ),
         ),
       ],
@@ -392,7 +436,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
       padding: const EdgeInsets.all(12),
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: const Color(FlickoColors.danger).withOpacity(0.1),
+        color: const Color(FlickoColors.danger).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
@@ -400,7 +444,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         style: GoogleFonts.inter(
           color: const Color(FlickoColors.danger),
           fontSize: 14,
-          fontWeight: FontWeight.w500,
+          fontWeight: FontWeight.w600,
         ),
         textAlign: TextAlign.center,
       ),
@@ -424,47 +468,50 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
           style: GoogleFonts.inter(
             color: const Color(FlickoColors.textSecondary),
             fontSize: 12,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.5,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.0,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         TextField(
           controller: controller,
           keyboardType: keyboardType,
           onChanged: (_) => onChanged?.call(),
           onSubmitted: (_) => onSubmitted?.call(),
           style: GoogleFonts.inter(
-            color: const Color(FlickoColors.textPrimary),
+            color: Colors.white,
             fontSize: 16,
+            fontWeight: FontWeight.w600,
           ),
+          cursorColor: const Color(FlickoColors.brandLime),
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: GoogleFonts.inter(
-              color: const Color(FlickoColors.textMuted),
+              color: const Color(0xFF333333),
               fontSize: 16,
+              fontWeight: FontWeight.w600,
             ),
             filled: true,
-            fillColor: const Color(FlickoColors.bgSecondary),
+            fillColor: const Color(0xFF0F0F0F),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(3),
-              borderSide: BorderSide.none,
+              borderRadius: BorderRadius.zero,
+              borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1), width: 1),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(3),
-              borderSide: BorderSide.none,
+              borderRadius: BorderRadius.zero,
+              borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1), width: 1),
             ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(3),
-              borderSide: const BorderSide(color: Color(FlickoColors.blurple)),
+            focusedBorder: const OutlineInputBorder(
+              borderRadius: BorderRadius.zero,
+              borderSide: BorderSide(color: Color(FlickoColors.brandLime), width: 2),
             ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(3),
-              borderSide: const BorderSide(color: Color(FlickoColors.danger)),
+            errorBorder: const OutlineInputBorder(
+              borderRadius: BorderRadius.zero,
+              borderSide: BorderSide(color: Colors.red, width: 1),
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
-              vertical: 12,
+              vertical: 18,
             ),
             errorText: error,
           ),

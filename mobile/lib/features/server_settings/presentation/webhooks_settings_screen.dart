@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/flicko_colors.dart';
 import 'package:mobile/features/shared/presentation/widgets/button.dart';
-import 'package:mobile/features/shared/presentation/widgets/card.dart';
+import 'package:mobile/features/shared/presentation/widgets/card.dart' as flicko_card;
 import 'package:mobile/features/shared/presentation/widgets/input.dart';
 import 'package:mobile/features/shared/presentation/widgets/modal.dart';
 
@@ -224,7 +224,7 @@ class _WebhooksSettingsScreenState extends ConsumerState<WebhooksSettingsScreen>
         actions: [
           IconButton(
             icon: const Icon(Icons.add, color: Color(FlickoColors.blurple)),
-            onPressed: () => setState(() => _showCreateModal = true),
+            onPressed: () => _openCreateModal(),
           ),
         ],
       ),
@@ -271,7 +271,7 @@ class _WebhooksSettingsScreenState extends ConsumerState<WebhooksSettingsScreen>
             const SizedBox(height: 16),
             Button(
               title: 'Create Webhook',
-              onPress: () => setState(() => _showCreateModal = true),
+              onPress: () => _openCreateModal(),
               variant: ButtonVariant.primary,
             ),
           ],
@@ -287,8 +287,8 @@ class _WebhooksSettingsScreenState extends ConsumerState<WebhooksSettingsScreen>
   }
 
   Widget _buildWebhookCard(Map<String, dynamic> webhook) {
-    return Card(
-      elevation: CardElevation.subtle,
+    return flicko_card.Card(
+      elevation: flicko_card.CardElevation.subtle,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -355,7 +355,7 @@ class _WebhooksSettingsScreenState extends ConsumerState<WebhooksSettingsScreen>
     );
   }
 
-  void _showCreateModal() {
+  void _openCreateModal() {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,

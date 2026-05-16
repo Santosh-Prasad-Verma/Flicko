@@ -28,13 +28,15 @@ class _SupabaseSpikeScreenState extends State<SupabaseSpikeScreen> {
     try {
       // 1. Initialize Supabase if not already
       // Note: In real app, this happens in main.dart. For Spike, doing it here ensures isolation.
-      if (AppConfig.supabaseUrl.isNotEmpty && AppConfig.supabaseAnonKey.isNotEmpty) {
+      if (AppConfig.supabaseUrl.isNotEmpty &&
+          AppConfig.supabaseAnonKey.isNotEmpty) {
         await Supabase.initialize(
           url: AppConfig.supabaseUrl,
           anonKey: AppConfig.supabaseAnonKey,
         );
       } else {
-        setState(() => _errorMessage = 'Supabase environment variables missing.');
+        setState(
+            () => _errorMessage = 'Supabase environment variables missing.');
         return;
       }
 
@@ -45,7 +47,11 @@ class _SupabaseSpikeScreenState extends State<SupabaseSpikeScreen> {
       // 3. Listen to Presence (Who is online)
       _channel!.onPresenceSync((payload) {
         final state = _channel!.presenceState();
-        final users = state.values.expand((element) => element).map((e) => e.payload['user'] as String).toList();
+        final users = state
+            .expand((entry) => entry.presences)
+            .map((presence) => presence.payload['user'])
+            .whereType<String>()
+            .toList();
         setState(() {
           _onlineUsers.clear();
           _onlineUsers.addAll(users);
@@ -53,24 +59,27 @@ class _SupabaseSpikeScreenState extends State<SupabaseSpikeScreen> {
       });
 
       _channel!.onPresenceJoin((payload) {
-        print('User joined: \$payload');
+        print('User joined: $payload');
       });
 
       _channel!.onPresenceLeave((payload) {
-        print('User left: \$payload');
+        print('User left: $payload');
       });
 
       // 4. Listen to Broadcast Messages (Chat)
-      _channel!.onBroadcast(event: 'chat', callback: (payload) {
-        setState(() {
-          _messages.add(payload['message'] as String);
-        });
-      });
+      _channel!.onBroadcast(
+          event: 'chat',
+          callback: (payload) {
+            setState(() {
+              _messages.add(payload['message'] as String);
+            });
+          });
 
       // 5. Subscribe to channel and track presence
-      await _channel!.subscribe((status, error) async {
+      _channel!.subscribe((status, error) async {
         if (status == RealtimeSubscribeStatus.subscribed) {
-          final userId = 'User-\${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
+          final userId =
+              'User-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
           await _channel!.track({'user': userId});
           setState(() => _isInit = true);
         }
@@ -83,11 +92,11 @@ class _SupabaseSpikeScreenState extends State<SupabaseSpikeScreen> {
   void _sendMessage() {
     if (_msgCtrl.text.isEmpty || _channel == null) return;
     final msg = _msgCtrl.text;
-    
+
     _channel!.sendBroadcastMessage(event: 'chat', payload: {'message': msg});
-    
+
     setState(() {
-      _messages.add('Me: \$msg');
+      _messages.add('Me: $msg');
       _msgCtrl.clear();
     });
   }
@@ -104,7 +113,9 @@ class _SupabaseSpikeScreenState extends State<SupabaseSpikeScreen> {
     if (_errorMessage != null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Supabase Spike')),
-        body: Center(child: Text(_errorMessage!, style: const TextStyle(color: Colors.red))),
+        body: Center(
+            child: Text(_errorMessage!,
+                style: const TextStyle(color: Colors.red))),
       );
     }
 
@@ -121,12 +132,12 @@ class _SupabaseSpikeScreenState extends State<SupabaseSpikeScreen> {
         children: [
           Container(
             padding: const EdgeInsets.all(8),
-            color: Colors.blueAccent.withOpacity(0.1),
+            color: Colors.blueAccent.withValues(alpha: 0.1),
             child: Row(
               children: [
                 const Icon(Icons.people, color: Colors.blue),
                 const SizedBox(width: 8),
-                Text('Online: \${_onlineUsers.join(', ')}'),
+                Text('Online: ${_onlineUsers.join(', ')}'),
               ],
             ),
           ),

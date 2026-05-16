@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/flicko_colors.dart';
 import 'package:mobile/data/models/user_model.dart';
+import 'package:mobile/data/models/auth_state.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
 
@@ -147,10 +148,10 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
     String? bannerUrl,
   ) {
     return Container(
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: const Color(FlickoColors.bgSecondary),
         borderRadius: BorderRadius.circular(16),
-        overflow: BorderOverflow.clip,
       ),
       child: Column(
         children: [
@@ -194,8 +195,9 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                     ),
                     child: UserAvatar(
                       imageUrl: avatarUrl,
+                      name: displayName,
                       size: 80,
-                      status: 'online',
+                      status: UserStatus.online,
                     ),
                   ),
                 ),
@@ -389,7 +391,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
     return Divider(
       height: 1,
       indent: 16,
-      color: const Color(FlickoColors.textMuted).withOpacity(0.1),
+      color: const Color(FlickoColors.textMuted).withValues(alpha: 0.1),
     );
   }
 
