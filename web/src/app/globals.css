@@ -1,0 +1,290 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* Abcgintodiscordnord Font */
+@font-face {
+  font-family: 'Abcgintodiscordnord';
+  src: local('Abcgintodiscordnord'), local('abcgintodiscordnord');
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Abcgintodiscordnord Font */
+@font-face {
+  font-family: 'Abcgintodiscordnord';
+  src: local('Abcgintodiscordnord'), local('abcgintodiscordnord');
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* GG Sans Font Faces - Discord's Font */
+@font-face {
+  font-family: 'GG Sans';
+  src: url('/fonts/GGSans-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GG Sans';
+  src: url('/fonts/GGSans-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GG Sans';
+  src: url('/fonts/GGSans-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GG Sans';
+  src: url('/fonts/GGSans-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: 'Abcgintodiscordnord', 'GG Sans', Arial, sans-serif;
+  --font-mono: 'Abcgintodiscordnord', 'GG Sans', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --color-blurple: #5865F2;
+  --color-blurple-dark: #4752C4;
+  --color-blurple-light: #E0E3FF;
+  --color-flicko-dark: #23272A;
+  --color-flicko-darker: #1E2124;
+  --color-flicko-not-quite-black: #2C2F33;
+  --color-flicko-greyple: #99AAB5;
+  --color-flicko-green: #57F287;
+  --color-flicko-yellow: #FEE75C;
+  --color-flicko-fuchsia: #EB459E;
+  --color-flicko-red: #ED4245;
+  --color-flicko-white: #FFFFFF;
+  --color-flicko-off-white: #F6F6F6;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: #ffffff;
+  --foreground: #23272A;
+}
+
+@layer base {
+  * {
+    @apply border-gray-200;
+    box-sizing: border-box;
+  }
+  body {
+    @apply bg-white text-[#23272A] antialiased;
+    font-family: 'Abcgintodiscordnord', 'GG Sans', Arial, sans-serif;
+    font-weight: 500;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 700;
+  }
+  p, span, a {
+    font-weight: 500;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Hide Next.js dev indicator portal */
+nextjs-portal {
+  display: none !important;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-float-delay {
+  animation: float 3s ease-in-out 1s infinite;
+}
+
+.animate-float-delay-2 {
+  animation: float 3s ease-in-out 2s infinite;
+}
+
+/* Discord-style Animations */
+
+/* Float with gentle bobbing */
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  25% { transform: translateY(-8px) rotate(1deg); }
+  50% { transform: translateY(-12px) rotate(0deg); }
+  75% { transform: translateY(-6px) rotate(-1deg); }
+}
+
+.animate-float-slow {
+  animation: float-slow 5s ease-in-out infinite;
+}
+
+/* Soft bounce */
+@keyframes bounce-soft {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-5px) scale(1.02); }
+}
+
+.animate-bounce-soft {
+  animation: bounce-soft 3s ease-in-out infinite;
+}
+
+/* Slide in from left */
+@keyframes slide-in-left {
+  0% { opacity: 0; transform: translateX(-30px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+.animate-slide-in-left {
+  animation: slide-in-left 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Slide in from right */
+@keyframes slide-in-right {
+  0% { opacity: 0; transform: translateX(30px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Twinkle sparkle animation */
+@keyframes twinkle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
+}
+
+.animate-twinkle {
+  animation: twinkle 2s ease-in-out infinite;
+}
+
+/* Message pop in */
+@keyframes message-pop {
+  0% { opacity: 0; transform: scale(0.8) translateY(10px); }
+  70% { transform: scale(1.02) translateY(-2px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.animate-message-pop {
+  animation: message-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  opacity: 0;
+}
+
+/* Soft pulse glow */
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+/* Fade in */
+@keyframes fade-in {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out forwards;
+}
+
+/* Wiggle on hover effect */
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-3deg); }
+  75% { transform: rotate(3deg); }
+}
+
+.hover\:animate-wiggle:hover {
+  animation: wiggle 0.3s ease-in-out;
+}
+
+/* Elastic scale */
+@keyframes elastic-scale {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.animate-elastic {
+  animation: elastic-scale 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* Marquee Animation */
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  animation: marquee 20s linear infinite;
+}
+
+/* Custom Select Dropdown Styling */
+select {
+  background-color: rgba(26, 21, 58, 0.8) !important;
+}
+
+select option,
+select optgroup {
+  background-color: #1a153a !important;
+  background: #1a153a !important;
+  color: white !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+}
+
+select option:hover,
+select option:focus,
+select option:checked,
+select option:active {
+  background-color: #5865F2 !important;
+  background: #5865F2 !important;
+  color: white !important;
+}
+
+/* Webkit browsers (Chrome, Safari, Edge) */
+select::-webkit-list-box {
+  background-color: #1a153a !important;
+  background: #1a153a !important;
+}
+
+select::-webkit-calendar-picker-indicator {
+  background-color: #1a153a !important;
+}
+
+/* Firefox */
+select:-moz-focusring {
+  background-color: #1a153a !important;
+  color: white !important;
+}
+
+select * {
+  background-color: #1a153a !important;
+  color: white !important;
+}
