@@ -2,8 +2,7 @@ package bots
 
 import (
 	"context"
-	"fmt"
-	"time"
+        "encoding/json"
 
 	"github.com/flicko-org/flicko-backend/internal/repo/cache"
 	"github.com/hibiken/asynq"
@@ -105,8 +104,7 @@ func (c *AsynqBotCoordinator) HandleBotMoveTask(ctx context.Context, t *asynq.Ta
 	}
 
 	// Check for abandonment before proceeding
-	abandonKey := cache.GenerateAbandonmentKey(payload.GameID, payload.PlayerID)
-	// We need a redis client to check - this is injected via lockService
+        _ = cache.GenerateAbandonmentKey(payload.GameID, payload.PlayerID)
 	// For now, we proceed if we can acquire the lock
 
 	lockKey := cache.GenerateGameLockKey(payload.GameID)
