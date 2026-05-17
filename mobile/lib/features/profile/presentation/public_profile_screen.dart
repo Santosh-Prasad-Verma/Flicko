@@ -1,27 +1,29 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Badge;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../../core/constants/flicko_colors.dart';
+import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/data/models/user_model.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
+import 'package:intl/intl.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
-/// Public Profile View Screen
-///
-/// Discord-style user profile with banner, avatar, bio, badges,
-/// mutual servers, friend actions, and block/report options.
-/// Route: /profile/:userId
+/// Unified Profile Screen — Flicko's Ultimate Profile Experience
+/// Handles both current user (Self) and other users (Public) with 
+/// a sleek, brutalist black/neon design.
+/// 
+/// Standardized across:
+/// - ProfileScreen (Self)
+/// - PublicProfileScreen (Others)
+/// - ProfileViewScreen (Legacy)
 class PublicProfileScreen extends ConsumerStatefulWidget {
   final String userId;
 
-  const PublicProfileScreen({
-    super.key,
-    required this.userId,
-  });
+  const PublicProfileScreen({super.key, required this.userId});
 
   @override
   ConsumerState<PublicProfileScreen> createState() => _PublicProfileScreenState();
@@ -30,24 +32,25 @@ class PublicProfileScreen extends ConsumerStatefulWidget {
 class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
   bool _isLoading = true;
   UserModel? _profile;
-  String _friendStatus = 'self'; // self, none, pending_sent, pending_received, friends
+  String _friendStatus = 'none'; // self, none, pending_sent, pending_received, friends
   List<Map<String, dynamic>> _mutualServers = [];
   List<Map<String, dynamic>> _userRoles = [];
   String _note = '';
   bool _isEditingNote = false;
   final _noteController = TextEditingController();
   bool _isActionLoading = false;
+  String? _errorMessage;
 
   final _client = Supabase.instance.client;
 
-  // Status definitions
-  static const Map<String, String> _statusLabels = {
-    'online': 'Online',
-    'idle': 'Idle',
-    'dnd': 'Do Not Disturb',
-    'offline': 'Invisible',
-  };
+  // Theme tokens
+  static const Color _neon = Color(0xFFC0F500);
+  static const Color _bg = Color(0xFF050505);
+  static const Color _surface = Color(0xFF0C0C0E);
+  static const Color _white = Color(0xFFFBF9FA);
+  static const Color _muted = Color(0xFF71717A);
 
+  // Status colors and labels
   static const Map<String, Color> _statusColors = {
     'online': Color(FlickoColors.statusOnline),
     'idle': Color(FlickoColors.statusIdle),
@@ -55,10 +58,29 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
     'offline': Color(FlickoColors.statusOffline),
   };
 
+  static const Map<String, String> _statusLabels = {
+    'online': 'Online',
+    'idle': 'Idle',
+    'dnd': 'Do Not Disturb',
+    'offline': 'Offline',
+  };
+
   @override
   void initState() {
     super.initState();
-    _loadProfile();
+    _loadAll();
+  }
+
+  Future<void> _loadAll() async {
+    await _loadProfile();
+  }
+
+  @override
+  void didUpdateWidget(PublicProfileScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.userId != widget.userId) {
+      _loadAll();
+    }
   }
 
   @override
@@ -82,16 +104,15 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
 
       // Get current user to determine if own profile
       final currentUser = ref.read(authNotifierProvider).maybeWhen(
-        authenticated: (user, _) => user,
-        orElse: () => null,
-      );
+            authenticated: (user, _) => user,
+            orElse: () => null,
+          );
 
       final isOwnProfile = currentUser?.id == widget.userId;
 
       if (!isOwnProfile && currentUser != null) {
         // Check friend status
         await _checkFriendStatus(currentUser.id);
-
         // Fetch mutual servers
         await _loadMutualServers(currentUser.id);
       }
@@ -175,10 +196,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
           .select('server_id')
           .eq('user_id', widget.userId);
 
-      final myServerIds = (myMemberships as List)
-          .map((m) => m['server_id'] as String)
-          .toSet();
-
+      final myServerIds =
+          (myMemberships as List).map((m) => m['server_id'] as String).toSet();
       final mutualIds = (theirMemberships as List)
           .map((m) => m['server_id'] as String)
           .where((id) => myServerIds.contains(id))
@@ -193,7 +212,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
           .inFilter('id', mutualIds);
 
       setState(() {
-        _mutualServers = (servers as List).map((s) => s as Map<String, dynamic>).toList();
+        _mutualServers =
+            (servers as List).map((s) => s as Map<String, dynamic>).toList();
       });
     } catch (e) {
       // Non-critical
@@ -220,9 +240,10 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
 
   Future<void> _sendFriendRequest() async {
     final currentUser = ref.read(authNotifierProvider).maybeWhen(
-      authenticated: (user, _) => user,
-      orElse: () => null,
-    );
+          authenticated: (user, _) => user,
+          orElse: () => null,
+        );
+
     if (currentUser == null) return;
 
     setState(() => _isActionLoading = true);
@@ -254,19 +275,17 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
 
   Future<void> _acceptFriendRequest() async {
     final currentUser = ref.read(authNotifierProvider).maybeWhen(
-      authenticated: (user, _) => user,
-      orElse: () => null,
-    );
+          authenticated: (user, _) => user,
+          orElse: () => null,
+        );
+
     if (currentUser == null) return;
 
     setState(() => _isActionLoading = true);
 
     try {
-      await _client
-          .from('friend_requests')
-          .update({'status': 'accepted'})
-          .eq('sender_id', widget.userId)
-          .eq('receiver_id', currentUser.id);
+      await _client.from('friend_requests').update({'status': 'accepted'}).eq(
+          'sender_id', widget.userId).eq('receiver_id', currentUser.id);
 
       await _client.from('friends').insert([
         {'user_id': currentUser.id, 'friend_id': widget.userId},
@@ -293,9 +312,10 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
 
   Future<void> _removeFriend() async {
     final currentUser = ref.read(authNotifierProvider).maybeWhen(
-      authenticated: (user, _) => user,
-      orElse: () => null,
-    );
+          authenticated: (user, _) => user,
+          orElse: () => null,
+        );
+
     if (currentUser == null) return;
 
     final displayName = _profile?.displayName ?? _profile?.username ?? 'this user';
@@ -313,14 +333,16 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
         ),
         content: Text(
           'Remove $displayName as a friend?',
-          style: GoogleFonts.inter(color: const Color(FlickoColors.textSecondary)),
+          style: GoogleFonts.inter(
+              color: const Color(FlickoColors.textSecondary)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: Text(
               'Cancel',
-              style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
+              style: GoogleFonts.inter(
+                  color: const Color(FlickoColors.textMuted)),
             ),
           ),
           ElevatedButton(
@@ -342,7 +364,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
     setState(() => _isActionLoading = true);
 
     try {
-      await _client.from('friends')
+      await _client
+          .from('friends')
           .delete()
           .or('user_id.eq.${currentUser.id},user_id.eq.${widget.userId}')
           .or('friend_id.eq.${currentUser.id},friend_id.eq.${widget.userId}');
@@ -367,9 +390,10 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
 
   Future<void> _blockUser() async {
     final currentUser = ref.read(authNotifierProvider).maybeWhen(
-      authenticated: (user, _) => user,
-      orElse: () => null,
-    );
+          authenticated: (user, _) => user,
+          orElse: () => null,
+        );
+
     if (currentUser == null) return;
 
     final displayName = _profile?.displayName ?? _profile?.username ?? 'this user';
@@ -387,14 +411,16 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
         ),
         content: Text(
           'Block $displayName? They will no longer be able to send you messages or friend requests.',
-          style: GoogleFonts.inter(color: const Color(FlickoColors.textSecondary)),
+          style: GoogleFonts.inter(
+              color: const Color(FlickoColors.textSecondary)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: Text(
               'Cancel',
-              style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
+              style: GoogleFonts.inter(
+                  color: const Color(FlickoColors.textMuted)),
             ),
           ),
           ElevatedButton(
@@ -457,22 +483,26 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
               ),
             ),
             ListTile(
-              leading: const Icon(Icons.copy, color: Color(FlickoColors.textPrimary)),
+              leading: const Icon(Icons.link,
+                  color: Color(FlickoColors.textPrimary)),
               title: Text(
-                'Copy User ID',
-                style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary)),
+                'Copy Profile Link',
+                style: GoogleFonts.inter(
+                    color: const Color(FlickoColors.textPrimary)),
               ),
               onTap: () {
-                Clipboard.setData(ClipboardData(text: widget.userId));
+                Clipboard.setData(
+                    ClipboardData(text: 'https://flicko.app/u/${widget.userId}'));
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('User ID copied')),
+                  const SnackBar(content: Text('Profile link copied')),
                 );
               },
             ),
             if (!isOwnProfile) ...[
               ListTile(
-                leading: const Icon(Icons.block, color: Color(FlickoColors.red)),
+                leading:
+                    const Icon(Icons.block, color: Color(FlickoColors.red)),
                 title: Text(
                   'Block User',
                   style: GoogleFonts.inter(color: const Color(FlickoColors.red)),
@@ -483,7 +513,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.report, color: Color(FlickoColors.red)),
+                leading:
+                    const Icon(Icons.report, color: Color(FlickoColors.red)),
                 title: Text(
                   'Report',
                   style: GoogleFonts.inter(color: const Color(FlickoColors.red)),
@@ -496,14 +527,16 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
             ],
             if (isOwnProfile)
               ListTile(
-                leading: const Icon(Icons.edit, color: Color(FlickoColors.textPrimary)),
+                leading: const Icon(Icons.edit,
+                    color: Color(FlickoColors.textPrimary)),
                 title: Text(
                   'Edit Profile',
-                  style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary)),
+                  style: GoogleFonts.inter(
+                      color: const Color(FlickoColors.textPrimary)),
                 ),
                 onTap: () {
                   Navigator.pop(context);
-                  context.push('/profile/settings/edit-profile');
+                  context.push('/u/settings/edit-profile');
                 },
               ),
             const SizedBox(height: 16),
@@ -527,14 +560,16 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
         ),
         content: Text(
           'Reporting functionality coming soon.',
-          style: GoogleFonts.inter(color: const Color(FlickoColors.textSecondary)),
+          style: GoogleFonts.inter(
+              color: const Color(FlickoColors.textSecondary)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text(
               'OK',
-              style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
+              style: GoogleFonts.inter(
+                  color: const Color(FlickoColors.textMuted)),
             ),
           ),
         ],
@@ -552,31 +587,57 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
 
   bool get _isOwnProfile {
     final currentUser = ref.read(authNotifierProvider).maybeWhen(
-      authenticated: (user, _) => user,
-      orElse: () => null,
-    );
+          authenticated: (user, _) => user,
+          orElse: () => null,
+        );
     return currentUser?.id == widget.userId;
   }
 
   List<Map<String, dynamic>> _buildBadges(UserModel profile) {
     final badges = <Map<String, dynamic>>[];
+
     if (profile.isStaff) {
-      badges.add({'icon': Icons.shield, 'label': 'Flicko Staff', 'color': const Color(FlickoColors.red)});
+      badges.add({
+        'icon': Icons.shield,
+        'label': 'Flicko Staff',
+        'color': const Color(FlickoColors.red)
+      });
     }
+
     if (profile.isPartner) {
-      badges.add({'icon': Icons.diamond, 'label': 'Partnered Server Owner', 'color': const Color(FlickoColors.blurple)});
+      badges.add({
+        'icon': Icons.diamond,
+        'label': 'Partnered Server Owner',
+        'color': const Color(FlickoColors.blurple)
+      });
     }
+
     if (profile.hasNitro) {
-      badges.add({'icon': Icons.auto_awesome, 'label': 'Nitro Subscriber', 'color': const Color(FlickoColors.blurple)});
+      badges.add({
+        'icon': Icons.auto_awesome,
+        'label': 'Nitro Subscriber',
+        'color': const Color(FlickoColors.blurple)
+      });
     }
+
     return badges;
   }
 
   String _formatJoinDate(DateTime? date) {
     if (date == null) return 'Unknown';
     final months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
     ];
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
@@ -607,7 +668,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
           backgroundColor: const Color(FlickoColors.bgTertiary),
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),
+            icon: const Icon(Icons.arrow_back,
+                color: Color(FlickoColors.textPrimary)),
             onPressed: () => context.pop(),
           ),
         ),
@@ -631,185 +693,226 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
 
     return Scaffold(
       backgroundColor: const Color(FlickoColors.bgTertiary),
-      body: CustomScrollView(
-        slivers: [
-          // Banner
-          SliverToBoxAdapter(
-            child: _buildBanner(),
-          ),
+      body: Stack(
+        children: [
+          CustomScrollView(
+            slivers: [
+              // Banner
+              SliverToBoxAdapter(
+                child: _buildBanner(),
+              ),
 
-          // Profile Card
-          SliverToBoxAdapter(
-            child: Transform.translate(
-              offset: const Offset(0, -20),
-              child: Container(
-                decoration: const BoxDecoration(
-                  color: Color(FlickoColors.bgSecondary),
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 8),
-
-                    // Avatar + Actions Row
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          _buildAvatarWithStatus(displayName, onlineStatus),
-                          const Spacer(),
-                          _buildActionButtons(isOwnProfile),
-                        ],
-                      ),
+              // Profile Card
+              SliverToBoxAdapter(
+                child: Transform.translate(
+                  offset: const Offset(0, -20),
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      color: Color(FlickoColors.bgSecondary),
+                      borderRadius:
+                          BorderRadius.vertical(top: Radius.circular(16)),
                     ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 8),
 
-                    const SizedBox(height: 14),
-
-                    // Identity
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
+                        // Avatar + Actions Row
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
+                              _buildAvatarWithStatus(displayName, onlineStatus),
+                              const Spacer(),
+                              _buildActionButtons(isOwnProfile),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+
+                        // Identity
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Text(
+                                    displayName,
+                                    style: GoogleFonts.inter(
+                                      color: const Color(FlickoColors.textPrimary),
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  if (isOwnProfile) ...[
+                                    const SizedBox(width: 10),
+                                    _buildStatusBadge(onlineStatus),
+                                  ],
+                                ],
+                              ),
+                              const SizedBox(height: 4),
                               Text(
-                                displayName,
+                                '@${profile.username}',
                                 style: GoogleFonts.inter(
-                                  color: const Color(FlickoColors.textPrimary),
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
+                                  color: const Color(FlickoColors.textMuted),
+                                  fontSize: 14,
                                 ),
                               ),
-                              if (isOwnProfile) ...[
-                                const SizedBox(width: 10),
-                                _buildStatusBadge(onlineStatus),
+                              if (profile.pronouns != null &&
+                                  profile.pronouns!.isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  profile.pronouns!,
+                                  style: GoogleFonts.inter(
+                                    color: const Color(FlickoColors.textSecondary),
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                              if (profile.customStatus != null ||
+                                  profile.customStatusEmoji != null) ...[
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    if (profile.customStatusEmoji != null) ...[
+                                      Text(profile.customStatusEmoji!,
+                                          style: const TextStyle(fontSize: 14)),
+                                      const SizedBox(width: 6),
+                                    ],
+                                    if (profile.customStatus != null)
+                                      Expanded(
+                                        child: Text(
+                                          profile.customStatus!,
+                                          style: GoogleFonts.inter(
+                                            color: const Color(
+                                                FlickoColors.textSecondary),
+                                            fontSize: 14,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                  ],
+                                ),
                               ],
                             ],
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '@${profile.username}',
-                            style: GoogleFonts.inter(
-                              color: const Color(FlickoColors.textMuted),
-                              fontSize: 14,
+                        ),
+
+                        // Badges
+                        if (badges.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                            child: Wrap(
+                              spacing: 8,
+                              children:
+                                  badges.map((b) => _buildBadgeItem(b)).toList(),
                             ),
                           ),
-                          if (profile.pronouns != null && profile.pronouns!.isNotEmpty) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              profile.pronouns!,
-                              style: GoogleFonts.inter(
-                                color: const Color(FlickoColors.textSecondary),
-                                fontSize: 13,
+
+                        // Divider
+                        const Padding(
+                          padding: EdgeInsets.fromLTRB(16, 16, 16, 4),
+                          child: Divider(
+                              color: Color(FlickoColors.bgTertiary), height: 1),
+                        ),
+
+                        // About Me
+                        if (profile.bio != null && profile.bio!.isNotEmpty)
+                          _buildSection(
+                              'ABOUT ME',
+                              Text(
+                                profile.bio!,
+                                style: GoogleFonts.inter(
+                                  color: const Color(FlickoColors.textSecondary),
+                                  fontSize: 14,
+                                  height: 1.5,
+                                ),
+                              )),
+
+                        // Member Since
+                        _buildSection(
+                          'FLICKO MEMBER SINCE',
+                          Row(
+                            children: [
+                              Container(
+                                width: 30,
+                                height: 30,
+                                decoration: BoxDecoration(
+                                  color: _accentColor.withValues(alpha: 0.13),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(Icons.calendar_today,
+                                    size: 14, color: _accentColor),
                               ),
+                              const SizedBox(width: 10),
+                              Text(
+                                _formatJoinDate(profile.createdAt),
+                                style: GoogleFonts.inter(
+                                  color: const Color(FlickoColors.textSecondary),
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Roles
+                        if (_userRoles.isNotEmpty)
+                          _buildSection(
+                            'ROLES — ${_userRoles.length}',
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: _userRoles
+                                  .map((r) => _buildRolePill(r))
+                                  .toList(),
                             ),
-                          ],
-                        ],
-                      ),
-                    ),
-
-                    // Badges
-                    if (badges.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                        child: Wrap(
-                          spacing: 8,
-                          children: badges.map((b) => _buildBadgeItem(b)).toList(),
-                        ),
-                      ),
-
-                    // Divider
-                    const Padding(
-                      padding: EdgeInsets.fromLTRB(16, 16, 16, 4),
-                      child: Divider(color: Color(FlickoColors.bgTertiary), height: 1),
-                    ),
-
-                    // About Me
-                    if (profile.bio != null && profile.bio!.isNotEmpty)
-                      _buildSection('ABOUT ME', Text(
-                        profile.bio!,
-                        style: GoogleFonts.inter(
-                          color: const Color(FlickoColors.textSecondary),
-                          fontSize: 14,
-                          height: 1.5,
-                        ),
-                      )),
-
-                    // Member Since
-                    _buildSection('FLICKO MEMBER SINCE', Row(
-                      children: [
-                        Container(
-                          width: 30,
-                          height: 30,
-                          decoration: BoxDecoration(
-                            color: _accentColor.withValues(alpha: 0.13),
-                            shape: BoxShape.circle,
                           ),
-                          child: Icon(Icons.calendar_today, size: 14, color: _accentColor),
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          _formatJoinDate(profile.createdAt),
-                          style: GoogleFonts.inter(
-                            color: const Color(FlickoColors.textSecondary),
-                            fontSize: 14,
+
+                        // Mutual Servers
+                        if (!isOwnProfile && _mutualServers.isNotEmpty)
+                          _buildSection(
+                            'MUTUAL SERVERS — ${_mutualServers.length}',
+                            Wrap(
+                              spacing: 12,
+                              runSpacing: 12,
+                              children: _mutualServers
+                                  .map((s) => _buildMutualServerChip(s))
+                                  .toList(),
+                            ),
                           ),
-                        ),
+
+                        // Note
+                        if (!isOwnProfile) _buildSection('NOTE', _buildNoteSection()),
+
+                        const SizedBox(height: 32),
                       ],
-                    )),
-
-                    // Roles
-                    if (_userRoles.isNotEmpty)
-                      _buildSection(
-                        'ROLES — ${_userRoles.length}',
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: _userRoles.map((r) => _buildRolePill(r)).toList(),
-                        ),
-                      ),
-
-                    // Mutual Servers
-                    if (!isOwnProfile && _mutualServers.isNotEmpty)
-                      _buildSection(
-                        'MUTUAL SERVERS — ${_mutualServers.length}',
-                        Wrap(
-                          spacing: 12,
-                          runSpacing: 12,
-                          children: _mutualServers.map((s) => _buildMutualServerChip(s)).toList(),
-                        ),
-                      ),
-
-                    // Note
-                    if (!isOwnProfile)
-                      _buildSection('NOTE', _buildNoteSection()),
-
-                    const SizedBox(height: 32),
-                  ],
+                    ),
+                  ),
                 ),
+              ),
+            ],
+          ),
+
+          // Floating Nav Buttons
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildNavButton(Icons.arrow_back, () => context.pop()),
+                  _buildNavButton(Icons.more_horiz, _showMoreOptions),
+                ],
               ),
             ),
           ),
         ],
       ),
-
-      // Floating Nav Buttons
-      floatingActionButton: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildNavButton(Icons.arrow_back, () => context.pop()),
-              _buildNavButton(Icons.more_horiz, _showMoreOptions),
-            ],
-          ),
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerTop,
     );
   }
 
@@ -831,11 +934,19 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [
-                    _accentColor,
-                    _accentColor.withValues(alpha: 0.67),
-                    const Color(FlickoColors.bgTertiary),
-                  ],
+                  colors: (_profile?.bannerColors != null &&
+                          _profile!.bannerColors!.length >= 2)
+                      ? [
+                          Color(int.parse(
+                              _profile!.bannerColors![0].replaceFirst('#', '0xFF'))),
+                          Color(int.parse(
+                              _profile!.bannerColors![1].replaceFirst('#', '0xFF'))),
+                        ]
+                      : [
+                          _accentColor,
+                          _accentColor.withValues(alpha: 0.67),
+                          const Color(FlickoColors.bgTertiary),
+                        ],
                 ),
               ),
             ),
@@ -879,6 +990,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
             showStatus: false,
           ),
         ),
+
         // Status dot
         Positioned(
           bottom: 4,
@@ -887,7 +999,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
             width: 20,
             height: 20,
             decoration: BoxDecoration(
-              color: _statusColors[status] ?? const Color(FlickoColors.statusOnline),
+              color: _statusColors[status] ??
+                  const Color(FlickoColors.statusOnline),
               shape: BoxShape.circle,
               border: Border.all(
                 color: const Color(FlickoColors.bgSecondary),
@@ -918,7 +1031,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
       return _ActionButton(
         icon: Icons.edit,
         label: 'Edit Profile',
-        onPressed: () => context.push('/profile/settings/edit-profile'),
+        onPressed: () => context.push('/u/settings/edit-profile'),
       );
     }
 
@@ -956,7 +1069,6 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
             color: const Color(0xFF4E5058),
             onPressed: _isActionLoading ? null : _removeFriend,
           ),
-
         const SizedBox(width: 8),
 
         // Message button
@@ -971,7 +1083,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
   }
 
   Widget _buildStatusBadge(String status) {
-    final color = _statusColors[status] ?? const Color(FlickoColors.statusOnline);
+    final color =
+        _statusColors[status] ?? const Color(FlickoColors.statusOnline);
     final label = _statusLabels[status] ?? 'Online';
 
     return Container(
@@ -991,7 +1104,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
           const SizedBox(width: 5),
           Text(
             label,
-            style: GoogleFonts.inter(color: color, fontSize: 11, fontWeight: FontWeight.w600),
+            style: GoogleFonts.inter(
+                color: color, fontSize: 11, fontWeight: FontWeight.w600),
           ),
         ],
       ),
@@ -1060,7 +1174,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
           const SizedBox(width: 6),
           Text(
             role['name'] as String? ?? 'Role',
-            style: GoogleFonts.inter(color: color, fontSize: 13, fontWeight: FontWeight.w600),
+            style: GoogleFonts.inter(
+                color: color, fontSize: 13, fontWeight: FontWeight.w600),
           ),
         ],
       ),
@@ -1086,7 +1201,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
             if (iconUrl != null)
               ClipRRect(
                 borderRadius: BorderRadius.circular(4),
-                child: Image.network(iconUrl, width: 20, height: 20, fit: BoxFit.cover),
+                child: Image.network(iconUrl,
+                    width: 20, height: 20, fit: BoxFit.cover),
               )
             else
               Container(
@@ -1098,7 +1214,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                 ),
                 child: Text(
                   name.substring(0, 1).toUpperCase(),
-                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                      color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
                 ),
               ),
             const SizedBox(width: 8),
@@ -1136,7 +1253,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
               ),
               decoration: InputDecoration(
                 hintText: 'Click to add a note about this user',
-                hintStyle: GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
+                hintStyle: GoogleFonts.inter(
+                    color: const Color(FlickoColors.textMuted)),
                 border: InputBorder.none,
                 counterStyle: GoogleFonts.inter(
                   color: const Color(FlickoColors.textMuted),
@@ -1153,18 +1271,23 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                   onPressed: () => setState(() => _isEditingNote = false),
                   child: Text(
                     'Cancel',
-                    style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
+                    style: GoogleFonts.inter(
+                        color: const Color(FlickoColors.textMuted)),
                   ),
                 ),
                 ElevatedButton(
                   onPressed: _saveNote,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(FlickoColors.blurple),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 5),
                   ),
                   child: Text(
                     'Save',
-                    style: GoogleFonts.inter(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                    style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600),
                   ),
                 ),
               ],
@@ -1189,7 +1312,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.edit, size: 14, color: Color(FlickoColors.textMuted)),
+            const Icon(Icons.edit,
+                size: 14, color: Color(FlickoColors.textMuted)),
             const SizedBox(width: 8),
             Expanded(
               child: Text(

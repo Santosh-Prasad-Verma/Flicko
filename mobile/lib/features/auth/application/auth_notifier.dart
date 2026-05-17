@@ -1,11 +1,27 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' show User;
+import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 import '../../../data/models/auth_state.dart';
 import 'package:mobile/data/repositories/auth_repository.dart';
 
 export 'package:mobile/data/models/auth_state.dart';
 
 final authNotifierProvider = NotifierProvider<AuthNotifier, AuthState>(AuthNotifier.new);
+
+/// Provider for current user ID
+final currentUserIdProvider = Provider<String?>((ref) {
+  return ref.watch(authNotifierProvider).maybeWhen(
+    authenticated: (user, _) => user.id,
+    orElse: () => null,
+  );
+});
+
+/// Provider for current user
+final currentUserProvider = Provider<supabase.User?>((ref) {
+  return ref.watch(authNotifierProvider).maybeWhen(
+    authenticated: (user, _) => user,
+    orElse: () => null,
+  );
+});
 
 class AuthNotifier extends Notifier<AuthState> {
   late final AuthRepository _repository;
@@ -90,5 +106,37 @@ class AuthNotifier extends Notifier<AuthState> {
     } catch (e) {
       state = AuthState.error(e.toString());
     }
+  }
+
+  Future<void> changeEmail(String newEmail) async {
+    final userId = _repository.currentUser?.id;
+    if (userId == null) throw Exception('Not authenticated');
+    await _repository.changeEmail(newEmail);
+  }
+
+  Future<void> updatePhone(String phone) async {
+    final userId = _repository.currentUser?.id;
+    if (userId == null) throw Exception('Not authenticated');
+    await _repository.updatePhone(userId, phone);
+  }
+
+  Future<void> disableAccount() async {
+    final userId = _repository.currentUser?.id;
+    if (userId == null) throw Exception('Not authenticated');
+    await _repository.disableAccount(userId);
+  }
+
+  Future<void> deleteAccount() async {
+    final userId = _repository.currentUser?.id;
+    if (userId == null) throw Exception('Not authenticated');
+    await _repository.deleteAccount(userId);
+  }
+
+  /// Re-fetches the profile from the DB and updates state in-place.
+  /// Use this after saving profile edits instead of invalidating the provider.
+  Future<void> refreshProfile() async {
+    final userId = _repository.currentUser?.id;
+    if (userId == null) return;
+    await _fetchProfile(userId);
   }
 }

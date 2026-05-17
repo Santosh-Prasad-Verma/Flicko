@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../../core/constants/flicko_colors.dart';
+import 'package:mobile/core/constants/flicko_colors.dart';
 
 /// Data & Storage Settings Screen
 ///
 /// Cache management and media download settings.
-/// Route: /profile/settings/storage
+/// Route: /u/settings/storage
 class StorageScreen extends ConsumerStatefulWidget {
   const StorageScreen({super.key});
 
@@ -23,12 +23,11 @@ class _StorageScreenState extends ConsumerState<StorageScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(FlickoColors.bgPrimary),
       appBar: AppBar(
-        backgroundColor: const Color(FlickoColors.bgPrimary),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),
+          icon: const Icon(Icons.arrow_back,
+              color: Color(FlickoColors.textPrimary)),
           onPressed: () => context.pop(),
         ),
         title: Text(
@@ -84,7 +83,6 @@ class _StorageScreenState extends ConsumerState<StorageScreen> {
             ),
           ),
           const SizedBox(height: 24),
-
           // Storage section
           Text(
             'STORAGE',
@@ -100,7 +98,8 @@ class _StorageScreenState extends ConsumerState<StorageScreen> {
             onTap: () => _showClearCacheDialog(context),
             borderRadius: BorderRadius.circular(12),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: BoxDecoration(
                 color: const Color(FlickoColors.bgSecondary),
                 borderRadius: BorderRadius.circular(12),
@@ -129,7 +128,8 @@ class _StorageScreenState extends ConsumerState<StorageScreen> {
                       ],
                     ),
                   ),
-                  const Icon(Icons.chevron_right, size: 18, color: Color(FlickoColors.textMuted)),
+                  const Icon(Icons.chevron_right,
+                      size: 18, color: Color(FlickoColors.textMuted)),
                 ],
               ),
             ),
@@ -139,7 +139,8 @@ class _StorageScreenState extends ConsumerState<StorageScreen> {
     );
   }
 
-  Widget _buildSwitchRow(String label, String description, bool value, ValueChanged<bool> onChanged) {
+  Widget _buildSwitchRow(
+      String label, String description, bool value, ValueChanged<bool> onChanged) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Row(
@@ -169,7 +170,7 @@ class _StorageScreenState extends ConsumerState<StorageScreen> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: const Color(FlickoColors.blurple),
+            activeThumbColor: const Color(FlickoColors.blurple),
           ),
         ],
       ),
@@ -197,7 +198,8 @@ class _StorageScreenState extends ConsumerState<StorageScreen> {
             onPressed: () => Navigator.pop(context),
             child: Text(
               'Cancel',
-              style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
+              style:
+                  GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
             ),
           ),
           ElevatedButton(
@@ -207,7 +209,8 @@ class _StorageScreenState extends ConsumerState<StorageScreen> {
                 const SnackBar(content: Text('Cache cleared.')),
               );
             },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(FlickoColors.red)),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(FlickoColors.red)),
             child: Text(
               'Clear',
               style: GoogleFonts.inter(color: Colors.white),

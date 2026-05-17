@@ -3,9 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../../core/constants/flicko_colors.dart';
+import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
 import 'widgets/user_timeout_bottom_sheet.dart';
+import 'package:mobile/features/auth/application/auth_notifier.dart';
 
 /// Server Member List Screen
 ///
@@ -13,6 +14,7 @@ import 'widgets/user_timeout_bottom_sheet.dart';
 /// Route: /server/:serverId/members
 class ServerMembersScreen extends ConsumerStatefulWidget {
   final String serverId;
+
   const ServerMembersScreen({super.key, required this.serverId});
 
   @override
@@ -26,6 +28,7 @@ class _Member {
   final String username;
   final String? avatarUrl;
   final String? status;
+  final String? customStatus;
   final String roleLabel;
   final DateTime? timeoutUntil;
 
@@ -36,6 +39,7 @@ class _Member {
     required this.username,
     this.avatarUrl,
     this.status,
+    this.customStatus,
     required this.roleLabel,
     this.timeoutUntil,
   });
@@ -55,27 +59,20 @@ class _ServerMembersScreenState extends ConsumerState<ServerMembersScreen> {
 
   Future<void> _loadMembers() async {
     setState(() => _isLoading = true);
+
     try {
-      final server = await _client
-          .from('servers')
-          .select('owner_id')
-          .eq('id', widget.serverId)
-          .single();
+      final server = await _client.from('servers').select('owner_id').eq('id', widget.serverId).single();
       final ownerId = server['owner_id'] as String?;
 
-      final adminRoles = await _client
-          .from('roles')
-          .select('id')
-          .eq('server_id', widget.serverId)
-          .ilike('name', '%admin%');
+      final adminRoles = await _client.from('roles').select('id').eq('server_id', widget.serverId).ilike('name', '%admin%');
       final adminRoleIds = (adminRoles as List).map((r) => r['id'] as String).toSet();
 
       final data = await _client
           .from('server_members')
-          .select('id, user_id, roles, timeout_until, profiles!user_id(id, username, display_name, avatar, status)')
+          .select('id, user_id, roles, timeout_until, profiles!user_id(id, username, display_name, avatar, status, custom_status)')
           .eq('server_id', widget.serverId);
 
-      final currentUserId = _client.auth.currentUser?.id;
+      final currentUserId = ref.read(currentUserIdProvider);
       bool canMod = false;
 
       setState(() {
@@ -83,16 +80,16 @@ class _ServerMembersScreenState extends ConsumerState<ServerMembersScreen> {
           final profile = m['profiles'];
           final roles = (m['roles'] as List<dynamic>?) ?? [];
           String roleLabel = 'Member';
-          
+
           final isOwner = ownerId == m['user_id'];
           final isAdmin = roles.any((rid) => adminRoleIds.contains(rid));
-          
+
           if (isOwner) {
             roleLabel = 'Owner';
           } else if (isAdmin) {
             roleLabel = 'Admin';
           }
-          
+
           if (m['user_id'] == currentUserId) {
             canMod = isOwner || isAdmin;
           }
@@ -104,6 +101,7 @@ class _ServerMembersScreenState extends ConsumerState<ServerMembersScreen> {
             displayName: profile?['display_name'] as String?,
             avatarUrl: profile?['avatar'] as String?,
             status: profile?['status'] as String?,
+            customStatus: profile?['custom_status'] as String?,
             roleLabel: roleLabel,
             timeoutUntil: m['timeout_until'] != null ? DateTime.tryParse(m['timeout_until'] as String) : null,
           );
@@ -136,18 +134,22 @@ class _ServerMembersScreenState extends ConsumerState<ServerMembersScreen> {
 
   Color _statusColor(String? status) {
     switch (status) {
-      case 'online': return const Color(0xFF43b581);
-      case 'idle': return const Color(0xFFFAA61A);
-      case 'dnd': return const Color(0xFFED4245);
-      default: return const Color(0xFF72767d);
+      case 'online':
+        return const Color(0xFF43b581);
+      case 'idle':
+        return const Color(0xFFFAA61A);
+      case 'dnd':
+        return const Color(0xFFED4245);
+      default:
+        return const Color(0xFF72767d);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final grouped = _groupedMembers;
+
     return Scaffold(
-      backgroundColor: const Color(FlickoColors.bgPrimary),
       body: SafeArea(
         child: Column(
           children: [
@@ -230,8 +232,8 @@ class _ServerMembersScreenState extends ConsumerState<ServerMembersScreen> {
   }
 
   void _onMemberTap(_Member member) {
-    if (!_canModerate || member.userId == _client.auth.currentUser?.id) {
-      context.push('/profile/${member.userId}');
+    if (!_canModerate || member.userId == ref.read(currentUserIdProvider)) {
+      context.push('/u/${member.userId}');
       return;
     }
 
@@ -240,7 +242,9 @@ class _ServerMembersScreenState extends ConsumerState<ServerMembersScreen> {
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(FlickoColors.bgSecondary),
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
       builder: (context) {
         return SafeArea(
           child: Column(
@@ -262,25 +266,23 @@ class _ServerMembersScreenState extends ConsumerState<ServerMembersScreen> {
                 title: Text('View Profile', style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary))),
                 onTap: () {
                   context.pop();
-                  context.push('/profile/${member.userId}');
+                  context.push('/u/${member.userId}');
                 },
               ),
               ListTile(
                 leading: const Icon(Icons.timer_outlined, color: Color(FlickoColors.textPrimary)),
-                title: Text(isTimedOut ? 'Remove Timeout' : 'Timeout', style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary))),
+                title: Text(isTimedOut ? 'Remove Timeout' : 'Timeout',
+                    style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary))),
                 onTap: () async {
                   context.pop();
-                  // We need to import UserTimeoutBottomSheet at the top
-                  final changed = await UserTimeoutBottomSheet.show(
+                  await UserTimeoutBottomSheet.show(
                     context,
                     serverId: widget.serverId,
                     userId: member.userId,
                     username: member.displayName ?? member.username,
                     currentTimeout: member.timeoutUntil,
                   );
-                  if (changed == true) {
-                    _loadMembers();
-                  }
+                  _loadMembers();
                 },
               ),
               ListTile(
@@ -308,6 +310,7 @@ class _ServerMembersScreenState extends ConsumerState<ServerMembersScreen> {
 
   Future<void> _showKickBanDialog(_Member member, {required bool isBan}) async {
     final action = isBan ? 'Ban' : 'Kick';
+
     return showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -324,38 +327,31 @@ class _ServerMembersScreenState extends ConsumerState<ServerMembersScreen> {
           ),
           TextButton(
             onPressed: () async {
-              context.pop();
+              final messenger = ScaffoldMessenger.of(context);
+              Navigator.of(context).pop();
+
               try {
                 if (isBan) {
                   await _client.from('bans').insert({
                     'server_id': widget.serverId,
                     'user_id': member.userId,
-                    'banned_by': _client.auth.currentUser!.id,
+                    'banned_by': ref.read(currentUserIdProvider),
                     'reason': 'Banned via Moderator UI',
                   });
                 }
-                
-                // Kick logic (applies to both kick and ban)
-                await _client
-                    .from('server_members')
-                    .delete()
-                    .eq('server_id', widget.serverId)
-                    .eq('user_id', member.userId);
-                    
-                await _client
-                    .from('member_roles')
-                    .delete()
-                    .eq('server_id', widget.serverId)
-                    .eq('user_id', member.userId);
-                    
+
+                await _client.from('server_members').delete().eq('server_id', widget.serverId).eq('user_id', member.userId);
+                await _client.from('member_roles').delete().eq('server_id', widget.serverId).eq('user_id', member.userId);
+
                 _loadMembers();
               } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to $action: $e')));
+                if (context.mounted) {
+                  messenger.showSnackBar(SnackBar(content: Text('Failed to $action: $e')));
                 }
               }
             },
-            child: Text(action, style: GoogleFonts.inter(color: const Color(FlickoColors.danger), fontWeight: FontWeight.bold)),
+            child: Text(action,
+                style: GoogleFonts.inter(color: const Color(FlickoColors.danger), fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -364,7 +360,6 @@ class _ServerMembersScreenState extends ConsumerState<ServerMembersScreen> {
 
   Widget _buildMemberRow(_Member member) {
     final displayName = member.displayName ?? member.username;
-    final isOnline = member.status == 'online' || member.status == 'idle';
     final isTimedOut = member.timeoutUntil != null && member.timeoutUntil!.isAfter(DateTime.now());
 
     return InkWell(
@@ -419,11 +414,21 @@ class _ServerMembersScreenState extends ConsumerState<ServerMembersScreen> {
                         ),
                       ),
                       const SizedBox(width: 4),
-                      Text(
-                        member.status == 'online' ? 'Online' : member.status == 'idle' ? 'Idle' : 'Offline',
-                        style: GoogleFonts.inter(
-                          color: const Color(FlickoColors.textMuted),
-                          fontSize: 12,
+                      Expanded(
+                        child: Text(
+                          member.customStatus != null && member.customStatus!.trim().isNotEmpty
+                              ? member.customStatus!
+                              : (member.status == 'online'
+                                  ? 'Online'
+                                  : member.status == 'idle'
+                                      ? 'Idle'
+                                      : 'Offline'),
+                          style: GoogleFonts.inter(
+                            color: const Color(FlickoColors.textMuted),
+                            fontSize: 12,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
@@ -431,10 +436,9 @@ class _ServerMembersScreenState extends ConsumerState<ServerMembersScreen> {
                 ],
               ),
             ),
-            if (member.roleLabel == 'Owner')
-              const Icon(Icons.shield, size: 16, color: Color(FlickoColors.blurple)),
-            if (_canModerate && member.userId != _client.auth.currentUser?.id)
-               const Icon(Icons.more_vert, size: 18, color: Color(FlickoColors.textMuted)),
+            if (member.roleLabel == 'Owner') const Icon(Icons.shield, size: 16, color: Color(FlickoColors.blurple)),
+            if (_canModerate && member.userId != ref.read(currentUserIdProvider))
+              const Icon(Icons.more_vert, size: 18, color: Color(FlickoColors.textMuted)),
           ],
         ),
       ),

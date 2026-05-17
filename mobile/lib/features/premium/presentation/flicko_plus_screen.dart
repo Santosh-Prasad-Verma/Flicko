@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../../core/constants/flicko_colors.dart';
-import '../../../../data/services/stripe_service.dart';
-import '../../../../data/models/subscription_model.dart';
+import 'package:mobile/core/constants/flicko_colors.dart';
+import 'package:mobile/data/services/stripe_service.dart';
+import 'package:mobile/data/models/subscription_model.dart';
 
 class FlickoPlusScreen extends ConsumerStatefulWidget {
   const FlickoPlusScreen({super.key});

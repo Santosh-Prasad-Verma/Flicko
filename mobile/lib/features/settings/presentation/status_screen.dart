@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/features/auth/application/auth_notifier.dart';
+import 'package:mobile/data/repositories/auth_repository.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../../core/constants/flicko_colors.dart';
+import 'package:mobile/core/constants/flicko_colors.dart';
 
 /// User Status Picker Screen
 ///
 /// Set presence status (online/idle/dnd/invisible) and custom status.
-/// Route: /profile/settings/status
+/// Route: /u/settings/status
 class StatusScreen extends ConsumerStatefulWidget {
   const StatusScreen({super.key});
 
@@ -20,12 +22,51 @@ class _StatusScreenState extends ConsumerState<StatusScreen> {
   String _customText = '';
   String _customEmoji = '';
   int _expiryIndex = 0;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeFromProfile();
+  }
+
+  void _initializeFromProfile() {
+    final authState = ref.read(authNotifierProvider);
+    authState.maybeWhen(
+      authenticated: (user, profile) {
+        if (profile != null) {
+          setState(() {
+            _currentStatus = profile.onlineStatus;
+            _customText = profile.customStatus ?? '';
+            _customEmoji = profile.customStatusEmoji ?? '';
+          });
+        }
+      },
+      orElse: () {},
+    );
+  }
 
   final List<_StatusOption> _statusOptions = const [
-    _StatusOption(value: 'online', label: 'Online', color: Color(0xFF3BA55D), icon: Icons.circle),
-    _StatusOption(value: 'idle', label: 'Idle', color: Color(0xFFFAA61A), icon: Icons.timelapse),
-    _StatusOption(value: 'dnd', label: 'Do Not Disturb', color: Color(0xFFED4245), icon: Icons.do_not_disturb_on),
-    _StatusOption(value: 'invisible', label: 'Invisible', color: Color(0xFF80848E), icon: Icons.circle_outlined),
+    _StatusOption(
+        value: 'online',
+        label: 'Online',
+        color: Color(0xFF3BA55D),
+        icon: Icons.circle),
+    _StatusOption(
+        value: 'idle',
+        label: 'Idle',
+        color: Color(0xFFFAA61A),
+        icon: Icons.timelapse),
+    _StatusOption(
+        value: 'dnd',
+        label: 'Do Not Disturb',
+        color: Color(0xFFED4245),
+        icon: Icons.do_not_disturb_on),
+    _StatusOption(
+        value: 'invisible',
+        label: 'Invisible',
+        color: Color(0xFF80848E),
+        icon: Icons.circle_outlined),
   ];
 
   final List<_ExpiryOption> _expiryOptions = const [
@@ -47,12 +88,12 @@ class _StatusScreenState extends ConsumerState<StatusScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(FlickoColors.bgPrimary),
       appBar: AppBar(
         backgroundColor: const Color(FlickoColors.bgSecondary),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),
+          icon: const Icon(Icons.arrow_back,
+              color: Color(FlickoColors.textPrimary)),
           onPressed: () => context.pop(),
         ),
         title: Text(
@@ -64,14 +105,19 @@ class _StatusScreenState extends ConsumerState<StatusScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: _handleSave,
-            child: Text(
-              'Save',
-              style: GoogleFonts.inter(
-                color: const Color(FlickoColors.blurple),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            onPressed: _isSaving ? null : _handleSave,
+            child: _isSaving
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2))
+                : Text(
+                    'Save',
+                    style: GoogleFonts.inter(
+                      color: const Color(FlickoColors.blurple),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
           ),
         ],
       ),
@@ -92,7 +138,8 @@ class _StatusScreenState extends ConsumerState<StatusScreen> {
                   onTap: () => setState(() => _currentStatus = opt.value),
                   borderRadius: BorderRadius.circular(12),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     decoration: BoxDecoration(
                       color: selected ? const Color(FlickoColors.bgTertiary) : null,
                       borderRadius: BorderRadius.circular(12),
@@ -111,7 +158,8 @@ class _StatusScreenState extends ConsumerState<StatusScreen> {
                           ),
                         ),
                         if (selected)
-                          const Icon(Icons.check, size: 20, color: Color(FlickoColors.blurple)),
+                          const Icon(Icons.check,
+                              size: 20, color: Color(FlickoColors.blurple)),
                       ],
                     ),
                   ),
@@ -154,17 +202,20 @@ class _StatusScreenState extends ConsumerState<StatusScreen> {
                     Expanded(
                       child: TextField(
                         onChanged: (v) => setState(() => _customText = v),
-                        style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary)),
+                        style: GoogleFonts.inter(
+                            color: const Color(FlickoColors.textPrimary)),
                         decoration: InputDecoration(
                           hintText: 'What are you up to?',
-                          hintStyle: GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
+                          hintStyle: GoogleFonts.inter(
+                              color: const Color(FlickoColors.textMuted)),
                           filled: true,
                           fillColor: const Color(FlickoColors.bgTertiary),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                             borderSide: BorderSide.none,
                           ),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 10),
                         ),
                         maxLength: 128,
                       ),
@@ -173,12 +224,16 @@ class _StatusScreenState extends ConsumerState<StatusScreen> {
                 ),
                 if (_customText.isNotEmpty || _customEmoji.isNotEmpty)
                   InkWell(
-                    onTap: () => setState(() { _customText = ''; _customEmoji = ''; }),
+                    onTap: () => setState(() {
+                      _customText = '';
+                      _customEmoji = '';
+                    }),
                     child: Padding(
                       padding: const EdgeInsets.only(top: 8),
                       child: Row(
                         children: [
-                          const Icon(Icons.close, size: 16, color: Color(FlickoColors.red)),
+                          const Icon(Icons.close,
+                              size: 16, color: Color(FlickoColors.red)),
                           const SizedBox(width: 4),
                           Text(
                             'Clear custom status',
@@ -212,7 +267,8 @@ class _StatusScreenState extends ConsumerState<StatusScreen> {
                   }),
                   borderRadius: BorderRadius.circular(12),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     child: Row(
                       children: [
                         Text(preset.emoji, style: const TextStyle(fontSize: 20)),
@@ -245,11 +301,13 @@ class _StatusScreenState extends ConsumerState<StatusScreen> {
                 final index = entry.key;
                 final opt = entry.value;
                 final selected = _expiryIndex == index;
+
                 return InkWell(
                   onTap: () => setState(() => _expiryIndex = index),
                   borderRadius: BorderRadius.circular(12),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     decoration: BoxDecoration(
                       color: selected ? const Color(FlickoColors.bgTertiary) : null,
                       borderRadius: BorderRadius.circular(12),
@@ -265,7 +323,8 @@ class _StatusScreenState extends ConsumerState<StatusScreen> {
                           ),
                         ),
                         if (selected)
-                          const Icon(Icons.check, size: 18, color: Color(FlickoColors.blurple)),
+                          const Icon(Icons.check,
+                              size: 18, color: Color(FlickoColors.blurple)),
                       ],
                     ),
                   ),
@@ -282,7 +341,8 @@ class _StatusScreenState extends ConsumerState<StatusScreen> {
               backgroundColor: const Color(FlickoColors.blurple),
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
             child: Text(
               'Save',
@@ -315,11 +375,65 @@ class _StatusScreenState extends ConsumerState<StatusScreen> {
     setState(() => _customEmoji = emojis[(currentIdx + 1) % emojis.length]);
   }
 
-  void _handleSave() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Status updated')),
-    );
-    context.pop();
+  Future<void> _handleSave() async {
+    final authState = ref.read(authNotifierProvider);
+    final user =
+        authState.maybeWhen(authenticated: (user, _) => user, orElse: () => null);
+
+    if (user == null) return;
+
+    setState(() => _isSaving = true);
+
+    try {
+      final repository = ref.read(authRepositoryProvider);
+      final updates = <String, dynamic>{
+        'online_status': _currentStatus,
+        'custom_status':
+            _customText.trim().isEmpty ? null : _customText.trim(),
+        'custom_status_emoji':
+            _customEmoji.isEmpty ? null : _customEmoji,
+      };
+
+      // Handle expiry if needed
+      final expiryMinutes = _expiryOptions[_expiryIndex].value;
+      if (expiryMinutes != null) {
+        updates['custom_status_expires_at'] = DateTime.now()
+            .add(Duration(minutes: expiryMinutes))
+            .toIso8601String();
+      } else {
+        updates['custom_status_expires_at'] = null;
+      }
+
+      await repository.updateProfile(user.id, updates);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Status updated successfully'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Color(FlickoColors.statusOnline),
+          ),
+        );
+        context.pop();
+        Future.microtask(() {
+          ref.invalidate(authNotifierProvider);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update status: $e'),
+            backgroundColor: const Color(FlickoColors.red),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
   }
 }
 
@@ -329,7 +443,12 @@ class _StatusOption {
   final Color color;
   final IconData icon;
 
-  const _StatusOption({required this.value, required this.label, required this.color, required this.icon});
+  const _StatusOption({
+    required this.value,
+    required this.label,
+    required this.color,
+    required this.icon,
+  });
 }
 
 class _ExpiryOption {

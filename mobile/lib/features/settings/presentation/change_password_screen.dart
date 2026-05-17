@@ -2,308 +2,448 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../../core/constants/flicko_colors.dart';
 
-/// Change Password Screen
-///
-/// Allows the authenticated user to update their password.
-/// Uses Supabase Auth's updateUser() which works on the current session.
-/// Route: /profile/settings/change-password
+/// Change Password Screen (Sleek Brutalist Black/Neon Theme)
 class ChangePasswordScreen extends ConsumerStatefulWidget {
   const ChangePasswordScreen({super.key});
 
   @override
-  ConsumerState<ChangePasswordScreen> createState() => _ChangePasswordScreenState();
+  ConsumerState<ChangePasswordScreen> createState() =>
+      _ChangePasswordScreenState();
 }
 
 class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
-  final _minPasswordLength = 8;
+  final _currentPasswordController = TextEditingController();
+  final _newPasswordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
 
-  String _currentPassword = '';
-  String _newPassword = '';
-  String _confirmPassword = '';
-  bool _showCurrent = false;
-  bool _showNew = false;
-  bool _showConfirm = false;
-  bool _isLoading = false;
+  bool _obscureCurrent = true;
+  bool _obscureNew = true;
+  bool _obscureConfirm = true;
 
-  final _currentController = TextEditingController();
-  final _newController = TextEditingController();
-  final _confirmController = TextEditingController();
-
-  bool get _canSave {
-    return _currentPassword.trim().isNotEmpty &&
-        _newPassword.length >= _minPasswordLength &&
-        _confirmPassword.length >= _minPasswordLength &&
-        !_isLoading;
-  }
+  // Exact theme color hex tokens from the design guidelines
+  static const Color _neonGreen = Color(0xFFC0F500);
+  static const Color _bgBlack = Color(0xFF050505);
+  static const Color _surfaceContainer = Color(0xFF0C0C0E);
+  static const Color _textWhite = Color(0xFFFBF9FA);
+  static const Color _textMuted = Color(0xFF71717A);
 
   @override
   void dispose() {
-    _currentController.dispose();
-    _newController.dispose();
-    _confirmController.dispose();
+    _currentPasswordController.dispose();
+    _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
-  }
-
-  Future<void> _handleSave() async {
-    if (_currentPassword.trim().isEmpty) {
-      _showAlert('Validation Error', 'Please enter your current password.');
-      return;
-    }
-    if (_newPassword.length < _minPasswordLength) {
-      _showAlert('Validation Error', 'New password must be at least $_minPasswordLength characters.');
-      return;
-    }
-    if (_newPassword != _confirmPassword) {
-      _showAlert('Validation Error', 'New passwords do not match.');
-      return;
-    }
-    if (_newPassword == _currentPassword) {
-      _showAlert('Validation Error', 'New password must be different from your current password.');
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
-    try {
-      // Verify current password by re-authenticating
-      final email = Supabase.instance.client.auth.currentSession?.user.email;
-
-      if (email == null) {
-        _showAlert('Error', 'Unable to verify identity. Please log in again.');
-        setState(() => _isLoading = false);
-        return;
-      }
-
-      await Supabase.instance.client.auth.signInWithPassword(
-        email: email,
-        password: _currentPassword,
-      );
-
-      // Update to new password
-      await Supabase.instance.client.auth.updateUser(
-        UserAttributes(password: _newPassword),
-      );
-
-      _showAlert(
-        'Password Updated',
-        'Your password has been changed successfully.',
-        onOk: () => context.pop(),
-      );
-    } catch (e) {
-      _showAlert('Error', e.toString());
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  void _showAlert(String title, String message, {VoidCallback? onOk}) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(FlickoColors.bgSecondary),
-        title: Text(
-          title,
-          style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary)),
-        ),
-        content: Text(
-          message,
-          style: GoogleFonts.inter(color: const Color(FlickoColors.textSecondary)),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              onOk?.call();
-            },
-            child: Text(
-              'OK',
-              style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final passwordsMatch = _confirmPassword.isNotEmpty && _confirmPassword == _newPassword;
-
     return Scaffold(
-      backgroundColor: const Color(FlickoColors.bgPrimary),
-      appBar: AppBar(
-        backgroundColor: const Color(FlickoColors.bgPrimary),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),
-          onPressed: () => context.pop(),
-        ),
-        title: Text(
-          'Change Password',
-          style: GoogleFonts.inter(
-            color: const Color(FlickoColors.textPrimary),
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: _canSave ? _handleSave : null,
-            child: _isLoading
-                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Color(FlickoColors.blurple)))
-                : Text(
-                    'Save',
-                    style: GoogleFonts.inter(
-                      color: _canSave ? const Color(FlickoColors.blurple) : const Color(FlickoColors.textMuted),
-                      fontWeight: FontWeight.w600,
-                    ),
+      backgroundColor: _bgBlack,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(),
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 16),
+                      _buildHeroSection(),
+                      const SizedBox(height: 48),
+                      _buildPasswordFields(),
+                      const SizedBox(height: 40),
+                      _buildSecurityInfo(),
+                      const SizedBox(height: 40),
+                      _buildFooterData(),
+                      const SizedBox(height: 40),
+                    ],
                   ),
-          ),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          // Section hint
-          Padding(
-            padding: const EdgeInsets.only(left: 8, bottom: 16),
-            child: Text(
-              'Your password must be at least $_minPasswordLength characters.',
-              style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted), fontSize: 13),
-            ),
-          ),
-
-          // Current Password
-          _buildSectionHeader('CURRENT PASSWORD'),
-          _buildPasswordField(
-            controller: _currentController,
-            value: _currentPassword,
-            onChanged: (v) => setState(() => _currentPassword = v),
-            obscure: !_showCurrent,
-            onToggle: () => setState(() => _showCurrent = !_showCurrent),
-            placeholder: 'Enter current password',
-          ),
-
-          const SizedBox(height: 16),
-
-          // New Password
-          _buildSectionHeader('NEW PASSWORD'),
-          _buildPasswordField(
-            controller: _newController,
-            value: _newPassword,
-            onChanged: (v) => setState(() => _newPassword = v),
-            obscure: !_showNew,
-            onToggle: () => setState(() => _showNew = !_showNew),
-            placeholder: 'Enter new password',
-          ),
-
-          const SizedBox(height: 16),
-
-          // Confirm New Password
-          _buildSectionHeader('CONFIRM NEW PASSWORD'),
-          _buildPasswordField(
-            controller: _confirmController,
-            value: _confirmPassword,
-            onChanged: (v) => setState(() => _confirmPassword = v),
-            obscure: !_showConfirm,
-            onToggle: () => setState(() => _showConfirm = !_showConfirm),
-            placeholder: 'Re-enter new password',
-            borderColor: _confirmPassword.isNotEmpty && !passwordsMatch ? const Color(FlickoColors.red) : null,
-          ),
-
-          if (_confirmPassword.isNotEmpty && !passwordsMatch)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-              child: Text(
-                'Passwords do not match',
-                style: GoogleFonts.inter(color: const Color(FlickoColors.red), fontSize: 12),
+                ),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
 
-          const SizedBox(height: 24),
-
-          // Submit button
-          ElevatedButton(
-            onPressed: _canSave ? _handleSave : null,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _canSave ? const Color(FlickoColors.blurple) : const Color(FlickoColors.bgTertiary),
-              foregroundColor: _canSave ? Colors.white : const Color(FlickoColors.textMuted),
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            child: _isLoading
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : Text(
-                    'Update Password',
-                    style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
+  // ═══════════════════════════════════════════
+  // ── HEADER ──
+  // ═══════════════════════════════════════════
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: _neonGreen.withValues(alpha: 0.1),
+            width: 1,
           ),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          GestureDetector(
+            onTap: () => context.pop(),
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: const BoxDecoration(
+                border: Border.fromBorderSide(
+                  BorderSide(color: Colors.transparent),
+                ),
+              ),
+              child: const Icon(
+                Icons.arrow_back,
+                color: _textWhite,
+                size: 20,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'SECURITY',
+                  style: GoogleFonts.spaceGrotesk(
+                    color: _neonGreen.withValues(alpha: 0.8),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 2.0,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'CHANGE PASSWORD',
+                  style: GoogleFonts.spaceMono(
+                    color: _textWhite.withValues(alpha: 0.3),
+                    fontSize: 8,
+                    letterSpacing: 1.0,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 36),
         ],
       ),
     );
   }
 
-  Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 8, bottom: 8),
-      child: Text(
-        title,
-        style: GoogleFonts.inter(
-          color: const Color(FlickoColors.textMuted),
-          fontSize: 11,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 0.5,
+  // ═══════════════════════════════════════════
+  // ── HERO SECTION ──
+  // ═══════════════════════════════════════════
+  Widget _buildHeroSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 12),
+        Text(
+          'CHANGE\nPASSWORD',
+          style: GoogleFonts.epilogue(
+            color: _textWhite,
+            fontSize: 48,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -2,
+            height: 0.9,
+            fontStyle: FontStyle.italic,
+          ),
         ),
-      ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: const BoxDecoration(
+                color: _neonGreen,
+              ),
+              child: Text(
+                'ACCOUNT SECURITY',
+                style: GoogleFonts.spaceGrotesk(
+                  color: Colors.black,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 11,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'UPDATE CREDENTIALS',
+                    style: GoogleFonts.spaceGrotesk(
+                      color: _neonGreen,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  Text(
+                    'Secure your account with a new password',
+                    style: GoogleFonts.spaceMono(
+                      color: _textMuted.withValues(alpha: 0.8),
+                      fontSize: 8,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // ═══════════════════════════════════════════
+  // ── PASSWORD FIELDS ──
+  // ═══════════════════════════════════════════
+  Widget _buildPasswordFields() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'PASSWORD FIELDS',
+          style: GoogleFonts.epilogue(
+            color: _textWhite,
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+            fontStyle: FontStyle.italic,
+            letterSpacing: -0.5,
+          ),
+        ),
+        Container(
+          height: 2,
+          color: _neonGreen,
+          margin: const EdgeInsets.only(top: 6, bottom: 16),
+        ),
+        _buildPasswordField(
+          controller: _currentPasswordController,
+          label: 'CURRENT PASSWORD',
+          hint: 'Enter your current password',
+          obscure: _obscureCurrent,
+          onToggle: () => setState(() => _obscureCurrent = !_obscureCurrent),
+        ),
+        const SizedBox(height: 16),
+        _buildPasswordField(
+          controller: _newPasswordController,
+          label: 'NEW PASSWORD',
+          hint: 'Enter your new password',
+          obscure: _obscureNew,
+          onToggle: () => setState(() => _obscureNew = !_obscureNew),
+        ),
+        const SizedBox(height: 16),
+        _buildPasswordField(
+          controller: _confirmPasswordController,
+          label: 'CONFIRM NEW PASSWORD',
+          hint: 'Confirm your new password',
+          obscure: _obscureConfirm,
+          onToggle: () => setState(() => _obscureConfirm = !_obscureConfirm),
+        ),
+        const SizedBox(height: 24),
+        _buildSubmitButton(),
+      ],
     );
   }
 
   Widget _buildPasswordField({
     required TextEditingController controller,
-    required String value,
-    required ValueChanged<String> onChanged,
+    required String label,
+    required String hint,
     required bool obscure,
     required VoidCallback onToggle,
-    required String placeholder,
-    Color? borderColor,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(FlickoColors.bgSecondary),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(color: borderColor ?? const Color(0xFF232428)),
-          borderRadius: BorderRadius.circular(12),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.spaceGrotesk(
+            color: _neonGreen,
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.5,
+          ),
         ),
-        child: TextField(
-          controller: controller,
-          onChanged: onChanged,
-          obscureText: obscure,
-          textCapitalization: TextCapitalization.none,
-          autocorrect: false,
-          style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary)),
-          decoration: InputDecoration(
-            hintText: placeholder,
-            hintStyle: GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
-            filled: true,
-            fillColor: Colors.transparent,
-            border: InputBorder.none,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            suffixIcon: IconButton(
-              icon: Icon(
-                obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                size: 20,
-                color: const Color(FlickoColors.textMuted),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: _surfaceContainer,
+            border: Border.all(
+              color: _textWhite.withValues(alpha: 0.1),
+              width: 1,
+            ),
+          ),
+          child: TextField(
+            controller: controller,
+            obscureText: obscure,
+            style: GoogleFonts.inter(
+              color: _textWhite,
+              fontSize: 14,
+            ),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: GoogleFonts.inter(
+                color: _textMuted.withValues(alpha: 0.5),
+                fontSize: 14,
               ),
-              onPressed: onToggle,
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
+              suffixIcon: GestureDetector(
+                onTap: onToggle,
+                child: Icon(
+                  obscure ? Icons.visibility_off : Icons.visibility,
+                  color: _textMuted,
+                  size: 20,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSubmitButton() {
+    return GestureDetector(
+      onTap: () {
+        // Handle password change
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: _neonGreen,
+          boxShadow: [
+            BoxShadow(
+              color: _neonGreen.withValues(alpha: 0.3),
+              blurRadius: 20,
+              spreadRadius: 2,
+            ),
+          ],
+        ),
+        child: Center(
+          child: Text(
+            'UPDATE PASSWORD',
+            style: GoogleFonts.spaceGrotesk(
+              color: Colors.black,
+              fontSize: 14,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.5,
             ),
           ),
         ),
       ),
+    );
+  }
+
+  // ═══════════════════════════════════════════
+  // ── SECURITY INFO ──
+  // ═══════════════════════════════════════════
+  Widget _buildSecurityInfo() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'SECURITY REQUIREMENTS',
+          style: GoogleFonts.epilogue(
+            color: _textWhite,
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+            fontStyle: FontStyle.italic,
+            letterSpacing: -0.5,
+          ),
+        ),
+        Container(
+          height: 2,
+          color: _neonGreen,
+          margin: const EdgeInsets.only(top: 6, bottom: 16),
+        ),
+        _buildSecurityItem('MINIMUM 8 CHARACTERS'),
+        const SizedBox(height: 12),
+        _buildSecurityItem('AT LEAST ONE UPPERCASE LETTER'),
+        const SizedBox(height: 12),
+        _buildSecurityItem('AT LEAST ONE NUMBER'),
+        const SizedBox(height: 12),
+        _buildSecurityItem('AT LEAST ONE SPECIAL CHARACTER'),
+      ],
+    );
+  }
+
+  Widget _buildSecurityItem(String text) {
+    return Row(
+      children: [
+        Container(
+          width: 6,
+          height: 6,
+          decoration: const BoxDecoration(
+            color: _neonGreen,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Text(
+          text,
+          style: GoogleFonts.spaceMono(
+            color: _textMuted,
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ═══════════════════════════════════════════
+  // ── FOOTER DATA ──
+  // ═══════════════════════════════════════════
+  Widget _buildFooterData() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          height: 1,
+          color: _neonGreen.withValues(alpha: 0.2),
+          margin: const EdgeInsets.only(bottom: 24),
+        ),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: _neonGreen.withValues(alpha: 0.05),
+            border: Border.symmetric(
+              horizontal: BorderSide(
+                color: _textWhite.withValues(alpha: 0.05),
+              ),
+            ),
+          ),
+          child: Center(
+            child: Text(
+              'FLICKO // SECURITY ENCRYPTED',
+              style: GoogleFonts.spaceMono(
+                color: _textWhite.withValues(alpha: 0.3),
+                fontSize: 9,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 2.0,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

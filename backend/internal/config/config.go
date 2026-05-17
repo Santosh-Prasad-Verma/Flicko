@@ -28,6 +28,8 @@ type Config struct {
 	RazorpayKeySecret  string
 	MailGatewayURL     string
 	InternalToken      string
+	// Sonic Drip — SpotAPI service URL (internal)
+	SpotAPIURL string
 }
 
 func Load() (*Config, error) {
@@ -130,5 +132,6 @@ func Load() (*Config, error) {
 		RazorpayKeySecret:  os.Getenv("RAZORPAY_KEY_SECRET"),
 		MailGatewayURL:     os.Getenv("MAIL_GATEWAY_URL"),
 		InternalToken:      os.Getenv("INTERNAL_TOKEN"),
+		SpotAPIURL:         os.Getenv("SPOTAPI_URL"),
 	}, nil
 }

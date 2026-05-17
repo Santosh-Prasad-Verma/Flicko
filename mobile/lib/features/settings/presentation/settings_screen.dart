@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../../core/constants/flicko_colors.dart';
+import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/data/models/auth_state.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
@@ -67,6 +67,7 @@ class SettingsScreen extends ConsumerWidget {
           _buildSectionHeader('PROFILE'),
           _buildSettingsRow(context, Icons.emoji_emotions_outlined, 'Status', () => context.push('/profile/settings/status')),
           _buildSettingsRow(context, Icons.dns_outlined, 'Server Profiles', () => context.push('/profile/settings/server-profiles')),
+          _buildSettingsRow(context, Icons.headphones_outlined, 'Sonic Drip', () => context.push('/profile/settings/sonic-drip')),
           const SizedBox(height: 24),
 
           _buildSectionHeader('BILLING'),

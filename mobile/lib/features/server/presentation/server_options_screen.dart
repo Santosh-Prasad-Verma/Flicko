@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../../core/constants/flicko_colors.dart';
+import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 
 class ServerOptionsScreen extends ConsumerStatefulWidget {
@@ -44,19 +44,22 @@ class _ServerOptionsScreenState extends ConsumerState<ServerOptionsScreen> {
           .eq('id', widget.serverId)
           .single();
 
-      final currentUser = Supabase.instance.client.auth.currentUser;
+      final currentUser = ref.read(currentUserProvider);
       bool canModerate = false;
 
       if (currentUser != null) {
         final memberResponse = await Supabase.instance.client
             .from('server_members')
-            .select('role')
+            .select('roles')
             .eq('server_id', widget.serverId)
             .eq('user_id', currentUser.id)
             .maybeSingle();
 
         final isOwner = response['owner_id'] == currentUser.id;
-        final isAdmin = memberResponse?['role'] == 'admin' || memberResponse?['role'] == 'moderator';
+        final roles = memberResponse?['roles'] as List?;
+        final hasAdminRole = roles != null && roles.isNotEmpty;
+        final isAdmin = hasAdminRole;
+
         canModerate = isOwner || isAdmin;
       }
 
@@ -96,9 +99,7 @@ class _ServerOptionsScreenState extends ConsumerState<ServerOptionsScreen> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(FlickoColors.danger),
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(FlickoColors.danger)),
             child: const Text('Leave'),
           ),
         ],
@@ -115,9 +116,9 @@ class _ServerOptionsScreenState extends ConsumerState<ServerOptionsScreen> {
 
     try {
       final user = ref.read(authNotifierProvider).maybeWhen(
-        authenticated: (user, _) => user,
-        orElse: () => null,
-      );
+            authenticated: (user, _) => user,
+            orElse: () => null,
+          );
 
       if (user == null) {
         throw Exception('User not authenticated');
@@ -148,9 +149,7 @@ class _ServerOptionsScreenState extends ConsumerState<ServerOptionsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(FlickoColors.bgPrimary),
       appBar: AppBar(
-        backgroundColor: const Color(FlickoColors.bgPrimary),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.close, color: Color(FlickoColors.textPrimary)),
@@ -163,9 +162,7 @@ class _ServerOptionsScreenState extends ConsumerState<ServerOptionsScreen> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: Color(FlickoColors.blurple)),
-      );
+      return const Center(child: CircularProgressIndicator(color: Color(FlickoColors.blurple)));
     }
 
     if (_errorMessage != null) {
@@ -175,9 +172,12 @@ class _ServerOptionsScreenState extends ConsumerState<ServerOptionsScreen> {
           children: [
             const Icon(Icons.error_outline, size: 48, color: Color(FlickoColors.danger)),
             const SizedBox(height: 16),
-            Text('Error loading server', style: GoogleFonts.inter(color: const Color(FlickoColors.textSecondary), fontSize: 16)),
+            Text('Error loading server',
+                style: GoogleFonts.inter(color: const Color(FlickoColors.textSecondary), fontSize: 16)),
             const SizedBox(height: 8),
-            Text(_errorMessage!, style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted), fontSize: 14), textAlign: TextAlign.center),
+            Text(_errorMessage!,
+                style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted), fontSize: 14),
+                textAlign: TextAlign.center),
             const SizedBox(height: 16),
             ElevatedButton(onPressed: _loadServer, child: const Text('Retry')),
           ],
@@ -271,7 +271,8 @@ class _ServerOptionsScreenState extends ConsumerState<ServerOptionsScreen> {
               children: [
                 CircleAvatar(
                   radius: 26,
-                  backgroundImage: _server?['icon'] != null ? NetworkImage(_server!['icon'] as String) : null,
+                  backgroundImage:
+                      _server?['icon'] != null ? NetworkImage(_server!['icon'] as String) : null,
                   child: _server?['icon'] == null
                       ? Text(
                           _server?['name']?[0] ?? '?',
@@ -392,11 +393,7 @@ class _ServerOptionsScreenState extends ConsumerState<ServerOptionsScreen> {
               ),
             ),
             if (_isLeaving && isDestructive)
-              const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
+              const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
             else
               const Icon(Icons.chevron_right, color: Color(FlickoColors.textMuted)),
           ],

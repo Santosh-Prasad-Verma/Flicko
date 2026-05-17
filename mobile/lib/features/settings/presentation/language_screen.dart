@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../../core/constants/flicko_colors.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LanguageScreen extends ConsumerStatefulWidget {
   const LanguageScreen({super.key});
@@ -13,18 +13,16 @@ class LanguageScreen extends ConsumerStatefulWidget {
 
 class _LanguageScreenState extends ConsumerState<LanguageScreen> {
   String _selectedLanguage = 'en';
-  String _searchQuery = '';
+  bool _isLoading = true;
   final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  final Color _limeColor = const Color(0xFFC8FF00);
 
-  final List<_Language> _languages = const [
-    _Language(code: 'en', name: 'English (US)', subText: 'Default Protocol // Active', abbrev: 'EN'),
-    _Language(code: 'ja', name: 'Japanese (日本語)', subText: 'Protocol // JP-19', abbrev: 'JP'),
-    _Language(code: 'ko', name: 'Korean (한국어)', subText: 'Protocol // KR-82', abbrev: 'KR'),
-    _Language(code: 'fr', name: 'French (Français)', subText: 'Protocol // FR-33', abbrev: 'FR'),
-    _Language(code: 'de', name: 'German (Deutsch)', subText: 'Protocol // DE-49', abbrev: 'DE'),
-    _Language(code: 'es', name: 'Spanish (Español)', subText: 'Protocol // ES-34', abbrev: 'ES'),
-    _Language(code: 'it', name: 'Italian (Italiano)', subText: 'Protocol // IT-39', abbrev: 'IT', isBeta: true),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadLanguage();
+  }
 
   @override
   void dispose() {
@@ -32,383 +30,271 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
     super.dispose();
   }
 
+  Future<void> _loadLanguage() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _selectedLanguage = prefs.getString('language') ?? 'en';
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _saveLanguage(String languageCode) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('language', languageCode);
+    setState(() => _selectedLanguage = languageCode);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: _limeColor,
+          behavior: SnackBarBehavior.floating,
+          elevation: 0,
+          margin: const EdgeInsets.all(20),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle_rounded,
+                  color: Colors.black, size: 20),
+              const SizedBox(width: 12),
+              Text(
+                'Language updated to ${_languages.firstWhere((l) => l.code == languageCode).name}',
+                style: GoogleFonts.inter(
+                  color: Colors.black,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  final List<_Language> _languages = const [
+    _Language(code: 'en', name: 'English (US)', native: 'English', prefix: 'EN'),
+    _Language(code: 'ja', name: 'Japanese (日本語)', native: '日本語', prefix: 'JP'),
+    _Language(code: 'ko', name: 'Korean (한국어)', native: '한국어', prefix: 'KR'),
+    _Language(code: 'fr', name: 'French (Français)', native: 'Français', prefix: 'FR'),
+    _Language(code: 'de', name: 'German (Deutsch)', native: 'Deutsch', prefix: 'DE'),
+    _Language(code: 'es', name: 'Spanish (Español)', native: 'Español', prefix: 'ES'),
+    _Language(code: 'it', name: 'Italian (Italiano)', native: 'Italiano', prefix: 'IT'),
+    _Language(code: 'zh', name: 'Chinese (中文)', native: '中文', prefix: 'ZH'),
+    _Language(code: 'pt', name: 'Portuguese (Português)', native: 'Português', prefix: 'PT'),
+    _Language(code: 'ru', name: 'Russian (Русский)', native: 'Русский', prefix: 'RU'),
+    _Language(code: 'hi', name: 'Hindi (हिन्दी)', native: 'हिन्दी', prefix: 'HI'),
+  ];
+
+  List<_Language> get _filteredLanguages {
+    if (_searchQuery.isEmpty) return _languages;
+    return _languages.where((l) {
+      return l.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          l.native.toLowerCase().contains(_searchQuery.toLowerCase());
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final filteredLanguages = _languages.where((lang) {
-      final q = _searchQuery.toLowerCase();
-      return lang.name.toLowerCase().contains(q) ||
-             lang.subText.toLowerCase().contains(q);
-    }).toList();
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(
+            child: CircularProgressIndicator(color: _limeColor, strokeWidth: 2)),
+      );
+    }
 
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
         elevation: 0,
-        scrolledUnderElevation: 0,
         centerTitle: true,
-        leading: Padding(
-          padding: const EdgeInsets.only(left: 16.0),
-          child: Container(
-            margin: const EdgeInsets.all(8.0),
-            decoration: const BoxDecoration(
-              color: Color(0xFF0E0E0E),
-              shape: BoxShape.circle,
-            ),
-            child: IconButton(
-              padding: EdgeInsets.zero,
-              icon: const Icon(Icons.arrow_back, color: Colors.white, size: 18),
-              onPressed: () => context.pop(),
-            ),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new_rounded,
+              color: _limeColor, size: 20),
+          onPressed: () => context.pop(),
+        ),
+        title: Text(
+          'LANGUAGE',
+          style: GoogleFonts.inter(
+            color: Colors.white,
+            fontWeight: FontWeight.w900,
+            fontSize: 16,
+            letterSpacing: 2,
           ),
         ),
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFF1F1F1F)),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                'SYS',
-                style: GoogleFonts.spaceGrotesk(
-                  color: const Color(0xFF5F5F5F),
-                  fontSize: 9,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.0,
-                ),
-              ),
-            ),
-            const SizedBox(width: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                'V1.2',
-                style: GoogleFonts.spaceGrotesk(
-                  color: Colors.black,
-                  fontSize: 9,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16.0),
-            child: Container(
-              width: 38,
-              height: 38,
-              decoration: const BoxDecoration(
-                color: Color(0xFF0E0E0E),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.more_vert, color: Colors.white, size: 18),
-            ),
-          ),
-        ],
       ),
-      body: Stack(
+      body: Column(
         children: [
-          // Faded Background Watermark at the bottom center
-          Positioned(
-            bottom: 20,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Container(
-                width: 120,
-                height: 120,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF1B1B1B),
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  'FLICKO',
-                  style: GoogleFonts.spaceGrotesk(
-                    color: Colors.black,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.5,
-                  ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+            child: Container(
+              height: 56,
+              decoration: BoxDecoration(
+                color: const Color(0xFF0D0D0D),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+              ),
+              child: TextField(
+                controller: _searchController,
+                onChanged: (val) => setState(() => _searchQuery = val),
+                style: GoogleFonts.inter(
+                    color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
+                decoration: InputDecoration(
+                  hintText: 'Search for a language...',
+                  hintStyle: GoogleFonts.inter(
+                      color: Colors.white24,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500),
+                  prefixIcon:
+                      Icon(Icons.search_rounded, color: _limeColor, size: 22),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 18),
                 ),
               ),
             ),
           ),
-          SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'LANGUAGE',
-                  style: GoogleFonts.spaceGrotesk(
-                    fontSize: 42,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 2,
-                    color: Colors.white,
-                    height: 0.9,
-                  ),
-                ),
-                Text(
-                  'REGION',
-                  style: GoogleFonts.playfairDisplay(
-                    fontSize: 42,
-                    fontStyle: FontStyle.italic,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF5E6164),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'SELECT PRIMARY INTERFACE DIALECT',
-                  style: GoogleFonts.spaceGrotesk(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                    color: const Color(0xFF494C50),
-                    letterSpacing: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 32),
-                
-                // Neo-Brutalist Search Bar
-                Container(
-                  height: 58,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF050505),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFF141517), width: 1.5),
-                  ),
-                  child: Row(
-                    children: [
-                      const SizedBox(width: 16),
-                      const Icon(Icons.search, color: Color(0xFF4D5156), size: 20),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextField(
-                          controller: _searchController,
-                          onChanged: (val) {
-                            setState(() {
-                              _searchQuery = val;
-                            });
-                          },
-                          style: GoogleFonts.spaceGrotesk(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 15,
-                          ),
-                          decoration: InputDecoration(
-                            hintText: 'Find dialect...',
-                            hintStyle: GoogleFonts.spaceGrotesk(
-                              color: const Color(0xFF373A3F),
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.zero,
-                          ),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              itemCount: _filteredLanguages.length,
+              itemBuilder: (context, index) {
+                final lang = _filteredLanguages[index];
+                final isSelected = _selectedLanguage == lang.code;
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: InkWell(
+                    onTap: () => _saveLanguage(lang.code),
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0D0D0D),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: isSelected
+                              ? _limeColor
+                              : Colors.white.withValues(alpha: 0.05),
+                          width: isSelected ? 1.5 : 1,
                         ),
+                        boxShadow: isSelected
+                            ? [
+                                BoxShadow(
+                                  color: _limeColor.withValues(alpha: 0.05),
+                                  blurRadius: 20,
+                                  spreadRadius: -5,
+                                )
+                              ]
+                            : null,
                       ),
-                      Container(
-                        margin: const EdgeInsets.only(right: 12),
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: const Color(0xFF191B1D)),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(Icons.keyboard, color: Color(0xFF2D3035), size: 16),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 40),
-                
-                // Available Protocols Header Row
-                Row(
-                  children: [
-                    const Expanded(child: Divider(color: Color(0xFF141517), thickness: 1.5)),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(
-                        'AVAILABLE PROTOCOLS',
-                        style: GoogleFonts.spaceGrotesk(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 2.5,
-                          color: const Color(0xFF3F4247),
-                        ),
-                      ),
-                    ),
-                    const Expanded(child: Divider(color: Color(0xFF141517), thickness: 1.5)),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                
-                // List of languages
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: filteredLanguages.length,
-                  itemBuilder: (context, index) {
-                    final lang = filteredLanguages[index];
-                    final isSelected = _selectedLanguage == lang.code;
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 14.0),
-                      child: GestureDetector(
-                        onTap: () => setState(() => _selectedLanguage = lang.code),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(20),
-                          child: Container(
-                            height: 86,
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 48,
+                            height: 48,
                             decoration: BoxDecoration(
-                              color: const Color(0xFF040405),
-                              borderRadius: BorderRadius.circular(20),
+                              color: isSelected
+                                  ? _limeColor.withValues(alpha: 0.1)
+                                  : Colors.white.withValues(alpha: 0.03),
+                              borderRadius: BorderRadius.circular(14),
                               border: Border.all(
-                                color: isSelected ? const Color(0xFF202226) : const Color(0xFF0C0D0E),
-                                width: 1.5,
+                                  color: isSelected
+                                      ? _limeColor.withValues(alpha: 0.2)
+                                      : Colors.transparent),
+                            ),
+                            child: Center(
+                              child: Text(
+                                lang.prefix,
+                                style: GoogleFonts.inter(
+                                  color: isSelected ? _limeColor : Colors.white24,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 0.5,
+                                ),
                               ),
                             ),
-                            child: Stack(
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Left Edge white thick highlight for Active
-                                if (isSelected)
-                                  Positioned(
-                                    left: 0,
-                                    top: 16,
-                                    bottom: 16,
-                                    child: Container(
-                                      width: 4,
-                                      decoration: const BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.only(
-                                          topRight: Radius.circular(4),
-                                          bottomRight: Radius.circular(4),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                                  child: Row(
-                                    children: [
-                                      // Initials bubble
-                                      Container(
-                                        width: 44,
-                                        height: 44,
-                                        decoration: BoxDecoration(
-                                          color: isSelected ? Colors.white : Colors.transparent,
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: isSelected ? Colors.white : const Color(0xFF212429),
-                                            width: 1.5,
-                                          ),
-                                        ),
-                                        alignment: Alignment.center,
-                                        child: Text(
-                                          lang.abbrev,
-                                          style: GoogleFonts.spaceGrotesk(
-                                            color: isSelected ? Colors.black : const Color(0xFF4A4F55),
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w900,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 18),
-                                      
-                                      // Language details
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            Text(
-                                              lang.name,
-                                              style: GoogleFonts.spaceGrotesk(
-                                                color: isSelected ? Colors.white : const Color(0xFF9EA4AB),
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.w900,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Row(
-                                              children: [
-                                                Text(
-                                                  lang.subText,
-                                                  style: GoogleFonts.spaceGrotesk(
-                                                    color: isSelected ? const Color(0xFF5B6067) : const Color(0xFF323539),
-                                                    fontSize: 11,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                                if (lang.isBeta) ...[
-                                                  const SizedBox(width: 6),
-                                                  Container(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                                    decoration: BoxDecoration(
-                                                      color: const Color(0xFF151719),
-                                                      borderRadius: BorderRadius.circular(2),
-                                                    ),
-                                                    child: Text(
-                                                      'BETA',
-                                                      style: GoogleFonts.spaceGrotesk(
-                                                        color: const Color(0xFF50545A),
-                                                        fontSize: 8,
-                                                        fontWeight: FontWeight.w900,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      
-                                      // Brutalist Radio Widget
-                                      Container(
-                                        width: 22,
-                                        height: 22,
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: isSelected ? Colors.white : const Color(0xFF1A1D20),
-                                            width: 1.5,
-                                          ),
-                                        ),
-                                        alignment: Alignment.center,
-                                        child: isSelected
-                                            ? Container(
-                                                width: 10,
-                                                height: 10,
-                                                decoration: const BoxDecoration(
-                                                  color: Colors.white,
-                                                  shape: BoxShape.circle,
-                                                ),
-                                              )
-                                            : null,
-                                      ),
-                                    ],
+                                Text(
+                                  lang.name,
+                                  style: GoogleFonts.inter(
+                                    color: isSelected
+                                        ? Colors.white
+                                        : Colors.white70,
+                                    fontSize: 15,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w800
+                                        : FontWeight.w600,
                                   ),
                                 ),
+                                if (lang.native != lang.name) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    lang.native,
+                                    style: GoogleFonts.inter(
+                                      color: Colors.white24,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
                               ],
                             ),
                           ),
-                        ),
+                          if (isSelected)
+                            Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: _limeColor,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: _limeColor.withValues(alpha: 0.4),
+                                    blurRadius: 10,
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(Icons.check_rounded,
+                                  color: Colors.black, size: 14),
+                            )
+                          else
+                            Container(
+                              width: 22,
+                              height: 22,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.1),
+                                    width: 2),
+                              ),
+                            ),
+                        ],
                       ),
-                    );
-                  },
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 20),
+          Center(
+            child: Column(
+              children: [
+                Image.asset(
+                  'assets/branding/Flicko-for-black-background.png',
+                  height: 32,
+                  color: Colors.white.withValues(alpha: 0.1),
+                  errorBuilder: (context, error, stackTrace) =>
+                      const SizedBox.shrink(),
                 ),
-                const SizedBox(height: 100),
+                const SizedBox(height: 40),
               ],
             ),
           ),
@@ -421,15 +307,13 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
 class _Language {
   final String code;
   final String name;
-  final String subText;
-  final String abbrev;
-  final bool isBeta;
+  final String native;
+  final String prefix;
 
   const _Language({
     required this.code,
     required this.name,
-    required this.subText,
-    required this.abbrev,
-    this.isBeta = false,
+    required this.native,
+    required this.prefix,
   });
 }

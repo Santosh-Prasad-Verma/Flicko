@@ -182,24 +182,164 @@ class AppTheme {
   }
 
   // ──────────────────────────────────────────────────────────
-  // Light Theme (secondary — placeholder for future use)
+  // Light Theme
   // ──────────────────────────────────────────────────────────
 
   static ThemeData get lightTheme {
     const primary = Color(FlickoColors.blurple);
+    const bgPrimary = Color(0xFFF2F3F5);
+    const bgSecondary = Colors.white;
+    const bgTertiary = Color(0xFFEBEDF0);
+    const textPrimary = Color(0xFF2E3338);
+    const textSecondary = Color(0xFF4F5660);
+    const textMuted = Color(0xFF747F8D);
 
     return ThemeData(
       brightness: Brightness.light,
       primaryColor: primary,
-      scaffoldBackgroundColor: Colors.white,
+      scaffoldBackgroundColor: bgPrimary,
       colorScheme: ColorScheme.light(
         primary: primary,
         secondary: const Color(FlickoColors.pink),
-        surface: const Color(0xFFF2F3F5),
+        surface: bgSecondary,
         error: const Color(FlickoColors.danger),
+        onPrimary: Colors.white,
+        onSecondary: Colors.white,
+        onSurface: textPrimary,
+        onError: Colors.white,
       ),
-      textTheme:
-          _buildTextTheme(const Color(0xFF2E3338), const Color(0xFF4F5660)),
+      textTheme: _buildTextTheme(textPrimary, textSecondary),
+      cardColor: bgSecondary,
+      canvasColor: bgTertiary,
+      dividerColor: bgTertiary,
+      appBarTheme: AppBarTheme(
+        backgroundColor: bgSecondary,
+        foregroundColor: textPrimary,
+        elevation: 0,
+        centerTitle: false,
+        titleTextStyle: GoogleFonts.inter(
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
+          color: textPrimary,
+        ),
+        iconTheme: const IconThemeData(color: textSecondary),
+      ),
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+        backgroundColor: bgTertiary,
+        selectedItemColor: primary,
+        unselectedItemColor: textMuted,
+        type: BottomNavigationBarType.fixed,
+        showSelectedLabels: true,
+        showUnselectedLabels: true,
+        selectedLabelStyle: GoogleFonts.inter(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+        ),
+        unselectedLabelStyle: GoogleFonts.inter(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: primary,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          textStyle: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: bgTertiary,
+        hintStyle: GoogleFonts.inter(color: textMuted),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+      ),
+      iconTheme: const IconThemeData(color: textSecondary),
+      splashColor: primary.withAlpha(25),
+      highlightColor: primary.withAlpha(15),
+    );
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // AMOLED Theme (true black for OLED screens)
+  // ──────────────────────────────────────────────────────────
+
+  static ThemeData get amoledTheme {
+    final dark = darkTheme;
+    return dark.copyWith(
+      scaffoldBackgroundColor: Colors.black,
+      cardColor: const Color(0xFF0D0D0D),
+      canvasColor: Colors.black,
+      colorScheme: dark.colorScheme.copyWith(
+        surface: const Color(0xFF0D0D0D),
+        surfaceTint: Colors.transparent,
+      ),
+      appBarTheme: dark.appBarTheme.copyWith(
+        backgroundColor: Colors.black,
+      ),
+      bottomNavigationBarTheme: dark.bottomNavigationBarTheme.copyWith(
+        backgroundColor: Colors.black,
+      ),
+    );
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // Flicko Plus Theme
+  // ──────────────────────────────────────────────────────────
+
+  static ThemeData get plusTheme {
+    final dark = darkTheme;
+    const plusPrimary = Color(FlickoColors.brandLime);
+    const bgPrimary = Color(FlickoColors.bgPrimary);
+    const bgSecondary = Color(FlickoColors.bgSecondary);
+    const bgTertiary = Color(FlickoColors.bgTertiary);
+    const textPrimary = Color(FlickoColors.textPrimary);
+    const textSecondary = Color(FlickoColors.textSecondary);
+
+    return dark.copyWith(
+      primaryColor: plusPrimary,
+      scaffoldBackgroundColor: bgPrimary,
+      cardColor: bgSecondary,
+      canvasColor: bgTertiary,
+      colorScheme: dark.colorScheme.copyWith(
+        primary: plusPrimary,
+        secondary: plusPrimary,
+        surface: bgSecondary,
+        surfaceTint: Colors.transparent,
+      ),
+      appBarTheme: dark.appBarTheme.copyWith(
+        backgroundColor: bgPrimary,
+        foregroundColor: textPrimary,
+        titleTextStyle: GoogleFonts.inter(
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
+          color: textPrimary,
+        ),
+        iconTheme: const IconThemeData(color: textSecondary),
+      ),
+      bottomNavigationBarTheme: dark.bottomNavigationBarTheme.copyWith(
+        backgroundColor: bgPrimary,
+        selectedItemColor: plusPrimary,
+        unselectedItemColor: textSecondary,
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: plusPrimary,
+          foregroundColor: const Color(FlickoColors.black),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          textStyle: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600),
+        ),
+      ),
+      inputDecorationTheme: dark.inputDecorationTheme.copyWith(
+        fillColor: bgTertiary,
+        hintStyle: GoogleFonts.inter(color: textSecondary.withAlpha(128)),
+      ),
     );
   }
 }

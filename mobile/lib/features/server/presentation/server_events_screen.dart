@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../../core/constants/flicko_colors.dart';
+import 'package:mobile/core/constants/flicko_colors.dart';
 
 /// Server Events Screen
 ///
@@ -10,6 +10,7 @@ import '../../../../core/constants/flicko_colors.dart';
 /// Route: /server/:serverId/events
 class ServerEventsScreen extends ConsumerStatefulWidget {
   final String serverId;
+
   const ServerEventsScreen({super.key, required this.serverId});
 
   @override
@@ -42,7 +43,6 @@ class _ServerEventsScreenState extends ConsumerState<ServerEventsScreen> {
   bool _isLoading = true;
   List<_Event> _events = [];
   bool _showCreate = false;
-
   final _nameCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
   final _locationCtrl = TextEditingController();
@@ -55,10 +55,29 @@ class _ServerEventsScreenState extends ConsumerState<ServerEventsScreen> {
 
   Future<void> _loadEvents() async {
     setState(() => _isLoading = true);
+
     try {
       await Future.delayed(const Duration(milliseconds: 300));
+
       setState(() {
-        _events = [];
+        _events = [
+          _Event(
+            id: '1',
+            name: 'Community Hangout',
+            description: 'Join us for a chill talk about the future of Flicko.',
+            startTime: DateTime.now().add(const Duration(hours: 2)),
+            status: 'scheduled',
+            channelName: 'general',
+            interestedCount: 15,
+          ),
+          _Event(
+            id: '2',
+            name: 'Voice Night',
+            startTime: DateTime.now().add(const Duration(days: 1)),
+            status: 'scheduled',
+            interestedCount: 5,
+          ),
+        ];
         _isLoading = false;
       });
     } catch (e) {
@@ -70,6 +89,7 @@ class _ServerEventsScreenState extends ConsumerState<ServerEventsScreen> {
     final now = DateTime.now();
     final diff = d.difference(now).inDays;
     final time = '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+
     if (diff == 0) return 'Today at $time';
     if (diff == 1) return 'Tomorrow at $time';
     return '${_monthName(d.month)} ${d.day} at $time';
@@ -82,6 +102,7 @@ class _ServerEventsScreenState extends ConsumerState<ServerEventsScreen> {
 
   void _createEvent() {
     if (_nameCtrl.text.trim().isEmpty) return;
+
     final event = _Event(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       name: _nameCtrl.text.trim(),
@@ -90,6 +111,7 @@ class _ServerEventsScreenState extends ConsumerState<ServerEventsScreen> {
       status: 'scheduled',
       location: _locationCtrl.text.trim().isNotEmpty ? _locationCtrl.text.trim() : null,
     );
+
     setState(() {
       _events.insert(0, event);
       _showCreate = false;
@@ -102,7 +124,6 @@ class _ServerEventsScreenState extends ConsumerState<ServerEventsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(FlickoColors.bgPrimary),
       appBar: AppBar(
         backgroundColor: const Color(FlickoColors.bgSecondary),
         elevation: 0,
@@ -152,6 +173,7 @@ class _ServerEventsScreenState extends ConsumerState<ServerEventsScreen> {
                         final event = _events[index];
                         final isActive = event.status == 'active';
                         final isScheduled = event.status == 'scheduled';
+
                         return Container(
                           margin: const EdgeInsets.only(bottom: 12),
                           padding: const EdgeInsets.all(16),
@@ -310,7 +332,10 @@ class _ServerEventsScreenState extends ConsumerState<ServerEventsScreen> {
                               hintStyle: GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
                               filled: true,
                               fillColor: const Color(FlickoColors.bgTertiary),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide.none,
+                              ),
                               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                             ),
                             autofocus: true,
@@ -324,7 +349,10 @@ class _ServerEventsScreenState extends ConsumerState<ServerEventsScreen> {
                               hintStyle: GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
                               filled: true,
                               fillColor: const Color(FlickoColors.bgTertiary),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide.none,
+                              ),
                               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                             ),
                             maxLines: 3,
@@ -338,7 +366,10 @@ class _ServerEventsScreenState extends ConsumerState<ServerEventsScreen> {
                               hintStyle: GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
                               filled: true,
                               fillColor: const Color(FlickoColors.bgTertiary),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide.none,
+                              ),
                               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                             ),
                           ),

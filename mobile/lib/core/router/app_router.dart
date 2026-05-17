@@ -90,6 +90,11 @@ import 'package:mobile/features/server_settings/presentation/bot_marketplace_scr
 // Voice
 import 'package:mobile/features/server_channels/voice/presentation/screens/voice_activities_screen.dart';
 import 'package:mobile/features/server_channels/voice/presentation/screens/voice_channel_screen.dart';
+import 'package:mobile/features/voice/presentation/sonic_drip_screen.dart';
+
+// Gaming
+import 'package:mobile/features/gaming/presentation/screens/gaming_hub_screen.dart';
+import 'package:mobile/features/gaming/presentation/screens/matchmaking_screen.dart';
 
 // Forum
 import 'package:mobile/features/server_channels/forum/presentation/screens/forum_channel_screen.dart' hide ThreadViewScreen;
@@ -258,7 +263,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/profile',
                 pageBuilder: (context, state) => const NoTransitionPage(
-                  child: ProfileScreen(),
+                  child: _CurrentUserProfileScreen(),
                 ),
                 routes: [
                   GoRoute(
@@ -282,11 +287,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                       GoRoute(path: 'change-username', builder: (context, state) => const ChangeUsernameScreen()),
                       GoRoute(path: 'change-password', builder: (context, state) => const ChangePasswordScreen()),
                       GoRoute(path: 'billing', builder: (context, state) => const BillingSettingsScreen()),
+                      GoRoute(path: 'sonic-drip', builder: (context, state) => const SonicDripScreen()),
                     ],
                   ),
                   GoRoute(
                     path: ':userId',
-                    builder: (context, state) => PublicProfileScreen(
+                    builder: (context, state) => ProfileViewScreen(
                       userId: state.pathParameters['userId']!,
                     ),
                   ),
@@ -409,6 +415,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/premium/plus', builder: (context, state) => const FlickoPlusScreen()),
       GoRoute(path: '/premium/nitro', builder: (context, state) => const FlickoPlusScreen()),
 
+      // Gaming
+      GoRoute(path: '/gaming', builder: (context, state) => const GamingHubScreen()),
+      GoRoute(
+        path: '/gaming/matchmaking',
+        builder: (context, state) => MatchmakingScreen(
+          activityName: state.uri.queryParameters['activity'] ?? 'Chess',
+        ),
+      ),
+
       // ── Spike / Dev Routes ──
       GoRoute(path: '/spike', builder: (context, state) => const SpikeDashboardScreen()),
       GoRoute(path: '/spike/livekit', builder: (context, state) => const LiveKitSpikeScreen()),
@@ -417,3 +432,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+/// Wrapper that shows ProfileViewScreen for the currently logged-in user.
+/// Used as the profile tab root so the new UI is shown instead of the old ProfileScreen.
+class _CurrentUserProfileScreen extends ConsumerWidget {
+  const _CurrentUserProfileScreen();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final userId = ref.watch(currentUserIdProvider);
+    if (userId == null) {
+      return const Scaffold(
+        backgroundColor: Color(0xFF050505),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    return ProfileViewScreen(userId: userId);
+  }
+}

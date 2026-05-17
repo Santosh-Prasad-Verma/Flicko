@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../../core/constants/flicko_colors.dart';
+import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 
 class ServerOnboardingScreen extends ConsumerStatefulWidget {
@@ -21,7 +21,7 @@ class _ServerOnboardingScreenState extends ConsumerState<ServerOnboardingScreen>
   bool _isLoading = true;
   Map<String, dynamic>? _config;
   int _step = 0;
-  Map<String, List<String>> _selectedOptions = {};
+  final Map<String, List<String>> _selectedOptions = {};
   bool _rulesAccepted = false;
   bool _isSubmitting = false;
   String? _errorMessage;
@@ -40,9 +40,9 @@ class _ServerOnboardingScreenState extends ConsumerState<ServerOnboardingScreen>
 
     try {
       final user = ref.read(authNotifierProvider).maybeWhen(
-        authenticated: (user, _) => user,
-        orElse: () => null,
-      );
+            authenticated: (user, _) => user,
+            orElse: () => null,
+          );
 
       if (user == null) {
         throw Exception('User not authenticated');
@@ -93,9 +93,9 @@ class _ServerOnboardingScreenState extends ConsumerState<ServerOnboardingScreen>
   Future<void> _completeOnboarding() async {
     try {
       final user = ref.read(authNotifierProvider).maybeWhen(
-        authenticated: (user, _) => user,
-        orElse: () => null,
-      );
+            authenticated: (user, _) => user,
+            orElse: () => null,
+          );
 
       if (user == null) return;
 
@@ -128,8 +128,7 @@ class _ServerOnboardingScreenState extends ConsumerState<ServerOnboardingScreen>
     setState(() {
       final current = _selectedOptions[promptId] ?? [];
       final has = current.contains(optionLabel);
-      _selectedOptions[promptId] =
-          has ? current.where((o) => o != optionLabel).toList() : [...current, optionLabel];
+      _selectedOptions[promptId] = has ? current.where((o) => o != optionLabel).toList() : [...current, optionLabel];
     });
   }
 
@@ -137,18 +136,13 @@ class _ServerOnboardingScreenState extends ConsumerState<ServerOnboardingScreen>
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: const Color(FlickoColors.bgPrimary),
-        body: const Center(
-          child: CircularProgressIndicator(color: Color(FlickoColors.blurple)),
-        ),
+        body: const Center(child: CircularProgressIndicator(color: Color(FlickoColors.blurple))),
       );
     }
 
     if (_errorMessage != null) {
       return Scaffold(
-        backgroundColor: const Color(FlickoColors.bgPrimary),
         appBar: AppBar(
-          backgroundColor: const Color(FlickoColors.bgPrimary),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),
             onPressed: () => Navigator.of(context).pop(),
@@ -160,9 +154,12 @@ class _ServerOnboardingScreenState extends ConsumerState<ServerOnboardingScreen>
             children: [
               const Icon(Icons.error_outline, size: 48, color: Color(FlickoColors.danger)),
               const SizedBox(height: 16),
-              Text('Error loading onboarding', style: GoogleFonts.inter(color: const Color(FlickoColors.textSecondary), fontSize: 16)),
+              Text('Error loading onboarding',
+                  style: GoogleFonts.inter(color: const Color(FlickoColors.textSecondary), fontSize: 16)),
               const SizedBox(height: 8),
-              Text(_errorMessage!, style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted), fontSize: 14), textAlign: TextAlign.center),
+              Text(_errorMessage!,
+                  style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted), fontSize: 14),
+                  textAlign: TextAlign.center),
             ],
           ),
         ),
@@ -171,9 +168,7 @@ class _ServerOnboardingScreenState extends ConsumerState<ServerOnboardingScreen>
 
     if (_config == null || !_config!['enabled']) {
       return Scaffold(
-        backgroundColor: const Color(FlickoColors.bgPrimary),
         appBar: AppBar(
-          backgroundColor: const Color(FlickoColors.bgPrimary),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),
             onPressed: () => Navigator.of(context).pop(),
@@ -183,7 +178,8 @@ class _ServerOnboardingScreenState extends ConsumerState<ServerOnboardingScreen>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('No onboarding configured', style: GoogleFonts.inter(color: const Color(FlickoColors.textSecondary), fontSize: 16)),
+              Text('No onboarding configured',
+                  style: GoogleFonts.inter(color: const Color(FlickoColors.textSecondary), fontSize: 16)),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () => Navigator.of(context).pop(),
@@ -196,9 +192,7 @@ class _ServerOnboardingScreenState extends ConsumerState<ServerOnboardingScreen>
     }
 
     return Scaffold(
-      backgroundColor: const Color(FlickoColors.bgPrimary),
       appBar: AppBar(
-        backgroundColor: const Color(FlickoColors.bgPrimary),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),
@@ -390,6 +384,7 @@ class _ServerOnboardingScreenState extends ConsumerState<ServerOnboardingScreen>
           ...options.map((opt) {
             final label = opt['label'] as String;
             final selected = (_selectedOptions[promptId] ?? []).contains(label);
+
             return GestureDetector(
               onTap: () => _toggleOption(promptId, label),
               child: Container(
@@ -471,11 +466,7 @@ class _ServerOnboardingScreenState extends ConsumerState<ServerOnboardingScreen>
           ElevatedButton(
             onPressed: canProceed && !_isSubmitting ? _handleNext : null,
             child: _isSubmitting
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
                 : Text(_isLastStep ? 'Finish' : 'Next'),
           ),
         ],

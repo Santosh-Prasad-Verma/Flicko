@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../../core/constants/flicko_colors.dart';
+import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
 
@@ -24,19 +24,22 @@ class ProfileScreen extends ConsumerWidget {
     final username = profile?.username ?? 'user';
     final bio = profile?.bio ?? 'Tell the world about yourself';
     final accentColor = Color(int.tryParse(profile?.accentColor?.replaceAll('#', '0xFF') ?? '') ?? FlickoColors.blurple);
+    final bannerUrl = profile?.bannerUrl as String?;
+    final bannerColors = (profile?.bannerColors as List<String>?) ?? const [];
+    final avatarUrl = profile?.avatarUrl as String?;
 
     return Scaffold(
       backgroundColor: const Color(FlickoColors.bgPrimary),
       body: CustomScrollView(
         slivers: [
-          _buildSliverAppBar(context, displayName, accentColor),
+          _buildSliverAppBar(context, displayName, accentColor, bannerUrl, bannerColors),
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildIdentitySection(displayName, username, accentColor, profile?.avatarUrl),
+                  _buildIdentitySection(displayName, username, accentColor, avatarUrl),
                   const SizedBox(height: 24),
                   _buildCardSection('ABOUT ME', bio),
                   const SizedBox(height: 16),
@@ -53,7 +56,21 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSliverAppBar(BuildContext context, String title, Color accentColor) {
+  Widget _buildSliverAppBar(
+    BuildContext context,
+    String title,
+    Color accentColor,
+    String? bannerUrl,
+    List<String> bannerColors,
+  ) {
+    final hasImage = bannerUrl != null && bannerUrl.isNotEmpty;
+    final gradientColors = bannerColors.length >= 2
+        ? bannerColors
+            .take(2)
+            .map((c) => Color(int.tryParse(c.replaceAll('#', '0xFF')) ?? FlickoColors.blurple))
+            .toList()
+        : [accentColor, accentColor.withValues(alpha: 0.6)];
+
     return SliverAppBar(
       expandedHeight: 160,
       pinned: true,
@@ -62,15 +79,30 @@ class ProfileScreen extends ConsumerWidget {
         background: Stack(
           fit: StackFit.expand,
           children: [
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [accentColor, accentColor.withValues(alpha: 0.6), const Color(FlickoColors.bgPrimary)],
+            if (hasImage)
+              Image.network(
+                bannerUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: gradientColors,
+                    ),
+                  ),
+                ),
+              )
+            else
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: gradientColors,
+                  ),
                 ),
               ),
-            ),
             const Positioned(
               bottom: 0,
               left: 0,
@@ -113,6 +145,7 @@ class ProfileScreen extends ConsumerWidget {
                 ),
                 child: UserAvatar(
                   imageUrl: avatarUrl,
+                  name: name,
                   status: 'online',
                   size: 80,
                 ),

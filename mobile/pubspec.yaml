@@ -74,6 +74,7 @@ dependencies:
   video_compress: ^3.1.4
   confetti: ^0.8.0
   photo_view: ^0.15.0
+  flutter_inappwebview: ^6.1.5
 
 dev_dependencies:
   flutter_test:

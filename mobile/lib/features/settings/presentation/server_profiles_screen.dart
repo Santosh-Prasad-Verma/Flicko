@@ -3,19 +3,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../../core/constants/flicko_colors.dart';
+import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
+import 'package:mobile/features/auth/application/auth_notifier.dart';
 
 /// Per-Server Profile Selector
 ///
 /// Lists all servers the user is a member of, allowing them
 /// to customise their nickname per-server.
-/// Route: /profile/settings/server-profiles
+/// Route: /u/settings/server-profiles
 class ServerProfilesScreen extends ConsumerStatefulWidget {
   const ServerProfilesScreen({super.key});
 
   @override
-  ConsumerState<ServerProfilesScreen> createState() => _ServerProfilesScreenState();
+  ConsumerState<ServerProfilesScreen> createState() =>
+      _ServerProfilesScreenState();
 }
 
 class _ServerProfile {
@@ -24,7 +26,12 @@ class _ServerProfile {
   final String? icon;
   final String? nickname;
 
-  _ServerProfile({required this.id, required this.name, this.icon, this.nickname});
+  _ServerProfile({
+    required this.id,
+    required this.name,
+    this.icon,
+    this.nickname,
+  });
 }
 
 class _ServerProfilesScreenState extends ConsumerState<ServerProfilesScreen> {
@@ -32,7 +39,6 @@ class _ServerProfilesScreenState extends ConsumerState<ServerProfilesScreen> {
   List<_ServerProfile> _servers = [];
   String? _editingServerId;
   String _nicknameInput = '';
-
   final _client = Supabase.instance.client;
 
   @override
@@ -43,8 +49,9 @@ class _ServerProfilesScreenState extends ConsumerState<ServerProfilesScreen> {
 
   Future<void> _loadServers() async {
     setState(() => _isLoading = true);
+
     try {
-      final userId = _client.auth.currentUser?.id;
+      final userId = ref.read(currentUserIdProvider);
       if (userId == null) {
         setState(() => _isLoading = false);
         return;
@@ -56,12 +63,14 @@ class _ServerProfilesScreenState extends ConsumerState<ServerProfilesScreen> {
           .eq('user_id', userId);
 
       setState(() {
-        _servers = (response as List).map((d) => _ServerProfile(
-          id: d['servers']['id'] as String,
-          name: d['servers']['name'] as String,
-          icon: d['servers']['icon'] as String?,
-          nickname: d['nickname'] as String?,
-        )).toList();
+        _servers = (response as List)
+            .map((d) => _ServerProfile(
+                  id: d['servers']['id'] as String,
+                  name: d['servers']['name'] as String,
+                  icon: d['servers']['icon'] as String?,
+                  nickname: d['nickname'] as String?,
+                ))
+            .toList();
         _isLoading = false;
       });
     } catch (e) {
@@ -70,20 +79,20 @@ class _ServerProfilesScreenState extends ConsumerState<ServerProfilesScreen> {
   }
 
   Future<void> _saveNickname(String serverId) async {
-    final userId = _client.auth.currentUser?.id;
+    final userId = ref.read(currentUserIdProvider);
     if (userId == null) return;
 
     try {
-      await _client
-          .from('server_members')
-          .update({'nickname': _nicknameInput.trim().isEmpty ? null : _nicknameInput.trim()})
-          .eq('server_id', serverId)
-          .eq('user_id', userId);
+      await _client.from('server_members').update({
+        'nickname':
+            _nicknameInput.trim().isEmpty ? null : _nicknameInput.trim()
+      }).eq('server_id', serverId).eq('user_id', userId);
 
       setState(() {
         _editingServerId = null;
         _nicknameInput = '';
       });
+
       await _loadServers();
     } catch (e) {
       if (mounted) {
@@ -97,12 +106,12 @@ class _ServerProfilesScreenState extends ConsumerState<ServerProfilesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(FlickoColors.bgPrimary),
       appBar: AppBar(
         backgroundColor: const Color(FlickoColors.bgSecondary),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),
+          icon: const Icon(Icons.arrow_back,
+              color: Color(FlickoColors.textPrimary)),
           onPressed: () => context.pop(),
         ),
         title: Text(
@@ -114,7 +123,9 @@ class _ServerProfilesScreenState extends ConsumerState<ServerProfilesScreen> {
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(FlickoColors.blurple)))
+          ? const Center(
+              child:
+                  CircularProgressIndicator(color: Color(FlickoColors.blurple)))
           : _servers.isEmpty
               ? _buildEmptyState()
               : ListView(
@@ -140,7 +151,8 @@ class _ServerProfilesScreenState extends ConsumerState<ServerProfilesScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.dns_outlined, size: 48, color: Color(FlickoColors.textMuted)),
+          const Icon(Icons.dns_outlined,
+              size: 48, color: Color(FlickoColors.textMuted)),
           const SizedBox(height: 16),
           Text(
             "You're not in any servers yet",
@@ -200,7 +212,8 @@ class _ServerProfilesScreenState extends ConsumerState<ServerProfilesScreen> {
               ),
               if (!isEditing)
                 IconButton(
-                  icon: const Icon(Icons.edit, size: 18, color: Color(FlickoColors.textSecondary)),
+                  icon: const Icon(Icons.edit,
+                      size: 18, color: Color(FlickoColors.textSecondary)),
                   onPressed: () => setState(() {
                     _editingServerId = server.id;
                     _nicknameInput = server.nickname ?? '';
@@ -214,18 +227,22 @@ class _ServerProfilesScreenState extends ConsumerState<ServerProfilesScreen> {
               autofocus: true,
               onChanged: (v) => setState(() => _nicknameInput = v),
               controller: TextEditingController(text: _nicknameInput)
-                ..selection = TextSelection.collapsed(offset: _nicknameInput.length),
-              style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary)),
+                ..selection =
+                    TextSelection.collapsed(offset: _nicknameInput.length),
+              style: GoogleFonts.inter(
+                  color: const Color(FlickoColors.textPrimary)),
               decoration: InputDecoration(
                 hintText: 'Server nickname',
-                hintStyle: GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
+                hintStyle: GoogleFonts.inter(
+                    color: const Color(FlickoColors.textMuted)),
                 filled: true,
                 fillColor: const Color(FlickoColors.bgTertiary),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                   borderSide: BorderSide.none,
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               ),
               maxLength: 32,
             ),
@@ -240,7 +257,8 @@ class _ServerProfilesScreenState extends ConsumerState<ServerProfilesScreen> {
                   }),
                   child: Text(
                     'Cancel',
-                    style: GoogleFonts.inter(color: const Color(FlickoColors.textSecondary)),
+                    style: GoogleFonts.inter(
+                        color: const Color(FlickoColors.textSecondary)),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -250,7 +268,9 @@ class _ServerProfilesScreenState extends ConsumerState<ServerProfilesScreen> {
                     backgroundColor: const Color(FlickoColors.blurple),
                     foregroundColor: Colors.white,
                   ),
-                  child: Text('Save', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+                  child: Text('Save',
+                      style:
+                          GoogleFonts.inter(fontWeight: FontWeight.w600)),
                 ),
               ],
             ),

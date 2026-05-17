@@ -6,8 +6,8 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../../core/constants/flicko_colors.dart';
-import '../../../../data/services/appwrite_storage_service.dart';
+import 'package:mobile/core/constants/flicko_colors.dart';
+import 'package:mobile/data/services/appwrite_storage_service.dart';
 
 /// Sticker data model
 class _ServerSticker {

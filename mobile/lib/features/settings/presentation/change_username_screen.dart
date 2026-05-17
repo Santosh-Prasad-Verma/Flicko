@@ -4,15 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../../core/constants/flicko_colors.dart';
+import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
-import 'package:mobile/data/models/user_model.dart';
 
 /// Change Username Screen
 ///
 /// Allows the authenticated user to change their @username.
 /// Validates format, checks uniqueness in the profiles table, then writes the update.
-/// Route: /profile/settings/change-username
+/// Route: /u/settings/change-username
 class ChangeUsernameScreen extends ConsumerStatefulWidget {
   const ChangeUsernameScreen({super.key});
 
@@ -27,7 +26,6 @@ class _ChangeUsernameScreenState extends ConsumerState<ChangeUsernameScreen> {
   _ValidationState _validation = _ValidationState.idle;
   bool _isLoading = false;
   Timer? _checkTimeout;
-
   final _usernameController = TextEditingController();
   final _usernameRegex = RegExp(r'^[a-zA-Z0-9_]{3,32}$');
 
@@ -74,6 +72,7 @@ class _ChangeUsernameScreenState extends ConsumerState<ChangeUsernameScreen> {
     }
 
     setState(() => _validation = _ValidationState.checking);
+
     _checkTimeout = Timer(const Duration(milliseconds: 500), () async {
       try {
         final response = await Supabase.instance.client
@@ -102,13 +101,10 @@ class _ChangeUsernameScreenState extends ConsumerState<ChangeUsernameScreen> {
 
       if (user == null) return;
 
-      final error = await Supabase.instance.client
-          .from('profiles')
-          .update({
-            'username': _username,
-            'updated_at': DateTime.now().toIso8601String(),
-          })
-          .eq('id', user.id);
+      final error = await Supabase.instance.client.from('profiles').update({
+        'username': _username,
+        'updated_at': DateTime.now().toIso8601String(),
+      }).eq('id', user.id);
 
       if (error != null) throw error;
 
@@ -122,7 +118,7 @@ class _ChangeUsernameScreenState extends ConsumerState<ChangeUsernameScreen> {
         setState(() => _validation = _ValidationState.taken);
         _showAlert('Username Taken', 'That username is already in use. Please choose another.');
       } else {
-        _showAlert('Error', e.toString() ?? 'Failed to update username. Please try again.');
+        _showAlert('Error', e.toString());
       }
     } finally {
       setState(() => _isLoading = false);
@@ -208,9 +204,7 @@ class _ChangeUsernameScreenState extends ConsumerState<ChangeUsernameScreen> {
     final msg = _validationMessage();
 
     return Scaffold(
-      backgroundColor: const Color(FlickoColors.bgPrimary),
       appBar: AppBar(
-        backgroundColor: const Color(FlickoColors.bgPrimary),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),
@@ -383,11 +377,7 @@ class _ChangeUsernameScreenState extends ConsumerState<ChangeUsernameScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(FlickoColors.bgSecondary),
-        border: const Border(
-          top: BorderSide(color: Color(FlickoColors.blurple)),
-          right: BorderSide(color: Color(FlickoColors.blurple)),
-          bottom: BorderSide(color: Color(FlickoColors.blurple)),
-        ),
+        border: Border.all(color: const Color(FlickoColors.blurple)),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(

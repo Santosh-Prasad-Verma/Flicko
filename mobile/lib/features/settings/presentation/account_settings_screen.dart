@@ -2,16 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../../core/constants/flicko_colors.dart';
 import 'package:mobile/data/models/user_model.dart';
-import 'package:mobile/data/models/auth_state.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
 
-/// Account Settings Screen
-///
-/// Mirrors the React Native "My Account" settings tab.
-/// Shows profile card with banner, avatar, email, username fields.
+/// Account Settings Screen (Sleek Brutalist Black/Neon Theme)
 class AccountSettingsScreen extends ConsumerStatefulWidget {
   const AccountSettingsScreen({super.key});
 
@@ -23,6 +18,12 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
   bool _isEditingPhone = false;
   final _phoneController = TextEditingController();
 
+  static const Color _neonGreen = Color(0xFFC0F500);
+  static const Color _bgBlack = Color(0xFF050505);
+  static const Color _surfaceContainer = Color(0xFF0C0C0E);
+  static const Color _textWhite = Color(0xFFFBF9FA);
+  static const Color _textMuted = Color(0xFF71717A);
+
   @override
   void dispose() {
     _phoneController.dispose();
@@ -32,10 +33,10 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authNotifierProvider);
-
     return authState.maybeWhen(
       authenticated: (user, profile) => _buildScreen(context, profile),
       orElse: () => const Scaffold(
+        backgroundColor: _bgBlack,
         body: Center(child: CircularProgressIndicator()),
       ),
     );
@@ -47,196 +48,197 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
     final email = profile?.id != null ? '$username@flicko.app' : null;
 
     return Scaffold(
-      backgroundColor: const Color(FlickoColors.bgPrimary),
-      appBar: AppBar(
-        backgroundColor: const Color(FlickoColors.bgPrimary),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),
-          onPressed: () => context.pop(),
-        ),
-        title: Text(
-          'My Account',
-          style: GoogleFonts.inter(
-            color: const Color(FlickoColors.textPrimary),
-            fontWeight: FontWeight.w600,
-          ),
+      backgroundColor: _bgBlack,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(),
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 16),
+                      _buildHeroSection(),
+                      const SizedBox(height: 32),
+                      _buildProfileCard(displayName, username, profile?.avatarUrl, profile?.bannerUrl),
+                      const SizedBox(height: 40),
+                      _buildAccountInfoSection(email, username, profile),
+                      const SizedBox(height: 40),
+                      _buildAccountManagementSection(),
+                      const SizedBox(height: 48),
+                      _buildFooterData(),
+                      const SizedBox(height: 40),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: _neonGreen.withValues(alpha: 0.1))),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Profile Card
-          _buildProfileCard(context, displayName, username, profile?.avatarUrl, profile?.bannerUrl),
-          const SizedBox(height: 24),
-
-          // Account Information Section
-          _buildSectionHeader('ACCOUNT INFORMATION'),
-          _buildFieldCard([
-            _buildFieldItem(
-              context,
-              'Email',
-              email ?? 'Not set',
-              onTap: () => context.push('change-email'),
+          GestureDetector(
+            onTap: () => context.pop(),
+            child: const Padding(
+              padding: EdgeInsets.all(8),
+              child: Icon(Icons.arrow_back, color: _textWhite, size: 20),
             ),
-            _buildDivider(),
-            _buildFieldItem(
-              context,
-              'Username',
-              '@$username',
-              onTap: () => context.push('change-username'),
+          ),
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('APP SETTINGS',
+                  style: GoogleFonts.spaceGrotesk(
+                    color: _neonGreen.withValues(alpha: 0.8),
+                    fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 2.0,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 2),
+                Text('ACCOUNT MANAGEMENT',
+                  style: GoogleFonts.spaceMono(
+                    color: _textWhite.withValues(alpha: 0.3),
+                    fontSize: 8, letterSpacing: 1.0,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
-            _buildDivider(),
-            if (_isEditingPhone)
-              _buildPhoneEditField(context, profile?.phone)
-            else
-              _buildFieldItem(
-                context,
-                'Phone Number',
-                profile?.phone ?? 'Not added',
-                onTap: () {
-                  setState(() {
-                    _isEditingPhone = true;
-                    _phoneController.text = profile?.phone?.replaceFirst('+', '') ?? '';
-                  });
-                },
-              ),
-            _buildDivider(),
-            _buildFieldItem(
-              context,
-              'Password',
-              '••••••••',
-              onTap: () => context.push('change-password'),
-            ),
-          ]),
-
-          const SizedBox(height: 24),
-
-          // Account Management Section
-          _buildSectionHeader('ACCOUNT MANAGEMENT'),
-          _buildFieldCard([
-            _buildDangerItem(
-              context,
-              Icons.pause_circle_outline,
-              'Disable Account',
-              'Temporarily deactivate your account',
-              const Color(FlickoColors.warning),
-              onTap: () => _showDisableDialog(context),
-            ),
-            _buildDivider(),
-            _buildDangerItem(
-              context,
-              Icons.delete_outline,
-              'Delete Account',
-              'Permanently delete your account and data',
-              const Color(FlickoColors.danger),
-              onTap: () => _showDeleteDialog(context),
-            ),
-          ]),
-
-          const SizedBox(height: 40),
+          ),
+          const SizedBox(width: 36),
         ],
       ),
     );
   }
 
-  Widget _buildProfileCard(
-    BuildContext context,
-    String displayName,
-    String username,
-    String? avatarUrl,
-    String? bannerUrl,
-  ) {
+  Widget _buildHeroSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 12),
+        Text('MY\nACCOUNT',
+          style: GoogleFonts.epilogue(
+            color: _textWhite, fontSize: 48, fontWeight: FontWeight.w900,
+            letterSpacing: -2, height: 0.9, fontStyle: FontStyle.italic,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              color: _neonGreen,
+              child: Text('IDENTITY',
+                style: GoogleFonts.spaceGrotesk(
+                  color: Colors.black, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5,
+                ),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('MANAGE CREDENTIALS',
+                    style: GoogleFonts.spaceGrotesk(
+                      color: _neonGreen, fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 1,
+                    ),
+                  ),
+                  Text('Profile, email, password & security',
+                    style: GoogleFonts.spaceMono(
+                      color: _textMuted.withValues(alpha: 0.8), fontSize: 8,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProfileCard(String displayName, String username, String? avatarUrl, String? bannerUrl) {
     return Container(
-      clipBehavior: Clip.antiAlias,
+      clipBehavior: Clip.hardEdge,
       decoration: BoxDecoration(
-        color: const Color(FlickoColors.bgSecondary),
-        borderRadius: BorderRadius.circular(16),
+        color: _surfaceContainer,
+        border: Border.all(color: _textWhite.withValues(alpha: 0.05)),
       ),
       child: Column(
         children: [
-          // Banner
           Container(
-            height: 100,
+            height: 80,
             decoration: BoxDecoration(
               gradient: bannerUrl == null
-                  ? const LinearGradient(
+                  ? LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: [
-                        Color(FlickoColors.blurple),
-                        Color(0xFF3A45C3),
-                      ],
+                      colors: [_neonGreen.withValues(alpha: 0.3), _neonGreen.withValues(alpha: 0.05)],
                     )
                   : null,
               image: bannerUrl != null
-                  ? DecorationImage(
-                      image: NetworkImage(bannerUrl),
-                      fit: BoxFit.cover,
-                    )
+                  ? DecorationImage(image: NetworkImage(bannerUrl), fit: BoxFit.cover)
                   : null,
             ),
           ),
-
-          // Avatar and Info
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Column(
+            child: Row(
               children: [
                 Transform.translate(
-                  offset: const Offset(0, -40),
+                  offset: const Offset(0, -30),
                   child: Container(
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(
-                        color: const Color(FlickoColors.bgSecondary),
-                        width: 4,
-                      ),
+                      border: Border.all(color: _surfaceContainer, width: 3),
                     ),
-                    child: UserAvatar(
-                      imageUrl: avatarUrl,
-                      name: displayName,
-                      size: 80,
-                      status: UserStatus.online,
-                    ),
+                    child: UserAvatar(imageUrl: avatarUrl, name: displayName, size: 56, status: 'online'),
                   ),
                 ),
-                Transform.translate(
-                  offset: const Offset(0, -30),
+                const SizedBox(width: 12),
+                Expanded(
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        displayName,
-                        style: GoogleFonts.inter(
-                          color: const Color(FlickoColors.textPrimary),
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                      Text(displayName,
+                        style: GoogleFonts.epilogue(
+                          color: _textWhite, fontSize: 18,
+                          fontWeight: FontWeight.w800, fontStyle: FontStyle.italic,
                         ),
                       ),
-                      Text(
-                        '@$username',
-                        style: GoogleFonts.inter(
-                          color: const Color(FlickoColors.textSecondary),
-                          fontSize: 14,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      ElevatedButton(
-                        onPressed: () => context.push('edit-profile'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(FlickoColors.blurple),
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        ),
-                        child: Text(
-                          'Edit Profile',
-                          style: GoogleFonts.inter(fontWeight: FontWeight.w600),
-                        ),
+                      Text('@$username',
+                        style: GoogleFonts.spaceMono(color: _textMuted, fontSize: 12),
                       ),
                     ],
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => context.push('/profile/settings/edit-profile'),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    color: _neonGreen,
+                    child: Text('EDIT',
+                      style: GoogleFonts.spaceGrotesk(
+                        color: Colors.black, fontWeight: FontWeight.w900, fontSize: 11,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -247,184 +249,357 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
     );
   }
 
-  Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 8, bottom: 8),
-      child: Text(
-        title,
-        style: GoogleFonts.inter(
-          color: const Color(FlickoColors.textMuted),
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 0.5,
+  Widget _buildAccountInfoSection(String? email, String username, UserModel? profile) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('CREDENTIALS',
+          style: GoogleFonts.epilogue(
+            color: _textWhite, fontSize: 22, fontWeight: FontWeight.w900,
+            fontStyle: FontStyle.italic, letterSpacing: -0.5,
+          ),
         ),
-      ),
+        Container(height: 2, color: _neonGreen, margin: const EdgeInsets.only(top: 6, bottom: 16)),
+        _buildInfoCard(
+          title: 'EMAIL', value: email ?? 'Not set', badge: 'VERIFIED',
+          onTap: () => context.push('/profile/settings/change-email'),
+        ),
+        const SizedBox(height: 14),
+        _buildInfoCard(
+          title: 'USERNAME', value: '@$username', badge: 'UNIQUE',
+          usePrimaryBadge: true,
+          onTap: () => context.push('/profile/settings/change-username'),
+        ),
+        const SizedBox(height: 14),
+        if (_isEditingPhone)
+          _buildPhoneEditCard(profile?.phone)
+        else
+          _buildInfoCard(
+            title: 'PHONE',
+            value: profile?.phone ?? 'Not added',
+            badge: profile?.phone != null ? 'ACTIVE' : 'NONE',
+            onTap: () => setState(() {
+              _isEditingPhone = true;
+              _phoneController.text = profile?.phone?.replaceFirst('+', '') ?? '';
+            }),
+          ),
+        const SizedBox(height: 14),
+        _buildInfoCard(
+          title: 'PASSWORD', value: '••••••••', badge: 'SECURE',
+          onTap: () => context.push('/profile/settings/change-password'),
+        ),
+      ],
     );
   }
 
-  Widget _buildFieldCard(List<Widget> children) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(FlickoColors.bgSecondary),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(children: children),
-    );
-  }
-
-  Widget _buildFieldItem(
-    BuildContext context,
-    String label,
-    String value, {
+  Widget _buildInfoCard({
+    required String title,
+    required String value,
+    required String badge,
+    bool usePrimaryBadge = false,
     VoidCallback? onTap,
   }) {
-    return ListTile(
+    return GestureDetector(
       onTap: onTap,
-      title: Text(
-        label,
-        style: GoogleFonts.inter(
-          color: const Color(FlickoColors.textSecondary),
-          fontSize: 12,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: _surfaceContainer,
+          border: Border.all(
+            color: usePrimaryBadge ? _neonGreen.withValues(alpha: 0.4) : _textWhite.withValues(alpha: 0.05),
+            width: usePrimaryBadge ? 1.5 : 1,
+          ),
+          boxShadow: usePrimaryBadge
+              ? [BoxShadow(color: _neonGreen.withValues(alpha: 0.05), blurRadius: 10, spreadRadius: 2)]
+              : [],
         ),
-      ),
-      subtitle: Text(
-        value,
-        style: GoogleFonts.inter(
-          color: const Color(FlickoColors.textPrimary),
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 8, runSpacing: 4,
+                    children: [
+                      Text(title,
+                        style: GoogleFonts.epilogue(
+                          color: _textWhite, fontSize: 18, fontWeight: FontWeight.w800,
+                          fontStyle: FontStyle.italic, letterSpacing: -0.3,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: usePrimaryBadge ? _neonGreen : Colors.transparent,
+                          border: usePrimaryBadge ? null : Border.all(color: _textWhite.withValues(alpha: 0.2)),
+                        ),
+                        child: Text(badge,
+                          style: GoogleFonts.spaceMono(
+                            color: usePrimaryBadge ? Colors.black : _textWhite.withValues(alpha: 0.4),
+                            fontSize: 9, fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(value, style: GoogleFonts.inter(color: _textMuted, fontSize: 12, height: 1.3)),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            Icon(Icons.chevron_right, color: _textWhite.withValues(alpha: 0.2), size: 20),
+          ],
         ),
-      ),
-      trailing: const Icon(
-        Icons.chevron_right,
-        color: Color(FlickoColors.textMuted),
       ),
     );
   }
 
-  Widget _buildPhoneEditField(BuildContext context, String? currentPhone) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Row(
+  Widget _buildPhoneEditCard(String? currentPhone) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: _surfaceContainer,
+        border: Border.all(color: _neonGreen.withValues(alpha: 0.4), width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: TextField(
-              controller: _phoneController,
-              keyboardType: TextInputType.phone,
-              style: GoogleFonts.inter(
-                color: const Color(FlickoColors.textPrimary),
-              ),
-              decoration: InputDecoration(
-                hintText: 'Enter phone number',
-                hintStyle: GoogleFonts.inter(
-                  color: const Color(FlickoColors.textMuted),
-                ),
-                filled: true,
-                fillColor: const Color(FlickoColors.bgTertiary),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide.none,
-                ),
-                prefixIcon: const Icon(
-                  Icons.add,
-                  color: Color(FlickoColors.textSecondary),
-                  size: 16,
-                ),
-                prefixIconConstraints: const BoxConstraints(
-                  minWidth: 32,
-                  minHeight: 0,
+          Row(
+            children: [
+              Text('PHONE',
+                style: GoogleFonts.epilogue(
+                  color: _textWhite, fontSize: 18, fontWeight: FontWeight.w800, fontStyle: FontStyle.italic,
                 ),
               ),
-            ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                color: _neonGreen,
+                child: Text('EDITING',
+                  style: GoogleFonts.spaceMono(color: Colors.black, fontSize: 9, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
-          IconButton(
-            onPressed: () async {
-              final phone = '+${_phoneController.text.trim()}';
-              // TODO: Update phone via repository
-              setState(() => _isEditingPhone = false);
-            },
-            icon: const Icon(Icons.check, color: Color(FlickoColors.success)),
-          ),
-          IconButton(
-            onPressed: () => setState(() => _isEditingPhone = false),
-            icon: const Icon(Icons.close, color: Color(FlickoColors.danger)),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
+                  style: GoogleFonts.spaceMono(color: _textWhite, fontSize: 14),
+                  decoration: InputDecoration(
+                    hintText: 'Enter phone number',
+                    hintStyle: GoogleFonts.spaceMono(color: _textMuted, fontSize: 12),
+                    filled: true,
+                    fillColor: _bgBlack,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.zero,
+                      borderSide: BorderSide(color: _textWhite.withValues(alpha: 0.1)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.zero,
+                      borderSide: BorderSide(color: _textWhite.withValues(alpha: 0.1)),
+                    ),
+                    focusedBorder: const OutlineInputBorder(
+                      borderRadius: BorderRadius.zero,
+                      borderSide: BorderSide(color: _neonGreen),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    prefixText: '+ ',
+                    prefixStyle: GoogleFonts.spaceMono(color: _neonGreen, fontSize: 14),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () async {
+                  if (_phoneController.text.trim().isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Please enter a phone number')),
+                    );
+                    return;
+                  }
+                  final messenger = ScaffoldMessenger.of(context);
+                  try {
+                    String phone = _phoneController.text.trim();
+                    if (!phone.startsWith('+')) phone = '+$phone';
+                    await ref.read(authNotifierProvider.notifier).updatePhone(phone);
+                    if (mounted) setState(() => _isEditingPhone = false);
+                    messenger.showSnackBar(const SnackBar(content: Text('Phone updated successfully')));
+                  } catch (e) {
+                    if (mounted) messenger.showSnackBar(SnackBar(content: Text('Error: $e')));
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  color: _neonGreen,
+                  child: const Icon(Icons.check, color: Colors.black, size: 20),
+                ),
+              ),
+              const SizedBox(width: 4),
+              GestureDetector(
+                onTap: () => setState(() => _isEditingPhone = false),
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  color: Colors.red.withValues(alpha: 0.2),
+                  child: const Icon(Icons.close, color: Colors.red, size: 20),
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildDangerItem(
-    BuildContext context,
-    IconData icon,
-    String title,
-    String subtitle,
-    Color color, {
+  Widget _buildAccountManagementSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('DANGER ZONE',
+          style: GoogleFonts.epilogue(
+            color: _textWhite, fontSize: 22, fontWeight: FontWeight.w900,
+            fontStyle: FontStyle.italic, letterSpacing: -0.5,
+          ),
+        ),
+        Container(
+          height: 2, color: Colors.red.withValues(alpha: 0.6),
+          margin: const EdgeInsets.only(top: 6, bottom: 16),
+        ),
+        _buildDangerCard(
+          title: 'DISABLE ACCOUNT',
+          subtitle: 'Temporarily deactivate your account. Re-enable by logging in.',
+          badge: 'REVERSIBLE', color: Colors.orange,
+          onTap: () => _showDisableDialog(context),
+        ),
+        const SizedBox(height: 14),
+        _buildDangerCard(
+          title: 'DELETE ACCOUNT',
+          subtitle: 'Permanently delete your account and all associated data.',
+          badge: 'PERMANENT', color: Colors.red,
+          onTap: () => _showDeleteDialog(context),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDangerCard({
+    required String title,
+    required String subtitle,
+    required String badge,
+    required Color color,
     VoidCallback? onTap,
   }) {
-    return ListTile(
+    return GestureDetector(
       onTap: onTap,
-      leading: Icon(icon, color: color),
-      title: Text(
-        title,
-        style: GoogleFonts.inter(
-          color: color,
-          fontWeight: FontWeight.w600,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: _surfaceContainer,
+          border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: GoogleFonts.inter(
-          color: const Color(FlickoColors.textMuted),
-          fontSize: 12,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 8, runSpacing: 4,
+                    children: [
+                      Text(title,
+                        style: GoogleFonts.epilogue(
+                          color: color, fontSize: 18, fontWeight: FontWeight.w800,
+                          fontStyle: FontStyle.italic, letterSpacing: -0.3,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(border: Border.all(color: color.withValues(alpha: 0.4))),
+                        child: Text(badge,
+                          style: GoogleFonts.spaceMono(
+                            color: color.withValues(alpha: 0.7), fontSize: 9, fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(subtitle, style: GoogleFonts.inter(color: _textMuted, fontSize: 12, height: 1.3)),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            Icon(Icons.chevron_right, color: color.withValues(alpha: 0.4), size: 20),
+          ],
         ),
-      ),
-      trailing: const Icon(
-        Icons.chevron_right,
-        color: Color(FlickoColors.textMuted),
       ),
     );
   }
 
-  Widget _buildDivider() {
-    return Divider(
-      height: 1,
-      indent: 16,
-      color: const Color(FlickoColors.textMuted).withValues(alpha: 0.1),
+  Widget _buildFooterData() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(height: 1, color: _neonGreen.withValues(alpha: 0.2), margin: const EdgeInsets.only(bottom: 24)),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: _neonGreen.withValues(alpha: 0.05),
+            border: Border.symmetric(horizontal: BorderSide(color: _textWhite.withValues(alpha: 0.05))),
+          ),
+          child: Center(
+            child: Text('FLICKO // ACCOUNT SECURE',
+              style: GoogleFonts.spaceMono(
+                color: _textWhite.withValues(alpha: 0.3),
+                fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 2.0,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
   void _showDisableDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(FlickoColors.bgSecondary),
-        title: Text(
-          'Disable Account',
-          style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary)),
+      builder: (ctx) => AlertDialog(
+        backgroundColor: _surfaceContainer,
+        shape: const RoundedRectangleBorder(),
+        title: Text('DISABLE ACCOUNT',
+          style: GoogleFonts.epilogue(color: Colors.orange, fontWeight: FontWeight.w900, fontStyle: FontStyle.italic),
         ),
         content: Text(
           'Are you sure you want to disable your account? You can re-enable it by logging in again.',
-          style: GoogleFonts.inter(color: const Color(FlickoColors.textSecondary)),
+          style: GoogleFonts.inter(color: _textMuted),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
-            ),
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel', style: GoogleFonts.spaceGrotesk(color: _textWhite)),
           ),
           TextButton(
             onPressed: () async {
-              // TODO: Implement disable account
-              Navigator.pop(context);
+              final messenger = ScaffoldMessenger.of(context);
+              Navigator.pop(ctx);
+              try {
+                await ref.read(authNotifierProvider.notifier).disableAccount();
+                if (mounted) context.go('/login');
+              } catch (e) {
+                messenger.showSnackBar(SnackBar(content: Text('Error: $e')));
+              }
             },
-            child: Text(
-              'Disable',
-              style: GoogleFonts.inter(color: const Color(FlickoColors.warning)),
-            ),
+            child: Text('Disable', style: GoogleFonts.spaceGrotesk(color: Colors.orange, fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -434,33 +609,27 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
   void _showDeleteDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(FlickoColors.bgSecondary),
-        title: Text(
-          'Delete Account',
-          style: GoogleFonts.inter(color: const Color(FlickoColors.danger)),
+      builder: (ctx) => AlertDialog(
+        backgroundColor: _surfaceContainer,
+        shape: const RoundedRectangleBorder(),
+        title: Text('DELETE ACCOUNT',
+          style: GoogleFonts.epilogue(color: Colors.red, fontWeight: FontWeight.w900, fontStyle: FontStyle.italic),
         ),
         content: Text(
-          'This action is PERMANENT and cannot be undone. All your data will be deleted. Are you absolutely sure?',
-          style: GoogleFonts.inter(color: const Color(FlickoColors.textSecondary)),
+          'This action is PERMANENT and cannot be undone. All your data will be deleted.',
+          style: GoogleFonts.inter(color: _textMuted),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
-            ),
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel', style: GoogleFonts.spaceGrotesk(color: _textWhite)),
           ),
           TextButton(
             onPressed: () {
-              Navigator.pop(context);
+              Navigator.pop(ctx);
               _showFinalDeleteConfirmation(context);
             },
-            child: Text(
-              'Delete Forever',
-              style: GoogleFonts.inter(color: const Color(FlickoColors.danger)),
-            ),
+            child: Text('Delete Forever', style: GoogleFonts.spaceGrotesk(color: Colors.red, fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -470,33 +639,34 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
   void _showFinalDeleteConfirmation(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(FlickoColors.bgSecondary),
-        title: Text(
-          'Final Confirmation',
-          style: GoogleFonts.inter(color: const Color(FlickoColors.danger)),
+      builder: (ctx) => AlertDialog(
+        backgroundColor: _surfaceContainer,
+        shape: const RoundedRectangleBorder(),
+        title: Text('FINAL CONFIRMATION',
+          style: GoogleFonts.epilogue(color: Colors.red, fontWeight: FontWeight.w900, fontStyle: FontStyle.italic),
         ),
         content: Text(
           'Your account will be permanently deleted. This cannot be undone.',
-          style: GoogleFonts.inter(color: const Color(FlickoColors.textSecondary)),
+          style: GoogleFonts.inter(color: _textMuted),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
-            ),
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel', style: GoogleFonts.spaceGrotesk(color: _textWhite)),
           ),
           TextButton(
             onPressed: () async {
-              // TODO: Implement delete account
-              Navigator.pop(context);
+              final messenger = ScaffoldMessenger.of(context);
+              Navigator.pop(ctx);
+              try {
+                await ref.read(authNotifierProvider.notifier).deleteAccount();
+                if (mounted) context.go('/login');
+              } catch (e) {
+                messenger.showSnackBar(SnackBar(content: Text('Error: $e')));
+              }
             },
-            child: Text(
-              'I understand, delete',
-              style: GoogleFonts.inter(color: const Color(FlickoColors.danger)),
-            ),
+            child: Text('I understand, delete',
+              style: GoogleFonts.spaceGrotesk(color: Colors.red, fontWeight: FontWeight.w700)),
           ),
         ],
       ),

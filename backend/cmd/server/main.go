@@ -394,6 +394,27 @@ func main() {
 		})
 	}).Methods("GET")
 
+	// ── Sonic Drip (Music / Spotify Integration) ─────────────────────────────
+	sonicDripHandler := handlers.NewSonicDripHandler(
+		db.Pool(),
+		redisCache.GetRedisClient(),
+		cfg.EncryptionKey,
+		cfg.SpotAPIURL,
+		logger,
+	)
+	protected.HandleFunc("/music/session", sonicDripHandler.SaveSession).Methods("POST")
+	protected.HandleFunc("/music/session", sonicDripHandler.GetSession).Methods("GET")
+	protected.HandleFunc("/music/session", sonicDripHandler.DeleteSession).Methods("DELETE")
+	protected.HandleFunc("/music/search", sonicDripHandler.Search).Methods("GET")
+	protected.HandleFunc("/music/player/play", sonicDripHandler.Play).Methods("POST")
+	protected.HandleFunc("/music/player/pause", sonicDripHandler.Pause).Methods("POST")
+	protected.HandleFunc("/music/player/resume", sonicDripHandler.Resume).Methods("POST")
+	protected.HandleFunc("/music/player/skip-next", sonicDripHandler.SkipNext).Methods("POST")
+	protected.HandleFunc("/music/player/seek", sonicDripHandler.Seek).Methods("POST")
+	protected.HandleFunc("/music/player/volume", sonicDripHandler.SetVolume).Methods("POST")
+	protected.HandleFunc("/music/player/state", sonicDripHandler.GetState).Methods("GET")
+	protected.HandleFunc("/music/player/devices", sonicDripHandler.GetDevices).Methods("GET")
+
 	// 5. HTTP Server definition (CRIT-012: Updated timeouts)
 	srv := &http.Server{
 		Addr:              ":" + cfg.PortHTTP,

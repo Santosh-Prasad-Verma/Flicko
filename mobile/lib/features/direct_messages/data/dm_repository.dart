@@ -32,7 +32,8 @@ class DMRepository {
 
       return (response as List).map((json) => DMMessage.fromJson(json)).toList();
     } catch (e) {
-      rethrow;
+      // Table may not exist yet or RLS may block — return empty list gracefully
+      return [];
     }
   }
 
@@ -56,7 +57,7 @@ class DMRepository {
       final response = await query.order('created_at', ascending: false).limit(limit);
       return (response as List).map((json) => DMMessage.fromJson(json)).toList();
     } catch (e) {
-      rethrow;
+      return [];
     }
   }
 
