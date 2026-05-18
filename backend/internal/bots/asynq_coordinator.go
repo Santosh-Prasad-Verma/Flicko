@@ -2,7 +2,9 @@ package bots
 
 import (
 	"context"
-        "encoding/json"
+	"encoding/json"
+	"fmt"
+	"time"
 
 	"github.com/flicko-org/flicko-backend/internal/repo/cache"
 	"github.com/hibiken/asynq"
@@ -104,7 +106,7 @@ func (c *AsynqBotCoordinator) HandleBotMoveTask(ctx context.Context, t *asynq.Ta
 	}
 
 	// Check for abandonment before proceeding
-        _ = cache.GenerateAbandonmentKey(payload.GameID, payload.PlayerID)
+	_ = cache.GenerateAbandonmentKey(payload.GameID, payload.PlayerID)
 	// For now, we proceed if we can acquire the lock
 
 	lockKey := cache.GenerateGameLockKey(payload.GameID)
