@@ -5,7 +5,7 @@
 -- Spotify sessions (store cookies only — NEVER passwords)
 CREATE TABLE IF NOT EXISTS spotify_sessions (
     id                UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id           UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id           UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     encrypted_session BYTEA       NOT NULL,
     display_name      TEXT,
     product           TEXT        DEFAULT 'free',
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS spotify_sessions (
 -- Playback idempotency keys (prevent duplicate play commands)
 CREATE TABLE IF NOT EXISTS playback_idempotency (
     key        TEXT        PRIMARY KEY,
-    user_id    UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id    UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     response   JSONB,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     expires_at TIMESTAMPTZ NOT NULL
@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS shared_playlists (
     playlist_name  TEXT,
     spotify_url    TEXT        NOT NULL,
     track_count    INTEGER     DEFAULT 0,
-    shared_by      UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    shared_by      UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     channel_id     UUID        REFERENCES channels(id) ON DELETE CASCADE,
     created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     deleted_at     TIMESTAMPTZ
@@ -51,10 +51,10 @@ CREATE TABLE IF NOT EXISTS music_events (
 );
 
 -- Indexes
-CREATE INDEX IF NOT EXISTS idx_spotify_sessions_user   ON spotify_sessions (user_id);
-CREATE INDEX IF NOT EXISTS idx_spotify_sessions_status ON spotify_sessions (status);
+CREATE INDEX IF NOT EXISTS idx_spotify_sessions_user    ON spotify_sessions (user_id);
+CREATE INDEX IF NOT EXISTS idx_spotify_sessions_status  ON spotify_sessions (status);
 CREATE INDEX IF NOT EXISTS idx_shared_playlists_channel ON shared_playlists (channel_id, created_at DESC)
     WHERE deleted_at IS NULL;
-CREATE INDEX IF NOT EXISTS idx_shared_playlists_user   ON shared_playlists (shared_by, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_music_events_user_time  ON music_events (user_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_playback_idempotency_expires ON playback_idempotency (expires_at);
+CREATE INDEX IF NOT EXISTS idx_shared_playlists_user    ON shared_playlists (shared_by, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_music_events_user_time   ON music_events (user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_playback_idempotency_exp ON playback_idempotency (expires_at);

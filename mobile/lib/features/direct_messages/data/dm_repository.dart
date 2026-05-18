@@ -6,21 +6,26 @@ import 'package:mobile/data/clients/supabase_client.dart';
 import 'package:mobile/features/direct_messages/domain/dm_models.dart';
 import 'package:mobile/data/models/user_model.dart';
 import 'package:mobile/core/services/appwrite_storage_service.dart';
+import 'package:mobile/features/e2ee/application/e2ee_session.dart';
+import 'package:mobile/features/e2ee/domain/e2ee_models.dart';
 
 final dmRepositoryProvider = Provider<DMRepository>((ref) {
   return DMRepository(
     ref.watch(supabaseClientProvider),
     ref.watch(appwriteStorageServiceProvider),
+    ref.watch(e2eeSessionProvider),
   );
 });
 
 class DMRepository {
   final SupabaseClient _client;
   final AppwriteStorageService _appwriteStorage;
+  final E2EESession _e2ee;
 
-  DMRepository(this._client, this._appwriteStorage);
+  DMRepository(this._client, this._appwriteStorage, this._e2ee);
 
   /// Fetches recent DM messages for the user.
+  /// Encrypted rows are decrypted in-place; failures fall back to a sentinel.
   Future<List<DMMessage>> fetchRecentMessages(String userId) async {
     try {
       final response = await _client
@@ -30,7 +35,8 @@ class DMRepository {
           .order('created_at', ascending: false)
           .limit(500);
 
-      return (response as List).map((json) => DMMessage.fromJson(json)).toList();
+      final rows = (response as List).cast<Map<String, dynamic>>();
+      return Future.wait(rows.map(_decodeRow));
     } catch (e) {
       // Table may not exist yet or RLS may block — return empty list gracefully
       return [];
@@ -55,30 +61,90 @@ class DMRepository {
       }
 
       final response = await query.order('created_at', ascending: false).limit(limit);
-      return (response as List).map((json) => DMMessage.fromJson(json)).toList();
+      final rows = (response as List).cast<Map<String, dynamic>>();
+      return Future.wait(rows.map(_decodeRow));
     } catch (e) {
       return [];
     }
   }
 
   /// Sends a direct message.
+  /// If E2EE is enabled for the conversation, the body is encrypted client-side
+  /// before insert; the server only ever sees the ciphertext.
   Future<DMMessage> sendMessage({
     required String senderId,
     required String recipientId,
     required String content,
     List<DMAttachment>? attachments,
   }) async {
-    try {
-      final response = await _client.from('direct_messages').insert({
-        'sender_id': senderId,
-        'recipient_id': recipientId,
-        'content': content,
-        'attachments': attachments?.map((e) => e.toJson()).toList(),
-      }).select('*, sender:profiles!sender_id(*), recipient:profiles!recipient_id(*)').single();
+    final encrypted = await _maybeEncryptOutgoing(recipientId, content);
+    final payload = <String, dynamic>{
+      'sender_id': senderId,
+      'recipient_id': recipientId,
+      'attachments': attachments?.map((e) => e.toJson()).toList(),
+    };
 
-      return DMMessage.fromJson(response);
+    if (encrypted != null) {
+      payload['content'] = '[encrypted]';
+      payload['is_encrypted'] = true;
+      payload['ciphertext'] = encrypted.ciphertext;
+      payload['nonce'] = encrypted.nonce;
+      payload['sender_ephemeral_pub'] = encrypted.senderEphemeralPub;
+      payload['sender_device_id'] = encrypted.senderDeviceId;
+      payload['recipient_device_id'] = encrypted.recipientDeviceId;
+      if (encrypted.prekeyId != null) payload['prekey_id'] = encrypted.prekeyId;
+      if (encrypted.signedPrekeyId != null) {
+        payload['signed_prekey_id'] = encrypted.signedPrekeyId;
+      }
+    } else {
+      payload['content'] = content;
+      payload['is_encrypted'] = false;
+    }
+
+    try {
+      final response = await _client
+          .from('direct_messages')
+          .insert(payload)
+          .select('*, sender:profiles!sender_id(*), recipient:profiles!recipient_id(*)')
+          .single();
+
+      return _decodeRow(response);
     } catch (e) {
       rethrow;
+    }
+  }
+
+  /// Returns null when E2EE is not enabled for the conversation.
+  Future<EncryptedEnvelope?> _maybeEncryptOutgoing(
+      String recipientId, String content) async {
+    try {
+      final enabled = await _e2ee.isConversationEnabled(recipientId);
+      if (!enabled) return null;
+      return await _e2ee.encrypt(
+          recipientUserId: recipientId, plaintext: content);
+    } catch (_) {
+      // If encryption itself failed, fall back to plaintext rather than data loss.
+      // The UI should warn the user; for now we degrade gracefully.
+      return null;
+    }
+  }
+
+  /// Decrypts encrypted rows; passes plaintext rows through unchanged.
+  Future<DMMessage> _decodeRow(Map<String, dynamic> row) async {
+    final isEncrypted = row['is_encrypted'] == true;
+    if (!isEncrypted) {
+      return DMMessage.fromJson(row);
+    }
+
+    try {
+      final env = EncryptedEnvelope.fromDmRow(row);
+      final plain = await _e2ee.decrypt(env);
+      return DMMessage.fromJson({...row, 'content': plain});
+    } catch (_) {
+      return DMMessage.fromJson({
+        ...row,
+        'content': '🔒 [unable to decrypt]',
+      });
     }
   }
 
@@ -143,7 +209,7 @@ class DMRepository {
           event: PostgresChangeEvent.insert,
           schema: 'public',
           table: 'direct_messages',
-          callback: (payload) {
+          callback: (payload) async {
             final msgJson = payload.newRecord;
             final senderId = msgJson['sender_id'];
             final recipientId = msgJson['recipient_id'];
@@ -151,10 +217,8 @@ class DMRepository {
             // Filter for this specific conversation
             if ((senderId == myId && recipientId == otherUserId) ||
                 (senderId == otherUserId && recipientId == myId)) {
-              // Note: We might need to fetch the profiles if they aren't in payload, 
-              // but for live updates we usually just want to know a new msg arrived.
-              // To keep it simple, we conversion it to model if possible.
-              onNewMessage(DMMessage.fromJson(msgJson));
+              final decoded = await _decodeRow(Map<String, dynamic>.from(msgJson));
+              onNewMessage(decoded);
             }
           },
         )

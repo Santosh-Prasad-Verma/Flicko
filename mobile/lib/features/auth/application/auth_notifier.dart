@@ -2,6 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 import '../../../data/models/auth_state.dart';
 import 'package:mobile/data/repositories/auth_repository.dart';
+import 'package:mobile/features/e2ee/application/e2ee_session.dart';
+import 'package:mobile/features/e2ee/data/feature_flags_repository.dart';
+import 'package:mobile/features/e2ee/data/secure_keystore.dart';
 
 export 'package:mobile/data/models/auth_state.dart';
 
@@ -48,6 +51,7 @@ class AuthNotifier extends Notifier<AuthState> {
             authUser: session.user!,
           );
         }
+        _bootstrapE2EE();
       } else {
         state = const AuthState.unauthenticated();
       }
@@ -57,9 +61,23 @@ class AuthNotifier extends Notifier<AuthState> {
     if (currentUser != null) {
       state = AuthState.authenticated(authUser: currentUser);
       _fetchProfile(currentUser.id);
+      _bootstrapE2EE();
     } else {
       state = const AuthState.unauthenticated();
     }
+  }
+
+  /// Best-effort: ensure E2EE keys are uploaded once the user is authenticated.
+  /// Failures here are non-fatal — DMs simply stay unencrypted until next try.
+  void _bootstrapE2EE() {
+    Future(() async {
+      try {
+        // Fetch v2 rollout flags first so the bootstrap path can branch.
+        final flags = await ref.read(featureFlagsRepositoryProvider).fetch();
+        ref.read(e2eeFlagsProvider.notifier).state = flags;
+        await ref.read(e2eeSessionProvider).ensureBootstrapped();
+      } catch (_) {}
+    });
   }
 
   Future<void> _fetchProfile(String userId) async {
@@ -102,6 +120,10 @@ class AuthNotifier extends Notifier<AuthState> {
   Future<void> signOut() async {
     try {
       state = const AuthState.loading();
+      // Wipe E2EE keys before clearing the auth session — keeps device clean.
+      try {
+        await ref.read(secureKeystoreProvider).wipe();
+      } catch (_) {}
       await _repository.signOut();
     } catch (e) {
       state = AuthState.error(e.toString());

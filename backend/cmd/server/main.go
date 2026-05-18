@@ -394,6 +394,32 @@ func main() {
 		})
 	}).Methods("GET")
 
+	// ── E2EE Direct Messages ─────────────────────────────────────────────────
+	e2eeHandler := handlers.NewE2EEHandler(db.Pool(), logger)
+	protected.HandleFunc("/e2ee/identity", e2eeHandler.UpsertIdentity).Methods("PUT")
+	protected.HandleFunc("/e2ee/identity/{userId}", e2eeHandler.GetIdentity).Methods("GET")
+	protected.HandleFunc("/e2ee/signed-prekey", e2eeHandler.UpsertSignedPrekey).Methods("PUT")
+	protected.HandleFunc("/e2ee/one-time-prekeys", e2eeHandler.PutOneTimePrekeys).Methods("PUT")
+	protected.HandleFunc("/e2ee/one-time-prekeys/count", e2eeHandler.CountOneTimePrekeys).Methods("GET")
+	protected.HandleFunc("/e2ee/bundle/{userId}", e2eeHandler.FetchBundle).Methods("GET")
+	protected.HandleFunc("/e2ee/conversations/{otherUserId}/enable", e2eeHandler.EnableConversation).Methods("POST")
+	protected.HandleFunc("/e2ee/conversations/{otherUserId}/state", e2eeHandler.GetConversationState).Methods("GET")
+	protected.HandleFunc("/e2ee/envelopes", e2eeHandler.PushEnvelope).Methods("POST")
+	protected.HandleFunc("/e2ee/envelopes/pull", e2eeHandler.PullEnvelopes).Methods("POST")
+	protected.HandleFunc("/e2ee/backup", e2eeHandler.PutBackupChunk).Methods("PUT")
+	protected.HandleFunc("/e2ee/backup/{index}", e2eeHandler.FetchBackupChunk).Methods("GET")
+	protected.HandleFunc("/e2ee/backup-manifest", e2eeHandler.BackupManifest).Methods("GET")
+	protected.HandleFunc("/e2ee/backup", e2eeHandler.DeleteBackup).Methods("DELETE")
+	protected.HandleFunc("/e2ee/escrow-policy", e2eeHandler.GetEscrowPolicy).Methods("GET")
+	protected.HandleFunc("/e2ee/audit", e2eeHandler.AppendAuditLog).Methods("POST")
+	protected.HandleFunc("/e2ee/audit/{subjectId}", e2eeHandler.ListAuditLogs).Methods("GET")
+	protected.HandleFunc("/e2ee/handoff", e2eeHandler.CreateHandoff).Methods("POST")
+	protected.HandleFunc("/e2ee/handoff/{requestId}/approve", e2eeHandler.ApproveHandoff).Methods("POST")
+
+	// Per-user feature flags (E2EE v2 rollout)
+	flagsHandler := handlers.NewFeatureFlagsHandler(logger, cfg.E2EEV2Enabled, cfg.E2EEV2RolloutPercent)
+	protected.HandleFunc("/users/@me/config", flagsHandler.GetConfig).Methods("GET")
+
 	// ── Sonic Drip (Music / Spotify Integration) ─────────────────────────────
 	sonicDripHandler := handlers.NewSonicDripHandler(
 		db.Pool(),

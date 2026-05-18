@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 )
 
 type Config struct {
@@ -30,6 +31,9 @@ type Config struct {
 	InternalToken      string
 	// Sonic Drip — SpotAPI service URL (internal)
 	SpotAPIURL string
+	// E2EE v2 rollout (Task 3 / R16)
+	E2EEV2Enabled        bool
+	E2EEV2RolloutPercent int // 0..100; clients with hash(user_id)%100 < this opt in
 }
 
 func Load() (*Config, error) {
@@ -133,5 +137,42 @@ func Load() (*Config, error) {
 		MailGatewayURL:     os.Getenv("MAIL_GATEWAY_URL"),
 		InternalToken:      os.Getenv("INTERNAL_TOKEN"),
 		SpotAPIURL:         os.Getenv("SPOTAPI_URL"),
+		E2EEV2Enabled:      parseBoolEnv("E2EE_V2_ENABLED", false),
+		E2EEV2RolloutPercent: parseIntEnv("E2EE_V2_ROLLOUT_PERCENT", 0, 0, 100),
 	}, nil
+}
+
+// parseBoolEnv returns def when the env var is unset; otherwise returns
+// the parsed bool. Invalid values are treated as `def` and logged.
+func parseBoolEnv(key string, def bool) bool {
+	raw := os.Getenv(key)
+	if raw == "" {
+		return def
+	}
+	v, err := strconv.ParseBool(raw)
+	if err != nil {
+		log.Printf("WARNING: %s=%q is not a valid bool; using default %v", key, raw, def)
+		return def
+	}
+	return v
+}
+
+// parseIntEnv returns def when the env var is unset or invalid. Clamps to [min,max].
+func parseIntEnv(key string, def, min, max int) int {
+	raw := os.Getenv(key)
+	if raw == "" {
+		return def
+	}
+	v, err := strconv.Atoi(raw)
+	if err != nil {
+		log.Printf("WARNING: %s=%q is not a valid int; using default %d", key, raw, def)
+		return def
+	}
+	if v < min {
+		return min
+	}
+	if v > max {
+		return max
+	}
+	return v
 }

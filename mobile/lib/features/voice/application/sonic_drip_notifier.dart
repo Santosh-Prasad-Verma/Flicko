@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:just_audio/just_audio.dart';
 import '../data/music_repository.dart';
 import '../domain/music_models.dart';
 
@@ -56,17 +57,56 @@ final sonicDripProvider =
 
 class SonicDripNotifier extends Notifier<SonicDripState> {
   late final MusicRepository _repo;
-  Timer? _progressTimer;
+  AudioPlayer? _player;
+  StreamSubscription? _positionSub;
+  StreamSubscription? _playerStateSub;
   Timer? _searchDebounce;
 
   @override
   SonicDripState build() {
     _repo = ref.watch(musicRepositoryProvider);
+    _player = AudioPlayer();
+    _setupPlayerListeners();
     ref.onDispose(() {
-      _progressTimer?.cancel();
       _searchDebounce?.cancel();
+      _positionSub?.cancel();
+      _playerStateSub?.cancel();
+      _player?.dispose();
     });
     return const SonicDripState();
+  }
+
+  void _setupPlayerListeners() {
+    // Update position in real time
+    _positionSub = _player?.positionStream.listen((position) {
+      if (state.playback.status == PlaybackStatus.playing) {
+        final duration = state.playback.duration;
+        state = state.copyWith(
+          playback: state.playback.copyWith(
+            position: position,
+            duration: duration == Duration.zero
+                ? (_player?.duration ?? Duration.zero)
+                : duration,
+          ),
+        );
+      }
+    });
+
+    // Handle track completion
+    _playerStateSub = _player?.playerStateStream.listen((playerState) {
+      if (playerState.processingState == ProcessingState.completed) {
+        skipNext();
+      }
+      if (playerState.playing &&
+          state.playback.status != PlaybackStatus.playing) {
+        state = state.copyWith(
+          playback: state.playback.copyWith(
+            status: PlaybackStatus.playing,
+            duration: _player?.duration ?? Duration.zero,
+          ),
+        );
+      }
+    });
   }
 
   // ── Search ──────────────────────────────────────────────────────────────────
@@ -91,7 +131,7 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
     } catch (e) {
       state = state.copyWith(
         isSearching: false,
-        searchError: 'Search failed: $e',
+        searchError: 'Search failed: ${e.toString()}',
       );
     }
   }
@@ -125,7 +165,7 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
   }
 
   void clearQueue() {
-    _stopProgressTimer();
+    _player?.stop();
     state = state.copyWith(
       queue: [],
       playback: const PlaybackState(),
@@ -143,14 +183,13 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
 
   void togglePlayPause() {
     if (state.playback.currentTrack == null) return;
-
     if (state.isPlaying) {
-      _stopProgressTimer();
+      _player?.pause();
       state = state.copyWith(
         playback: state.playback.copyWith(status: PlaybackStatus.paused),
       );
     } else {
-      _startProgressTimer();
+      _player?.play();
       state = state.copyWith(
         playback: state.playback.copyWith(status: PlaybackStatus.playing),
       );
@@ -160,13 +199,10 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
   void skipNext() {
     final queue = state.queue;
     if (queue.isEmpty) return;
-
     final currentId = state.playback.currentTrack?.id;
     final currentIndex = queue.indexWhere((t) => t.id == currentId);
-
     Track? next;
     if (state.playback.shuffle) {
-      // Pick random track that isn't current
       final others = queue.where((t) => t.id != currentId).toList();
       if (others.isNotEmpty) {
         others.shuffle();
@@ -177,25 +213,18 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
     } else if (state.playback.repeat) {
       next = queue.first;
     }
-
     if (next != null) _playTrack(next, queue);
   }
 
   void skipPrevious() {
     final queue = state.queue;
     if (queue.isEmpty) return;
-
-    // If more than 3 seconds in, restart current track
     if (state.playback.position.inSeconds > 3) {
-      state = state.copyWith(
-        playback: state.playback.copyWith(position: Duration.zero),
-      );
+      _player?.seek(Duration.zero);
       return;
     }
-
     final currentId = state.playback.currentTrack?.id;
     final currentIndex = queue.indexWhere((t) => t.id == currentId);
-
     if (currentIndex > 0) {
       _playTrack(queue[currentIndex - 1], queue);
     } else if (state.playback.repeat) {
@@ -204,17 +233,19 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
   }
 
   void seekTo(double progress) {
-    final duration = state.playback.duration;
+    final duration = _player?.duration ?? state.playback.duration;
     if (duration == Duration.zero) return;
-    final newPosition = Duration(
+    final position = Duration(
       milliseconds: (duration.inMilliseconds * progress).round(),
     );
+    _player?.seek(position);
     state = state.copyWith(
-      playback: state.playback.copyWith(position: newPosition),
+      playback: state.playback.copyWith(position: position),
     );
   }
 
   void setVolume(double volume) {
+    _player?.setVolume(volume.clamp(0.0, 1.0));
     state = state.copyWith(
       playback: state.playback.copyWith(volume: volume.clamp(0.0, 1.0)),
     );
@@ -233,15 +264,12 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
   }
 
   void stop() {
-    _stopProgressTimer();
-    state = state.copyWith(
-      playback: const PlaybackState(),
-    );
+    _player?.stop();
+    state = state.copyWith(playback: const PlaybackState());
   }
 
   // ── Session ─────────────────────────────────────────────────────────────────
 
-  /// Called after WebView captures Spotify session cookies.
   void saveSession(SpotifySession session) {
     state = state.copyWith(session: session);
   }
@@ -250,52 +278,42 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
     state = state.copyWith(clearSession: true);
   }
 
-  // ── Internal ─────────────────────────────────────────────────────────────────
+  // ── Internal ──────────────────────────────────────────────────────────────
 
   void _playTrack(Track track, List<Track> queue) {
-    _stopProgressTimer();
-
-    final duration = track.durationMs != null
-        ? Duration(milliseconds: track.durationMs!)
-        : const Duration(minutes: 3, seconds: 30);
-
+    final previewUrl = track.previewUrl;
     state = state.copyWith(
       queue: queue,
       playback: PlaybackState(
-        status: PlaybackStatus.playing,
+        status: previewUrl != null ? PlaybackStatus.loading : PlaybackStatus.idle,
         currentTrack: track,
         position: Duration.zero,
-        duration: duration,
+        duration: track.durationMs != null
+            ? Duration(milliseconds: track.durationMs!)
+            : Duration.zero,
         volume: state.playback.volume,
         shuffle: state.playback.shuffle,
         repeat: state.playback.repeat,
       ),
     );
 
-    _startProgressTimer();
-  }
-
-  void _startProgressTimer() {
-    _progressTimer?.cancel();
-    _progressTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!state.isPlaying) return;
-
-      final newPosition = state.playback.position + const Duration(seconds: 1);
-
-      if (newPosition >= state.playback.duration) {
-        // Track ended — auto-advance
-        _stopProgressTimer();
-        skipNext();
-      } else {
+    if (previewUrl != null) {
+      _player?.setUrl(previewUrl).then((_) {
+        _player?.play();
         state = state.copyWith(
-          playback: state.playback.copyWith(position: newPosition),
+          playback: state.playback.copyWith(
+            status: PlaybackStatus.playing,
+            duration: _player?.duration ?? Duration.zero,
+          ),
         );
-      }
-    });
-  }
-
-  void _stopProgressTimer() {
-    _progressTimer?.cancel();
-    _progressTimer = null;
+      }).catchError((e) {
+        state = state.copyWith(
+          playback: state.playback.copyWith(
+            status: PlaybackStatus.error,
+            error: 'Preview not available',
+          ),
+        );
+      });
+    }
   }
 }

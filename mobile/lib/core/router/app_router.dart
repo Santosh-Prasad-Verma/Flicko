@@ -42,6 +42,7 @@ import 'package:mobile/features/settings/presentation/change_email_screen.dart';
 import 'package:mobile/features/settings/presentation/change_username_screen.dart';
 import 'package:mobile/features/settings/presentation/change_password_screen.dart';
 import 'package:mobile/features/settings/presentation/billing_settings_screen.dart';
+import 'package:mobile/features/e2ee/presentation/e2ee_settings_screen.dart';
 import 'package:mobile/features/settings/presentation/share_profile_screen.dart';
 
 // Premium
@@ -290,6 +291,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                       GoRoute(path: 'change-password', builder: (context, state) => const ChangePasswordScreen()),
                       GoRoute(path: 'billing', builder: (context, state) => const BillingSettingsScreen()),
                       GoRoute(path: 'sonic-drip', builder: (context, state) => const SonicDripScreen()),
+                      GoRoute(path: 'encryption', builder: (context, state) => const E2EESettingsScreen()),
                     ],
                   ),
                   GoRoute(

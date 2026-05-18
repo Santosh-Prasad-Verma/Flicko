@@ -31,6 +31,13 @@ class _SpotifyConnectScreenState extends ConsumerState<SpotifyConnectScreen> {
   static const _black = Color(0xFF000000);
 
   @override
+  void initState() {
+    super.initState();
+    // Clear cookies so Spotify always shows the login page fresh
+    CookieManager.instance().deleteAllCookies();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _black,
@@ -191,6 +198,8 @@ class _SpotifyConnectScreenState extends ConsumerState<SpotifyConnectScreen> {
     );
   }
 
+  bool _loginAttempted = false;
+
   /// Called on every page navigation — detects successful Spotify login.
   Future<void> _handleNavigation(
     InAppWebViewController controller,
@@ -198,9 +207,14 @@ class _SpotifyConnectScreenState extends ConsumerState<SpotifyConnectScreen> {
   ) async {
     if (url == null) return;
 
+    // Only trigger after user has been on the login page
+    if (url.host == 'accounts.spotify.com' && url.path.contains('login')) {
+      _loginAttempted = true;
+      return;
+    }
+
     // Spotify redirects to open.spotify.com on successful login
-    final isSuccess = url.host == 'open.spotify.com' ||
-        url.host == 'accounts.spotify.com' && url.path.contains('status');
+    final isSuccess = _loginAttempted && url.host == 'open.spotify.com';
 
     if (!isSuccess) return;
 

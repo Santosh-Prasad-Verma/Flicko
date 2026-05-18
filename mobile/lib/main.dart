@@ -1,3 +1,4 @@
+import 'package:cryptography_flutter/cryptography_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -12,6 +13,11 @@ import 'core/services/translation_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Enable native crypto acceleration (XChaCha20-Poly1305, Argon2id, etc.)
+  // for the E2EE stack. Falls back to pure-Dart automatically.
+  // (Task 1.5, R14.4)
+  FlutterCryptography.enable();
 
   // Load environment variables
   await dotenv.load(fileName: Env.fileName, isOptional: true);
