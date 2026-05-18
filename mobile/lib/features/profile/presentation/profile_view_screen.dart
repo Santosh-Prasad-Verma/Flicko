@@ -13,9 +13,9 @@ import 'package:intl/intl.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 /// Unified Profile Screen — Flicko's Ultimate Profile Experience
-/// Handles both current user (Self) and other users (Public) with 
+/// Handles both current user (Self) and other users (Public) with
 /// a sleek, brutalist black/neon design.
-/// 
+///
 /// Standardized across:
 /// - ProfileScreen (Self)
 /// - PublicProfileScreen (Others)
@@ -32,7 +32,8 @@ class ProfileViewScreen extends ConsumerStatefulWidget {
 class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
   bool _isLoading = true;
   UserModel? _profile;
-  String _friendStatus = 'none'; // self, none, pending_sent, pending_received, friends
+  String _friendStatus =
+      'none'; // self, none, pending_sent, pending_received, friends
   List<Map<String, dynamic>> _mutualServers = [];
   List<Map<String, dynamic>> _userRoles = [];
   String _note = '';
@@ -96,7 +97,8 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
               .single();
 
       _profile = UserModel.fromJson(response);
-      debugPrint('Profile loaded: avatar=${_profile!.avatarUrl}, banner=${_profile!.bannerUrl}');
+      debugPrint(
+          'Profile loaded: avatar=${_profile!.avatarUrl}, banner=${_profile!.bannerUrl}');
       final profileId = _profile!.id;
 
       // 2. Determine ownership
@@ -133,7 +135,8 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
     }
   }
 
-  Future<void> _checkFriendStatus(String currentUserId, String profileId) async {
+  Future<void> _checkFriendStatus(
+      String currentUserId, String profileId) async {
     try {
       // Check friendship table
       final friendship = await _client
@@ -181,7 +184,8 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
     }
   }
 
-  Future<void> _loadMutualServers(String currentUserId, String profileId) async {
+  Future<void> _loadMutualServers(
+      String currentUserId, String profileId) async {
     try {
       final response = await _client.rpc('get_mutual_servers', params: {
         'user_id_1': currentUserId,
@@ -207,8 +211,9 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
             .select('server_id')
             .eq('user_id', profileId);
 
-        final myServerIds =
-            (myMemberships as List).map((m) => m['server_id'] as String).toSet();
+        final myServerIds = (myMemberships as List)
+            .map((m) => m['server_id'] as String)
+            .toSet();
         final mutualIds = (theirMemberships as List)
             .map((m) => m['server_id'] as String)
             .where((id) => myServerIds.contains(id))
@@ -229,17 +234,27 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
 
   Future<void> _loadUserRoles(String profileId) async {
     try {
-      final roles = await _client
-          .from('user_roles')
+      final roleRows = await _client
+          .from('member_roles')
           .select('roles(id, name, color)')
           .eq('user_id', profileId);
 
+      final rolesById = <String, Map<String, dynamic>>{};
+      for (final row in roleRows as List) {
+        if (row is! Map) continue;
+        final roleData = row['roles'];
+        if (roleData is! Map) continue;
+
+        final role = Map<String, dynamic>.from(roleData);
+        final id = role['id']?.toString();
+        if (id != null && id.isNotEmpty) {
+          rolesById[id] = role;
+        }
+      }
+
       if (mounted) {
         setState(() {
-          _userRoles = (roles as List).map((r) {
-            final roleData = r['roles'] as Map<String, dynamic>?;
-            return roleData ?? {};
-          }).where((r) => r.isNotEmpty).toList();
+          _userRoles = rolesById.values.toList();
         });
       }
     } catch (e) {
@@ -267,8 +282,11 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
         });
         setState(() => _friendStatus = 'pending_sent');
       } else if (_friendStatus == 'pending_received') {
-        await _client.from('friend_requests').update({'status': 'accepted'}).eq(
-            'sender_id', widget.userId).eq('receiver_id', currentUser.id);
+        await _client
+            .from('friend_requests')
+            .update({'status': 'accepted'})
+            .eq('sender_id', widget.userId)
+            .eq('receiver_id', currentUser.id);
 
         await _client.from('friends').insert([
           {'user_id': currentUser.id, 'friend_id': widget.userId},
@@ -309,9 +327,7 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
             shape: const RoundedRectangleBorder(),
             title: Text(title,
                 style: GoogleFonts.epilogue(
-                    color: _white,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 18)),
+                    color: _white, fontWeight: FontWeight.w900, fontSize: 18)),
             content: Text(message,
                 style: GoogleFonts.inter(
                     color: _white.withValues(alpha: 0.7), fontSize: 14)),
@@ -362,8 +378,6 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
 
     final profile = _profile!;
     final isOwnProfile = _friendStatus == 'self';
-    final displayName = profile.displayName ?? profile.username;
-    final username = profile.username;
 
     return Scaffold(
       backgroundColor: _bg,
@@ -401,7 +415,8 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                             children: [
                               _buildSectionTitle('MEMBER SINCE'),
                               _buildInfoBadge(
-                                DateFormat('MMMM d, yyyy').format(profile.createdAt),
+                                DateFormat('MMMM d, yyyy')
+                                    .format(profile.createdAt),
                                 Icons.calendar_today_rounded,
                               ),
                             ],
@@ -476,7 +491,8 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
             GestureDetector(
               onTap: () => context.pop(),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 decoration: BoxDecoration(
                     color: _surface,
                     border: Border.all(color: _muted.withValues(alpha: 0.3))),
@@ -514,10 +530,11 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
             width: double.infinity,
             decoration: BoxDecoration(
               gradient: !hasBanner
-                  ? LinearGradient(
-                      colors: [accentColor, accentColor.withValues(alpha: 0.4), _bg],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight)
+                  ? LinearGradient(colors: [
+                      accentColor,
+                      accentColor.withValues(alpha: 0.4),
+                      _bg
+                    ], begin: Alignment.topLeft, end: Alignment.bottomRight)
                   : null,
             ),
             child: hasBanner
@@ -527,7 +544,11 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                     errorBuilder: (_, __, ___) => Container(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [accentColor, accentColor.withValues(alpha: 0.4), _bg],
+                          colors: [
+                            accentColor,
+                            accentColor.withValues(alpha: 0.4),
+                            _bg
+                          ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
@@ -551,8 +572,8 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                 Row(
                   children: [
                     _buildCircleBtn(Icons.share_outlined, () {
-                      Clipboard.setData(
-                          ClipboardData(text: 'https://flicko.app/u/${profile.username}'));
+                      Clipboard.setData(ClipboardData(
+                          text: 'https://flicko.app/u/${profile.username}'));
                       ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Link copied!')));
                     }),
@@ -664,7 +685,8 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (profile.customStatusEmoji != null) ...[
-                  Text(profile.customStatusEmoji!, style: const TextStyle(fontSize: 16)),
+                  Text(profile.customStatusEmoji!,
+                      style: const TextStyle(fontSize: 16)),
                   const SizedBox(width: 10),
                 ],
                 Flexible(
@@ -697,7 +719,8 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
             ),
           ),
           const SizedBox(width: 12),
-          _buildSquareBtn(Icons.settings_rounded, () => context.push('/profile/settings')),
+          _buildSquareBtn(
+              Icons.settings_rounded, () => context.push('/profile/settings')),
         ],
       );
     }
@@ -731,7 +754,8 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
             friendLabel,
             friendIcon,
             _handleFriendAction,
-            primary: _friendStatus == 'none' || _friendStatus == 'pending_received',
+            primary:
+                _friendStatus == 'none' || _friendStatus == 'pending_received',
             backgroundColor: friendColor,
             textColor: friendTextColor,
           ),
@@ -741,8 +765,8 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
           child: _buildBtn(
             'MESSAGE',
             Icons.chat_bubble_rounded,
-            () => ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Coming Soon'))),
+            () => ScaffoldMessenger.of(context)
+                .showSnackBar(const SnackBar(content: Text('Coming Soon'))),
             primary: false,
           ),
         ),
@@ -801,7 +825,7 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
         Text(title,
             style: GoogleFonts.epilogue(
                 color: _white,
-                fontSize: 14, 
+                fontSize: 14,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 1.5,
                 fontStyle: FontStyle.italic)),
@@ -855,7 +879,8 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
       runSpacing: 8,
       children: _userRoles.map((role) {
         final color = role['color'] != null
-            ? Color(int.parse(role['color'].toString().replaceFirst('#', '0xFF')))
+            ? Color(
+                int.parse(role['color'].toString().replaceFirst('#', '0xFF')))
             : _muted;
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -869,7 +894,8 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
               Container(
                   width: 6,
                   height: 6,
-                  decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+                  decoration:
+                      BoxDecoration(color: color, shape: BoxShape.circle)),
               const SizedBox(width: 8),
               Text(role['name']?.toString().toUpperCase() ?? 'ROLE',
                   style: GoogleFonts.spaceMono(
@@ -907,7 +933,7 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
   }
 
   Widget _buildMutualServers() {
-    return Container(
+    return SizedBox(
       height: 60,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
@@ -980,7 +1006,8 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                         });
                       },
                       style: ElevatedButton.styleFrom(
-                          backgroundColor: _neon, foregroundColor: Colors.black),
+                          backgroundColor: _neon,
+                          foregroundColor: Colors.black),
                       child: Text('SAVE',
                           style: GoogleFonts.spaceGrotesk(
                               fontWeight: FontWeight.w900)),
@@ -1005,8 +1032,9 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                       style: GoogleFonts.inter(
                           color: _note.isEmpty ? _muted : _white,
                           fontSize: 14,
-                          fontStyle:
-                              _note.isEmpty ? FontStyle.italic : FontStyle.normal),
+                          fontStyle: _note.isEmpty
+                              ? FontStyle.italic
+                              : FontStyle.normal),
                     ),
                   ),
                 ],
@@ -1019,7 +1047,8 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
     return Center(
       child: Column(
         children: [
-          Container(height: 1, width: 200, color: _white.withValues(alpha: 0.05)),
+          Container(
+              height: 1, width: 200, color: _white.withValues(alpha: 0.05)),
           const SizedBox(height: 16),
           Text('FLICKO // USER IDENTITY VERIFIED',
               style: GoogleFonts.spaceMono(
@@ -1051,20 +1080,20 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
             if (!isOwnProfile) ...[
               _sheetItem(Icons.block_rounded, 'BLOCK USER', () {
                 Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Coming Soon')));
+                ScaffoldMessenger.of(context)
+                    .showSnackBar(const SnackBar(content: Text('Coming Soon')));
               }, color: const Color(FlickoColors.red)),
               _sheetItem(Icons.report_problem_rounded, 'REPORT PROFILE', () {
                 Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Coming Soon')));
+                ScaffoldMessenger.of(context)
+                    .showSnackBar(const SnackBar(content: Text('Coming Soon')));
               }, color: const Color(FlickoColors.red)),
             ],
             _sheetItem(Icons.copy_rounded, 'COPY USER ID', () {
               Clipboard.setData(ClipboardData(text: widget.userId));
               Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('ID copied!')));
+              ScaffoldMessenger.of(context)
+                  .showSnackBar(const SnackBar(content: Text('ID copied!')));
             }),
             const SizedBox(height: 16),
           ],

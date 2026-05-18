@@ -9,13 +9,11 @@ import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/data/models/user_model.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
-import 'package:intl/intl.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 
 /// Unified Profile Screen — Flicko's Ultimate Profile Experience
-/// Handles both current user (Self) and other users (Public) with 
+/// Handles both current user (Self) and other users (Public) with
 /// a sleek, brutalist black/neon design.
-/// 
+///
 /// Standardized across:
 /// - ProfileScreen (Self)
 /// - PublicProfileScreen (Others)
@@ -26,29 +24,23 @@ class PublicProfileScreen extends ConsumerStatefulWidget {
   const PublicProfileScreen({super.key, required this.userId});
 
   @override
-  ConsumerState<PublicProfileScreen> createState() => _PublicProfileScreenState();
+  ConsumerState<PublicProfileScreen> createState() =>
+      _PublicProfileScreenState();
 }
 
 class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
   bool _isLoading = true;
   UserModel? _profile;
-  String _friendStatus = 'none'; // self, none, pending_sent, pending_received, friends
+  String _friendStatus =
+      'none'; // self, none, pending_sent, pending_received, friends
   List<Map<String, dynamic>> _mutualServers = [];
   List<Map<String, dynamic>> _userRoles = [];
   String _note = '';
   bool _isEditingNote = false;
   final _noteController = TextEditingController();
   bool _isActionLoading = false;
-  String? _errorMessage;
 
   final _client = Supabase.instance.client;
-
-  // Theme tokens
-  static const Color _neon = Color(0xFFC0F500);
-  static const Color _bg = Color(0xFF050505);
-  static const Color _surface = Color(0xFF0C0C0E);
-  static const Color _white = Color(0xFFFBF9FA);
-  static const Color _muted = Color(0xFF71717A);
 
   // Status colors and labels
   static const Map<String, Color> _statusColors = {
@@ -222,16 +214,26 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
 
   Future<void> _loadUserRoles() async {
     try {
-      final roles = await _client
-          .from('user_roles')
+      final roleRows = await _client
+          .from('member_roles')
           .select('roles(id, name, color)')
           .eq('user_id', widget.userId);
 
+      final rolesById = <String, Map<String, dynamic>>{};
+      for (final row in roleRows as List) {
+        if (row is! Map) continue;
+        final roleData = row['roles'];
+        if (roleData is! Map) continue;
+
+        final role = Map<String, dynamic>.from(roleData);
+        final id = role['id']?.toString();
+        if (id != null && id.isNotEmpty) {
+          rolesById[id] = role;
+        }
+      }
+
       setState(() {
-        _userRoles = (roles as List).map((r) {
-          final roleData = r['roles'] as Map<String, dynamic>?;
-          return roleData ?? {};
-        }).where((r) => r.isNotEmpty).toList();
+        _userRoles = rolesById.values.toList();
       });
     } catch (e) {
       // Non-critical
@@ -284,8 +286,11 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
     setState(() => _isActionLoading = true);
 
     try {
-      await _client.from('friend_requests').update({'status': 'accepted'}).eq(
-          'sender_id', widget.userId).eq('receiver_id', currentUser.id);
+      await _client
+          .from('friend_requests')
+          .update({'status': 'accepted'})
+          .eq('sender_id', widget.userId)
+          .eq('receiver_id', currentUser.id);
 
       await _client.from('friends').insert([
         {'user_id': currentUser.id, 'friend_id': widget.userId},
@@ -318,7 +323,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
 
     if (currentUser == null) return;
 
-    final displayName = _profile?.displayName ?? _profile?.username ?? 'this user';
+    final displayName =
+        _profile?.displayName ?? _profile?.username ?? 'this user';
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -333,16 +339,16 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
         ),
         content: Text(
           'Remove $displayName as a friend?',
-          style: GoogleFonts.inter(
-              color: const Color(FlickoColors.textSecondary)),
+          style:
+              GoogleFonts.inter(color: const Color(FlickoColors.textSecondary)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: Text(
               'Cancel',
-              style: GoogleFonts.inter(
-                  color: const Color(FlickoColors.textMuted)),
+              style:
+                  GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
             ),
           ),
           ElevatedButton(
@@ -396,7 +402,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
 
     if (currentUser == null) return;
 
-    final displayName = _profile?.displayName ?? _profile?.username ?? 'this user';
+    final displayName =
+        _profile?.displayName ?? _profile?.username ?? 'this user';
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -411,16 +418,16 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
         ),
         content: Text(
           'Block $displayName? They will no longer be able to send you messages or friend requests.',
-          style: GoogleFonts.inter(
-              color: const Color(FlickoColors.textSecondary)),
+          style:
+              GoogleFonts.inter(color: const Color(FlickoColors.textSecondary)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: Text(
               'Cancel',
-              style: GoogleFonts.inter(
-                  color: const Color(FlickoColors.textMuted)),
+              style:
+                  GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
             ),
           ),
           ElevatedButton(
@@ -491,8 +498,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                     color: const Color(FlickoColors.textPrimary)),
               ),
               onTap: () {
-                Clipboard.setData(
-                    ClipboardData(text: 'https://flicko.app/u/${widget.userId}'));
+                Clipboard.setData(ClipboardData(
+                    text: 'https://flicko.app/u/${widget.userId}'));
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Profile link copied')),
@@ -505,7 +512,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                     const Icon(Icons.block, color: Color(FlickoColors.red)),
                 title: Text(
                   'Block User',
-                  style: GoogleFonts.inter(color: const Color(FlickoColors.red)),
+                  style:
+                      GoogleFonts.inter(color: const Color(FlickoColors.red)),
                 ),
                 onTap: () {
                   Navigator.pop(context);
@@ -517,7 +525,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                     const Icon(Icons.report, color: Color(FlickoColors.red)),
                 title: Text(
                   'Report',
-                  style: GoogleFonts.inter(color: const Color(FlickoColors.red)),
+                  style:
+                      GoogleFonts.inter(color: const Color(FlickoColors.red)),
                 ),
                 onTap: () {
                   Navigator.pop(context);
@@ -560,16 +569,16 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
         ),
         content: Text(
           'Reporting functionality coming soon.',
-          style: GoogleFonts.inter(
-              color: const Color(FlickoColors.textSecondary)),
+          style:
+              GoogleFonts.inter(color: const Color(FlickoColors.textSecondary)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text(
               'OK',
-              style: GoogleFonts.inter(
-                  color: const Color(FlickoColors.textMuted)),
+              style:
+                  GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
             ),
           ),
         ],
@@ -742,7 +751,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                                   Text(
                                     displayName,
                                     style: GoogleFonts.inter(
-                                      color: const Color(FlickoColors.textPrimary),
+                                      color:
+                                          const Color(FlickoColors.textPrimary),
                                       fontSize: 22,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -767,7 +777,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                                 Text(
                                   profile.pronouns!,
                                   style: GoogleFonts.inter(
-                                    color: const Color(FlickoColors.textSecondary),
+                                    color:
+                                        const Color(FlickoColors.textSecondary),
                                     fontSize: 13,
                                   ),
                                 ),
@@ -808,8 +819,9 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                             child: Wrap(
                               spacing: 8,
-                              children:
-                                  badges.map((b) => _buildBadgeItem(b)).toList(),
+                              children: badges
+                                  .map((b) => _buildBadgeItem(b))
+                                  .toList(),
                             ),
                           ),
 
@@ -827,7 +839,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                               Text(
                                 profile.bio!,
                                 style: GoogleFonts.inter(
-                                  color: const Color(FlickoColors.textSecondary),
+                                  color:
+                                      const Color(FlickoColors.textSecondary),
                                   fontSize: 14,
                                   height: 1.5,
                                 ),
@@ -852,7 +865,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                               Text(
                                 _formatJoinDate(profile.createdAt),
                                 style: GoogleFonts.inter(
-                                  color: const Color(FlickoColors.textSecondary),
+                                  color:
+                                      const Color(FlickoColors.textSecondary),
                                   fontSize: 14,
                                 ),
                               ),
@@ -887,7 +901,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                           ),
 
                         // Note
-                        if (!isOwnProfile) _buildSection('NOTE', _buildNoteSection()),
+                        if (!isOwnProfile)
+                          _buildSection('NOTE', _buildNoteSection()),
 
                         const SizedBox(height: 32),
                       ],
@@ -937,10 +952,10 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                   colors: (_profile?.bannerColors != null &&
                           _profile!.bannerColors!.length >= 2)
                       ? [
-                          Color(int.parse(
-                              _profile!.bannerColors![0].replaceFirst('#', '0xFF'))),
-                          Color(int.parse(
-                              _profile!.bannerColors![1].replaceFirst('#', '0xFF'))),
+                          Color(int.parse(_profile!.bannerColors![0]
+                              .replaceFirst('#', '0xFF'))),
+                          Color(int.parse(_profile!.bannerColors![1]
+                              .replaceFirst('#', '0xFF'))),
                         ]
                       : [
                           _accentColor,
@@ -1215,7 +1230,9 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                 child: Text(
                   name.substring(0, 1).toUpperCase(),
                   style: const TextStyle(
-                      color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold),
                 ),
               ),
             const SizedBox(width: 8),
@@ -1279,8 +1296,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                   onPressed: _saveNote,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(FlickoColors.blurple),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 5),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
                   ),
                   child: Text(
                     'Save',

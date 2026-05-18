@@ -11,20 +11,22 @@ class AppwriteStorageService {
   /// Default bucket id, could also be pulled from Environment if configured
   static const String bucketId = 'attachments';
 
-  Future<String> uploadAttachment(File file, String userId, String channelId) async {
+  Future<String> uploadAttachment(
+      File file, String userId, String channelId) async {
     final fileName = '${userId}_${DateTime.now().millisecondsSinceEpoch}';
-    
+
     try {
       final result = await _storage.createFile(
         bucketId: bucketId,
         fileId: ID.unique(),
         file: InputFile.fromPath(path: file.path, filename: fileName),
       );
-      
+
       // Get the preview/view URL from the created file.
       // E.g. https://<ENDPOINT>/v1/storage/buckets/<BUCKET_ID>/files/<FILE_ID>/view?project=<PROJECT_ID>
-      final String fileUrl = '${Environment.appwritePublicEndpoint}/storage/buckets/$bucketId/files/${result.$id}/view?project=${Environment.appwriteProjectId}';
-      
+      final String fileUrl =
+          '${Environment.appwritePublicEndpoint}/storage/buckets/$bucketId/files/${result.$id}/view?project=${Environment.appwriteProjectId}';
+
       return fileUrl;
     } catch (e) {
       rethrow;

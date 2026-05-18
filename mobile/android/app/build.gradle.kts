@@ -19,6 +19,7 @@ val flickoDartDefineKeys =
         "FLICKO_APPWRITE_PROJECT_NAME",
         "FLICKO_APPWRITE_PUBLIC_ENDPOINT",
         "FLICKO_APPWRITE_BUCKET_ID",
+        "FLICKO_GOOGLE_CLIENT_ID",
         "SUPABASE_URL",
         "SUPABASE_ANON_KEY",
         "LIVEKIT_URL",

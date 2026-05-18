@@ -4,7 +4,7 @@ import 'package:mobile/features/direct_messages/domain/dm_models.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:mobile/features/shared/presentation/widgets/safe_network_media.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class MessageBubble extends StatelessWidget {
@@ -138,19 +138,12 @@ class MessageBubble extends StatelessWidget {
         padding: const EdgeInsets.only(bottom: FlickoSpacing.sm),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(FlickoRadius.md),
-          child: CachedNetworkImage(
+          child: SafeNetworkImage(
             imageUrl: attachment.url,
-            placeholder: (context, url) => Container(
-              height: 200,
-              width: 300,
-              color: const Color(FlickoColors.bgPrimary),
-              child: const Center(
-                child: CircularProgressIndicator(
-                  color: Color(FlickoColors.brandLime),
-                ),
-              ),
-            ),
-            errorWidget: (context, url, error) => const Icon(Icons.error),
+            contentType: attachment.type,
+            fileName: attachment.name,
+            width: 300,
+            height: 200,
             fit: BoxFit.contain,
           ),
         ),

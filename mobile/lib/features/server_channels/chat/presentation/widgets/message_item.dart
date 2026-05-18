@@ -3,9 +3,9 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/data/models/flicko_message.dart';
+import 'package:mobile/features/shared/presentation/widgets/safe_network_media.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
 
 class MessageItem extends StatelessWidget {
@@ -64,7 +64,9 @@ class MessageItem extends StatelessWidget {
           children: [
             UserAvatar(
               imageUrl: message.author?.avatarUrl,
-              name: message.author?.displayName ?? message.author?.username ?? '?',
+              name: message.author?.displayName ??
+                  message.author?.username ??
+                  '?',
               size: 40,
               status: _mapStatus(message.author?.onlineStatus),
             ),
@@ -76,7 +78,8 @@ class MessageItem extends StatelessWidget {
                   _buildHeader(context),
                   const SizedBox(height: 4),
                   _buildContent(context),
-                  if (message.attachments.isNotEmpty) _buildAttachments(context),
+                  if (message.attachments.isNotEmpty)
+                    _buildAttachments(context),
                   if (message.reactions.isNotEmpty) _buildReactions(context),
                 ],
               ),
@@ -91,7 +94,8 @@ class MessageItem extends StatelessWidget {
     return InkWell(
       onLongPress: onLongPress,
       child: Padding(
-        padding: const EdgeInsets.only(left: 72.0, right: 16.0, top: 2.0, bottom: 2.0),
+        padding: const EdgeInsets.only(
+            left: 72.0, right: 16.0, top: 2.0, bottom: 2.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -106,9 +110,11 @@ class MessageItem extends StatelessWidget {
 
   Widget _buildHeader(BuildContext context) {
     final timeStr = DateFormat('h:mm a').format(message.createdAt);
-    final authorName = message.author?.displayName ?? message.author?.username ?? 'Unknown';
-    final roleColor = message.author?.accentColor != null 
-        ? Color(int.parse(message.author!.accentColor!.replaceFirst('#', '0xFF')))
+    final authorName =
+        message.author?.displayName ?? message.author?.username ?? 'Unknown';
+    final roleColor = message.author?.accentColor != null
+        ? Color(
+            int.parse(message.author!.accentColor!.replaceFirst('#', '0xFF')))
         : const Color(FlickoColors.textPrimary);
 
     return Row(
@@ -135,7 +141,7 @@ class MessageItem extends StatelessWidget {
 
   Widget _buildContent(BuildContext context) {
     if (message.content.isEmpty) return const SizedBox.shrink();
-    
+
     return MarkdownBody(
       data: message.content,
       selectable: true,
@@ -164,7 +170,8 @@ class MessageItem extends StatelessWidget {
         ),
         blockquoteDecoration: BoxDecoration(
           border: Border(
-            left: BorderSide(color: const Color(FlickoColors.textMuted), width: 3),
+            left: BorderSide(
+                color: const Color(FlickoColors.textMuted), width: 3),
           ),
         ),
       ),
@@ -182,17 +189,11 @@ class MessageItem extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 8.0),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: CachedNetworkImage(
+                child: SafeNetworkImage(
                   imageUrl: a.url,
+                  contentType: a.contentType,
+                  fileName: a.filename,
                   fit: BoxFit.contain,
-                  maxWidthDiskCache: 800,
-                  placeholder: (context, url) => Container(
-                    width: 200,
-                    height: 200,
-                    color: const Color(FlickoColors.bgTertiary),
-                    child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                  ),
-                  errorWidget: (context, url, error) => const Icon(Icons.broken_image),
                 ),
               ),
             );
@@ -208,24 +209,30 @@ class MessageItem extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.insert_drive_file, color: Color(FlickoColors.textMuted)),
+                const Icon(Icons.insert_drive_file,
+                    color: Color(FlickoColors.textMuted)),
                 const SizedBox(width: 12),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       a.filename,
-                      style: GoogleFonts.inter(color: const Color(FlickoColors.blurpleLight), fontWeight: FontWeight.w500),
+                      style: GoogleFonts.inter(
+                          color: const Color(FlickoColors.blurpleLight),
+                          fontWeight: FontWeight.w500),
                     ),
                     Text(
                       '${(a.size / 1024).toStringAsFixed(1)} KB',
-                      style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted), fontSize: 12),
+                      style: GoogleFonts.inter(
+                          color: const Color(FlickoColors.textMuted),
+                          fontSize: 12),
                     ),
                   ],
                 ),
                 const SizedBox(width: 16),
                 IconButton(
-                  icon: const Icon(Icons.download, color: Color(FlickoColors.textMuted)),
+                  icon: const Icon(Icons.download,
+                      color: Color(FlickoColors.textMuted)),
                   onPressed: () => launchUrl(Uri.parse(a.url)),
                 ),
               ],
@@ -248,12 +255,12 @@ class MessageItem extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: r.me 
+                color: r.me
                     ? const Color(FlickoColors.blurple).withValues(alpha: 0.2)
                     : const Color(FlickoColors.bgTertiary),
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(
-                  color: r.me 
+                  color: r.me
                       ? const Color(FlickoColors.blurple)
                       : Colors.transparent,
                   width: 1,
@@ -267,7 +274,7 @@ class MessageItem extends StatelessWidget {
                   Text(
                     '${r.count}',
                     style: GoogleFonts.inter(
-                      color: r.me 
+                      color: r.me
                           ? const Color(FlickoColors.blurpleLight)
                           : const Color(FlickoColors.textSecondary),
                       fontSize: 12,

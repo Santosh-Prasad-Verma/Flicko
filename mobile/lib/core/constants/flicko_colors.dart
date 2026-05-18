@@ -11,6 +11,7 @@ class FlickoColors {
   static const int pink = 0xFFEB459E;
   static const int green = 0xFF57F287;
   static const int greenDark = 0xFF248046;
+  static const int neonGreen = 0xFFC8FF00;
   static const int yellow = 0xFFFEE75C;
   static const int red = 0xFFED4245;
   static const int fuchsia = 0xFFF47FFF;

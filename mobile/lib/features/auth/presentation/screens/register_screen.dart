@@ -297,7 +297,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       }
     } catch (e) {
       debugPrint('Register error: $e');
-      setState(() => _generalError = 'An unexpected error occurred');
+      setState(() => _generalError = 'Registration failed: ${e.toString()}');
     } finally {
       setState(() => _isLoading = false);
     }

@@ -42,6 +42,7 @@ import 'package:mobile/features/settings/presentation/change_email_screen.dart';
 import 'package:mobile/features/settings/presentation/change_username_screen.dart';
 import 'package:mobile/features/settings/presentation/change_password_screen.dart';
 import 'package:mobile/features/settings/presentation/billing_settings_screen.dart';
+import 'package:mobile/features/settings/presentation/share_profile_screen.dart';
 
 // Premium
 import 'package:mobile/features/premium/presentation/flicko_plus_screen.dart';
@@ -272,6 +273,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     routes: [
                       GoRoute(path: 'account', builder: (context, state) => const AccountSettingsScreen()),
                       GoRoute(path: 'edit-profile', builder: (context, state) => const EditProfileScreen()),
+                      GoRoute(path: 'share-profile', builder: (context, state) => const ShareProfileScreen()),
                       GoRoute(path: 'appearance', builder: (context, state) => const AppearanceSettingsScreen()),
                       GoRoute(path: 'privacy', builder: (context, state) => const PrivacySettingsScreen()),
                       GoRoute(path: 'chat', builder: (context, state) => const ChatSettingsScreen()),

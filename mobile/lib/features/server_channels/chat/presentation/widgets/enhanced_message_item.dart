@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/data/models/flicko_message.dart';
+import 'package:mobile/features/shared/presentation/widgets/safe_network_media.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
 import 'poll_message_card.dart';
 
@@ -53,10 +53,6 @@ class _EnhancedMessageItemState extends State<EnhancedMessageItem> {
   void dispose() {
     _editController.dispose();
     super.dispose();
-  }
-
-  void _startEditing() {
-    setState(() => _isEditing = true);
   }
 
   void _cancelEditing() {
@@ -117,24 +113,21 @@ class _EnhancedMessageItemState extends State<EnhancedMessageItem> {
                 children: [
                   // Reply preview if this message is a reply
                   if (widget.message.replyTo != null) _buildReplyPreview(),
-                  
+
                   // Author name and timestamp
                   if (!widget.isContinuation) _buildHeader(),
-                  
+
                   const SizedBox(height: 4),
-                  
+
                   // Message content or edit field
-                  if (_isEditing)
-                    _buildEditField()
-                  else
-                    _buildContent(),
-                  
+                  if (_isEditing) _buildEditField() else _buildContent(),
+
                   // Attachments
                   if (widget.message.attachments.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     _buildAttachments(),
                   ],
-                  
+
                   // Reactions
                   if (widget.message.reactions.isNotEmpty) ...[
                     const SizedBox(height: 8),
@@ -156,19 +149,23 @@ class _EnhancedMessageItemState extends State<EnhancedMessageItem> {
 
     switch (widget.message.type) {
       case 'join':
-        text = '${widget.message.author?.displayName ?? widget.message.author?.username ?? "Someone"} joined the server';
+        text =
+            '${widget.message.author?.displayName ?? widget.message.author?.username ?? "Someone"} joined the server';
         icon = Icons.person_add;
         color = const Color(FlickoColors.success);
       case 'leave':
-        text = '${widget.message.author?.displayName ?? widget.message.author?.username ?? "Someone"} left the server';
+        text =
+            '${widget.message.author?.displayName ?? widget.message.author?.username ?? "Someone"} left the server';
         icon = Icons.person_remove;
         color = const Color(FlickoColors.textMuted);
       case 'boost':
-        text = '${widget.message.author?.displayName ?? widget.message.author?.username ?? "Someone"} boosted the server!';
+        text =
+            '${widget.message.author?.displayName ?? widget.message.author?.username ?? "Someone"} boosted the server!';
         icon = Icons.rocket_launch;
         color = const Color(FlickoColors.fuchsia);
       case 'pin':
-        text = '${widget.message.author?.displayName ?? widget.message.author?.username ?? "Someone"} pinned a message';
+        text =
+            '${widget.message.author?.displayName ?? widget.message.author?.username ?? "Someone"} pinned a message';
         icon = Icons.push_pin;
         color = const Color(FlickoColors.warning);
       default:
@@ -210,8 +207,9 @@ class _EnhancedMessageItemState extends State<EnhancedMessageItem> {
         border: Border(
           left: BorderSide(
             color: Color(int.tryParse(
-              replyTo.author?.accentColor?.replaceFirst('#', '0xFF') ?? '0xFF5865F2'
-            ) ?? FlickoColors.blurple),
+                    replyTo.author?.accentColor?.replaceFirst('#', '0xFF') ??
+                        '0xFF5865F2') ??
+                FlickoColors.blurple),
             width: 3,
           ),
         ),
@@ -222,8 +220,9 @@ class _EnhancedMessageItemState extends State<EnhancedMessageItem> {
             Icons.reply,
             size: 14,
             color: Color(int.tryParse(
-              replyTo.author?.accentColor?.replaceFirst('#', '0xFF') ?? '0xFF5865F2'
-            ) ?? FlickoColors.blurple),
+                    replyTo.author?.accentColor?.replaceFirst('#', '0xFF') ??
+                        '0xFF5865F2') ??
+                FlickoColors.blurple),
           ),
           const SizedBox(width: 6),
           Expanded(
@@ -231,11 +230,14 @@ class _EnhancedMessageItemState extends State<EnhancedMessageItem> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  replyTo.author?.displayName ?? replyTo.author?.username ?? 'Unknown',
+                  replyTo.author?.displayName ??
+                      replyTo.author?.username ??
+                      'Unknown',
                   style: GoogleFonts.inter(
-                    color: Color(int.tryParse(
-                      replyTo.author?.accentColor?.replaceFirst('#', '0xFF') ?? '0xFF5865F2'
-                    ) ?? FlickoColors.blurple),
+                    color: Color(int.tryParse(replyTo.author?.accentColor
+                                ?.replaceFirst('#', '0xFF') ??
+                            '0xFF5865F2') ??
+                        FlickoColors.blurple),
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
@@ -260,8 +262,8 @@ class _EnhancedMessageItemState extends State<EnhancedMessageItem> {
   Widget _buildHeader() {
     final author = widget.message.author;
     final accentColor = Color(int.tryParse(
-      author?.accentColor?.replaceFirst('#', '0xFF') ?? '0xFF5865F2'
-    ) ?? FlickoColors.blurple);
+            author?.accentColor?.replaceFirst('#', '0xFF') ?? '0xFF5865F2') ??
+        FlickoColors.blurple);
 
     return Row(
       children: [
@@ -368,7 +370,8 @@ class _EnhancedMessageItemState extends State<EnhancedMessageItem> {
                 onPressed: _cancelEditing,
                 child: Text(
                   'Cancel',
-                  style: GoogleFonts.inter(color: const Color(FlickoColors.textSecondary)),
+                  style: GoogleFonts.inter(
+                      color: const Color(FlickoColors.textSecondary)),
                 ),
               ),
               const SizedBox(width: 8),
@@ -391,7 +394,7 @@ class _EnhancedMessageItemState extends State<EnhancedMessageItem> {
     return Column(
       children: widget.message.attachments.map((attachment) {
         final isImage = attachment.contentType.startsWith('image/');
-        
+
         if (isImage) {
           return Padding(
             padding: const EdgeInsets.only(bottom: 8.0),
@@ -437,7 +440,8 @@ class _EnhancedMessageItemState extends State<EnhancedMessageItem> {
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.download, color: Color(FlickoColors.blurple)),
+                icon: const Icon(Icons.download,
+                    color: Color(FlickoColors.blurple)),
                 onPressed: () async {
                   final uri = Uri.parse(attachment.url);
                   if (await canLaunchUrl(uri)) {
@@ -503,7 +507,7 @@ class _EnhancedMessageItemState extends State<EnhancedMessageItem> {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final messageDate = DateTime(dateTime.year, dateTime.month, dateTime.day);
-    
+
     if (messageDate == today) {
       return '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
     } else if (messageDate == today.subtract(const Duration(days: 1))) {
@@ -536,25 +540,16 @@ class _ImageAttachmentWidgetState extends State<_ImageAttachmentWidget> {
   Widget build(BuildContext context) {
     final isSpoiler = widget.attachment.filename.startsWith('SPOILER_');
     final showSpoiler = isSpoiler && !_isSpoilerRevealed;
-    final hasAltText = widget.attachment.altText != null && widget.attachment.altText!.trim().isNotEmpty;
+    final hasAltText = widget.attachment.altText != null &&
+        widget.attachment.altText!.trim().isNotEmpty;
 
-    Widget image = CachedNetworkImage(
+    Widget image = SafeNetworkImage(
       imageUrl: widget.attachment.url,
+      contentType: widget.attachment.contentType,
+      fileName: widget.attachment.filename,
       width: 300,
       height: 200,
       fit: BoxFit.cover,
-      placeholder: (context, url) => Container(
-        width: 300,
-        height: 200,
-        color: const Color(FlickoColors.bgSecondary),
-        child: const Center(child: CircularProgressIndicator()),
-      ),
-      errorWidget: (context, url, error) => Container(
-        width: 300,
-        height: 200,
-        color: const Color(FlickoColors.bgSecondary),
-        child: const Icon(Icons.error, color: Colors.red),
-      ),
     );
 
     if (showSpoiler) {
@@ -608,22 +603,28 @@ class _ImageAttachmentWidgetState extends State<_ImageAttachmentWidget> {
                     context: context,
                     builder: (context) => AlertDialog(
                       backgroundColor: const Color(FlickoColors.bgSecondary),
-                      title: Text('ALT Text', style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary))),
+                      title: Text('ALT Text',
+                          style: GoogleFonts.inter(
+                              color: const Color(FlickoColors.textPrimary))),
                       content: Text(
                         widget.attachment.altText!,
-                        style: GoogleFonts.inter(color: const Color(FlickoColors.textSecondary)),
+                        style: GoogleFonts.inter(
+                            color: const Color(FlickoColors.textSecondary)),
                       ),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(context),
-                          child: Text('Close', style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted))),
+                          child: Text('Close',
+                              style: GoogleFonts.inter(
+                                  color: const Color(FlickoColors.textMuted))),
                         ),
                       ],
                     ),
                   );
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: 0.7),
                     borderRadius: BorderRadius.circular(4),
@@ -644,4 +645,3 @@ class _ImageAttachmentWidgetState extends State<_ImageAttachmentWidget> {
     );
   }
 }
-

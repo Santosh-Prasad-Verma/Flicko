@@ -123,34 +123,45 @@ class _NavTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Obsidian Dark Violet UI colors
-    const activeColor = Color(0xFF8B5CF6); // Main purple
+    const activeColor = Color(0xFFC8FF00); // Changed to neon green to match theme
     final inactiveColor = Colors.white.withValues(alpha: 0.35);
-
-    final color = _isActive ? activeColor : inactiveColor;
+    final color = _isActive ? Colors.black : inactiveColor;
 
     return Expanded(
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () => onTap(index),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              _isActive ? activeIcon : icon,
-              size: 22,
-              color: color,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10.5,
-                fontWeight: FontWeight.w500,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+          decoration: BoxDecoration(
+            color: _isActive ? activeColor : Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                _isActive ? activeIcon : icon,
+                size: 22,
                 color: color,
-                fontFamily: 'Inter',
               ),
-            ),
-          ],
+              if (_isActive) ...[
+                const SizedBox(height: 2),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w700,
+                    color: color,
+                    fontFamily: 'Inter',
+                  ),
+                ),
+              ]
+            ],
+          ),
         ),
       ),
     );

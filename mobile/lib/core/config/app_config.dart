@@ -83,11 +83,13 @@ class AppConfig {
       'FLICKO_STRIPE_PUBLISHABLE_KEY',
       'STRIPE_PUBLISHABLE_KEY',
     );
-    apiBaseUrl = _read(
-      _definedApiBaseUrl,
-      _definedLegacyApiBaseUrl,
-      'FLICKO_API_URL',
-      'API_BASE_URL',
+    apiBaseUrl = _normalizeBaseUrl(
+      _read(
+        _definedApiBaseUrl,
+        _definedLegacyApiBaseUrl,
+        'FLICKO_API_URL',
+        'API_BASE_URL',
+      ),
     );
     giphyApiKey = _read(
       _definedGiphyApiKey,
@@ -133,6 +135,14 @@ class AppConfig {
     return missing;
   }
 
+  static bool get hasApiBaseUrl => apiBaseUrl.isNotEmpty;
+
+  static void requireBackendBaseUrl() {
+    if (!hasApiBaseUrl) {
+      throw const BackendConfigurationException();
+    }
+  }
+
   static String _read(
     String definedValue,
     String legacyDefinedValue,
@@ -156,4 +166,22 @@ class AppConfig {
     }
     return '';
   }
+
+  static String _normalizeBaseUrl(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return '';
+    return trimmed.endsWith('/')
+        ? trimmed.substring(0, trimmed.length - 1)
+        : trimmed;
+  }
+}
+
+class BackendConfigurationException implements Exception {
+  const BackendConfigurationException();
+
+  String get message =>
+      'Backend URL is not configured. Set FLICKO_API_URL or API_BASE_URL to your backend URL, for example http://<your-computer-lan-ip>:8090 when running on a physical phone.';
+
+  @override
+  String toString() => message;
 }

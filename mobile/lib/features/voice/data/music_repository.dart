@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mobile/data/clients/dio_client.dart';
 import '../domain/music_models.dart';
 
 /// Abstract interface — swap iTunes for Spotify backend without touching UI.
@@ -9,7 +8,8 @@ abstract class MusicRepository {
 }
 
 final musicRepositoryProvider = Provider<MusicRepository>((ref) {
-  return ItunesMusicRepository(ref.watch(dioProvider));
+  // Use a plain Dio instance — iTunes is a public API, no auth or base URL needed.
+  return ItunesMusicRepository(Dio());
 });
 
 /// iTunes Search API implementation (no auth required).
@@ -44,8 +44,12 @@ class ItunesMusicRepository implements MusicRepository {
 
       if (response.statusCode != 200) return [];
       final results = (response.data['results'] as List?) ?? [];
-      return results.map((item) => _toTrack(item, type)).toList();
-    } on DioException {
+      return results
+          .whereType<Map<String, dynamic>>()
+          .map((item) => _toTrack(item, type))
+          .toList();
+    } catch (e) {
+      // Catch all errors including cast exceptions
       return [];
     }
   }

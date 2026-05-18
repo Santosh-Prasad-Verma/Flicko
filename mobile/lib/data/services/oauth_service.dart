@@ -7,11 +7,16 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// Handles OAuth 2.0 authentication with third-party providers.
 /// Supports Google, Apple, and Discord login.
 class OAuthService {
+  // Read from --dart-define=FLICKO_GOOGLE_CLIENT_ID=... (set via Doppler, never hardcoded)
+  static const _googleClientId = String.fromEnvironment('FLICKO_GOOGLE_CLIENT_ID');
+
   final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
   Future<void>? _googleInitialization;
 
   Future<void> _ensureGoogleInitialized() {
-    return _googleInitialization ??= _googleSignIn.initialize();
+    return _googleInitialization ??= _googleSignIn.initialize(
+      serverClientId: _googleClientId.isNotEmpty ? _googleClientId : null,
+    );
   }
 
   /// Authenticate with Google

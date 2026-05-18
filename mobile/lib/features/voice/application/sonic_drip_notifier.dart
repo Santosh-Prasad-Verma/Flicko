@@ -88,10 +88,10 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
     try {
       final results = await _repo.search(query, type: type);
       state = state.copyWith(searchResults: results, isSearching: false);
-    } catch (_) {
+    } catch (e) {
       state = state.copyWith(
         isSearching: false,
-        searchError: 'Search failed. Check your connection.',
+        searchError: 'Search failed: $e',
       );
     }
   }

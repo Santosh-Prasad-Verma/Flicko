@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/core/config/app_config.dart';
 import 'package:mobile/data/clients/dio_client.dart';
 import '../domain/music_models.dart';
 
@@ -18,6 +19,7 @@ class SpotifyApiClient {
     required String displayName,
     String product = 'free',
   }) async {
+    AppConfig.requireBackendBaseUrl();
     await _dio.post('/music/session', data: {
       'cookies': cookies,
       'display_name': displayName,
@@ -27,12 +29,14 @@ class SpotifyApiClient {
 
   /// Get session info (no cookies returned).
   Future<Map<String, dynamic>> getSession() async {
+    AppConfig.requireBackendBaseUrl();
     final response = await _dio.get('/music/session');
     return response.data as Map<String, dynamic>;
   }
 
   /// Disconnect Spotify.
   Future<void> deleteSession() async {
+    AppConfig.requireBackendBaseUrl();
     await _dio.delete('/music/session');
   }
 
@@ -40,19 +44,23 @@ class SpotifyApiClient {
 
   /// Search the Spotify catalog.
   Future<List<Track>> search(String query, {int limit = 25}) async {
+    AppConfig.requireBackendBaseUrl();
     final response = await _dio.get('/music/search', queryParameters: {
       'q': query,
       'limit': limit,
     });
 
     final tracks = (response.data['tracks'] as List?) ?? [];
-    return tracks.map((t) => _trackFromJson(t as Map<String, dynamic>)).toList();
+    return tracks
+        .map((t) => _trackFromJson(t as Map<String, dynamic>))
+        .toList();
   }
 
   // ── Player ─────────────────────────────────────────────────────────────────
 
   /// Play a track. Generates an idempotency key automatically.
   Future<void> play(String trackId, {String deviceId = ''}) async {
+    AppConfig.requireBackendBaseUrl();
     await _dio.post('/music/player/play', data: {
       'track_id': trackId,
       'idempotency_key': _uuid(),
@@ -60,24 +68,39 @@ class SpotifyApiClient {
     });
   }
 
-  Future<void> pause() => _dio.post('/music/player/pause');
-  Future<void> resume() => _dio.post('/music/player/resume');
-  Future<void> skipNext() => _dio.post('/music/player/skip-next');
+  Future<void> pause() {
+    AppConfig.requireBackendBaseUrl();
+    return _dio.post('/music/player/pause');
+  }
+
+  Future<void> resume() {
+    AppConfig.requireBackendBaseUrl();
+    return _dio.post('/music/player/resume');
+  }
+
+  Future<void> skipNext() {
+    AppConfig.requireBackendBaseUrl();
+    return _dio.post('/music/player/skip-next');
+  }
 
   Future<void> seek(int positionMs) async {
+    AppConfig.requireBackendBaseUrl();
     await _dio.post('/music/player/seek', data: {'position_ms': positionMs});
   }
 
   Future<void> setVolume(double volume) async {
+    AppConfig.requireBackendBaseUrl();
     await _dio.post('/music/player/volume', data: {'volume': volume});
   }
 
   Future<Map<String, dynamic>> getState() async {
+    AppConfig.requireBackendBaseUrl();
     final response = await _dio.get('/music/player/state');
     return response.data as Map<String, dynamic>;
   }
 
   Future<List<Map<String, dynamic>>> getDevices() async {
+    AppConfig.requireBackendBaseUrl();
     final response = await _dio.get('/music/player/devices');
     return List<Map<String, dynamic>>.from(response.data['devices'] ?? []);
   }

@@ -353,6 +353,10 @@ if [ "$DART_DEFINE_COUNT" -gt 0 ]; then
   BUILD_DISPLAY_ARGS+=("--dart-define=<${DART_DEFINE_COUNT} env values>")
 fi
 
+if [ -z "${FLICKO_API_URL:-}" ] && [ -z "${API_BASE_URL:-}" ]; then
+  warn "FLICKO_API_URL/API_BASE_URL not set - backend routes like Spotify session will be unavailable"
+fi
+
 BUILD_CMD_DISPLAY=""
 for arg in "${BUILD_DISPLAY_ARGS[@]}"; do
   printf -v quoted "%q" "$arg"

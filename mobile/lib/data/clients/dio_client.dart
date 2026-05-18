@@ -29,6 +29,16 @@ final dioProvider = Provider<Dio>((ref) {
   dio.interceptors.add(
     InterceptorsWrapper(
       onRequest: (options, handler) async {
+        if (_requiresBackendBaseUrl(options) && !AppConfig.hasApiBaseUrl) {
+          return handler.reject(
+            DioException(
+              requestOptions: options,
+              type: DioExceptionType.unknown,
+              error: const BackendConfigurationException(),
+            ),
+          );
+        }
+
         final session = Supabase.instance.client.auth.currentSession;
         if (session != null) {
           options.headers['Authorization'] = 'Bearer ${session.accessToken}';
@@ -42,8 +52,11 @@ final dioProvider = Provider<Dio>((ref) {
   if (AppConfig.isDebug) {
     dio.interceptors.add(
       LogInterceptor(
-        requestBody: true,
-        responseBody: true,
+        requestHeader: false,
+        requestBody: false,
+        responseHeader: false,
+        responseBody: false,
+        error: true,
         logPrint: (obj) => AppLogger.debug(obj.toString()),
       ),
     );
@@ -51,3 +64,8 @@ final dioProvider = Provider<Dio>((ref) {
 
   return dio;
 });
+
+bool _requiresBackendBaseUrl(RequestOptions options) {
+  final uri = Uri.tryParse(options.path);
+  return !(uri?.hasScheme ?? false);
+}

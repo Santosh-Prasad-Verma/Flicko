@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/config/app_config.dart';
 import '../application/sonic_drip_notifier.dart';
 import '../data/spotify_api_client.dart';
 import '../domain/music_models.dart';
@@ -16,11 +17,11 @@ class SpotifyConnectScreen extends ConsumerStatefulWidget {
   const SpotifyConnectScreen({super.key});
 
   @override
-  ConsumerState<SpotifyConnectScreen> createState() => _SpotifyConnectScreenState();
+  ConsumerState<SpotifyConnectScreen> createState() =>
+      _SpotifyConnectScreenState();
 }
 
 class _SpotifyConnectScreenState extends ConsumerState<SpotifyConnectScreen> {
-  InAppWebViewController? _webController;
   bool _isLoading = true;
   bool _isSaving = false;
   String? _error;
@@ -28,7 +29,6 @@ class _SpotifyConnectScreenState extends ConsumerState<SpotifyConnectScreen> {
   static const _spotifyLoginUrl = 'https://accounts.spotify.com/en/login';
   static const _lime = Color(0xFFCBEF17);
   static const _black = Color(0xFF000000);
-  static const _surface = Color(0xFF0A0A0A);
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +48,6 @@ class _SpotifyConnectScreenState extends ConsumerState<SpotifyConnectScreen> {
               domStorageEnabled: true,
               clearCache: true,
             ),
-            onWebViewCreated: (controller) => _webController = controller,
             onLoadStart: (_, __) => setState(() => _isLoading = true),
             onLoadStop: (controller, url) async {
               setState(() => _isLoading = false);
@@ -227,13 +226,7 @@ class _SpotifyConnectScreenState extends ConsumerState<SpotifyConnectScreen> {
       // Get display name from page if possible
       final displayName = await _extractDisplayName(controller);
 
-      // Send to backend
-      await ref.read(spotifyApiClientProvider).saveSession(
-            cookies: cookies,
-            displayName: displayName,
-          );
-
-      // Update local state
+      // Save session locally first (works without backend)
       ref.read(sonicDripProvider.notifier).saveSession(
             SpotifySession(
               userId: 'me',
@@ -241,6 +234,16 @@ class _SpotifyConnectScreenState extends ConsumerState<SpotifyConnectScreen> {
               status: ConnectionStatus.connected,
             ),
           );
+
+      // Try to save to backend (optional — fails gracefully if not configured)
+      try {
+        await ref.read(spotifyApiClientProvider).saveSession(
+              cookies: cookies,
+              displayName: displayName,
+            );
+      } catch (_) {
+        // Backend not configured — session saved locally only
+      }
 
       if (mounted) {
         Navigator.pop(context, true);
@@ -257,7 +260,7 @@ class _SpotifyConnectScreenState extends ConsumerState<SpotifyConnectScreen> {
     } catch (e) {
       setState(() {
         _isSaving = false;
-        _error = 'Connection failed: $e';
+        _error = 'Failed to capture session. Please try again.';
       });
     }
   }
@@ -265,7 +268,8 @@ class _SpotifyConnectScreenState extends ConsumerState<SpotifyConnectScreen> {
   Future<String> _extractDisplayName(InAppWebViewController controller) async {
     try {
       final result = await controller.evaluateJavascript(
-        source: "document.querySelector('[data-testid=\"user-widget-name\"]')?.textContent || ''",
+        source:
+            "document.querySelector('[data-testid=\"user-widget-name\"]')?.textContent || ''",
       );
       if (result is String && result.isNotEmpty) return result;
     } catch (_) {}

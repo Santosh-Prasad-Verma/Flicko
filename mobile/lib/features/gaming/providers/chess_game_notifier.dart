@@ -21,17 +21,18 @@ final centrifugoClientProvider = Provider<centrifuge.Client>((ref) {
 });
 
 // --- StreamNotifier Implementation ---
-class ChessGameNotifier extends FamilyStreamNotifier<GameState, String> {
+class ChessGameNotifier extends StreamNotifier<GameState> {
+  final String _gameId;
+  ChessGameNotifier(this._gameId);
+
   int _localMoveNum = 0;
-  late String _gameId;
   centrifuge.Subscription? _subscription;
 
   GameApiClient get _api => ref.read(gameApiProvider);
   centrifuge.Client get _centrifugoClient => ref.read(centrifugoClientProvider);
 
   @override
-  Stream<GameState> build(String arg) async* {
-    _gameId = arg;
+  Stream<GameState> build() async* {
 
     // 1. Initial State Sync via REST API
     final initialState = await _api.getGameState(_gameId);
@@ -117,6 +118,6 @@ class ChessGameNotifier extends FamilyStreamNotifier<GameState, String> {
 }
 
 // Global Provider
-final chessGameProvider = StreamNotifierProvider.family<ChessGameNotifier, GameState, String>(() {
-  return ChessGameNotifier();
-});
+final chessGameProvider = StreamNotifierProvider.family<ChessGameNotifier, GameState, String>(
+  ChessGameNotifier.new,
+);
