@@ -13,7 +13,7 @@ DECLARE
     v_is_moderator BOOLEAN;
 BEGIN
     -- Get channel slowmode setting
-    SELECT slowmode_delay INTO v_slowmode_delay
+    SELECT slowmode_seconds INTO v_slowmode_delay
     FROM channels
     WHERE id = p_channel_id;
 
@@ -23,12 +23,13 @@ BEGIN
     END IF;
 
     -- Check if user is a moderator (bypass slowmode)
-    -- Assuming a simple role check, adapt based on actual roles table schema
     SELECT EXISTS (
-        SELECT 1 FROM channel_members cm
-        JOIN roles r ON cm.role_id = r.id
-        WHERE cm.channel_id = p_channel_id AND cm.user_id = p_user_id
-        AND r.permissions ? 'manage_messages'
+        SELECT 1 FROM server_members sm
+        JOIN member_roles mr ON mr.member_id = sm.user_id AND mr.server_id = sm.server_id
+        JOIN roles r ON r.id = mr.role_id
+        WHERE sm.server_id = (SELECT server_id FROM channels WHERE id = p_channel_id)
+          AND sm.user_id = p_user_id
+          AND (r.permissions & (1 << 13)) != 0  -- MANAGE_MESSAGES bit
     ) INTO v_is_moderator;
 
     IF v_is_moderator THEN
@@ -77,7 +78,7 @@ DECLARE
     v_remaining_seconds INT;
 BEGIN
     -- Get channel slowmode setting
-    SELECT slowmode_delay INTO v_slowmode_delay
+    SELECT slowmode_seconds INTO v_slowmode_delay
     FROM channels
     WHERE id = p_channel_id;
 

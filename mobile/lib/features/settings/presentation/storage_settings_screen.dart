@@ -19,7 +19,7 @@ class _StorageSettingsScreenState
   bool _autoDownloadFiles = false;
   bool _isClearingCache = false;
 
-  static const Color _neonGreen = Color(0xFFC0F500);
+  static const Color _neonGreen = Color(0xFF52B788);
   static const Color _bgBlack = Color(0xFF050505);
   static const Color _surfaceContainer = Color(0xFF0C0C0E);
   static const Color _textWhite = Color(0xFFFBF9FA);

@@ -1,17 +1,16 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/config/app_config.dart';
+import '../clients/dio_client.dart';
 
 /// Message Delete Service for deleting messages
 /// 
 /// Handles deleting messages with proper permissions and confirmation.
 class MessageDeleteService {
   final Dio _dio;
-  final String _apiBaseUrl;
 
-  MessageDeleteService()
-      : _dio = Dio(),
-        _apiBaseUrl = AppConfig.apiBaseUrl;
+  MessageDeleteService(this._dio);
+
+
 
   /// Delete a message
   /// 
@@ -20,7 +19,7 @@ class MessageDeleteService {
   Future<bool> deleteMessage(String messageId) async {
     try {
       final response = await _dio.delete(
-        '$_apiBaseUrl/messages/$messageId',
+        '/api/v1/messages/$messageId',
       );
 
       if (response.statusCode == 200 || response.statusCode == 204) {
@@ -40,7 +39,7 @@ class MessageDeleteService {
   Future<bool> bulkDeleteMessages(List<String> messageIds) async {
     try {
       final response = await _dio.post(
-        '$_apiBaseUrl/messages/bulk-delete',
+        '/api/v1/messages/bulk-delete',
         data: {'message_ids': messageIds},
       );
 
@@ -90,7 +89,7 @@ class MessageDeleteService {
   Future<bool> softDeleteMessage(String messageId) async {
     try {
       final response = await _dio.patch(
-        '$_apiBaseUrl/messages/$messageId',
+        '/api/v1/messages/$messageId',
         data: {'deleted': true},
       );
 
@@ -111,7 +110,7 @@ class MessageDeleteService {
   Future<bool> restoreMessage(String messageId) async {
     try {
       final response = await _dio.patch(
-        '$_apiBaseUrl/messages/$messageId',
+        '/api/v1/messages/$messageId',
         data: {'deleted': false},
       );
 
@@ -128,5 +127,5 @@ class MessageDeleteService {
 
 /// Provider for MessageDeleteService
 final messageDeleteServiceProvider = Provider<MessageDeleteService>((ref) {
-  return MessageDeleteService();
+  return MessageDeleteService(ref.watch(dioProvider));
 });

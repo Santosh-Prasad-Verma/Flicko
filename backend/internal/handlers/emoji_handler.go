@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/flicko-org/flicko-backend/internal/middleware"
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
@@ -67,7 +68,11 @@ func (h *EmojiHandler) CreateEmoji(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	vars := mux.Vars(r)
 	serverID := vars["serverId"]
-	userID := ctx.Value("userID").(string) // from Auth middleware
+	userID, ok := ctx.Value(middleware.GetUserIDKey()).(string)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
 
 	var req struct {
 		Name string `json:"name"`

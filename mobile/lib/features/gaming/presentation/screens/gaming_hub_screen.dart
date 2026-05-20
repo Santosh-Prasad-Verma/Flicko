@@ -5,7 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 class GamingHubScreen extends StatelessWidget {
   const GamingHubScreen({super.key});
 
-  static const Color _neon = Color(0xFFC0F500);
+  static const Color _neon = Color(0xFF52B788);
   static const Color _bg = Color(0xFF050505);
   static const Color _surface = Color(0xFF0C0C0E);
   static const Color _white = Color(0xFFFBF9FA);

@@ -401,7 +401,7 @@ class _SubscriptionModel implements SubscriptionModel {
       @JsonKey(name: 'user_id') required this.userId,
       required this.plan,
       required this.status,
-      this.store = 'stripe',
+      this.store = 'razorpay',
       @JsonKey(name: 'current_period_start') this.currentPeriodStart,
       @JsonKey(name: 'current_period_end') this.currentPeriodEnd,
       @JsonKey(name: 'cancel_at_period_end') this.cancelAtPeriodEnd = false,

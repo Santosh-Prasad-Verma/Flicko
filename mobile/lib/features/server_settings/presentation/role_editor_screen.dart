@@ -8,6 +8,7 @@ import 'package:mobile/core/constants/flicko_colors.dart';
 /// Role Editor Screen
 ///
 /// Edit a single role: name, color, hoist, mentionable, and permissions.
+/// Permissions are stored as a bigint bitmask in the database.
 /// Route: /server/:serverId/settings/roles/:roleId
 class RoleEditorScreen extends ConsumerStatefulWidget {
   final String serverId;
@@ -23,6 +24,7 @@ class _Permission {
   final String label;
   final String description;
   final String category;
+  final int bit; // Bit position (0-indexed)
   final bool dangerous;
 
   _Permission({
@@ -30,6 +32,7 @@ class _Permission {
     required this.label,
     required this.description,
     required this.category,
+    required this.bit,
     this.dangerous = false,
   });
 }
@@ -38,7 +41,6 @@ class _RoleEditorScreenState extends ConsumerState<RoleEditorScreen> {
   bool _isLoading = true;
   bool _isSaving = false;
   bool _dirty = false;
-  bool _isEveryone = false;
 
   String _name = '';
   String? _roleColor;
@@ -55,30 +57,32 @@ class _RoleEditorScreenState extends ConsumerState<RoleEditorScreen> {
     '#AD1457', '#C27C0E', '#A84300', '#992D22', '#979C9F',
   ];
 
+  /// Permission definitions with their corresponding bit positions.
+  /// These mirror Discord's permission bitmask layout.
   final List<_Permission> _allPermissions = [
-    _Permission(name: 'VIEW_CHANNELS', label: 'View Channels', description: 'View channels and read messages', category: 'general'),
-    _Permission(name: 'MANAGE_CHANNELS', label: 'Manage Channels', description: 'Create, edit, delete channels', category: 'general', dangerous: true),
-    _Permission(name: 'MANAGE_ROLES', label: 'Manage Roles', description: 'Create, edit, assign roles', category: 'general', dangerous: true),
-    _Permission(name: 'MANAGE_GUILD', label: 'Manage Server', description: 'Change server name, icon, region', category: 'general', dangerous: true),
-    _Permission(name: 'KICK_MEMBERS', label: 'Kick Members', description: 'Remove members from the server', category: 'membership', dangerous: true),
-    _Permission(name: 'BAN_MEMBERS', label: 'Ban Members', description: 'Ban members from the server', category: 'membership', dangerous: true),
-    _Permission(name: 'CREATE_INVITE', label: 'Create Invite', description: 'Generate invite links', category: 'membership'),
-    _Permission(name: 'CHANGE_NICKNAME', label: 'Change Nickname', description: 'Change own nickname', category: 'membership'),
-    _Permission(name: 'MANAGE_NICKNAMES', label: 'Manage Nicknames', description: 'Change other members\' nicknames', category: 'membership'),
-    _Permission(name: 'SEND_MESSAGES', label: 'Send Messages', description: 'Send text messages', category: 'text'),
-    _Permission(name: 'SEND_TTS_MESSAGES', label: 'Send TTS Messages', description: 'Send text-to-speech messages', category: 'text'),
-    _Permission(name: 'MANAGE_MESSAGES', label: 'Manage Messages', description: 'Delete, pin other users\' messages', category: 'text', dangerous: true),
-    _Permission(name: 'EMBED_LINKS', label: 'Embed Links', description: 'Send embedded content', category: 'text'),
-    _Permission(name: 'ATTACH_FILES', label: 'Attach Files', description: 'Upload files and images', category: 'text'),
-    _Permission(name: 'READ_MESSAGE_HISTORY', label: 'Read History', description: 'View past messages', category: 'text'),
-    _Permission(name: 'MENTION_EVERYONE', label: 'Mention @everyone', description: 'Ping all members', category: 'text'),
-    _Permission(name: 'USE_VOICE', label: 'Connect to Voice', description: 'Join voice channels', category: 'voice'),
-    _Permission(name: 'SPEAK', label: 'Speak', description: 'Talk in voice channels', category: 'voice'),
-    _Permission(name: 'VIDEO', label: 'Video', description: 'Share video in voice channels', category: 'voice'),
-    _Permission(name: 'MUTE_MEMBERS', label: 'Mute Members', description: 'Mute other members in voice', category: 'voice'),
-    _Permission(name: 'DEAFEN_MEMBERS', label: 'Deafen Members', description: 'Deafen other members in voice', category: 'voice'),
-    _Permission(name: 'MOVE_MEMBERS', label: 'Move Members', description: 'Move members between voice channels', category: 'voice'),
-    _Permission(name: 'ADMINISTRATOR', label: 'Administrator', description: 'Grants ALL permissions', category: 'advanced', dangerous: true),
+    _Permission(name: 'VIEW_CHANNELS', label: 'View Channels', description: 'View channels and read messages', category: 'general', bit: 0),
+    _Permission(name: 'MANAGE_CHANNELS', label: 'Manage Channels', description: 'Create, edit, delete channels', category: 'general', bit: 1, dangerous: true),
+    _Permission(name: 'MANAGE_ROLES', label: 'Manage Roles', description: 'Create, edit, assign roles', category: 'general', bit: 2, dangerous: true),
+    _Permission(name: 'MANAGE_GUILD', label: 'Manage Server', description: 'Change server name, icon, region', category: 'general', bit: 3, dangerous: true),
+    _Permission(name: 'KICK_MEMBERS', label: 'Kick Members', description: 'Remove members from the server', category: 'membership', bit: 4, dangerous: true),
+    _Permission(name: 'BAN_MEMBERS', label: 'Ban Members', description: 'Ban members from the server', category: 'membership', bit: 5, dangerous: true),
+    _Permission(name: 'CREATE_INVITE', label: 'Create Invite', description: 'Generate invite links', category: 'membership', bit: 6),
+    _Permission(name: 'CHANGE_NICKNAME', label: 'Change Nickname', description: 'Change own nickname', category: 'membership', bit: 7),
+    _Permission(name: 'MANAGE_NICKNAMES', label: 'Manage Nicknames', description: 'Change other members\' nicknames', category: 'membership', bit: 8),
+    _Permission(name: 'SEND_MESSAGES', label: 'Send Messages', description: 'Send text messages', category: 'text', bit: 9),
+    _Permission(name: 'SEND_TTS_MESSAGES', label: 'Send TTS Messages', description: 'Send text-to-speech messages', category: 'text', bit: 10),
+    _Permission(name: 'MANAGE_MESSAGES', label: 'Manage Messages', description: 'Delete, pin other users\' messages', category: 'text', bit: 11, dangerous: true),
+    _Permission(name: 'EMBED_LINKS', label: 'Embed Links', description: 'Send embedded content', category: 'text', bit: 12),
+    _Permission(name: 'ATTACH_FILES', label: 'Attach Files', description: 'Upload files and images', category: 'text', bit: 13),
+    _Permission(name: 'READ_MESSAGE_HISTORY', label: 'Read History', description: 'View past messages', category: 'text', bit: 14),
+    _Permission(name: 'MENTION_EVERYONE', label: 'Mention @everyone', description: 'Ping all members', category: 'text', bit: 15),
+    _Permission(name: 'USE_VOICE', label: 'Connect to Voice', description: 'Join voice channels', category: 'voice', bit: 16),
+    _Permission(name: 'SPEAK', label: 'Speak', description: 'Talk in voice channels', category: 'voice', bit: 17),
+    _Permission(name: 'VIDEO', label: 'Video', description: 'Share video in voice channels', category: 'voice', bit: 18),
+    _Permission(name: 'MUTE_MEMBERS', label: 'Mute Members', description: 'Mute other members in voice', category: 'voice', bit: 19),
+    _Permission(name: 'DEAFEN_MEMBERS', label: 'Deafen Members', description: 'Deafen other members in voice', category: 'voice', bit: 20),
+    _Permission(name: 'MOVE_MEMBERS', label: 'Move Members', description: 'Move members between voice channels', category: 'voice', bit: 21),
+    _Permission(name: 'ADMINISTRATOR', label: 'Administrator', description: 'Grants ALL permissions', category: 'advanced', bit: 31, dangerous: true),
   ];
 
   final Map<String, String> _categoryLabels = {
@@ -95,11 +99,31 @@ class _RoleEditorScreenState extends ConsumerState<RoleEditorScreen> {
     _loadRole();
   }
 
+  /// Decode a bigint bitmask into a Map<String, bool> of permission states.
+  Map<String, bool> _decodeBitmask(int bitmask) {
+    final result = <String, bool>{};
+    for (final p in _allPermissions) {
+      result[p.name] = (bitmask & (1 << p.bit)) != 0;
+    }
+    return result;
+  }
+
+  /// Encode a Map<String, bool> of permission states into a bigint bitmask.
+  int _encodeBitmask(Map<String, bool> permissions) {
+    int bitmask = 0;
+    for (final p in _allPermissions) {
+      if (permissions[p.name] == true) {
+        bitmask |= (1 << p.bit);
+      }
+    }
+    return bitmask;
+  }
+
   Future<void> _loadRole() async {
     setState(() => _isLoading = true);
     try {
       final role = await _client
-          .from('server_roles')
+          .from('roles')
           .select('*')
           .eq('id', widget.roleId)
           .single();
@@ -109,27 +133,40 @@ class _RoleEditorScreenState extends ConsumerState<RoleEditorScreen> {
         _roleColor = role['color'] as String?;
         _hoist = role['hoist'] as bool? ?? false;
         _mentionable = role['mentionable'] as bool? ?? false;
-        _isEveryone = role['is_everyone'] as bool? ?? false;
 
-        // Initialize permissions from stored data if available, otherwise false
-        final storedPerms = role['permissions'] as Map<String, dynamic>? ?? {};
-        _permissions = {for (final p in _allPermissions) p.name: storedPerms[p.name] as bool? ?? false};
+        // Decode permissions bitmask from bigint
+        final rawPerms = role['permissions'];
+        int bitmask = 0;
+        if (rawPerms is int) {
+          bitmask = rawPerms;
+        } else if (rawPerms is String) {
+          bitmask = int.tryParse(rawPerms) ?? 0;
+        }
+        _permissions = _decodeBitmask(bitmask);
         _isLoading = false;
       });
     } catch (e) {
       setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading role: $e')),
+        );
+      }
     }
   }
 
   Future<void> _save() async {
     setState(() => _isSaving = true);
     try {
-      await _client.from('server_roles').update({
+      // Encode permissions back to bigint bitmask
+      final bitmask = _encodeBitmask(_permissions);
+
+      await _client.from('roles').update({
         'name': _name.trim(),
         'color': _roleColor,
         'hoist': _hoist,
         'mentionable': _mentionable,
-        'permissions': _permissions,
+        'permissions': bitmask,
       }).eq('id', widget.roleId);
 
       setState(() {
@@ -197,7 +234,8 @@ class _RoleEditorScreenState extends ConsumerState<RoleEditorScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator(color: Color(FlickoColors.blurple))),
+        backgroundColor: Color(FlickoColors.bgPrimary),
+        body: Center(child: CircularProgressIndicator(color: Color(FlickoColors.brandLime))),
       );
     }
 
@@ -243,7 +281,6 @@ class _RoleEditorScreenState extends ConsumerState<RoleEditorScreen> {
                 TextField(
                   controller: TextEditingController(text: _name)..selection = TextSelection.collapsed(offset: _name.length),
                   onChanged: (v) { setState(() { _name = v; _dirty = true; }); },
-                  enabled: !_isEveryone,
                   style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary)),
                   decoration: InputDecoration(
                     hintText: 'Role name',
@@ -311,7 +348,7 @@ class _RoleEditorScreenState extends ConsumerState<RoleEditorScreen> {
                   _hoist,
                   (v) => setState(() { _hoist = v; _dirty = true; }),
                 ),
-                const Divider(height: 1, color: Color(0xFF232428)),
+                Divider(height: 1, color: const Color(FlickoColors.bgTertiary)),
                 _buildToggleRow(
                   'Allow anyone to @mention this role',
                   'Members can mention this role in messages',
@@ -364,7 +401,7 @@ class _RoleEditorScreenState extends ConsumerState<RoleEditorScreen> {
                     final enabled = _permissions[perm.name] ?? false;
                     return Column(
                       children: [
-                        if (entry.key > 0) const Divider(height: 1, color: Color(0xFF232428)),
+                        if (entry.key > 0) Divider(height: 1, color: const Color(FlickoColors.bgTertiary)),
                         _buildToggleRow(
                           '${perm.label}${perm.dangerous ? ' ⚠️' : ''}',
                           perm.description,
@@ -436,7 +473,7 @@ class _RoleEditorScreenState extends ConsumerState<RoleEditorScreen> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: isDangerous ? const Color(FlickoColors.red) : const Color(FlickoColors.blurple),
+            activeColor: isDangerous ? const Color(FlickoColors.red) : const Color(FlickoColors.brandLime),
           ),
         ],
       ),

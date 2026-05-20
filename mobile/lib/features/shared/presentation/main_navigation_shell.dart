@@ -1,61 +1,118 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/voice/presentation/widgets/voice_hud.dart';
 
-/// Flicko main navigation shell — Discord-style bottom tab bar.
-///
-/// Wraps the current tab page in a [Scaffold] with a custom-styled
-/// [BottomNavigationBar] that matches the new UI (dark theme with purple active states).
+/// Flicko main navigation shell — premium edge-to-edge rectangular glassmorphic bottom bar.
 class MainNavigationShell extends StatelessWidget {
   /// The routed child widget for the selected tab.
   final Widget child;
 
-  /// Current tab index (0 = Servers, 1 = Notifications, 2 = You).
+  /// Current tab index (0 = Home, 1 = Messages, 2 = Activity, 3 = Profile).
   final int currentIndex;
 
   /// Callback fired when user taps a tab.
   final ValueChanged<int> onTabSelected;
+
+  /// Current matched route path to decide whether to show the bottom bar.
+  final String currentLocation;
 
   const MainNavigationShell({
     super.key,
     required this.child,
     required this.currentIndex,
     required this.onTabSelected,
+    required this.currentLocation,
   });
 
   @override
   Widget build(BuildContext context) {
+    // Get the current location dynamically from GoRouterState to ensure reactive updates on navigation
+    String activeLocation;
+    try {
+      activeLocation = GoRouterState.of(context).uri.path;
+    } catch (_) {
+      activeLocation = currentLocation;
+    }
+
+    // Only show the bottom navigation bar on top-level root pages of each tab.
+    final bool showNavBar = const [
+      '/',
+      '/dms',
+      '/notifications',
+      '/profile',
+    ].contains(activeLocation);
+
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final navBarHeight = 64.0 + bottomPadding;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0D0B14),
+      backgroundColor: const Color(FlickoColors.bgPrimary),
       body: Stack(
         children: [
-          child,
-          Positioned(
+          // Content screen with animated padding to reclaim screen space when navbar is hidden
+          AnimatedPadding(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOutQuart,
+            padding: EdgeInsets.only(
+              bottom: showNavBar ? navBarHeight : 0,
+            ),
+            child: child,
+          ),
+          
+          // Voice HUD - animated position so it floats perfectly above the navbar or at screen bottom
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOutQuart,
             left: 0,
             right: 0,
-            bottom: 0,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const VoiceHUD(),
-              ],
-            ),
+            bottom: showNavBar 
+                ? (navBarHeight + 8.0) 
+                : (bottomPadding + 16.0),
+            child: const VoiceHUD(),
+          ),
+
+          // Pinned rectangular glassmorphic navbar
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOutQuart,
+            left: 0,
+            right: 0,
+            bottom: showNavBar ? 0 : -navBarHeight, // slide down offscreen
+            child: _buildRectNavBar(context, bottomPadding),
           ),
         ],
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFF0A0812), // Same as sidebar bg
-          border: Border(
-            top: BorderSide(
-              color: Colors.white.withValues(alpha: 0.06),
-              width: 1.5,
-            ),
+    );
+  }
+
+  Widget _buildRectNavBar(BuildContext context, double bottomPadding) {
+    return Container(
+      height: 64.0 + bottomPadding,
+      decoration: BoxDecoration(
+        color: const Color(0xFF0C0C0E).withValues(alpha: 0.85),
+        border: Border(
+          top: BorderSide(
+            color: const Color(0xFFFBF9FA).withValues(alpha: 0.1),
+            width: 1.5,
           ),
         ),
-        child: SafeArea(
-          child: SizedBox(
-            height: 65, // Matches CSS height:65px
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.5),
+            blurRadius: 15,
+            offset: const Offset(0, -5),
+          ),
+        ],
+      ),
+      child: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+          child: Padding(
+            padding: EdgeInsets.only(bottom: bottomPadding),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
@@ -63,7 +120,7 @@ class MainNavigationShell extends StatelessWidget {
                   index: 0,
                   activeIndex: currentIndex,
                   icon: Icons.home_outlined,
-                  activeIcon: Icons.home_filled,
+                  activeIcon: Icons.home_rounded,
                   label: 'Home',
                   onTap: onTabSelected,
                 ),
@@ -72,15 +129,15 @@ class MainNavigationShell extends StatelessWidget {
                   activeIndex: currentIndex,
                   icon: Icons.chat_bubble_outline_rounded,
                   activeIcon: Icons.chat_bubble_rounded,
-                  label: 'Messages',
+                  label: 'Chat',
                   onTap: onTabSelected,
                 ),
                 _NavTab(
                   index: 2,
                   activeIndex: currentIndex,
-                  icon: Icons.notifications_outlined,
-                  activeIcon: Icons.notifications,
-                  label: 'Activity',
+                  icon: Icons.notifications_none_rounded,
+                  activeIcon: Icons.notifications_rounded,
+                  label: 'Alerts',
                   onTap: onTabSelected,
                 ),
                 _NavTab(
@@ -100,7 +157,7 @@ class MainNavigationShell extends StatelessWidget {
   }
 }
 
-/// Individual tab item with an animated pill background on selection.
+/// Individual tab with animated active state.
 class _NavTab extends StatelessWidget {
   final int index;
   final int activeIndex;
@@ -108,6 +165,8 @@ class _NavTab extends StatelessWidget {
   final IconData activeIcon;
   final String label;
   final ValueChanged<int> onTap;
+
+  static const Color _neonGreen = Color(0xFF52B788);
 
   const _NavTab({
     required this.index,
@@ -122,46 +181,69 @@ class _NavTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Obsidian Dark Violet UI colors
-    const activeColor = Color(0xFFC8FF00); // Changed to neon green to match theme
-    final inactiveColor = Colors.white.withValues(alpha: 0.35);
-    final color = _isActive ? Colors.black : inactiveColor;
-
-    return Expanded(
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => onTap(index),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeInOut,
-          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-          decoration: BoxDecoration(
-            color: _isActive ? activeColor : Colors.transparent,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        if (!_isActive) {
+          HapticFeedback.selectionClick();
+        }
+        onTap(index);
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutExpo,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: _isActive
+              ? _neonGreen.withValues(alpha: 0.15)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              transitionBuilder: (child, animation) {
+                return ScaleTransition(
+                  scale: animation,
+                  child: FadeTransition(
+                    opacity: animation,
+                    child: child,
+                  ),
+                );
+              },
+              child: Icon(
                 _isActive ? activeIcon : icon,
-                size: 22,
-                color: color,
+                key: ValueKey(_isActive),
+                size: 24,
+                color: _isActive
+                    ? _neonGreen
+                    : const Color(0xFF71717A), // textMuted
               ),
-              if (_isActive) ...[
-                const SizedBox(height: 2),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 9.5,
-                    fontWeight: FontWeight.w700,
-                    color: color,
-                    fontFamily: 'Inter',
+            ),
+            AnimatedSize(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOutExpo,
+              child: SizedBox(
+                width: _isActive ? null : 0,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 6),
+                  child: Text(
+                    label,
+                    style: GoogleFonts.spaceMono(
+                      color: _neonGreen,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.clip,
                   ),
                 ),
-              ]
-            ],
-          ),
+              ),
+            ),
+          ],
         ),
       ),
     );

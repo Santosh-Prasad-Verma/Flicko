@@ -18,13 +18,7 @@ class SpikeDashboardScreen extends StatelessWidget {
             onTap: () => context.go('/spike/livekit'),
             status: 'Pending',
           ),
-          _buildSpikeCard(
-            context,
-            title: 'Stripe Payments',
-            description: 'Test payment sheet and subscription flows.',
-            onTap: () => context.go('/spike/stripe'),
-            status: 'Pending',
-          ),
+
           _buildSpikeCard(
             context,
             title: 'Supabase Realtime',

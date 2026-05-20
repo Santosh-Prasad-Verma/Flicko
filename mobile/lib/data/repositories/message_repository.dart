@@ -4,8 +4,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:mobile/data/models/flicko_message.dart';
-import 'package:mobile/core/network/dio_client.dart';
+import 'package:mobile/data/clients/dio_client.dart';
 import 'package:mobile/core/services/appwrite_storage_service.dart';
+import 'package:mobile/core/config/app_config.dart';
 
 /// Repository for handling channel message-related data operations.
 /// 
@@ -91,6 +92,7 @@ class MessageRepository {
   }
 
   /// Sends a new message to a channel via the backend API.
+  /// Falls back to direct Supabase insert if the backend is unreachable.
   Future<String> sendMessage({
     required String channelId,
     required String content,
@@ -98,18 +100,37 @@ class MessageRepository {
     bool isSilent = false,
     List<FlickoAttachment>? attachments,
   }) async {
-    final payload = {
+    final userId = _client.auth.currentSession?.user.id;
+    if (userId == null) throw Exception('Not authenticated');
+
+    final payload = <String, dynamic>{
+      'channel_id': channelId,
+      'author_id': userId,
       'content': content,
       'type': replyToId != null ? 'reply' : 'default',
-      'reply_to_id': replyToId,
-      'is_silent': isSilent,
-      'attachments': attachments?.map((e) => e.toJson()).toList(),
+      if (replyToId != null) 'reply_to_id': replyToId,
+      if (attachments != null && attachments.isNotEmpty)
+        'attachments': attachments.map((e) => e.toJson()).toList(),
     };
 
-    final response = await _dio.post('/api/v1/channels/$channelId/messages', data: payload);
-    
-    // The API returns { id: "..." }
-    return response.data['id'] as String;
+    try {
+      if (AppConfig.hasApiBaseUrl) {
+        final apiPayload = {
+          'content': content,
+          'type': replyToId != null ? 'reply' : 'default',
+          'reply_to_id': replyToId,
+          'is_silent': isSilent,
+          'attachments': attachments?.map((e) => e.toJson()).toList(),
+        };
+        final response = await _dio.post('/api/v1/channels/$channelId/messages', data: apiPayload);
+        return response.data['id'] as String;
+      }
+      throw Exception('No API URL configured');
+    } catch (_) {
+      // Fallback: insert directly into Supabase
+      final response = await _client.from('messages').insert(payload).select('id').single();
+      return response['id'] as String;
+    }
   }
 
   /// Uploads an attachment to Appwrite Storage.
@@ -218,6 +239,56 @@ class MessageRepository {
           callback: (payload) => onChange(payload.eventType, payload.newRecord),
         )
         .subscribe();
+  }
+
+  /// Creates a thread from a message.
+  Future<String> createThread(String messageId, {String? title}) async {
+    final userId = _client.auth.currentSession?.user.id;
+    if (userId == null) throw Exception('Not authenticated');
+
+    final response = await _client.from('threads').insert({
+      'message_id': messageId,
+      'author_id': userId,
+      if (title != null) 'title': title,
+    }).select('id').single();
+
+    return response['id'] as String;
+  }
+
+  /// Fetches thread replies for a thread.
+  Future<List<FlickoMessage>> getThreadReplies(String threadId, {int limit = 50}) async {
+    final response = await _client.from('messages').select('''
+        *,
+        author:profiles!author_id(id, username, display_name, avatar_url:avatar),
+        reactions(emoji, user_id),
+        attachments(id, url, content_type:mime_type, filename, size, width, height)
+      ''').eq('thread_id', threadId)
+      .order('created_at', ascending: true)
+      .limit(limit);
+
+    final List<dynamic> rows = response;
+    return rows.map((json) {
+      final Map<String, dynamic> msg = Map<String, dynamic>.from(json);
+      return FlickoMessage.fromJson(msg);
+    }).toList();
+  }
+
+  /// Replies to a thread.
+  Future<String> replyToThread(String threadId, String content, {List<FlickoAttachment>? attachments}) async {
+    final userId = _client.auth.currentSession?.user.id;
+    if (userId == null) throw Exception('Not authenticated');
+
+    final response = await _client.from('messages').insert({
+      'channel_id': null,
+      'thread_id': threadId,
+      'author_id': userId,
+      'content': content,
+      'type': 'thread_reply',
+      if (attachments != null && attachments.isNotEmpty)
+        'attachments': attachments.map((e) => e.toJson()).toList(),
+    }).select('id').single();
+
+    return response['id'] as String;
   }
 }
 

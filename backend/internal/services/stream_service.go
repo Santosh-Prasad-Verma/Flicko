@@ -156,6 +156,11 @@ func (s *streamService) CreateStream(ctx context.Context, input CreateStreamInpu
 	}
 
 	// Insert stream
+	serverUUID, err := uuid.Parse(input.ServerID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid server_id: %w", err)
+	}
+
 	stream := &Stream{}
 	err = s.db.QueryRow(ctx,
 		`INSERT INTO streams (
@@ -165,7 +170,7 @@ func (s *streamService) CreateStream(ctx context.Context, input CreateStreamInpu
 		RETURNING id, user_id, channel_id, server_id, title, status,
 		          stream_type, max_quality, viewer_count, max_viewers,
 		          started_at, created_at, updated_at`,
-		userUUID, channelUUID, uuid.MustParse(input.ServerID),
+		userUUID, channelUUID, serverUUID,
 		input.Title, input.StreamType, maxQuality,
 	).Scan(
 		&stream.ID, &stream.UserID, &stream.ChannelID, &stream.ServerID,

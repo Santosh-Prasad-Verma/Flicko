@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
+import 'package:mobile/data/services/oauth_service.dart';
 import 'package:mobile/features/shared/presentation/widgets/keyboard_dismiss_on_tap.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -227,9 +228,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       // HIGH-002: Sanitize and validate inputs
       final sanitizedEmail = _emailController.text.trim().toLowerCase();
       final sanitizedUsername = trimmedUsername.replaceAll(RegExp(r'[^\w.-]'), '');
-      final sanitizedDisplayName = trimmedUsername
-          .replaceAll(RegExp(r'''[<>"'&]'''), '') // Remove XSS chars
-          .substring(0, 32); // Enforce max length
+      final _sanitizedName = trimmedUsername.replaceAll(RegExp(r'''[<>"'&]'''), '');
+      final sanitizedDisplayName = _sanitizedName.length > 32 ? _sanitizedName.substring(0, 32) : _sanitizedName;
 
       if (sanitizedUsername != trimmedUsername) {
         setState(() => _usernameError = 'Username contains invalid characters (only letters, numbers, _ . - allowed)');
@@ -303,6 +303,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     }
   }
 
+  final _oauthService = AppOAuthService();
+
   Future<void> _handleOAuth(String provider) async {
     setState(() {
       _oauthLoading = provider;
@@ -310,9 +312,30 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     });
 
     try {
-      // OAuth implementation would go here
-      await Future.delayed(const Duration(seconds: 1));
-      setState(() => _generalError = '$provider sign-up coming soon!');
+      AppOAuthResponse response;
+      
+      switch (provider.toLowerCase()) {
+        case 'google':
+          response = await _oauthService.signInWithGoogle();
+          break;
+        case 'apple':
+          response = await _oauthService.signInWithApple();
+          break;
+        case 'discord':
+          response = await _oauthService.signInWithDiscord();
+          break;
+        default:
+          response = AppOAuthResponse(success: false, error: 'Unknown provider');
+      }
+
+      if (!response.success || response.user == null) {
+        setState(() => _generalError = response.error ?? 'OAuth sign-in failed');
+        return;
+      }
+
+      if (mounted) {
+        context.go('/');
+      }
     } catch (e) {
       setState(() => _generalError = 'OAuth sign-up failed. Please try again.');
     } finally {

@@ -16,7 +16,7 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
   bool _isLoading = true;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-  final Color _limeColor = const Color(0xFFC8FF00);
+  final Color _limeColor = const Color(0xFF52B788);
 
   @override
   void initState() {

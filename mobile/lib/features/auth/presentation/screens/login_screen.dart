@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' hide OAuthResponse;
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/data/services/oauth_service.dart';
 import 'package:mobile/features/shared/presentation/widgets/keyboard_dismiss_on_tap.dart';
@@ -22,7 +22,7 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _oauthService = OAuthService();
+  final _oauthService = AppOAuthService();
   
   String? _emailError;
   String? _passwordError;
@@ -185,7 +185,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     });
 
     try {
-      OAuthResponse response;
+      AppOAuthResponse response;
       
       switch (provider.toLowerCase()) {
         case 'google':
@@ -194,19 +194,31 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         case 'apple':
           response = await _oauthService.signInWithApple();
           break;
+        case 'github':
+          response = await _oauthService.signInWithGitHub();
+          break;
         case 'discord':
           response = await _oauthService.signInWithDiscord();
           break;
         default:
-          response = OAuthResponse(success: false, error: 'Unknown provider');
+          response = AppOAuthResponse(success: false, error: 'Unknown provider');
       }
 
-      if (!response.success || response.user == null) {
+      if (!response.success) {
         setState(() => _generalError = response.error ?? 'OAuth sign-in failed');
         return;
       }
 
-      // Auth state automatically updated via authNotifierProvider listener
+      // Browser-redirect flows (Google/GitHub/Discord) return pending=true.
+      // The auth notifier listens for the deep-link callback; UI just
+      // closes the loader and stays on the login screen until the session
+      // arrives.
+      if (response.pending) return;
+
+      if (response.user == null) {
+        setState(() => _generalError = response.error ?? 'OAuth sign-in failed');
+        return;
+      }
 
       if (mounted) {
         context.go('/');

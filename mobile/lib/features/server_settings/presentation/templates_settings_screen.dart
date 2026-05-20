@@ -9,6 +9,8 @@ import 'package:mobile/features/shared/presentation/widgets/card.dart' as flicko
 import 'package:mobile/features/shared/presentation/widgets/input.dart';
 import 'package:mobile/features/shared/presentation/widgets/modal.dart';
 
+import 'dart:math';
+
 class TemplatesSettingsScreen extends ConsumerStatefulWidget {
   final String serverId;
 
@@ -126,12 +128,12 @@ class _TemplatesSettingsScreenState extends ConsumerState<TemplatesSettingsScree
 
       final response = await Supabase.instance.client
           .from('server_templates')
-          .insert({
+          .insert({'code': List.generate(12, (index) => 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'[Random().nextInt(62)]).join(),
             'name': preset['title'],
             'description': preset['description'],
             'source_server_id': widget.serverId,
             'creator_id': currentUser?.id,
-            'serialized_data': {
+            'template_data': {
               'channels': preset['channels'],
               'roles': preset['roles'],
             },
@@ -186,12 +188,12 @@ class _TemplatesSettingsScreenState extends ConsumerState<TemplatesSettingsScree
 
       final response = await Supabase.instance.client
           .from('server_templates')
-          .insert({
+          .insert({'code': List.generate(12, (index) => 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'[Random().nextInt(62)]).join(),
             'name': name,
             'description': _descController.text.trim(),
             'source_server_id': widget.serverId,
             'creator_id': currentUser?.id,
-            'serialized_data': {'channels': [], 'roles': []},
+            'template_data': {'channels': [], 'roles': []},
             'usage_count': 0,
             'created_at': DateTime.now().toIso8601String(),
           })
@@ -485,7 +487,7 @@ class _TemplatesSettingsScreenState extends ConsumerState<TemplatesSettingsScree
   }
 
   Widget _buildTemplateCard(Map<String, dynamic> template) {
-    final data = template['serialized_data'] as Map<String, dynamic>? ?? {};
+    final data = template['template_data'] as Map<String, dynamic>? ?? {};
     final channels = (data['channels'] as List?)?.length ?? 0;
     final roles = (data['roles'] as List?)?.length ?? 0;
 

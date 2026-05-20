@@ -1,13 +1,14 @@
 import 'package:cryptography_flutter/cryptography_flutter.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/config/env.dart';
 import 'core/config/app_config.dart';
 import 'core/router/app_router.dart';
+import 'core/services/push_notification_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/services/translation_service.dart';
 
@@ -30,18 +31,20 @@ void main() async {
     runApp(ConfigErrorApp(missingKeys: missingStartupConfig));
     return;
   }
-
-  // Initialize Stripe SDK
-  if (AppConfig.stripePublishableKey.isNotEmpty) {
-    Stripe.publishableKey = AppConfig.stripePublishableKey;
-    await Stripe.instance.applySettings();
-  }
-
   // Initialize Supabase
   await Supabase.initialize(
     url: AppConfig.supabaseUrl,
     anonKey: AppConfig.supabaseAnonKey,
   );
+
+  // Initialize Firebase before any FCM call. Wrapped in try/catch so the app
+  // still launches if google-services.json hasn't been added yet.
+  try {
+    await Firebase.initializeApp();
+    await PushNotificationService().initialize();
+  } catch (e) {
+    debugPrint('Firebase init skipped: $e');
+  }
 
   final container = ProviderContainer();
   await container.read(translationServiceProvider.notifier).loadLocale('en');

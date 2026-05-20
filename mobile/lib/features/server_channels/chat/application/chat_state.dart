@@ -13,5 +13,6 @@ abstract class ChatState with _$ChatState {
     @Default(false) bool isSending,
     @Default(true) bool hasMore,
     String? errorMessage,
+    String? activeThreadId,
   }) = _ChatState;
 }

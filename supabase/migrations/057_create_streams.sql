@@ -1,6 +1,16 @@
 -- 057_create_streams.sql
 -- Streams table for Go Live feature
 
+-- Ensure update_updated_at_column exists (normally created in migration 062, 
+-- but needed here for trigger creation)
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 CREATE TABLE IF NOT EXISTS streams (
   id              uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id         uuid        NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,

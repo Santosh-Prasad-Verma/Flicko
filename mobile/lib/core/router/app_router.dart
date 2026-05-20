@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import 'package:mobile/features/spike/spike_dashboard_screen.dart';
 import 'package:mobile/features/spike/livekit_spike_screen.dart';
-import 'package:mobile/features/spike/stripe_spike_screen.dart';
 import 'package:mobile/features/spike/supabase_spike_screen.dart';
 import 'package:mobile/features/auth/presentation/screens/login_screen.dart';
 import 'package:mobile/features/auth/presentation/screens/register_screen.dart';
@@ -46,7 +45,11 @@ import 'package:mobile/features/e2ee/presentation/e2ee_settings_screen.dart';
 import 'package:mobile/features/settings/presentation/share_profile_screen.dart';
 
 // Premium
-import 'package:mobile/features/premium/presentation/flicko_plus_screen.dart';
+import 'package:mobile/features/premium/presentation/premium_billing_screen.dart';
+
+// Store & Creator
+import 'package:mobile/features/store/presentation/store_screen.dart';
+import 'package:mobile/features/creator/presentation/creator_screen.dart';
 
 // Friends
 import 'package:mobile/features/friends/presentation/friend_requests_screen.dart';
@@ -55,7 +58,9 @@ import 'package:mobile/features/friends/presentation/friends_list_screen.dart';
 // Server Settings
 import 'package:mobile/features/server_settings/presentation/server_settings_hub_screen.dart';
 import 'package:mobile/features/server_settings/presentation/server_overview_screen.dart';
-import 'package:mobile/features/server_settings/presentation/placeholder_settings_screens.dart' hide BotsSettingsScreen, WebhooksSettingsScreen, OnboardingSettingsScreen, TemplatesSettingsScreen;
+import 'package:mobile/features/server_settings/presentation/placeholder_settings_screens.dart' hide BotsSettingsScreen, WebhooksSettingsScreen, OnboardingSettingsScreen, TemplatesSettingsScreen, EmojisSettingsScreen, ModerationSettingsScreen;
+import 'package:mobile/features/server_settings/presentation/safety_setup_screen.dart';
+import 'package:mobile/features/server_settings/presentation/emoji_management_screen.dart';
 import 'package:mobile/features/server_settings/presentation/channels_settings_screen.dart';
 import 'package:mobile/features/server_settings/presentation/roles_settings_screen.dart';
 import 'package:mobile/features/server_settings/presentation/audit_log_screen.dart';
@@ -80,7 +85,6 @@ import 'package:mobile/features/server_channels/presentation/create_channel_scre
 import 'package:mobile/features/server_settings/presentation/boosts_settings_screen.dart';
 import 'package:mobile/features/server_settings/presentation/invites_settings_screen.dart';
 import 'package:mobile/features/server_settings/presentation/leaderboard_settings_screen.dart';
-import 'package:mobile/features/server_settings/presentation/overview_settings_screen.dart';
 import 'package:mobile/features/notifications/presentation/notifications_screen.dart';
 import 'package:mobile/features/profile/presentation/profile_view_screen.dart';
 import 'package:mobile/features/server_settings/presentation/webhooks_settings_screen.dart';
@@ -97,6 +101,8 @@ import 'package:mobile/features/voice/presentation/sonic_drip_screen.dart';
 // Gaming
 import 'package:mobile/features/gaming/presentation/screens/gaming_hub_screen.dart';
 import 'package:mobile/features/gaming/presentation/screens/matchmaking_screen.dart';
+import 'package:mobile/features/gaming/presentation/screens/chess_game_screen.dart';
+import 'package:mobile/features/gaming/presentation/screens/ludo_game_screen.dart';
 
 // Forum
 import 'package:mobile/features/server_channels/forum/presentation/screens/forum_channel_screen.dart' hide ThreadViewScreen;
@@ -149,6 +155,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               index,
               initialLocation: index == navigationShell.currentIndex,
             ),
+            currentLocation: state.matchedLocation,
             child: navigationShell,
           );
         },
@@ -332,13 +339,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               serverId: state.pathParameters['serverId']!,
             ),
             routes: [
-              GoRoute(path: 'overview', builder: (context, state) => OverviewSettingsScreen(serverId: state.pathParameters['serverId']!)),
+              GoRoute(path: 'overview', builder: (context, state) => ServerOverviewScreen(serverId: state.pathParameters['serverId']!)),
               GoRoute(path: 'channels', builder: (context, state) => ChannelsSettingsScreen(serverId: state.pathParameters['serverId']!)),
               GoRoute(path: 'roles', builder: (context, state) => RolesSettingsScreen(serverId: state.pathParameters['serverId']!)),
               GoRoute(path: 'roles/:roleId', builder: (context, state) => RoleEditorScreen(serverId: state.pathParameters['serverId']!, roleId: state.pathParameters['roleId']!)),
-              GoRoute(path: 'emojis', builder: (context, state) => EmojisSettingsScreen(serverId: state.pathParameters['serverId']!)),
+              GoRoute(path: 'emojis', builder: (context, state) => EmojiManagementScreen(serverId: state.pathParameters['serverId']!)),
               GoRoute(path: 'stickers', builder: (context, state) => StickersManagementScreen(serverId: state.pathParameters['serverId']!)),
-              GoRoute(path: 'moderation', builder: (context, state) => ModerationSettingsScreen(serverId: state.pathParameters['serverId']!)),
+              GoRoute(path: 'moderation', builder: (context, state) => SafetySetupScreen(serverId: state.pathParameters['serverId']!)),
               GoRoute(path: 'automod', builder: (context, state) => AutomodSettingsScreen(serverId: state.pathParameters['serverId']!)),
               GoRoute(path: 'audit-log', builder: (context, state) => AuditLogScreen(serverId: state.pathParameters['serverId']!)),
               GoRoute(path: 'bans', builder: (context, state) => BansScreen(serverId: state.pathParameters['serverId']!)),
@@ -416,8 +423,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
 
       // Premium
-      GoRoute(path: '/premium/plus', builder: (context, state) => const FlickoPlusScreen()),
-      GoRoute(path: '/premium/nitro', builder: (context, state) => const FlickoPlusScreen()),
+      GoRoute(path: '/premium/plus', builder: (context, state) => const PremiumBillingScreen()),
+      GoRoute(path: '/premium/nitro', builder: (context, state) => const PremiumBillingScreen()),
+
+      // Store & Creator
+      GoRoute(path: '/store', builder: (context, state) => const StoreScreen()),
+      GoRoute(path: '/creator', builder: (context, state) => const CreatorScreen()),
 
       // Gaming
       GoRoute(path: '/gaming', builder: (context, state) => const GamingHubScreen()),
@@ -427,11 +438,44 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           activityName: state.uri.queryParameters['activity'] ?? 'Chess',
         ),
       ),
+      GoRoute(
+        path: '/gaming/chess/:gameId',
+        builder: (context, state) => ChessGameScreen(
+          gameId: state.pathParameters['gameId']!,
+        ),
+      ),
+      GoRoute(
+        path: '/gaming/ludo/:gameId',
+        builder: (context, state) => LudoGameScreen(
+          gameId: state.pathParameters['gameId']!,
+        ),
+      ),
+
+      // ── Legacy /u/* alias routes — redirect to /profile/* ──
+      // Some screens still link to /u/settings, /u/<userId>, etc. Keep them
+      // working without duplicating the route tree.
+      GoRoute(
+        path: '/u',
+        redirect: (context, state) => '/profile',
+      ),
+      GoRoute(
+        path: '/u/settings',
+        redirect: (context, state) => '/profile/settings',
+      ),
+      GoRoute(
+        path: '/u/settings/:section',
+        redirect: (context, state) =>
+            '/profile/settings/${state.pathParameters['section']}',
+      ),
+      GoRoute(
+        path: '/u/:userId',
+        redirect: (context, state) =>
+            '/profile/${state.pathParameters['userId']}',
+      ),
 
       // ── Spike / Dev Routes ──
       GoRoute(path: '/spike', builder: (context, state) => const SpikeDashboardScreen()),
       GoRoute(path: '/spike/livekit', builder: (context, state) => const LiveKitSpikeScreen()),
-      GoRoute(path: '/spike/stripe', builder: (context, state) => const StripeSpikeScreen()),
       GoRoute(path: '/spike/supabase', builder: (context, state) => const SupabaseSpikeScreen()),
     ],
   );

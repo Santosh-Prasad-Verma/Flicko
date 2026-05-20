@@ -1,0 +1,140 @@
+Analyzing mobile...                                             
+
+warning • Unused import: 'package:mobile/features/profile/presentation/profile_screen.dart' • lib/core/router/app_router.dart:15:8 • unused_import
+warning • Unused import: 'package:mobile/features/profile/presentation/public_profile_screen.dart' • lib/core/router/app_router.dart:16:8 • unused_import
+warning • Unused import: 'package:mobile/features/settings/presentation/storage_screen.dart' • lib/core/router/app_router.dart:37:8 • unused_import
+warning • 'StreamAudioSource' is experimental and could be removed or changed at any time • lib/core/services/audio_service.dart:293:33 • experimental_member_use
+warning • 'StreamAudioResponse' is experimental and could be removed or changed at any time • lib/core/services/audio_service.dart:300:10 • experimental_member_use
+warning • 'StreamAudioResponse' is experimental and could be removed or changed at any time • lib/core/services/audio_service.dart:304:12 • experimental_member_use
+warning • The value of the field '_currentChannelId' isn't used • lib/core/services/presence_service.dart:42:11 • unused_field
+warning • The value of the field '_currentLocale' isn't used • lib/core/services/translation_service.dart:8:10 • unused_field
+warning • Unused import: 'package:path/path.dart' • lib/data/repositories/message_repository.dart:5:8 • unused_import
+warning • Unnecessary cast • lib/data/repositories/server_repository.dart:72:35 • unnecessary_cast
+warning • Unnecessary cast • lib/data/repositories/server_repository.dart:121:43 • unnecessary_cast
+warning • The value of the field '_maxRequestsPerDay' isn't used • lib/data/services/giphy_service.dart:15:20 • unused_field
+   info • 'roomOptions' is deprecated and shouldn't be used. deprecated, please use roomOptions in Room constructor • lib/data/services/livekit_service.dart:29:7 • deprecated_member_use
+warning • The operand can't be 'null', so the condition is always 'true' • lib/features/auth/application/auth_notifier.dart:42:43 • unnecessary_null_comparison
+warning • The '!' will have no effect because the receiver can't be null • lib/features/auth/application/auth_notifier.dart:44:72 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null • lib/features/auth/application/auth_notifier.dart:46:35 • unnecessary_non_null_assertion
+warning • The '!' will have no effect because the receiver can't be null • lib/features/auth/application/auth_notifier.dart:51:35 • unnecessary_non_null_assertion
+   info • The private field _paths could be 'final' • lib/features/collaboration/presentation/shared_whiteboard.dart:41:18 • prefer_final_fields
+   info • 'value' is deprecated and shouldn't be used. Use component accessors like .r or .g, or toARGB32 for an explicit conversion • lib/features/collaboration/presentation/shared_whiteboard.dart:161:34 • deprecated_member_use
+warning • Unused import: 'package:path/path.dart' • lib/features/direct_messages/data/dm_repository.dart:4:8 • unused_import
+warning • Unused import: 'package:mobile/data/models/user_model.dart' • lib/features/direct_messages/data/dm_repository.dart:7:8 • unused_import
+   info • Unnecessary braces in a string interpolation • lib/features/direct_messages/data/dm_repository.dart:215:36 • unnecessary_brace_in_string_interps
+warning • Unused import: 'package:mobile/data/models/user_model.dart' • lib/features/direct_messages/presentation/controllers/dm_controller.dart:6:8 • unused_import
+   info • 'encryptedSharedPreferences' is deprecated and shouldn't be used. EncryptedSharedPreferences is deprecated and will be removed in v11. The Jetpack Security library is deprecated by Google. Your data will be automatically migrated to custom ciphers on first access. Remove this parameter - it will be ignored • lib/features/e2ee/data/ratchet_wal_store.dart:223:40 • deprecated_member_use
+   info • 'encryptedSharedPreferences' is deprecated and shouldn't be used. EncryptedSharedPreferences is deprecated and will be removed in v11. The Jetpack Security library is deprecated by Google. Your data will be automatically migrated to custom ciphers on first access. Remove this parameter - it will be ignored • lib/features/e2ee/data/secure_keystore.dart:37:40 • deprecated_member_use
+   info • The addition of multiple elements could be inlined • lib/features/e2ee/domain/crypto_service.dart:162:9 • prefer_spread_collections
+   info • The addition of multiple elements could be inlined • lib/features/e2ee/domain/crypto_service.dart:201:9 • prefer_spread_collections
+   info • Angle brackets will be interpreted as HTML • lib/features/e2ee/domain/identity_verification.dart:109:60 • unintended_html_in_doc_comment
+   info • Angle brackets will be interpreted as HTML • lib/features/e2ee/domain/identity_verification.dart:109:69 • unintended_html_in_doc_comment
+warning • The value of the field '_x25519' isn't used • lib/features/e2ee/domain/multi_device.dart:127:16 • unused_field
+warning • The declaration '_copySkipped' isn't referenced • lib/features/e2ee/domain/ratchet.dart:173:32 • unused_element
+warning • The value of the local variable 'dhsPriv' isn't used • lib/features/e2ee/domain/ratchet.dart:227:11 • unused_local_variable
+warning • The value of the local variable 'ikm' isn't used • lib/features/e2ee/domain/ratchet.dart:236:11 • unused_local_variable
+warning • The value of the local variable 'allBytes' isn't used • lib/features/e2ee/domain/ratchet.dart:287:11 • unused_local_variable
+   info • Unnecessary braces in a string interpolation • lib/features/e2ee/domain/ratchet.dart:290:49 • unnecessary_brace_in_string_interps
+   info • Unnecessary braces in a string interpolation • lib/features/e2ee/domain/ratchet.dart:291:46 • unnecessary_brace_in_string_interps
+warning • Unused import: 'protocol_info.dart' • lib/features/e2ee/domain/x3dh.dart:21:8 • unused_import
+   info • The private field _isLoading could be 'final' • lib/features/friends/presentation/friend_requests_screen.dart:22:8 • prefer_final_fields
+warning • The value of the field '_initialFEN' isn't used • lib/features/gaming/presentation/screens/chess_game_screen.dart:25:23 • unused_field
+warning • The value of the local variable 'isOwner' isn't used • lib/features/home/presentation/feed_screen.dart:456:11 • unused_local_variable
+warning • The value of the field '_refreshing' isn't used • lib/features/home/presentation/notifications_tab_screen.dart:27:8 • unused_field
+warning • The value of the local variable 'avatarUrl' isn't used • lib/features/home/presentation/servers_screen.dart:18:11 • unused_local_variable
+   info • Unnecessary use of 'toList' in a spread • lib/features/home/presentation/widgets/home_view.dart:42:66 • unnecessary_to_list_in_spreads
+   info • The private field _isLoading could be 'final' • lib/features/search/presentation/search_screen.dart:22:8 • prefer_final_fields
+warning • Unused import: 'package:flutter_animate/flutter_animate.dart' • lib/features/server/presentation/create_server_screen.dart:8:8 • unused_import
+warning • The value of the field 'grey' isn't used • lib/features/server/presentation/create_server_screen.dart:108:22 • unused_field
+warning • The value of the field '_errorDetail' isn't used • lib/features/server/presentation/discover_servers_screen.dart:46:11 • unused_field
+   info • Unnecessary braces in a string interpolation • lib/features/server/presentation/discover_servers_screen.dart:555:24 • unnecessary_brace_in_string_interps
+warning • The value of the local variable 'currentUserId' isn't used • lib/features/server_channels/chat/presentation/screens/chat_screen.dart:181:29 • unused_local_variable
+   info • 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre • lib/features/server_channels/chat/presentation/widgets/poll_creator_modal.dart:270:19 • deprecated_member_use
+warning • Unused import: 'package:mobile/features/auth/application/auth_notifier.dart' • lib/features/server_channels/forum/presentation/screens/forum_channel_screen.dart:6:8 • unused_import
+warning • The value of the field '_createVisible' isn't used • lib/features/server_channels/forum/presentation/screens/forum_channel_screen.dart:90:8 • unused_field
+warning • The declaration '_handleLoadMore' isn't referenced • lib/features/server_channels/forum/presentation/screens/forum_channel_screen.dart:195:8 • unused_element
+   info • Don't use 'BuildContext's across async gaps • lib/features/server_channels/stage/presentation/screens/stage_channel_screen.dart:209:28 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/features/server_channels/stage/presentation/screens/stage_channel_screen.dart:224:28 • use_build_context_synchronously
+   info • The import of 'package:mobile/data/models/auth_state.dart' is unnecessary because all of the used elements are also provided by the import of 'package:mobile/features/auth/application/auth_notifier.dart' • lib/features/server_channels/thread/presentation/screens/thread_view_screen.dart:6:8 • unnecessary_import
+warning • The value of the local variable 'connectionLabel' isn't used • lib/features/server_channels/voice/presentation/screens/voice_channel_screen.dart:183:11 • unused_local_variable
+warning • The left operand can't be null, so the right operand is never executed • lib/features/server_channels/voice/presentation/screens/voice_channel_screen.dart:327:45 • dead_null_aware_expression
+   info • The private field _isLoading could be 'final' • lib/features/server_channels/voice/presentation/widgets/activity_picker.dart:29:8 • prefer_final_fields
+   info • The private field _isLoading could be 'final' • lib/features/server_channels/voice/presentation/widgets/soundboard.dart:29:8 • prefer_final_fields
+   info • 'window' is deprecated and shouldn't be used. Look up the current FlutterView from the context via View.of(context) or consult the PlatformDispatcher directly instead. Deprecated to prepare for the upcoming multi-window support. This feature was deprecated after v3.7.0-32.0.pre • lib/features/server_channels/voice/presentation/widgets/video_grid.dart:227:72 • deprecated_member_use
+warning • Unused import: 'package:flutter/material.dart' • lib/features/server_settings/data/bot_marketplace_data.dart:1:8 • unused_import
+   info • 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre • lib/features/server_settings/presentation/bot_automod_settings_screen.dart:163:15 • deprecated_member_use
+   info • 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre • lib/features/server_settings/presentation/bot_automod_settings_screen.dart:233:7 • deprecated_member_use
+   info • 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre • lib/features/server_settings/presentation/bot_leveling_settings_screen.dart:164:15 • deprecated_member_use
+   info • 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre • lib/features/server_settings/presentation/bot_leveling_settings_screen.dart:224:7 • deprecated_member_use
+   info • 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre • lib/features/server_settings/presentation/bot_moderation_settings_screen.dart:163:15 • deprecated_member_use
+   info • 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre • lib/features/server_settings/presentation/bot_moderation_settings_screen.dart:223:7 • deprecated_member_use
+   info • 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre • lib/features/server_settings/presentation/bot_music_settings_screen.dart:164:15 • deprecated_member_use
+   info • 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre • lib/features/server_settings/presentation/bot_music_settings_screen.dart:223:7 • deprecated_member_use
+   info • 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre • lib/features/server_settings/presentation/bot_poll_settings_screen.dart:163:15 • deprecated_member_use
+   info • 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre • lib/features/server_settings/presentation/bot_poll_settings_screen.dart:220:7 • deprecated_member_use
+   info • 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre • lib/features/server_settings/presentation/bot_starboard_settings_screen.dart:163:15 • deprecated_member_use
+   info • 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre • lib/features/server_settings/presentation/bot_starboard_settings_screen.dart:219:7 • deprecated_member_use
+   info • 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre • lib/features/server_settings/presentation/bot_ticket_settings_screen.dart:164:15 • deprecated_member_use
+   info • 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre • lib/features/server_settings/presentation/bot_ticket_settings_screen.dart:222:7 • deprecated_member_use
+   info • 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre • lib/features/server_settings/presentation/bot_welcome_settings_screen.dart:186:15 • deprecated_member_use
+   info • 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre • lib/features/server_settings/presentation/bot_welcome_settings_screen.dart:311:7 • deprecated_member_use
+   info • Don't use 'BuildContext's across async gaps • lib/features/server_settings/presentation/bots_settings_screen.dart:188:28 • use_build_context_synchronously
+   info • 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre • lib/features/server_settings/presentation/bots_settings_screen.dart:436:19 • deprecated_member_use
+   info • 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor or activeTrackColor instead. This feature was deprecated after v3.31.0-2.0.pre • lib/features/server_settings/presentation/onboarding_settings_screen.dart:547:13 • deprecated_member_use
+   info • 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre • lib/features/server_settings/presentation/overview_settings_screen.dart:249:7 • deprecated_member_use
+   info • Unnecessary use of 'toList' in a spread • lib/features/server_settings/presentation/role_editor_screen.dart:382:14 • unnecessary_to_list_in_spreads
+   info • 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre • lib/features/server_settings/presentation/role_editor_screen.dart:439:13 • deprecated_member_use
+   info • Unnecessary braces in a string interpolation • lib/features/server_settings/presentation/stickers_management_screen.dart:185:37 • unnecessary_brace_in_string_interps
+warning • The value of the field '_showCreateModal' isn't used • lib/features/server_settings/presentation/templates_settings_screen.dart:28:8 • unused_field
+warning • The value of the field '_showCreateModal' isn't used • lib/features/server_settings/presentation/webhooks_settings_screen.dart:27:8 • unused_field
+warning • The value of the local variable 'url' isn't used • lib/features/server_settings/presentation/webhooks_settings_screen.dart:199:11 • unused_local_variable
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/features/settings/presentation/account_settings_screen.dart:597:30 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/features/settings/presentation/account_settings_screen.dart:663:30 • use_build_context_synchronously
+warning • Unused import: 'package:mobile/core/constants/flicko_colors.dart' • lib/features/settings/presentation/billing_settings_screen.dart:5:8 • unused_import
+   info • Statements in an if should be enclosed in a block • lib/features/settings/presentation/edit_profile_screen.dart:244:11 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/features/settings/presentation/edit_profile_screen.dart:246:11 • curly_braces_in_flow_control_structures
+   info • Instances of 'Color' should be created using an 8-digit hexadecimal integer (such as '0xFFFFFFFF') • lib/features/shared/presentation/widgets/avatar.dart:56:28 • use_full_hex_values_for_flutter_colors
+   info • Instances of 'Color' should be created using an 8-digit hexadecimal integer (such as '0xFFFFFFFF') • lib/features/shared/presentation/widgets/avatar.dart:58:28 • use_full_hex_values_for_flutter_colors
+   info • Instances of 'Color' should be created using an 8-digit hexadecimal integer (such as '0xFFFFFFFF') • lib/features/shared/presentation/widgets/avatar.dart:60:28 • use_full_hex_values_for_flutter_colors
+   info • Instances of 'Color' should be created using an 8-digit hexadecimal integer (such as '0xFFFFFFFF') • lib/features/shared/presentation/widgets/avatar.dart:62:28 • use_full_hex_values_for_flutter_colors
+   info • Instances of 'Color' should be created using an 8-digit hexadecimal integer (such as '0xFFFFFFFF') • lib/features/shared/presentation/widgets/avatar.dart:64:28 • use_full_hex_values_for_flutter_colors
+warning • The declaration '_handleError' isn't referenced • lib/features/shared/presentation/widgets/error_boundary.dart:30:8 • unused_element
+warning • The value of the field '_isFocused' isn't used • lib/features/shared/presentation/widgets/input.dart:43:13 • unused_field
+   info • The import of 'package:flutter/services.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/material.dart' • lib/features/shared/presentation/widgets/modal.dart:2:8 • unnecessary_import
+   info • The private field _recentItems could be 'final' • lib/features/shared/presentation/widgets/quick_switcher.dart:44:22 • prefer_final_fields
+warning • Unused import: 'package:google_fonts/google_fonts.dart' • lib/features/shared/presentation/widgets/skeleton_loader.dart:2:8 • unused_import
+   info • Instances of 'Color' should be created using an 8-digit hexadecimal integer (such as '0xFFFFFFFF') • lib/features/shared/presentation/widgets/unread_badge.dart:44:23 • use_full_hex_values_for_flutter_colors
+   info • Instances of 'Color' should be created using an 8-digit hexadecimal integer (such as '0xFFFFFFFF') • lib/features/shared/presentation/widgets/unread_badge.dart:104:37 • use_full_hex_values_for_flutter_colors
+   info • Don't invoke 'print' in production code • lib/features/spike/supabase_spike_screen.dart:62:9 • avoid_print
+   info • Don't invoke 'print' in production code • lib/features/spike/supabase_spike_screen.dart:66:9 • avoid_print
+   info • 'roomOptions' is deprecated and shouldn't be used. deprecated, please use roomOptions in Room constructor • lib/features/voice/data/voice_repository.dart:35:43 • deprecated_member_use
+   info • Dangling library doc comment • lib/features/voice/domain/music_models.dart:1:1 • dangling_library_doc_comments
+   info • Unnecessary use of '??' with 'null' • lib/features/voice/domain/voice_models.g.dart:40:58 • unnecessary_null_in_if_null_operators
+   info • Don't invoke 'print' in production code • lib/features/voice/presentation/controllers/voice_controller.dart:119:7 • avoid_print
+warning • Unused import: '../domain/music_models.dart' • lib/features/voice/presentation/sonic_drip_screen.dart:6:8 • unused_import
+warning • The value of the field '_lime' isn't used • lib/features/voice/presentation/sonic_drip_screen.dart:16:16 • unused_field
+warning • The value of the field '_white' isn't used • lib/features/voice/presentation/sonic_drip_screen.dart:18:16 • unused_field
+warning • The value of the field '_surface' isn't used • lib/features/voice/presentation/sonic_drip_screen.dart:19:16 • unused_field
+warning • Unused import: 'package:mobile/features/voice/application/music_notifier.dart' • lib/features/voice/presentation/soundboard_sheet.dart:5:8 • unused_import
+warning • Unused import: 'package:mobile/core/config/app_config.dart' • lib/features/voice/presentation/spotify_connect_screen.dart:5:8 • unused_import
+warning • The value of the field '_grey' isn't used • lib/features/voice/presentation/widgets/now_playing_card.dart:16:16 • unused_field
+   info • Missing type annotation • lib/features/voice/presentation/widgets/voice_hud.dart:66:32 • strict_top_level_inference
+   info • 'enable' is deprecated and shouldn't be used. Calling this is no longer necessary. Flutter will enable the plugin automatically • lib/main.dart:19:23 • deprecated_member_use
+   info • Dangling library doc comment • test/e2ee/e2ee_benchmark_test.dart:1:1 • dangling_library_doc_comments
+   info • Dangling library doc comment • test/e2ee/e2ee_pbt_test.dart:1:1 • dangling_library_doc_comments
+warning • Unused import: 'package:mobile/features/e2ee/domain/sealed_sender.dart' • test/e2ee/e2ee_pbt_test.dart:16:8 • unused_import
+   info • The local variable '_randomBytes' starts with an underscore • test/e2ee/e2ee_pbt_test.dart:28:13 • no_leading_underscores_for_local_identifiers
+warning • The value of the local variable 'b1' isn't used • test/e2ee/e2ee_pbt_test.dart:169:15 • unused_local_variable
+warning • Unused import: 'dart:convert' • test/e2ee/ratchet_wal_store_test.dart:1:8 • unused_import
+warning • Unused import: 'package:crypto/crypto.dart' • test/e2ee/ratchet_wal_store_test.dart:5:8 • unused_import
+   info • The import of 'package:sqflite_common/sqlite_api.dart' is unnecessary because all of the used elements are also provided by the import of 'package:sqflite_common_ffi/sqflite_ffi.dart' • test/e2ee/ratchet_wal_store_test.dart:11:8 • unnecessary_import
+   info • The imported package 'sqflite_common' isn't a dependency of the importing package • test/e2ee/ratchet_wal_store_test.dart:11:8 • depend_on_referenced_packages
+warning • Unused import: 'package:path/path.dart' • test/e2ee/ratchet_wal_store_test.dart:12:8 • unused_import
+   info • Can't use a relative path to import a library in 'lib' • test/e2ee/ratchet_wal_store_test.dart:16:8 • avoid_relative_lib_imports
+   info • Can't use a relative path to import a library in 'lib' • test/e2ee/ratchet_wal_store_test.dart:17:8 • avoid_relative_lib_imports
+   info • The local variable '_createDummyState' starts with an underscore • test/e2ee/ratchet_wal_store_test.dart:106:24 • no_leading_underscores_for_local_identifiers
+   info • The local variable '_openRawDb' starts with an underscore • test/e2ee/ratchet_wal_store_test.dart:120:12 • no_leading_underscores_for_local_identifiers
+   info • Don't invoke 'print' in production code • test/e2ee/ratchet_wal_store_test.dart:197:9 • avoid_print
+warning • The value of the local variable 'count' isn't used • test/e2ee/ratchet_wal_store_test.dart:220:11 • unused_local_variable
+warning • Unused import: 'package:mobile/features/voice/presentation/controllers/voice_state.dart' • test/unit/features/voice/voice_controller_test.dart:4:8 • unused_import
+

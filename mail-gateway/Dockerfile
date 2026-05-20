@@ -38,6 +38,11 @@ COPY --from=builder /app/server .
 # Copy email templates
 COPY --from=builder /app/templates/ ./templates/
 
+# Create non-root user for security
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+RUN chown -R appuser:appgroup /app
+USER appuser
+
 # Expose the server port
 EXPOSE 8080
 

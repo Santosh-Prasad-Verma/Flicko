@@ -31,7 +31,7 @@ class IncomingCallScreen extends StatefulWidget {
 class _IncomingCallScreenState extends State<IncomingCallScreen> with TickerProviderStateMixin {
   // ── Design Tokens ──
   static const _bg = Color(0xFF0A0A0A);
-  static const _neonGreen = Color(0xFFCBEF17);
+  static const _neonGreen = Color(0xFF52B788);
   static const _gridColor = Color(0xFF1A1A1A);
   static const _textDim = Color(0xFF555555);
   static const _textMid = Color(0xFF888888);

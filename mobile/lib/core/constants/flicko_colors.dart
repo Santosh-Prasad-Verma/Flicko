@@ -1,54 +1,60 @@
 /// Flicko color palette constants.
 ///
-/// Mirrors the Discord-like theme system from the React Native app
-/// (`constants/Colors.ts`). All values use the same hex codes.
+/// Neon Lime & Pitch Black theme system.
+/// Primary accent: #52B788 (Neon Lime)
+/// Background: Pure black / near-black
 class FlickoColors {
   FlickoColors._();
 
   // ── Primary Brand ──
-  static const int blurple = 0xFF8B5CF6; // Rebranded to Purple
-  static const int blurpleLight = 0xFFA78BFA; // Rebranded to light violet
-  static const int pink = 0xFFEB459E;
-  static const int green = 0xFF57F287;
-  static const int greenDark = 0xFF248046;
-  static const int neonGreen = 0xFFC8FF00;
+  static const int brandLime = 0xFF52B788; // Soft emerald/sage green — primary accent
+  static const int brandLimeDim = 0xFF40916C; // Dimmed soft green for subtle accents
+  static const int emeraldGreen = 0xFF10B981; // Emerald Green — used in activity/notifications and softer message screens
+
+  // Legacy aliases → mapped to soft green for backward compat
+  static const int blurple = brandLime;
+  static const int blurpleLight = brandLimeDim;
+  static const int black = 0xFF000000;
+  static const int green = 0xFF52B788;
+  static const int greenDark = 0xFF2D6A4F;
+  static const int neonGreen = 0xFF52B788;
   static const int yellow = 0xFFFEE75C;
   static const int red = 0xFFED4245;
   static const int fuchsia = 0xFFF47FFF;
   static const int gold = 0xFFFAA61A;
+  static const int pink = 0xFFEB459E;
 
-  static const int brandLime = 0xFF8B5CF6; // Rebranded to Purple
-  static const int black = 0xFF000000;
-  static const int bgPrimary = 0xFF0D0B14; // Rebranded Background
-  static const int bgSecondary = 0xFF141124;
-  static const int bgTertiary = 0xFF1A1730;
-  static const int bgFloating = 0xFF0D0B14;
+  // ── Background ──
+  static const int bgPrimary = 0xFF050505; // Near-pure black
+  static const int bgSecondary = 0xFF0F0F0F; // Slightly lighter
+  static const int bgTertiary = 0xFF1A1A1A; // Card / elevated surface
+  static const int bgFloating = 0xFF0A0A0A; // Floating panels
 
   // ── Dark Theme Text ──
   static const int textPrimary = 0xFFFFFFFF;
-  static const int textSecondary = 0xFFC4B5FD; // Rebranded to light violet
-  static const int textMuted = 0xFF7A7593;
-  static const int textLink = 0xFFC4B5FD;
+  static const int textSecondary = 0xFFB0B0B0;
+  static const int textMuted = 0xFF666666;
+  static const int textLink = brandLime;
 
   // ── Status ──
-  static const int statusOnline = 0xFF22C55E; // Green for online
+  static const int statusOnline = 0xFF22C55E;
   static const int statusIdle = 0xFFF0B232;
   static const int statusDnd = 0xFFED4245;
-  static const int statusOffline = 0xFF80848E;
+  static const int statusOffline = 0xFF555555;
 
   // ── Semantic ──
-  static const int success = 0xFF22C55E; // Green for success
+  static const int success = 0xFF22C55E;
   static const int warning = 0xFFFEE75C;
   static const int danger = 0xFFED4245;
-  static const int info = 0xFF8B5CF6;
+  static const int info = brandLime;
 
   // ── Accent / Aliases ──
   static const int accentPrimary = brandLime;
-  static const int accentSecondary = 0xFFA78BFA; // Rebranded to light violet
+  static const int accentSecondary = brandLimeDim;
   static const int textDanger = danger;
 
   // ── Border ──
-  static const int border = 0xFF2A2540; // Rebranded border
+  static const int border = 0xFF222222;
 }
 
 /// Standard spacing values used throughout the app.

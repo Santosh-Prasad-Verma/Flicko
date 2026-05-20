@@ -51,12 +51,10 @@ class DMChatController extends Notifier<DMChatState> {
   late final String _otherUserId;
   RealtimeChannel? _subscription;
 
-  final String otherUserId;
-  DMChatController(this.otherUserId);
+  DMChatController(this._otherUserId);
 
   @override
   DMChatState build() {
-    _otherUserId = otherUserId;
     _repository = ref.watch(dmRepositoryProvider);
     final authState = ref.watch(authNotifierProvider);
     _myId = authState.maybeWhen(

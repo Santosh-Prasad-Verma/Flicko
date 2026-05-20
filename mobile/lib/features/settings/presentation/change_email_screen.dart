@@ -2,14 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 
-/// Change Email Screen
-///
-/// Allows the authenticated user to change their account email address.
-/// Supabase will send a confirmation link to both the old and new email before committing the change.
-/// Route: /u/settings/change-email
 class ChangeEmailScreen extends ConsumerStatefulWidget {
   const ChangeEmailScreen({super.key});
 
@@ -21,6 +15,12 @@ class _ChangeEmailScreenState extends ConsumerState<ChangeEmailScreen> {
   String _newEmail = '';
   bool _isLoading = false;
   final _emailController = TextEditingController();
+
+  static const Color _neonGreen = Color(0xFF52B788);
+  static const Color _bgBlack = Color(0xFF050505);
+  static const Color _surfaceContainer = Color(0xFF0C0C0E);
+  static const Color _textWhite = Color(0xFFFBF9FA);
+  static const Color _textMuted = Color(0xFF71717A);
 
   bool _isValidEmail(String email) {
     return RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email.trim());
@@ -50,24 +50,23 @@ class _ChangeEmailScreenState extends ConsumerState<ChangeEmailScreen> {
     final trimmedEmail = _newEmail.trim().toLowerCase();
 
     if (!_isValidEmail(trimmedEmail)) {
-      _showAlert('Invalid Email', 'Please enter a valid email address.');
+      _showAlert('INVALID EMAIL', 'Please enter a valid email address.');
       return;
     }
 
     if (trimmedEmail == _currentEmail?.toLowerCase()) {
-      _showAlert('No Change', 'This is already your current email address.');
+      _showAlert('NO CHANGE', 'This is already your current email address.');
       return;
     }
 
     setState(() => _isLoading = true);
 
     try {
-      // Use the standardized AuthNotifier method
       await ref.read(authNotifierProvider.notifier).changeEmail(trimmedEmail);
 
       if (mounted) {
         _showAlert(
-          'Confirmation Sent',
+          'CONFIRMATION SENT',
           'A confirmation link has been sent to both $_currentEmail and $trimmedEmail.\n\nFollow the links in both emails to complete the change.',
           onOk: () => context.pop(),
         );
@@ -76,10 +75,9 @@ class _ChangeEmailScreenState extends ConsumerState<ChangeEmailScreen> {
       if (mounted) {
         String errorMessage = e.toString();
         if (errorMessage.contains('AuthException')) {
-          // Try to extract a cleaner message
           errorMessage = errorMessage.split(':').last.trim();
         }
-        _showAlert('Error', errorMessage.isNotEmpty ? errorMessage : 'Failed to update email. Please try again.');
+        _showAlert('ERROR', errorMessage.isNotEmpty ? errorMessage : 'Failed to update email. Please try again.');
       }
     } finally {
       if (mounted) {
@@ -92,14 +90,15 @@ class _ChangeEmailScreenState extends ConsumerState<ChangeEmailScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(FlickoColors.bgSecondary),
+        backgroundColor: _surfaceContainer,
+        shape: const RoundedRectangleBorder(),
         title: Text(
           title,
-          style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary)),
+          style: GoogleFonts.epilogue(color: _neonGreen, fontWeight: FontWeight.w900, fontStyle: FontStyle.italic),
         ),
         content: Text(
           message,
-          style: GoogleFonts.inter(color: const Color(FlickoColors.textSecondary)),
+          style: GoogleFonts.inter(color: _textMuted),
         ),
         actions: [
           TextButton(
@@ -109,7 +108,7 @@ class _ChangeEmailScreenState extends ConsumerState<ChangeEmailScreen> {
             },
             child: Text(
               'OK',
-              style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
+              style: GoogleFonts.spaceGrotesk(color: _textWhite),
             ),
           ),
         ],
@@ -120,91 +119,112 @@ class _ChangeEmailScreenState extends ConsumerState<ChangeEmailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),
-          onPressed: () => context.pop(),
-        ),
-        title: Text(
-          'Change Email',
-          style: GoogleFonts.inter(
-            color: const Color(FlickoColors.textPrimary),
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: _canSave ? _handleSave : null,
-            child: _isLoading
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Color(FlickoColors.blurple)),
-                  )
-                : Text(
-                    'Save',
-                    style: GoogleFonts.inter(
-                      color: _canSave ? const Color(FlickoColors.blurple) : const Color(FlickoColors.textMuted),
-                      fontWeight: FontWeight.w600,
+      backgroundColor: _bgBlack,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                children: [
+                  Text(
+                    'CHANGE\nEMAIL',
+                    style: GoogleFonts.epilogue(
+                      color: _textWhite,
+                      fontSize: 48,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -2,
+                      height: 0.9,
+                      fontStyle: FontStyle.italic,
                     ),
                   ),
-          ),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          // Current email display
-          _buildSectionHeader('CURRENT EMAIL'),
-          _buildCurrentEmailBox(),
-
-          const SizedBox(height: 16),
-
-          // New email input
-          _buildSectionHeader('NEW EMAIL ADDRESS'),
-          _buildEmailInput(),
-
-          const SizedBox(height: 16),
-
-          // Info notice
-          _buildInfoBox(),
-
-          const SizedBox(height: 24),
-
-          // Submit button
-          ElevatedButton(
-            onPressed: _canSave ? _handleSave : null,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _canSave ? const Color(FlickoColors.blurple) : const Color(FlickoColors.bgTertiary),
-              foregroundColor: _canSave ? Colors.white : const Color(FlickoColors.textMuted),
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  const SizedBox(height: 32),
+                  
+                  // Current email display
+                  _buildSectionHeader('CURRENT EMAIL'),
+                  _buildCurrentEmailBox(),
+        
+                  const SizedBox(height: 24),
+        
+                  // New email input
+                  _buildSectionHeader('NEW EMAIL ADDRESS'),
+                  _buildEmailInput(),
+        
+                  const SizedBox(height: 32),
+        
+                  // Info notice
+                  _buildInfoBox(),
+        
+                  const SizedBox(height: 40),
+        
+                  // Submit button
+                  _buildSubmitButton(),
+                ],
+              ),
             ),
-            child: _isLoading
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : Text(
-                    'Send Confirmation',
-                    style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: _neonGreen.withValues(alpha: 0.1))),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          GestureDetector(
+            onTap: () => context.pop(),
+            child: const Padding(
+              padding: EdgeInsets.all(8),
+              child: Icon(Icons.arrow_back, color: _textWhite, size: 20),
+            ),
           ),
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('CREDENTIALS',
+                  style: GoogleFonts.spaceGrotesk(
+                    color: _neonGreen.withValues(alpha: 0.8),
+                    fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 2.0,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 2),
+                Text('EMAIL UPDATE',
+                  style: GoogleFonts.spaceMono(
+                    color: _textWhite.withValues(alpha: 0.3),
+                    fontSize: 8, letterSpacing: 1.0,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 36),
         ],
       ),
     );
   }
 
   Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 8, bottom: 8),
-      child: Text(
-        title,
-        style: GoogleFonts.inter(
-          color: const Color(FlickoColors.textMuted),
-          fontSize: 11,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 0.5,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title,
+          style: GoogleFonts.epilogue(
+            color: _textWhite, fontSize: 18, fontWeight: FontWeight.w800,
+            fontStyle: FontStyle.italic, letterSpacing: -0.3,
+          ),
         ),
-      ),
+        Container(height: 2, color: _neonGreen, margin: const EdgeInsets.only(top: 6, bottom: 16)),
+      ],
     );
   }
 
@@ -212,19 +232,19 @@ class _ChangeEmailScreenState extends ConsumerState<ChangeEmailScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: const Color(FlickoColors.bgSecondary),
-        borderRadius: BorderRadius.circular(12),
+        color: _surfaceContainer,
+        border: Border.all(color: _textWhite.withValues(alpha: 0.05)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.mail_outline, size: 18, color: Color(FlickoColors.textMuted)),
+          const Icon(Icons.mail_outline, size: 18, color: _textMuted),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               _currentEmail ?? 'Not set',
-              style: GoogleFonts.inter(
-                color: const Color(FlickoColors.textSecondary),
-                fontSize: 15,
+              style: GoogleFonts.spaceMono(
+                color: _textWhite,
+                fontSize: 14,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -238,56 +258,56 @@ class _ChangeEmailScreenState extends ConsumerState<ChangeEmailScreen> {
   Widget _buildEmailInput() {
     final hasError = _newEmail.isNotEmpty && !_isValidEmail(_newEmail);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(FlickoColors.bgSecondary),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              border: Border.all(
-                color: hasError ? const Color(FlickoColors.red) : const Color(0xFF232428),
-              ),
-              borderRadius: BorderRadius.circular(12),
+    return Column(
+      children: [
+        TextField(
+          controller: _emailController,
+          onChanged: (v) => setState(() => _newEmail = v),
+          keyboardType: TextInputType.emailAddress,
+          textCapitalization: TextCapitalization.none,
+          autocorrect: false,
+          style: GoogleFonts.spaceMono(color: _textWhite, fontSize: 14),
+          decoration: InputDecoration(
+            hintText: 'Enter new email address',
+            hintStyle: GoogleFonts.spaceMono(color: _textMuted, fontSize: 12),
+            filled: true,
+            fillColor: _bgBlack,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.zero,
+              borderSide: BorderSide(color: hasError ? Colors.red : _textWhite.withValues(alpha: 0.1)),
             ),
-            child: TextField(
-              controller: _emailController,
-              onChanged: (v) => setState(() => _newEmail = v),
-              keyboardType: TextInputType.emailAddress,
-              textCapitalization: TextCapitalization.none,
-              autocorrect: false,
-              style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary)),
-              decoration: InputDecoration(
-                hintText: 'Enter new email address',
-                hintStyle: GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
-                filled: true,
-                fillColor: Colors.transparent,
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                suffixIcon: _newEmail.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.close, size: 18, color: Color(FlickoColors.textMuted)),
-                        onPressed: () {
-                          _emailController.clear();
-                          setState(() => _newEmail = '');
-                        },
-                      )
-                    : null,
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.zero,
+              borderSide: BorderSide(color: hasError ? Colors.red : _textWhite.withValues(alpha: 0.1)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.zero,
+              borderSide: BorderSide(color: hasError ? Colors.red : _neonGreen),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            suffixIcon: _newEmail.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.close, size: 18, color: _textMuted),
+                    onPressed: () {
+                      _emailController.clear();
+                      setState(() => _newEmail = '');
+                    },
+                  )
+                : null,
+          ),
+        ),
+        if (hasError)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Please enter a valid email address',
+                style: GoogleFonts.spaceMono(color: Colors.red, fontSize: 11),
               ),
             ),
           ),
-          if (hasError)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-              child: Text(
-                'Please enter a valid email address',
-                style: GoogleFonts.inter(color: const Color(FlickoColors.red), fontSize: 12),
-              ),
-            ),
-        ],
-      ),
+      ],
     );
   }
 
@@ -295,26 +315,55 @@ class _ChangeEmailScreenState extends ConsumerState<ChangeEmailScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(FlickoColors.bgSecondary),
-        border: Border.all(color: const Color(FlickoColors.blurple)),
-        borderRadius: BorderRadius.circular(12),
+        color: _neonGreen.withValues(alpha: 0.05),
+        border: Border.all(color: _neonGreen.withValues(alpha: 0.3)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.info_outline, size: 18, color: Color(FlickoColors.blurple)),
+          const Icon(Icons.info_outline, size: 18, color: _neonGreen),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               'A confirmation link will be sent to both your current and new email addresses. You must confirm both to complete the change.',
               style: GoogleFonts.inter(
-                color: const Color(FlickoColors.textSecondary),
+                color: _textMuted,
                 fontSize: 13,
                 height: 1.5,
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+  
+  Widget _buildSubmitButton() {
+    return GestureDetector(
+      onTap: _canSave ? _handleSave : null,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: _canSave ? _neonGreen : _surfaceContainer,
+          border: Border.all(color: _canSave ? _neonGreen : _textWhite.withValues(alpha: 0.1)),
+        ),
+        alignment: Alignment.center,
+        child: _isLoading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+              )
+            : Text(
+                'SEND CONFIRMATION',
+                style: GoogleFonts.spaceGrotesk(
+                  color: _canSave ? Colors.black : _textMuted,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.0,
+                ),
+              ),
       ),
     );
   }

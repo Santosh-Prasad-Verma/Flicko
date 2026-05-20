@@ -8,6 +8,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/data/models/user_model.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
+import 'package:mobile/features/profile/presentation/widgets/gava_now_playing_bar.dart';
+import 'package:mobile/features/voice/application/sonic_drip_notifier.dart';
+import 'package:mobile/features/voice/domain/music_models.dart' show PlaybackStatus;
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -398,7 +401,10 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                   children: [
                     const SizedBox(height: 56),
                     _buildIdentity(profile),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
+                    _buildQuickIconRow(isOwnProfile),
+                    if (isOwnProfile) _buildGavaBar(),
+                    const SizedBox(height: 16),
                     _buildActionRow(isOwnProfile),
                     const SizedBox(height: 32),
 
@@ -703,6 +709,106 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
           ),
         ],
       ],
+    );
+  }
+
+  /// Compact icon row sitting just under the banner / identity.
+  /// Shows quick-access entry points to Store, Creator, Sonic Drip, and Premium
+  /// for the current user. For other profiles, shows a slim share/dm row.
+  Widget _buildQuickIconRow(bool isOwnProfile) {
+    final entries = isOwnProfile
+        ? <_QuickEntry>[
+            _QuickEntry(
+              icon: Icons.storefront_rounded,
+              label: 'STORE',
+              onTap: () => context.push('/store'),
+            ),
+            _QuickEntry(
+              icon: Icons.brush_rounded,
+              label: 'CREATOR',
+              onTap: () => context.push('/creator'),
+            ),
+            _QuickEntry(
+              icon: Icons.music_note_rounded,
+              label: 'SONIC',
+              onTap: () => context.push('/profile/settings/sonic-drip'),
+            ),
+            _QuickEntry(
+              icon: Icons.workspace_premium_rounded,
+              label: 'PLUS',
+              onTap: () => context.push('/premium/plus'),
+            ),
+          ]
+        : <_QuickEntry>[];
+
+    if (entries.isEmpty) return const SizedBox.shrink();
+
+    return SizedBox(
+      height: 64,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        itemCount: entries.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        itemBuilder: (context, i) {
+          final e = entries[i];
+          return InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: e.onTap,
+            child: Container(
+              width: 64,
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+              decoration: BoxDecoration(
+                color: _surface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(e.icon, color: _neon, size: 22),
+                  const SizedBox(height: 4),
+                  Text(
+                    e.label,
+                    style: GoogleFonts.jetBrainsMono(
+                      color: _white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// Reads sonic-drip state and renders the Gava bar when a track is loaded.
+  /// Uses Consumer so the parent ConsumerStatefulWidget doesn't rebuild on
+  /// every progress tick.
+  Widget _buildGavaBar() {
+    return Consumer(
+      builder: (context, ref, _) {
+        final track = ref.watch(
+          sonicDripProvider.select((s) => s.playback.currentTrack),
+        );
+        final status = ref.watch(
+          sonicDripProvider.select((s) => s.playback.status),
+        );
+        if (track == null) return const SizedBox.shrink();
+
+        return GavaNowPlayingBar(
+          trackTitle: track.name,
+          artist: track.artistName,
+          artworkUrl: track.imageUrl,
+          isPlaying: status == PlaybackStatus.playing,
+          accent: _neon,
+          onTap: () => context.push('/profile/settings/sonic-drip'),
+        );
+      },
     );
   }
 
@@ -1112,4 +1218,16 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
       onTap: onTap,
     );
   }
+}
+
+class _QuickEntry {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _QuickEntry({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 }

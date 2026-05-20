@@ -9,27 +9,39 @@ import 'package:mobile/data/models/soundboard_model.dart';
 import 'package:mobile/features/voice/data/voice_repository.dart';
 import 'voice_state.dart';
 
+final audioPlayerProvider = Provider.autoDispose<AudioPlayer>((ref) {
+  final player = AudioPlayer();
+  ref.onDispose(() => player.dispose());
+  return player;
+});
+
+final audioSessionProvider = Provider<Future<AudioSession>>((ref) {
+  return AudioSession.instance;
+});
+
 final voiceControllerProvider = NotifierProvider<VoiceController, VoiceState>(VoiceController.new);
 
 class VoiceController extends Notifier<VoiceState> {
   late final VoiceRepository _repository;
   EventsListener<RoomEvent>? _listener;
-  final AudioPlayer _audioPlayer = AudioPlayer();
+  late final AudioPlayer _audioPlayer;
+  Room? _room;
 
   @override
   VoiceState build() {
     _repository = ref.watch(voiceRepositoryProvider);
+    _audioPlayer = ref.watch(audioPlayerProvider);
 
     ref.onDispose(() {
       _listener?.dispose();
-      state.room?.disconnect();
-      _audioPlayer.dispose();
+      _room?.disconnect();
+      _room = null;
     });
 
     return const VoiceState();
   }
 
-  Future<void> joinChannel(String channelId) async {
+  Future<void> joinChannel(String channelId, String serverId) async {
     if (state.activeChannelId == channelId && state.isConnected) return;
 
     // 1. Request Permissions
@@ -50,7 +62,7 @@ class VoiceController extends Notifier<VoiceState> {
       }
 
       // 3. Get Token
-      final token = await _repository.getAccessToken(channelId);
+      final token = await _repository.getAccessToken(channelId, serverId);
 
       // 4. Connect to Room
       final room = await _repository.connect(

@@ -36,7 +36,7 @@ class _LeaderboardSettingsScreenState extends ConsumerState<LeaderboardSettingsS
     try {
       final response = await Supabase.instance.client
           .from('level_settings')
-          .select('*, profiles(username, display_name, avatar_url)')
+          .select('*, profiles(username, display_name, avatar_url:avatar)')
           .eq('server_id', widget.serverId)
           .order('xp', ascending: false)
           .limit(50);

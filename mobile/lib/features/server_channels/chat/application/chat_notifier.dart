@@ -10,7 +10,8 @@ import 'package:mobile/data/services/media_processor_service.dart';
 import 'chat_state.dart';
 
 /// Provider for [ChatNotifier] scoped to a specific [channelId].
-final chatNotifierProvider = NotifierProvider.autoDispose.family<ChatNotifier, ChatState, String>(
+final chatNotifierProvider =
+    NotifierProvider.autoDispose.family<ChatNotifier, ChatState, String>(
   ChatNotifier.new,
 );
 
@@ -21,12 +22,10 @@ class ChatNotifier extends Notifier<ChatState> {
   late final String _myId;
   RealtimeChannel? _subscription;
 
-  final String channelId;
-  ChatNotifier(this.channelId);
+  ChatNotifier(this._channelId);
 
   @override
   ChatState build() {
-    _channelId = channelId;
     _repository = ref.watch(messageRepositoryProvider);
     final authState = ref.watch(authNotifierProvider);
     _myId = authState.maybeWhen(
@@ -186,6 +185,16 @@ class ChatNotifier extends Notifier<ChatState> {
       await _repository.sendTyping(_channelId, _myId, isTyping);
     } catch (_) {
       // Intentionally ignore failure to send typing indicator
+    }
+  }
+
+  /// Creates a thread from a message.
+  Future<void> createThread(String messageId) async {
+    try {
+      await _repository.createThread(messageId);
+      state = state.copyWith(activeThreadId: messageId);
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to create thread: $e');
     }
   }
 }

@@ -8,7 +8,7 @@ class QueueList extends ConsumerWidget {
   final List<Track> queue;
   const QueueList({super.key, required this.queue});
 
-  static const _lime = Color(0xFFCBEF17);
+  static const _lime = Color(0xFF52B788);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -131,12 +131,12 @@ class _QueueItem extends ConsumerWidget {
       decoration: BoxDecoration(
         color: Colors.black,
         border: Border.all(
-          color: isCurrent ? const Color(0xFFCBEF17) : Colors.white,
+          color: isCurrent ? const Color(0xFF52B788) : Colors.white,
           width: isCurrent ? 2.5 : 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: isCurrent ? const Color(0xFFCBEF17) : Colors.white,
+            color: isCurrent ? const Color(0xFF52B788) : Colors.white,
             offset: const Offset(3, 3),
           ),
         ],
@@ -149,18 +149,18 @@ class _QueueItem extends ConsumerWidget {
             height: 28,
             child: isCurrent
                 ? Container(
-                    color: const Color(0xFFCBEF17),
+                    color: const Color(0xFF52B788),
                     child: const Icon(Icons.equalizer, color: Colors.black, size: 16),
                   )
                 : Container(
                     decoration: BoxDecoration(
-                      border: Border.all(color: const Color(0xFFCBEF17), width: 1.5),
+                      border: Border.all(color: const Color(0xFF52B788), width: 1.5),
                     ),
                     child: Center(
                       child: Text(
                         '${index + 1}',
                         style: GoogleFonts.robotoMono(
-                          color: const Color(0xFFCBEF17),
+                          color: const Color(0xFF52B788),
                           fontWeight: FontWeight.w900,
                           fontSize: 12,
                         ),
@@ -177,7 +177,7 @@ class _QueueItem extends ConsumerWidget {
                 Text(
                   track.name.toUpperCase(),
                   style: GoogleFonts.spaceGrotesk(
-                    color: isCurrent ? const Color(0xFFCBEF17) : Colors.white,
+                    color: isCurrent ? const Color(0xFF52B788) : Colors.white,
                     fontWeight: FontWeight.w900,
                     fontSize: 14,
                   ),

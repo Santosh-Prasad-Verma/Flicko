@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/features/settings/application/user_settings_notifier.dart';
 
 /// Notifications Settings Screen (Sleek Brutalist Black/Neon Theme)
 class NotificationsSettingsScreen extends ConsumerStatefulWidget {
@@ -14,20 +15,16 @@ class NotificationsSettingsScreen extends ConsumerStatefulWidget {
 
 class _NotificationsSettingsScreenState
     extends ConsumerState<NotificationsSettingsScreen> {
-  bool _enableNotifications = true;
-  bool _directMessages = true;
-  bool _mentions = true;
-  bool _serverMessages = true;
-  bool _messageSound = true;
-  bool _callSound = true;
-  bool _notificationSound = true;
-  bool _quietHours = false;
 
-  static const Color _neonGreen = Color(0xFFC0F500);
+  static const Color _neonGreen = Color(0xFF52B788);
   static const Color _bgBlack = Color(0xFF050505);
   static const Color _surfaceContainer = Color(0xFF0C0C0E);
   static const Color _textWhite = Color(0xFFFBF9FA);
   static const Color _textMuted = Color(0xFF71717A);
+
+  void _setBool(String key, bool value) {
+    ref.read(userSettingsNotifierProvider.notifier).setBool(key, value);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -209,8 +206,8 @@ class _NotificationsSettingsScreenState
           subtitle: 'Receive push notifications from Flicko.',
           badge: 'MASTER',
           usePrimaryBadge: true,
-          toggleWidget: _buildHardwareToggle(_enableNotifications, (val) {
-            setState(() => _enableNotifications = val);
+          toggleWidget: _buildHardwareToggle(ref.watch(userSettingsNotifierProvider).pushNotifications, (val) {
+            _setBool('notif_push', val);
           }),
         ),
         const SizedBox(height: 14),
@@ -218,8 +215,8 @@ class _NotificationsSettingsScreenState
           title: 'DIRECT MESSAGES',
           subtitle: 'Notify when you receive a DM.',
           badge: 'DM',
-          toggleWidget: _buildHardwareToggle(_directMessages, (val) {
-            setState(() => _directMessages = val);
+          toggleWidget: _buildHardwareToggle(ref.watch(userSettingsNotifierProvider).dmNotifications, (val) {
+            _setBool('notif_dms', val);
           }),
         ),
         const SizedBox(height: 14),
@@ -227,8 +224,8 @@ class _NotificationsSettingsScreenState
           title: 'MENTIONS',
           subtitle: 'Notify when you are mentioned.',
           badge: '@',
-          toggleWidget: _buildHardwareToggle(_mentions, (val) {
-            setState(() => _mentions = val);
+          toggleWidget: _buildHardwareToggle(ref.watch(userSettingsNotifierProvider).messageNotifications, (val) {
+            _setBool('notif_messages', val);
           }),
         ),
         const SizedBox(height: 14),
@@ -236,8 +233,8 @@ class _NotificationsSettingsScreenState
           title: 'SERVER MESSAGES',
           subtitle: 'Notify for server channel messages.',
           badge: 'CHANNEL',
-          toggleWidget: _buildHardwareToggle(_serverMessages, (val) {
-            setState(() => _serverMessages = val);
+          toggleWidget: _buildHardwareToggle(ref.watch(userSettingsNotifierProvider).serverNotifications, (val) {
+            _setBool('notif_servers', val);
           }),
         ),
       ],
@@ -267,8 +264,8 @@ class _NotificationsSettingsScreenState
           title: 'MESSAGE SOUND',
           subtitle: 'Play sound for new messages.',
           badge: 'AUDIO',
-          toggleWidget: _buildHardwareToggle(_messageSound, (val) {
-            setState(() => _messageSound = val);
+          toggleWidget: _buildHardwareToggle(ref.watch(userSettingsNotifierProvider).soundOnNotification, (val) {
+            _setBool('notif_sound', val);
           }),
         ),
         const SizedBox(height: 14),
@@ -276,8 +273,8 @@ class _NotificationsSettingsScreenState
           title: 'CALL SOUND',
           subtitle: 'Play sound for incoming calls.',
           badge: 'RING',
-          toggleWidget: _buildHardwareToggle(_callSound, (val) {
-            setState(() => _callSound = val);
+          toggleWidget: _buildHardwareToggle(ref.watch(userSettingsNotifierProvider).soundOnNotification, (val) {
+            _setBool('notif_sound', val);
           }),
         ),
         const SizedBox(height: 14),
@@ -285,8 +282,8 @@ class _NotificationsSettingsScreenState
           title: 'NOTIFICATION SOUND',
           subtitle: 'Play sound for notifications.',
           badge: 'ALERT',
-          toggleWidget: _buildHardwareToggle(_notificationSound, (val) {
-            setState(() => _notificationSound = val);
+          toggleWidget: _buildHardwareToggle(ref.watch(userSettingsNotifierProvider).vibrateOnNotification, (val) {
+            _setBool('notif_vibrate', val);
           }),
         ),
       ],
@@ -316,8 +313,8 @@ class _NotificationsSettingsScreenState
           title: 'ENABLE QUIET HOURS',
           subtitle: 'Disable notifications during set hours.',
           badge: 'SCHEDULE',
-          toggleWidget: _buildHardwareToggle(_quietHours, (val) {
-            setState(() => _quietHours = val);
+          toggleWidget: _buildHardwareToggle(ref.watch(userSettingsNotifierProvider).suppressEveryone, (val) {
+            _setBool('notif_suppress_everyone', val);
           }),
         ),
         const SizedBox(height: 14),

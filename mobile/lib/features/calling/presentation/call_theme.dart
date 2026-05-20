@@ -8,7 +8,7 @@ class CallTheme {
 
   // ── Colors ──
   static const bg = Color(0xFF0A0A0A);
-  static const neonGreen = Color(0xFFCBEF17);
+  static const neonGreen = Color(0xFF52B788);
   static const gridColor = Color(0xFF1A1A1A);
   static const surfaceDark = Color(0xFF151515);
   static const borderDim = Color(0xFF2A2A2A);

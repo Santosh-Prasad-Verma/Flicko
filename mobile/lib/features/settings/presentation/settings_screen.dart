@@ -19,7 +19,7 @@ final devModeProvider = NotifierProvider<DevModeNotifier, bool>(DevModeNotifier.
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
-  static const Color _neonGreen = Color(0xFFC0F500);
+  static const Color _neonGreen = Color(0xFF52B788);
   static const Color _bgBlack = Color(0xFF050505);
   static const Color _surfaceContainer = Color(0xFF0C0C0E);
   static const Color _textWhite = Color(0xFFFBF9FA);
@@ -132,8 +132,15 @@ class SettingsScreen extends ConsumerWidget {
                 () => context.push('/profile/settings/account')),
             _buildSettingsRow(context, Icons.edit_note_rounded, 'Edit Profile',
                 () => context.push('/profile/settings/edit-profile')),
+            _buildSettingsRow(context, Icons.circle_rounded, 'Status',
+                () => context.push('/profile/settings/status'),
+                subtitle: 'Online · Custom status'),
+            _buildSettingsRow(context, Icons.dns_rounded, 'Server Profiles',
+                () => context.push('/profile/settings/server-profiles')),
             _buildSettingsRow(context, Icons.verified_user_outlined, 'Privacy & Safety',
                 () => context.push('/profile/settings/privacy')),
+            _buildSettingsRow(context, Icons.lock_outline_rounded, 'Encryption',
+                () => context.push('/profile/settings/encryption')),
             const SizedBox(height: 32),
             _buildSectionHeader('PREMIUM SERVICES'),
             _buildSettingsRow(

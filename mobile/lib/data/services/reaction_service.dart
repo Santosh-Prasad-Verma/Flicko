@@ -1,17 +1,11 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/config/app_config.dart';
+import '../clients/dio_client.dart';
 
-/// Reaction Service for message reactions
-/// 
-/// Handles adding, removing, and fetching reactions on messages.
 class ReactionService {
   final Dio _dio;
-  final String _apiBaseUrl;
 
-  ReactionService()
-      : _dio = Dio(),
-        _apiBaseUrl = AppConfig.apiBaseUrl;
+  ReactionService(this._dio);
 
   /// Add a reaction to a message
   /// 
@@ -21,7 +15,7 @@ class ReactionService {
   Future<Map<String, dynamic>> addReaction(String messageId, String emoji) async {
     try {
       final response = await _dio.post(
-        '$_apiBaseUrl/messages/$messageId/reactions',
+        '/api/v1/messages/$messageId/reactions',
         data: {'emoji': emoji},
       );
 
@@ -43,7 +37,7 @@ class ReactionService {
   Future<Map<String, dynamic>> removeReaction(String messageId, String emoji) async {
     try {
       final response = await _dio.delete(
-        '$_apiBaseUrl/messages/$messageId/reactions',
+        '/api/v1/messages/$messageId/reactions',
         data: {'emoji': emoji},
       );
 
@@ -82,7 +76,7 @@ class ReactionService {
   Future<List<Map<String, dynamic>>> getReactions(String messageId) async {
     try {
       final response = await _dio.get(
-        '$_apiBaseUrl/messages/$messageId/reactions',
+        '/api/v1/messages/$messageId/reactions',
       );
 
       if (response.statusCode == 200) {
@@ -123,5 +117,5 @@ class ReactionService {
 
 /// Provider for ReactionService
 final reactionServiceProvider = Provider<ReactionService>((ref) {
-  return ReactionService();
+  return ReactionService(ref.watch(dioProvider));
 });

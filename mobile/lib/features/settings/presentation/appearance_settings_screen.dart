@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile/core/theme/theme_provider.dart';
+import 'package:mobile/features/settings/application/user_settings_notifier.dart';
 
 class AppearanceSettingsScreen extends ConsumerStatefulWidget {
   const AppearanceSettingsScreen({super.key});
@@ -18,7 +19,7 @@ class _AppearanceSettingsScreenState
   double _fontScale = 1.0;
   bool _isLoading = true;
   String _tempThemeId = 'dark';
-  final Color _limeColor = const Color(0xFFC8FF00);
+  final Color _limeColor = const Color(0xFF52B788);
 
   @override
   void initState() {
@@ -27,12 +28,17 @@ class _AppearanceSettingsScreenState
   }
 
   Future<void> _loadPreferences() async {
+    final settings = ref.read(userSettingsNotifierProvider);
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _fontScale = prefs.getDouble('fontScale') ?? 1.0;
+      _fontScale = prefs.getDouble('fontScale') ?? settings.fontScale;
       _tempThemeId = ref.read(themeProvider);
       _isLoading = false;
     });
+  }
+
+  void _setBool(String key, bool value) {
+    ref.read(userSettingsNotifierProvider.notifier).setBool(key, value);
   }
 
   @override
@@ -375,7 +381,7 @@ class _AppearanceSettingsScreenState
 
   Widget _buildAccentSection() {
     final List<Color> accents = [
-      const Color(0xFFC8FF00),
+      const Color(0xFF52B788),
       const Color(0xFF00E5FF),
       const Color(0xFFFF3D00),
       const Color(0xFFE040FB),
@@ -455,6 +461,9 @@ class _AppearanceSettingsScreenState
               final prefs = await SharedPreferences.getInstance();
               await prefs.setDouble('fontScale', _fontScale);
               ref.read(themeProvider.notifier).setTheme(_tempThemeId);
+              ref.read(userSettingsNotifierProvider.notifier)
+                ..setDouble('appearance_font_scale', _fontScale)
+                ..setString('appearance_theme', _tempThemeId);
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(

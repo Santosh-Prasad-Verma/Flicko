@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -23,23 +24,45 @@ class WebhooksSettingsScreen extends ConsumerStatefulWidget {
 class _WebhooksSettingsScreenState extends ConsumerState<WebhooksSettingsScreen> {
   bool _isLoading = true;
   List<Map<String, dynamic>> _webhooks = [];
+  List<Map<String, dynamic>> _channels = [];
+  String? _selectedChannelId;
   String? _errorMessage;
   bool _showCreateModal = false;
   final _nameController = TextEditingController();
-  final _channelIdController = TextEditingController();
   bool _isCreating = false;
 
   @override
   void initState() {
     super.initState();
     _loadWebhooks();
+    _loadChannels();
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _channelIdController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadChannels() async {
+    try {
+      final response = await Supabase.instance.client
+          .from('channels')
+          .select('id, name')
+          .eq('server_id', widget.serverId)
+          .order('position', ascending: true);
+
+      if (mounted) {
+        setState(() {
+          _channels = (response as List).cast<Map<String, dynamic>>();
+          if (_channels.isNotEmpty) {
+            _selectedChannelId = _channels.first['id'] as String?;
+          }
+        });
+      }
+    } catch (e) {
+      // Ignore silently
+    }
   }
 
   Future<void> _loadWebhooks() async {
@@ -51,8 +74,8 @@ class _WebhooksSettingsScreenState extends ConsumerState<WebhooksSettingsScreen>
     try {
       final response = await Supabase.instance.client
           .from('webhooks')
-          .select('*')
-          .eq('server_id', widget.serverId)
+          .select('*, channels!inner(server_id)')
+          .eq('channels.server_id', widget.serverId)
           .order('created_at', ascending: false);
 
       setState(() {
@@ -69,11 +92,11 @@ class _WebhooksSettingsScreenState extends ConsumerState<WebhooksSettingsScreen>
 
   Future<void> _createWebhook() async {
     final name = _nameController.text.trim();
-    final channelId = _channelIdController.text.trim();
+    final channelId = _selectedChannelId;
 
-    if (name.isEmpty || channelId.isEmpty) {
+    if (name.isEmpty || channelId == null || channelId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Name and Channel ID are required')),
+        const SnackBar(content: Text('Name and Channel are required')),
       );
       return;
     }
@@ -84,10 +107,9 @@ class _WebhooksSettingsScreenState extends ConsumerState<WebhooksSettingsScreen>
       final response = await Supabase.instance.client
           .from('webhooks')
           .insert({
-            'server_id': widget.serverId,
             'name': name,
             'channel_id': channelId,
-            'created_at': DateTime.now().toIso8601String(),
+            'created_by': Supabase.instance.client.auth.currentUser?.id,
           })
           .select()
           .single();
@@ -96,11 +118,11 @@ class _WebhooksSettingsScreenState extends ConsumerState<WebhooksSettingsScreen>
         _webhooks.add(response);
         _showCreateModal = false;
         _nameController.clear();
-        _channelIdController.clear();
         _isCreating = false;
       });
 
       if (mounted) {
+        Navigator.of(context).pop(); // Close create modal
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Webhook created successfully'),
@@ -197,8 +219,12 @@ class _WebhooksSettingsScreenState extends ConsumerState<WebhooksSettingsScreen>
 
   void _copyWebhookUrl(Map<String, dynamic> webhook) {
     final url = 'https://api.flicko.app/webhooks/${webhook['id']}';
+    Clipboard.setData(ClipboardData(text: url));
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('URL copied to clipboard')),
+      const SnackBar(
+        content: Text('URL copied to clipboard'),
+        backgroundColor: Color(FlickoColors.success),
+      ),
     );
   }
 
@@ -359,38 +385,115 @@ class _WebhooksSettingsScreenState extends ConsumerState<WebhooksSettingsScreen>
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (context) => Modal(
-        visible: true,
-        onClose: () {
-          setState(() => _showCreateModal = false);
-          Navigator.of(context).pop();
-        },
-        title: 'New Webhook',
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Input(
-              controller: _nameController,
-              label: 'Name',
-              hint: 'Enter webhook name',
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return Modal(
+            visible: true,
+            onClose: () {
+              setState(() => _showCreateModal = false);
+              Navigator.of(context).pop();
+            },
+            title: 'New Webhook',
+            child: Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Input(
+                    controller: _nameController,
+                    label: 'Name',
+                    hint: 'Enter webhook name',
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Channel',
+                    style: GoogleFonts.inter(
+                      color: const Color(FlickoColors.textSecondary),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    value: _selectedChannelId,
+                    dropdownColor: const Color(FlickoColors.bgSecondary),
+                    icon: const Icon(Icons.keyboard_arrow_down, color: Color(FlickoColors.textSecondary)),
+                    style: GoogleFonts.inter(
+                      color: const Color(FlickoColors.textPrimary),
+                      fontSize: 14,
+                    ),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: const Color(FlickoColors.bgSecondary),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Color(FlickoColors.border)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Color(FlickoColors.border)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Color(FlickoColors.brandLime)),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                    items: _channels.isEmpty
+                        ? [
+                            DropdownMenuItem<String>(
+                              value: '',
+                              child: Text(
+                                'No channels available',
+                                style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
+                              ),
+                            )
+                          ]
+                        : _channels.map((channel) {
+                            return DropdownMenuItem<String>(
+                              value: channel['id'] as String,
+                              child: Text(
+                                '# ${channel['name'] ?? 'channel'}',
+                                style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary)),
+                              ),
+                            );
+                          }).toList(),
+                    onChanged: _channels.isEmpty
+                        ? null
+                        : (value) {
+                            setModalState(() {
+                              _selectedChannelId = value;
+                            });
+                            setState(() {
+                              _selectedChannelId = value;
+                            });
+                          },
+                  ),
+                  const SizedBox(height: 24),
+                  Button(
+                    title: 'Create',
+                    onPress: _isCreating
+                        ? () {}
+                        : () async {
+                            setModalState(() => _isCreating = true);
+                            await _createWebhook();
+                            if (mounted) {
+                              setModalState(() => _isCreating = false);
+                            }
+                          },
+                    variant: ButtonVariant.primary,
+                    loading: _isCreating,
+                    fullWidth: true,
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 16),
-            Input(
-              controller: _channelIdController,
-              label: 'Channel ID',
-              hint: 'Enter channel ID',
-            ),
-            const SizedBox(height: 24),
-            Button(
-              title: 'Create',
-              onPress: _isCreating ? () {} : _createWebhook,
-              variant: ButtonVariant.primary,
-              loading: _isCreating,
-              fullWidth: true,
-            ),
-          ],
-        ),
+          );
+        }
       ),
     );
   }

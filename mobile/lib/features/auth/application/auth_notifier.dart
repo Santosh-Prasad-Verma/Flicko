@@ -74,7 +74,7 @@ class AuthNotifier extends Notifier<AuthState> {
       try {
         // Fetch v2 rollout flags first so the bootstrap path can branch.
         final flags = await ref.read(featureFlagsRepositoryProvider).fetch();
-        ref.read(e2eeFlagsProvider.notifier).state = flags;
+        ref.read(e2eeFlagsProvider.notifier).update(flags);
         await ref.read(e2eeSessionProvider).ensureBootstrapped();
       } catch (_) {}
     });

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
@@ -86,13 +87,13 @@ class _BotTicketSettingsScreenState extends ConsumerState<BotTicketSettingsScree
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(FlickoColors.bgPrimary),
+      
       appBar: AppBar(
-        backgroundColor: const Color(FlickoColors.bgPrimary),
+        
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => context.pop(),
         ),
         title: Row(
           children: [
@@ -149,14 +150,14 @@ class _BotTicketSettingsScreenState extends ConsumerState<BotTicketSettingsScree
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
-              'Create support tickets for users to get help from moderators.',
+              'Create dedicated, private support channels for user queries and issues.',
               style: GoogleFonts.inter(color: const Color(FlickoColors.textSecondary), fontSize: 14),
             ),
           ),
           const SizedBox(height: 24),
           _buildSection('Status', [
             SwitchListTile(
-              title: Text('Enable Ticket Bot', style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary), fontSize: 16, fontWeight: FontWeight.w500)),
+              title: Text('Enable Ticket System', style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary), fontSize: 16, fontWeight: FontWeight.w500)),
               subtitle: Text('Allow users to create support tickets', style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted), fontSize: 12)),
               value: _settings?['enabled'] ?? false,
               onChanged: _toggleEnabled,
@@ -164,23 +165,24 @@ class _BotTicketSettingsScreenState extends ConsumerState<BotTicketSettingsScree
             ),
           ]),
           const SizedBox(height: 24),
-          _buildSection('Settings', [
-            _buildInfoField('Ticket Channel', _settings?['channel_id'] != null ? 'Configured' : 'Not set'),
-            _buildInfoField('Support Role', _settings?['support_role_id'] != null ? 'Configured' : 'Not set'),
-            _buildInfoField('Ticket Category', _settings?['category'] ?? 'General'),
+          _buildSection('Configuration', [
+            _buildInfoField('Support Role', _settings?['support_role_id'] != null ? 'Configured' : 'None'),
+            _buildInfoField('Category ID', _settings?['category_id'] ?? 'Not set'),
+            _buildInfoField('Ticket Limit', '${_settings?['ticket_limit'] ?? 3} open tickets'),
           ]),
           const SizedBox(height: 24),
-          _buildSection('Features', [
-            _buildToggleField('Auto-close', 'Close tickets after inactivity', _settings?['auto_close'] ?? false),
-            _buildToggleField('Transcripts', 'Save ticket transcripts', _settings?['save_transcripts'] ?? false),
+          _buildSection('Options', [
+            _buildToggleField('Transcript Logging', 'Save logs of closed tickets', _settings?['transcript_logging'] ?? true),
+            _buildToggleField('Feedback Form', 'Ask for feedback upon closing', _settings?['feedback_form'] ?? false),
+            _buildToggleField('User Close Permission', 'Allow users to close their own tickets', _settings?['user_close'] ?? true),
           ]),
           const SizedBox(height: 24),
           _buildSection('Commands', [
-            _buildInfoField('/ticket create', 'Create a new ticket'),
+            _buildInfoField('/ticket new [reason]', 'Create a new support ticket'),
             _buildInfoField('/ticket close', 'Close current ticket'),
-            _buildInfoField('/ticket add', 'Add user to ticket'),
-            _buildInfoField('/ticket remove', 'Remove user from ticket'),
-            _buildInfoField('/ticket rename', 'Rename ticket'),
+            _buildInfoField('/ticket add [user]', 'Add user to the ticket'),
+            _buildInfoField('/ticket remove [user]', 'Remove user from the ticket'),
+            _buildInfoField('/ticket transcript', 'Generate ticket transcript (staff)'),
           ]),
         ],
       ),

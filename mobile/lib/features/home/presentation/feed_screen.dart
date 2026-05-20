@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,6 +7,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/data/models/auth_state.dart' as app_auth;
+import 'package:mobile/features/voice/application/sonic_drip_notifier.dart';
+import 'package:mobile/features/voice/domain/music_models.dart';
 
 /// Feed/Home Screen — Discord Mobile Style
 ///
@@ -110,7 +113,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     }
   }
 
-  void _handleServerOptions() {
+  Future<void> _handleServerOptions() async {
     if (_selectedServerId == null) return;
     
     final selectedServer = _servers.firstWhere(
@@ -126,9 +129,14 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     final isOwner = selectedServer['owner_id'] == user?.id;
     
     if (isOwner) {
-      context.push('/server/$_selectedServerId/settings');
+      await context.push('/server/$_selectedServerId/settings');
     } else {
-      context.push('/server/$_selectedServerId/server-options');
+      await context.push('/server/$_selectedServerId/server-options');
+    }
+
+    // Reload channels when returning from settings (user may have created/edited/deleted channels)
+    if (_selectedServerId != null) {
+      _loadChannels(_selectedServerId!);
     }
   }
 
@@ -397,6 +405,9 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
   }
 
   Widget _buildHomeView(User? user) {
+    final dripState = ref.watch(sonicDripProvider);
+    final hasActiveTrack = dripState.playback.currentTrack != null;
+
     return Column(
       children: [
         // Header
@@ -418,6 +429,11 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
             children: [
               // Welcome Card
               _buildWelcomeCard(),
+              
+              if (hasActiveTrack) ...[
+                const SizedBox(height: 24),
+                _buildNowPlayingPanel(dripState),
+              ],
               
               const SizedBox(height: 24),
               
@@ -744,6 +760,316 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildNowPlayingPanel(SonicDripState dripState) {
+    final currentTrack = dripState.playback.currentTrack;
+    if (currentTrack == null) return const SizedBox.shrink();
+
+    final isPlaying = dripState.isPlaying;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0C0C0E),
+        border: Border.all(color: const Color(0xFF52B788), width: 2),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0xFF52B788),
+            offset: Offset(4, 4),
+            blurRadius: 0,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Title Bar
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.radio_rounded, color: Color(0xFF52B788), size: 16),
+                  const SizedBox(width: 6),
+                  Text(
+                    'NOW PLAYING // SONIC DRIP',
+                    style: GoogleFonts.spaceMono(
+                      color: const Color(0xFF52B788),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: isPlaying ? const Color(0xFF52B788) : const Color(0xFF71717A),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+                child: Text(
+                  isPlaying ? 'LIVE' : 'PAUSED',
+                  style: GoogleFonts.spaceMono(
+                    color: Colors.black,
+                    fontSize: 8,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Track Info & Visualizer Animation Row
+          Row(
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: Colors.black,
+                  border: Border.all(color: const Color(0xFF71717A).withValues(alpha: 0.3), width: 1),
+                ),
+                child: currentTrack.imageUrl != null && currentTrack.imageUrl!.isNotEmpty
+                    ? Image.network(
+                        currentTrack.imageUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Icon(
+                          Icons.music_note_rounded,
+                          color: Color(0xFF52B788),
+                          size: 24,
+                        ),
+                      )
+                    : const Icon(
+                        Icons.music_note_rounded,
+                        color: Color(0xFF52B788),
+                        size: 24,
+                      ),
+              ),
+              const SizedBox(width: 14),
+
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      currentTrack.name.toUpperCase(),
+                      style: GoogleFonts.epilogue(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.5,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      currentTrack.artistName.toUpperCase(),
+                      style: GoogleFonts.spaceMono(
+                        color: const Color(0xFF71717A),
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+
+              _EqualizerWave(isPlaying: isPlaying),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Timeline Progress Bar
+          Row(
+            children: [
+              Text(
+                dripState.playback.positionFormatted,
+                style: GoogleFonts.spaceMono(
+                  color: const Color(0xFF71717A),
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    trackHeight: 3,
+                    activeTrackColor: const Color(0xFF52B788),
+                    inactiveTrackColor: const Color(0xFF1F1F23),
+                    thumbColor: const Color(0xFF52B788),
+                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                    overlayColor: const Color(0xFF52B788).withValues(alpha: 0.1),
+                    overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                  ),
+                  child: Slider(
+                    value: dripState.playback.progress,
+                    onChanged: (val) {
+                      ref.read(sonicDripProvider.notifier).seekTo(val);
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                dripState.playback.durationFormatted,
+                style: GoogleFonts.spaceMono(
+                  color: const Color(0xFF71717A),
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Controls
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildControlBtn(
+                icon: Icons.skip_previous_rounded,
+                onTap: () => ref.read(sonicDripProvider.notifier).skipPrevious(),
+              ),
+              
+              GestureDetector(
+                onTap: () => ref.read(sonicDripProvider.notifier).togglePlayPause(),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isPlaying ? Colors.transparent : const Color(0xFF52B788),
+                    border: Border.all(color: const Color(0xFF52B788), width: 2),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                        color: isPlaying ? const Color(0xFF52B788) : Colors.black,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        isPlaying ? 'PAUSE' : 'PLAY',
+                        style: GoogleFonts.spaceMono(
+                          color: isPlaying ? const Color(0xFF52B788) : Colors.black,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              _buildControlBtn(
+                icon: Icons.skip_next_rounded,
+                onTap: () => ref.read(sonicDripProvider.notifier).skipNext(),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildControlBtn({required IconData icon, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.black,
+          border: Border.all(color: const Color(0xFF71717A).withValues(alpha: 0.3), width: 2),
+        ),
+        child: Icon(icon, color: Colors.white, size: 20),
+      ),
+    );
+  }
+}
+
+class _EqualizerWave extends StatefulWidget {
+  final bool isPlaying;
+
+  const _EqualizerWave({required this.isPlaying});
+
+  @override
+  State<_EqualizerWave> createState() => _EqualizerWaveState();
+}
+
+class _EqualizerWaveState extends State<_EqualizerWave> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
+    if (widget.isPlaying) {
+      _controller.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _EqualizerWave oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isPlaying != oldWidget.isPlaying) {
+      if (widget.isPlaying) {
+        _controller.repeat(reverse: true);
+      } else {
+        _controller.stop();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return SizedBox(
+          height: 36,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: List.generate(5, (index) {
+              double val = _controller.value;
+              double heightFactor = 0.2;
+              if (widget.isPlaying) {
+                final offset = index * 0.4;
+                final angle = (val * 2 * math.pi) + offset;
+                heightFactor = 0.25 + 0.75 * (0.5 + 0.5 * math.sin(angle)).clamp(0.0, 1.0);
+              }
+              return Container(
+                width: 4,
+                height: 36 * heightFactor,
+                margin: const EdgeInsets.symmetric(horizontal: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF52B788),
+                  borderRadius: BorderRadius.circular(1),
+                ),
+              );
+            }),
+          ),
+        );
+      },
     );
   }
 }

@@ -196,6 +196,7 @@ GRANT EXECUTE ON FUNCTION public.get_privacy_masked_profile_fields(uuid[]) TO au
 -- ---------------------------------------------------------------------------
 
 DROP POLICY IF EXISTS "Users can send DMs" ON public.direct_messages;
+DROP POLICY IF EXISTS "Users can send DMs subject to privacy" ON public.direct_messages;
 CREATE POLICY "Users can send DMs subject to privacy"
   ON public.direct_messages FOR INSERT
   WITH CHECK (
@@ -204,6 +205,7 @@ CREATE POLICY "Users can send DMs subject to privacy"
   );
 
 DROP POLICY IF EXISTS "Send friend request" ON public.friend_requests;
+DROP POLICY IF EXISTS "Send friend request subject to privacy" ON public.friend_requests;
 CREATE POLICY "Send friend request subject to privacy"
   ON public.friend_requests FOR INSERT
   WITH CHECK (

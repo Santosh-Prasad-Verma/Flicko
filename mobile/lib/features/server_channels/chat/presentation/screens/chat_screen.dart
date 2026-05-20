@@ -52,7 +52,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         content: Text('$feature coming soon!'),
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 2),
-        backgroundColor: const Color(FlickoColors.blurple),
+        backgroundColor: const Color(FlickoColors.bgTertiary),
       ),
     );
   }
@@ -83,6 +83,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             duration: const Duration(seconds: 1),
           ),
         );
+      },
+      onThread: () {
+        ref.read(chatNotifierProvider(widget.channelId).notifier)
+            .createThread(message.id);
       },
     );
   }

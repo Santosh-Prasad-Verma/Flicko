@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
@@ -86,13 +87,13 @@ class _BotMusicSettingsScreenState extends ConsumerState<BotMusicSettingsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(FlickoColors.bgPrimary),
+      
       appBar: AppBar(
-        backgroundColor: const Color(FlickoColors.bgPrimary),
+        
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => context.pop(),
         ),
         title: Row(
           children: [
@@ -149,7 +150,7 @@ class _BotMusicSettingsScreenState extends ConsumerState<BotMusicSettingsScreen>
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
-              'Play music in voice channels with queue management and controls.',
+              'Play audio and stream music from YouTube, Soundcloud, and more directly into voice channels.',
               style: GoogleFonts.inter(color: const Color(FlickoColors.textSecondary), fontSize: 14),
             ),
           ),
@@ -157,34 +158,32 @@ class _BotMusicSettingsScreenState extends ConsumerState<BotMusicSettingsScreen>
           _buildSection('Status', [
             SwitchListTile(
               title: Text('Enable Music Bot', style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary), fontSize: 16, fontWeight: FontWeight.w500)),
-              subtitle: Text('Allow music playback in voice channels', style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted), fontSize: 12)),
+              subtitle: Text('Allow playing music in voice channels', style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted), fontSize: 12)),
               value: _settings?['enabled'] ?? false,
               onChanged: _toggleEnabled,
               activeColor: const Color(FlickoColors.blurple),
             ),
           ]),
           const SizedBox(height: 24),
-          _buildSection('Settings', [
-            _buildInfoField('Default Volume', '${_settings?['default_volume'] ?? 75}%'),
-            _buildInfoField('Queue Limit', '${_settings?['queue_limit'] ?? 50} songs'),
-            _buildInfoField('DJ Role', _settings?['dj_role_id'] != null ? 'Configured' : 'None'),
+          _buildSection('Queue & Volume', [
+            _buildInfoField('Max Queue Size', '${_settings?['max_queue'] ?? 50} tracks'),
+            _buildInfoField('Default Volume', '${_settings?['default_volume'] ?? 50}%'),
+            _buildInfoField('Inactive Timeout', '${_settings?['inactive_timeout'] ?? 300} seconds'),
           ]),
           const SizedBox(height: 24),
-          _buildSection('Features', [
-            _buildToggleField('Auto-play', 'Auto-play next song in queue', _settings?['auto_play'] ?? true),
-            _buildToggleField('Loop Queue', 'Loop the entire queue', _settings?['loop_queue'] ?? false),
-            _buildToggleField('Song Requests', 'Allow users to request songs', _settings?['allow_requests'] ?? true),
-            _buildToggleField('Lyrics Display', 'Show lyrics for songs', _settings?['show_lyrics'] ?? false),
+          _buildSection('Permissions', [
+            _buildToggleField('DJ Mode Only', 'Only DJ role can control playback', _settings?['dj_only'] ?? false),
+            _buildToggleField('Allow Playlists', 'Allow queuing complete playlists', _settings?['allow_playlists'] ?? true),
+            _buildToggleField('Vote Skip', 'Require user skip votes', _settings?['vote_skip'] ?? true),
           ]),
           const SizedBox(height: 24),
           _buildSection('Commands', [
-            _buildInfoField('/play [song]', 'Play a song'),
-            _buildInfoField('/skip', 'Skip current song'),
-            _buildInfoField('/queue', 'Show the queue'),
-            _buildInfoField('/volume [0-100]', 'Set volume'),
+            _buildInfoField('/play [query/url]', 'Play music in your channel'),
+            _buildInfoField('/skip', 'Skip current track'),
             _buildInfoField('/pause', 'Pause playback'),
             _buildInfoField('/resume', 'Resume playback'),
-            _buildInfoField('/clear', 'Clear the queue'),
+            _buildInfoField('/queue', 'Show current queue'),
+            _buildInfoField('/volume [0-100]', 'Set playback volume'),
           ]),
         ],
       ),

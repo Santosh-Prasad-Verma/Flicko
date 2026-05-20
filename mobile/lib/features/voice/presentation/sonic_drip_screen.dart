@@ -8,12 +8,13 @@ import 'widgets/now_playing_card.dart';
 import 'widgets/playback_controls.dart';
 import 'widgets/queue_list.dart';
 import 'widgets/search_sheet.dart';
+import 'widgets/drip_bash_sheet.dart';
 import 'spotify_connect_screen.dart';
 
 class SonicDripScreen extends ConsumerWidget {
   const SonicDripScreen({super.key});
 
-  static const _lime = Color(0xFFCBEF17);
+  static const _lime = Color(0xFF52B788);
   static const _black = Color(0xFF000000);
   static const _white = Color(0xFFFFFFFF);
   static const _surface = Color(0xFF0A0A0A);
@@ -45,7 +46,10 @@ class SonicDripScreen extends ConsumerWidget {
                     ],
                     PlaybackControls(state: state),
                     const SizedBox(height: 32),
-                    _ActionRow(onSearch: () => _openSearch(context)),
+                    _ActionRow(
+                      onSearch: () => _openSearch(context),
+                      onDripBash: () => _openDripBash(context),
+                    ),
                     const SizedBox(height: 40),
                     QueueList(queue: state.queue),
                     const SizedBox(height: 24),
@@ -68,6 +72,15 @@ class SonicDripScreen extends ConsumerWidget {
       builder: (_) => const SearchSheet(),
     );
   }
+
+  void _openDripBash(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const DripBashSheet(),
+    );
+  }
 }
 
 // ─── App Bar ──────────────────────────────────────────────────────────────────
@@ -82,7 +95,7 @@ class _AppBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: const BoxDecoration(
         color: Color(0xFF000000),
-        border: Border(bottom: BorderSide(color: Color(0xFFCBEF17), width: 3)),
+        border: Border(bottom: BorderSide(color: Color(0xFF52B788), width: 3)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -107,13 +120,13 @@ class _AppBar extends StatelessWidget {
                   Container(
                     width: 6,
                     height: 6,
-                    color: const Color(0xFFCBEF17),
+                    color: const Color(0xFF52B788),
                   ),
                   const SizedBox(width: 6),
                   Text(
                     'VIRTUAL_TURNTABLE_V2',
                     style: GoogleFonts.robotoMono(
-                      color: const Color(0xFFCBEF17),
+                      color: const Color(0xFF52B788),
                       fontSize: 9,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 1,
@@ -146,7 +159,7 @@ class _ProgressSection extends ConsumerWidget {
             Text(
               state.playback.positionFormatted,
               style: GoogleFonts.robotoMono(
-                color: const Color(0xFFCBEF17),
+                color: const Color(0xFF52B788),
                 fontSize: 13,
                 fontWeight: FontWeight.w900,
               ),
@@ -177,7 +190,7 @@ class _ProgressSection extends ConsumerWidget {
             child: FractionallySizedBox(
               alignment: Alignment.centerLeft,
               widthFactor: state.playback.progress,
-              child: Container(color: const Color(0xFFCBEF17)),
+              child: Container(color: const Color(0xFF52B788)),
             ),
           ),
         ),
@@ -190,33 +203,51 @@ class _ProgressSection extends ConsumerWidget {
 
 class _ActionRow extends StatelessWidget {
   final VoidCallback onSearch;
-  const _ActionRow({required this.onSearch});
+  final VoidCallback onDripBash;
+  const _ActionRow({required this.onSearch, required this.onDripBash});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          child: _BrutalistButton(
-            label: 'ADD_TO_DRIP',
-            onTap: onSearch,
-            bgColor: const Color(0xFFCBEF17),
-            textColor: Colors.black,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _BrutalistButton(
-            label: 'SPOTIFY',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const SpotifyConnectScreen(),
+        Row(
+          children: [
+            Expanded(
+              child: _BrutalistButton(
+                label: 'DRIP_BASH',
+                onTap: onDripBash,
+                bgColor: const Color(0xFF52B788),
+                textColor: Colors.black,
               ),
             ),
-            bgColor: Colors.black,
-            textColor: Colors.white,
-          ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _BrutalistButton(
+                label: 'ADD_TO_DRIP',
+                onTap: onSearch,
+                bgColor: Colors.black,
+                textColor: Colors.white,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _BrutalistButton(
+                label: 'SPOTIFY',
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const SpotifyConnectScreen(),
+                  ),
+                ),
+                bgColor: Colors.black,
+                textColor: const Color(0xFF1DB954),
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -287,10 +318,10 @@ class _IconBtn extends StatelessWidget {
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
           color: Colors.black,
-          border: Border.all(color: const Color(0xFFCBEF17), width: 2),
-          boxShadow: const [BoxShadow(color: Color(0xFFCBEF17), offset: Offset(3, 3))],
+          border: Border.all(color: const Color(0xFF52B788), width: 2),
+          boxShadow: const [BoxShadow(color: Color(0xFF52B788), offset: Offset(3, 3))],
         ),
-        child: Icon(icon, size: 18, color: const Color(0xFFCBEF17)),
+        child: Icon(icon, size: 18, color: const Color(0xFF52B788)),
       ),
     );
   }

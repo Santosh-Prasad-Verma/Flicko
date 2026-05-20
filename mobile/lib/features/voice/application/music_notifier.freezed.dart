@@ -37,8 +37,8 @@ mixin _$MusicState {
             const DeepCollectionEquality()
                 .equals(other.searchResults, searchResults) &&
             const DeepCollectionEquality().equals(other.queue, queue) &&
-            const DeepCollectionEquality()
-                .equals(other.nowPlaying, nowPlaying) &&
+            (identical(other.nowPlaying, nowPlaying) ||
+                other.nowPlaying == nowPlaying) &&
             (identical(other.isPaused, isPaused) ||
                 other.isPaused == isPaused) &&
             (identical(other.isLoading, isLoading) ||
@@ -52,7 +52,7 @@ mixin _$MusicState {
       runtimeType,
       const DeepCollectionEquality().hash(searchResults),
       const DeepCollectionEquality().hash(queue),
-      const DeepCollectionEquality().hash(nowPlaying),
+      nowPlaying,
       isPaused,
       isLoading,
       volume,
@@ -78,6 +78,8 @@ abstract mixin class $MusicStateCopyWith<$Res> {
       bool isLoading,
       double volume,
       String? error});
+
+  $MusicItemCopyWith<$Res>? get nowPlaying;
 }
 
 /// @nodoc
@@ -130,6 +132,20 @@ class _$MusicStateCopyWithImpl<$Res> implements $MusicStateCopyWith<$Res> {
           : error // ignore: cast_nullable_to_non_nullable
               as String?,
     ));
+  }
+
+  /// Create a copy of MusicState
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $MusicItemCopyWith<$Res>? get nowPlaying {
+    if (_self.nowPlaying == null) {
+      return null;
+    }
+
+    return $MusicItemCopyWith<$Res>(_self.nowPlaying!, (value) {
+      return _then(_self.copyWith(nowPlaying: value));
+    });
   }
 }
 
@@ -379,8 +395,8 @@ class _MusicState implements MusicState {
             const DeepCollectionEquality()
                 .equals(other._searchResults, _searchResults) &&
             const DeepCollectionEquality().equals(other._queue, _queue) &&
-            const DeepCollectionEquality()
-                .equals(other.nowPlaying, nowPlaying) &&
+            (identical(other.nowPlaying, nowPlaying) ||
+                other.nowPlaying == nowPlaying) &&
             (identical(other.isPaused, isPaused) ||
                 other.isPaused == isPaused) &&
             (identical(other.isLoading, isLoading) ||
@@ -394,7 +410,7 @@ class _MusicState implements MusicState {
       runtimeType,
       const DeepCollectionEquality().hash(_searchResults),
       const DeepCollectionEquality().hash(_queue),
-      const DeepCollectionEquality().hash(nowPlaying),
+      nowPlaying,
       isPaused,
       isLoading,
       volume,
@@ -422,6 +438,9 @@ abstract mixin class _$MusicStateCopyWith<$Res>
       bool isLoading,
       double volume,
       String? error});
+
+  @override
+  $MusicItemCopyWith<$Res>? get nowPlaying;
 }
 
 /// @nodoc
@@ -474,6 +493,20 @@ class __$MusicStateCopyWithImpl<$Res> implements _$MusicStateCopyWith<$Res> {
           : error // ignore: cast_nullable_to_non_nullable
               as String?,
     ));
+  }
+
+  /// Create a copy of MusicState
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $MusicItemCopyWith<$Res>? get nowPlaying {
+    if (_self.nowPlaying == null) {
+      return null;
+    }
+
+    return $MusicItemCopyWith<$Res>(_self.nowPlaying!, (value) {
+      return _then(_self.copyWith(nowPlaying: value));
+    });
   }
 }
 

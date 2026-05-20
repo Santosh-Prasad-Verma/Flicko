@@ -49,4 +49,5 @@ const _$ChannelTypeEnumMap = {
   ChannelType.forum: 'forum',
   ChannelType.stage: 'stage',
   ChannelType.dm: 'dm',
+  ChannelType.photoAlbum: 'photo_album',
 };

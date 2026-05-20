@@ -1,5 +1,5 @@
-/// Domain models for Sonic Drip music feature.
-/// These are UI-layer models, decoupled from API response shapes.
+// Domain models for Sonic Drip music feature.
+// These are UI-layer models, decoupled from API response shapes.
 
 enum MusicType { track, album, artist }
 
@@ -102,6 +102,30 @@ class PlaybackState {
       error: clearError ? null : (error ?? this.error),
     );
   }
+}
+
+/// A categorized search result section (Songs, Albums, Artists, etc.)
+class SearchCategory {
+  final String title; // e.g. 'Songs', 'Albums', 'Artists'
+  final List<Track> items;
+
+  const SearchCategory({required this.title, required this.items});
+}
+
+/// Full categorized search results from the API.
+class CategorizedSearchResults {
+  final List<SearchCategory> categories;
+  final bool isEmpty;
+
+  const CategorizedSearchResults({required this.categories})
+      : isEmpty = false;
+
+  const CategorizedSearchResults.empty()
+      : categories = const [],
+        isEmpty = true;
+
+  int get totalCount =>
+      categories.fold(0, (sum, cat) => sum + cat.items.length);
 }
 
 /// Spotify connection session (cookies only — never passwords).

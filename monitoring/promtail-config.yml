@@ -1,0 +1,29 @@
+# Promtail config for Flicko centralized logging
+# Scrapes Docker JSON logs and ships to Loki
+# Add this to docker-compose.prod.yml as:
+#   promtail:
+#     image: grafana/promtail:latest
+#     volumes:
+#       - /var/lib/docker/containers:/var/lib/docker/containers:ro
+#       - /var/run/docker.sock:/var/run/docker.sock
+#       - ./monitoring/promtail-config.yml:/etc/promtail/config.yml
+
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: docker
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+    relabel_configs:
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/(.*)'
+        target_label: 'container'

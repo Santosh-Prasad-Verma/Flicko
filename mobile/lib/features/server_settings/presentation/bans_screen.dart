@@ -53,14 +53,14 @@ class _BansScreenState extends ConsumerState<BansScreen> {
 
     try {
       final response = await _client
-          .from('server_bans')
+          .from('bans')
           .select('''
             id,
             user_id,
             reason,
             created_at,
-            banned_user:user_id(username, avatar_url, display_name),
-            executor:executor_id(username, display_name)
+            banned_user:user_id(username, avatar_url:avatar, display_name),
+            executor:banned_by(username, display_name)
           ''')
           .eq('server_id', widget.serverId)
           .order('created_at', ascending: false);
@@ -101,7 +101,7 @@ class _BansScreenState extends ConsumerState<BansScreen> {
 
   Future<void> _unban(String banId, String userId) async {
     try {
-      await _client.from('server_bans').delete().eq('id', banId);
+      await _client.from('bans').delete().eq('id', banId);
 
       // Write audit log
       final authState = ref.read(authNotifierProvider);
@@ -110,7 +110,7 @@ class _BansScreenState extends ConsumerState<BansScreen> {
 
       if (currentUser != null) {
         final unbannedUser = _bans.firstWhere((b) => b.userId == userId);
-        await _client.from('audit_logs').insert({
+        await _client.from('audit_log').insert({
           'server_id': widget.serverId,
           'actor_id': currentUser.id,
           'action_type': 'member_unban',
@@ -129,7 +129,7 @@ class _BansScreenState extends ConsumerState<BansScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('User unbanned'),
-            backgroundColor: Color(0xFFC8FF00),
+            backgroundColor: Color(0xFF52B788),
           ),
         );
       }
@@ -221,7 +221,7 @@ class _BansScreenState extends ConsumerState<BansScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new,
-              color: Color(0xFFC8FF00), size: 20),
+              color: Color(0xFF52B788), size: 20),
           onPressed: () => context.pop(),
         ),
         centerTitle: true,
@@ -255,7 +255,7 @@ class _BansScreenState extends ConsumerState<BansScreen> {
                   hintStyle:
                       GoogleFonts.inter(color: Colors.white24, fontSize: 14),
                   prefixIcon: const Icon(Icons.search,
-                      color: Color(0xFFC8FF00), size: 20),
+                      color: Color(0xFF52B788), size: 20),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(vertical: 16),
                 ),
@@ -265,7 +265,7 @@ class _BansScreenState extends ConsumerState<BansScreen> {
           Expanded(
             child: _isLoading
                 ? const Center(
-                    child: CircularProgressIndicator(color: Color(0xFFC8FF00)))
+                    child: CircularProgressIndicator(color: Color(0xFF52B788)))
                 : filtered.isEmpty
                     ? Center(
                         child: Column(
@@ -295,7 +295,7 @@ class _BansScreenState extends ConsumerState<BansScreen> {
                       )
                     : RefreshIndicator(
                         onRefresh: _loadBans,
-                        color: const Color(0xFFC8FF00),
+                        color: const Color(0xFF52B788),
                         backgroundColor: const Color(0xFF0D0D0D),
                         child: ListView.builder(
                           padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -339,7 +339,7 @@ class _BansScreenState extends ConsumerState<BansScreen> {
                       child: Text(
                         (ban.username ?? '?')[0].toUpperCase(),
                         style: GoogleFonts.inter(
-                          color: const Color(0xFFC8FF00),
+                          color: const Color(0xFF52B788),
                           fontSize: 20,
                           fontWeight: FontWeight.w900,
                         ),
@@ -422,18 +422,18 @@ class _BansScreenState extends ConsumerState<BansScreen> {
         decoration: BoxDecoration(
           color: isDanger
               ? Colors.redAccent.withValues(alpha: 0.1)
-              : const Color(0xFFC8FF00).withValues(alpha: 0.1),
+              : const Color(0xFF52B788).withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isDanger
                 ? Colors.redAccent.withValues(alpha: 0.2)
-                : const Color(0xFFC8FF00).withValues(alpha: 0.2),
+                : const Color(0xFF52B788).withValues(alpha: 0.2),
           ),
         ),
         child: Text(
           label,
           style: GoogleFonts.inter(
-            color: isDanger ? Colors.redAccent : const Color(0xFFC8FF00),
+            color: isDanger ? Colors.redAccent : const Color(0xFF52B788),
             fontSize: 10,
             fontWeight: FontWeight.w900,
             letterSpacing: 0.5,

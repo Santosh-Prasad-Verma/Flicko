@@ -212,8 +212,8 @@ class BotMarketplaceData {
       category: 'Automation',
     ),
     BotMarketplaceItem(
-      id: 'stripe-automation',
-      name: 'Stripe Payments',
+      id: 'razorpay-automation',
+      name: 'Razorpay Payments',
       description: 'Manage subscriptions, invoices, and payments within your community.',
       icon: '💳',
       category: 'Automation',

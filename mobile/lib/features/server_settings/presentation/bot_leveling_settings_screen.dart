@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
@@ -86,13 +87,13 @@ class _BotLevelingSettingsScreenState extends ConsumerState<BotLevelingSettingsS
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(FlickoColors.bgPrimary),
+      
       appBar: AppBar(
-        backgroundColor: const Color(FlickoColors.bgPrimary),
+        
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => context.pop(),
         ),
         title: Row(
           children: [

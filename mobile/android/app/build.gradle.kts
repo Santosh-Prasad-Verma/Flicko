@@ -5,6 +5,8 @@ plugins {
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+    // Firebase: reads google-services.json and wires Firebase config into the app.
+    id("com.google.gms.google-services")
 }
 
 val flickoDartDefineKeys =
@@ -12,7 +14,6 @@ val flickoDartDefineKeys =
         "FLICKO_SUPABASE_URL",
         "FLICKO_SUPABASE_ANON_KEY",
         "FLICKO_LIVEKIT_URL",
-        "FLICKO_STRIPE_PUBLISHABLE_KEY",
         "FLICKO_API_URL",
         "FLICKO_GIPHY_API_KEY",
         "FLICKO_APPWRITE_PROJECT_ID",
@@ -23,7 +24,6 @@ val flickoDartDefineKeys =
         "SUPABASE_URL",
         "SUPABASE_ANON_KEY",
         "LIVEKIT_URL",
-        "STRIPE_PUBLISHABLE_KEY",
         "API_BASE_URL",
         "GIPHY_API_KEY",
         "APPWRITE_PROJECT_ID",
@@ -64,7 +64,7 @@ tasks.withType<com.flutter.gradle.tasks.FlutterTask>().configureEach {
 }
 
 android {
-    namespace = "com.example.mobile"
+    namespace = "tech.focko.flicko"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -79,8 +79,7 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.mobile"
+        applicationId = "tech.focko.flicko"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

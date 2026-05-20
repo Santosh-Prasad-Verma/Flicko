@@ -1,17 +1,11 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/config/app_config.dart';
+import '../clients/dio_client.dart';
 
-/// Message Thread Service for message threading
-/// 
-/// Handles creating threads, replying to threads, and fetching thread messages.
 class MessageThreadService {
   final Dio _dio;
-  final String _apiBaseUrl;
 
-  MessageThreadService()
-      : _dio = Dio(),
-        _apiBaseUrl = AppConfig.apiBaseUrl;
+  MessageThreadService(this._dio);
 
   /// Create a thread from a message
   /// 
@@ -21,7 +15,7 @@ class MessageThreadService {
   Future<Map<String, dynamic>> createThread(String messageId, {String? title}) async {
     try {
       final response = await _dio.post(
-        '$_apiBaseUrl/messages/$messageId/thread',
+        '/api/v1/messages/$messageId/thread',
         data: {
           if (title != null) 'title': title,
         },
@@ -49,7 +43,7 @@ class MessageThreadService {
       }
 
       final response = await _dio.post(
-        '$_apiBaseUrl/threads/$threadId/replies',
+        '/api/v1/threads/$threadId/replies',
         data: {'content': content.trim()},
       );
 
@@ -76,7 +70,7 @@ class MessageThreadService {
   }) async {
     try {
       final response = await _dio.get(
-        '$_apiBaseUrl/threads/$threadId/messages',
+        '/api/v1/threads/$threadId/messages',
         queryParameters: {
           'limit': limit,
           'offset': offset,
@@ -102,7 +96,7 @@ class MessageThreadService {
   Future<Map<String, dynamic>> getThreadDetails(String threadId) async {
     try {
       final response = await _dio.get(
-        '$_apiBaseUrl/threads/$threadId',
+        '/api/v1/threads/$threadId',
       );
 
       if (response.statusCode == 200) {
@@ -122,7 +116,7 @@ class MessageThreadService {
   Future<bool> followThread(String threadId) async {
     try {
       final response = await _dio.post(
-        '$_apiBaseUrl/threads/$threadId/follow',
+        '/api/v1/threads/$threadId/follow',
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -142,7 +136,7 @@ class MessageThreadService {
   Future<bool> unfollowThread(String threadId) async {
     try {
       final response = await _dio.delete(
-        '$_apiBaseUrl/threads/$threadId/follow',
+        '/api/v1/threads/$threadId/follow',
       );
 
       if (response.statusCode == 200 || response.statusCode == 204) {
@@ -162,7 +156,7 @@ class MessageThreadService {
   Future<List<Map<String, dynamic>>> getFollowedThreads(String userId) async {
     try {
       final response = await _dio.get(
-        '$_apiBaseUrl/users/$userId/followed-threads',
+        '/api/v1/users/$userId/followed-threads',
       );
 
       if (response.statusCode == 200) {
@@ -184,7 +178,7 @@ class MessageThreadService {
   Future<bool> pinThread(String threadId) async {
     try {
       final response = await _dio.post(
-        '$_apiBaseUrl/threads/$threadId/pin',
+        '/api/v1/threads/$threadId/pin',
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -204,7 +198,7 @@ class MessageThreadService {
   Future<bool> unpinThread(String threadId) async {
     try {
       final response = await _dio.delete(
-        '$_apiBaseUrl/threads/$threadId/pin',
+        '/api/v1/threads/$threadId/pin',
       );
 
       if (response.statusCode == 200 || response.statusCode == 204) {
@@ -220,5 +214,5 @@ class MessageThreadService {
 
 /// Provider for MessageThreadService
 final messageThreadServiceProvider = Provider<MessageThreadService>((ref) {
-  return MessageThreadService();
+  return MessageThreadService(ref.watch(dioProvider));
 });

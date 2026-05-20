@@ -9,8 +9,6 @@ class AppConfig {
       String.fromEnvironment('FLICKO_SUPABASE_ANON_KEY');
   static const String _definedLivekitUrl =
       String.fromEnvironment('FLICKO_LIVEKIT_URL');
-  static const String _definedStripePublishableKey =
-      String.fromEnvironment('FLICKO_STRIPE_PUBLISHABLE_KEY');
   static const String _definedApiBaseUrl =
       String.fromEnvironment('FLICKO_API_URL');
   static const String _definedGiphyApiKey =
@@ -23,6 +21,10 @@ class AppConfig {
       String.fromEnvironment('FLICKO_APPWRITE_PUBLIC_ENDPOINT');
   static const String _definedAppwriteBucketId =
       String.fromEnvironment('FLICKO_APPWRITE_BUCKET_ID');
+  static const String _definedRazorpayKeyId =
+      String.fromEnvironment('FLICKO_RAZORPAY_KEY_ID');
+  static const String _definedGoogleClientId =
+      String.fromEnvironment('FLICKO_GOOGLE_CLIENT_ID');
 
   static const String _definedLegacySupabaseUrl =
       String.fromEnvironment('SUPABASE_URL');
@@ -30,8 +32,6 @@ class AppConfig {
       String.fromEnvironment('SUPABASE_ANON_KEY');
   static const String _definedLegacyLivekitUrl =
       String.fromEnvironment('LIVEKIT_URL');
-  static const String _definedLegacyStripePublishableKey =
-      String.fromEnvironment('STRIPE_PUBLISHABLE_KEY');
   static const String _definedLegacyApiBaseUrl =
       String.fromEnvironment('API_BASE_URL');
   static const String _definedLegacyGiphyApiKey =
@@ -44,11 +44,14 @@ class AppConfig {
       String.fromEnvironment('APPWRITE_PUBLIC_ENDPOINT');
   static const String _definedLegacyAppwriteBucketId =
       String.fromEnvironment('APPWRITE_BUCKET_ID');
+  static const String _definedLegacyRazorpayKeyId =
+      String.fromEnvironment('RAZORPAY_KEY_ID');
+  static const String _definedLegacyGoogleClientId =
+      String.fromEnvironment('GOOGLE_CLIENT_ID');
 
   static late final String supabaseUrl;
   static late final String supabaseAnonKey;
   static late final String livekitUrl;
-  static late final String stripePublishableKey;
   static late final String apiBaseUrl;
   static late final String giphyApiKey;
 
@@ -57,6 +60,8 @@ class AppConfig {
   static late final String appwriteProjectName;
   static late final String appwritePublicEndpoint;
   static late final String appwriteBucketId;
+  static late final String razorpayKeyId;
+  static late final String googleClientId;
 
   static void init() {
     supabaseUrl = _read(
@@ -76,12 +81,6 @@ class AppConfig {
       _definedLegacyLivekitUrl,
       'FLICKO_LIVEKIT_URL',
       'LIVEKIT_URL',
-    );
-    stripePublishableKey = _read(
-      _definedStripePublishableKey,
-      _definedLegacyStripePublishableKey,
-      'FLICKO_STRIPE_PUBLISHABLE_KEY',
-      'STRIPE_PUBLISHABLE_KEY',
     );
     apiBaseUrl = _normalizeBaseUrl(
       _read(
@@ -121,6 +120,18 @@ class AppConfig {
       _definedLegacyAppwriteBucketId,
       'FLICKO_APPWRITE_BUCKET_ID',
       'APPWRITE_BUCKET_ID',
+    );
+    razorpayKeyId = _read(
+      _definedRazorpayKeyId,
+      _definedLegacyRazorpayKeyId,
+      'FLICKO_RAZORPAY_KEY_ID',
+      'RAZORPAY_KEY_ID',
+    );
+    googleClientId = _read(
+      _definedGoogleClientId,
+      _definedLegacyGoogleClientId,
+      'FLICKO_GOOGLE_CLIENT_ID',
+      'GOOGLE_CLIENT_ID',
     );
   }
 

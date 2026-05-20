@@ -105,6 +105,10 @@ func main() {
 	}
 	logger.Info("bot system initialized", zap.Int("bot_count", 8))
 
+	// Wire bot auth middleware with database connection
+	handlers.SetBotAuthDB(db.Pool(), logger)
+	handlers.SetBotMarketplaceDB(db.Pool(), logger)
+
 	// Start background tickers for bots (minute/hour events)
 	tickerCtx, tickerCancel := context.WithCancel(context.Background())
 	go func() {

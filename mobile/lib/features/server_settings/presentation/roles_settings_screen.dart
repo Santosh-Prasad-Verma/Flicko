@@ -70,7 +70,7 @@ class _RolesSettingsScreenState extends ConsumerState<RolesSettingsScreen> {
     setState(() => _isLoading = true);
     try {
       final response = await _client
-          .from('server_roles')
+          .from('roles')
           .select('*')
           .eq('server_id', widget.serverId)
           .order('position', ascending: false);
@@ -92,7 +92,7 @@ class _RolesSettingsScreenState extends ConsumerState<RolesSettingsScreen> {
 
     setState(() => _isSubmitting = true);
     try {
-      await _client.from('server_roles').insert({
+      await _client.from('roles').insert({
         'server_id': widget.serverId,
         'name': name,
         'position': _roles.length,
@@ -141,7 +141,7 @@ class _RolesSettingsScreenState extends ConsumerState<RolesSettingsScreen> {
 
       if (updates.isNotEmpty) {
         for (var update in updates) {
-           await _client.from('server_roles').update({
+           await _client.from('roles').update({
              'position': update['position'],
            }).eq('id', update['id']);
         }
@@ -202,7 +202,7 @@ class _RolesSettingsScreenState extends ConsumerState<RolesSettingsScreen> {
     if (confirmed != true) return;
 
     try {
-      await _client.from('server_roles').delete().eq('id', role.id);
+      await _client.from('roles').delete().eq('id', role.id);
       await _loadRoles();
     } catch (e) {
       if (mounted) {

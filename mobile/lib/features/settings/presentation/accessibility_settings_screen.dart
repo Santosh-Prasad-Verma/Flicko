@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/features/settings/application/user_settings_notifier.dart';
 
 /// Accessibility Settings Screen (Sleek Brutalist Black/Neon Theme)
 class AccessibilitySettingsScreen extends ConsumerStatefulWidget {
@@ -14,17 +15,16 @@ class AccessibilitySettingsScreen extends ConsumerStatefulWidget {
 
 class _AccessibilitySettingsScreenState
     extends ConsumerState<AccessibilitySettingsScreen> {
-  // Toggle states to simulate functional hardware optimizations
-  bool _highContrast = false;
-  bool _reduceMotion = true;
-  bool _hapticFeedback = false;
 
-  // Exact theme color hex tokens from the design guidelines
-  static const Color _neonGreen = Color(0xFFC0F500);
+  static const Color _neonGreen = Color(0xFF52B788);
   static const Color _bgBlack = Color(0xFF050505);
   static const Color _surfaceContainer = Color(0xFF0C0C0E);
   static const Color _textWhite = Color(0xFFFBF9FA);
   static const Color _textMuted = Color(0xFF71717A);
+
+  void _setBool(String key, bool value) {
+    ref.read(userSettingsNotifierProvider.notifier).setBool(key, value);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -218,8 +218,8 @@ class _AccessibilitySettingsScreenState
           title: 'HIGH CONTRAST',
           subtitle: 'Enhance peak visual definition across all interface elements.',
           badge: 'HC',
-          toggleWidget: _buildHardwareToggle(_highContrast, (val) {
-            setState(() => _highContrast = val);
+          toggleWidget: _buildHardwareToggle(ref.watch(userSettingsNotifierProvider).highContrast, (val) {
+            _setBool('access_high_contrast', val);
           }),
         ),
         const SizedBox(height: 14),
@@ -271,8 +271,8 @@ class _AccessibilitySettingsScreenState
           title: 'REDUCE MOTION',
           subtitle: 'Minimize kinetic effects, parallax, and transitions.',
           badge: 'STABLE',
-          toggleWidget: _buildHardwareToggle(_reduceMotion, (val) {
-            setState(() => _reduceMotion = val);
+          toggleWidget: _buildHardwareToggle(ref.watch(userSettingsNotifierProvider).reduceMotion, (val) {
+            _setBool('access_reduce_motion', val);
           }),
         ),
         const SizedBox(height: 14),
@@ -280,8 +280,8 @@ class _AccessibilitySettingsScreenState
           title: 'HAPTIC FEEDBACK',
           subtitle: 'Sensory tactile responses during app navigation.',
           badge: 'VIBRATION',
-          toggleWidget: _buildHardwareToggle(_hapticFeedback, (val) {
-            setState(() => _hapticFeedback = val);
+          toggleWidget: _buildHardwareToggle(ref.watch(userSettingsNotifierProvider).largeText, (val) {
+            _setBool('access_large_text', val);
           }),
         ),
       ],

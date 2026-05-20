@@ -12,7 +12,7 @@ _SubscriptionModel _$SubscriptionModelFromJson(Map<String, dynamic> json) =>
       userId: json['user_id'] as String,
       plan: $enumDecode(_$SubscriptionPlanEnumMap, json['plan']),
       status: $enumDecode(_$SubscriptionStatusEnumMap, json['status']),
-      store: json['store'] as String? ?? 'stripe',
+      store: json['store'] as String? ?? 'razorpay',
       currentPeriodStart: json['current_period_start'] as String?,
       currentPeriodEnd: json['current_period_end'] as String?,
       cancelAtPeriodEnd: json['cancel_at_period_end'] as bool? ?? false,

@@ -153,7 +153,7 @@ func run(log *zap.Logger) error {
 	guildSvc := service.NewGuildService(guildRepo, log)
 
 	// ── Handlers ────────────────────────────────────────────
-	var mediaSvc *service.MediaService // Unused since Appwrite is handled client-side per README
+	mediaSvc := service.NewMediaService(nil, "flicko-media", log)
 	messageH := handler.NewMessageHandler(messageSvc, log)
 	channelH := handler.NewChannelHandler(channelSvc, log)
 	guildH := handler.NewGuildHandler(guildSvc, log)

@@ -9,9 +9,9 @@ ALTER TABLE streams ENABLE ROW LEVEL SECURITY;
 CREATE POLICY streams_select_server_member ON streams
   FOR SELECT USING (
     EXISTS (
-      SELECT 1 FROM members
-      WHERE members.server_id = streams.server_id
-        AND members.user_id = auth.uid()
+      SELECT 1 FROM server_members
+      WHERE server_members.server_id = streams.server_id
+        AND server_members.user_id = auth.uid()
     )
   );
 
@@ -34,7 +34,7 @@ CREATE POLICY stream_viewers_select ON stream_viewers
   FOR SELECT USING (
     EXISTS (
       SELECT 1 FROM streams s
-      JOIN members m ON m.server_id = s.server_id
+      JOIN server_members m ON m.server_id = s.server_id
       WHERE s.id = stream_viewers.stream_id
         AND m.user_id = auth.uid()
     )

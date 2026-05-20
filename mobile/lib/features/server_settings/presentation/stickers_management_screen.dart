@@ -87,7 +87,7 @@ class _StickersManagementScreenState
     setState(() => _isLoading = true);
     try {
       final response = await _client
-          .from('server_stickers')
+          .from('stickers')
           .select('*, creator:profiles!creator_id(username)')
           .eq('server_id', widget.serverId)
           .order('created_at', ascending: false);
@@ -158,7 +158,7 @@ class _StickersManagementScreenState
       final userId = _client.auth.currentUser?.id;
       if (userId == null) throw Exception('Not authenticated');
 
-      await _client.from('server_stickers').insert({
+      await _client.from('stickers').insert({
         'server_id': widget.serverId,
         'name': _newName.trim(),
         'description': _newDescription.trim().isEmpty ? null : _newDescription.trim(),
@@ -254,7 +254,7 @@ class _StickersManagementScreenState
     if (confirmed != true) return;
 
     try {
-      await _client.from('server_stickers').delete().eq('id', sticker.id);
+      await _client.from('stickers').delete().eq('id', sticker.id);
       HapticFeedback.lightImpact();
       await _loadStickers();
     } catch (e) {

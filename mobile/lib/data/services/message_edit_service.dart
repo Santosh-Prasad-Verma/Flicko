@@ -1,17 +1,16 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/config/app_config.dart';
+import '../clients/dio_client.dart';
 
 /// Message Edit Service for editing messages
 /// 
 /// Handles editing messages with proper validation and timestamp tracking.
 class MessageEditService {
   final Dio _dio;
-  final String _apiBaseUrl;
 
-  MessageEditService()
-      : _dio = Dio(),
-        _apiBaseUrl = AppConfig.apiBaseUrl;
+  MessageEditService(this._dio);
+
+
 
   /// Edit a message
   /// 
@@ -30,7 +29,7 @@ class MessageEditService {
       }
 
       final response = await _dio.patch(
-        '$_apiBaseUrl/messages/$messageId',
+        '/api/v1/messages/$messageId',
         data: {
           'content': newContent.trim(),
         },
@@ -77,7 +76,7 @@ class MessageEditService {
   Future<List<Map<String, dynamic>>> getEditHistory(String messageId) async {
     try {
       final response = await _dio.get(
-        '$_apiBaseUrl/messages/$messageId/edit-history',
+        '/api/v1/messages/$messageId/edit-history',
       );
 
       if (response.statusCode == 200) {
@@ -116,5 +115,5 @@ class MessageEditService {
 
 /// Provider for MessageEditService
 final messageEditServiceProvider = Provider<MessageEditService>((ref) {
-  return MessageEditService();
+  return MessageEditService(ref.watch(dioProvider));
 });

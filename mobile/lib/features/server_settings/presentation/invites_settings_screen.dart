@@ -36,7 +36,7 @@ class _InvitesSettingsScreenState extends ConsumerState<InvitesSettingsScreen> {
     try {
       final response = await Supabase.instance.client
           .from('invites')
-          .select('*, profiles(username, display_name, avatar_url)')
+          .select('*, profiles(username, display_name, avatar_url:avatar)')
           .eq('server_id', widget.serverId)
           .order('created_at', ascending: false);
 
@@ -59,6 +59,7 @@ class _InvitesSettingsScreenState extends ConsumerState<InvitesSettingsScreen> {
           .insert({
             'server_id': widget.serverId,
             'code': _generateInviteCode(),
+            'created_by': Supabase.instance.client.auth.currentUser?.id,
             'created_at': DateTime.now().toIso8601String(),
             'expires_at': DateTime.now().add(const Duration(days: 7)).toIso8601String(),
           })

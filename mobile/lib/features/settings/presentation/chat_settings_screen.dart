@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/features/settings/application/user_settings_notifier.dart';
 
 /// Chat Settings Screen (Sleek Brutalist Black/Neon Theme)
 class ChatSettingsScreen extends ConsumerStatefulWidget {
@@ -12,19 +13,16 @@ class ChatSettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
-  bool _showEmojiReactions = true;
-  bool _showStickers = true;
-  bool _showGifPreviews = true;
-  bool _compactMode = false;
-  bool _enterToSend = true;
-  bool _quickReactions = true;
-  bool _sendWithSound = false;
 
-  static const Color _neonGreen = Color(0xFFC0F500);
+  static const Color _neonGreen = Color(0xFF52B788);
   static const Color _bgBlack = Color(0xFF050505);
   static const Color _surfaceContainer = Color(0xFF0C0C0E);
   static const Color _textWhite = Color(0xFFFBF9FA);
   static const Color _textMuted = Color(0xFF71717A);
+
+  void _setBool(String key, bool value) {
+    ref.read(userSettingsNotifierProvider.notifier).setBool(key, value);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -207,8 +205,8 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
           title: 'EMOJI REACTIONS',
           subtitle: 'Display emoji reactions on messages.',
           badge: 'UI',
-          toggleWidget: _buildHardwareToggle(_showEmojiReactions, (val) {
-            setState(() => _showEmojiReactions = val);
+          toggleWidget: _buildHardwareToggle(ref.watch(userSettingsNotifierProvider).showEmbeds, (val) {
+            _setBool('chat_show_embeds', val);
           }),
         ),
         const SizedBox(height: 14),
@@ -216,8 +214,8 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
           title: 'STICKERS',
           subtitle: 'Show stickers in chat conversations.',
           badge: 'MEDIA',
-          toggleWidget: _buildHardwareToggle(_showStickers, (val) {
-            setState(() => _showStickers = val);
+          toggleWidget: _buildHardwareToggle(ref.watch(userSettingsNotifierProvider).autoPlayGifs, (val) {
+            _setBool('chat_autoplay_gifs', val);
           }),
         ),
         const SizedBox(height: 14),
@@ -225,8 +223,8 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
           title: 'GIF PREVIEWS',
           subtitle: 'Preview GIFs before sending them.',
           badge: 'MEDIA',
-          toggleWidget: _buildHardwareToggle(_showGifPreviews, (val) {
-            setState(() => _showGifPreviews = val);
+          toggleWidget: _buildHardwareToggle(ref.watch(userSettingsNotifierProvider).showLinkPreview, (val) {
+            _setBool('chat_link_preview', val);
           }),
         ),
         const SizedBox(height: 14),
@@ -235,8 +233,8 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
           subtitle: 'Reduce spacing between messages for density.',
           badge: 'LAYOUT',
           usePrimaryBadge: true,
-          toggleWidget: _buildHardwareToggle(_compactMode, (val) {
-            setState(() => _compactMode = val);
+          toggleWidget: _buildHardwareToggle(ref.watch(userSettingsNotifierProvider).compactMessages, (val) {
+            _setBool('chat_compact', val);
           }),
         ),
       ],
@@ -266,8 +264,8 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
           title: 'ENTER TO SEND',
           subtitle: 'Press Enter to send messages.',
           badge: 'KEY',
-          toggleWidget: _buildHardwareToggle(_enterToSend, (val) {
-            setState(() => _enterToSend = val);
+          toggleWidget: _buildHardwareToggle(ref.watch(userSettingsNotifierProvider).sendOnEnter, (val) {
+            _setBool('chat_send_on_enter', val);
           }),
         ),
         const SizedBox(height: 14),
@@ -275,8 +273,8 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
           title: 'QUICK REACTIONS',
           subtitle: 'Double-tap to add quick reactions.',
           badge: 'GESTURE',
-          toggleWidget: _buildHardwareToggle(_quickReactions, (val) {
-            setState(() => _quickReactions = val);
+          toggleWidget: _buildHardwareToggle(ref.watch(userSettingsNotifierProvider).convertEmoticons, (val) {
+            _setBool('chat_convert_emoticons', val);
           }),
         ),
         const SizedBox(height: 14),
@@ -284,8 +282,8 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
           title: 'SEND WITH SOUND',
           subtitle: 'Play sound when sending messages.',
           badge: 'AUDIO',
-          toggleWidget: _buildHardwareToggle(_sendWithSound, (val) {
-            setState(() => _sendWithSound = val);
+          toggleWidget: _buildHardwareToggle(false, (val) {
+            // Send with sound not yet in UserSettings model
           }),
         ),
       ],

@@ -25,7 +25,7 @@ class _DiscoverServersScreenState extends ConsumerState<DiscoverServersScreen> {
   String _selectedTopic = 'ALL';
   final _client = Supabase.instance.client;
 
-  static const Color lime = Color(0xFFCBEF17);
+  static const Color lime = Color(0xFF52B788);
   static const Color black = Color(0xFF000000);
   static const Color white = Color(0xFFFFFFFF);
   static const Color grey = Color(0xFF1A1A1A);

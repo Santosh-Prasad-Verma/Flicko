@@ -1,164 +1,167 @@
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// OAuth Service for social authentication
-/// 
-/// Handles OAuth 2.0 authentication with third-party providers.
-/// Supports Google, Apple, and Discord login.
-class OAuthService {
-  // Read from --dart-define=FLICKO_GOOGLE_CLIENT_ID=... (set via Doppler, never hardcoded)
-  static const _googleClientId = String.fromEnvironment('FLICKO_GOOGLE_CLIENT_ID');
+/// OAuth Service for social authentication.
+///
+/// Uses Supabase's built-in OAuth flow (`signInWithOAuth`) for Google,
+/// GitHub, Discord, etc. This launches the system browser, the user
+/// completes the consent screen, and Supabase calls our deep-link
+/// callback with a session.
+///
+/// Apple uses the native Sign-In-with-Apple SDK because Apple requires it
+/// on iOS for App Store approval. On other platforms Apple sign-in is
+/// disabled.
+///
+/// This implementation deliberately avoids `google_sign_in` because its
+/// 7.x API breaks every minor release; Supabase's OAuth route is stable.
+class AppOAuthService {
+  AppOAuthService();
 
-  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
-  Future<void>? _googleInitialization;
-
-  Future<void> _ensureGoogleInitialized() {
-    return _googleInitialization ??= _googleSignIn.initialize(
-      serverClientId: _googleClientId.isNotEmpty ? _googleClientId : null,
-    );
-  }
-
-  /// Authenticate with Google
-  /// 
-  /// Returns the OAuth credentials for Supabase authentication
-  Future<OAuthResponse> signInWithGoogle() async {
-    try {
-      await _ensureGoogleInitialized();
-
-      final GoogleSignInAccount googleUser = await _googleSignIn.authenticate(
-        scopeHint: const ['email', 'profile'],
+  /// Authenticate with Google via Supabase OAuth redirect.
+  Future<AppOAuthResponse> signInWithGoogle() => _signInWithProvider(
+        OAuthProvider.google,
+        providerName: 'google',
       );
 
-      final GoogleSignInAuthentication googleAuth = googleUser.authentication;
-      final authz = await googleUser.authorizationClient.authorizationForScopes(
-            const ['email', 'profile'],
-          ) ??
-          await googleUser.authorizationClient.authorizeScopes(
-            const ['email', 'profile'],
-          );
-      final accessToken = authz.accessToken;
-      final idToken = googleAuth.idToken;
+  /// Authenticate with GitHub via Supabase OAuth redirect.
+  Future<AppOAuthResponse> signInWithGitHub() => _signInWithProvider(
+        OAuthProvider.github,
+        providerName: 'github',
+      );
 
-      if (idToken == null) {
-        return OAuthResponse(success: false, error: 'Failed to get Google tokens');
+  /// Authenticate with Discord via Supabase OAuth redirect.
+  Future<AppOAuthResponse> signInWithDiscord() => _signInWithProvider(
+        OAuthProvider.discord,
+        providerName: 'discord',
+      );
+
+  /// Authenticate with Apple via the native SDK + Supabase exchange.
+  Future<AppOAuthResponse> signInWithApple() async {
+    try {
+      final available = await SignInWithApple.isAvailable();
+      if (!available) {
+        return AppOAuthResponse(
+          success: false,
+          error: 'Apple Sign-In is only available on iOS / macOS.',
+        );
       }
 
-      // Authenticate with Supabase
-      final supabase = Supabase.instance.client;
-      final response = await supabase.auth.signInWithIdToken(
-        provider: OAuthProvider.google,
-        idToken: idToken,
-        accessToken: accessToken,
-      );
-
-      if (response.user == null) {
-        return OAuthResponse(success: false, error: 'Supabase authentication failed');
-      }
-
-      return OAuthResponse(
-        success: true,
-        user: response.user,
-        provider: 'google',
-      );
-    } catch (e) {
-      return OAuthResponse(success: false, error: 'Google sign-in failed: $e');
-    }
-  }
-
-  /// Authenticate with Apple
-  /// 
-  /// Returns the OAuth credentials for Supabase authentication
-  Future<OAuthResponse> signInWithApple() async {
-    try {
       final credential = await SignInWithApple.getAppleIDCredential(
-        scopes: [
+        scopes: const [
           AppleIDAuthorizationScopes.email,
           AppleIDAuthorizationScopes.fullName,
         ],
       );
-
-      if (credential.identityToken == null) {
-        return OAuthResponse(success: false, error: 'Failed to get Apple token');
+      final idToken = credential.identityToken;
+      if (idToken == null || idToken.isEmpty) {
+        return AppOAuthResponse(success: false, error: 'No Apple identity token');
       }
 
-      // Authenticate with Supabase
-      final supabase = Supabase.instance.client;
-      final response = await supabase.auth.signInWithIdToken(
+      final response = await Supabase.instance.client.auth.signInWithIdToken(
         provider: OAuthProvider.apple,
-        idToken: credential.identityToken!,
+        idToken: idToken,
       );
 
       if (response.user == null) {
-        return OAuthResponse(success: false, error: 'Supabase authentication failed');
+        return AppOAuthResponse(success: false, error: 'Apple sign-in rejected by Supabase');
       }
-
-      return OAuthResponse(
+      return AppOAuthResponse(
         success: true,
         user: response.user,
         provider: 'apple',
       );
     } catch (e) {
-      return OAuthResponse(success: false, error: 'Apple sign-in failed: $e');
+      return AppOAuthResponse(success: false, error: 'Apple sign-in failed: $e');
     }
   }
 
-  /// Authenticate with Discord (placeholder for future implementation)
-  /// 
-  /// Note: Discord OAuth requires custom implementation
-  /// This is a placeholder for future Discord integration
-  Future<OAuthResponse> signInWithDiscord() async {
-    try {
-      // Discord OAuth requires custom implementation
-      // This would involve opening a web view for Discord OAuth flow
-      // For now, return an error indicating it's not implemented
-      return OAuthResponse(
-        success: false,
-        error: 'Discord sign-in is not yet implemented',
-      );
-    } catch (e) {
-      return OAuthResponse(success: false, error: 'Discord sign-in failed: $e');
-    }
-  }
-
-  /// Sign out from all OAuth providers
+  /// Sign out from Supabase. Native OS handles per-provider logout.
   Future<void> signOut() async {
     try {
-      await _ensureGoogleInitialized();
-      await _googleSignIn.signOut();
-      // Apple doesn't have a sign-out method, as it's handled by the OS
-    } catch (e) {
-      // Ignore sign-out errors
+      await Supabase.instance.client.auth.signOut();
+    } catch (_) {
+      // Ignore — caller already wants to be signed out.
     }
   }
 
-  /// Check if a provider is available on the device
+  /// Whether the device supports the named provider.
   Future<bool> isProviderAvailable(String provider) async {
     switch (provider.toLowerCase()) {
-      case 'google':
-        await _ensureGoogleInitialized();
-        return _googleSignIn.supportsAuthenticate();
       case 'apple':
-        return await SignInWithApple.isAvailable();
+        return SignInWithApple.isAvailable();
+      case 'google':
+      case 'github':
       case 'discord':
-        return false; // Not yet implemented
+        return true; // browser-based; always available
       default:
         return false;
     }
   }
+
+  // ── internals ────────────────────────────────────────────────────────────
+
+  /// Drives `signInWithOAuth` and returns once the deep-link callback
+  /// has populated the auth session. We don't block on the redirect here
+  /// because Supabase emits an `AuthChangeEvent.signedIn` once the user
+  /// returns; the AuthNotifier listener picks it up.
+  Future<AppOAuthResponse> _signInWithProvider(
+    OAuthProvider provider, {
+    required String providerName,
+  }) async {
+    try {
+      final ok = await Supabase.instance.client.auth.signInWithOAuth(
+        provider,
+        redirectTo: 'io.flicko.app://login-callback/',
+        authScreenLaunchMode: LaunchMode.externalApplication,
+      );
+      if (!ok) {
+        return AppOAuthResponse(
+          success: false,
+          error: 'Could not launch $providerName sign-in.',
+        );
+      }
+      // The actual session arrives via the deep-link handler; surface a
+      // pending result so the caller knows to wait for AuthNotifier to
+      // flip the state. AuthNotifier already listens for that event.
+      return AppOAuthResponse(
+        success: true,
+        provider: providerName,
+        pending: true,
+      );
+    } catch (e) {
+      return AppOAuthResponse(
+        success: false,
+        error: '$providerName sign-in failed: $e',
+      );
+    }
+  }
 }
 
-/// OAuth Response Model
-class OAuthResponse {
+/// Response model for [AppOAuthService].
+class AppOAuthResponse {
+  /// True when the redirect was launched (or Apple credential captured)
+  /// without error.
   final bool success;
+
+  /// Populated when the provider returns a session synchronously (Apple).
+  /// For browser-redirect flows (`pending == true`) the session arrives
+  /// asynchronously via Supabase's auth state stream.
   final User? user;
+
+  /// Lower-case provider name (`google`, `apple`, `github`, `discord`).
   final String? provider;
+
+  /// User-visible error string when `success == false`.
   final String? error;
 
-  OAuthResponse({
+  /// True for redirect-based flows that have launched but not yet returned.
+  final bool pending;
+
+  AppOAuthResponse({
     required this.success,
     this.user,
     this.provider,
     this.error,
+    this.pending = false,
   });
 }

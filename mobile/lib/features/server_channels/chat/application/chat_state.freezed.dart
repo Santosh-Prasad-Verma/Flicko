@@ -21,6 +21,7 @@ mixin _$ChatState {
   bool get isSending;
   bool get hasMore;
   String? get errorMessage;
+  String? get activeThreadId;
 
   /// Create a copy of ChatState
   /// with the given fields replaced by the non-null parameter values.
@@ -45,7 +46,9 @@ mixin _$ChatState {
                 other.isSending == isSending) &&
             (identical(other.hasMore, hasMore) || other.hasMore == hasMore) &&
             (identical(other.errorMessage, errorMessage) ||
-                other.errorMessage == errorMessage));
+                other.errorMessage == errorMessage) &&
+            (identical(other.activeThreadId, activeThreadId) ||
+                other.activeThreadId == activeThreadId));
   }
 
   @override
@@ -57,11 +60,12 @@ mixin _$ChatState {
       isFetchingMore,
       isSending,
       hasMore,
-      errorMessage);
+      errorMessage,
+      activeThreadId);
 
   @override
   String toString() {
-    return 'ChatState(messages: $messages, typingUsers: $typingUsers, isLoading: $isLoading, isFetchingMore: $isFetchingMore, isSending: $isSending, hasMore: $hasMore, errorMessage: $errorMessage)';
+    return 'ChatState(messages: $messages, typingUsers: $typingUsers, isLoading: $isLoading, isFetchingMore: $isFetchingMore, isSending: $isSending, hasMore: $hasMore, errorMessage: $errorMessage, activeThreadId: $activeThreadId)';
   }
 }
 
@@ -77,7 +81,8 @@ abstract mixin class $ChatStateCopyWith<$Res> {
       bool isFetchingMore,
       bool isSending,
       bool hasMore,
-      String? errorMessage});
+      String? errorMessage,
+      String? activeThreadId});
 }
 
 /// @nodoc
@@ -99,6 +104,7 @@ class _$ChatStateCopyWithImpl<$Res> implements $ChatStateCopyWith<$Res> {
     Object? isSending = null,
     Object? hasMore = null,
     Object? errorMessage = freezed,
+    Object? activeThreadId = freezed,
   }) {
     return _then(_self.copyWith(
       messages: null == messages
@@ -128,6 +134,10 @@ class _$ChatStateCopyWithImpl<$Res> implements $ChatStateCopyWith<$Res> {
       errorMessage: freezed == errorMessage
           ? _self.errorMessage
           : errorMessage // ignore: cast_nullable_to_non_nullable
+              as String?,
+      activeThreadId: freezed == activeThreadId
+          ? _self.activeThreadId
+          : activeThreadId // ignore: cast_nullable_to_non_nullable
               as String?,
     ));
   }
@@ -233,7 +243,8 @@ extension ChatStatePatterns on ChatState {
             bool isFetchingMore,
             bool isSending,
             bool hasMore,
-            String? errorMessage)?
+            String? errorMessage,
+            String? activeThreadId)?
         $default, {
     required TResult orElse(),
   }) {
@@ -247,7 +258,8 @@ extension ChatStatePatterns on ChatState {
             _that.isFetchingMore,
             _that.isSending,
             _that.hasMore,
-            _that.errorMessage);
+            _that.errorMessage,
+            _that.activeThreadId);
       case _:
         return orElse();
     }
@@ -275,7 +287,8 @@ extension ChatStatePatterns on ChatState {
             bool isFetchingMore,
             bool isSending,
             bool hasMore,
-            String? errorMessage)
+            String? errorMessage,
+            String? activeThreadId)
         $default,
   ) {
     final _that = this;
@@ -288,7 +301,8 @@ extension ChatStatePatterns on ChatState {
             _that.isFetchingMore,
             _that.isSending,
             _that.hasMore,
-            _that.errorMessage);
+            _that.errorMessage,
+            _that.activeThreadId);
       case _:
         throw StateError('Unexpected subclass');
     }
@@ -315,7 +329,8 @@ extension ChatStatePatterns on ChatState {
             bool isFetchingMore,
             bool isSending,
             bool hasMore,
-            String? errorMessage)?
+            String? errorMessage,
+            String? activeThreadId)?
         $default,
   ) {
     final _that = this;
@@ -328,7 +343,8 @@ extension ChatStatePatterns on ChatState {
             _that.isFetchingMore,
             _that.isSending,
             _that.hasMore,
-            _that.errorMessage);
+            _that.errorMessage,
+            _that.activeThreadId);
       case _:
         return null;
     }
@@ -345,7 +361,8 @@ class _ChatState implements ChatState {
       this.isFetchingMore = false,
       this.isSending = false,
       this.hasMore = true,
-      this.errorMessage})
+      this.errorMessage,
+      this.activeThreadId})
       : _messages = messages,
         _typingUsers = typingUsers;
 
@@ -381,6 +398,8 @@ class _ChatState implements ChatState {
   final bool hasMore;
   @override
   final String? errorMessage;
+  @override
+  final String? activeThreadId;
 
   /// Create a copy of ChatState
   /// with the given fields replaced by the non-null parameter values.
@@ -406,7 +425,9 @@ class _ChatState implements ChatState {
                 other.isSending == isSending) &&
             (identical(other.hasMore, hasMore) || other.hasMore == hasMore) &&
             (identical(other.errorMessage, errorMessage) ||
-                other.errorMessage == errorMessage));
+                other.errorMessage == errorMessage) &&
+            (identical(other.activeThreadId, activeThreadId) ||
+                other.activeThreadId == activeThreadId));
   }
 
   @override
@@ -418,11 +439,12 @@ class _ChatState implements ChatState {
       isFetchingMore,
       isSending,
       hasMore,
-      errorMessage);
+      errorMessage,
+      activeThreadId);
 
   @override
   String toString() {
-    return 'ChatState(messages: $messages, typingUsers: $typingUsers, isLoading: $isLoading, isFetchingMore: $isFetchingMore, isSending: $isSending, hasMore: $hasMore, errorMessage: $errorMessage)';
+    return 'ChatState(messages: $messages, typingUsers: $typingUsers, isLoading: $isLoading, isFetchingMore: $isFetchingMore, isSending: $isSending, hasMore: $hasMore, errorMessage: $errorMessage, activeThreadId: $activeThreadId)';
   }
 }
 
@@ -441,7 +463,8 @@ abstract mixin class _$ChatStateCopyWith<$Res>
       bool isFetchingMore,
       bool isSending,
       bool hasMore,
-      String? errorMessage});
+      String? errorMessage,
+      String? activeThreadId});
 }
 
 /// @nodoc
@@ -463,6 +486,7 @@ class __$ChatStateCopyWithImpl<$Res> implements _$ChatStateCopyWith<$Res> {
     Object? isSending = null,
     Object? hasMore = null,
     Object? errorMessage = freezed,
+    Object? activeThreadId = freezed,
   }) {
     return _then(_ChatState(
       messages: null == messages
@@ -492,6 +516,10 @@ class __$ChatStateCopyWithImpl<$Res> implements _$ChatStateCopyWith<$Res> {
       errorMessage: freezed == errorMessage
           ? _self.errorMessage
           : errorMessage // ignore: cast_nullable_to_non_nullable
+              as String?,
+      activeThreadId: freezed == activeThreadId
+          ? _self.activeThreadId
+          : activeThreadId // ignore: cast_nullable_to_non_nullable
               as String?,
     ));
   }

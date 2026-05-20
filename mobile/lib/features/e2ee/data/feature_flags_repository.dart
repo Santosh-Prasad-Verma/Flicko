@@ -107,4 +107,12 @@ final featureFlagsRepositoryProvider = Provider<FeatureFlagsRepository>((ref) {
 
 /// Caches the latest fetched flags. Bootstraps to [E2EEFlags.off] and
 /// updates when the auth notifier triggers a refresh.
-final e2eeFlagsProvider = StateProvider<E2EEFlags>((_) => E2EEFlags.off);
+class E2EEFlagsNotifier extends Notifier<E2EEFlags> {
+  @override
+  E2EEFlags build() => E2EEFlags.off;
+
+  void update(E2EEFlags flags) => state = flags;
+}
+
+final e2eeFlagsProvider =
+    NotifierProvider<E2EEFlagsNotifier, E2EEFlags>(E2EEFlagsNotifier.new);

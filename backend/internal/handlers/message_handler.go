@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/flicko-org/flicko-backend/internal/middleware"
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
@@ -34,7 +35,11 @@ func (h *MessageHandler) CreateMessage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	vars := mux.Vars(r)
 	channelID := vars["channelId"]
-	userID := ctx.Value("userID").(string)
+	userID, ok := ctx.Value(middleware.GetUserIDKey()).(string)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
 
 	var payload CreateMessagePayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {

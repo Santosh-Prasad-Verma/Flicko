@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:mobile/core/constants/flicko_colors.dart';
-import 'package:mobile/features/shared/presentation/widgets/avatar.dart';
-import 'package:mobile/features/shared/presentation/widgets/button.dart';
-import 'package:mobile/features/shared/presentation/widgets/card.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide User;
+import 'package:go_router/go_router.dart';
+import '../../auth/application/auth_notifier.dart';
 
 class Notification {
   final String id;
@@ -36,6 +34,15 @@ class Notification {
   }
 }
 
+// ── Design tokens ──
+const _bgPrimary = Color(0xFF000000);
+const _bgCard = Color(0xFF0A0A0A);
+const _bgSurface = Color(0xFF111111);
+const _greenPunch = Color(0xFF10B981);
+const _textPrimary = Colors.white;
+const _textSecondary = Color(0xFF9CA3AF);
+const _border = Color(0xFF1A1A1A);
+
 class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
 
@@ -48,7 +55,6 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   String _activeTab = 'All';
   List<Notification> _notifications = [];
   bool _isLoading = true;
-  bool _isRefreshing = false;
   String? _errorMessage;
   String? _currentUserId;
 
@@ -65,7 +71,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     });
 
     try {
-      final user = Supabase.instance.client.auth.currentUser;
+      final user = ref.read(currentUserProvider);
       if (user == null) {
         throw Exception('User not authenticated');
       }
@@ -128,7 +134,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to mark as read: ${e.toString()}'),
-            backgroundColor: const Color(FlickoColors.danger),
+            backgroundColor: const Color(0xFFEF4444),
           ),
         );
       }
@@ -136,7 +142,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   }
 
   Future<void> _markAllAsRead() async {
-    if (_currentUserId == null || _unreadCount == 0) return;
+    final currentUserId = _currentUserId;
+    if (currentUserId == null || _unreadCount == 0) return;
 
     setState(() {
       _notifications = _notifications.map((n) => Notification(
@@ -149,9 +156,6 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       )).toList();
     });
 
-    final currentUserId = _currentUserId;
-    if (currentUserId == null) return;
-
     try {
       await Supabase.instance.client
           .from('notifications')
@@ -163,7 +167,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to mark all as read: ${e.toString()}'),
-            backgroundColor: const Color(FlickoColors.danger),
+            backgroundColor: const Color(0xFFEF4444),
           ),
         );
       }
@@ -171,14 +175,18 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   }
 
   String _getRelativeTime(String dateString) {
-    final date = DateTime.parse(dateString);
-    final now = DateTime.now();
-    final diffInSeconds = (now.difference(date).inSeconds);
+    try {
+      final date = DateTime.parse(dateString);
+      final now = DateTime.now();
+      final diffInSeconds = (now.difference(date).inSeconds);
 
-    if (diffInSeconds < 60) return '${diffInSeconds}s ago';
-    if (diffInSeconds < 3600) return '${(diffInSeconds / 60).floor()}m ago';
-    if (diffInSeconds < 86400) return '${(diffInSeconds / 3600).floor()}h ago';
-    return '${(diffInSeconds / 86400).floor()}d ago';
+      if (diffInSeconds < 60) return '${diffInSeconds}s ago';
+      if (diffInSeconds < 3600) return '${(diffInSeconds / 60).floor()}m ago';
+      if (diffInSeconds < 86400) return '${(diffInSeconds / 3600).floor()}h ago';
+      return '${(diffInSeconds / 86400).floor()}d ago';
+    } catch (_) {
+      return 'Just now';
+    }
   }
 
   IconData _getTypeIcon(String type) {
@@ -193,89 +201,125 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     }
   }
 
+  Color _getTypeAccentColor(String type) {
+    switch (type) {
+      case 'mention': return _greenPunch;
+      case 'dm': return const Color(0xFF3B82F6);
+      case 'friend_request': return const Color(0xFF8B5CF6);
+      case 'server_invite': return const Color(0xFFF59E0B);
+      case 'event': return const Color(0xFFEC4899);
+      case 'stream': return const Color(0xFFEF4444);
+      default: return _greenPunch;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(FlickoColors.bgPrimary),
+      backgroundColor: _bgPrimary,
       appBar: AppBar(
-        backgroundColor: const Color(FlickoColors.bgPrimary),
+        backgroundColor: _bgPrimary,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),
-          onPressed: () => Navigator.of(context).pop(),
+          icon: const Icon(Icons.menu, color: _textPrimary, size: 26),
+          onPressed: () {},
         ),
+        centerTitle: true,
         title: Text(
-          'Notifications',
-          style: GoogleFonts.inter(
-            color: const Color(FlickoColors.textPrimary),
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
+          'FLICKO',
+          style: GoogleFonts.outfit(
+            color: _textPrimary,
+            fontWeight: FontWeight.w900,
+            fontSize: 22,
+            letterSpacing: 2.0,
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: _unreadCount > 0 ? _markAllAsRead : null,
-            child: Text(
-              'Mark all read',
-              style: GoogleFonts.inter(
-                color: _unreadCount > 0 ? const Color(FlickoColors.blurple) : const Color(FlickoColors.textMuted),
-                fontSize: 12,
-              ),
-            ),
+          IconButton(
+            icon: const Icon(Icons.search, color: _textSecondary, size: 26),
+            onPressed: () => context.push('/search'),
           ),
         ],
       ),
       body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildTabBar(),
+          // Large ACTIVITY Title
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'ACTIVITY',
+                  style: GoogleFonts.outfit(
+                    color: _textPrimary,
+                    fontSize: 40,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                if (_unreadCount > 0)
+                  TextButton(
+                    onPressed: _markAllAsRead,
+                    child: Text(
+                      'Mark all read',
+                      style: GoogleFonts.outfit(
+                        color: _greenPunch,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          // Sub-tabs — dark styled
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            child: Row(
+              children: _tabs.map((tab) {
+                final active = _activeTab == tab;
+                return Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _activeTab = tab),
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: active ? _greenPunch : _bgSurface,
+                        border: Border.all(
+                          color: active ? _greenPunch : _border,
+                          width: 1.5,
+                        ),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Text(
+                        tab.toUpperCase(),
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.outfit(
+                          color: active ? Colors.black : _textSecondary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          const SizedBox(height: 12),
           Expanded(child: _buildBody()),
         ],
       ),
     );
   }
 
-  Widget _buildTabBar() {
-    return Container(
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(FlickoColors.bgTertiary))),
-      ),
-      child: Row(
-        children: _tabs.map((tab) {
-          final active = _activeTab == tab;
-          return Expanded(
-            child: InkWell(
-              onTap: () => setState(() => _activeTab = tab),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(
-                      color: active ? const Color(FlickoColors.blurple) : Colors.transparent,
-                      width: 2,
-                    ),
-                  ),
-                ),
-                child: Text(
-                  tab,
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(
-                    color: active ? const Color(FlickoColors.textPrimary) : const Color(FlickoColors.textMuted),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
   Widget _buildBody() {
-    if (_isLoading) {
+    if (_isLoading && _notifications.isEmpty) {
       return const Center(
-        child: CircularProgressIndicator(color: Color(FlickoColors.blurple)),
+        child: CircularProgressIndicator(color: _greenPunch),
       );
     }
 
@@ -284,143 +328,228 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, size: 48, color: Color(FlickoColors.danger)),
+            Icon(Icons.error_outline, size: 48, color: _textSecondary),
             const SizedBox(height: 16),
-            Text('Error loading notifications', style: GoogleFonts.inter(color: const Color(FlickoColors.textSecondary), fontSize: 16)),
+            Text('Error loading notifications',
+                style: GoogleFonts.outfit(color: _textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            Text(_errorMessage!, style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted), fontSize: 14), textAlign: TextAlign.center),
+            Text(_errorMessage!,
+                style: GoogleFonts.outfit(color: _textSecondary, fontSize: 14),
+                textAlign: TextAlign.center),
             const SizedBox(height: 16),
-            Button(
-              title: 'Retry',
-              onPress: _loadNotifications,
-              variant: ButtonVariant.primary,
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _greenPunch,
+                foregroundColor: Colors.black,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: _loadNotifications,
+              child: Text('Retry', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
             ),
           ],
         ),
       );
     }
 
-    if (_filteredNotifications.isEmpty) {
+    final filtered = _filteredNotifications;
+    if (filtered.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.notifications_none, size: 48, color: Color(FlickoColors.textMuted)),
+            Icon(Icons.notifications_none, size: 56, color: _textSecondary),
             const SizedBox(height: 16),
-            Text('No notifications to show', style: GoogleFonts.inter(color: const Color(FlickoColors.textSecondary), fontSize: 16)),
+            Text(
+              'No activities to show',
+              style: GoogleFonts.outfit(
+                color: _textPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'You\'re all caught up!',
+              style: GoogleFonts.outfit(
+                color: _textSecondary,
+                fontSize: 14,
+              ),
+            ),
           ],
         ),
       );
     }
 
     return RefreshIndicator(
-      onRefresh: () async {
-        setState(() => _isRefreshing = true);
-        await _loadNotifications();
-        setState(() => _isRefreshing = false);
-      },
+      color: _greenPunch,
+      backgroundColor: _bgSurface,
+      onRefresh: _loadNotifications,
       child: ListView.builder(
-        itemCount: _filteredNotifications.length,
-        itemBuilder: (context, index) => _buildNotificationItem(_filteredNotifications[index]),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+        itemCount: filtered.length,
+        itemBuilder: (context, index) => _buildNotificationItem(filtered[index]),
       ),
     );
   }
 
   Widget _buildNotificationItem(Notification notification) {
     final meta = notification.content ?? {};
-    return InkWell(
+    final userName = meta['userName'] as String? ?? 'Someone';
+    final content = meta['content'] as String? ?? 'sent a notification';
+    final preview = meta['preview'] as String?;
+    final accentColor = _getTypeAccentColor(notification.type);
+
+    return GestureDetector(
       onTap: () => _markAsRead(notification.id),
       child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 6),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: notification.read ? Colors.transparent : const Color(FlickoColors.bgSecondary),
+          color: notification.read ? _bgCard : _bgSurface,
+          border: Border.all(
+            color: notification.read ? _border : accentColor.withValues(alpha: 0.3),
+            width: 1.5,
+          ),
+          borderRadius: BorderRadius.circular(18),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (!notification.read)
-              Container(
-                width: 8,
-                height: 8,
-                margin: const EdgeInsets.only(right: 8, top: 16),
-                decoration: const BoxDecoration(
-                  color: Color(FlickoColors.blurple),
-                  shape: BoxShape.circle,
-                ),
-              ),
+            // Icon / Avatar
             Container(
-              width: 40,
-              height: 40,
+              width: 46,
+              height: 46,
               decoration: BoxDecoration(
-                color: const Color(FlickoColors.bgTertiary),
-                shape: BoxShape.circle,
+                color: accentColor.withValues(alpha: 0.12),
+                border: Border.all(color: accentColor.withValues(alpha: 0.3), width: 1.5),
+                borderRadius: BorderRadius.circular(14),
               ),
               child: Icon(
                 _getTypeIcon(notification.type),
-                size: 18,
-                color: const Color(FlickoColors.textMuted),
+                size: 20,
+                color: accentColor,
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 14),
+
+            // Content
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (meta['channelName'] != null)
-                    Text(
-                      '#${meta['channelName']}',
-                      style: GoogleFonts.inter(
-                        color: const Color(FlickoColors.textMuted),
-                        fontSize: 12,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          userName,
+                          style: GoogleFonts.outfit(
+                            color: _textPrimary,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                    ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (!notification.read)
+                            Container(
+                              width: 8,
+                              height: 8,
+                              margin: const EdgeInsets.only(right: 6),
+                              decoration: BoxDecoration(
+                                color: _greenPunch,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          Text(
+                            _getRelativeTime(notification.createdAt),
+                            style: GoogleFonts.outfit(
+                              color: _textSecondary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
                   Text(
-                    notification.type == 'event'
-                        ? (meta['content'] as String? ?? '')
-                        : '${meta['userName'] ?? 'Someone'} ${meta['content'] ?? 'sent a notification'}',
-                    style: GoogleFonts.inter(
-                      color: const Color(FlickoColors.textPrimary),
-                      fontSize: 14,
+                    content,
+                    style: GoogleFonts.outfit(
+                      color: _textSecondary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  if (meta['preview'] != null)
-                    Text(
-                      meta['preview'] as String,
-                      style: GoogleFonts.inter(
-                        color: const Color(FlickoColors.textMuted),
-                        fontSize: 12,
+                  if (preview != null) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: _bgPrimary,
+                        border: Border.all(color: _border, width: 1),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                      child: Text(
+                        preview,
+                        style: GoogleFonts.outfit(
+                          color: _textSecondary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ),
-                  if (notification.type == 'friend_request' && !notification.read)
+                  ],
+                  if (notification.type == 'friend_request' && !notification.read) ...[
+                    const SizedBox(height: 12),
                     Row(
                       children: [
-                        Button(
-                          title: 'Accept',
-                          onPress: () => _handleAcceptFriend(notification.id, meta['userId'] as String?),
-                          variant: ButtonVariant.primary,
-                          size: ButtonSize.sm,
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _greenPunch,
+                            foregroundColor: Colors.black,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          onPressed: () => _handleAcceptFriend(notification.id, meta['userId'] as String?),
+                          child: Text(
+                            'Accept',
+                            style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
                         ),
-                        const SizedBox(width: 8),
-                        Button(
-                          title: 'Decline',
-                          onPress: () => _handleDeclineFriend(notification.id, meta['userId'] as String?),
-                          variant: ButtonVariant.ghost,
-                          size: ButtonSize.sm,
+                        const SizedBox(width: 12),
+                        OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: _textSecondary,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            side: BorderSide(color: _border, width: 1.5),
+                          ),
+                          onPressed: () => _handleDeclineFriend(notification.id, meta['userId'] as String?),
+                          child: Text(
+                            'Decline',
+                            style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
                         ),
                       ],
                     ),
+                  ],
                 ],
-              ),
-            ),
-            Text(
-              _getRelativeTime(notification.createdAt),
-              style: GoogleFonts.inter(
-                color: const Color(FlickoColors.textMuted),
-                fontSize: 12,
               ),
             ),
           ],
@@ -430,8 +559,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   }
 
   Future<void> _handleAcceptFriend(String notifId, String? senderId) async {
-    if (senderId == null || _currentUserId == null) return;
-    final currentUserId = _currentUserId!;
+    final currentUserId = _currentUserId;
+    if (senderId == null || currentUserId == null) return;
 
     try {
       await Supabase.instance.client
@@ -451,7 +580,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to accept friend: ${e.toString()}'),
-            backgroundColor: const Color(FlickoColors.danger),
+            backgroundColor: const Color(0xFFEF4444),
           ),
         );
       }
@@ -459,8 +588,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   }
 
   Future<void> _handleDeclineFriend(String notifId, String? senderId) async {
-    if (senderId == null || _currentUserId == null) return;
-    final currentUserId = _currentUserId!;
+    final currentUserId = _currentUserId;
+    if (senderId == null || currentUserId == null) return;
 
     try {
       await Supabase.instance.client
@@ -475,7 +604,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to decline friend: ${e.toString()}'),
-            backgroundColor: const Color(FlickoColors.danger),
+            backgroundColor: const Color(0xFFEF4444),
           ),
         );
       }

@@ -7,6 +7,7 @@ import 'package:mobile/features/direct_messages/presentation/widgets/message_bub
 import 'package:mobile/features/direct_messages/presentation/widgets/dm_chat_input.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
+import 'package:mobile/features/calling/presentation/incoming_call_overlay.dart';
 import 'package:go_router/go_router.dart';
 
 class DMChatScreen extends ConsumerStatefulWidget {
@@ -45,6 +46,144 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
     }
   }
 
+  void _startVoiceCall(String name, String? avatarUrl) {
+    CallOverlay.showOutgoing(
+      context,
+      calleeName: name,
+      calleeAvatarUrl: avatarUrl,
+      callType: 'voice',
+    );
+  }
+
+  void _startVideoCall(String name, String? avatarUrl) {
+    CallOverlay.showOutgoing(
+      context,
+      calleeName: name,
+      calleeAvatarUrl: avatarUrl,
+      callType: 'video',
+    );
+  }
+
+  void _showProfileOptions(String? userId, String name, String? avatarUrl,
+      String onlineStatus) {
+    if (userId == null) return;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(FlickoColors.bgSecondary),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Handle bar
+                Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(FlickoColors.textMuted),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                // User info
+                Row(
+                  children: [
+                    UserAvatar(
+                      imageUrl: avatarUrl,
+                      name: name,
+                      size: 52,
+                      status: onlineStatus,
+                      showStatus: true,
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            name,
+                            style: const TextStyle(
+                              color: Color(FlickoColors.textPrimary),
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Row(
+                            children: [
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: _getStatusColor(onlineStatus),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                _getStatusLabel(onlineStatus),
+                                style: TextStyle(
+                                  color: _getStatusColor(onlineStatus),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                // Actions
+                _BottomSheetAction(
+                  icon: Icons.person_rounded,
+                  label: 'View Profile',
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    context.push('/profile/$userId');
+                  },
+                ),
+                _BottomSheetAction(
+                  icon: Icons.call_rounded,
+                  label: 'Voice Call',
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _startVoiceCall(name, avatarUrl);
+                  },
+                ),
+                _BottomSheetAction(
+                  icon: Icons.videocam_rounded,
+                  label: 'Video Call',
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _startVideoCall(name, avatarUrl);
+                  },
+                ),
+                _BottomSheetAction(
+                  icon: Icons.block_rounded,
+                  label: 'Block User',
+                  isDestructive: true,
+                  onTap: () {
+                    Navigator.pop(ctx);
+                  },
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(dmChatControllerProvider(widget.userId));
@@ -58,83 +197,112 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
     final participant = conversation?.participant;
     final participantName =
         participant?.displayName ?? participant?.username ?? 'Chat';
+    final onlineStatus = participant?.onlineStatus ?? 'offline';
 
     return Scaffold(
       backgroundColor: const Color(FlickoColors.bgPrimary),
       body: Column(
         children: [
+          // ── CHAT APP BAR ──
           SafeArea(
             bottom: false,
             child: Container(
-              padding: const EdgeInsets.fromLTRB(8, 8, 12, 14),
-              decoration: const BoxDecoration(
-                color: Color(FlickoColors.bgPrimary),
+              padding: const EdgeInsets.fromLTRB(4, 6, 8, 12),
+              decoration: BoxDecoration(
+                color: const Color(FlickoColors.bgPrimary),
                 border: Border(
-                  bottom:
-                      BorderSide(color: Color(FlickoColors.border), width: 1),
+                  bottom: BorderSide(
+                    color: const Color(FlickoColors.border).withValues(alpha: 0.5),
+                    width: 1,
+                  ),
                 ),
               ),
               child: Row(
                 children: [
+                  // Back button
                   IconButton(
                     onPressed: () => context.pop(),
-                    icon: const Icon(Icons.arrow_back,
-                        color: Color(FlickoColors.textPrimary)),
+                    icon: const Icon(Icons.arrow_back_rounded,
+                        color: Color(FlickoColors.textPrimary), size: 22),
                   ),
-                  if (participant != null)
-                    Padding(
-                      padding: const EdgeInsets.only(right: FlickoSpacing.sm),
-                      child: UserAvatar(
-                        imageUrl: participant.avatarUrl,
-                        name: participantName,
-                        size: 34,
-                        showStatus: false,
-                      ),
-                    ),
+
+                  // Tappable avatar + name + status
                   Expanded(
-                    child: Text(
-                      participantName.toUpperCase(),
-                      style: const TextStyle(
-                        color: Color(FlickoColors.textPrimary),
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.4,
+                    child: GestureDetector(
+                      onTap: () => _showProfileOptions(
+                        participant?.id,
+                        participantName,
+                        participant?.avatarUrl,
+                        onlineStatus,
                       ),
-                      overflow: TextOverflow.ellipsis,
+                      child: Row(
+                        children: [
+                          if (participant != null)
+                            UserAvatar(
+                              imageUrl: participant.avatarUrl,
+                              name: participantName,
+                              size: 36,
+                              status: onlineStatus,
+                              showStatus: true,
+                            ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  participantName,
+                                  style: const TextStyle(
+                                    color: Color(FlickoColors.textPrimary),
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.1,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 1),
+                                Text(
+                                  _getStatusLabel(onlineStatus),
+                                  style: TextStyle(
+                                    color: _getStatusColor(onlineStatus),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: const Color(FlickoColors.brandLime),
-                      border: Border.all(
-                          color: const Color(FlickoColors.black), width: 1.2),
-                    ),
-                    child: const Text(
-                      'ONLINE',
-                      style: TextStyle(
-                        color: Color(FlickoColors.black),
-                        fontWeight: FontWeight.w900,
-                        fontSize: 12,
-                        letterSpacing: 0.4,
-                      ),
-                    ),
+
+                  // Voice call button
+                  _AppBarAction(
+                    icon: Icons.call_rounded,
+                    onTap: () => _startVoiceCall(
+                        participantName, participant?.avatarUrl),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.more_vert,
-                        color: Color(FlickoColors.textPrimary)),
-                    onPressed: () {},
+                  const SizedBox(width: 4),
+                  // Video call button
+                  _AppBarAction(
+                    icon: Icons.videocam_rounded,
+                    onTap: () => _startVideoCall(
+                        participantName, participant?.avatarUrl),
                   ),
                 ],
               ),
             ),
           ),
+
+          // ── MESSAGES ──
           Expanded(
             child: state.isLoading && state.messages.isEmpty
                 ? const Center(
                     child: CircularProgressIndicator(
-                      color: Color(FlickoColors.brandLime),
+                      color: Color(FlickoColors.emeraldGreen),
+                      strokeWidth: 2.5,
                     ),
                   )
                 : ListView.builder(
@@ -148,27 +316,148 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
                           child: Padding(
                             padding: EdgeInsets.all(8.0),
                             child: CircularProgressIndicator(
-                              color: Color(FlickoColors.brandLime),
+                              color: Color(FlickoColors.emeraldGreen),
+                              strokeWidth: 2,
                             ),
                           ),
                         );
                       }
                       final message = state.messages[index];
-                      return MessageBubble(message: message);
+                      final senderName = message.sender?.displayName ?? message.sender?.username ?? 'Unknown';
+                      return MessageBubble(
+                        message: message,
+                        onTapProfile: () {
+                          _showProfileOptions(
+                            message.sender?.id,
+                            senderName,
+                            message.sender?.avatarUrl,
+                            message.sender?.onlineStatus ?? 'offline',
+                          );
+                        },
+                      );
                     },
                   ),
           ),
+
+          // ── INPUT ──
           DMChatInput(
-            onSend: (content, attachments) {
+            onSend: (content, {attachments, gifUrl, stickerUrl}) {
+              var messageContent = content;
+              if (gifUrl != null) messageContent = gifUrl;
+              if (stickerUrl != null) messageContent = stickerUrl;
+
               ref
                   .read(dmChatControllerProvider(widget.userId).notifier)
                   .sendMessage(
-                    content,
+                    messageContent,
                     localAttachments: attachments,
                   );
             },
           ),
         ],
+      ),
+    );
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'online':
+        return const Color(FlickoColors.statusOnline);
+      case 'idle':
+        return const Color(FlickoColors.statusIdle);
+      case 'dnd':
+        return const Color(FlickoColors.statusDnd);
+      default:
+        return const Color(FlickoColors.statusOffline);
+    }
+  }
+
+  String _getStatusLabel(String status) {
+    switch (status) {
+      case 'online':
+        return 'Online';
+      case 'idle':
+        return 'Idle';
+      case 'dnd':
+        return 'Do Not Disturb';
+      default:
+        return 'Offline';
+    }
+  }
+}
+
+/// Clean app-bar action button
+class _AppBarAction extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _AppBarAction({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: const Color(FlickoColors.bgTertiary),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: const Color(FlickoColors.border),
+              width: 1,
+            ),
+          ),
+          child: Icon(icon,
+              color: const Color(FlickoColors.textPrimary), size: 20),
+        ),
+      ),
+    );
+  }
+}
+
+/// Bottom sheet action row
+class _BottomSheetAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool isDestructive;
+
+  const _BottomSheetAction({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.isDestructive = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isDestructive
+        ? const Color(FlickoColors.danger)
+        : const Color(FlickoColors.textPrimary);
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
+        child: Row(
+          children: [
+            Icon(icon, color: color, size: 22),
+            const SizedBox(width: 16),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

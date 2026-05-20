@@ -15,7 +15,7 @@ class _SearchSheetState extends ConsumerState<SearchSheet> {
   final _controller = TextEditingController();
   MusicType _type = MusicType.track;
 
-  static const _lime = Color(0xFFCBEF17);
+  static const _lime = Color(0xFF52B788);
   static const _surface = Color(0xFF0A0A0A);
 
   @override
@@ -43,7 +43,7 @@ class _SearchSheetState extends ConsumerState<SearchSheet> {
       height: MediaQuery.of(context).size.height * 0.88,
       decoration: const BoxDecoration(
         color: Color(0xFF050505),
-        border: Border(top: BorderSide(color: Color(0xFFCBEF17), width: 3)),
+        border: Border(top: BorderSide(color: Color(0xFF52B788), width: 3)),
       ),
       child: Column(
         children: [
@@ -114,7 +114,7 @@ class _SearchSheetState extends ConsumerState<SearchSheet> {
             color: Colors.white.withValues(alpha: 0.3),
             fontSize: 15,
           ),
-          prefixIcon: const Icon(Icons.search, color: Color(0xFFCBEF17)),
+          prefixIcon: const Icon(Icons.search, color: Color(0xFF52B788)),
           suffixIcon: _controller.text.isNotEmpty
               ? GestureDetector(
                   onTap: () {
@@ -135,7 +135,7 @@ class _SearchSheetState extends ConsumerState<SearchSheet> {
             borderRadius: BorderRadius.zero,
           ),
           focusedBorder: const OutlineInputBorder(
-            borderSide: BorderSide(color: Color(0xFFCBEF17), width: 2),
+            borderSide: BorderSide(color: Color(0xFF52B788), width: 2),
             borderRadius: BorderRadius.zero,
           ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -183,7 +183,7 @@ class _SearchSheetState extends ConsumerState<SearchSheet> {
   Widget _buildResults(SonicDripState state) {
     if (state.isSearching) {
       return const Center(
-        child: CircularProgressIndicator(color: Color(0xFFCBEF17)),
+        child: CircularProgressIndicator(color: Color(0xFF52B788)),
       );
     }
 
@@ -245,7 +245,7 @@ class _SearchResultItem extends ConsumerWidget {
         color: const Color(0xFF0A0A0A),
         border: Border.all(
           color: isInQueue
-              ? const Color(0xFFCBEF17).withValues(alpha: 0.5)
+              ? const Color(0xFF52B788).withValues(alpha: 0.5)
               : Colors.white.withValues(alpha: 0.08),
           width: 1.5,
         ),
@@ -289,18 +289,18 @@ class _SearchResultItem extends ConsumerWidget {
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: isInQueue
-                  ? const Color(0xFFCBEF17).withValues(alpha: 0.1)
+                  ? const Color(0xFF52B788).withValues(alpha: 0.1)
                   : Colors.transparent,
               border: Border.all(
                 color: isInQueue
-                    ? const Color(0xFFCBEF17)
+                    ? const Color(0xFF52B788)
                     : Colors.white.withValues(alpha: 0.2),
                 width: 1.5,
               ),
             ),
             child: Icon(
               isInQueue ? Icons.check : Icons.add,
-              color: isInQueue ? const Color(0xFFCBEF17) : Colors.white,
+              color: isInQueue ? const Color(0xFF52B788) : Colors.white,
               size: 18,
             ),
           ),

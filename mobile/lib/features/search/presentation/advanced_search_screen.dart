@@ -48,7 +48,7 @@ class _AdvancedSearchScreenState extends ConsumerState<AdvancedSearchScreen> {
       // Search messages in Supabase
       var queryBuilder = Supabase.instance.client
           .from('messages')
-          .select('*, profiles!inner(username, display_name, avatar_url)')
+          .select('*, profiles!inner(username, display_name, avatar_url:avatar)')
           .ilike('content', '%$query%');
 
       if (widget.channelId != null) {

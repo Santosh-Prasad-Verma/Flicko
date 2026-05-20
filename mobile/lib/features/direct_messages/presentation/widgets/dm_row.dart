@@ -32,7 +32,7 @@ class DMRow extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
             color: conversation.unreadCount > 0
-                ? const Color(FlickoColors.brandLime)
+                ? const Color(FlickoColors.emeraldGreen)
                 : const Color(FlickoColors.border),
             width: 1.4,
           ),
@@ -120,7 +120,7 @@ class DMRow extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
                 decoration: BoxDecoration(
-                  color: const Color(FlickoColors.brandLime),
+                  color: const Color(FlickoColors.emeraldGreen),
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
@@ -128,7 +128,7 @@ class DMRow extends StatelessWidget {
                       ? '99+'
                       : conversation.unreadCount.toString(),
                   style: const TextStyle(
-                    color: Color(FlickoColors.black),
+                    color: Colors.white,
                     fontSize: 11,
                     fontWeight: FontWeight.w900,
                   ),

@@ -45,7 +45,7 @@ abstract class SubscriptionModel with _$SubscriptionModel {
     @JsonKey(name: 'user_id') required String userId,
     required SubscriptionPlan plan,
     required SubscriptionStatus status,
-    @Default('stripe') String store,
+    @Default('razorpay') String store,
     @JsonKey(name: 'current_period_start') String? currentPeriodStart,
     @JsonKey(name: 'current_period_end') String? currentPeriodEnd,
     @JsonKey(name: 'cancel_at_period_end') @Default(false) bool cancelAtPeriodEnd,

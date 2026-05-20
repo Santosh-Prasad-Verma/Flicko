@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:confetti/confetti.dart';
 
 class ParticleController extends ChangeNotifier {
-  bool _shouldPlay = false;
-  bool get shouldPlay => _shouldPlay;
+  int _playCount = 0;
+  int get playCount => _playCount;
+  bool get shouldPlay => _playCount > 0;
 
   void play() {
-    _shouldPlay = true;
+    _playCount++;
     notifyListeners();
-    _shouldPlay = false; // reset state
   }
 }
 

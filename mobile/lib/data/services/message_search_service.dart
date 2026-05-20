@@ -1,17 +1,16 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/config/app_config.dart';
+import '../clients/dio_client.dart';
 
 /// Message Search Service for searching messages
 /// 
 /// Handles searching messages across channels, servers, and DMs.
 class MessageSearchService {
   final Dio _dio;
-  final String _apiBaseUrl;
 
-  MessageSearchService()
-      : _dio = Dio(),
-        _apiBaseUrl = AppConfig.apiBaseUrl;
+  MessageSearchService(this._dio);
+
+
 
   /// Search messages
   /// 
@@ -46,7 +45,7 @@ class MessageSearchService {
       if (userId != null) queryParams['user_id'] = userId;
 
       final response = await _dio.get(
-        '$_apiBaseUrl/messages/search',
+        '/api/v1/messages/search',
         queryParameters: queryParams,
       );
 
@@ -103,7 +102,7 @@ class MessageSearchService {
       }
 
       final response = await _dio.get(
-        '$_apiBaseUrl/messages/search/advanced',
+        '/api/v1/messages/search/advanced',
         queryParameters: queryParams,
       );
 
@@ -130,7 +129,7 @@ class MessageSearchService {
       }
 
       final response = await _dio.get(
-        '$_apiBaseUrl/messages/search/suggestions',
+        '/api/v1/messages/search/suggestions',
         queryParameters: {'q': query.trim()},
       );
 
@@ -152,7 +151,7 @@ class MessageSearchService {
   Future<List<String>> getRecentSearches() async {
     try {
       final response = await _dio.get(
-        '$_apiBaseUrl/messages/search/recent',
+        '/api/v1/messages/search/recent',
       );
 
       if (response.statusCode == 200) {
@@ -178,7 +177,7 @@ class MessageSearchService {
       }
 
       final response = await _dio.post(
-        '$_apiBaseUrl/messages/search/recent',
+        '/api/v1/messages/search/recent',
         data: {'query': query.trim()},
       );
 
@@ -198,7 +197,7 @@ class MessageSearchService {
   Future<bool> clearRecentSearches() async {
     try {
       final response = await _dio.delete(
-        '$_apiBaseUrl/messages/search/recent',
+        '/api/v1/messages/search/recent',
       );
 
       if (response.statusCode == 200 || response.statusCode == 204) {
@@ -230,5 +229,5 @@ class MessageSearchService {
 
 /// Provider for MessageSearchService
 final messageSearchServiceProvider = Provider<MessageSearchService>((ref) {
-  return MessageSearchService();
+  return MessageSearchService(ref.watch(dioProvider));
 });

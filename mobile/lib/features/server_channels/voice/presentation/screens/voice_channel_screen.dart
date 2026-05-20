@@ -81,7 +81,7 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen> {
   }
 
   void _handleConnect() {
-    ref.read(voiceControllerProvider.notifier).joinChannel(widget.channelId);
+    ref.read(voiceControllerProvider.notifier).joinChannel(widget.channelId, widget.serverId);
   }
 
   void _handleDisconnect() {
@@ -190,6 +190,24 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen> {
         child: Column(
           children: [
             _buildHeader(voiceState),
+            if (voiceState.error != null)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                color: const Color(FlickoColors.danger).withValues(alpha: 0.15),
+                child: Row(
+                  children: [
+                    const Icon(Icons.error_outline, color: Color(FlickoColors.danger), size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        voiceState.error!,
+                        style: GoogleFonts.inter(color: const Color(FlickoColors.danger), fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             Expanded(
 
               child: _isLoading

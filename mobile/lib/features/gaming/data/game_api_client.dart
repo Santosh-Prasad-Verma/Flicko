@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/network/dio_client.dart';
+import '../../../data/clients/dio_client.dart';
 import '../models/game_state.dart';
 
 final gameApiProvider = Provider<GameApiClient>((ref) {

@@ -24,7 +24,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   late TextEditingController _pronounsController;
   String? _avatarUrl;
   String? _bannerUrl;
-  List<String> _bannerColors = const ['#C8FF00', '#0A0A0A'];
+  List<String> _bannerColors = const ['#52B788', '#0A0A0A'];
   String _avatarDecoration = 'none';
   bool _isLoading = false;
   bool _hasChanges = false;
@@ -33,7 +33,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     {
       'id': 'lime',
       'label': 'Lime',
-      'colors': const ['#C8FF00', '#0A0A0A']
+      'colors': const ['#52B788', '#0A0A0A']
     },
     {
       'id': 'blurple',
@@ -119,7 +119,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
   static final List<Map<String, dynamic>> _avatarDecorations = [
     {'id': 'none', 'label': 'None', 'color': null},
-    {'id': 'neon-ring', 'label': 'Neon Ring', 'color': '#C8FF00'},
+    {'id': 'neon-ring', 'label': 'Neon Ring', 'color': '#52B788'},
     {'id': 'verified', 'label': 'Verified', 'color': '#FFFFFF'},
     {'id': 'glow-fx', 'label': 'Glow FX', 'color': '#57F287'},
     {'id': 'gold-ring', 'label': 'Gold Ring', 'color': '#FFD700'},
@@ -233,8 +233,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         'display_name': _displayNameController.text.trim(),
         'bio': _bioController.text.trim(),
         'pronouns': _pronounsController.text.trim(),
-        'avatar_url': _avatarUrl,
-        'banner_url': _bannerUrl,
+        'avatar': _avatarUrl,
+        'banner': _bannerUrl,
         'banner_colors': _bannerColors,
         'avatar_decoration': _avatarDecoration,
       });
@@ -353,10 +353,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       width: 16,
                       height: 16,
                       decoration: const BoxDecoration(
-                        color: Color(0xFFC8FF00),
+                        color: Color(0xFF52B788),
                         boxShadow: [
                           BoxShadow(
-                              color: Color(0x80C8FF00),
+                              color: Color(0x8052B788),
                               blurRadius: 15,
                               spreadRadius: 2)
                         ],
@@ -391,7 +391,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 child: Row(
                   children: [
                     const Icon(Icons.location_on,
-                        color: Color(0xFFC8FF00), size: 32),
+                        color: Color(0xFF52B788), size: 32),
                     const SizedBox(width: 12),
                     Expanded(
                       child: TextField(
@@ -431,14 +431,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               left: 0,
               right: 0,
               child: LinearProgressIndicator(
-                  color: Color(0xFFC8FF00), backgroundColor: Colors.black),
+                  color: Color(0xFF52B788), backgroundColor: Colors.black),
             ),
         ],
       ),
       floatingActionButton: _hasChanges && !_isLoading
           ? FloatingActionButton(
               onPressed: _saveProfile,
-              backgroundColor: const Color(0xFFC8FF00),
+              backgroundColor: const Color(0xFF52B788),
               shape: const RoundedRectangleBorder(
                 side: BorderSide(color: Colors.white, width: 4),
               ),
@@ -548,7 +548,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       border: Border.all(color: Colors.white, width: 4),
                       boxShadow: const [
                         BoxShadow(
-                            color: Color(0xFFC8FF00), offset: Offset(6, 6))
+                            color: Color(0xFF52B788), offset: Offset(6, 6))
                       ],
                     ),
                     child: Stack(
@@ -561,7 +561,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                           right: 0,
                           child: Container(
                             color:
-                                const Color(0xFFC8FF00).withValues(alpha: 0.85),
+                                const Color(0xFF52B788).withValues(alpha: 0.85),
                             padding: const EdgeInsets.symmetric(vertical: 4),
                             child: const Icon(Icons.camera_alt,
                                 color: Colors.black, size: 14),
@@ -603,7 +603,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       child: Text(
         label,
         style: GoogleFonts.inter(
-          color: const Color(0xFFC8FF00),
+          color: const Color(0xFF52B788),
           fontSize: 10,
           fontWeight: FontWeight.bold,
           letterSpacing: 1.5,
@@ -642,7 +642,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           borderRadius: BorderRadius.zero,
         ),
         focusedBorder: const OutlineInputBorder(
-          borderSide: BorderSide(color: Color(0xFFC8FF00), width: 4),
+          borderSide: BorderSide(color: Color(0xFF52B788), width: 4),
           borderRadius: BorderRadius.zero,
         ),
       ),
@@ -674,7 +674,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 color: const Color(0xFF0A0A0A),
                 border: Border.all(
                   color: isSelected
-                      ? const Color(0xFFC8FF00)
+                      ? const Color(0xFF52B788)
                       : const Color(0xFF333333),
                   width: isSelected ? 4 : 2,
                 ),
@@ -699,7 +699,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     (decoration['label'] as String).toUpperCase(),
                     style: GoogleFonts.inter(
                       color: isSelected
-                          ? const Color(0xFFC8FF00)
+                          ? const Color(0xFF52B788)
                           : Colors.white.withValues(alpha: 0.4),
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
@@ -789,7 +789,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               ],
             ),
             const Icon(Icons.arrow_forward_ios,
-                color: Color(0xFFC8FF00), size: 16),
+                color: Color(0xFF52B788), size: 16),
           ],
         ),
       ),
@@ -821,7 +821,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             Text(
               'Enter URL below:',
               style: GoogleFonts.inter(
-                  color: const Color(0xFFC8FF00),
+                  color: const Color(0xFF52B788),
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.2),
@@ -830,7 +830,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             TextField(
               controller: controller,
               style: GoogleFonts.inter(color: Colors.white, fontSize: 15),
-              cursorColor: const Color(0xFFC8FF00),
+              cursorColor: const Color(0xFF52B788),
               decoration: InputDecoration(
                 hintText: 'https://...',
                 hintStyle: GoogleFonts.inter(
@@ -846,7 +846,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   borderRadius: BorderRadius.zero,
                 ),
                 focusedBorder: const OutlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xFFC8FF00), width: 4),
+                  borderSide: BorderSide(color: Color(0xFF52B788), width: 4),
                   borderRadius: BorderRadius.zero,
                 ),
               ),
@@ -873,7 +873,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               );
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFC8FF00),
+              backgroundColor: const Color(0xFF52B788),
               shape: const RoundedRectangleBorder(
                 side: BorderSide(color: Colors.white, width: 2),
                 borderRadius: BorderRadius.zero,

@@ -68,7 +68,7 @@ class _OnlineFriendItem extends StatelessWidget {
                   boxShadow: user.onlineStatus == 'online'
                       ? const [
                           BoxShadow(
-                            color: Color(FlickoColors.brandLime),
+                            color: Color(FlickoColors.emeraldGreen),
                             blurRadius: 14,
                             spreadRadius: -6,
                           ),

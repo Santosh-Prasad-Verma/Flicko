@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:mobile/core/constants/flicko_colors.dart';
 
 class AuditLogScreen extends ConsumerStatefulWidget {
   final String serverId;
@@ -30,12 +31,12 @@ class _AuditLogScreenState extends ConsumerState<AuditLogScreen> {
 
     try {
       var query = Supabase.instance.client
-          .from('audit_logs')
-          .select('*, profiles:actor_id(id, username, avatar)')
+          .from('audit_log')
+          .select('*, profiles:user_id(id, username, avatar)')
           .eq('server_id', widget.serverId);
 
       if (_selectedFilter == 'Member Updates') {
-        query = query.inFilter('action_type', [
+        query = query.inFilter('action', [
           'ban',
           'kick',
           'timeout',
@@ -45,10 +46,10 @@ class _AuditLogScreenState extends ConsumerState<AuditLogScreen> {
           'nickname_update'
         ]);
       } else if (_selectedFilter == 'Channel Updates') {
-        query = query.inFilter('action_type',
+        query = query.inFilter('action',
             ['channel_create', 'channel_update', 'channel_delete']);
       } else if (_selectedFilter == 'Role Updates') {
-        query = query.inFilter('action_type',
+        query = query.inFilter('action',
             ['role_create', 'role_update', 'role_delete']);
       }
 
@@ -77,52 +78,50 @@ class _AuditLogScreenState extends ConsumerState<AuditLogScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: const Color(FlickoColors.bgPrimary),
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: const Color(FlickoColors.bgSecondary),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new,
-              color: Color(0xFFC8FF00), size: 20),
+          icon: const Icon(Icons.arrow_back,
+              color: Color(FlickoColors.textPrimary), size: 20),
           onPressed: () => context.pop(),
         ),
         centerTitle: true,
         title: Column(
           children: [
             Text(
-              'AUDIT LOG',
+              'Audit Log',
               style: GoogleFonts.inter(
-                color: Colors.white,
-                fontWeight: FontWeight.w900,
+                color: const Color(FlickoColors.textPrimary),
+                fontWeight: FontWeight.w600,
                 fontSize: 16,
-                letterSpacing: 2,
               ),
             ),
             Text(
-              _selectedFilter.toUpperCase(),
+              _selectedFilter,
               style: GoogleFonts.inter(
-                color: const Color(0xFFC8FF00),
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1,
+                color: const Color(FlickoColors.brandLime),
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.tune_rounded, color: Color(0xFFC8FF00)),
+            icon: const Icon(Icons.tune_rounded, color: Color(FlickoColors.brandLime)),
             onPressed: _showFilterSheet,
           ),
         ],
       ),
       body: _isLoading
           ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFFC8FF00)))
+              child: CircularProgressIndicator(color: Color(FlickoColors.brandLime)))
           : _logs.isEmpty
               ? _buildEmptyState()
               : ListView.builder(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(16),
                   itemCount: _logs.length,
                   itemBuilder: (context, index) => _buildLogEntry(_logs[index]),
                 ),
@@ -133,34 +132,34 @@ class _AuditLogScreenState extends ConsumerState<AuditLogScreen> {
     final profile = log['profiles'] as Map<String, dynamic>?;
     final username = profile?['username'] as String? ?? 'System';
     final avatar = profile?['avatar'] as String?;
-    final actionType = log['action_type'] as String? ?? 'unknown';
+    final actionType = log['action'] as String? ?? 'unknown';
     final timestamp = DateTime.parse(log['created_at']);
     final Color actionColor = _getActionColor(actionType);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF0D0D0D),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        color: const Color(FlickoColors.bgSecondary),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(FlickoColors.border)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 44,
-            height: 44,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
-              color: const Color(0xFFC8FF00).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(16),
+              color: const Color(FlickoColors.bgTertiary),
+              borderRadius: BorderRadius.circular(12),
               image: avatar != null
                   ? DecorationImage(
                       image: NetworkImage(avatar), fit: BoxFit.cover)
                   : null,
             ),
             child: avatar == null
-                ? const Icon(Icons.person_rounded, color: Color(0xFFC8FF00))
+                ? const Icon(Icons.person_rounded, color: Color(FlickoColors.brandLime), size: 20)
                 : null,
           ),
           const SizedBox(width: 16),
@@ -174,17 +173,17 @@ class _AuditLogScreenState extends ConsumerState<AuditLogScreen> {
                     Text(
                       username,
                       style: GoogleFonts.inter(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
+                        color: const Color(FlickoColors.textPrimary),
+                        fontWeight: FontWeight.w600,
                         fontSize: 14,
                       ),
                     ),
                     Text(
                       _formatTime(timestamp),
                       style: GoogleFonts.inter(
-                        color: Colors.white.withValues(alpha: 0.3),
+                        color: const Color(FlickoColors.textMuted),
                         fontSize: 11,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
@@ -192,7 +191,7 @@ class _AuditLogScreenState extends ConsumerState<AuditLogScreen> {
                 const SizedBox(height: 4),
                 RichText(
                   text: TextSpan(
-                    style: GoogleFonts.inter(color: Colors.white54, fontSize: 13),
+                    style: GoogleFonts.inter(color: const Color(FlickoColors.textSecondary), fontSize: 13),
                     children: [
                       TextSpan(
                         text: _formatActionType(actionType),
@@ -205,8 +204,8 @@ class _AuditLogScreenState extends ConsumerState<AuditLogScreen> {
                       TextSpan(
                         text: _getTargetName(log),
                         style: GoogleFonts.inter(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
+                          color: const Color(FlickoColors.textPrimary),
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
@@ -218,15 +217,15 @@ class _AuditLogScreenState extends ConsumerState<AuditLogScreen> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: Colors.black,
-                      borderRadius: BorderRadius.circular(12),
+                      color: const Color(FlickoColors.bgPrimary),
+                      borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.03)),
+                          color: const Color(FlickoColors.border)),
                     ),
                     child: Text(
                       log['reason'],
                       style: GoogleFonts.inter(
-                        color: Colors.white38,
+                        color: const Color(FlickoColors.textMuted),
                         fontSize: 12,
                         fontStyle: FontStyle.italic,
                       ),
@@ -247,8 +246,8 @@ class _AuditLogScreenState extends ConsumerState<AuditLogScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
         decoration: const BoxDecoration(
-          color: Color(0xFF0D0D0D),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+          color: Color(FlickoColors.bgSecondary),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -260,19 +259,18 @@ class _AuditLogScreenState extends ConsumerState<AuditLogScreen> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.1),
+                  color: const Color(FlickoColors.textMuted),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
             const SizedBox(height: 24),
             Text(
-              'FILTER ACTIONS',
+              'Filter Actions',
               style: GoogleFonts.inter(
-                color: Colors.white,
-                fontWeight: FontWeight.w900,
+                color: const Color(FlickoColors.textPrimary),
+                fontWeight: FontWeight.w600,
                 fontSize: 16,
-                letterSpacing: 1.5,
               ),
             ),
             const SizedBox(height: 20),
@@ -290,12 +288,12 @@ class _AuditLogScreenState extends ConsumerState<AuditLogScreen> {
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? const Color(0xFFC8FF00).withValues(alpha: 0.05)
+                        ? const Color(FlickoColors.brandLime).withValues(alpha: 0.08)
                         : Colors.transparent,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: isSelected
-                          ? const Color(0xFFC8FF00).withValues(alpha: 0.2)
+                          ? const Color(FlickoColors.brandLime).withValues(alpha: 0.2)
                           : Colors.transparent,
                     ),
                   ),
@@ -306,15 +304,15 @@ class _AuditLogScreenState extends ConsumerState<AuditLogScreen> {
                         filter,
                         style: GoogleFonts.inter(
                           color: isSelected
-                              ? const Color(0xFFC8FF00)
-                              : Colors.white70,
+                              ? const Color(FlickoColors.brandLime)
+                              : const Color(FlickoColors.textSecondary),
                           fontWeight:
                               isSelected ? FontWeight.w800 : FontWeight.w600,
                         ),
                       ),
                       if (isSelected)
                         const Icon(Icons.check_circle_rounded,
-                            color: Color(0xFFC8FF00), size: 20),
+                            color: Color(FlickoColors.brandLime), size: 20),
                     ],
                   ),
                 ),
@@ -335,26 +333,25 @@ class _AuditLogScreenState extends ConsumerState<AuditLogScreen> {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: const Color(0xFFC8FF00).withValues(alpha: 0.05),
+              color: const Color(FlickoColors.brandLime).withValues(alpha: 0.08),
               shape: BoxShape.circle,
             ),
             child: const Icon(Icons.list_alt_rounded,
-                size: 64, color: Color(0xFFC8FF00)),
+                size: 48, color: Color(FlickoColors.brandLime)),
           ),
           const SizedBox(height: 24),
           Text(
-            'NO ACTIONS FOUND',
+            'No Actions Found',
             style: GoogleFonts.inter(
-              color: Colors.white,
-              fontWeight: FontWeight.w900,
+              color: const Color(FlickoColors.textPrimary),
+              fontWeight: FontWeight.w600,
               fontSize: 18,
-              letterSpacing: 1,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Nothing has happened in this server yet.',
-            style: GoogleFonts.inter(color: Colors.white38, fontSize: 14),
+            style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted), fontSize: 14),
           ),
         ],
       ),
@@ -378,7 +375,7 @@ class _AuditLogScreenState extends ConsumerState<AuditLogScreen> {
 
   Color _getActionColor(String type) {
     if (type.contains('create') || type.contains('add')) {
-      return const Color(0xFFC8FF00);
+      return const Color(FlickoColors.success);
     }
     if (type.contains('delete') ||
         type.contains('remove') ||

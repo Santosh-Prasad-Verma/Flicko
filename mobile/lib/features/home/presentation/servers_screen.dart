@@ -26,16 +26,31 @@ class ServersScreen extends ConsumerWidget {
     );
 
     // Dynamic Server Fallbacks
-    final List<ServerModel> normalServers = serversState.servers.isNotEmpty
-        ? serversState.servers.where((s) => s.id != 'gaming').toList()
-        : [
-            ServerModel(
-              id: 'sole-syndicate',
-              name: 'Sole Syndicate',
-              ownerId: 'system',
-              createdAt: DateTime.now(),
-            ),
-          ];
+    final List<ServerModel> normalServers = serversState.servers
+        .where((s) => s.id != 'gaming')
+        .toList();
+
+    if (serversState.isLoading && normalServers.isEmpty) {
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(
+          child: CircularProgressIndicator(
+            color: Color(0xFFC0EB10),
+          ),
+        ),
+      );
+    }
+
+    if (normalServers.isEmpty) {
+      normalServers.add(
+        ServerModel(
+          id: 'sole-syndicate',
+          name: 'Sole Syndicate',
+          ownerId: 'system',
+          createdAt: DateTime.now(),
+        ),
+      );
+    }
 
     final servers = [...normalServers];
 

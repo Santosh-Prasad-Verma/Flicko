@@ -12,7 +12,7 @@ class NowPlayingCard extends StatelessWidget {
     required this.status,
   });
 
-  static const _lime = Color(0xFFCBEF17);
+  static const _lime = Color(0xFF52B788);
   static const _grey = Color(0xFF1A1A1A);
 
   @override
@@ -74,19 +74,19 @@ class _EmptyArt extends StatelessWidget {
         children: [
           Icon(
             Icons.waves_rounded,
-            color: const Color(0xFFCBEF17).withValues(alpha: 0.25),
+            color: const Color(0xFF52B788).withValues(alpha: 0.25),
             size: 120,
           ),
           const SizedBox(height: 20),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
             decoration: BoxDecoration(
-              border: Border.all(color: const Color(0xFFCBEF17), width: 1.5),
+              border: Border.all(color: const Color(0xFF52B788), width: 1.5),
             ),
             child: Text(
               status == PlaybackStatus.loading ? 'LOADING...' : 'NO_SIGNAL',
               style: GoogleFonts.robotoMono(
-                color: const Color(0xFFCBEF17),
+                color: const Color(0xFF52B788),
                 fontSize: 11,
                 fontWeight: FontWeight.w900,
               ),
@@ -114,7 +114,7 @@ class _TrackInfo extends StatelessWidget {
             children: [
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                color: const Color(0xFFCBEF17),
+                color: const Color(0xFF52B788),
                 child: Text(
                   'AUDIO_OUT',
                   style: GoogleFonts.robotoMono(
@@ -157,7 +157,7 @@ class _TrackInfo extends StatelessWidget {
             style: GoogleFonts.spaceGrotesk(
               fontSize: 18,
               fontWeight: FontWeight.w500,
-              color: const Color(0xFFCBEF17),
+              color: const Color(0xFF52B788),
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,

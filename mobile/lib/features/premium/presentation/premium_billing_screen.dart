@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../../data/services/razorpay_service.dart';
-import '../../../../data/models/subscription_model.dart';
-import '../../auth/application/auth_notifier.dart';
+import 'package:mobile/data/services/razorpay_service.dart';
+import 'package:mobile/data/models/subscription_model.dart';
+import 'package:mobile/features/auth/application/auth_notifier.dart';
 
 class PremiumBillingScreen extends ConsumerStatefulWidget {
   const PremiumBillingScreen({super.key});
@@ -18,11 +18,12 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
   bool _isPurchasing = false;
   String _purchasingPlan = '';
 
-  static const Color lime = Color(0xFFCBEF17);
+  static const Color lime = Color(0xFF52B788);
   static const Color black = Color(0xFF000000);
   static const Color white = Color(0xFFFFFFFF);
   static const Color grey = Color(0xFF1A1A1A);
   static const Color red = Color(0xFFFF3333);
+  static const Color purple = Color(0xFF9B84EE);
 
   @override
   Widget build(BuildContext context) {
@@ -88,7 +89,7 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
                         'Early Access',
                         'All Plus Features'
                       ],
-                      accentColor: white,
+                      accentColor: purple,
                       buttonText: 'UPGRADE_TO_PRO',
                       onTap: () => _handlePurchase('pro'),
                     ),
@@ -221,13 +222,13 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
       decoration: BoxDecoration(
         color: black,
         border: Border.all(
-            color: accentColor == white
-                ? white
+            color: accentColor != grey
+                ? accentColor
                 : (isPopular ? lime : white.withValues(alpha: 0.5)),
             width: 3),
         boxShadow: [
           BoxShadow(
-            color: isPopular ? lime : white.withValues(alpha: 0.1),
+            color: accentColor != grey ? accentColor : (isPopular ? lime : white.withValues(alpha: 0.1)),
             offset: const Offset(6, 6),
           ),
         ],
@@ -246,7 +247,7 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
                       padding:
                           const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: isPopular ? lime : white,
+                        color: accentColor != grey ? accentColor : (isPopular ? lime : white),
                       ),
                       child: Text(
                         title,
@@ -317,7 +318,7 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
                       child: Row(
                         children: [
                           Icon(Icons.add,
-                              size: 16, color: isPopular ? lime : textColor),
+                              size: 16, color: accentColor != grey ? accentColor : (isPopular ? lime : textColor)),
                           const SizedBox(width: 12),
                           Text(
                             f.toUpperCase(),
@@ -335,7 +336,7 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
                   _brutalistButton(
                     text: buttonText,
                     onTap: onTap!,
-                    color: isPopular ? lime : white,
+                    color: accentColor != grey ? accentColor : (isPopular ? lime : white),
                     textColor: black,
                     isLoading: _isPurchasing && _purchasingPlan == buttonText,
                   ),
@@ -390,7 +391,7 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
           border: Border.all(color: black, width: 3),
           boxShadow: [
             BoxShadow(
-              color: color == lime ? white : lime,
+              color: color == white ? lime : white,
               offset: const Offset(4, 4),
             ),
           ],
@@ -536,43 +537,64 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
 
     try {
       final razorpayService = ref.read(razorpayServiceProvider);
-      final user = ref.read(currentUserProvider);
-      final userEmail = user?.email ?? 'user@flicko.tech';
-      final username =
-          user?.userMetadata?['username'] as String? ?? userEmail.split('@')[0];
       final plan = SubscriptionPlan.plus;
-      final amountFormatted = planName == 'plus' ? 'INR 799' : 'INR 1599';
 
       final orderData = await razorpayService.createOrder(
         plan: plan,
         billingCycle: BillingCycle.monthly,
       );
 
-      final result = await razorpayService.startPayment(
-        orderId: orderData['id'],
-        amount: (orderData['amount'] as num).toDouble() / 100,
-        userEmail: userEmail,
-        userPhone: '',
-        description: 'Flicko ${planName == 'plus' ? 'Plus' : 'Pro'} Subscription',
+      final orderId = orderData['id'] as String;
+      final amountPaise = orderData['amount'] as num;
+      final amountDouble = amountPaise / 100.0;
+
+      final authState = ref.read(authNotifierProvider);
+      final userEmail = authState.maybeWhen(
+        authenticated: (authUser, userProfile) => authUser.email ?? '',
+        orElse: () => '',
+      );
+      final userPhone = authState.maybeWhen(
+        authenticated: (authUser, userProfile) => userProfile?.phone ?? '',
+        orElse: () => '',
+      );
+      final username = authState.maybeWhen(
+        authenticated: (authUser, userProfile) => userProfile?.username ?? '',
+        orElse: () => '',
       );
 
-      final verified = await razorpayService.verifyPayment(
-        orderId: result['orderId'],
-        paymentId: result['paymentId'],
-        signature: result['signature'],
+      final paymentResult = await razorpayService.startPayment(
+        orderId: orderId,
+        amount: amountDouble,
+        userEmail: userEmail,
+        userPhone: userPhone,
+        description: 'Flicko ${planName.toUpperCase()} Subscription',
+      );
+
+      final paymentId = paymentResult['paymentId'] as String;
+      final signature = paymentResult['signature'] as String;
+      final formattedAmount = planName == 'plus' ? '₹799' : '₹1599';
+
+      final isVerified = await razorpayService.verifyPayment(
+        orderId: orderId,
+        paymentId: paymentId,
+        signature: signature,
         email: userEmail,
         username: username,
-        amount: amountFormatted,
+        amount: formattedAmount,
       );
 
-      if (verified && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('WELCOME TO FLICKO ${planName.toUpperCase()}!'),
-            backgroundColor: lime,
-          ),
-        );
-        context.go('/u/settings');
+      if (isVerified) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('WELCOME TO FLICKO ${planName.toUpperCase()}!'),
+              backgroundColor: lime,
+            ),
+          );
+          context.go('/u/settings');
+        }
+      } else {
+        throw Exception('Payment verification failed');
       }
     } catch (e) {
       if (mounted) {

@@ -33,7 +33,7 @@ class _AutomodSettingsScreenState extends ConsumerState<AutomodSettingsScreen> {
     setState(() => _isLoading = true);
     try {
       final data = await Supabase.instance.client
-          .from('auto_mod_rules')
+          .from('automod_rules')
           .select()
           .eq('server_id', widget.serverId);
 
@@ -61,21 +61,21 @@ class _AutomodSettingsScreenState extends ConsumerState<AutomodSettingsScreen> {
 
   Future<void> _toggleRule(String ruleName, bool enabled, String ruleType, Map<String, dynamic> triggerConfig) async {
     // Optimistic UI update
-    final wasEnabled = _activeRules.containsKey(ruleName) && _activeRules[ruleName]!['is_enabled'] == true;
+    
     
     setState(() {
       if (enabled) {
         if (_activeRules.containsKey(ruleName)) {
-           _activeRules[ruleName]!['is_enabled'] = true;
+           _activeRules[ruleName]!['enabled'] = true;
         } else {
            _activeRules[ruleName] = {
              'name': ruleName,
-             'is_enabled': true,
+             'enabled': true,
            };
         }
       } else {
         if (_activeRules.containsKey(ruleName)) {
-           _activeRules[ruleName]!['is_enabled'] = false;
+           _activeRules[ruleName]!['enabled'] = false;
         }
       }
     });
@@ -85,36 +85,36 @@ class _AutomodSettingsScreenState extends ConsumerState<AutomodSettingsScreen> {
       if (enabled) {
         // Find existing rule to enable, or create
         final existing = await client
-            .from('auto_mod_rules')
+            .from('automod_rules')
             .select()
             .eq('server_id', widget.serverId)
             .eq('name', ruleName)
             .maybeSingle();
 
         if (existing != null) {
-          await client.from('auto_mod_rules').update({'is_enabled': true}).eq('id', existing['id']);
+          await client.from('automod_rules').update({'enabled': true}).eq('id', existing['id']);
         } else {
-          await client.from('auto_mod_rules').insert({
+          await client.from('automod_rules').insert({
             'server_id': widget.serverId,
             'name': ruleName,
-            'rule_type': ruleType,
-            'trigger_config': triggerConfig,
+            'trigger_type': ruleType,
+            'trigger_metadata': triggerConfig,
             'action_type': 'block',
             'action_config': {},
-            'is_enabled': true,
+            'enabled': true,
           });
         }
       } else {
         // Disable existing rule
         final existing = await client
-            .from('auto_mod_rules')
+            .from('automod_rules')
             .select()
             .eq('server_id', widget.serverId)
             .eq('name', ruleName)
             .maybeSingle();
             
         if (existing != null) {
-          await client.from('auto_mod_rules').update({'is_enabled': false}).eq('id', existing['id']);
+          await client.from('automod_rules').update({'enabled': false}).eq('id', existing['id']);
         }
       }
       // Reload strictly from server to sync IDs
@@ -130,14 +130,14 @@ class _AutomodSettingsScreenState extends ConsumerState<AutomodSettingsScreen> {
   }
 
   bool _isRuleEnabled(String name) {
-    return _activeRules.containsKey(name) && _activeRules[name]!['is_enabled'] == true;
+    return _activeRules.containsKey(name) && _activeRules[name]!['enabled'] == true;
   }
 
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: const Color(FlickoColors.bgPrimary),
+        
         appBar: AppBar(
           backgroundColor: const Color(FlickoColors.bgSecondary),
           elevation: 0,
@@ -157,11 +157,9 @@ class _AutomodSettingsScreenState extends ConsumerState<AutomodSettingsScreen> {
       );
     }
 
-    // Has any rule enabled
-    bool isAnyEnabled = _activeRules.values.any((r) => r['is_enabled'] == true);
 
     return Scaffold(
-      backgroundColor: const Color(FlickoColors.bgPrimary),
+      
       appBar: AppBar(
         backgroundColor: const Color(FlickoColors.bgSecondary),
         elevation: 0,
@@ -366,7 +364,7 @@ class _AutomodSettingsScreenState extends ConsumerState<AutomodSettingsScreen> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: const Color(FlickoColors.blurple),
+            activeThumbColor: const Color(FlickoColors.blurple),
           ),
         ],
       ),

@@ -7,7 +7,7 @@ class PlaybackControls extends ConsumerWidget {
   final SonicDripState state;
   const PlaybackControls({super.key, required this.state});
 
-  static const _lime = Color(0xFFCBEF17);
+  static const _lime = Color(0xFF52B788);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -111,7 +111,7 @@ class _ControlBtn extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bg = isPrimary
-        ? const Color(0xFFCBEF17)
+        ? const Color(0xFF52B788)
         : isActive
             ? activeColor.withValues(alpha: 0.15)
             : Colors.black;

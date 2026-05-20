@@ -124,35 +124,46 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     return Scaffold(
       backgroundColor: const Color(FlickoColors.bgPrimary),
       appBar: AppBar(
-        backgroundColor: const Color(FlickoColors.bgSecondary),
+        backgroundColor: const Color(FlickoColors.bgPrimary),
         elevation: 0,
+        surfaceTintColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),
+          icon: const Icon(Icons.arrow_back_rounded, color: Color(FlickoColors.textPrimary)),
           onPressed: () => context.pop(),
         ),
-        title: TextField(
-          controller: _searchController,
-          onChanged: (_) => setState(() {}),
-          autofocus: true,
-          style: GoogleFonts.inter(
-            color: const Color(FlickoColors.textPrimary),
-            fontSize: 16,
+        title: Container(
+          height: 40,
+          decoration: BoxDecoration(
+            color: const Color(FlickoColors.bgTertiary),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(FlickoColors.border), width: 1),
           ),
-          decoration: InputDecoration(
-            hintText: 'Search...',
-            hintStyle: GoogleFonts.inter(
-              color: const Color(FlickoColors.textMuted),
+          child: TextField(
+            controller: _searchController,
+            onChanged: (_) => setState(() {}),
+            autofocus: true,
+            style: GoogleFonts.inter(
+              color: const Color(FlickoColors.textPrimary),
+              fontSize: 15,
             ),
-            border: InputBorder.none,
-            suffixIcon: _searchController.text.isNotEmpty
-                ? IconButton(
-                    icon: const Icon(Icons.clear, color: Color(FlickoColors.textMuted)),
-                    onPressed: () {
-                      _searchController.clear();
-                      setState(() {});
-                    },
-                  )
-                : null,
+            decoration: InputDecoration(
+              hintText: 'Search...',
+              hintStyle: GoogleFonts.inter(
+                color: const Color(FlickoColors.textMuted),
+                fontSize: 15,
+              ),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              suffixIcon: _searchController.text.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear_rounded, color: Color(FlickoColors.textMuted), size: 18),
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() {});
+                      },
+                    )
+                  : null,
+            ),
           ),
         ),
       ),
@@ -184,15 +195,15 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
     return Container(
       height: 48,
-      decoration: const BoxDecoration(
-        color: Color(FlickoColors.bgSecondary),
+      decoration: BoxDecoration(
+        color: const Color(FlickoColors.bgPrimary),
         border: Border(
-          bottom: BorderSide(color: Color(FlickoColors.bgTertiary)),
+          bottom: BorderSide(color: const Color(FlickoColors.border).withValues(alpha: 0.3)),
         ),
       ),
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         itemCount: tabs.length,
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
@@ -205,17 +216,23 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
                 color: isActive
-                    ? const Color(FlickoColors.blurple)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(16),
+                    ? const Color(FlickoColors.brandLime)
+                    : const Color(FlickoColors.bgTertiary),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isActive
+                      ? const Color(FlickoColors.brandLime)
+                      : const Color(FlickoColors.border),
+                  width: 1,
+                ),
               ),
               child: Row(
                 children: [
                   Icon(
                     icon,
-                    size: 18,
+                    size: 16,
                     color: isActive
-                        ? Colors.white
+                        ? const Color(FlickoColors.black)
                         : const Color(FlickoColors.textMuted),
                   ),
                   const SizedBox(width: 6),
@@ -223,10 +240,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     label,
                     style: GoogleFonts.inter(
                       color: isActive
-                          ? Colors.white
+                          ? const Color(FlickoColors.black)
                           : const Color(FlickoColors.textMuted),
-                      fontSize: 14,
-                      fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+                      fontSize: 13,
+                      fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
                     ),
                   ),
                 ],
@@ -377,8 +394,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             else
               IconButton(
                 icon: const Icon(
-                  Icons.person_add,
-                  color: Color(FlickoColors.blurple),
+                  Icons.person_add_rounded,
+                  color: Color(FlickoColors.brandLime),
                 ),
                 onPressed: () {
                   // Send friend request

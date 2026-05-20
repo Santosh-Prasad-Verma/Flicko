@@ -461,6 +461,27 @@ services:
   # ──────────────────────────────────────────────────────────────────────────
 
   # ──────────────────────────────────────────────────────────────────────────
+  # PROMTAIL — Log Collector for Loki
+  # ──────────────────────────────────────────────────────────────────────────
+  # Scrapes Docker container logs and ships them to Loki for centralized logging.
+  promtail:
+    image: grafana/promtail:2.9.0
+    container_name: flicko-promtail
+    <<: [*restart-policy, *default-logging]
+    networks:
+      - flicko_monitor
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./monitoring/promtail-config.yml:/etc/promtail/config.yml:ro
+    command: -config.file=/etc/promtail/config.yml
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.1"
+
+  # ──────────────────────────────────────────────────────────────────────────
   # NGINX EXPORTER — NGINX Metrics for Prometheus
   # ──────────────────────────────────────────────────────────────────────────
   nginx-exporter:

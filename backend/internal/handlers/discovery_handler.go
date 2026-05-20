@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/flicko-org/flicko-backend/internal/middleware"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 )
@@ -37,7 +38,11 @@ type DiscoverableServerPayload struct {
 
 func (h *DiscoveryHandler) DiscoverServers(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userID := ctx.Value("userID").(string) // from Auth middleware
+	userID, ok := ctx.Value(middleware.GetUserIDKey()).(string)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
 
 	search := r.URL.Query().Get("q")
 

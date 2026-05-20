@@ -364,9 +364,9 @@ mixin _$UserModel {
   String get username;
   @JsonKey(name: 'display_name')
   String? get displayName;
-  @JsonKey(name: 'avatar_url')
+  @JsonKey(name: 'avatar')
   String? get avatarUrl;
-  @JsonKey(name: 'banner_url')
+  @JsonKey(name: 'banner')
   String? get bannerUrl;
   String? get bio;
   String? get pronouns;
@@ -488,8 +488,8 @@ abstract mixin class $UserModelCopyWith<$Res> {
       {String id,
       String username,
       @JsonKey(name: 'display_name') String? displayName,
-      @JsonKey(name: 'avatar_url') String? avatarUrl,
-      @JsonKey(name: 'banner_url') String? bannerUrl,
+      @JsonKey(name: 'avatar') String? avatarUrl,
+      @JsonKey(name: 'banner') String? bannerUrl,
       String? bio,
       String? pronouns,
       String? phone,
@@ -722,8 +722,8 @@ extension UserModelPatterns on UserModel {
             String id,
             String username,
             @JsonKey(name: 'display_name') String? displayName,
-            @JsonKey(name: 'avatar_url') String? avatarUrl,
-            @JsonKey(name: 'banner_url') String? bannerUrl,
+            @JsonKey(name: 'avatar') String? avatarUrl,
+            @JsonKey(name: 'banner') String? bannerUrl,
             String? bio,
             String? pronouns,
             String? phone,
@@ -790,8 +790,8 @@ extension UserModelPatterns on UserModel {
             String id,
             String username,
             @JsonKey(name: 'display_name') String? displayName,
-            @JsonKey(name: 'avatar_url') String? avatarUrl,
-            @JsonKey(name: 'banner_url') String? bannerUrl,
+            @JsonKey(name: 'avatar') String? avatarUrl,
+            @JsonKey(name: 'banner') String? bannerUrl,
             String? bio,
             String? pronouns,
             String? phone,
@@ -856,8 +856,8 @@ extension UserModelPatterns on UserModel {
             String id,
             String username,
             @JsonKey(name: 'display_name') String? displayName,
-            @JsonKey(name: 'avatar_url') String? avatarUrl,
-            @JsonKey(name: 'banner_url') String? bannerUrl,
+            @JsonKey(name: 'avatar') String? avatarUrl,
+            @JsonKey(name: 'banner') String? bannerUrl,
             String? bio,
             String? pronouns,
             String? phone,
@@ -912,8 +912,8 @@ class _UserModel implements UserModel {
       {required this.id,
       required this.username,
       @JsonKey(name: 'display_name') this.displayName,
-      @JsonKey(name: 'avatar_url') this.avatarUrl,
-      @JsonKey(name: 'banner_url') this.bannerUrl,
+      @JsonKey(name: 'avatar') this.avatarUrl,
+      @JsonKey(name: 'banner') this.bannerUrl,
       this.bio,
       this.pronouns,
       this.phone,
@@ -942,10 +942,10 @@ class _UserModel implements UserModel {
   @JsonKey(name: 'display_name')
   final String? displayName;
   @override
-  @JsonKey(name: 'avatar_url')
+  @JsonKey(name: 'avatar')
   final String? avatarUrl;
   @override
-  @JsonKey(name: 'banner_url')
+  @JsonKey(name: 'banner')
   final String? bannerUrl;
   @override
   final String? bio;
@@ -1105,8 +1105,8 @@ abstract mixin class _$UserModelCopyWith<$Res>
       {String id,
       String username,
       @JsonKey(name: 'display_name') String? displayName,
-      @JsonKey(name: 'avatar_url') String? avatarUrl,
-      @JsonKey(name: 'banner_url') String? bannerUrl,
+      @JsonKey(name: 'avatar') String? avatarUrl,
+      @JsonKey(name: 'banner') String? bannerUrl,
       String? bio,
       String? pronouns,
       String? phone,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/features/settings/application/user_settings_notifier.dart';
 
 /// Voice & Video Settings Screen (Sleek Brutalist Black/Neon Theme)
 class VoiceSettingsScreen extends ConsumerStatefulWidget {
@@ -14,19 +15,16 @@ class VoiceSettingsScreen extends ConsumerStatefulWidget {
 
 class _VoiceSettingsScreenState
     extends ConsumerState<VoiceSettingsScreen> {
-  bool _noiseSuppression = true;
-  bool _echoCancellation = true;
-  bool _autoGainControl = true;
-  bool _attenuation = true;
-  bool _answerOnJoin = false;
-  bool _videoOnJoin = false;
-  bool _callNotifications = true;
 
-  static const Color _neonGreen = Color(0xFFC0F500);
+  static const Color _neonGreen = Color(0xFF52B788);
   static const Color _bgBlack = Color(0xFF050505);
   static const Color _surfaceContainer = Color(0xFF0C0C0E);
   static const Color _textWhite = Color(0xFFFBF9FA);
   static const Color _textMuted = Color(0xFF71717A);
+
+  void _setBool(String key, bool value) {
+    ref.read(userSettingsNotifierProvider.notifier).setBool(key, value);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -222,8 +220,8 @@ class _VoiceSettingsScreenState
           title: 'NOISE SUPPRESSION',
           subtitle: 'Remove background noise from input.',
           badge: 'DSP',
-          toggleWidget: _buildHardwareToggle(_noiseSuppression, (val) {
-            setState(() => _noiseSuppression = val);
+          toggleWidget: _buildHardwareToggle(ref.watch(userSettingsNotifierProvider).noiseSuppression, (val) {
+            _setBool('voice_noise_suppression', val);
           }),
         ),
         const SizedBox(height: 14),
@@ -231,8 +229,8 @@ class _VoiceSettingsScreenState
           title: 'ECHO CANCELLATION',
           subtitle: 'Reduce echo and audio feedback.',
           badge: 'AEC',
-          toggleWidget: _buildHardwareToggle(_echoCancellation, (val) {
-            setState(() => _echoCancellation = val);
+          toggleWidget: _buildHardwareToggle(ref.watch(userSettingsNotifierProvider).echoCancellation, (val) {
+            _setBool('voice_echo_cancellation', val);
           }),
         ),
         const SizedBox(height: 14),
@@ -240,8 +238,8 @@ class _VoiceSettingsScreenState
           title: 'AUTO GAIN',
           subtitle: 'Normalize input volume automatically.',
           badge: 'AGC',
-          toggleWidget: _buildHardwareToggle(_autoGainControl, (val) {
-            setState(() => _autoGainControl = val);
+          toggleWidget: _buildHardwareToggle(ref.watch(userSettingsNotifierProvider).autoGainControl, (val) {
+            _setBool('voice_auto_gain', val);
           }),
         ),
       ],
@@ -286,8 +284,8 @@ class _VoiceSettingsScreenState
           title: 'ATTENUATION',
           subtitle: 'Lower volume of other apps during calls.',
           badge: 'DUCKING',
-          toggleWidget: _buildHardwareToggle(_attenuation, (val) {
-            setState(() => _attenuation = val);
+          toggleWidget: _buildHardwareToggle(ref.watch(userSettingsNotifierProvider).attenuation, (val) {
+            _setBool('voice_attenuation', val);
           }),
         ),
       ],
@@ -317,8 +315,8 @@ class _VoiceSettingsScreenState
           title: 'ANSWER ON JOIN',
           subtitle: 'Automatically connect audio when joining voice.',
           badge: 'AUTO',
-          toggleWidget: _buildHardwareToggle(_answerOnJoin, (val) {
-            setState(() => _answerOnJoin = val);
+          toggleWidget: _buildHardwareToggle(ref.watch(userSettingsNotifierProvider).answerOnJoin, (val) {
+            _setBool('voice_answer_on_join', val);
           }),
         ),
         const SizedBox(height: 14),
@@ -326,8 +324,8 @@ class _VoiceSettingsScreenState
           title: 'VIDEO ON JOIN',
           subtitle: 'Automatically enable video when joining.',
           badge: 'CAM',
-          toggleWidget: _buildHardwareToggle(_videoOnJoin, (val) {
-            setState(() => _videoOnJoin = val);
+          toggleWidget: _buildHardwareToggle(ref.watch(userSettingsNotifierProvider).videoOnJoin, (val) {
+            _setBool('voice_video_on_join', val);
           }),
         ),
         const SizedBox(height: 14),
@@ -335,8 +333,8 @@ class _VoiceSettingsScreenState
           title: 'CALL NOTIFICATIONS',
           subtitle: 'Show incoming call notifications.',
           badge: 'ALERT',
-          toggleWidget: _buildHardwareToggle(_callNotifications, (val) {
-            setState(() => _callNotifications = val);
+          toggleWidget: _buildHardwareToggle(ref.watch(userSettingsNotifierProvider).callNotifications, (val) {
+            _setBool('voice_call_notifications', val);
           }),
         ),
       ],

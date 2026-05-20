@@ -39,6 +39,15 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+
+            <!-- Supabase OAuth deep-link callback (Google / GitHub / Discord) -->
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="io.flicko.app"
+                      android:host="login-callback" />
+            </intent-filter>
         </activity>
         
         <meta-data

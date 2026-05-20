@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/features/settings/application/user_settings_notifier.dart';
 
 /// Privacy & Safety Settings Screen (Sleek Brutalist Black/Neon Theme)
 class PrivacySettingsScreen extends ConsumerStatefulWidget {
@@ -14,19 +15,16 @@ class PrivacySettingsScreen extends ConsumerStatefulWidget {
 
 class _PrivacySettingsScreenState
     extends ConsumerState<PrivacySettingsScreen> {
-  bool _allowDMs = true;
-  bool _showOnlineStatus = true;
-  bool _showReadReceipts = true;
-  bool _showTypingIndicator = true;
-  bool _allowFriendRequests = true;
-  bool _hideActivity = false;
-  bool _twoFactorAuth = false;
 
-  static const Color _neonGreen = Color(0xFFC0F500);
+  static const Color _neonGreen = Color(0xFF52B788);
   static const Color _bgBlack = Color(0xFF050505);
   static const Color _surfaceContainer = Color(0xFF0C0C0E);
   static const Color _textWhite = Color(0xFFFBF9FA);
   static const Color _textMuted = Color(0xFF71717A);
+
+  void _setBool(String key, bool value) {
+    ref.read(userSettingsNotifierProvider.notifier).setBool(key, value);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -208,8 +206,8 @@ class _PrivacySettingsScreenState
           subtitle: 'Allow direct messages from anyone.',
           badge: 'OPEN',
           usePrimaryBadge: true,
-          toggleWidget: _buildHardwareToggle(_allowDMs, (val) {
-            setState(() => _allowDMs = val);
+          toggleWidget: _buildHardwareToggle(ref.watch(userSettingsNotifierProvider).allowDirectMessages, (val) {
+            _setBool('privacy_allow_dms', val);
           }),
         ),
         const SizedBox(height: 14),
@@ -217,8 +215,8 @@ class _PrivacySettingsScreenState
           title: 'FRIEND REQUESTS',
           subtitle: 'Allow anyone to send friend requests.',
           badge: 'SOCIAL',
-          toggleWidget: _buildHardwareToggle(_allowFriendRequests, (val) {
-            setState(() => _allowFriendRequests = val);
+          toggleWidget: _buildHardwareToggle(ref.watch(userSettingsNotifierProvider).allowFriendRequests, (val) {
+            _setBool('privacy_allow_friend_requests', val);
           }),
         ),
       ],
@@ -248,8 +246,8 @@ class _PrivacySettingsScreenState
           title: 'ONLINE STATUS',
           subtitle: 'Show when you are active.',
           badge: 'STATUS',
-          toggleWidget: _buildHardwareToggle(_showOnlineStatus, (val) {
-            setState(() => _showOnlineStatus = val);
+          toggleWidget: _buildHardwareToggle(ref.watch(userSettingsNotifierProvider).showOnlineStatus, (val) {
+            _setBool('privacy_show_online_status', val);
           }),
         ),
         const SizedBox(height: 14),
@@ -257,8 +255,8 @@ class _PrivacySettingsScreenState
           title: 'READ RECEIPTS',
           subtitle: 'Show when messages are read.',
           badge: 'SEEN',
-          toggleWidget: _buildHardwareToggle(_showReadReceipts, (val) {
-            setState(() => _showReadReceipts = val);
+          toggleWidget: _buildHardwareToggle(false, (val) {
+            // Read receipts not yet in UserSettings model
           }),
         ),
         const SizedBox(height: 14),
@@ -266,8 +264,8 @@ class _PrivacySettingsScreenState
           title: 'TYPING INDICATOR',
           subtitle: 'Show when you are typing.',
           badge: 'LIVE',
-          toggleWidget: _buildHardwareToggle(_showTypingIndicator, (val) {
-            setState(() => _showTypingIndicator = val);
+          toggleWidget: _buildHardwareToggle(false, (val) {
+            // Typing indicator not yet in UserSettings model
           }),
         ),
         const SizedBox(height: 14),
@@ -275,8 +273,8 @@ class _PrivacySettingsScreenState
           title: 'HIDE ACTIVITY',
           subtitle: 'Hide your game and app activity.',
           badge: 'GHOST',
-          toggleWidget: _buildHardwareToggle(_hideActivity, (val) {
-            setState(() => _hideActivity = val);
+          toggleWidget: _buildHardwareToggle(!ref.watch(userSettingsNotifierProvider).shareActivityStatus, (val) {
+            _setBool('privacy_share_activity', !val); // inverted: hide activity = not sharing
           }),
         ),
       ],
@@ -307,8 +305,8 @@ class _PrivacySettingsScreenState
           subtitle: 'Add extra security to your account.',
           badge: '2FA',
           usePrimaryBadge: true,
-          toggleWidget: _buildHardwareToggle(_twoFactorAuth, (val) {
-            setState(() => _twoFactorAuth = val);
+          toggleWidget: _buildHardwareToggle(false, (val) {
+            // 2FA not yet wired to backend
           }),
         ),
         const SizedBox(height: 14),

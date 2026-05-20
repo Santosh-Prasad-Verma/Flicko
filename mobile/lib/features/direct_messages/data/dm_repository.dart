@@ -10,17 +10,23 @@ import 'package:mobile/features/e2ee/application/e2ee_session.dart';
 import 'package:mobile/features/e2ee/domain/e2ee_models.dart';
 
 final dmRepositoryProvider = Provider<DMRepository>((ref) {
+  E2EESession? e2ee;
+  try {
+    e2ee = ref.watch(e2eeSessionProvider);
+  } catch (_) {
+    // E2EE not available (e.g. backend unreachable) — DMs work without it
+  }
   return DMRepository(
     ref.watch(supabaseClientProvider),
     ref.watch(appwriteStorageServiceProvider),
-    ref.watch(e2eeSessionProvider),
+    e2ee,
   );
 });
 
 class DMRepository {
   final SupabaseClient _client;
   final AppwriteStorageService _appwriteStorage;
-  final E2EESession _e2ee;
+  final E2EESession? _e2ee;
 
   DMRepository(this._client, this._appwriteStorage, this._e2ee);
 
@@ -117,6 +123,7 @@ class DMRepository {
   /// Returns null when E2EE is not enabled for the conversation.
   Future<EncryptedEnvelope?> _maybeEncryptOutgoing(
       String recipientId, String content) async {
+    if (_e2ee == null) return null;
     try {
       final enabled = await _e2ee.isConversationEnabled(recipientId);
       if (!enabled) return null;
@@ -138,6 +145,7 @@ class DMRepository {
 
     try {
       final env = EncryptedEnvelope.fromDmRow(row);
+      if (_e2ee == null) throw Exception('E2EE unavailable');
       final plain = await _e2ee.decrypt(env);
       return DMMessage.fromJson({...row, 'content': plain});
     } catch (_) {

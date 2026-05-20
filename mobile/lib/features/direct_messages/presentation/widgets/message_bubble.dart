@@ -9,10 +9,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 class MessageBubble extends StatelessWidget {
   final DMMessage message;
+  final VoidCallback? onTapProfile;
 
   const MessageBubble({
     super.key,
     required this.message,
+    this.onTapProfile,
   });
 
   @override
@@ -27,7 +29,7 @@ class MessageBubble extends StatelessWidget {
         ? const Color(FlickoColors.bgSecondary)
         : const Color(FlickoColors.bgTertiary);
     final borderColor = isMine
-        ? const Color(FlickoColors.brandLime)
+        ? const Color(FlickoColors.emeraldGreen)
         : const Color(FlickoColors.border);
 
     return Padding(
@@ -41,11 +43,15 @@ class MessageBubble extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!isMine) ...[
-            UserAvatar(
-              imageUrl: avatarUrl,
-              name: senderName,
-              size: 38,
-              showStatus: false,
+            GestureDetector(
+              onTap: onTapProfile,
+              behavior: HitTestBehavior.opaque,
+              child: UserAvatar(
+                imageUrl: avatarUrl,
+                name: senderName,
+                size: 38,
+                showStatus: false,
+              ),
             ),
             const SizedBox(width: FlickoSpacing.md),
           ],
@@ -55,15 +61,19 @@ class MessageBubble extends StatelessWidget {
                   isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
               children: [
                 if (!isMine)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 6),
-                    child: Text(
-                      senderName.toUpperCase(),
-                      style: const TextStyle(
-                        color: Color(FlickoColors.brandLime),
-                        fontWeight: FontWeight.w800,
-                        fontSize: 12,
-                        letterSpacing: 0.5,
+                  GestureDetector(
+                    onTap: onTapProfile,
+                    behavior: HitTestBehavior.opaque,
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Text(
+                        senderName.toUpperCase(),
+                        style: const TextStyle(
+                          color: Color(FlickoColors.emeraldGreen),
+                          fontWeight: FontWeight.w800,
+                          fontSize: 12,
+                          letterSpacing: 0.5,
+                        ),
                       ),
                     ),
                   ),
@@ -79,7 +89,7 @@ class MessageBubble extends StatelessWidget {
                     boxShadow: isMine
                         ? const [
                             BoxShadow(
-                              color: Color(FlickoColors.brandLime),
+                              color: Color(FlickoColors.emeraldGreen),
                               blurRadius: 0,
                               offset: Offset(4, 4),
                             ),
@@ -157,7 +167,7 @@ class MessageBubble extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(FlickoColors.bgPrimary),
         border:
-            Border.all(color: const Color(FlickoColors.brandLime), width: 1.2),
+            Border.all(color: const Color(FlickoColors.emeraldGreen), width: 1.2),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

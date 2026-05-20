@@ -27,7 +27,7 @@ class _SpotifyConnectScreenState extends ConsumerState<SpotifyConnectScreen> {
   String? _error;
 
   static const _spotifyLoginUrl = 'https://accounts.spotify.com/en/login';
-  static const _lime = Color(0xFFCBEF17);
+  static const _lime = Color(0xFF52B788);
   static const _black = Color(0xFF000000);
 
   @override

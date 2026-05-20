@@ -303,3 +303,12 @@ UI/
 ci.log
 l.txt
 *.bak
+
+# Vendored third-party reference projects (not part of Flicko build)
+BlackHole-Music-app/
+commet/
+react-native-ludo-game/
+
+# Self-hosted LiveKit config — contains API key/secret pair
+livekit.yaml
+livekit.dev.yaml

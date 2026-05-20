@@ -14,8 +14,6 @@ import 'mention_autocomplete.dart';
 import 'sticker_picker.dart';
 
 /// Enhanced MessageInput with Emoji/GIF pickers and Voice Recorder
-///
-/// Mirrors React Native MessageInput with all features integrated.
 class EnhancedMessageInput extends StatefulWidget {
   final Function(String, {List<XFile>? attachments, String? gifUrl, String? stickerUrl}) onSend;
   final String? replyToName;
@@ -39,12 +37,20 @@ class EnhancedMessageInput extends StatefulWidget {
 }
 
 class _EnhancedMessageInputState extends State<EnhancedMessageInput> {
+  static const Color _neonGreen = Color(0xFF52B788);
+  static const Color _bgBlack = Color(0xFF050505);
+  static const Color _surfaceContainer = Color(0xFF0C0C0E);
+  static const Color _textWhite = Color(0xFFFBF9FA);
+  static const Color _textMuted = Color(0xFF71717A);
+
   final TextEditingController _controller = TextEditingController();
   final ImagePicker _picker = ImagePicker();
   final AudioRecorder _audioRecorder = AudioRecorder();
   
   List<XFile> _selectedFiles = [];
   bool _isEmpty = true;
+  bool _showExtras = false;
+  
   bool _isRecording = false;
   bool _isLockedRecording = false;
   Timer? _recordingTimer;
@@ -75,6 +81,7 @@ class _EnhancedMessageInputState extends State<EnhancedMessageInput> {
 
   @override
   void dispose() {
+    _controller.removeListener(_handleTextChanged);
     _controller.dispose();
     _recordingTimer?.cancel();
     _typingTimer?.cancel();
@@ -161,7 +168,7 @@ class _EnhancedMessageInputState extends State<EnhancedMessageInput> {
     _dismissMentions();
   }
 
-  Future<void> _pickFiles() async {
+  Future<void> _handlePickImage() async {
     try {
       final List<XFile> images = await _picker.pickMultiImage();
       if (images.isNotEmpty) {
@@ -175,16 +182,28 @@ class _EnhancedMessageInputState extends State<EnhancedMessageInput> {
     }
   }
 
+  Future<void> _handlePickCamera() async {
+    try {
+      final XFile? image = await _picker.pickImage(source: ImageSource.camera);
+      if (image != null) {
+        setState(() {
+          _selectedFiles.add(image);
+          _isEmpty = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error picking from camera: $e');
+    }
+  }
+
   Future<void> _startRecording() async {
     try {
-      // Check microphone permission
       final status = await Permission.microphone.request();
       if (status != PermissionStatus.granted) {
         _showPermissionDenied('Microphone');
         return;
       }
 
-      // Get temp directory for recording
       final tempDir = await getTemporaryDirectory();
       final path = '${tempDir.path}/voice_message_${DateTime.now().millisecondsSinceEpoch}.m4a';
       
@@ -199,7 +218,6 @@ class _EnhancedMessageInputState extends State<EnhancedMessageInput> {
         _recordingPath = path;
       });
 
-      // Start recording timer
       _recordingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
         setState(() => _recordingSeconds++);
       });
@@ -214,11 +232,9 @@ class _EnhancedMessageInputState extends State<EnhancedMessageInput> {
       
       if (!cancel && _recordingPath != null) {
         await _audioRecorder.stop();
-        // Send voice message
         widget.onSend('🎤 Voice message', attachments: [XFile(_recordingPath!)]);
       } else {
         await _audioRecorder.stop();
-        // Delete temp file if cancelled
         if (_recordingPath != null) {
           final file = File(_recordingPath!);
           if (await file.exists()) {
@@ -255,6 +271,7 @@ class _EnhancedMessageInputState extends State<EnhancedMessageInput> {
       _controller.clear();
       setState(() {
         _selectedFiles = [];
+        _showExtras = false;
         _isEmpty = true;
       });
       _isTyping = false;
@@ -320,16 +337,21 @@ class _EnhancedMessageInputState extends State<EnhancedMessageInput> {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-      decoration: const BoxDecoration(
-        color: Color(FlickoColors.bgPrimary),
+      decoration: BoxDecoration(
+        color: _surfaceContainer,
+        border: Border(
+          top: BorderSide(
+            color: _textWhite.withValues(alpha: 0.05),
+            width: 1,
+          ),
+        ),
       ),
       child: SafeArea(
         top: false,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Mention autocomplete (shown when typing @)
+            // Mention autocomplete
             if (_showMentions)
               MentionAutocomplete(
                 users: _availableUsers,
@@ -337,22 +359,173 @@ class _EnhancedMessageInputState extends State<EnhancedMessageInput> {
                 onSelect: _insertMention,
                 onDismiss: _dismissMentions,
               ),
+            
+            // Reply bar
             if (widget.replyToName != null) _buildReplyBar(),
+            
+            // Selected files
             if (_selectedFiles.isNotEmpty) _buildAttachmentPreview(),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                _buildAttachButton(),
-                Expanded(child: _buildTextField()),
-                if (_isEmpty) ...[
-                  _buildStickerButton(),
-                  _buildGifButton(),
-                  _buildPollButton(),
-                  _buildEmojiButton(),
-                  _buildVoiceButton(),
-                ] else
-                  _buildSendButton(),
-              ],
+
+            // Extras Drawer
+            if (_showExtras)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: _bgBlack,
+                  border: Border(bottom: BorderSide(color: _textWhite.withValues(alpha: 0.05))),
+                ),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _ExtraButton(
+                        icon: Icons.emoji_emotions_rounded,
+                        label: 'EMOJI',
+                        onTap: _showEmojiPicker,
+                      ),
+                      const SizedBox(width: 16),
+                      _ExtraButton(
+                        icon: Icons.gif_box_rounded,
+                        label: 'GIF',
+                        onTap: _showGifPicker,
+                      ),
+                      const SizedBox(width: 16),
+                      _ExtraButton(
+                        icon: Icons.sticky_note_2_rounded,
+                        label: 'STICKER',
+                        onTap: _showStickerPicker,
+                      ),
+                      const SizedBox(width: 16),
+                      _ExtraButton(
+                        icon: Icons.camera_alt_rounded,
+                        label: 'CAMERA',
+                        onTap: _handlePickCamera,
+                      ),
+                      const SizedBox(width: 16),
+                      _ExtraButton(
+                        icon: Icons.photo_library_rounded,
+                        label: 'GALLERY',
+                        onTap: _handlePickImage,
+                      ),
+                      const SizedBox(width: 16),
+                      if (widget.onPollRequested != null) ...[
+                        _ExtraButton(
+                          icon: Icons.poll_rounded,
+                          label: 'POLL',
+                          onTap: () {
+                            setState(() => _showExtras = false);
+                            widget.onPollRequested!();
+                          },
+                        ),
+                        const SizedBox(width: 16),
+                      ],
+                      _ExtraButton(
+                        icon: Icons.mic_rounded,
+                        label: 'VOICE',
+                        onTap: _startRecording,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+            // Main input row
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  GestureDetector(
+                    onTap: () => setState(() => _showExtras = !_showExtras),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: _showExtras ? _neonGreen.withValues(alpha: 0.2) : _bgBlack,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: _showExtras ? _neonGreen : _textWhite.withValues(alpha: 0.1),
+                          width: 1,
+                        ),
+                      ),
+                      child: AnimatedRotation(
+                        turns: _showExtras ? 0.125 : 0,
+                        duration: const Duration(milliseconds: 200),
+                        child: Icon(
+                          Icons.add_rounded,
+                          size: 22,
+                          color: _showExtras ? _neonGreen : _textWhite,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: _bgBlack,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: _textWhite.withValues(alpha: 0.1),
+                          width: 1,
+                        ),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      child: TextField(
+                        controller: _controller,
+                        maxLines: 4,
+                        minLines: 1,
+                        style: GoogleFonts.inter(
+                          color: _textWhite,
+                          fontSize: 15,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'Type a message...',
+                          hintStyle: GoogleFonts.spaceMono(
+                            color: _textMuted,
+                            fontSize: 13,
+                          ),
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        onSubmitted: (_) => _handleSend(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: _handleSend,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: _isEmpty ? _bgBlack : _neonGreen,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: _isEmpty ? _textWhite.withValues(alpha: 0.1) : _neonGreen,
+                          width: 1,
+                        ),
+                        boxShadow: _isEmpty ? null : [
+                          BoxShadow(
+                            color: _neonGreen.withValues(alpha: 0.3),
+                            blurRadius: 10,
+                            spreadRadius: 1,
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        Icons.send_rounded,
+                        size: 20, 
+                        color: _isEmpty ? _textMuted : Colors.black,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -363,8 +536,14 @@ class _EnhancedMessageInputState extends State<EnhancedMessageInput> {
   Widget _buildRecordingUI() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: const BoxDecoration(
-        color: Color(FlickoColors.bgPrimary),
+      decoration: BoxDecoration(
+        color: _surfaceContainer,
+        border: Border(
+          top: BorderSide(
+            color: _textWhite.withValues(alpha: 0.05),
+            width: 1,
+          ),
+        ),
       ),
       child: SafeArea(
         top: false,
@@ -373,7 +552,7 @@ class _EnhancedMessageInputState extends State<EnhancedMessageInput> {
             // Cancel button
             IconButton(
               onPressed: () => _stopRecording(cancel: true),
-              icon: const Icon(Icons.delete, color: Colors.red),
+              icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
             ),
             
             // Recording indicator
@@ -381,7 +560,7 @@ class _EnhancedMessageInputState extends State<EnhancedMessageInput> {
               width: 12,
               height: 12,
               decoration: const BoxDecoration(
-                color: Colors.red,
+                color: Colors.redAccent,
                 shape: BoxShape.circle,
               ),
             ),
@@ -391,10 +570,10 @@ class _EnhancedMessageInputState extends State<EnhancedMessageInput> {
             // Recording duration
             Text(
               _formatDuration(_recordingSeconds),
-              style: GoogleFonts.inter(
-                color: const Color(FlickoColors.textPrimary),
+              style: GoogleFonts.spaceMono(
+                color: _textWhite,
                 fontSize: 16,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w700,
               ),
             ),
             
@@ -405,19 +584,20 @@ class _EnhancedMessageInputState extends State<EnhancedMessageInput> {
               child: Container(
                 height: 40,
                 decoration: BoxDecoration(
-                  color: const Color(FlickoColors.bgTertiary),
-                  borderRadius: BorderRadius.circular(20),
+                  color: _bgBlack,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: _textWhite.withValues(alpha: 0.1)),
                 ),
                 child: Center(
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: List.generate(20, (index) {
                       return Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 1),
+                        margin: const EdgeInsets.symmetric(horizontal: 1.5),
                         width: 3,
                         height: 10 + (index % 5) * 4.0,
                         decoration: BoxDecoration(
-                          color: const Color(FlickoColors.blurple),
+                          color: _neonGreen,
                           borderRadius: BorderRadius.circular(2),
                         ),
                       );
@@ -429,17 +609,29 @@ class _EnhancedMessageInputState extends State<EnhancedMessageInput> {
             
             const SizedBox(width: 12),
             
-            // Lock recording
-            if (!_isLockedRecording)
-              IconButton(
-                onPressed: () => setState(() => _isLockedRecording = true),
-                icon: const Icon(Icons.lock, color: Color(FlickoColors.textSecondary)),
-              ),
-            
             // Send button
-            IconButton(
-              onPressed: () => _stopRecording(),
-              icon: const Icon(Icons.send, color: Color(FlickoColors.blurple)),
+            GestureDetector(
+              onTap: () => _stopRecording(),
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: _neonGreen,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _neonGreen.withValues(alpha: 0.3),
+                      blurRadius: 10,
+                      spreadRadius: 1,
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.send_rounded,
+                  size: 20, 
+                  color: Colors.black,
+                ),
+              ),
             ),
           ],
         ),
@@ -448,10 +640,10 @@ class _EnhancedMessageInputState extends State<EnhancedMessageInput> {
   }
 
   Widget _buildAttachmentPreview() {
-    return Container(
-      height: 90,
-      padding: const EdgeInsets.only(bottom: 8),
+    return SizedBox(
+      height: 80,
       child: ListView.builder(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
         scrollDirection: Axis.horizontal,
         itemCount: _selectedFiles.length,
         itemBuilder: (context, index) {
@@ -459,31 +651,35 @@ class _EnhancedMessageInputState extends State<EnhancedMessageInput> {
             padding: const EdgeInsets.only(right: 8),
             child: Stack(
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.file(
-                    File(_selectedFiles[index].path),
-                    width: 80,
-                    height: 80,
-                    fit: BoxFit.cover,
+                Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: _neonGreen.withValues(alpha: 0.5)),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(7),
+                    child: Image.file(
+                      File(_selectedFiles[index].path),
+                      width: 64,
+                      height: 64,
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
                 Positioned(
-                  top: 2,
-                  right: 2,
+                  right: -4,
+                  top: -4,
                   child: GestureDetector(
                     onTap: () => _removeFile(index),
                     child: Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: const BoxDecoration(
-                        color: Colors.black54,
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: Colors.redAccent,
                         shape: BoxShape.circle,
+                        border: Border.all(color: _surfaceContainer, width: 2),
                       ),
-                      child: const Icon(
-                        Icons.close,
-                        size: 16,
-                        color: Colors.white,
-                      ),
+                      child: const Icon(Icons.close, size: 14, color: Colors.white),
                     ),
                   ),
                 ),
@@ -497,24 +693,22 @@ class _EnhancedMessageInputState extends State<EnhancedMessageInput> {
 
   Widget _buildReplyBar() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: const BoxDecoration(
-        color: Color(FlickoColors.bgSecondary),
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(8),
-          topRight: Radius.circular(8),
-        ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: _bgBlack,
+        border: Border(bottom: BorderSide(color: _textWhite.withValues(alpha: 0.05))),
       ),
       child: Row(
         children: [
-          const Icon(Icons.reply, size: 16, color: Color(FlickoColors.textMuted)),
+          Icon(Icons.reply_rounded, size: 18, color: _neonGreen),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               'Replying to ${widget.replyToName}',
-              style: GoogleFonts.inter(
-                color: const Color(FlickoColors.textSecondary),
-                fontSize: 13,
+              style: GoogleFonts.spaceMono(
+                color: _textWhite,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -522,165 +716,66 @@ class _EnhancedMessageInputState extends State<EnhancedMessageInput> {
           ),
           GestureDetector(
             onTap: widget.onCancelReply,
-            child: const Icon(Icons.close, size: 16, color: Color(FlickoColors.textMuted)),
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: _surfaceContainer,
+                shape: BoxShape.circle,
+                border: Border.all(color: _textWhite.withValues(alpha: 0.1)),
+              ),
+              child: Icon(Icons.close_rounded, size: 14, color: _textMuted),
+            ),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildAttachButton() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 4, right: 4),
-      decoration: const BoxDecoration(
-        color: Color(FlickoColors.bgTertiary),
-        shape: BoxShape.circle,
-      ),
-      child: IconButton(
-        icon: const Icon(Icons.add, color: Color(FlickoColors.textMuted)),
-        onPressed: _pickFiles,
-        visualDensity: VisualDensity.compact,
-      ),
-    );
-  }
+class _ExtraButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
 
-  Widget _buildTextField() {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(FlickoColors.bgTertiary),
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: TextField(
-        controller: _controller,
-        maxLines: 5,
-        minLines: 1,
-        style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary)),
-        decoration: InputDecoration(
-          hintText: 'Message',
-          hintStyle: GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          border: InputBorder.none,
-          focusedBorder: InputBorder.none,
-          enabledBorder: InputBorder.none,
-        ),
-        onSubmitted: (_) => _handleSend(),
-      ),
-    );
-  }
+  static const Color _neonGreen = Color(0xFF52B788);
+  static const Color _surfaceContainer = Color(0xFF0C0C0E);
+  static const Color _textMuted = Color(0xFF71717A);
+  static const Color _textWhite = Color(0xFFFBF9FA);
 
-  Widget _buildGifButton() {
+  const _ExtraButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: _showGifPicker,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 4, right: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: const Color(FlickoColors.bgTertiary),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Text(
-          'GIF',
-          style: GoogleFonts.inter(
-            color: const Color(FlickoColors.textSecondary),
-            fontWeight: FontWeight.bold,
-            fontSize: 12,
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: _surfaceContainer,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: _textWhite.withValues(alpha: 0.05)),
+            ),
+            child: Icon(icon, color: _neonGreen, size: 24),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStickerButton() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 4, right: 4),
-      decoration: const BoxDecoration(
-        color: Color(FlickoColors.bgTertiary),
-        shape: BoxShape.circle,
-      ),
-      child: IconButton(
-        icon: const Icon(Icons.sticky_note_2_outlined, color: Color(FlickoColors.textMuted)),
-        onPressed: _showStickerPicker,
-        visualDensity: VisualDensity.compact,
-      ),
-    );
-  }
-
-  Widget _buildPollButton() {
-    if (widget.onPollRequested == null) return const SizedBox.shrink();
-    return Container(
-      margin: const EdgeInsets.only(bottom: 4, right: 4),
-      decoration: const BoxDecoration(
-        color: Color(FlickoColors.bgTertiary),
-        shape: BoxShape.circle,
-      ),
-      child: IconButton(
-        icon: const Icon(Icons.poll_outlined, color: Color(FlickoColors.textMuted)),
-        onPressed: widget.onPollRequested,
-        visualDensity: VisualDensity.compact,
-      ),
-    );
-  }
-
-  Widget _buildEmojiButton() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 4, right: 4),
-      decoration: const BoxDecoration(
-        color: Color(FlickoColors.bgTertiary),
-        shape: BoxShape.circle,
-      ),
-      child: IconButton(
-        icon: const Icon(Icons.emoji_emotions_outlined, color: Color(FlickoColors.textMuted)),
-        onPressed: _showEmojiPicker,
-        visualDensity: VisualDensity.compact,
-      ),
-    );
-  }
-
-  Widget _buildVoiceButton() {
-    return GestureDetector(
-      onLongPressStart: (_) {
-        HapticFeedback.heavyImpact();
-        _startRecording();
-      },
-      onLongPressEnd: (_) {
-        if (!_isLockedRecording) {
-          _stopRecording();
-        }
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 4),
-        decoration: const BoxDecoration(
-          color: Color(FlickoColors.bgTertiary),
-          shape: BoxShape.circle,
-        ),
-        child: IconButton(
-          icon: const Icon(Icons.mic, color: Color(FlickoColors.textMuted)),
-          onPressed: () {
-            // Show hint for long press
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Hold to record', style: GoogleFonts.inter()),
-                duration: const Duration(seconds: 1),
-              ),
-            );
-          },
-          visualDensity: VisualDensity.compact,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSendButton() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 4),
-      decoration: const BoxDecoration(
-        color: Color(FlickoColors.blurple),
-        shape: BoxShape.circle,
-      ),
-      child: IconButton(
-        icon: const Icon(Icons.send, color: Colors.white),
-        onPressed: _handleSend,
-        visualDensity: VisualDensity.compact,
+          const SizedBox(height: 6),
+          Text(
+            label,
+            style: GoogleFonts.spaceMono(
+              color: _textMuted,
+              fontSize: 9,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.0,
+            ),
+          ),
+        ],
       ),
     );
   }
