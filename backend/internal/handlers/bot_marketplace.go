@@ -242,6 +242,3 @@ func HandleGenerateAPIKey(w http.ResponseWriter, r *http.Request) {
 func GetUserIDKey() interface{} {
 	return contextKey("user_id")
 }
-
-// contextKey type is already defined in middleware.go in this package.
-type userIDContextKey = contextKey
