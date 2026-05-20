@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:mobile/core/config/app_config.dart';
 import '../application/sonic_drip_notifier.dart';
-import '../data/spotify_api_client.dart';
 import '../domain/music_models.dart';
 
 /// Spotify Connect Screen
@@ -249,15 +247,8 @@ class _SpotifyConnectScreenState extends ConsumerState<SpotifyConnectScreen> {
             ),
           );
 
-      // Try to save to backend (optional — fails gracefully if not configured)
-      try {
-        await ref.read(spotifyApiClientProvider).saveSession(
-              cookies: cookies,
-              displayName: displayName,
-            );
-      } catch (_) {
-        // Backend not configured — session saved locally only
-      }
+      // Backend Spotify session sync was removed when SpotAPI was retired —
+      // local Riverpod state is the source of truth now.
 
       if (mounted) {
         Navigator.pop(context, true);
