@@ -1,3 +1,21 @@
+-- Helper function to check if user can view/send messages in a channel (bypasses RLS join limitation for Realtime)
+CREATE OR REPLACE FUNCTION public.check_user_can_view_message(channel_uuid uuid, user_uuid uuid)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.channels c
+    JOIN public.server_members sm ON c.server_id = sm.server_id
+    WHERE c.id = channel_uuid
+    AND sm.user_id = user_uuid
+  );
+END;
+$$;
+
 -- Enable Row Level Security on messages table
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 
@@ -5,14 +23,7 @@ ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 -- Allows users to view messages only in channels within servers they are members of
 CREATE POLICY "Users can view messages in accessible channels"
   ON messages FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM channels
-      JOIN server_members ON channels.server_id = server_members.server_id
-      WHERE channels.id = messages.channel_id
-      AND server_members.user_id = auth.uid()
-    )
-  );
+  USING (check_user_can_view_message(channel_id, auth.uid()));
 
 -- Policy: Users can send messages in accessible channels
 -- Allows users to send messages only in channels within servers they are members of
@@ -20,12 +31,7 @@ CREATE POLICY "Users can send messages in accessible channels"
   ON messages FOR INSERT
   WITH CHECK (
     auth.uid() = author_id AND
-    EXISTS (
-      SELECT 1 FROM channels
-      JOIN server_members ON channels.server_id = server_members.server_id
-      WHERE channels.id = messages.channel_id
-      AND server_members.user_id = auth.uid()
-    )
+    check_user_can_view_message(channel_id, auth.uid())
   );
 
 -- Policy: Users can update own messages
@@ -39,3 +45,4 @@ CREATE POLICY "Users can update own messages"
 CREATE POLICY "Users can delete own messages"
   ON messages FOR DELETE
   USING (author_id = auth.uid());
+

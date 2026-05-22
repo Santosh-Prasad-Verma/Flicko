@@ -274,14 +274,16 @@ class MessageRepository {
           event: PostgresChangeEvent.all,
           schema: 'public',
           table: 'messages',
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'channel_id',
-            value: channelId,
-          ),
           callback: (payload) {
-            developer.log('[SupabaseRealtime] Received messages change event: ${payload.eventType} in channel: $channelId, record: ${payload.newRecord}');
-            onChange(payload.eventType, payload.newRecord);
+            final record = payload.eventType == PostgresChangeEvent.delete
+                ? payload.oldRecord
+                : payload.newRecord;
+            if (record != null && record['channel_id'] == channelId) {
+              developer.log('[SupabaseRealtime] Received messages change event: ${payload.eventType} in channel: $channelId, record: $record');
+              onChange(payload.eventType, record);
+            } else {
+              developer.log('[SupabaseRealtime] Messages change event did not match channel filter (channelId: $channelId, record channel_id: ${record?['channel_id']})');
+            }
           },
         )
         .onPostgresChanges(
