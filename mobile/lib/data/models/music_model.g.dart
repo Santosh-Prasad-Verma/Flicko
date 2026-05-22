@@ -16,7 +16,7 @@ _MusicItem _$MusicItemFromJson(Map<String, dynamic> json) => _MusicItem(
       imageUrl: json['imageUrl'] as String?,
       previewUrl: json['previewUrl'] as String?,
       externalUrl: json['externalUrl'] as String?,
-      source: json['source'] as String? ?? 'appleMusic',
+      source: json['source'] as String? ?? 'saavn',
     );
 
 Map<String, dynamic> _$MusicItemToJson(_MusicItem instance) =>

@@ -8,7 +8,9 @@ import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/core/services/appwrite_storage_service.dart';
 import 'package:mobile/data/models/user_model.dart';
 import 'package:mobile/data/repositories/auth_repository.dart';
+import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
+import 'package:mobile/features/store/data/store_service.dart';
 
 /// Edit Profile Screen - Dark Brutalist Premium Style
 class EditProfileScreen extends ConsumerStatefulWidget {
@@ -22,10 +24,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   late TextEditingController _displayNameController;
   late TextEditingController _bioController;
   late TextEditingController _pronounsController;
+  late TextEditingController _locationController;
+  late TextEditingController _websiteUrlController;
+  late TextEditingController _socialLinkController;
   String? _avatarUrl;
   String? _bannerUrl;
   List<String> _bannerColors = const ['#52B788', '#0A0A0A'];
   String _avatarDecoration = 'none';
+  bool _initialized = false;
   bool _isLoading = false;
   bool _hasChanges = false;
 
@@ -138,6 +144,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     _displayNameController = TextEditingController();
     _bioController = TextEditingController();
     _pronounsController = TextEditingController();
+    _locationController = TextEditingController();
+    _websiteUrlController = TextEditingController();
+    _socialLinkController = TextEditingController();
   }
 
   @override
@@ -145,26 +154,27 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     _displayNameController.dispose();
     _bioController.dispose();
     _pronounsController.dispose();
+    _locationController.dispose();
+    _websiteUrlController.dispose();
+    _socialLinkController.dispose();
     super.dispose();
   }
 
   void _initializeFromProfile(UserModel? profile) {
-    if (!_hasChanges && profile != null) {
-      if (_displayNameController.text.isEmpty) {
-        _displayNameController.text = profile.displayName ?? profile.username;
-      }
-      if (_bioController.text.isEmpty) {
-        _bioController.text = profile.bio ?? '';
-      }
-      if (_pronounsController.text.isEmpty) {
-        _pronounsController.text = profile.pronouns ?? '';
-      }
-      _avatarUrl ??= profile.avatarUrl;
-      _bannerUrl ??= profile.bannerUrl;
+    if (!_initialized && profile != null) {
+      _displayNameController.text = profile.displayName ?? profile.username;
+      _bioController.text = profile.bio ?? '';
+      _pronounsController.text = profile.pronouns ?? '';
+      _locationController.text = profile.location ?? '';
+      _websiteUrlController.text = profile.websiteUrl ?? '';
+      _socialLinkController.text = profile.socialLink ?? '';
+      _avatarUrl = profile.avatarUrl;
+      _bannerUrl = profile.bannerUrl;
       if (profile.bannerColors != null && profile.bannerColors!.length >= 2) {
         _bannerColors = profile.bannerColors!;
       }
       _avatarDecoration = profile.avatarDecoration ?? 'none';
+      _initialized = true;
     }
   }
 
@@ -233,6 +243,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         'display_name': _displayNameController.text.trim(),
         'bio': _bioController.text.trim(),
         'pronouns': _pronounsController.text.trim(),
+        'location': _locationController.text.trim(),
+        'website_url': _websiteUrlController.text.trim(),
+        'social_link': _socialLinkController.text.trim(),
         'avatar': _avatarUrl,
         'banner': _bannerUrl,
         'banner_colors': _bannerColors,
@@ -395,7 +408,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: TextField(
-                        controller: _pronounsController,
+                        controller: _locationController,
                         onChanged: (_) => _onFieldChanged(),
                         style: GoogleFonts.epilogue(
                           color: Colors.white,
@@ -418,9 +431,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               ),
               const SizedBox(height: 32),
               _buildSectionHeader('NETWORK LINKS'),
-              _buildLinkCard('PERSONAL WEBSITE', Icons.language),
+              _buildLinkCard('PERSONAL WEBSITE', Icons.language, _websiteUrlController),
               const SizedBox(height: 12),
-              _buildLinkCard('SOCIAL PROFILE', Icons.terminal),
+              _buildLinkCard('SOCIAL PROFILE', Icons.terminal, _socialLinkController),
               const SizedBox(height: 40),
               _buildFooter(),
             ],
@@ -540,35 +553,31 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 left: 16,
                 child: GestureDetector(
                   onTap: _pickAvatar,
-                  child: Container(
-                    width: 110,
-                    height: 110,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0A0A0A),
-                      border: Border.all(color: Colors.white, width: 4),
-                      boxShadow: const [
-                        BoxShadow(
-                            color: Color(0xFF52B788), offset: Offset(6, 6))
-                      ],
-                    ),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        _buildAvatarImage(110),
-                        Positioned(
-                          bottom: 0,
-                          left: 0,
-                          right: 0,
-                          child: Container(
-                            color:
-                                const Color(0xFF52B788).withValues(alpha: 0.85),
-                            padding: const EdgeInsets.symmetric(vertical: 4),
-                            child: const Icon(Icons.camera_alt,
-                                color: Colors.black, size: 14),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      UserAvatar(
+                        imageUrl: _avatarUrl,
+                        name: _displayNameController.text,
+                        size: 110,
+                        showStatus: false,
+                        decoration: _avatarDecoration,
+                      ),
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF52B788),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
                           ),
+                          child: const Icon(Icons.camera_alt,
+                              color: Colors.black, size: 16),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -735,6 +744,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         return GestureDetector(
           onTap: () => setState(() {
             _bannerColors = colors;
+            _bannerUrl = null;
             _hasChanges = true;
           }),
           child: Container(
@@ -756,9 +766,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     );
   }
 
-  Widget _buildLinkCard(String title, IconData icon) {
+  Widget _buildLinkCard(String title, IconData icon, TextEditingController controller) {
     return InkWell(
-      onTap: () => _showLinkEditDialog(title),
+      onTap: () => _showLinkEditDialog(title, controller),
       child: Container(
         decoration: BoxDecoration(
           color: const Color(0xFF0A0A0A),
@@ -768,25 +778,47 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              children: [
-                Container(
-                  width: 50,
-                  height: 50,
-                  color: Colors.white,
-                  child: Icon(icon, color: Colors.black, size: 24),
-                ),
-                const SizedBox(width: 16),
-                Text(
-                  title,
-                  style: GoogleFonts.epilogue(
+            Expanded(
+              child: Row(
+                children: [
+                  Container(
+                    width: 50,
+                    height: 50,
                     color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.5,
+                    child: Icon(icon, color: Colors.black, size: 24),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: GoogleFonts.epilogue(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        if (controller.text.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            controller.text,
+                            style: GoogleFonts.inter(
+                              color: const Color(0xFF52B788),
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
             const Icon(Icons.arrow_forward_ios,
                 color: Color(0xFF52B788), size: 16),
@@ -796,8 +828,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     );
   }
 
-  void _showLinkEditDialog(String title) {
-    final controller = TextEditingController();
+  void _showLinkEditDialog(String title, TextEditingController targetController) {
+    final controller = TextEditingController(text: targetController.text);
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -864,6 +896,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           ),
           ElevatedButton(
             onPressed: () {
+              setState(() {
+                targetController.text = controller.text.trim();
+                _hasChanges = true;
+              });
               Navigator.of(ctx).pop();
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -891,21 +927,108 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   }
 
   Widget _buildFooter() {
-    return Container(
-      decoration: const BoxDecoration(
-          border: Border(top: BorderSide(color: Colors.white, width: 2))),
-      padding: const EdgeInsets.only(top: 24, bottom: 60),
-      child: Text(
-        'SYSTEM VERSION: FLICKO_E.44.02\nENCRYPTION: 256-BIT_PRO_ACTIVE\nIDENTITY_STATUS: ELITE_SECURED',
-        style: GoogleFonts.inter(
-          color: Colors.white.withValues(alpha: 0.3),
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 1.2,
-          height: 1.6,
+    return Column(
+      children: [
+        // Purchased Items Section
+        _buildPurchasedItemsSection(),
+        const SizedBox(height: 24),
+        Container(
+          decoration: const BoxDecoration(
+              border: Border(top: BorderSide(color: Colors.white, width: 2))),
+          padding: const EdgeInsets.only(top: 24, bottom: 60),
+          child: Text(
+            'SYSTEM VERSION: FLICKO_E.44.02\nENCRYPTION: 256-BIT_PRO_ACTIVE\nIDENTITY_STATUS: ELITE_SECURED',
+            style: GoogleFonts.inter(
+              color: Colors.white.withValues(alpha: 0.3),
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
+              height: 1.6,
+            ),
+          ),
         ),
-      ),
+      ],
     );
+  }
+
+  Widget _buildPurchasedItemsSection() {
+    return Consumer(
+      builder: (context, ref, child) {
+        final purchasesAsync = ref.watch(userPurchasesProvider);
+        
+        return purchasesAsync.when(
+          data: (purchases) {
+            if (purchases.isEmpty) return const SizedBox.shrink();
+            
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildSectionHeader('PURCHASED ITEMS'),
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 80,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: purchases.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 12),
+                    itemBuilder: (context, index) {
+                      final purchase = purchases[index];
+                      return Container(
+                        width: 80,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0A0A0A),
+                          border: Border.all(color: const Color(0xFF52B788), width: 2),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              _iconForType(purchase.productType),
+                              color: const Color(0xFF52B788),
+                              size: 28,
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              purchase.productName,
+                              style: GoogleFonts.spaceGrotesk(
+                                color: Colors.white.withValues(alpha: 0.8),
+                                fontSize: 8,
+                                fontWeight: FontWeight.w700,
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            );
+          },
+          loading: () => const SizedBox.shrink(),
+          error: (_, __) => const SizedBox.shrink(),
+        );
+      },
+    );
+  }
+
+  IconData _iconForType(String type) {
+    switch (type.toUpperCase()) {
+      case 'THEME':
+        return Icons.palette_rounded;
+      case 'STICKERS':
+        return Icons.emoji_emotions_rounded;
+      case 'SOUNDS':
+        return Icons.music_note_rounded;
+      case 'BADGE':
+      case 'NAMEPLATE':
+        return Icons.verified_rounded;
+      default:
+        return Icons.store_rounded;
+    }
   }
 
   Widget _buildAvatarImage(double size) {

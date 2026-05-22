@@ -388,7 +388,7 @@ class _MusicItem implements MusicItem {
       this.imageUrl,
       this.previewUrl,
       this.externalUrl,
-      this.source = 'appleMusic'});
+      this.source = 'saavn'});
   factory _MusicItem.fromJson(Map<String, dynamic> json) =>
       _$MusicItemFromJson(json);
 

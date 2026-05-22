@@ -15,7 +15,7 @@ class MessageThreadService {
   Future<Map<String, dynamic>> createThread(String messageId, {String? title}) async {
     try {
       final response = await _dio.post(
-        '/api/v1/messages/$messageId/thread',
+        '/v1/messages/$messageId/thread',
         data: {
           if (title != null) 'title': title,
         },
@@ -43,7 +43,7 @@ class MessageThreadService {
       }
 
       final response = await _dio.post(
-        '/api/v1/threads/$threadId/replies',
+        '/v1/threads/$threadId/replies',
         data: {'content': content.trim()},
       );
 
@@ -70,7 +70,7 @@ class MessageThreadService {
   }) async {
     try {
       final response = await _dio.get(
-        '/api/v1/threads/$threadId/messages',
+        '/v1/threads/$threadId/messages',
         queryParameters: {
           'limit': limit,
           'offset': offset,
@@ -96,7 +96,7 @@ class MessageThreadService {
   Future<Map<String, dynamic>> getThreadDetails(String threadId) async {
     try {
       final response = await _dio.get(
-        '/api/v1/threads/$threadId',
+        '/v1/threads/$threadId',
       );
 
       if (response.statusCode == 200) {
@@ -116,7 +116,7 @@ class MessageThreadService {
   Future<bool> followThread(String threadId) async {
     try {
       final response = await _dio.post(
-        '/api/v1/threads/$threadId/follow',
+        '/v1/threads/$threadId/follow',
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -136,7 +136,7 @@ class MessageThreadService {
   Future<bool> unfollowThread(String threadId) async {
     try {
       final response = await _dio.delete(
-        '/api/v1/threads/$threadId/follow',
+        '/v1/threads/$threadId/follow',
       );
 
       if (response.statusCode == 200 || response.statusCode == 204) {
@@ -156,7 +156,7 @@ class MessageThreadService {
   Future<List<Map<String, dynamic>>> getFollowedThreads(String userId) async {
     try {
       final response = await _dio.get(
-        '/api/v1/users/$userId/followed-threads',
+        '/v1/users/$userId/followed-threads',
       );
 
       if (response.statusCode == 200) {
@@ -178,7 +178,7 @@ class MessageThreadService {
   Future<bool> pinThread(String threadId) async {
     try {
       final response = await _dio.post(
-        '/api/v1/threads/$threadId/pin',
+        '/v1/threads/$threadId/pin',
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -198,7 +198,7 @@ class MessageThreadService {
   Future<bool> unpinThread(String threadId) async {
     try {
       final response = await _dio.delete(
-        '/api/v1/threads/$threadId/pin',
+        '/v1/threads/$threadId/pin',
       );
 
       if (response.statusCode == 200 || response.statusCode == 204) {

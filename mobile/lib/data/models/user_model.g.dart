@@ -29,6 +29,9 @@ _UserModel _$UserModelFromJson(Map<String, dynamic> json) => _UserModel(
       bio: json['bio'] as String?,
       pronouns: json['pronouns'] as String?,
       phone: json['phone'] as String?,
+      location: json['location'] as String?,
+      websiteUrl: json['website_url'] as String?,
+      socialLink: json['social_link'] as String?,
       accentColor: json['accent_color'] as String?,
       bannerColors: (json['banner_colors'] as List<dynamic>?)
           ?.map((e) => e as String)
@@ -60,6 +63,9 @@ Map<String, dynamic> _$UserModelToJson(_UserModel instance) =>
       'bio': instance.bio,
       'pronouns': instance.pronouns,
       'phone': instance.phone,
+      'location': instance.location,
+      'website_url': instance.websiteUrl,
+      'social_link': instance.socialLink,
       'accent_color': instance.accentColor,
       'banner_colors': instance.bannerColors,
       'avatar_decoration': instance.avatarDecoration,

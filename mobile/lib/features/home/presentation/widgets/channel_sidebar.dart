@@ -48,10 +48,10 @@ class _ChannelSidebarState extends ConsumerState<ChannelSidebar> {
 
     // Group channels by category
     final categories = channels.where((c) => c.type == ChannelType.category).toList()
-      ..sort((a, b) => a.position.compareTo(b.position));
+      ..sort((a, b) => a.name.compareTo(b.name));
     
     final orphanChannels = channels.where((c) => c.type != ChannelType.category && c.parentId == null).toList()
-      ..sort((a, b) => a.position.compareTo(b.position));
+      ..sort((a, b) => a.name.compareTo(b.name));
 
     return Container(
       width: 240,
@@ -68,7 +68,7 @@ class _ChannelSidebarState extends ConsumerState<ChannelSidebar> {
                 
                 ...categories.map((category) {
                   final sectionChannels = channels.where((c) => c.parentId == category.id).toList()
-                    ..sort((a, b) => a.position.compareTo(b.position));
+                    ..sort((a, b) => a.name.compareTo(b.name));
                   final isCollapsed = _collapsedCategories.contains(category.id);
                   
                   return Column(

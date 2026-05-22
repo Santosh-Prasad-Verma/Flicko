@@ -5,7 +5,7 @@ enum MusicType { track, album, artist }
 
 enum PlaybackStatus { idle, loading, playing, paused, error }
 
-enum ConnectionStatus { disconnected, connecting, connected, expired }
+
 
 /// A single playable music item.
 class Track {
@@ -17,7 +17,7 @@ class Track {
   final String? imageUrl;
   final String? previewUrl;
   final String? externalUrl;
-  final String source; // 'itunes' | 'spotify'
+  final String source; // 'saavn' | 'youtube'
 
   const Track({
     required this.id,
@@ -28,7 +28,7 @@ class Track {
     this.imageUrl,
     this.previewUrl,
     this.externalUrl,
-    this.source = 'itunes',
+    this.source = 'saavn',
   });
 
   String get durationFormatted {
@@ -49,6 +49,7 @@ class PlaybackState {
   final double volume; // 0.0 – 1.0
   final bool shuffle;
   final bool repeat;
+  final bool autoplay;
   final String? error;
 
   const PlaybackState({
@@ -59,6 +60,7 @@ class PlaybackState {
     this.volume = 0.7,
     this.shuffle = false,
     this.repeat = false,
+    this.autoplay = true,
     this.error,
   });
 
@@ -87,6 +89,7 @@ class PlaybackState {
     double? volume,
     bool? shuffle,
     bool? repeat,
+    bool? autoplay,
     String? error,
     bool clearTrack = false,
     bool clearError = false,
@@ -99,6 +102,7 @@ class PlaybackState {
       volume: volume ?? this.volume,
       shuffle: shuffle ?? this.shuffle,
       repeat: repeat ?? this.repeat,
+      autoplay: autoplay ?? this.autoplay,
       error: clearError ? null : (error ?? this.error),
     );
   }
@@ -128,26 +132,3 @@ class CategorizedSearchResults {
       categories.fold(0, (sum, cat) => sum + cat.items.length);
 }
 
-/// Spotify connection session (cookies only — never passwords).
-class SpotifySession {
-  final String userId;
-  final String displayName;
-  final String? avatarUrl;
-  final String product; // 'free' | 'premium'
-  final ConnectionStatus status;
-  final DateTime? expiresAt;
-
-  const SpotifySession({
-    required this.userId,
-    required this.displayName,
-    this.avatarUrl,
-    this.product = 'free',
-    this.status = ConnectionStatus.connected,
-    this.expiresAt,
-  });
-
-  bool get isExpired {
-    if (expiresAt == null) return false;
-    return DateTime.now().isAfter(expiresAt!);
-  }
-}

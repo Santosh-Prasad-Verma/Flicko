@@ -14,6 +14,7 @@ import 'package:mobile/features/voice/domain/music_models.dart' show PlaybackSta
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// Unified Profile Screen — Flicko's Ultimate Profile Experience
 /// Handles both current user (Self) and other users (Public) with
@@ -449,6 +450,12 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                       _buildBadgesRow(profile.badges),
                     ],
 
+                    if ((profile.websiteUrl != null && profile.websiteUrl!.isNotEmpty) ||
+                        (profile.socialLink != null && profile.socialLink!.isNotEmpty)) ...[
+                      const SizedBox(height: 24),
+                      _buildLinksSection(profile.websiteUrl, profile.socialLink),
+                    ],
+
                     if (!isOwnProfile && _mutualServers.isNotEmpty) ...[
                       const SizedBox(height: 24),
                       _buildSectionTitle('MUTUAL SERVERS'),
@@ -523,6 +530,17 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
       accentColor = const Color(0xFFC0F500);
     }
 
+    final bannerColors = profile.bannerColors;
+    final List<Color> gradientColors = bannerColors != null && bannerColors.length >= 2
+        ? bannerColors.take(2).map((c) {
+            try {
+              return Color(int.parse(c.replaceAll('#', '0xFF')));
+            } catch (_) {
+              return accentColor;
+            }
+          }).toList()
+        : [accentColor, accentColor.withValues(alpha: 0.4)];
+
     final hasBanner = bannerUrl != null && bannerUrl.isNotEmpty;
 
     return SizedBox(
@@ -536,11 +554,11 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
             width: double.infinity,
             decoration: BoxDecoration(
               gradient: !hasBanner
-                  ? LinearGradient(colors: [
-                      accentColor,
-                      accentColor.withValues(alpha: 0.4),
-                      _bg
-                    ], begin: Alignment.topLeft, end: Alignment.bottomRight)
+                  ? LinearGradient(
+                      colors: [...gradientColors, _bg],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    )
                   : null,
             ),
             child: hasBanner
@@ -550,11 +568,7 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                     errorBuilder: (_, __, ___) => Container(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [
-                            accentColor,
-                            accentColor.withValues(alpha: 0.4),
-                            _bg
-                          ],
+                          colors: [...gradientColors, _bg],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
@@ -578,10 +592,7 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                 Row(
                   children: [
                     _buildCircleBtn(Icons.share_outlined, () {
-                      Clipboard.setData(ClipboardData(
-                          text: 'https://flicko.app/u/${profile.username}'));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Link copied!')));
+                      context.push('/profile/settings/share-profile');
                     }),
                     const SizedBox(width: 8),
                     _buildCircleBtn(Icons.more_vert, _showMoreOptions),
@@ -614,6 +625,9 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                 size: 90,
                 status: profile.onlineStatus,
                 showStatus: true,
+                decoration: profile.avatarDecoration,
+                userId: widget.userId,
+                showBadge: true,
               ),
             ),
           ),
@@ -679,6 +693,23 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                     letterSpacing: 1.5)),
           ],
         ),
+        if (profile.location != null && profile.location!.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Icon(Icons.location_on_rounded, color: _neon, size: 16),
+              const SizedBox(width: 6),
+              Text(
+                profile.location!,
+                style: GoogleFonts.spaceMono(
+                  color: _white.withValues(alpha: 0.7),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ],
         if (profile.customStatus != null) ...[
           const SizedBox(height: 12),
           Container(
@@ -1217,6 +1248,93 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
               color: color ?? _white, fontWeight: FontWeight.w700)),
       onTap: onTap,
     );
+  }
+
+  Widget _buildLinksSection(String? websiteUrl, String? socialLink) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('LINKS'),
+        const SizedBox(height: 8),
+        if (websiteUrl != null && websiteUrl.isNotEmpty) ...[
+          _buildBrutalistLinkCard('WEBSITE', websiteUrl),
+          const SizedBox(height: 12),
+        ],
+        if (socialLink != null && socialLink.isNotEmpty) ...[
+          _buildBrutalistLinkCard('SOCIAL PROFILE', socialLink),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildBrutalistLinkCard(String label, String url) {
+    final icon = _getLinkIcon(url);
+    return GestureDetector(
+      onTap: () async {
+        final uri = Uri.tryParse(url);
+        if (uri != null) {
+          if (await canLaunchUrl(uri)) {
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
+          }
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: _surface,
+          border: Border.all(color: _neon.withValues(alpha: 0.3), width: 1.5),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: _neon, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: GoogleFonts.spaceMono(
+                      color: _muted,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    url,
+                    style: GoogleFonts.spaceGrotesk(
+                      color: _white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.open_in_new_rounded, color: _muted, size: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  IconData _getLinkIcon(String url) {
+    final lower = url.toLowerCase();
+    if (lower.contains('github.com')) {
+      return Icons.code;
+    } else if (lower.contains('twitter.com') || lower.contains('x.com')) {
+      return Icons.alternate_email;
+    } else if (lower.contains('instagram.com')) {
+      return Icons.camera_alt;
+    } else if (lower.contains('linkedin.com')) {
+      return Icons.business;
+    } else if (lower.contains('youtube.com')) {
+      return Icons.play_arrow;
+    }
+    return Icons.language;
   }
 }
 

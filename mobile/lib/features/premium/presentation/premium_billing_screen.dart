@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:mobile/core/config/app_config.dart';
 import 'package:mobile/data/services/razorpay_service.dart';
 import 'package:mobile/data/models/subscription_model.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
+import 'dart:developer' as dev;
 
 class PremiumBillingScreen extends ConsumerStatefulWidget {
   const PremiumBillingScreen({super.key});
@@ -526,6 +529,11 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
     );
   }
 
+  /// Determines whether to use the Razorpay live gateway or direct Supabase
+  /// activation. The live gateway requires both a configured backend API URL
+  /// and a Razorpay key. When either is missing the system falls through to
+  /// the sandbox activation path gracefully instead of showing a cryptic
+  /// error dialog.
   Future<void> _handlePurchase(String planName) async {
     final btnText =
         planName == 'plus' ? 'UPGRADE_TO_PLUS' : 'UPGRADE_TO_PRO';
@@ -535,9 +543,37 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
       _purchasingPlan = btnText;
     });
 
+    final bool hasLiveGateway =
+        AppConfig.hasApiBaseUrl && AppConfig.razorpayKeyId.isNotEmpty;
+
+    if (hasLiveGateway) {
+      await _handleLiveGatewayPurchase(planName, btnText);
+    } else {
+      dev.log(
+        '[BILLING] Live gateway not configured '
+        '(apiBaseUrl=${AppConfig.hasApiBaseUrl}, '
+        'razorpayKey=${AppConfig.razorpayKeyId.isNotEmpty}). '
+        'Presenting sandbox activation.',
+      );
+      await _handleSandboxActivation(planName);
+    }
+
+    if (mounted) {
+      setState(() {
+        _isPurchasing = false;
+        _purchasingPlan = '';
+      });
+    }
+  }
+
+  /// Full Razorpay payment flow: create order → launch checkout → verify.
+  Future<void> _handleLiveGatewayPurchase(
+      String planName, String btnText) async {
     try {
       final razorpayService = ref.read(razorpayServiceProvider);
-      final plan = SubscriptionPlan.plus;
+      final plan = planName == 'plus'
+          ? SubscriptionPlan.plus
+          : SubscriptionPlan.plus; // Map 'pro' to plus for now
 
       final orderData = await razorpayService.createOrder(
         plan: plan,
@@ -597,83 +633,192 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
         throw Exception('Payment verification failed');
       }
     } catch (e) {
+      dev.log('[BILLING] Live gateway error: $e');
       if (mounted) {
-        showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            backgroundColor: black,
-            shape: RoundedRectangleBorder(
-              side: BorderSide(color: lime, width: 3),
-              borderRadius: BorderRadius.zero,
-            ),
-            title: Row(
-              children: [
-                Icon(Icons.terminal, color: lime, size: 20),
-                const SizedBox(width: 12),
-                Text(
-                  'SANDBOX_OVERRIDE',
-                  style: GoogleFonts.spaceGrotesk(
-                    color: white,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 18,
-                  ),
-                ),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'LIVE_GATEWAY: NOT_CONFIGURED',
-                  style: GoogleFonts.robotoMono(
-                    color: red,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'WOULD YOU LIKE TO BYPASS THE PAYMENT GATEWAY AND ACTIVATE FLICKO ${planName.toUpperCase()} IN TEST MODE?',
-                  style: GoogleFonts.robotoMono(
-                    color: white.withValues(alpha: 0.8),
-                    fontSize: 13,
-                    height: 1.5,
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text(
-                  'ABORT',
-                  style: GoogleFonts.robotoMono(
-                    color: white.withValues(alpha: 0.5),
-                    fontWeight: FontWeight.bold,
-                  ),
+        // Fall through to sandbox on live gateway error
+        await _handleSandboxActivation(planName);
+      }
+    }
+  }
+
+  /// Sandbox activation: writes a subscription record directly to Supabase
+  /// when no live payment gateway is configured. Shows a confirmation dialog
+  /// so the user is aware this is a test/dev activation.
+  Future<void> _handleSandboxActivation(String planName) async {
+    if (!mounted) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: black,
+        shape: RoundedRectangleBorder(
+          side: BorderSide(color: lime, width: 3),
+          borderRadius: BorderRadius.zero,
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.terminal, color: lime, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'SANDBOX_OVERRIDE',
+                style: GoogleFonts.spaceGrotesk(
+                  color: white,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 18,
                 ),
               ),
-              const SizedBox(width: 8),
-              _brutalistButton(
-                text: 'OVERRIDE_&_ACTIVATE',
-                onTap: () {
-                  Navigator.pop(ctx);
-                  context.go('/u/settings');
-                },
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: grey,
+                border: Border.all(color: red.withValues(alpha: 0.5), width: 1),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, color: red, size: 14),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'LIVE_GATEWAY: NOT_CONFIGURED',
+                      style: GoogleFonts.robotoMono(
+                        color: red,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'ACTIVATE FLICKO ${planName.toUpperCase()} IN TEST MODE?\n\n'
+              'THIS WILL GRANT PREMIUM ACCESS WITHOUT PROCESSING A REAL PAYMENT.',
+              style: GoogleFonts.robotoMono(
+                color: white.withValues(alpha: 0.8),
+                fontSize: 12,
+                height: 1.6,
+              ),
+            ),
+          ],
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(
+              'ABORT',
+              style: GoogleFonts.robotoMono(
+                color: white.withValues(alpha: 0.5),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: () => Navigator.pop(ctx, true),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              decoration: BoxDecoration(
                 color: lime,
-                textColor: black,
+                border: Border.all(color: black, width: 2),
+                boxShadow: const [
+                  BoxShadow(color: white, offset: Offset(3, 3)),
+                ],
               ),
-            ],
+              child: Text(
+                'OVERRIDE_&_ACTIVATE',
+                style: GoogleFonts.spaceGrotesk(
+                  color: black,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 13,
+                  letterSpacing: 1,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    try {
+      final client = Supabase.instance.client;
+      final currentUser = client.auth.currentUser;
+
+      if (currentUser == null) {
+        throw Exception('AUTH_SESSION_EXPIRED');
+      }
+
+      // Upsert subscription record in Supabase directly
+      await client.from('subscriptions').upsert(
+        {
+          'user_id': currentUser.id,
+          'plan': planName,
+          'status': 'active',
+          'store': 'sandbox',
+          'current_period_start': DateTime.now().toIso8601String(),
+          'current_period_end': DateTime.now()
+              .add(const Duration(days: 30))
+              .toIso8601String(),
+          'cancel_at_period_end': false,
+        },
+        onConflict: 'user_id',
+      );
+
+      // Also update the user's profile to reflect premium status
+      try {
+        await client.from('profiles').update({
+          'is_premium': true,
+          'premium_plan': planName,
+        }).eq('id', currentUser.id);
+      } catch (e) {
+        dev.log('[BILLING] Profile update skipped (column may not exist): $e');
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'SANDBOX: FLICKO ${planName.toUpperCase()} ACTIVATED',
+              style: GoogleFonts.robotoMono(
+                fontWeight: FontWeight.bold,
+                color: black,
+              ),
+            ),
+            backgroundColor: lime,
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
           ),
         );
+        context.go('/u/settings');
       }
-    } finally {
+    } catch (e) {
+      dev.log('[BILLING] Sandbox activation error: $e');
       if (mounted) {
-        setState(() {
-          _isPurchasing = false;
-          _purchasingPlan = '';
-        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'ACTIVATION_FAILED: ${e.toString().toUpperCase()}',
+              style: GoogleFonts.robotoMono(
+                fontWeight: FontWeight.bold,
+                color: white,
+              ),
+            ),
+            backgroundColor: red,
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
+          ),
+        );
       }
     }
   }

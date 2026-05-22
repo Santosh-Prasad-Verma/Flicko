@@ -1003,6 +1003,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
             size: 84,
             status: _parseStatus(status),
             showStatus: false,
+            userId: widget.userId,
+            showBadge: true,
           ),
         ),
 

@@ -100,10 +100,12 @@ func main() {
 	go mgr.Run(ctx)
 
 	// ── Message Forwarder (persist-before-publish) ──────────
-	fwd := forwarder.NewHTTPForwarder(cfg.MsgServiceURL, "", log)
+	gatewayToken := os.Getenv("INTERNAL_GATEWAY_TOKEN")
+	fwd := forwarder.NewHTTPForwarder(cfg.MsgServiceURL, "", gatewayToken, log)
 	mgr.SetForwarder(fwd)
 	log.Info("message forwarder configured",
 		zap.String("msg_service_url", cfg.MsgServiceURL),
+		zap.Bool("has_gateway_token", gatewayToken != ""),
 	)
 
 	// ── PubSub ──────────────────────────────────────────────

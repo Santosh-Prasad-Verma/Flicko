@@ -2,10 +2,7 @@ package bots
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
@@ -678,34 +675,9 @@ func (b *MusicBot) resolveTrackMetadata(query string) (string, string, int) {
 		return query, query, 0
 	}
 
-	searchURL := fmt.Sprintf("https://itunes.apple.com/search?term=%s&media=music&entity=song&limit=1", url.QueryEscape(query))
-	resp, err := http.Get(searchURL)
-	if err != nil {
-		b.logger.Error("failed to call itunes api", zap.Error(err))
-		return query, "search:" + query, 0
-	}
-	defer resp.Body.Close()
-
-	var result struct {
-		Results []struct {
-			TrackName       string `json:"trackName"`
-			ArtistName      string `json:"artistName"`
-			PreviewURL      string `json:"previewUrl"`
-			TrackTimeMillis int    `json:"trackTimeMillis"`
-		} `json:"results"`
-	}
-
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		b.logger.Error("failed to decode itunes response", zap.Error(err))
-		return query, "search:" + query, 0
-	}
-
-	if len(result.Results) == 0 {
-		return query, "search:" + query, 0
-	}
-
-	item := result.Results[0]
-	return fmt.Sprintf("%s - %s", item.ArtistName, item.TrackName), item.PreviewURL, item.TrackTimeMillis / 1000
+	// Music search is handled client-side via JioSaavn/YouTube (Drip Bash).
+	// The backend just stores the query for queue management.
+	return query, "search:" + query, 0
 }
 
 func formatDuration(seconds int) string {

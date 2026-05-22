@@ -1,24 +1,28 @@
 # Sonic Drip
 
-> **Spotify Integration for Flicko** — Music streaming, sharing, and social listening
+> **Music Streaming for Flicko** — JioSaavn + YouTube powered music search, playback, and social listening
 
 ## Overview
 
-Sonic Drip enables Flicko users to connect their Spotify accounts and enjoy:
+Sonic Drip enables Flicko users to stream music using the **Drip Bash** engine (BlackHole-style):
 
-- **Music Search** — Search millions of tracks, albums, and artists
-- **Remote Playback** — Control playback (play, pause, skip, seek, volume)
+- **Music Search** — Search millions of tracks, albums, and artists via JioSaavn + YouTube
+- **Full-Song Streaming** — Stream full songs with DES-decrypted JioSaavn URLs and YouTube audio
 - **Playlist Management** — Create, edit, and share playlists
 - **Social Sharing** — Share playlists to friends and server channels
 - **Listen Along** — Real-time listening sessions with friends
+
+> **Note:** Spotify and iTunes integrations were removed. All music search and streaming
+> is handled client-side via JioSaavn (primary) and YouTube (fallback). No external music
+> API keys or services are required.
 
 ## Documentation
 
 | Document | Description |
 |----------|-------------|
-| [Getting Started](./docs/getting-started.md) | Quick start guide and overview |
+| [Getting Started](./docs/getting-started.md) | Quick start guide and overview *(historical — references deprecated Spotify flow)* |
 | [Architecture](./docs/architecture.md) | Full system architecture design |
-| [Implementation Plan](./docs/implementation-plan.md) | Detailed 18-week implementation timeline |
+| [Implementation Plan](./docs/implementation-plan.md) | Development timeline *(historical — references deprecated Spotify flow)* |
 | [Critical Fixes](./docs/critical-fixes.md) | Security fixes and production hardening |
 
 ## Architecture
@@ -29,25 +33,26 @@ Flutter Mobile/Web → Cloudflare Edge → Kubernetes Cluster
                     ┌──────────────────────┼──────────────────────┐
                     │                      │                      │
                     ▼                      ▼                      ▼
-            Go API Gateway       Centrifugo WebSocket    SpotAPI Service
-            (10-100 pods)        (5-20 pods)             (5-50 pods)
-                    │                      │                      │
-                    └──────────────────────┼──────────────────────┘
+            Go API Gateway       Centrifugo WebSocket    Drip Bash (client-side)
+            (10-100 pods)        (5-20 pods)             JioSaavn + YouTube
+                    │                      │
+                    └──────────────────────┘
                                            │
                                            ▼
                     ┌──────────────────────┼──────────────────────┐
                     │                      │                      │
                     ▼                      ▼                      ▼
-              PostgreSQL 16          Redis Cluster          Spotify API
-              (Partitioned)          (Cache + Queue)
+              PostgreSQL 16          Redis Cluster          JioSaavn API
+              (Partitioned)          (Cache + Queue)        (Direct / saavn.dev)
 ```
 
 ## Key Features
 
-### 🔐 Secure Authentication
-- User solves CAPTCHA themselves in WebView
-- We NEVER store Spotify passwords
-- Session cookies encrypted with AES-256-GCM
+### 🎵 Drip Bash Engine
+- Direct JioSaavn API with DES decryption (BlackHole pattern)
+- YouTube Explode for YouTube audio streams
+- Invidious fallback for reliability
+- 320kbps audio quality
 
 ### ⚡ High Performance
 - < 200ms p99 latency target
@@ -70,7 +75,7 @@ Flutter Mobile/Web → Cloudflare Edge → Kubernetes Cluster
 |-------|------------|
 | Mobile | Flutter + Riverpod |
 | Backend | Go + Chi |
-| Music Service | Python + FastAPI |
+| Music Engine | Drip Bash (client-side JioSaavn + YouTube) |
 | Database | PostgreSQL 16 |
 | Cache | Redis 7 Cluster |
 | WebSocket | Centrifugo v5 |
@@ -79,11 +84,6 @@ Flutter Mobile/Web → Cloudflare Edge → Kubernetes Cluster
 ## Quick Start
 
 ```bash
-# SpotAPI Service
-cd services/spotapi-service
-pip install -r requirements.txt
-uvicorn app.main:app --reload
-
 # Go Backend
 cd backend
 go run cmd/server/main.go
@@ -102,13 +102,6 @@ sonic-drip/
 │   ├── architecture.md         # System architecture
 │   ├── implementation-plan.md  # Development timeline
 │   └── critical-fixes.md       # Security hardening
-├── services/
-│   └── spotapi-service/        # Python FastAPI service
-│       ├── app/
-│       │   ├── main.py
-│       │   ├── routers/
-│       │   └── services/
-│       └── requirements.txt
 └── README.md
 ```
 
@@ -123,7 +116,7 @@ sonic-drip/
 
 ## Status
 
-🚧 **In Development** — Phase 1: Foundation
+🚧 **In Development** — Drip Bash engine active (JioSaavn + YouTube)
 
 ## License
 

@@ -24,7 +24,7 @@ abstract class MusicItem with _$MusicItem {
     String? imageUrl,
     String? previewUrl,
     String? externalUrl,
-    @Default('appleMusic') String source,
+    @Default('saavn') String source,
   }) = _MusicItem;
 
   factory MusicItem.fromJson(Map<String, dynamic> json) => _$MusicItemFromJson(json);

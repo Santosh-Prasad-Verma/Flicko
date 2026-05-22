@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/features/auth/application/auth_notifier.dart';
 
 /// Change Password Screen (Sleek Brutalist Black/Neon Theme)
 class ChangePasswordScreen extends ConsumerStatefulWidget {
@@ -20,6 +21,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
   bool _obscureCurrent = true;
   bool _obscureNew = true;
   bool _obscureConfirm = true;
+  bool _isLoading = false;
 
   // Exact theme color hex tokens from the design guidelines
   static const Color _neonGreen = Color(0xFF52B788);
@@ -34,6 +36,82 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleSave() async {
+    final currentPassword = _currentPasswordController.text.trim();
+    final newPassword = _newPasswordController.text;
+    final confirmPassword = _confirmPasswordController.text;
+
+    if (currentPassword.isEmpty) {
+      _showAlert('ERROR', 'Please enter your current password.');
+      return;
+    }
+    if (newPassword.length < 8) {
+      _showAlert('ERROR', 'New password must be at least 8 characters long.');
+      return;
+    }
+    if (newPassword != confirmPassword) {
+      _showAlert('ERROR', 'New passwords do not match.');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      await ref.read(authNotifierProvider.notifier).changePassword(newPassword);
+
+      if (mounted) {
+        _showAlert(
+          'PASSWORD UPDATED',
+          'Your password has been updated successfully.',
+          onOk: () {
+            _currentPasswordController.clear();
+            _newPasswordController.clear();
+            _confirmPasswordController.clear();
+            context.pop();
+          },
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        _showAlert('ERROR', e.toString().replaceFirst('AuthException: ', ''));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  void _showAlert(String title, String message, {VoidCallback? onOk}) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: _surfaceContainer,
+        shape: const RoundedRectangleBorder(),
+        title: Text(
+          title,
+          style: GoogleFonts.epilogue(color: _neonGreen, fontWeight: FontWeight.w900, fontStyle: FontStyle.italic),
+        ),
+        content: Text(
+          message,
+          style: GoogleFonts.inter(color: _textMuted),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              onOk?.call();
+            },
+            child: Text(
+              'OK',
+              style: GoogleFonts.spaceGrotesk(color: _textWhite),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -320,9 +398,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
 
   Widget _buildSubmitButton() {
     return GestureDetector(
-      onTap: () {
-        // Handle password change
-      },
+      onTap: _isLoading ? null : _handleSave,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 16),
@@ -337,15 +413,21 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
           ],
         ),
         child: Center(
-          child: Text(
-            'UPDATE PASSWORD',
-            style: GoogleFonts.spaceGrotesk(
-              color: Colors.black,
-              fontSize: 14,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1.5,
-            ),
-          ),
+          child: _isLoading
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                )
+              : Text(
+                  'UPDATE PASSWORD',
+                  style: GoogleFonts.spaceGrotesk(
+                    color: Colors.black,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.5,
+                  ),
+                ),
         ),
       ),
     );

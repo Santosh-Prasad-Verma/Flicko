@@ -45,7 +45,7 @@ class MessageSearchService {
       if (userId != null) queryParams['user_id'] = userId;
 
       final response = await _dio.get(
-        '/api/v1/messages/search',
+        '/v1/messages/search',
         queryParameters: queryParams,
       );
 
@@ -102,7 +102,7 @@ class MessageSearchService {
       }
 
       final response = await _dio.get(
-        '/api/v1/messages/search/advanced',
+        '/v1/messages/search/advanced',
         queryParameters: queryParams,
       );
 
@@ -129,7 +129,7 @@ class MessageSearchService {
       }
 
       final response = await _dio.get(
-        '/api/v1/messages/search/suggestions',
+        '/v1/messages/search/suggestions',
         queryParameters: {'q': query.trim()},
       );
 
@@ -151,7 +151,7 @@ class MessageSearchService {
   Future<List<String>> getRecentSearches() async {
     try {
       final response = await _dio.get(
-        '/api/v1/messages/search/recent',
+        '/v1/messages/search/recent',
       );
 
       if (response.statusCode == 200) {
@@ -177,7 +177,7 @@ class MessageSearchService {
       }
 
       final response = await _dio.post(
-        '/api/v1/messages/search/recent',
+        '/v1/messages/search/recent',
         data: {'query': query.trim()},
       );
 
@@ -197,7 +197,7 @@ class MessageSearchService {
   Future<bool> clearRecentSearches() async {
     try {
       final response = await _dio.delete(
-        '/api/v1/messages/search/recent',
+        '/v1/messages/search/recent',
       );
 
       if (response.statusCode == 200 || response.statusCode == 204) {

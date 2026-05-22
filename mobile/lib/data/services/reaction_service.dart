@@ -15,7 +15,7 @@ class ReactionService {
   Future<Map<String, dynamic>> addReaction(String messageId, String emoji) async {
     try {
       final response = await _dio.post(
-        '/api/v1/messages/$messageId/reactions',
+        '/v1/messages/$messageId/reactions',
         data: {'emoji': emoji},
       );
 
@@ -37,7 +37,7 @@ class ReactionService {
   Future<Map<String, dynamic>> removeReaction(String messageId, String emoji) async {
     try {
       final response = await _dio.delete(
-        '/api/v1/messages/$messageId/reactions',
+        '/v1/messages/$messageId/reactions',
         data: {'emoji': emoji},
       );
 
@@ -76,7 +76,7 @@ class ReactionService {
   Future<List<Map<String, dynamic>>> getReactions(String messageId) async {
     try {
       final response = await _dio.get(
-        '/api/v1/messages/$messageId/reactions',
+        '/v1/messages/$messageId/reactions',
       );
 
       if (response.statusCode == 200) {

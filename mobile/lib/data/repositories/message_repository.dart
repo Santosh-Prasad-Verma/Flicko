@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -103,10 +104,28 @@ class MessageRepository {
     final userId = _client.auth.currentSession?.user.id;
     if (userId == null) throw Exception('Not authenticated');
 
+    String finalContent = content.trim();
+    if (finalContent.isEmpty) {
+      if (attachments != null && attachments.isNotEmpty) {
+        final firstType = attachments.first.contentType.toLowerCase();
+        if (firstType.startsWith('image/')) {
+          finalContent = '📷 Photo';
+        } else if (firstType.startsWith('video/')) {
+          finalContent = '🎥 Video';
+        } else if (firstType.startsWith('audio/')) {
+          finalContent = '🎵 Audio';
+        } else {
+          finalContent = '📎 Attachment';
+        }
+      } else {
+        finalContent = 'Empty message';
+      }
+    }
+
     final payload = <String, dynamic>{
       'channel_id': channelId,
       'author_id': userId,
-      'content': content,
+      'content': finalContent,
       'type': replyToId != null ? 'reply' : 'default',
       if (replyToId != null) 'reply_to_id': replyToId,
       if (attachments != null && attachments.isNotEmpty)
@@ -116,20 +135,49 @@ class MessageRepository {
     try {
       if (AppConfig.hasApiBaseUrl) {
         final apiPayload = {
-          'content': content,
+          'content': finalContent,
           'type': replyToId != null ? 'reply' : 'default',
           'reply_to_id': replyToId,
           'is_silent': isSilent,
           'attachments': attachments?.map((e) => e.toJson()).toList(),
         };
-        final response = await _dio.post('/api/v1/channels/$channelId/messages', data: apiPayload);
+        final response = await _dio.post('/v1/channels/$channelId/messages', data: apiPayload);
         return response.data['id'] as String;
       }
       throw Exception('No API URL configured');
-    } catch (_) {
+    } catch (apiError) {
       // Fallback: insert directly into Supabase
-      final response = await _client.from('messages').insert(payload).select('id').single();
-      return response['id'] as String;
+      developer.log(
+        'API unavailable, using Supabase fallback',
+        name: 'MessageRepository',
+        error: apiError,
+      );
+      try {
+        final response = await _client.from('messages').insert(payload).select('id').single();
+        final messageId = response['id'] as String;
+
+        if (attachments != null && attachments.isNotEmpty) {
+          final List<Map<String, dynamic>> attachmentsPayload = attachments.map((a) => {
+            'message_id': messageId,
+            'filename': a.filename,
+            'size': a.size,
+            'mime_type': a.contentType,
+            'url': a.url,
+            if (a.width != null) 'width': a.width,
+            if (a.height != null) 'height': a.height,
+          }).toList();
+          await _client.from('attachments').insert(attachmentsPayload);
+        }
+
+        return messageId;
+      } catch (supabaseError) {
+        developer.log(
+          'Supabase fallback ALSO failed',
+          name: 'MessageRepository',
+          error: supabaseError,
+        );
+        rethrow;
+      }
     }
   }
 
@@ -278,17 +326,38 @@ class MessageRepository {
     final userId = _client.auth.currentSession?.user.id;
     if (userId == null) throw Exception('Not authenticated');
 
+    // Derive channel_id from the parent thread's original message
+    // (channel_id is NOT NULL in the DB)
+    final threadRow = await _client.from('threads').select('message_id').eq('id', threadId).single();
+    final parentMessage = await _client.from('messages').select('channel_id').eq('id', threadRow['message_id']).single();
+    final channelId = parentMessage['channel_id'] as String;
+
     final response = await _client.from('messages').insert({
-      'channel_id': null,
+      'channel_id': channelId,
       'thread_id': threadId,
       'author_id': userId,
       'content': content,
-      'type': 'thread_reply',
+      'type': 'reply',
       if (attachments != null && attachments.isNotEmpty)
         'attachments': attachments.map((e) => e.toJson()).toList(),
     }).select('id').single();
 
-    return response['id'] as String;
+    final messageId = response['id'] as String;
+
+    if (attachments != null && attachments.isNotEmpty) {
+      final List<Map<String, dynamic>> attachmentsPayload = attachments.map((a) => {
+        'message_id': messageId,
+        'filename': a.filename,
+        'size': a.size,
+        'mime_type': a.contentType,
+        'url': a.url,
+        if (a.width != null) 'width': a.width,
+        if (a.height != null) 'height': a.height,
+      }).toList();
+      await _client.from('attachments').insert(attachmentsPayload);
+    }
+
+    return messageId;
   }
 }
 

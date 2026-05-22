@@ -252,6 +252,10 @@ class _SearchResultItem extends ConsumerWidget {
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        onTap: () {
+          ref.read(sonicDripProvider.notifier).play(track);
+          Navigator.pop(context);
+        },
         leading: _Thumbnail(imageUrl: track.imageUrl),
         title: Text(
           track.name,

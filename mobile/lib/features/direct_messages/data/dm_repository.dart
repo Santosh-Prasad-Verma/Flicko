@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:io';
@@ -83,7 +84,25 @@ class DMRepository {
     required String content,
     List<DMAttachment>? attachments,
   }) async {
-    final encrypted = await _maybeEncryptOutgoing(recipientId, content);
+    String finalContent = content.trim();
+    if (finalContent.isEmpty) {
+      if (attachments != null && attachments.isNotEmpty) {
+        final firstType = attachments.first.type.toLowerCase();
+        if (firstType.contains('image') || firstType.startsWith('image/')) {
+          finalContent = '📷 Photo';
+        } else if (firstType.contains('video') || firstType.startsWith('video/')) {
+          finalContent = '🎥 Video';
+        } else if (firstType.contains('audio') || firstType.startsWith('audio/')) {
+          finalContent = '🎵 Audio';
+        } else {
+          finalContent = '📎 Attachment';
+        }
+      } else {
+        finalContent = 'Empty message';
+      }
+    }
+
+    final encrypted = await _maybeEncryptOutgoing(recipientId, finalContent);
     final payload = <String, dynamic>{
       'sender_id': senderId,
       'recipient_id': recipientId,
@@ -103,7 +122,7 @@ class DMRepository {
         payload['signed_prekey_id'] = encrypted.signedPrekeyId;
       }
     } else {
-      payload['content'] = content;
+      payload['content'] = finalContent;
       payload['is_encrypted'] = false;
     }
 
@@ -116,6 +135,11 @@ class DMRepository {
 
       return _decodeRow(response);
     } catch (e) {
+      developer.log(
+        'DM send failed — likely RLS policy (check friends/privacy/blocks)',
+        name: 'DMRepository',
+        error: e,
+      );
       rethrow;
     }
   }

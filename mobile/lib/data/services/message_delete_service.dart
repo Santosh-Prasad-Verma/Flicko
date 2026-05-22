@@ -19,7 +19,7 @@ class MessageDeleteService {
   Future<bool> deleteMessage(String messageId) async {
     try {
       final response = await _dio.delete(
-        '/api/v1/messages/$messageId',
+        '/v1/messages/$messageId',
       );
 
       if (response.statusCode == 200 || response.statusCode == 204) {
@@ -39,7 +39,7 @@ class MessageDeleteService {
   Future<bool> bulkDeleteMessages(List<String> messageIds) async {
     try {
       final response = await _dio.post(
-        '/api/v1/messages/bulk-delete',
+        '/v1/messages/bulk-delete',
         data: {'message_ids': messageIds},
       );
 
@@ -89,7 +89,7 @@ class MessageDeleteService {
   Future<bool> softDeleteMessage(String messageId) async {
     try {
       final response = await _dio.patch(
-        '/api/v1/messages/$messageId',
+        '/v1/messages/$messageId',
         data: {'deleted': true},
       );
 
@@ -110,7 +110,7 @@ class MessageDeleteService {
   Future<bool> restoreMessage(String messageId) async {
     try {
       final response = await _dio.patch(
-        '/api/v1/messages/$messageId',
+        '/v1/messages/$messageId',
         data: {'deleted': false},
       );
 

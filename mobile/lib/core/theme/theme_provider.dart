@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:mobile/features/store/data/store_theme_service.dart';
 import 'app_theme.dart';
 
 /// Available theme IDs matching AppTheme definitions
@@ -54,7 +55,18 @@ class ThemeNotifier extends Notifier<String> {
   }
 }
 
+/// Provider that returns the active theme, prioritizing store themes
+/// If a store theme is equipped, it overrides the base theme
 final themeDataProvider = Provider<ThemeData>((ref) {
+  // Watch both providers
   ref.watch(themeProvider);
+  final storeTheme = ref.watch(activeStoreThemeProvider);
+  
+  // If a store theme is active, use it
+  if (storeTheme != null) {
+    return ref.read(storeThemeDataProvider) ?? ref.read(themeProvider.notifier).currentTheme;
+  }
+  
+  // Fall back to base theme
   return ref.read(themeProvider.notifier).currentTheme;
 });

@@ -3,32 +3,38 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../application/sonic_drip_notifier.dart';
-import '../domain/music_models.dart';
+import '../application/music_library_notifier.dart';
+import '../data/sleep_timer_service.dart';
 import 'widgets/now_playing_card.dart';
 import 'widgets/playback_controls.dart';
 import 'widgets/queue_list.dart';
 import 'widgets/search_sheet.dart';
 import 'widgets/drip_bash_sheet.dart';
-import 'spotify_connect_screen.dart';
+import 'widgets/library_sheet.dart';
+import 'widgets/music_settings_sheet.dart';
+import 'widgets/lyrics_sheet.dart';
+
 
 class SonicDripScreen extends ConsumerWidget {
   const SonicDripScreen({super.key});
 
-  static const _lime = Color(0xFF52B788);
   static const _black = Color(0xFF000000);
-  static const _white = Color(0xFFFFFFFF);
-  static const _surface = Color(0xFF0A0A0A);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(sonicDripProvider);
+    final sleepTimer = ref.watch(sleepTimerProvider);
 
     return Scaffold(
       backgroundColor: _black,
       body: SafeArea(
         child: Column(
           children: [
-            _AppBar(onSearch: () => _openSearch(context)),
+            _AppBar(
+              onSearch: () => _openSearch(context),
+              onLibrary: () => _openLibrary(context, ref),
+              onSettings: () => _openSettings(context, ref),
+            ),
             Expanded(
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
@@ -49,6 +55,9 @@ class SonicDripScreen extends ConsumerWidget {
                     _ActionRow(
                       onSearch: () => _openSearch(context),
                       onDripBash: () => _openDripBash(context),
+                      onLyrics: state.playback.currentTrack != null
+                          ? () => _openLyrics(context, state.playback.currentTrack!, state.playback.position)
+                          : null,
                     ),
                     const SizedBox(height: 40),
                     QueueList(queue: state.queue),
@@ -57,7 +66,7 @@ class SonicDripScreen extends ConsumerWidget {
                 ),
               ),
             ),
-            _StatusBar(state: state),
+            _StatusBar(state: state, sleepTimer: sleepTimer),
           ],
         ),
       ),
@@ -81,13 +90,56 @@ class SonicDripScreen extends ConsumerWidget {
       builder: (_) => const DripBashSheet(),
     );
   }
+
+  void _openLibrary(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => LibrarySheet(
+        onTrackSelected: (track) {
+          ref.read(sonicDripProvider.notifier).play(track);
+          Navigator.pop(sheetContext);
+        },
+      ),
+    );
+  }
+
+  void _openSettings(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => MusicSettingsSheet(
+        onPause: () {
+          ref.read(sonicDripProvider.notifier).pause();
+          Navigator.pop(sheetContext);
+        },
+        onStop: () {
+          ref.read(sonicDripProvider.notifier).stop();
+          Navigator.pop(sheetContext);
+        },
+      ),
+    );
+  }
+
+  void _openLyrics(BuildContext context, track, position) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => LyricsSheet(track: track, position: position),
+    );
+  }
 }
 
 // ─── App Bar ──────────────────────────────────────────────────────────────────
 
 class _AppBar extends StatelessWidget {
   final VoidCallback onSearch;
-  const _AppBar({required this.onSearch});
+  final VoidCallback onLibrary;
+  final VoidCallback onSettings;
+  const _AppBar({required this.onSearch, required this.onLibrary, required this.onSettings});
 
   @override
   Widget build(BuildContext context) {
@@ -136,7 +188,15 @@ class _AppBar extends StatelessWidget {
               ),
             ],
           ),
-          _IconBtn(Icons.search, onSearch),
+          Row(
+            children: [
+              _IconBtn(Icons.library_music, onLibrary, size: 16),
+              const SizedBox(width: 8),
+              _IconBtn(Icons.tune, onSettings, size: 16),
+              const SizedBox(width: 8),
+              _IconBtn(Icons.search, onSearch),
+            ],
+          ),
         ],
       ),
     );
@@ -204,7 +264,8 @@ class _ProgressSection extends ConsumerWidget {
 class _ActionRow extends StatelessWidget {
   final VoidCallback onSearch;
   final VoidCallback onDripBash;
-  const _ActionRow({required this.onSearch, required this.onDripBash});
+  final VoidCallback? onLyrics;
+  const _ActionRow({required this.onSearch, required this.onDripBash, this.onLyrics});
 
   @override
   Widget build(BuildContext context) {
@@ -231,24 +292,15 @@ class _ActionRow extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _BrutalistButton(
-                label: 'SPOTIFY',
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const SpotifyConnectScreen(),
-                  ),
-                ),
-                bgColor: Colors.black,
-                textColor: const Color(0xFF1DB954),
-              ),
-            ),
-          ],
-        ),
+        if (onLyrics != null) ...[
+          const SizedBox(height: 12),
+          _BrutalistButton(
+            label: 'LYRICS',
+            onTap: onLyrics!,
+            bgColor: Colors.transparent,
+            textColor: const Color(0xFF52B788),
+          ),
+        ],
       ],
     );
   }
@@ -258,11 +310,11 @@ class _ActionRow extends StatelessWidget {
 
 class _StatusBar extends StatelessWidget {
   final SonicDripState state;
-  const _StatusBar({required this.state});
+  final SleepTimerState sleepTimer;
+  const _StatusBar({required this.state, required this.sleepTimer});
 
   @override
   Widget build(BuildContext context) {
-    final isConnected = state.hasSession;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       color: const Color(0xFF0A0A0A),
@@ -273,15 +325,13 @@ class _StatusBar extends StatelessWidget {
             width: 7,
             height: 7,
             decoration: BoxDecoration(
-              color: isConnected ? Colors.green : Colors.grey,
+              color: const Color(0xFF52B788),
               shape: BoxShape.circle,
             ),
           ),
           const SizedBox(width: 8),
           Text(
-            isConnected
-                ? 'SPOTIFY: ${state.session!.displayName.toUpperCase()}'
-                : 'ITUNES_SEARCH_MODE',
+            'DRIP_BASH_MODE',
             style: GoogleFonts.robotoMono(
               color: Colors.white.withValues(alpha: 0.35),
               fontSize: 9,
@@ -297,9 +347,28 @@ class _StatusBar extends StatelessWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
+          if (sleepTimer.isActive && sleepTimer.remaining != null) ...[
+            const SizedBox(width: 20),
+            Icon(Icons.bedtime, color: const Color(0xFF52B788), size: 12),
+            const SizedBox(width: 4),
+            Text(
+              _formatDuration(sleepTimer.remaining!),
+              style: GoogleFonts.robotoMono(
+                color: const Color(0xFF52B788),
+                fontSize: 9,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ],
       ),
     );
+  }
+
+  String _formatDuration(Duration d) {
+    final minutes = d.inMinutes.remainder(60);
+    final seconds = d.inSeconds.remainder(60);
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 }
 
@@ -308,7 +377,8 @@ class _StatusBar extends StatelessWidget {
 class _IconBtn extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
-  const _IconBtn(this.icon, this.onTap);
+  final double size;
+  const _IconBtn(this.icon, this.onTap, {this.size = 18});
 
   @override
   Widget build(BuildContext context) {
@@ -321,7 +391,7 @@ class _IconBtn extends StatelessWidget {
           border: Border.all(color: const Color(0xFF52B788), width: 2),
           boxShadow: const [BoxShadow(color: Color(0xFF52B788), offset: Offset(3, 3))],
         ),
-        child: Icon(icon, size: 18, color: const Color(0xFF52B788)),
+        child: Icon(icon, size: size, color: const Color(0xFF52B788)),
       ),
     );
   }

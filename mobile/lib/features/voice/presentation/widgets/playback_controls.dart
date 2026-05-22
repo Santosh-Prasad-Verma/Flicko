@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../application/sonic_drip_notifier.dart';
 import '../../domain/music_models.dart';
 
@@ -61,7 +62,58 @@ class PlaybackControls extends ConsumerWidget {
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
+          // Autoplay / Radio Mode Toggle
+          GestureDetector(
+            onTap: notifier.toggleAutoplay,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: state.playback.autoplay ? _lime.withValues(alpha: 0.1) : Colors.black,
+                border: Border.all(
+                  color: state.playback.autoplay ? _lime : Colors.white.withValues(alpha: 0.3),
+                  width: 2,
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.radio_rounded,
+                        color: state.playback.autoplay ? _lime : Colors.white54,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        'AUTOPLAY_RADIO_MODE',
+                        style: GoogleFonts.spaceGrotesk(
+                          color: state.playback.autoplay ? _lime : Colors.white,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 11,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    color: state.playback.autoplay ? _lime : Colors.white24,
+                    child: Text(
+                      state.playback.autoplay ? 'ACTIVE' : 'OFF',
+                      style: GoogleFonts.robotoMono(
+                        color: state.playback.autoplay ? Colors.black : Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 9,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
           // Volume row
           Row(
             children: [

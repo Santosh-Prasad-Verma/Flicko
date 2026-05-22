@@ -29,7 +29,7 @@ class MessageEditService {
       }
 
       final response = await _dio.patch(
-        '/api/v1/messages/$messageId',
+        '/v1/messages/$messageId',
         data: {
           'content': newContent.trim(),
         },
@@ -76,7 +76,7 @@ class MessageEditService {
   Future<List<Map<String, dynamic>>> getEditHistory(String messageId) async {
     try {
       final response = await _dio.get(
-        '/api/v1/messages/$messageId/edit-history',
+        '/v1/messages/$messageId/edit-history',
       );
 
       if (response.statusCode == 200) {

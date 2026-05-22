@@ -136,10 +136,24 @@ class AuthNotifier extends Notifier<AuthState> {
     await _repository.changeEmail(newEmail);
   }
 
+  Future<void> changeUsername(String newUsername) async {
+    final userId = _repository.currentUser?.id;
+    if (userId == null) throw Exception('Not authenticated');
+    await _repository.updateProfile(userId, {'username': newUsername});
+    await refreshProfile();
+  }
+
+  Future<void> changePassword(String newPassword) async {
+    final userId = _repository.currentUser?.id;
+    if (userId == null) throw Exception('Not authenticated');
+    await _repository.changePassword(newPassword);
+  }
+
   Future<void> updatePhone(String phone) async {
     final userId = _repository.currentUser?.id;
     if (userId == null) throw Exception('Not authenticated');
     await _repository.updatePhone(userId, phone);
+    await refreshProfile();
   }
 
   Future<void> disableAccount() async {

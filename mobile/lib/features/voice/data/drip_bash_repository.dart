@@ -18,6 +18,8 @@ abstract class DripBashRepository {
   Future<List<Track>> fetchAlbumSongs(String albumId);
   Future<String?> getStreamingUrl(String videoId);
   Future<String?> getSaavnStreamingUrl(String songId);
+  Future<List<Track>> getSaavnRecommendations(String songId, {int limit});
+  Future<List<Track>> getYouTubeRecommendations(String videoId, {int limit});
 }
 
 final dripBashRepositoryProvider = Provider<DripBashRepository>((ref) {
@@ -67,16 +69,25 @@ class DripBashRepositoryImpl implements DripBashRepository {
   }
 
   /// Make request to JioSaavn direct API
-  Future<Map<String, dynamic>?> _saavnRequest(String params, {bool useV4 = true}) async {
+  /// Raw Saavn request that returns the parsed JSON as dynamic (can be Map or List).
+  Future<dynamic> _saavnRequestRaw(String params, {bool useV4 = true}) async {
     try {
       final apiStr = useV4 ? _saavnBaseParams : _saavnBaseParams.replaceAll('&api_version=4', '');
       final uri = Uri.https(_saavnBase, _saavnApiPath, Uri.splitQueryString('$apiStr&$params'));
       final res = await _dio.getUri(uri, options: Options(headers: {'cookie': 'L=english'}));
       if (res.statusCode == 200 && res.data != null) {
-        if (res.data is String) return json.decode(res.data as String) as Map<String, dynamic>;
-        return res.data as Map<String, dynamic>;
+        if (res.data is String) return json.decode(res.data as String);
+        return res.data;
       }
     } catch (e) { dev.log('Saavn request error: $e', name: 'drip-bash'); }
+    return null;
+  }
+
+  /// Saavn request that expects a Map response (for search, song details, etc.).
+  Future<Map<String, dynamic>?> _saavnRequest(String params, {bool useV4 = true}) async {
+    final raw = await _saavnRequestRaw(params, useV4: useV4);
+    if (raw is Map<String, dynamic>) return raw;
+    if (raw is Map) return Map<String, dynamic>.from(raw);
     return null;
   }
 
@@ -268,17 +279,26 @@ class DripBashRepositoryImpl implements DripBashRepository {
     try {
       final res = await _dio.get('https://saavn.dev/api/songs/$songId');
       if (res.statusCode != 200) return null;
-      final songData = res.data['data'] as Map<String, dynamic>?;
+      final rawData = res.data['data'];
+      Map<String, dynamic>? songData;
+      if (rawData is List && rawData.isNotEmpty) {
+        songData = Map<String, dynamic>.from(rawData.first as Map);
+      } else if (rawData is Map) {
+        songData = Map<String, dynamic>.from(rawData);
+      }
       if (songData == null) return null;
       final downloadUrl = songData['downloadUrl'] as List?;
       if (downloadUrl != null && downloadUrl.isNotEmpty) {
         for (final item in downloadUrl.reversed) {
-          final u = (item as Map<String, dynamic>?)?['url'] as String?;
+          final u = (item as Map?)?['url'] as String?;
           if (u != null) return u;
         }
       }
       return songData['url'] as String?;
-    } catch (_) { return null; }
+    } catch (e) {
+      dev.log('Saavn fallback stream error: $e', name: 'drip-bash');
+      return null;
+    }
   }
 
   Future<List<Track>> _fetchAlbumSongsFallback(String albumId) async {
@@ -465,6 +485,70 @@ class DripBashRepositoryImpl implements DripBashRepository {
         .replaceAll('&amp;', '&').replaceAll('&quot;', '"')
         .replaceAll('&#039;', "'").replaceAll('&lt;', '<')
         .replaceAll('&gt;', '>').replaceAll('&nbsp;', ' ');
+  }
+
+  @override
+  Future<List<Track>> getSaavnRecommendations(String songId, {int limit = 10}) async {
+    try {
+      final params = 'pid=$songId&__call=recommender.getSongRecommendations';
+      // The recommendations API can return a JSON array OR a map with 'results'/'songs' key
+      final raw = await _saavnRequestRaw(params);
+      List results = [];
+      if (raw is List) {
+        // Direct array response from the recommendations endpoint
+        results = raw;
+      } else if (raw is Map) {
+        results = (raw['results'] as List?) ?? (raw['songs'] as List?) ?? [];
+      }
+      if (results.isNotEmpty) {
+        dev.log('Saavn recommendations: got ${results.length} results for $songId', name: 'drip-bash');
+        return results.whereType<Map>().map((item) => _mapSaavnSong(Map<String, dynamic>.from(item))).take(limit).toList();
+      }
+      dev.log('Saavn recommendations: empty response, trying fallback', name: 'drip-bash');
+      return _getSaavnRecommendationsFallback(songId, limit);
+    } catch (e) {
+      dev.log('Saavn recommendations error: $e', name: 'drip-bash');
+      return _getSaavnRecommendationsFallback(songId, limit);
+    }
+  }
+
+  Future<List<Track>> _getSaavnRecommendationsFallback(String songId, int limit) async {
+    try {
+      final url = 'https://saavn.dev/api/songs/$songId/suggestions?limit=$limit';
+      final res = await _dio.get(url);
+      if (res.statusCode == 200) {
+        final data = res.data['data'] as List?;
+        if (data != null) {
+          return data.whereType<Map>().map((item) => _mapSaavnDevItem(Map<String, dynamic>.from(item))).take(limit).toList();
+        }
+      }
+    } catch (e) {
+      dev.log('Saavn fallback recommendations error: $e', name: 'drip-bash');
+    }
+    return [];
+  }
+
+  @override
+  Future<List<Track>> getYouTubeRecommendations(String videoId, {int limit = 10}) async {
+    try {
+      final yt = _getYoutube();
+      final video = await yt.videos.get(VideoId(videoId));
+      final related = await yt.videos.getRelatedVideos(video);
+      if (related != null) {
+        return related.take(limit).map((v) => Track(
+          id: v.id.value,
+          name: v.title,
+          artistName: v.author,
+          durationMs: v.duration?.inMilliseconds,
+          imageUrl: v.thumbnails.highResUrl,
+          externalUrl: v.url,
+          source: 'youtube',
+        )).toList();
+      }
+    } catch (e) {
+      dev.log('YouTube recommendations error: $e', name: 'drip-bash');
+    }
+    return [];
   }
 
   void dispose() { _yt?.close(); _yt = null; }

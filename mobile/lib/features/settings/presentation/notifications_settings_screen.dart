@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/features/settings/application/user_settings_notifier.dart';
+import 'package:mobile/features/store/data/notification_sound_service.dart';
 
 /// Notifications Settings Screen (Sleek Brutalist Black/Neon Theme)
 class NotificationsSettingsScreen extends ConsumerStatefulWidget {
@@ -21,6 +22,7 @@ class _NotificationsSettingsScreenState
   static const Color _surfaceContainer = Color(0xFF0C0C0E);
   static const Color _textWhite = Color(0xFFFBF9FA);
   static const Color _textMuted = Color(0xFF71717A);
+  static const Color _neon = Color(0xFF9B84EE);
 
   void _setBool(String key, bool value) {
     ref.read(userSettingsNotifierProvider.notifier).setBool(key, value);
@@ -242,6 +244,8 @@ class _NotificationsSettingsScreenState
   }
 
   Widget _buildSoundsSection() {
+    final selectedSound = ref.watch(selectedSoundProvider);
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -260,6 +264,34 @@ class _NotificationsSettingsScreenState
           color: _neonGreen,
           margin: const EdgeInsets.only(top: 6, bottom: 16),
         ),
+        // Custom notification sound selector
+        GestureDetector(
+          onTap: () {
+            showSoundPicker(
+              context,
+              selectedSound: selectedSound,
+              onSoundSelected: (sound) {
+                ref.read(selectedSoundProvider.notifier).setSound(sound);
+              },
+            );
+          },
+          child: _buildAccessCard(
+            title: 'NOTIFICATION SOUND',
+            subtitle: 'Current: ${selectedSound.name}',
+            badge: selectedSound.previewEmoji ?? '🔔',
+            usePrimaryBadge: selectedSound.isPremium,
+            toggleWidget: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: _neonGreen.withValues(alpha: 0.1),
+                border: Border.all(color: _neonGreen.withValues(alpha: 0.3)),
+              ),
+              child: const Icon(Icons.music_note, color: _neonGreen, size: 20),
+            ),
+          ),
+        ),
+        const SizedBox(height: 14),
         _buildAccessCard(
           title: 'MESSAGE SOUND',
           subtitle: 'Play sound for new messages.',
@@ -279,8 +311,8 @@ class _NotificationsSettingsScreenState
         ),
         const SizedBox(height: 14),
         _buildAccessCard(
-          title: 'NOTIFICATION SOUND',
-          subtitle: 'Play sound for notifications.',
+          title: 'VIBRATE',
+          subtitle: 'Vibrate on notification.',
           badge: 'ALERT',
           toggleWidget: _buildHardwareToggle(ref.watch(userSettingsNotifierProvider).vibrateOnNotification, (val) {
             _setBool('notif_vibrate', val);

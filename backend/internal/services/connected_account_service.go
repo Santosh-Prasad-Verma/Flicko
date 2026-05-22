@@ -34,12 +34,11 @@ func (s *connectedAccountService) ConnectAccount(ctx context.Context, userID, pr
 	}
 
 	validProviders := map[string]bool{
-		"google":  true,
-		"github":  true,
-		"spotify": true,
-		"steam":   true,
-		"xbox":    true,
-		"twitch":  true,
+		"google": true,
+		"github": true,
+		"steam":  true,
+		"xbox":   true,
+		"twitch": true,
 	}
 	if !validProviders[provider] {
 		return nil, fmt.Errorf("unsupported provider: %s", provider)

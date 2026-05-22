@@ -12,8 +12,6 @@ import 'package:mobile/features/auth/presentation/screens/reset_password_screen.
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/home/presentation/servers_screen.dart';
 // NotificationsScreen imported from features/notifications instead
-import 'package:mobile/features/profile/presentation/profile_screen.dart';
-import 'package:mobile/features/profile/presentation/public_profile_screen.dart';
 import 'package:mobile/features/shared/presentation/main_navigation_shell.dart';
 import 'package:mobile/features/server_channels/chat/presentation/screens/chat_screen.dart';
 import 'package:mobile/features/direct_messages/presentation/screens/dm_list_screen.dart';
@@ -34,7 +32,6 @@ import 'package:mobile/features/settings/presentation/accessibility_settings_scr
 import 'package:mobile/features/settings/presentation/voice_settings_screen.dart';
 import 'package:mobile/features/settings/presentation/help_screen.dart';
 import 'package:mobile/features/settings/presentation/language_screen.dart';
-import 'package:mobile/features/settings/presentation/storage_screen.dart';
 import 'package:mobile/features/settings/presentation/status_screen.dart';
 import 'package:mobile/features/settings/presentation/server_profiles_screen.dart';
 import 'package:mobile/features/settings/presentation/change_email_screen.dart';
@@ -46,10 +43,17 @@ import 'package:mobile/features/settings/presentation/share_profile_screen.dart'
 
 // Premium
 import 'package:mobile/features/premium/presentation/premium_billing_screen.dart';
+import 'package:mobile/features/premium/presentation/add_card_screen.dart';
 
 // Store & Creator
 import 'package:mobile/features/store/presentation/store_screen.dart';
+import 'package:mobile/features/store/presentation/cart_screen.dart';
+import 'package:mobile/features/store/presentation/product_detail_screen.dart';
+import 'package:mobile/features/store/presentation/inventory_screen.dart';
+import 'package:mobile/features/store/presentation/theme_picker_screen.dart';
 import 'package:mobile/features/creator/presentation/creator_screen.dart';
+import 'package:mobile/features/creator/presentation/screens/creator_profile_screen.dart';
+import 'package:mobile/features/creator/presentation/screens/creator_thread_screen.dart';
 
 // Friends
 import 'package:mobile/features/friends/presentation/friend_requests_screen.dart';
@@ -299,6 +303,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                       GoRoute(path: 'billing', builder: (context, state) => const BillingSettingsScreen()),
                       GoRoute(path: 'sonic-drip', builder: (context, state) => const SonicDripScreen()),
                       GoRoute(path: 'encryption', builder: (context, state) => const E2EESettingsScreen()),
+                      GoRoute(path: 'add-card', builder: (context, state) => const AddCardScreen()),
                     ],
                   ),
                   GoRoute(
@@ -428,7 +433,33 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       // Store & Creator
       GoRoute(path: '/store', builder: (context, state) => const StoreScreen()),
-      GoRoute(path: '/creator', builder: (context, state) => const CreatorScreen()),
+      GoRoute(path: '/store/cart', builder: (context, state) => const CartScreen()),
+      GoRoute(path: '/store/inventory', builder: (context, state) => const InventoryScreen()),
+      GoRoute(path: '/store/themes', builder: (context, state) => const ThemePickerScreen()),
+      GoRoute(
+        path: '/store/product/:productId',
+        builder: (context, state) => ProductDetailScreen(
+          productId: state.pathParameters['productId']!,
+        ),
+      ),
+      GoRoute(
+        path: '/creator',
+        builder: (context, state) => const CreatorScreen(),
+        routes: [
+          GoRoute(
+            path: 'posts/:id',
+            builder: (context, state) => CreatorThreadScreen(
+              postId: state.pathParameters['id']!,
+            ),
+          ),
+          GoRoute(
+            path: 'profile/:id',
+            builder: (context, state) => CreatorProfileScreen(
+              userId: state.pathParameters['id']!,
+            ),
+          ),
+        ],
+      ),
 
       // Gaming
       GoRoute(path: '/gaming', builder: (context, state) => const GamingHubScreen()),

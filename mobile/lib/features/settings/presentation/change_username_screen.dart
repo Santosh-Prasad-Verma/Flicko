@@ -4,14 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 
-/// Change Username Screen
-///
-/// Allows the authenticated user to change their @username.
-/// Validates format, checks uniqueness in the profiles table, then writes the update.
-/// Route: /u/settings/change-username
 class ChangeUsernameScreen extends ConsumerStatefulWidget {
   const ChangeUsernameScreen({super.key});
 
@@ -28,6 +22,12 @@ class _ChangeUsernameScreenState extends ConsumerState<ChangeUsernameScreen> {
   Timer? _checkTimeout;
   final _usernameController = TextEditingController();
   final _usernameRegex = RegExp(r'^[a-zA-Z0-9_]{3,32}$');
+
+  static const Color _neonGreen = Color(0xFF52B788);
+  static const Color _bgBlack = Color(0xFF050505);
+  static const Color _surfaceContainer = Color(0xFF0C0C0E);
+  static const Color _textWhite = Color(0xFFFBF9FA);
+  static const Color _textMuted = Color(0xFF71717A);
 
   bool get _canSave {
     return _validation == _ValidationState.available &&
@@ -51,8 +51,9 @@ class _ChangeUsernameScreenState extends ConsumerState<ChangeUsernameScreen> {
   }
 
   void _handleUsernameChange(String value) {
-    final cleaned = value.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '').substring(0, value.length.clamp(0, 32));
-    setState(() => _username = cleaned);
+    // Keep only alphanumeric and underscore
+    final cleaned = value.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '');
+    _username = cleaned;
 
     _checkTimeout?.cancel();
 
@@ -81,9 +82,15 @@ class _ChangeUsernameScreenState extends ConsumerState<ChangeUsernameScreen> {
             .ilike('username', cleaned)
             .limit(1);
 
-        setState(() => _validation = (response as List).isNotEmpty ? _ValidationState.taken : _ValidationState.available);
+        if (mounted) {
+          setState(() => _validation = (response as List).isNotEmpty
+              ? _ValidationState.taken
+              : _ValidationState.available);
+        }
       } catch (_) {
-        setState(() => _validation = _ValidationState.idle);
+        if (mounted) {
+          setState(() => _validation = _ValidationState.idle);
+        }
       }
     });
   }
@@ -94,34 +101,28 @@ class _ChangeUsernameScreenState extends ConsumerState<ChangeUsernameScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final user = ref.read(authNotifierProvider).maybeWhen(
-        authenticated: (user, _) => user,
-        orElse: () => null,
-      );
+      await ref.read(authNotifierProvider.notifier).changeUsername(_username);
 
-      if (user == null) return;
-
-      final error = await Supabase.instance.client.from('profiles').update({
-        'username': _username,
-        'updated_at': DateTime.now().toIso8601String(),
-      }).eq('id', user.id);
-
-      if (error != null) throw error;
-
-      _showAlert(
-        'Username Updated',
-        'Your username has been changed to @$_username.',
-        onOk: () => context.pop(),
-      );
+      if (mounted) {
+        _showAlert(
+          'USERNAME UPDATED',
+          'Your username has been changed to @$_username.',
+          onOk: () => context.pop(),
+        );
+      }
     } catch (e) {
-      if (e.toString().contains('unique') || e.toString().contains('23505')) {
-        setState(() => _validation = _ValidationState.taken);
-        _showAlert('Username Taken', 'That username is already in use. Please choose another.');
-      } else {
-        _showAlert('Error', e.toString());
+      if (mounted) {
+        if (e.toString().contains('unique') || e.toString().contains('23505')) {
+          setState(() => _validation = _ValidationState.taken);
+          _showAlert('USERNAME TAKEN', 'That username is already in use. Please choose another.');
+        } else {
+          _showAlert('ERROR', e.toString());
+        }
       }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -129,14 +130,15 @@ class _ChangeUsernameScreenState extends ConsumerState<ChangeUsernameScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(FlickoColors.bgSecondary),
+        backgroundColor: _surfaceContainer,
+        shape: const RoundedRectangleBorder(),
         title: Text(
           title,
-          style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary)),
+          style: GoogleFonts.epilogue(color: _neonGreen, fontWeight: FontWeight.w900, fontStyle: FontStyle.italic),
         ),
         content: Text(
           message,
-          style: GoogleFonts.inter(color: const Color(FlickoColors.textSecondary)),
+          style: GoogleFonts.inter(color: _textMuted),
         ),
         actions: [
           TextButton(
@@ -146,7 +148,7 @@ class _ChangeUsernameScreenState extends ConsumerState<ChangeUsernameScreen> {
             },
             child: Text(
               'OK',
-              style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
+              style: GoogleFonts.spaceGrotesk(color: _textWhite),
             ),
           ),
         ],
@@ -157,30 +159,48 @@ class _ChangeUsernameScreenState extends ConsumerState<ChangeUsernameScreen> {
   Widget? _validationIcon() {
     switch (_validation) {
       case _ValidationState.checking:
-        return const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Color(FlickoColors.textMuted)));
+        return const Padding(
+          padding: EdgeInsets.all(12),
+          child: SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(strokeWidth: 2, color: _textMuted),
+          ),
+        );
       case _ValidationState.available:
-        return const Icon(Icons.check_circle, size: 20, color: Color(FlickoColors.success));
+        return const Icon(Icons.check_circle, size: 20, color: _neonGreen);
       case _ValidationState.taken:
-        return const Icon(Icons.cancel, size: 20, color: Color(FlickoColors.red));
+        return const Icon(Icons.cancel, size: 20, color: Colors.red);
       case _ValidationState.invalid:
-        return const Icon(Icons.warning, size: 20, color: Color(FlickoColors.warning));
+        return const Icon(Icons.warning, size: 20, color: Colors.orange);
       default:
-        return null;
+        return _usernameController.text.isNotEmpty
+            ? IconButton(
+                icon: const Icon(Icons.close, size: 18, color: _textMuted),
+                onPressed: () {
+                  _usernameController.clear();
+                  setState(() {
+                    _username = '';
+                    _validation = _ValidationState.idle;
+                  });
+                },
+              )
+            : null;
     }
   }
 
   ({String text, Color color})? _validationMessage() {
     switch (_validation) {
       case _ValidationState.checking:
-        return (text: 'Checking availability…', color: const Color(FlickoColors.textMuted));
+        return (text: 'Checking availability…', color: _textMuted);
       case _ValidationState.available:
-        return (text: '@$_username is available!', color: const Color(FlickoColors.success));
+        return (text: '@$_username is available!', color: _neonGreen);
       case _ValidationState.taken:
-        return (text: 'That username is already taken.', color: const Color(FlickoColors.red));
+        return (text: 'That username is already taken.', color: Colors.red);
       case _ValidationState.invalid:
         return (
-          text: 'Username must be 3–32 characters: letters, numbers, or underscores only.',
-          color: const Color(FlickoColors.warning),
+          text: 'Must be 3–32 characters: letters, numbers, or underscores only.',
+          color: Colors.orange,
         );
       default:
         return null;
@@ -191,11 +211,11 @@ class _ChangeUsernameScreenState extends ConsumerState<ChangeUsernameScreen> {
     switch (_validation) {
       case _ValidationState.taken:
       case _ValidationState.invalid:
-        return const Color(FlickoColors.red);
+        return Colors.red;
       case _ValidationState.available:
-        return const Color(FlickoColors.success);
+        return _neonGreen;
       default:
-        return const Color(0xFF232428);
+        return _textWhite.withValues(alpha: 0.1);
     }
   }
 
@@ -204,125 +224,156 @@ class _ChangeUsernameScreenState extends ConsumerState<ChangeUsernameScreen> {
     final msg = _validationMessage();
 
     return Scaffold(
-      appBar: AppBar(
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),
-          onPressed: () => context.pop(),
-        ),
-        title: Text(
-          'Change Username',
-          style: GoogleFonts.inter(
-            color: const Color(FlickoColors.textPrimary),
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: _canSave ? _handleSave : null,
-            child: _isLoading
-                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Color(FlickoColors.blurple)))
-                : Text(
-                    'Save',
-                    style: GoogleFonts.inter(
-                      color: _canSave ? const Color(FlickoColors.blurple) : const Color(FlickoColors.textMuted),
-                      fontWeight: FontWeight.w600,
+      backgroundColor: _bgBlack,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                children: [
+                  Text(
+                    'CHANGE\nUSERNAME',
+                    style: GoogleFonts.epilogue(
+                      color: _textWhite,
+                      fontSize: 48,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -2,
+                      height: 0.9,
+                      fontStyle: FontStyle.italic,
                     ),
                   ),
-          ),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          // Current username display
-          _buildSectionHeader('CURRENT USERNAME'),
-          _buildCurrentBox(),
+                  const SizedBox(height: 32),
 
-          const SizedBox(height: 16),
+                  // Current username display
+                  _buildSectionHeader('CURRENT USERNAME'),
+                  _buildCurrentUsernameBox(),
 
-          // New username input
-          _buildSectionHeader('NEW USERNAME'),
-          _buildUsernameInput(),
+                  const SizedBox(height: 24),
 
-          if (msg != null) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-              child: Text(
-                msg.text,
-                style: GoogleFonts.inter(color: msg.color, fontSize: 12),
+                  // New username input
+                  _buildSectionHeader('NEW @USERNAME'),
+                  _buildUsernameInput(),
+
+                  if (msg != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          msg.text,
+                          style: GoogleFonts.spaceMono(color: msg.color, fontSize: 11),
+                        ),
+                      ),
+                    ),
+
+                  const SizedBox(height: 32),
+
+                  // Rules info box
+                  _buildRulesBox(),
+
+                  const SizedBox(height: 40),
+
+                  // Submit button
+                  _buildSubmitButton(),
+                ],
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
 
-          const SizedBox(height: 16),
-
-          // Rules info box
-          _buildRulesBox(),
-
-          const SizedBox(height: 24),
-
-          // Submit button
-          ElevatedButton(
-            onPressed: _canSave ? _handleSave : null,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _canSave ? const Color(FlickoColors.blurple) : const Color(FlickoColors.bgTertiary),
-              foregroundColor: _canSave ? Colors.white : const Color(FlickoColors.textMuted),
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: _neonGreen.withValues(alpha: 0.1))),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          GestureDetector(
+            onTap: () => context.pop(),
+            child: const Padding(
+              padding: EdgeInsets.all(8),
+              child: Icon(Icons.arrow_back, color: _textWhite, size: 20),
             ),
-            child: _isLoading
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : Text(
-                    'Update Username',
-                    style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
           ),
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'CREDENTIALS',
+                  style: GoogleFonts.spaceGrotesk(
+                    color: _neonGreen.withValues(alpha: 0.8),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 2.0,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'USERNAME UPDATE',
+                  style: GoogleFonts.spaceMono(
+                    color: _textWhite.withValues(alpha: 0.3),
+                    fontSize: 8,
+                    letterSpacing: 1.0,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 36),
         ],
       ),
     );
   }
 
   Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 8, bottom: 8),
-      child: Text(
-        title,
-        style: GoogleFonts.inter(
-          color: const Color(FlickoColors.textMuted),
-          fontSize: 11,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 0.5,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: GoogleFonts.epilogue(
+            color: _textWhite,
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            fontStyle: FontStyle.italic,
+            letterSpacing: -0.3,
+          ),
         ),
-      ),
+        Container(height: 2, color: _neonGreen, margin: const EdgeInsets.only(top: 6, bottom: 16)),
+      ],
     );
   }
 
-  Widget _buildCurrentBox() {
+  Widget _buildCurrentUsernameBox() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: const Color(FlickoColors.bgSecondary),
-        borderRadius: BorderRadius.circular(12),
+        color: _surfaceContainer,
+        border: Border.all(color: _textWhite.withValues(alpha: 0.05)),
       ),
       child: Row(
         children: [
-          Text(
-            '@',
-            style: GoogleFonts.inter(
-              color: const Color(FlickoColors.textMuted),
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(width: 2),
+          const Icon(Icons.alternate_email, size: 18, color: _textMuted),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               _currentUsername ?? 'Not set',
-              style: GoogleFonts.inter(
-                color: const Color(FlickoColors.textSecondary),
-                fontSize: 15,
+              style: GoogleFonts.spaceMono(
+                color: _textWhite,
+                fontSize: 14,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -331,43 +382,32 @@ class _ChangeUsernameScreenState extends ConsumerState<ChangeUsernameScreen> {
   }
 
   Widget _buildUsernameInput() {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(FlickoColors.bgSecondary),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(color: _borderColor()),
-          borderRadius: BorderRadius.circular(12),
+    return TextField(
+      controller: _usernameController,
+      onChanged: _handleUsernameChange,
+      textCapitalization: TextCapitalization.none,
+      autocorrect: false,
+      style: GoogleFonts.spaceMono(color: _textWhite, fontSize: 14),
+      decoration: InputDecoration(
+        hintText: 'Enter new username',
+        hintStyle: GoogleFonts.spaceMono(color: _textMuted, fontSize: 12),
+        filled: true,
+        fillColor: _bgBlack,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.zero,
+          borderSide: BorderSide(color: _borderColor()),
         ),
-        child: TextField(
-          controller: _usernameController,
-          onChanged: _handleUsernameChange,
-          textCapitalization: TextCapitalization.none,
-          autocorrect: false,
-          style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary)),
-          decoration: InputDecoration(
-            hintText: _currentUsername ?? 'new_username',
-            hintStyle: GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
-            filled: true,
-            fillColor: Colors.transparent,
-            border: InputBorder.none,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            prefixIcon: Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: Text(
-                '@',
-                style: GoogleFonts.inter(
-                  color: const Color(FlickoColors.textMuted),
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            suffixIcon: _validationIcon(),
-          ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.zero,
+          borderSide: BorderSide(color: _borderColor()),
         ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.zero,
+          borderSide: BorderSide(color: _borderColor(), width: 1.5),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        prefixIcon: const Icon(Icons.alternate_email, size: 18, color: _neonGreen),
+        suffixIcon: _validationIcon(),
       ),
     );
   }
@@ -376,35 +416,67 @@ class _ChangeUsernameScreenState extends ConsumerState<ChangeUsernameScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(FlickoColors.bgSecondary),
-        border: Border.all(color: const Color(FlickoColors.blurple)),
-        borderRadius: BorderRadius.circular(12),
+        color: _neonGreen.withValues(alpha: 0.05),
+        border: Border.all(color: _neonGreen.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Row(
+            children: [
+              const Icon(Icons.security, size: 18, color: _neonGreen),
+              const SizedBox(width: 12),
+              Text(
+                'USERNAME REQUIREMENTS',
+                style: GoogleFonts.spaceGrotesk(
+                  color: _neonGreen,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
           Text(
-            'Username rules',
+            '• 3–32 characters long\n• Letters (a–z), numbers (0–9), and underscores (_) only\n• Must be unique — no two accounts can share one',
             style: GoogleFonts.inter(
-              color: const Color(FlickoColors.textPrimary),
+              color: _textMuted,
               fontSize: 13,
-              fontWeight: FontWeight.w600,
+              height: 1.6,
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            '• 3–32 characters long',
-            style: GoogleFonts.inter(color: const Color(FlickoColors.textSecondary), fontSize: 13, height: 1.5),
-          ),
-          Text(
-            '• Letters (a–z), numbers (0–9), and underscores _ only',
-            style: GoogleFonts.inter(color: const Color(FlickoColors.textSecondary), fontSize: 13, height: 1.5),
-          ),
-          Text(
-            '• Must be unique — no two accounts can share one',
-            style: GoogleFonts.inter(color: const Color(FlickoColors.textSecondary), fontSize: 13, height: 1.5),
-          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSubmitButton() {
+    return GestureDetector(
+      onTap: _canSave ? _handleSave : null,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: _canSave ? _neonGreen : _surfaceContainer,
+          border: Border.all(color: _canSave ? _neonGreen : _textWhite.withValues(alpha: 0.1)),
+        ),
+        alignment: Alignment.center,
+        child: _isLoading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+              )
+            : Text(
+                'SAVE USERNAME',
+                style: GoogleFonts.spaceGrotesk(
+                  color: _canSave ? Colors.black : _textMuted,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.0,
+                ),
+              ),
       ),
     );
   }

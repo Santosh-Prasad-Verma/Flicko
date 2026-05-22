@@ -197,6 +197,7 @@ services:
       WS_PORT: "8080"
       METRICS_PORT: "9102"
       JWT_PUBLIC_KEY_PATH: "/run/secrets/jwt_public_key"
+      INTERNAL_GATEWAY_TOKEN: "${INTERNAL_GATEWAY_TOKEN:-}"
     deploy:
       resources:
         limits:
@@ -251,6 +252,7 @@ services:
       HTTP_PORT: "8081"
       METRICS_PORT: "9101"
       JWT_PUBLIC_KEY_PATH: "/run/secrets/jwt_public_key"
+      INTERNAL_GATEWAY_TOKEN: "${INTERNAL_GATEWAY_TOKEN:-}"
     deploy:
       resources:
         limits:

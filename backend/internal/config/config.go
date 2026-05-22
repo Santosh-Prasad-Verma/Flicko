@@ -29,8 +29,6 @@ type Config struct {
 	RazorpayKeySecret  string
 	MailGatewayURL     string
 	InternalToken      string
-	// Sonic Drip — SpotAPI service URL (internal)
-	SpotAPIURL string
 	// E2EE v2 rollout (Task 3 / R16)
 	E2EEV2Enabled        bool
 	E2EEV2RolloutPercent int // 0..100; clients with hash(user_id)%100 < this opt in
@@ -136,7 +134,6 @@ func Load() (*Config, error) {
 		RazorpayKeySecret:  os.Getenv("RAZORPAY_KEY_SECRET"),
 		MailGatewayURL:     os.Getenv("MAIL_GATEWAY_URL"),
 		InternalToken:      os.Getenv("INTERNAL_TOKEN"),
-		SpotAPIURL:         os.Getenv("SPOTAPI_URL"),
 		E2EEV2Enabled:      parseBoolEnv("E2EE_V2_ENABLED", false),
 		E2EEV2RolloutPercent: parseIntEnv("E2EE_V2_ROLLOUT_PERCENT", 0, 0, 100),
 	}, nil

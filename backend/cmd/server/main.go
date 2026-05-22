@@ -398,6 +398,39 @@ func main() {
 		})
 	}).Methods("GET")
 
+
+	// ── Creator Community Subsystem ──────────────────────────────────────────
+	creatorSvc := services.NewCreatorService(db.Pool(), redisCache, cfg.SupabaseURL, cfg.SupabaseServiceKey)
+	creatorHandler := handlers.NewCreatorHandler(creatorSvc, logger)
+
+	// Rate limiters for creator subsystem
+	createPostLimiter := middleware.NewDistributedRateLimiter(redisCache.GetRedisClient(), 5, logger, "creator:create")
+	deletePostLimiter := middleware.NewDistributedRateLimiter(redisCache.GetRedisClient(), 20, logger, "creator:delete")
+	engagementLimiter := middleware.NewDistributedRateLimiter(redisCache.GetRedisClient(), 30, logger, "creator:engagement")
+	followLimiter := middleware.NewDistributedRateLimiter(redisCache.GetRedisClient(), 60, logger, "creator:follow")
+	acceptAnswerLimiter := middleware.NewDistributedRateLimiter(redisCache.GetRedisClient(), 10, logger, "creator:accept_answer")
+	mediaUploadLimiter := middleware.NewDistributedRateLimiter(redisCache.GetRedisClient(), 10, logger, "creator:upload")
+
+	// Protected routes under /api/v1/creator/...
+	// state-changing and customized rate-limited routes
+	protected.Handle("/creator/posts", createPostLimiter.Limit(http.HandlerFunc(creatorHandler.CreatePost))).Methods("POST")
+	protected.Handle("/creator/posts/{id}", deletePostLimiter.Limit(http.HandlerFunc(creatorHandler.DeletePost))).Methods("DELETE")
+	protected.Handle("/creator/posts/{id}/like", engagementLimiter.Limit(http.HandlerFunc(creatorHandler.ToggleLike))).Methods("POST")
+	protected.Handle("/creator/posts/{id}/repost", engagementLimiter.Limit(http.HandlerFunc(creatorHandler.ToggleRepost))).Methods("POST")
+	protected.Handle("/creator/posts/{id}/accept-answer", acceptAnswerLimiter.Limit(http.HandlerFunc(creatorHandler.MarkAcceptedAnswer))).Methods("POST")
+	protected.Handle("/creator/users/{id}/follow", followLimiter.Limit(http.HandlerFunc(creatorHandler.ToggleFollow))).Methods("POST")
+	protected.Handle("/creator/media/upload-url", mediaUploadLimiter.Limit(http.HandlerFunc(creatorHandler.GenerateUploadPresignedURL))).Methods("POST")
+
+	// Query/fetch routes (General 50 req/s IP limit already on 'protected')
+	protected.HandleFunc("/creator/feed", creatorHandler.GetFeed).Methods("GET")
+	protected.HandleFunc("/creator/search", creatorHandler.SearchPosts).Methods("GET")
+	protected.HandleFunc("/creator/profile/{id}", creatorHandler.GetUserProfile).Methods("GET")
+	protected.HandleFunc("/creator/posts/{id}", creatorHandler.GetPost).Methods("GET")
+	protected.HandleFunc("/creator/posts/{id}/replies", creatorHandler.GetReplies).Methods("GET")
+	protected.HandleFunc("/creator/users/{id}/posts", creatorHandler.GetUserPosts).Methods("GET")
+	protected.HandleFunc("/creator/users/{id}/followers", creatorHandler.GetFollowers).Methods("GET")
+	protected.HandleFunc("/creator/users/{id}/following", creatorHandler.GetFollowing).Methods("GET")
+
 	// ── E2EE Direct Messages ─────────────────────────────────────────────────
 	e2eeHandler := handlers.NewE2EEHandler(db.Pool(), logger)
 	protected.HandleFunc("/e2ee/identity", e2eeHandler.UpsertIdentity).Methods("PUT")
@@ -424,26 +457,7 @@ func main() {
 	flagsHandler := handlers.NewFeatureFlagsHandler(logger, cfg.E2EEV2Enabled, cfg.E2EEV2RolloutPercent)
 	protected.HandleFunc("/users/@me/config", flagsHandler.GetConfig).Methods("GET")
 
-	// ── Sonic Drip (Music / Spotify Integration) ─────────────────────────────
-	sonicDripHandler := handlers.NewSonicDripHandler(
-		db.Pool(),
-		redisCache.GetRedisClient(),
-		cfg.EncryptionKey,
-		cfg.SpotAPIURL,
-		logger,
-	)
-	protected.HandleFunc("/music/session", sonicDripHandler.SaveSession).Methods("POST")
-	protected.HandleFunc("/music/session", sonicDripHandler.GetSession).Methods("GET")
-	protected.HandleFunc("/music/session", sonicDripHandler.DeleteSession).Methods("DELETE")
-	protected.HandleFunc("/music/search", sonicDripHandler.Search).Methods("GET")
-	protected.HandleFunc("/music/player/play", sonicDripHandler.Play).Methods("POST")
-	protected.HandleFunc("/music/player/pause", sonicDripHandler.Pause).Methods("POST")
-	protected.HandleFunc("/music/player/resume", sonicDripHandler.Resume).Methods("POST")
-	protected.HandleFunc("/music/player/skip-next", sonicDripHandler.SkipNext).Methods("POST")
-	protected.HandleFunc("/music/player/seek", sonicDripHandler.Seek).Methods("POST")
-	protected.HandleFunc("/music/player/volume", sonicDripHandler.SetVolume).Methods("POST")
-	protected.HandleFunc("/music/player/state", sonicDripHandler.GetState).Methods("GET")
-	protected.HandleFunc("/music/player/devices", sonicDripHandler.GetDevices).Methods("GET")
+
 
 	// 5. HTTP Server definition (CRIT-012: Updated timeouts)
 	srv := &http.Server{

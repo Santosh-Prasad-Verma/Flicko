@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
+import 'package:mobile/data/models/user_model.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -19,14 +21,18 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildProfile(BuildContext context, WidgetRef ref, dynamic user, dynamic profile) {
+  Widget _buildProfile(BuildContext context, WidgetRef ref, dynamic user, UserModel? profile) {
     final displayName = profile?.displayName ?? profile?.username ?? 'User';
     final username = profile?.username ?? 'user';
     final bio = profile?.bio ?? 'Tell the world about yourself';
     final accentColor = Color(int.tryParse(profile?.accentColor?.replaceAll('#', '0xFF') ?? '') ?? FlickoColors.blurple);
-    final bannerUrl = profile?.bannerUrl as String?;
-    final bannerColors = (profile?.bannerColors as List<String>?) ?? const [];
-    final avatarUrl = profile?.avatarUrl as String?;
+    final bannerUrl = profile?.bannerUrl;
+    final bannerColors = profile?.bannerColors ?? const [];
+    final avatarUrl = profile?.avatarUrl;
+    final avatarDecoration = profile?.avatarDecoration;
+    final location = profile?.location;
+    final websiteUrl = profile?.websiteUrl;
+    final socialLink = profile?.socialLink;
 
     return Scaffold(
       backgroundColor: const Color(FlickoColors.bgPrimary),
@@ -39,11 +45,15 @@ class ProfileScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildIdentitySection(displayName, username, accentColor, avatarUrl),
+                  _buildIdentitySection(displayName, username, accentColor, avatarUrl, avatarDecoration, location),
                   const SizedBox(height: 24),
                   _buildCardSection('ABOUT ME', bio),
                   const SizedBox(height: 16),
                   _buildCardSection('MEMBER SINCE', 'Apr 22, 2026'), // Mocked
+                  if ((websiteUrl != null && websiteUrl.isNotEmpty) || (socialLink != null && socialLink.isNotEmpty)) ...[
+                    const SizedBox(height: 24),
+                    _buildLinksSection(websiteUrl, socialLink),
+                  ],
                   const SizedBox(height: 24),
                   _buildActionButtons(context),
                   const SizedBox(height: 40),
@@ -122,13 +132,14 @@ class ProfileScreen extends ConsumerWidget {
         ),
       ),
       actions: [
-        IconButton(icon: const Icon(Icons.share_outlined), onPressed: () {}),
+        IconButton(icon: const Icon(Icons.share_outlined), onPressed: () => context.push('/profile/settings/share-profile')),
         IconButton(icon: const Icon(Icons.more_horiz), onPressed: () {}),
       ],
     );
   }
 
-  Widget _buildIdentitySection(String name, String username, Color accentColor, String? avatarUrl) {
+  Widget _buildIdentitySection(
+      String name, String username, Color accentColor, String? avatarUrl, String? avatarDecoration, String? location) {
     return Transform.translate(
       offset: const Offset(0, -50),
       child: Column(
@@ -148,6 +159,7 @@ class ProfileScreen extends ConsumerWidget {
                   name: name,
                   status: 'online',
                   size: 80,
+                  decoration: avatarDecoration,
                 ),
               ),
               const Spacer(),
@@ -170,6 +182,23 @@ class ProfileScreen extends ConsumerWidget {
               fontSize: 16,
             ),
           ),
+          if (location != null && location.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.location_on, color: Color(FlickoColors.blurple), size: 18),
+                const SizedBox(width: 6),
+                Text(
+                  location,
+                  style: GoogleFonts.inter(
+                    color: const Color(FlickoColors.textSecondary),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -261,5 +290,106 @@ class ProfileScreen extends ConsumerWidget {
         ),
       ],
     );
+  }
+
+  Widget _buildLinksSection(String? websiteUrl, String? socialLink) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'LINKS',
+          style: GoogleFonts.epilogue(
+            color: const Color(FlickoColors.textMuted),
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.0,
+          ),
+        ),
+        const SizedBox(height: 12),
+        if (websiteUrl != null && websiteUrl.isNotEmpty) ...[
+          _buildBrutalistLinkCard('WEBSITE', websiteUrl),
+          const SizedBox(height: 12),
+        ],
+        if (socialLink != null && socialLink.isNotEmpty) ...[
+          _buildBrutalistLinkCard('SOCIAL PROFILE', socialLink),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildBrutalistLinkCard(String label, String url) {
+    final icon = _getLinkIcon(url);
+    return GestureDetector(
+      onTap: () async {
+        final uri = Uri.tryParse(url);
+        if (uri != null) {
+          if (await canLaunchUrl(uri)) {
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
+          }
+        }
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(FlickoColors.bgSecondary),
+          border: Border.all(color: Colors.white, width: 2),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(FlickoColors.blurple),
+              offset: Offset(4, 4),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Icon(icon, color: Colors.white, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: GoogleFonts.epilogue(
+                      color: const Color(FlickoColors.textMuted),
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    url,
+                    style: GoogleFonts.inter(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.open_in_new, color: Colors.white70, size: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  IconData _getLinkIcon(String url) {
+    final lower = url.toLowerCase();
+    if (lower.contains('github.com')) {
+      return Icons.code;
+    } else if (lower.contains('twitter.com') || lower.contains('x.com')) {
+      return Icons.alternate_email;
+    } else if (lower.contains('instagram.com')) {
+      return Icons.camera_alt;
+    } else if (lower.contains('linkedin.com')) {
+      return Icons.business;
+    } else if (lower.contains('youtube.com')) {
+      return Icons.play_arrow;
+    }
+    return Icons.language;
   }
 }

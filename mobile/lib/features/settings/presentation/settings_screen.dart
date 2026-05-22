@@ -151,6 +151,13 @@ class SettingsScreen extends ConsumerWidget {
             ),
             _buildSettingsRow(
               context,
+              Icons.storefront_rounded,
+              'Store',
+              () => context.push('/store'),
+              trailing: _buildPremiumBadge('NEW'),
+            ),
+            _buildSettingsRow(
+              context,
               Icons.water_drop_rounded,
               'Sonic Drip',
               () => context.push('/profile/settings/sonic-drip'),

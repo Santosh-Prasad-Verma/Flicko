@@ -414,10 +414,11 @@ class _StatusScreenState extends ConsumerState<StatusScreen> {
             backgroundColor: Color(FlickoColors.statusOnline),
           ),
         );
-        context.pop();
-        Future.microtask(() {
-          ref.invalidate(authNotifierProvider);
-        });
+        // Refresh profile without completely rebuilding notifier and losing frame
+        await ref.read(authNotifierProvider.notifier).refreshProfile();
+        if (mounted) {
+          context.pop();
+        }
       }
     } catch (e) {
       if (mounted) {

@@ -55,7 +55,7 @@ class VoiceController extends Notifier<VoiceState> {
 
     try {
       // 2. Configure Audio Session
-      final session = await AudioSession.instance;
+      final session = await ref.read(audioSessionProvider);
       await session.configure(const AudioSessionConfiguration.speech());
       if (!await session.setActive(true)) {
         throw Exception('Failed to activate audio session');
@@ -225,7 +225,7 @@ class VoiceController extends Notifier<VoiceState> {
   Future<void> leaveChannel() async {
     await state.room?.disconnect();
     state = const VoiceState();
-    final session = await AudioSession.instance;
+    final session = await ref.read(audioSessionProvider);
     await session.setActive(false);
   }
 }

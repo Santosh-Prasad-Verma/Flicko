@@ -371,6 +371,11 @@ mixin _$UserModel {
   String? get bio;
   String? get pronouns;
   String? get phone;
+  String? get location;
+  @JsonKey(name: 'website_url')
+  String? get websiteUrl;
+  @JsonKey(name: 'social_link')
+  String? get socialLink;
   @JsonKey(name: 'accent_color')
   String? get accentColor;
   @JsonKey(name: 'banner_colors')
@@ -423,6 +428,12 @@ mixin _$UserModel {
             (identical(other.pronouns, pronouns) ||
                 other.pronouns == pronouns) &&
             (identical(other.phone, phone) || other.phone == phone) &&
+            (identical(other.location, location) ||
+                other.location == location) &&
+            (identical(other.websiteUrl, websiteUrl) ||
+                other.websiteUrl == websiteUrl) &&
+            (identical(other.socialLink, socialLink) ||
+                other.socialLink == socialLink) &&
             (identical(other.accentColor, accentColor) ||
                 other.accentColor == accentColor) &&
             const DeepCollectionEquality()
@@ -459,6 +470,9 @@ mixin _$UserModel {
         bio,
         pronouns,
         phone,
+        location,
+        websiteUrl,
+        socialLink,
         accentColor,
         const DeepCollectionEquality().hash(bannerColors),
         avatarDecoration,
@@ -475,7 +489,7 @@ mixin _$UserModel {
 
   @override
   String toString() {
-    return 'UserModel(id: $id, username: $username, displayName: $displayName, avatarUrl: $avatarUrl, bannerUrl: $bannerUrl, bio: $bio, pronouns: $pronouns, phone: $phone, accentColor: $accentColor, bannerColors: $bannerColors, avatarDecoration: $avatarDecoration, onlineStatus: $onlineStatus, customStatus: $customStatus, customStatusEmoji: $customStatusEmoji, badges: $badges, isStaff: $isStaff, isPartner: $isPartner, hasNitro: $hasNitro, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'UserModel(id: $id, username: $username, displayName: $displayName, avatarUrl: $avatarUrl, bannerUrl: $bannerUrl, bio: $bio, pronouns: $pronouns, phone: $phone, location: $location, websiteUrl: $websiteUrl, socialLink: $socialLink, accentColor: $accentColor, bannerColors: $bannerColors, avatarDecoration: $avatarDecoration, onlineStatus: $onlineStatus, customStatus: $customStatus, customStatusEmoji: $customStatusEmoji, badges: $badges, isStaff: $isStaff, isPartner: $isPartner, hasNitro: $hasNitro, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 }
 
@@ -493,6 +507,9 @@ abstract mixin class $UserModelCopyWith<$Res> {
       String? bio,
       String? pronouns,
       String? phone,
+      String? location,
+      @JsonKey(name: 'website_url') String? websiteUrl,
+      @JsonKey(name: 'social_link') String? socialLink,
       @JsonKey(name: 'accent_color') String? accentColor,
       @JsonKey(name: 'banner_colors') List<String>? bannerColors,
       @JsonKey(name: 'avatar_decoration') String? avatarDecoration,
@@ -527,6 +544,9 @@ class _$UserModelCopyWithImpl<$Res> implements $UserModelCopyWith<$Res> {
     Object? bio = freezed,
     Object? pronouns = freezed,
     Object? phone = freezed,
+    Object? location = freezed,
+    Object? websiteUrl = freezed,
+    Object? socialLink = freezed,
     Object? accentColor = freezed,
     Object? bannerColors = freezed,
     Object? avatarDecoration = freezed,
@@ -572,6 +592,18 @@ class _$UserModelCopyWithImpl<$Res> implements $UserModelCopyWith<$Res> {
       phone: freezed == phone
           ? _self.phone
           : phone // ignore: cast_nullable_to_non_nullable
+              as String?,
+      location: freezed == location
+          ? _self.location
+          : location // ignore: cast_nullable_to_non_nullable
+              as String?,
+      websiteUrl: freezed == websiteUrl
+          ? _self.websiteUrl
+          : websiteUrl // ignore: cast_nullable_to_non_nullable
+              as String?,
+      socialLink: freezed == socialLink
+          ? _self.socialLink
+          : socialLink // ignore: cast_nullable_to_non_nullable
               as String?,
       accentColor: freezed == accentColor
           ? _self.accentColor
@@ -727,6 +759,9 @@ extension UserModelPatterns on UserModel {
             String? bio,
             String? pronouns,
             String? phone,
+            String? location,
+            @JsonKey(name: 'website_url') String? websiteUrl,
+            @JsonKey(name: 'social_link') String? socialLink,
             @JsonKey(name: 'accent_color') String? accentColor,
             @JsonKey(name: 'banner_colors') List<String>? bannerColors,
             @JsonKey(name: 'avatar_decoration') String? avatarDecoration,
@@ -754,6 +789,9 @@ extension UserModelPatterns on UserModel {
             _that.bio,
             _that.pronouns,
             _that.phone,
+            _that.location,
+            _that.websiteUrl,
+            _that.socialLink,
             _that.accentColor,
             _that.bannerColors,
             _that.avatarDecoration,
@@ -795,6 +833,9 @@ extension UserModelPatterns on UserModel {
             String? bio,
             String? pronouns,
             String? phone,
+            String? location,
+            @JsonKey(name: 'website_url') String? websiteUrl,
+            @JsonKey(name: 'social_link') String? socialLink,
             @JsonKey(name: 'accent_color') String? accentColor,
             @JsonKey(name: 'banner_colors') List<String>? bannerColors,
             @JsonKey(name: 'avatar_decoration') String? avatarDecoration,
@@ -821,6 +862,9 @@ extension UserModelPatterns on UserModel {
             _that.bio,
             _that.pronouns,
             _that.phone,
+            _that.location,
+            _that.websiteUrl,
+            _that.socialLink,
             _that.accentColor,
             _that.bannerColors,
             _that.avatarDecoration,
@@ -861,6 +905,9 @@ extension UserModelPatterns on UserModel {
             String? bio,
             String? pronouns,
             String? phone,
+            String? location,
+            @JsonKey(name: 'website_url') String? websiteUrl,
+            @JsonKey(name: 'social_link') String? socialLink,
             @JsonKey(name: 'accent_color') String? accentColor,
             @JsonKey(name: 'banner_colors') List<String>? bannerColors,
             @JsonKey(name: 'avatar_decoration') String? avatarDecoration,
@@ -887,6 +934,9 @@ extension UserModelPatterns on UserModel {
             _that.bio,
             _that.pronouns,
             _that.phone,
+            _that.location,
+            _that.websiteUrl,
+            _that.socialLink,
             _that.accentColor,
             _that.bannerColors,
             _that.avatarDecoration,
@@ -917,6 +967,9 @@ class _UserModel implements UserModel {
       this.bio,
       this.pronouns,
       this.phone,
+      this.location,
+      @JsonKey(name: 'website_url') this.websiteUrl,
+      @JsonKey(name: 'social_link') this.socialLink,
       @JsonKey(name: 'accent_color') this.accentColor,
       @JsonKey(name: 'banner_colors') final List<String>? bannerColors,
       @JsonKey(name: 'avatar_decoration') this.avatarDecoration,
@@ -953,6 +1006,14 @@ class _UserModel implements UserModel {
   final String? pronouns;
   @override
   final String? phone;
+  @override
+  final String? location;
+  @override
+  @JsonKey(name: 'website_url')
+  final String? websiteUrl;
+  @override
+  @JsonKey(name: 'social_link')
+  final String? socialLink;
   @override
   @JsonKey(name: 'accent_color')
   final String? accentColor;
@@ -1037,6 +1098,12 @@ class _UserModel implements UserModel {
             (identical(other.pronouns, pronouns) ||
                 other.pronouns == pronouns) &&
             (identical(other.phone, phone) || other.phone == phone) &&
+            (identical(other.location, location) ||
+                other.location == location) &&
+            (identical(other.websiteUrl, websiteUrl) ||
+                other.websiteUrl == websiteUrl) &&
+            (identical(other.socialLink, socialLink) ||
+                other.socialLink == socialLink) &&
             (identical(other.accentColor, accentColor) ||
                 other.accentColor == accentColor) &&
             const DeepCollectionEquality()
@@ -1073,6 +1140,9 @@ class _UserModel implements UserModel {
         bio,
         pronouns,
         phone,
+        location,
+        websiteUrl,
+        socialLink,
         accentColor,
         const DeepCollectionEquality().hash(_bannerColors),
         avatarDecoration,
@@ -1089,7 +1159,7 @@ class _UserModel implements UserModel {
 
   @override
   String toString() {
-    return 'UserModel(id: $id, username: $username, displayName: $displayName, avatarUrl: $avatarUrl, bannerUrl: $bannerUrl, bio: $bio, pronouns: $pronouns, phone: $phone, accentColor: $accentColor, bannerColors: $bannerColors, avatarDecoration: $avatarDecoration, onlineStatus: $onlineStatus, customStatus: $customStatus, customStatusEmoji: $customStatusEmoji, badges: $badges, isStaff: $isStaff, isPartner: $isPartner, hasNitro: $hasNitro, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'UserModel(id: $id, username: $username, displayName: $displayName, avatarUrl: $avatarUrl, bannerUrl: $bannerUrl, bio: $bio, pronouns: $pronouns, phone: $phone, location: $location, websiteUrl: $websiteUrl, socialLink: $socialLink, accentColor: $accentColor, bannerColors: $bannerColors, avatarDecoration: $avatarDecoration, onlineStatus: $onlineStatus, customStatus: $customStatus, customStatusEmoji: $customStatusEmoji, badges: $badges, isStaff: $isStaff, isPartner: $isPartner, hasNitro: $hasNitro, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 }
 
@@ -1110,6 +1180,9 @@ abstract mixin class _$UserModelCopyWith<$Res>
       String? bio,
       String? pronouns,
       String? phone,
+      String? location,
+      @JsonKey(name: 'website_url') String? websiteUrl,
+      @JsonKey(name: 'social_link') String? socialLink,
       @JsonKey(name: 'accent_color') String? accentColor,
       @JsonKey(name: 'banner_colors') List<String>? bannerColors,
       @JsonKey(name: 'avatar_decoration') String? avatarDecoration,
@@ -1144,6 +1217,9 @@ class __$UserModelCopyWithImpl<$Res> implements _$UserModelCopyWith<$Res> {
     Object? bio = freezed,
     Object? pronouns = freezed,
     Object? phone = freezed,
+    Object? location = freezed,
+    Object? websiteUrl = freezed,
+    Object? socialLink = freezed,
     Object? accentColor = freezed,
     Object? bannerColors = freezed,
     Object? avatarDecoration = freezed,
@@ -1189,6 +1265,18 @@ class __$UserModelCopyWithImpl<$Res> implements _$UserModelCopyWith<$Res> {
       phone: freezed == phone
           ? _self.phone
           : phone // ignore: cast_nullable_to_non_nullable
+              as String?,
+      location: freezed == location
+          ? _self.location
+          : location // ignore: cast_nullable_to_non_nullable
+              as String?,
+      websiteUrl: freezed == websiteUrl
+          ? _self.websiteUrl
+          : websiteUrl // ignore: cast_nullable_to_non_nullable
+              as String?,
+      socialLink: freezed == socialLink
+          ? _self.socialLink
+          : socialLink // ignore: cast_nullable_to_non_nullable
               as String?,
       accentColor: freezed == accentColor
           ? _self.accentColor

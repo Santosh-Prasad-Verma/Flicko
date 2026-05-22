@@ -1,15 +1,15 @@
 import 'dart:io';
 import 'package:appwrite/appwrite.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mobile/core/config/environment.dart';
+import 'package:mobile/core/config/app_config.dart';
 
 class AppwriteStorageService {
   final Storage _storage;
 
   AppwriteStorageService(Client client) : _storage = Storage(client);
 
-  /// Default bucket id, could also be pulled from Environment if configured
-  static const String bucketId = 'attachments';
+  /// Dynamic bucket id pulled from AppConfig
+  static String get bucketId => AppConfig.appwriteBucketId.isEmpty ? 'attachments' : AppConfig.appwriteBucketId;
 
   Future<String> uploadAttachment(
       File file, String userId, String channelId) async {
@@ -25,7 +25,7 @@ class AppwriteStorageService {
       // Get the preview/view URL from the created file.
       // E.g. https://<ENDPOINT>/v1/storage/buckets/<BUCKET_ID>/files/<FILE_ID>/view?project=<PROJECT_ID>
       final String fileUrl =
-          '${Environment.appwritePublicEndpoint}/storage/buckets/$bucketId/files/${result.$id}/view?project=${Environment.appwriteProjectId}';
+          '${AppConfig.appwritePublicEndpoint}/storage/buckets/$bucketId/files/${result.$id}/view?project=${AppConfig.appwriteProjectId}';
 
       return fileUrl;
     } catch (e) {
@@ -36,8 +36,8 @@ class AppwriteStorageService {
 
 final appwriteClientProvider = Provider<Client>((ref) {
   final client = Client()
-    ..setEndpoint(Environment.appwritePublicEndpoint)
-    ..setProject(Environment.appwriteProjectId);
+    ..setEndpoint(AppConfig.appwritePublicEndpoint)
+    ..setProject(AppConfig.appwriteProjectId);
   return client;
 });
 

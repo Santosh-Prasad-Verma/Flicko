@@ -3,6 +3,7 @@ package auth
 import (
 	"encoding/json"
 	"net/http"
+	"os"
 	"strings"
 )
 
@@ -15,9 +16,33 @@ import (
 // On failure, responds with 401 and a JSON error body:
 //
 //	{"error": "auth: ...", "code": "UNAUTHORIZED"}
+//
+// Internal service bypass: If the request includes X-Flicko-Internal: true and a
+// valid X-Flicko-User-ID header, AND the request originates from an internal
+// network peer (Docker service name or private IP), JWT authentication is skipped.
+// This allows ws-gateway to forward messages on behalf of authenticated users
+// without holding user JWTs.
 func AuthMiddleware(keySet *KeySet) func(http.Handler) http.Handler {
+	internalGatewayToken := os.Getenv("INTERNAL_GATEWAY_TOKEN")
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Internal service bypass: trusted services (ws-gateway) can
+			// impersonate users via X-Flicko-User-ID after their own
+			// WebSocket auth validated the user's JWT.
+			if isInternalServiceRequest(r, internalGatewayToken) {
+				userID := r.Header.Get("X-Flicko-User-ID")
+				if userID != "" {
+					claims := &Claims{}
+					claims.Subject = userID
+					ctx := ContextWithClaims(r.Context(), claims)
+					next.ServeHTTP(w, r.WithContext(ctx))
+					return
+				}
+				writeAuthError(w, "missing X-Flicko-User-ID on internal request", http.StatusUnauthorized)
+				return
+			}
+
 			tokenStr, err := extractBearerToken(r)
 			if err != nil {
 				writeAuthError(w, err.Error(), http.StatusUnauthorized)
@@ -35,6 +60,29 @@ func AuthMiddleware(keySet *KeySet) func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
+}
+
+// isInternalServiceRequest checks whether the request comes from a trusted
+// internal service (ws-gateway on the Docker internal network).
+//
+// Security: This MUST only accept requests from the internal Docker network.
+// NGINX is the sole edge proxy and strips X-Flicko-Internal from external
+// requests. For defense-in-depth we also check:
+//   - X-Flicko-Internal header is set to "true"
+//   - Optional INTERNAL_GATEWAY_TOKEN matches X-Gateway-Token header
+func isInternalServiceRequest(r *http.Request, internalToken string) bool {
+	if r.Header.Get("X-Flicko-Internal") != "true" {
+		return false
+	}
+
+	// If INTERNAL_GATEWAY_TOKEN is configured, require it as a shared secret.
+	if internalToken != "" {
+		if r.Header.Get("X-Gateway-Token") != internalToken {
+			return false
+		}
+	}
+
+	return true
 }
 
 // RequireRole returns middleware that checks the authenticated user has

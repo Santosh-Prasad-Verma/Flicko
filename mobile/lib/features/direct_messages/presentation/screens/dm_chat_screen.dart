@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/features/direct_messages/presentation/controllers/dm_chat_controller.dart';
@@ -8,6 +10,8 @@ import 'package:mobile/features/direct_messages/presentation/widgets/dm_chat_inp
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
 import 'package:mobile/features/calling/presentation/incoming_call_overlay.dart';
+import 'package:mobile/features/calling/services/call_signaling_service.dart';
+import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:go_router/go_router.dart';
 
 class DMChatScreen extends ConsumerStatefulWidget {
@@ -24,17 +28,176 @@ class DMChatScreen extends ConsumerStatefulWidget {
 
 class _DMChatScreenState extends ConsumerState<DMChatScreen> {
   final ScrollController _scrollController = ScrollController();
+  StreamSubscription<CallSignalPayload>? _signalSub;
+  CallSignalingService? _signalingService;
+  String? _myUserId;
+  String? _participantName;
+  String? _participantAvatarUrl;
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+
+    Future.microtask(() {
+      final authState = ref.read(authNotifierProvider);
+      _myUserId = authState.maybeWhen(
+        authenticated: (user, _) => user.id,
+        orElse: () => null,
+      );
+      if (_myUserId == null) return;
+
+      _signalingService = ref.read(callSignalingServiceProvider);
+      _signalingService!.initialize(_myUserId!);
+
+      _signalSub = _signalingService!.onSignal.listen(_handleCallSignal);
+    });
   }
 
   @override
   void dispose() {
+    _signalSub?.cancel();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _handleCallSignal(CallSignalPayload signal) {
+    if (!mounted) return;
+
+    switch (signal.signal) {
+      case CallSignal.ring:
+        // Incoming call — show the incoming call screen.
+        final convoState = ref.read(dmControllerProvider);
+        final conversation = convoState.conversations
+            .cast<DMConversation?>()
+            .firstWhere((c) => c?.id == signal.callerId, orElse: () => null);
+        final callerName = signal.callerName;
+        final callerAvatar = signal.callerAvatarUrl;
+
+        final isVideo = signal.callType == 'video';
+        if (isVideo) {
+          CallOverlay.showIncomingVideo(
+            context,
+            callerName: callerName,
+            callerAvatarUrl: callerAvatar,
+            onAccept: () {
+              _sendSignal(
+                signal: CallSignal.accept,
+                calleeId: signal.callerId,
+                callerId: _myUserId!,
+                roomName: signal.roomName,
+                callType: signal.callType,
+              );
+              // Join the LiveKit room.
+              _joinCall(signal.roomName);
+            },
+            onDecline: () {
+              _sendSignal(
+                signal: CallSignal.decline,
+                calleeId: signal.callerId,
+                callerId: _myUserId!,
+                roomName: signal.roomName,
+                callType: signal.callType,
+              );
+            },
+          );
+        } else {
+          CallOverlay.showIncoming(
+            context,
+            callerName: callerName,
+            callerAvatarUrl: callerAvatar,
+            callType: signal.callType,
+            onAccept: () {
+              _sendSignal(
+                signal: CallSignal.accept,
+                calleeId: signal.callerId,
+                callerId: _myUserId!,
+                roomName: signal.roomName,
+                callType: signal.callType,
+              );
+              _joinCall(signal.roomName);
+            },
+            onDecline: () {
+              _sendSignal(
+                signal: CallSignal.decline,
+                calleeId: signal.callerId,
+                callerId: _myUserId!,
+                roomName: signal.roomName,
+                callType: signal.callType,
+              );
+            },
+          );
+        }
+        break;
+
+      case CallSignal.accept:
+        // Caller side: callee accepted. Join the room.
+        CallOverlay.acceptCall(
+          context,
+          peerName: signal.callerName,
+          peerAvatarUrl: signal.callerAvatarUrl,
+          isVideo: signal.callType == 'video',
+        );
+        _joinCall(signal.roomName);
+        break;
+
+      case CallSignal.decline:
+        // Caller side: callee declined. Dismiss the outgoing screen.
+        if (Navigator.of(context, rootNavigator: true).canPop()) {
+          Navigator.of(context, rootNavigator: true).pop();
+        }
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('${signal.callerName} declined the call')),
+          );
+        }
+        break;
+
+      case CallSignal.cancel:
+        // Callee side: caller hung up before answer.
+        if (Navigator.of(context, rootNavigator: true).canPop()) {
+          Navigator.of(context, rootNavigator: true).pop();
+        }
+        break;
+
+      case CallSignal.end:
+        // Either side: call ended.
+        break;
+
+      case CallSignal.connected:
+        // Call connected / established.
+        break;
+    }
+  }
+
+  Future<void> _sendSignal({
+    required CallSignal signal,
+    required String calleeId,
+    required String callerId,
+    String callerName = '',
+    String? callerAvatarUrl,
+    required String roomName,
+    required String callType,
+  }) async {
+    if (_signalingService == null) return;
+
+    final payload = CallSignalPayload(
+      signal: signal,
+      callerId: callerId,
+      callerName: callerName,
+      callerAvatarUrl: callerAvatarUrl,
+      calleeId: calleeId,
+      callType: callType,
+      roomName: roomName,
+    );
+
+    await _signalingService!.sendSignal(payload);
+  }
+
+  void _joinCall(String roomName) {
+    // TODO: Connect to LiveKit room using VoiceController or RoomNotifier.
+    // The roomName is the LiveKit room to join.
+    debugPrint('[DMChat] Joining call room: $roomName');
   }
 
   void _onScroll() {
@@ -47,20 +210,73 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
   }
 
   void _startVoiceCall(String name, String? avatarUrl) {
+    _participantName = name;
+    _participantAvatarUrl = avatarUrl;
+
+    final roomName = CallSignalingService.roomNameForDM(
+      _myUserId ?? '', widget.userId,
+    );
+
+    _sendSignal(
+      signal: CallSignal.ring,
+      calleeId: widget.userId,
+      callerId: _myUserId ?? '',
+      callerName: name,
+      callerAvatarUrl: avatarUrl,
+      roomName: roomName,
+      callType: 'voice',
+    );
+
     CallOverlay.showOutgoing(
       context,
       calleeName: name,
       calleeAvatarUrl: avatarUrl,
       callType: 'voice',
+      onCancel: () {
+        _sendSignal(
+          signal: CallSignal.cancel,
+          calleeId: widget.userId,
+          callerId: _myUserId ?? '',
+          callerName: name,
+          roomName: roomName,
+          callType: 'voice',
+        );
+      },
     );
   }
 
   void _startVideoCall(String name, String? avatarUrl) {
-    CallOverlay.showOutgoing(
+    _participantName = name;
+    _participantAvatarUrl = avatarUrl;
+
+    final roomName = CallSignalingService.roomNameForDM(
+      _myUserId ?? '', widget.userId,
+    );
+
+    _sendSignal(
+      signal: CallSignal.ring,
+      calleeId: widget.userId,
+      callerId: _myUserId ?? '',
+      callerName: name,
+      callerAvatarUrl: avatarUrl,
+      roomName: roomName,
+      callType: 'video',
+    );
+
+    CallOverlay.showOutgoingVideo(
       context,
       calleeName: name,
       calleeAvatarUrl: avatarUrl,
-      callType: 'video',
+      onCancel: () {
+        _sendSignal(
+          signal: CallSignal.cancel,
+          calleeId: widget.userId,
+          callerId: _myUserId ?? '',
+          callerName: name,
+          roomName: roomName,
+          callType: 'video',
+        );
+      },
     );
   }
 
