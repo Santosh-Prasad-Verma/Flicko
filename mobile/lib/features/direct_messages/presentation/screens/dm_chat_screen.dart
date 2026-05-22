@@ -13,6 +13,7 @@ import 'package:mobile/features/calling/presentation/incoming_call_overlay.dart'
 import 'package:mobile/features/calling/services/call_signaling_service.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mobile/features/voice/presentation/controllers/voice_controller.dart';
 
 class DMChatScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -195,9 +196,8 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
   }
 
   void _joinCall(String roomName) {
-    // TODO: Connect to LiveKit room using VoiceController or RoomNotifier.
-    // The roomName is the LiveKit room to join.
     debugPrint('[DMChat] Joining call room: $roomName');
+    ref.read(voiceControllerProvider.notifier).joinChannel(roomName, 'dm');
   }
 
   void _onScroll() {

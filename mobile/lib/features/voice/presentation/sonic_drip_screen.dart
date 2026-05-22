@@ -144,7 +144,7 @@ class _AppBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: const BoxDecoration(
         color: Color(0xFF000000),
         border: Border(bottom: BorderSide(color: Color(0xFF52B788), width: 3)),
@@ -160,7 +160,7 @@ class _AppBar extends StatelessWidget {
                 style: GoogleFonts.spaceGrotesk(
                   color: Colors.white,
                   fontWeight: FontWeight.w900,
-                  fontSize: 24,
+                  fontSize: 22,
                   letterSpacing: 2,
                   height: 1,
                 ),
@@ -191,9 +191,9 @@ class _AppBar extends StatelessWidget {
           Row(
             children: [
               _IconBtn(Icons.library_music, onLibrary, size: 16),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               _IconBtn(Icons.tune, onSettings, size: 16),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               _IconBtn(Icons.search, onSearch),
             ],
           ),
@@ -385,11 +385,11 @@ class _IconBtn extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
           color: Colors.black,
           border: Border.all(color: const Color(0xFF52B788), width: 2),
-          boxShadow: const [BoxShadow(color: Color(0xFF52B788), offset: Offset(3, 3))],
+          boxShadow: const [BoxShadow(color: Color(0xFF52B788), offset: Offset(2, 2))],
         ),
         child: Icon(icon, size: size, color: const Color(0xFF52B788)),
       ),

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 import '../data/music_repository.dart';
 import '../data/drip_bash_repository.dart';
+import '../data/sleep_timer_service.dart';
 import '../domain/music_models.dart';
 
 // ─── State ────────────────────────────────────────────────────────────────────
@@ -311,7 +312,8 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
 
   /// Add a track from Drip Bash, resolving its streaming URL first.
   Future<void> addDripBashTrack(Track track) async {
-    final resolvedTrack = await _resolveDripBashUrl(track);
+    final wasIdle = state.playback.status == PlaybackStatus.idle;
+    final resolvedTrack = await _resolveDripBashUrl(track, updateStatus: wasIdle);
     if (resolvedTrack == null) return;
 
     final alreadyInQueue = state.queue.any((t) => t.id == resolvedTrack.id);
@@ -319,7 +321,7 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
 
     final newQueue = [...state.queue, resolvedTrack];
 
-    if (state.playback.status == PlaybackStatus.idle) {
+    if (wasIdle) {
       _playTrack(resolvedTrack, newQueue);
     } else {
       state = state.copyWith(queue: newQueue);
@@ -340,12 +342,13 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
   /// Add all tracks from an album to the queue via Drip Bash.
   Future<void> addAlbumToQueue(List<Track> albumTracks) async {
     for (final track in albumTracks) {
-      final resolved = await _resolveDripBashUrl(track);
+      final wasIdle = state.playback.status == PlaybackStatus.idle;
+      final resolved = await _resolveDripBashUrl(track, updateStatus: wasIdle);
       if (resolved != null) {
         final alreadyInQueue = state.queue.any((t) => t.id == resolved.id);
         if (!alreadyInQueue) {
           final newQueue = [...state.queue, resolved];
-          if (state.playback.status == PlaybackStatus.idle) {
+          if (wasIdle) {
             _playTrack(resolved, newQueue);
           } else {
             state = state.copyWith(queue: newQueue);
@@ -355,20 +358,24 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
     }
   }
 
-  Future<Track?> _resolveDripBashUrl(Track track) async {
+  Future<Track?> _resolveDripBashUrl(Track track, {bool updateStatus = true}) async {
     try {
       final repo = ref.read(dripBashRepositoryProvider);
       String? streamUrl;
 
       if (track.source == 'youtube') {
-        state = state.copyWith(
-          playback: state.playback.copyWith(status: PlaybackStatus.loading),
-        );
+        if (updateStatus) {
+          state = state.copyWith(
+            playback: state.playback.copyWith(status: PlaybackStatus.loading),
+          );
+        }
         streamUrl = await repo.getStreamingUrl(track.id);
       } else if (track.source == 'saavn') {
-        state = state.copyWith(
-          playback: state.playback.copyWith(status: PlaybackStatus.loading),
-        );
+        if (updateStatus) {
+          state = state.copyWith(
+            playback: state.playback.copyWith(status: PlaybackStatus.loading),
+          );
+        }
         streamUrl = await repo.getSaavnStreamingUrl(track.id);
       } else if (track.previewUrl != null) {
         return track; // Already has a streaming URL
@@ -376,24 +383,28 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
 
       if (streamUrl == null) {
         dev.log('Failed to resolve URL for: ${track.name}', name: 'drip-bash');
-        state = state.copyWith(
-          playback: state.playback.copyWith(
-            status: PlaybackStatus.error,
-            error: 'Could not get streaming URL',
-          ),
-        );
+        if (updateStatus) {
+          state = state.copyWith(
+            playback: state.playback.copyWith(
+              status: PlaybackStatus.error,
+              error: 'Could not get streaming URL',
+            ),
+          );
+        }
         return null;
       }
 
       return track.copyWith(previewUrl: streamUrl);
     } catch (e) {
       dev.log('Error resolving Drip Bash URL: $e', name: 'drip-bash');
-      state = state.copyWith(
-        playback: state.playback.copyWith(
-          status: PlaybackStatus.error,
-          error: 'Stream error: $e',
-        ),
-      );
+      if (updateStatus) {
+        state = state.copyWith(
+          playback: state.playback.copyWith(
+            status: PlaybackStatus.error,
+            error: 'Stream error: $e',
+          ),
+        );
+      }
       return null;
     }
   }

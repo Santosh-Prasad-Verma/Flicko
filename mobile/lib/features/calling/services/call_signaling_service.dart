@@ -140,6 +140,7 @@ class CallSignalingService {
     } catch (e) {
       debugPrint('[CallSignal] Error sending signal: $e');
     } finally {
+      await Future.delayed(const Duration(milliseconds: 500));
       await recipientChannel.unsubscribe();
     }
   }

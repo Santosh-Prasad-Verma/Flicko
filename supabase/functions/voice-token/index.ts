@@ -103,71 +103,82 @@ serve(async (req: Request) => {
       });
     }
 
-    // 3. Verify membership
-    const { data: member, error: memberError } = await supabase
-      .from('server_members')
-      .select('id')
-      .eq('server_id', serverId)
-      .eq('user_id', user.id)
-      .single();
+    const isDm = serverId === 'dm';
 
-    if (memberError || !member) {
-      console.error('Member error:', memberError);
-      return new Response(JSON.stringify({ error: 'Not a server member' }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // 4. Verify channel exists and is voice/stage type
-    const { data: channel, error: channelError } = await supabase
-      .from('channels')
-      .select('id, type, user_limit')
-      .eq('id', channelId)
-      .eq('server_id', serverId)
-      .single();
-
-    if (channelError || !channel || !['voice', 'stage'].includes(channel.type)) {
-      console.error('Channel error:', channelError, 'Channel data:', channel);
-      return new Response(JSON.stringify({ error: 'Invalid voice channel' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // 5. Check user limit
-    if (channel.user_limit && channel.user_limit > 0) {
-      const { count, error: countError } = await supabase
-        .from('voice_states')
-        .select('id', { count: 'exact', head: true })
-        .eq('channel_id', channelId);
-
-      if (countError) {
-        console.error('Voice states count error:', countError);
-      }
-
-      if (count && count >= channel.user_limit) {
-        return new Response(JSON.stringify({ error: 'Channel is full' }), {
-          status: 409,
+    if (isDm) {
+      if (!channelId.includes(user.id)) {
+        return new Response(JSON.stringify({ error: 'Access denied: user is not part of this DM channel' }), {
+          status: 403,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-    }
+    } else {
+      // 3. Verify membership
+      const { data: member, error: memberError } = await supabase
+        .from('server_members')
+        .select('id')
+        .eq('server_id', serverId)
+        .eq('user_id', user.id)
+        .single();
 
-    // 6. Check screen share slot availability (max 1 in free tier)
-    if (screenShare) {
-      const { count: screenShareCount } = await supabase
-        .from('voice_states')
-        .select('user_id', { count: 'exact', head: true })
-        .eq('channel_id', channelId)
-        .eq('is_streaming', true);
+      if (memberError || !member) {
+        console.error('Member error:', memberError);
+        return new Response(JSON.stringify({ error: 'Not a server member' }), {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
 
-      const maxScreenShares = 1;
-      if (screenShareCount && screenShareCount >= maxScreenShares) {
-        return new Response(
-          JSON.stringify({ error: 'Screen share slot taken', code: 'SCREEN_SHARE_LIMIT' }),
-          { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-        );
+      // 4. Verify channel exists and is voice/stage type
+      const { data: channel, error: channelError } = await supabase
+        .from('channels')
+        .select('id, type, user_limit')
+        .eq('id', channelId)
+        .eq('server_id', serverId)
+        .single();
+
+      if (channelError || !channel || !['voice', 'stage'].includes(channel.type)) {
+        console.error('Channel error:', channelError, 'Channel data:', channel);
+        return new Response(JSON.stringify({ error: 'Invalid voice channel' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // 5. Check user limit
+      if (channel.user_limit && channel.user_limit > 0) {
+        const { count, error: countError } = await supabase
+          .from('voice_states')
+          .select('id', { count: 'exact', head: true })
+          .eq('channel_id', channelId);
+
+        if (countError) {
+          console.error('Voice states count error:', countError);
+        }
+
+        if (count && count >= channel.user_limit) {
+          return new Response(JSON.stringify({ error: 'Channel is full' }), {
+            status: 409,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+      }
+
+      // 6. Check screen share slot availability (max 1 in free tier)
+      if (screenShare) {
+        const { count: screenShareCount } = await supabase
+          .from('voice_states')
+          .select('user_id', { count: 'exact', head: true })
+          .eq('channel_id', channelId)
+          .eq('is_streaming', true);
+
+        const maxScreenShares = 1;
+        if (screenShareCount && screenShareCount >= maxScreenShares) {
+          return new Response(
+            JSON.stringify({ error: 'Screen share slot taken', code: 'SCREEN_SHARE_LIMIT' }),
+            { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+          );
+        }
       }
     }
 
@@ -179,7 +190,7 @@ serve(async (req: Request) => {
       .single();
 
     // 8. Build LiveKit room name
-    const roomName = `channel_${channelId}`;
+    const roomName = isDm ? channelId : `channel_${channelId}`;
 
     // 9. Build video grant with granular permissions
     const canPublishSources = ['MICROPHONE'];
@@ -221,56 +232,58 @@ serve(async (req: Request) => {
       key,
     );
 
-    // 11. Upsert voice state
-    const { error: upsertError } = await supabase.from('voice_states').upsert({
-      user_id: user.id,
-      channel_id: channelId,
-      server_id: serverId,
-      session_id: crypto.randomUUID(),
-      is_video: video || false,
-      is_streaming: screenShare || false,
-      is_muted: false,
-      is_deafened: false,
-      is_self_muted: false,
-      is_self_deafened: false,
-      suppress: false,
-      joined_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }, {
-      onConflict: 'user_id',
-    });
-
-    if (upsertError) {
-      console.error('Voice state upsert error:', upsertError);
-      return new Response(JSON.stringify({ error: 'Failed to join voice channel' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // 12. If Go Live stream, create stream record
+    // 11. Upsert voice state (only for servers)
     let streamId: string | null = null;
-    if (screenShare && streamTitle) {
-      const selectedQuality = quality || '720p30';
-      const { data: stream, error: streamError } = await supabase
-        .from('streams')
-        .insert({
-          user_id: user.id,
-          channel_id: channelId,
-          server_id: serverId,
-          title: streamTitle,
-          status: 'starting',
-          stream_type: streamType || 'screen',
-          max_quality: selectedQuality,
-        })
-        .select('id')
-        .single();
-      
-      if (streamError) {
-        console.error('Stream insert error:', streamError);
+    if (!isDm) {
+      const { error: upsertError } = await supabase.from('voice_states').upsert({
+        user_id: user.id,
+        channel_id: channelId,
+        server_id: serverId,
+        session_id: crypto.randomUUID(),
+        is_video: video || false,
+        is_streaming: screenShare || false,
+        is_muted: false,
+        is_deafened: false,
+        is_self_muted: false,
+        is_self_deafened: false,
+        suppress: false,
+        joined_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'user_id',
+      });
+
+      if (upsertError) {
+        console.error('Voice state upsert error:', upsertError);
+        return new Response(JSON.stringify({ error: 'Failed to join voice channel' }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
 
-      streamId = stream?.id || null;
+      // 12. If Go Live stream, create stream record
+      if (screenShare && streamTitle) {
+        const selectedQuality = quality || '720p30';
+        const { data: stream, error: streamError } = await supabase
+          .from('streams')
+          .insert({
+            user_id: user.id,
+            channel_id: channelId,
+            server_id: serverId,
+            title: streamTitle,
+            status: 'starting',
+            stream_type: streamType || 'screen',
+            max_quality: selectedQuality,
+          })
+          .select('id')
+          .single();
+      
+        if (streamError) {
+          console.error('Stream insert error:', streamError);
+        }
+
+        streamId = stream?.id || null;
+      }
     }
 
     // 13. Build quality config for client
