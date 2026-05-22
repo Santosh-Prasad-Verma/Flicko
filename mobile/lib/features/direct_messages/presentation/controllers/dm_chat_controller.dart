@@ -162,6 +162,7 @@ class DMChatController extends Notifier<DMChatState> {
         attachments: uploadedAttachments.isEmpty ? null : uploadedAttachments,
       );
       state = state.copyWith(isSending: false);
+      fetchMessages();
     } catch (e) {
       state = state.copyWith(isSending: false, error: e.toString());
     }

@@ -15,7 +15,9 @@ import 'package:mobile/core/services/app_logger.dart';
 final dioProvider = Provider<Dio>((ref) {
   final dio = Dio(
     BaseOptions(
-      baseUrl: AppConfig.apiBaseUrl,
+      baseUrl: AppConfig.apiBaseUrl.endsWith('/')
+          ? AppConfig.apiBaseUrl
+          : '${AppConfig.apiBaseUrl}/',
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 15),
       headers: {
@@ -29,14 +31,20 @@ final dioProvider = Provider<Dio>((ref) {
   dio.interceptors.add(
     InterceptorsWrapper(
       onRequest: (options, handler) async {
-        if (_requiresBackendBaseUrl(options) && !AppConfig.hasApiBaseUrl) {
-          return handler.reject(
-            DioException(
-              requestOptions: options,
-              type: DioExceptionType.unknown,
-              error: const BackendConfigurationException(),
-            ),
-          );
+        if (_requiresBackendBaseUrl(options)) {
+          if (!AppConfig.hasApiBaseUrl) {
+            return handler.reject(
+              DioException(
+                requestOptions: options,
+                type: DioExceptionType.unknown,
+                error: const BackendConfigurationException(),
+              ),
+            );
+          }
+          // Strip leading slash from path to prevent replacing baseUrl's subpath
+          if (options.path.startsWith('/')) {
+            options.path = options.path.substring(1);
+          }
         }
 
         final session = Supabase.instance.client.auth.currentSession;

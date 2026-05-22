@@ -267,6 +267,7 @@ class MessageRepository {
 
   /// Creates a real-time subscription for message changes in a channel.
   RealtimeChannel subscribeToChannel(String channelId, void Function(PostgresChangeEvent event, Map<String, dynamic> payload) onChange) {
+    developer.log('[SupabaseRealtime] Subscribing to channel: $channelId');
     return _client
         .channel('messages:$channelId')
         .onPostgresChanges(
@@ -278,15 +279,23 @@ class MessageRepository {
             column: 'channel_id',
             value: channelId,
           ),
-          callback: (payload) => onChange(payload.eventType, payload.newRecord),
+          callback: (payload) {
+            developer.log('[SupabaseRealtime] Received messages change event: ${payload.eventType} in channel: $channelId, record: ${payload.newRecord}');
+            onChange(payload.eventType, payload.newRecord);
+          },
         )
         .onPostgresChanges(
           event: PostgresChangeEvent.all,
           schema: 'public',
           table: 'reactions',
-          callback: (payload) => onChange(payload.eventType, payload.newRecord),
+          callback: (payload) {
+            developer.log('[SupabaseRealtime] Received reactions change event: ${payload.eventType} in channel: $channelId');
+            onChange(payload.eventType, payload.newRecord);
+          },
         )
-        .subscribe();
+        .subscribe((status, error) {
+          developer.log('[SupabaseRealtime] Subscription status for channel: $channelId changed to: $status, error: $error');
+        });
   }
 
   /// Creates a thread from a message.

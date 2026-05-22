@@ -206,6 +206,7 @@ class DMRepository {
 
   /// Listens for real-time changes in the direct_messages table.
   RealtimeChannel subscribeToDMs(String userId, void Function() onUpdate) {
+    developer.log('[SupabaseRealtime] Subscribing to general DMs for user: $userId');
     return _client
         .channel('public:direct_messages:user:$userId')
         .onPostgresChanges(
@@ -217,7 +218,10 @@ class DMRepository {
             column: 'recipient_id',
             value: userId,
           ),
-          callback: (payload) => onUpdate(),
+          callback: (payload) {
+            developer.log('[SupabaseRealtime] Received DM table change (recipient_id matches current user): ${payload.eventType}');
+            onUpdate();
+          },
         )
         .onPostgresChanges(
           event: PostgresChangeEvent.all,
@@ -228,13 +232,19 @@ class DMRepository {
             column: 'sender_id',
             value: userId,
           ),
-          callback: (payload) => onUpdate(),
+          callback: (payload) {
+            developer.log('[SupabaseRealtime] Received DM table change (sender_id matches current user): ${payload.eventType}');
+            onUpdate();
+          },
         )
-        .subscribe();
+        .subscribe((status, error) {
+          developer.log('[SupabaseRealtime] Subscription status for general DMs: $status, error: $error');
+        });
   }
 
   /// Targeted subscription for a specific conversation
   RealtimeChannel subscribeToConversation(String myId, String otherUserId, void Function(DMMessage newMessage) onNewMessage) {
+    developer.log('[SupabaseRealtime] Subscribing to targeted DM conversation between $myId and $otherUserId');
     return _client
         .channel('dm_convo_${myId}_${otherUserId}')
         .onPostgresChanges(
@@ -245,16 +255,22 @@ class DMRepository {
             final msgJson = payload.newRecord;
             final senderId = msgJson['sender_id'];
             final recipientId = msgJson['recipient_id'];
+            developer.log('[SupabaseRealtime] Received conversation DM insert event. Sender: $senderId, Recipient: $recipientId');
 
             // Filter for this specific conversation
             if ((senderId == myId && recipientId == otherUserId) ||
                 (senderId == otherUserId && recipientId == myId)) {
               final decoded = await _decodeRow(Map<String, dynamic>.from(msgJson));
+              developer.log('[SupabaseRealtime] Match found! Decoding and calling onNewMessage for conversation');
               onNewMessage(decoded);
+            } else {
+              developer.log('[SupabaseRealtime] DM insert event did not match this conversation filter');
             }
           },
         )
-        .subscribe();
+        .subscribe((status, error) {
+          developer.log('[SupabaseRealtime] Subscription status for targeted DM convo: $status, error: $error');
+        });
   }
 
   void unsubscribe(RealtimeChannel channel) {

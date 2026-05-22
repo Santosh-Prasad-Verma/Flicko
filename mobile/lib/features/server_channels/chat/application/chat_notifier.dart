@@ -146,6 +146,7 @@ class ChatNotifier extends Notifier<ChatState> {
       );
       
       state = state.copyWith(isSending: false);
+      _refreshMessages();
     } catch (e) {
       state = state.copyWith(isSending: false, errorMessage: 'Failed to send message: $e');
     }
