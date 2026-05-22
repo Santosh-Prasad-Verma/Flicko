@@ -418,7 +418,18 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
     _fetchingRecommendations = true;
     try {
       dev.log('Autoplay: prefetching recommendations for ${currentTrack.name} (${currentTrack.source})', name: 'sonic-drip');
-      final recs = await _repo.getRecommendations(currentTrack.id, currentTrack.source, limit: 10);
+      var recs = await _repo.getRecommendations(currentTrack.id, currentTrack.source, limit: 10);
+      if (recs.isEmpty) {
+        dev.log('Autoplay: getRecommendations returned empty, trying search fallback for artist "${currentTrack.artistName}"', name: 'sonic-drip');
+        String query = currentTrack.artistName;
+        if (query.isEmpty || query.toLowerCase() == 'unknown artist') {
+          final words = currentTrack.name.split(' ');
+          query = words.take(2).join(' ');
+        }
+        if (query.trim().isNotEmpty) {
+          recs = await _repo.search(query, type: MusicType.track, limit: 10);
+        }
+      }
       dev.log('Autoplay: received ${recs.length} recommendations', name: 'sonic-drip');
       if (recs.isNotEmpty) {
         final existingIds = state.queue.map((t) => t.id).toSet();
@@ -449,7 +460,18 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
     state = state.copyWith(playback: state.playback.copyWith(status: PlaybackStatus.loading));
     try {
       dev.log('Autoplay: queue ended, fetching recommendations for ${currentTrack.name} (${currentTrack.source})', name: 'sonic-drip');
-      final recs = await _repo.getRecommendations(currentTrack.id, currentTrack.source, limit: 10);
+      var recs = await _repo.getRecommendations(currentTrack.id, currentTrack.source, limit: 10);
+      if (recs.isEmpty) {
+        dev.log('Autoplay: getRecommendations returned empty, trying search fallback for artist "${currentTrack.artistName}"', name: 'sonic-drip');
+        String query = currentTrack.artistName;
+        if (query.isEmpty || query.toLowerCase() == 'unknown artist') {
+          final words = currentTrack.name.split(' ');
+          query = words.take(2).join(' ');
+        }
+        if (query.trim().isNotEmpty) {
+          recs = await _repo.search(query, type: MusicType.track, limit: 10);
+        }
+      }
       dev.log('Autoplay: got ${recs.length} recommendations', name: 'sonic-drip');
       if (recs.isNotEmpty) {
         final existingIds = state.queue.map((t) => t.id).toSet();

@@ -490,7 +490,7 @@ class DripBashRepositoryImpl implements DripBashRepository {
   @override
   Future<List<Track>> getSaavnRecommendations(String songId, {int limit = 10}) async {
     try {
-      final params = 'pid=$songId&__call=recommender.getSongRecommendations';
+      final params = 'pids=$songId&__call=recommender.getSongRecommendations';
       // The recommendations API can return a JSON array OR a map with 'results'/'songs' key
       final raw = await _saavnRequestRaw(params);
       List results = [];
