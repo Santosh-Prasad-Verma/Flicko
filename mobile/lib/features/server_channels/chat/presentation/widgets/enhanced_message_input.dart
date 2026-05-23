@@ -12,9 +12,11 @@ import 'emoji_picker.dart';
 import 'gif_picker.dart';
 import 'mention_autocomplete.dart';
 import 'sticker_picker.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/features/store/data/badge_alchemy_service.dart';
 
 /// Enhanced MessageInput with Emoji/GIF pickers and Voice Recorder
-class EnhancedMessageInput extends StatefulWidget {
+class EnhancedMessageInput extends ConsumerStatefulWidget {
   final Function(String, {List<XFile>? attachments, String? gifUrl, String? stickerUrl}) onSend;
   final String? replyToName;
   final VoidCallback? onCancelReply;
@@ -33,10 +35,10 @@ class EnhancedMessageInput extends StatefulWidget {
   });
 
   @override
-  State<EnhancedMessageInput> createState() => _EnhancedMessageInputState();
+  ConsumerState<EnhancedMessageInput> createState() => _EnhancedMessageInputState();
 }
 
-class _EnhancedMessageInputState extends State<EnhancedMessageInput> {
+class _EnhancedMessageInputState extends ConsumerState<EnhancedMessageInput> {
   static const Color _neonGreen = Color(0xFF52B788);
   static const Color _bgBlack = Color(0xFF050505);
   static const Color _surfaceContainer = Color(0xFF0C0C0E);
@@ -233,6 +235,7 @@ class _EnhancedMessageInputState extends State<EnhancedMessageInput> {
       if (!cancel && _recordingPath != null) {
         await _audioRecorder.stop();
         widget.onSend('🎤 Voice message', attachments: [XFile(_recordingPath!)]);
+        ref.read(badgeAlchemyProvider.notifier).incrementMessagesSent();
       } else {
         await _audioRecorder.stop();
         if (_recordingPath != null) {
@@ -267,6 +270,7 @@ class _EnhancedMessageInputState extends State<EnhancedMessageInput> {
     final text = _controller.text.trim();
     if (text.isNotEmpty || _selectedFiles.isNotEmpty) {
       widget.onSend(text, attachments: _selectedFiles.isNotEmpty ? _selectedFiles : null);
+      ref.read(badgeAlchemyProvider.notifier).incrementMessagesSent();
       HapticFeedback.lightImpact();
       _controller.clear();
       setState(() {
@@ -299,6 +303,7 @@ class _EnhancedMessageInputState extends State<EnhancedMessageInput> {
     context.showGifPicker(
       onGifSelected: (gifUrl) {
         widget.onSend('', gifUrl: gifUrl);
+        ref.read(badgeAlchemyProvider.notifier).incrementMessagesSent();
       },
     );
   }
@@ -307,6 +312,7 @@ class _EnhancedMessageInputState extends State<EnhancedMessageInput> {
     context.showStickerPicker(
       onStickerSelected: (stickerUrl) {
         widget.onSend('', stickerUrl: stickerUrl);
+        ref.read(badgeAlchemyProvider.notifier).incrementMessagesSent();
       },
     );
   }

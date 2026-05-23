@@ -8,9 +8,9 @@ import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/settings/application/payment_methods_provider.dart';
 
 // Shared colors
-const _kBg = Color(0xFF050505);
-const _kSurface = Color(0xFF0C0C0E);
-const _kNeon = Color(0xFF9B84EE);
+const _kBg = Color(0xFF000000);
+const _kSurface = Color(0xFF000000);
+const _kNeon = Color(0xFF52B788);
 const _kWhite = Color(0xFFFFFFFF);
 const _kMuted = Color(0xFF71717A);
 const _kLime = Color(0xFF52B788);
@@ -56,8 +56,11 @@ class CartScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: _kBg,
       appBar: AppBar(
-        backgroundColor: _kSurface,
+        backgroundColor: _kBg,
         elevation: 0,
+        shape: const Border(
+          bottom: BorderSide(color: _kNeon, width: 2.5),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: _kWhite),
           onPressed: () => context.pop(),
@@ -159,9 +162,16 @@ class CartScreen extends ConsumerWidget {
             onTap: () => context.push('/store'),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+              margin: const EdgeInsets.only(right: 4, bottom: 4),
               decoration: BoxDecoration(
                 color: _kNeon,
-                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.black, width: 2),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.white,
+                    offset: Offset(4, 4),
+                  ),
+                ],
               ),
               child: Text(
                 'BROWSE STORE',
@@ -182,11 +192,16 @@ class CartScreen extends ConsumerWidget {
     final rarityColor = getRarityColor(item.product.rarity);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 20, right: 4),
       decoration: BoxDecoration(
-        color: _kSurface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: rarityColor.withValues(alpha: 0.2)),
+        color: Colors.black,
+        border: Border.all(color: rarityColor, width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: rarityColor,
+            offset: const Offset(4, 4),
+          ),
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -199,13 +214,8 @@ class CartScreen extends ConsumerWidget {
                 width: 72,
                 height: 72,
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      rarityColor.withValues(alpha: 0.3),
-                      rarityColor.withValues(alpha: 0.1),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.black,
+                  border: Border.all(color: rarityColor, width: 1.5),
                 ),
                 child: Center(
                   child: Icon(
@@ -338,8 +348,8 @@ class CartScreen extends ConsumerWidget {
         width: 28,
         height: 28,
         decoration: BoxDecoration(
-          color: _kNeon.withValues(alpha: 0.2),
-          borderRadius: BorderRadius.circular(6),
+          color: Colors.black,
+          border: Border.all(color: _kNeon, width: 1.5),
         ),
         child: Icon(icon, color: _kNeon, size: 16),
       ),
@@ -349,9 +359,9 @@ class CartScreen extends ConsumerWidget {
   Widget _buildCheckoutSection(BuildContext context, WidgetRef ref, List<CartItem> cart, double total) {
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: _kSurface,
-        border: Border(top: BorderSide(color: _kWhite.withValues(alpha: 0.1))),
+      decoration: const BoxDecoration(
+        color: Colors.black,
+        border: Border(top: BorderSide(color: _kNeon, width: 2.5)),
       ),
       child: SafeArea(
         child: Column(
@@ -384,9 +394,16 @@ class CartScreen extends ConsumerWidget {
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 18),
+                margin: const EdgeInsets.only(right: 4, bottom: 4),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(colors: [_kNeon, Color(0xFF00E5FF)]),
-                  borderRadius: BorderRadius.circular(12),
+                  color: _kNeon,
+                  border: Border.all(color: Colors.black, width: 2),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Colors.white,
+                      offset: Offset(4, 4),
+                    ),
+                  ],
                 ),
                 child: Center(
                   child: Row(
@@ -431,9 +448,9 @@ class CartScreen extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: _kSurface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      backgroundColor: Colors.black,
+      shape: const Border(
+        top: BorderSide(color: _kNeon, width: 3),
       ),
       builder: (ctx) => DraggableScrollableSheet(
         initialChildSize: 0.9,
@@ -475,10 +492,19 @@ class _CheckoutSheet extends ConsumerStatefulWidget {
 class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
   bool _isProcessing = false;
   int _selectedPaymentMethod = 0; // 0 = saved card, 1 = new card, 2 = UPI, 3 = wallet
+  final _couponController = TextEditingController();
+  String? _couponError;
+  bool _couponSuccess = false;
 
-  static const Color _kBg = Color(0xFF050505);
-  static const Color _kSurface = Color(0xFF0C0C0E);
-  static const Color _kNeon = Color(0xFF9B84EE);
+  @override
+  void dispose() {
+    _couponController.dispose();
+    super.dispose();
+  }
+
+  static const Color _kBg = Color(0xFF000000);
+  static const Color _kSurface = Color(0xFF000000);
+  static const Color _kNeon = Color(0xFF52B788);
   static const Color _kWhite = Color(0xFFFFFFFF);
   static const Color _kMuted = Color(0xFF71717A);
   static const Color _kLime = Color(0xFF52B788);
@@ -502,9 +528,8 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
             child: Container(
               width: 40,
               height: 4,
-              decoration: BoxDecoration(
-                color: _kWhite.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(2),
+              decoration: const BoxDecoration(
+                color: _kNeon,
               ),
             ),
           ),
@@ -515,8 +540,8 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: _kNeon.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.black,
+                  border: Border.all(color: _kNeon, width: 1.5),
                 ),
                 child: const Icon(Icons.lock, color: _kNeon, size: 24),
               ),
@@ -549,6 +574,9 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
           // Order summary
           _buildOrderSummary(),
           const SizedBox(height: 24),
+          // Coupon section
+          _buildCouponCodeSection(),
+          const SizedBox(height: 12),
           // Payment methods
           if (widget.paidItems.isNotEmpty) ...[
             Text(
@@ -576,12 +604,22 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
   }
 
   Widget _buildOrderSummary() {
+    final activeCoupon = ref.watch(activeCouponProvider);
+    final total = widget.total;
+    final discount = activeCoupon != null ? total * (activeCoupon.discountPercent / 100) : 0.0;
+    final finalTotal = total - discount;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _kBg,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _kWhite.withValues(alpha: 0.1)),
+        color: Colors.black,
+        border: Border.all(color: _kNeon, width: 2),
+        boxShadow: const [
+          BoxShadow(
+            color: _kNeon,
+            offset: Offset(4, 4),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -590,16 +628,44 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
             children: [
               Text(
                 'Items (${widget.cart.length})',
-                style: GoogleFonts.spaceGrotesk(color: _kMuted),
+                style: GoogleFonts.spaceGrotesk(
+                  color: _kWhite,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               Text(
-                '\$${widget.total.toStringAsFixed(2)}',
-                style: GoogleFonts.spaceGrotesk(color: _kWhite),
+                '\$${total.toStringAsFixed(2)}',
+                style: GoogleFonts.spaceGrotesk(
+                  color: _kWhite,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
             ],
           ),
+          if (activeCoupon != null) ...[
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'DISCOUNT (${activeCoupon.code})',
+                  style: GoogleFonts.spaceGrotesk(
+                    color: _kLime,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  '-\$${discount.toStringAsFixed(2)}',
+                  style: GoogleFonts.spaceGrotesk(
+                    color: _kLime,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 8),
-          const Divider(color: Color(0xFF1A1A1A)),
+          const Divider(color: _kNeon, thickness: 1.5),
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -607,15 +673,15 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
               Text(
                 'TOTAL',
                 style: GoogleFonts.spaceGrotesk(
-                  color: _kWhite,
-                  fontWeight: FontWeight.w700,
+                  color: _kNeon,
+                  fontWeight: FontWeight.w900,
                   fontSize: 14,
                 ),
               ),
               Text(
-                '\$${widget.total.toStringAsFixed(2)}',
+                '\$${finalTotal.toStringAsFixed(2)}',
                 style: GoogleFonts.epilogue(
-                  color: _kLime,
+                  color: _kWhite,
                   fontWeight: FontWeight.w900,
                   fontSize: 24,
                 ),
@@ -625,6 +691,172 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
         ],
       ),
     );
+  }
+
+  Widget _buildCouponCodeSection() {
+    final activeCoupon = ref.watch(activeCouponProvider);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24, right: 4),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.black,
+        border: Border.all(color: _kNeon, width: 2),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.white,
+            offset: Offset(4, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'PROMO CODE',
+            style: GoogleFonts.spaceGrotesk(
+              color: _kWhite,
+              fontWeight: FontWeight.w900,
+              fontSize: 11,
+              letterSpacing: 1,
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (activeCoupon != null) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.black,
+                      border: Border.all(color: _kNeon, width: 1.5),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.check_circle, color: _kNeon, size: 16),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '${activeCoupon.code} APPLIED (${activeCoupon.discountPercent.toInt()}% OFF)',
+                            style: GoogleFonts.spaceMono(
+                              color: _kNeon,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 11,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.clear, color: Colors.red),
+                  onPressed: () {
+                    ref.read(activeCouponProvider.notifier).state = null;
+                    _couponController.clear();
+                    setState(() {
+                      _couponSuccess = false;
+                      _couponError = null;
+                    });
+                  },
+                ),
+              ],
+            ),
+          ] else ...[
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: Colors.black,
+                      border: Border.all(color: _couponError != null ? Colors.red : _kNeon, width: 1.5),
+                    ),
+                    child: TextField(
+                      controller: _couponController,
+                      style: GoogleFonts.spaceMono(color: _kWhite, fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: 'ENTER CODE',
+                        hintStyle: GoogleFonts.spaceMono(color: _kMuted, fontSize: 12),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: _applyCoupon,
+                  child: Container(
+                    height: 44,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: _kNeon,
+                      border: Border.all(color: Colors.black, width: 1.5),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'APPLY',
+                        style: GoogleFonts.spaceGrotesk(
+                          color: Colors.black,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if (_couponError != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                _couponError!,
+                style: GoogleFonts.spaceMono(color: Colors.red, fontSize: 10),
+              ),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _applyCoupon() {
+    final code = _couponController.text.trim().toUpperCase();
+    if (code.isEmpty) return;
+
+    if (code == 'SONICDRIP' || code == 'SONIC50') {
+      ref.read(activeCouponProvider.notifier).state = const CouponInfo(
+        code: 'SONICDRIP',
+        discountPercent: 50,
+        description: 'Turntable Promo - 50% discount on all cosmetics!',
+      );
+      setState(() {
+        _couponSuccess = true;
+        _couponError = null;
+      });
+    } else if (code == 'FREEBADGE' || code == 'FREE') {
+      ref.read(activeCouponProvider.notifier).state = const CouponInfo(
+        code: 'FREEBADGE',
+        discountPercent: 100,
+        description: 'Vegas Promo - 100% off!',
+      );
+      setState(() {
+        _couponSuccess = true;
+        _couponError = null;
+      });
+    } else {
+      setState(() {
+        _couponError = 'INVALID CODE (TRY "SONIC50" OR "FREE")';
+        _couponSuccess = false;
+      });
+    }
   }
 
   Widget _buildPaymentMethodsList(List<dynamic> methods, bool hasSavedCards) {
@@ -677,15 +909,22 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
+        margin: const EdgeInsets.only(bottom: 12, right: 4),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: _kBg,
-          borderRadius: BorderRadius.circular(12),
+          color: Colors.black,
           border: Border.all(
-            color: isSelected ? _kNeon : _kWhite.withValues(alpha: 0.1),
-            width: isSelected ? 2 : 1,
+            color: isSelected ? _kNeon : _kWhite.withValues(alpha: 0.2),
+            width: isSelected ? 2.5 : 1.5,
           ),
+          boxShadow: isSelected
+              ? const [
+                  BoxShadow(
+                    color: _kNeon,
+                    offset: Offset(3, 3),
+                  ),
+                ]
+              : null,
         ),
         child: Row(
           children: [
@@ -693,8 +932,8 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
               width: 48,
               height: 32,
               decoration: BoxDecoration(
-                color: _kSurface,
-                borderRadius: BorderRadius.circular(6),
+                color: Colors.black,
+                border: Border.all(color: isSelected ? _kNeon : _kMuted, width: 1.5),
               ),
               child: Icon(icon, color: isSelected ? _kNeon : _kMuted, size: 20),
             ),
@@ -707,7 +946,7 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
                     title,
                     style: GoogleFonts.spaceGrotesk(
                       color: _kWhite,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w900,
                       fontSize: 14,
                     ),
                   ),
@@ -734,7 +973,9 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
   }
 
   Widget _buildCheckoutButton(BuildContext context) {
-    final isFree = widget.total == 0;
+    final activeCoupon = ref.watch(activeCouponProvider);
+    final finalTotal = activeCoupon != null ? widget.total * (1 - activeCoupon.discountPercent / 100) : widget.total;
+    final isFree = finalTotal == 0;
 
     return Column(
       children: [
@@ -743,16 +984,14 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
           child: Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 18),
+            margin: const EdgeInsets.only(right: 4, bottom: 4),
             decoration: BoxDecoration(
-              gradient: isFree
-                  ? const LinearGradient(colors: [_kLime, Color(0xFF38EF7D)])
-                  : const LinearGradient(colors: [_kNeon, Color(0xFF00E5FF)]),
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
+              color: isFree ? _kLime : _kNeon,
+              border: Border.all(color: Colors.black, width: 2),
+              boxShadow: const [
                 BoxShadow(
-                  color: (isFree ? _kLime : _kNeon).withValues(alpha: 0.3),
-                  blurRadius: 15,
-                  offset: const Offset(0, 5),
+                  color: Colors.white,
+                  offset: Offset(4, 4),
                 ),
               ],
             ),
@@ -773,7 +1012,7 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          isFree ? 'CLAIM FREE ITEMS' : 'PAY \$${widget.total.toStringAsFixed(2)}',
+                          isFree ? 'CLAIM FREE ITEMS' : 'PAY \$${finalTotal.toStringAsFixed(2)}',
                           style: GoogleFonts.spaceGrotesk(
                             color: Colors.black,
                             fontWeight: FontWeight.w900,
@@ -816,43 +1055,57 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
         orElse: () => null,
       );
 
-      if (user == null) {
-        _showError('Please log in to continue');
-        return;
-      }
-
       final profile = authState.maybeWhen(
         authenticated: (_, profile) => profile,
         orElse: () => null,
       );
 
-      // Process free items first
-      if (widget.freeItems.isNotEmpty) {
+      final activeCoupon = ref.read(activeCouponProvider);
+      final rawAmount = widget.paidItems.fold(0.0, (sum, item) => sum + (item.product.price * item.quantity));
+      final finalAmount = activeCoupon != null ? rawAmount * (1 - activeCoupon.discountPercent / 100) : rawAmount;
+
+      // Guest / Offline checkouts save to local SharedPreferences bypass
+      if (user == null) {
         final storeService = ref.read(storeServiceProvider);
-        for (final item in widget.freeItems) {
+        for (final item in widget.cart) {
           await storeService.purchaseProduct(item.product);
         }
-      }
+      } else {
+        // Process free items first
+        if (widget.freeItems.isNotEmpty) {
+          final storeService = ref.read(storeServiceProvider);
+          for (final item in widget.freeItems) {
+            await storeService.purchaseProduct(item.product);
+          }
+        }
 
-      // Process paid items
-      if (widget.paidItems.isNotEmpty) {
-        final paymentService = ref.read(storePaymentServiceProvider);
-        final result = await paymentService.processPayment(
-          amount: widget.paidItems.fold(0.0, (sum, item) => sum + (item.product.price * item.quantity)),
-          userEmail: user.email ?? '',
-          userPhone: profile?.phone ?? '',
-          description: 'Flicko Store Purchase - ${widget.paidItems.length} item(s)',
-          items: widget.paidItems,
-        );
+        // Process paid items
+        if (widget.paidItems.isNotEmpty && finalAmount > 0) {
+          final paymentService = ref.read(storePaymentServiceProvider);
+          final result = await paymentService.processPayment(
+            amount: finalAmount,
+            userEmail: user.email ?? '',
+            userPhone: profile?.phone ?? '',
+            description: 'Flicko Store Purchase - ${widget.paidItems.length} item(s)',
+            items: widget.paidItems,
+          );
 
-        if (!result.success) {
-          _showError(result.error ?? 'Payment failed');
-          return;
+          if (!result.success) {
+            _showError(result.error ?? 'Payment failed');
+            return;
+          }
+        } else if (widget.paidItems.isNotEmpty && finalAmount == 0) {
+          // If discounted to 100% free, claim it as free
+          final storeService = ref.read(storeServiceProvider);
+          for (final item in widget.paidItems) {
+            await storeService.purchaseProduct(item.product);
+          }
         }
       }
 
-      // Clear cart and show success
+      // Clear cart, coupon, and show success
       ref.read(cartProvider.notifier).clear();
+      ref.read(activeCouponProvider.notifier).state = null;
       ref.invalidate(userPurchasesProvider);
 
       if (mounted) {
@@ -883,8 +1136,13 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
       context: context,
       barrierDismissible: true,
       builder: (ctx) => AlertDialog(
-        backgroundColor: _kSurface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: Colors.black,
+        shape: const Border(
+          top: BorderSide(color: _kLime, width: 4),
+          left: BorderSide(color: _kLime, width: 2),
+          right: BorderSide(color: _kLime, width: 2),
+          bottom: BorderSide(color: _kLime, width: 2),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -892,8 +1150,8 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: _kLime.withValues(alpha: 0.2),
-                shape: BoxShape.circle,
+                color: Colors.black,
+                border: Border.all(color: _kLime, width: 2.5),
               ),
               child: const Icon(Icons.check_circle, color: _kLime, size: 48),
             ),
@@ -919,16 +1177,26 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
                 context.pop();
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                margin: const EdgeInsets.only(right: 4, bottom: 4),
                 decoration: BoxDecoration(
                   color: _kLime,
-                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.black, width: 2),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Colors.white,
+                      offset: Offset(4, 4),
+                    ),
+                  ],
                 ),
-                child: Text(
-                  'VIEW MY ITEMS',
-                  style: GoogleFonts.spaceGrotesk(
-                    color: Colors.black,
-                    fontWeight: FontWeight.w900,
+                child: Center(
+                  child: Text(
+                    'VIEW MY ITEMS',
+                    style: GoogleFonts.spaceGrotesk(
+                      color: Colors.black,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
               ),

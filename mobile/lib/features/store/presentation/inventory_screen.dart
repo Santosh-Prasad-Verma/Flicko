@@ -83,6 +83,11 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.mic_none_rounded, color: _neon),
+            tooltip: 'Sound Studio',
+            onPressed: () => context.push('/store/sound-studio'),
+          ),
+          IconButton(
             icon: const Icon(Icons.shopping_bag_outlined, color: _white),
             onPressed: () => context.push('/store'),
           ),

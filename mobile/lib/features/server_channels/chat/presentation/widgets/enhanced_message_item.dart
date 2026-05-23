@@ -7,14 +7,16 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/data/models/flicko_message.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/features/shared/presentation/widgets/safe_network_media.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
+import 'package:mobile/features/shared/presentation/widgets/message_drip_card.dart';
 import 'poll_message_card.dart';
 
 /// Enhanced MessageItem with reply preview, inline editing, and edited indicator
 ///
 /// Mirrors the React Native MessageItem component features.
-class EnhancedMessageItem extends StatefulWidget {
+class EnhancedMessageItem extends ConsumerStatefulWidget {
   final FlickoMessage message;
   final bool isContinuation;
   final Function(String emoji) onReactionToggle;
@@ -37,10 +39,10 @@ class EnhancedMessageItem extends StatefulWidget {
   });
 
   @override
-  State<EnhancedMessageItem> createState() => _EnhancedMessageItemState();
+  ConsumerState<EnhancedMessageItem> createState() => _EnhancedMessageItemState();
 }
 
-class _EnhancedMessageItemState extends State<EnhancedMessageItem> {
+class _EnhancedMessageItemState extends ConsumerState<EnhancedMessageItem> {
   bool _isEditing = false;
   late TextEditingController _editController;
 
@@ -120,8 +122,11 @@ class _EnhancedMessageItemState extends State<EnhancedMessageItem> {
 
                   const SizedBox(height: 4),
 
-                  // Message content or edit field
-                  if (_isEditing) _buildEditField() else _buildContent(),
+                   // Message content or edit field wrapped in MessageDripCard
+                   MessageDripCard(
+                     authorId: widget.message.authorId,
+                     child: _isEditing ? _buildEditField() : _buildContent(),
+                   ),
 
                   // Attachments
                   if (widget.message.attachments.isNotEmpty) ...[

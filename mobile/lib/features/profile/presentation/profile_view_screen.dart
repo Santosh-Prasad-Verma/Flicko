@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart' hide Badge;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,7 +19,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 /// Unified Profile Screen — Flicko's Ultimate Profile Experience
 /// Handles both current user (Self) and other users (Public) with
-/// a sleek, brutalist black/neon design.
+/// a refined, modern dark design using soft mint green accents.
 ///
 /// Standardized across:
 /// - ProfileScreen (Self)
@@ -33,7 +34,8 @@ class ProfileViewScreen extends ConsumerStatefulWidget {
   ConsumerState<ProfileViewScreen> createState() => _ProfileViewScreenState();
 }
 
-class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
+class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
+    with TickerProviderStateMixin {
   bool _isLoading = true;
   UserModel? _profile;
   String _friendStatus =
@@ -47,16 +49,24 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
   String? _errorMessage;
   final _client = Supabase.instance.client;
 
-  // Theme tokens
-  static const Color _neon = Color(0xFFC0F500);
-  static const Color _bg = Color(0xFF050505);
-  static const Color _surface = Color(0xFF0C0C0E);
-  static const Color _white = Color(0xFFFBF9FA);
-  static const Color _muted = Color(0xFF71717A);
+  // ─── Refined Theme Tokens (Soft/Light Green) ───
+  static const Color _accent = Color(0xFF7DCEA0); // Soft mint green
+  static const Color _accentLight = Color(0xFFA8E6CF); // Lighter mint
+  static const Color _bg = Color(0xFF0A0A0F); // Deep dark blue-black
+  static const Color _surface = Color(0xFF12131A); // Slightly lighter surface
+  static const Color _cardBg = Color(0xFF16171F); // Card background
+  static const Color _white = Color(0xFFF0EFF4); // Softer white
+  static const Color _muted = Color(0xFF6B6B7B); // Warmer muted
+
+  late AnimationController _glowController;
 
   @override
   void initState() {
     super.initState();
+    _glowController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat(reverse: true);
     _loadAll();
   }
 
@@ -71,6 +81,7 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
   @override
   void dispose() {
     _noteController.dispose();
+    _glowController.dispose();
     super.dispose();
   }
 
@@ -300,7 +311,7 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
         setState(() => _friendStatus = 'friends');
       } else if (_friendStatus == 'friends') {
         final confirmed = await _showConfirmDialog(
-          'REMOVE FRIEND',
+          'Remove Friend',
           'Are you sure you want to remove this user from your friends?',
         );
 
@@ -327,27 +338,36 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
     return await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
-            backgroundColor: _surface,
-            shape: const RoundedRectangleBorder(),
+            backgroundColor: _cardBg,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: BorderSide(color: _white.withValues(alpha: 0.08)),
+            ),
             title: Text(title,
-                style: GoogleFonts.epilogue(
-                    color: _white, fontWeight: FontWeight.w900, fontSize: 18)),
+                style: GoogleFonts.inter(
+                    color: _white, fontWeight: FontWeight.w700, fontSize: 18)),
             content: Text(message,
                 style: GoogleFonts.inter(
-                    color: _white.withValues(alpha: 0.7), fontSize: 14)),
+                    color: _white.withValues(alpha: 0.6), fontSize: 14)),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(false),
-                child: Text('CANCEL',
-                    style: GoogleFonts.spaceGrotesk(
-                        color: _muted, fontWeight: FontWeight.w700)),
+                child: Text('Cancel',
+                    style: GoogleFonts.inter(
+                        color: _muted, fontWeight: FontWeight.w600)),
               ),
               TextButton(
+                style: TextButton.styleFrom(
+                  backgroundColor:
+                      const Color(FlickoColors.red).withValues(alpha: 0.15),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
                 onPressed: () => Navigator.of(ctx).pop(true),
-                child: Text('CONFIRM',
-                    style: GoogleFonts.spaceGrotesk(
+                child: Text('Confirm',
+                    style: GoogleFonts.inter(
                         color: const Color(FlickoColors.red),
-                        fontWeight: FontWeight.w800)),
+                        fontWeight: FontWeight.w700)),
               ),
             ],
           ),
@@ -370,9 +390,28 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
     });
 
     if (_isLoading) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: _bg,
-        body: Center(child: CircularProgressIndicator(color: _neon)),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 48,
+                height: 48,
+                child: CircularProgressIndicator(
+                  color: _accent,
+                  strokeWidth: 2.5,
+                  strokeCap: StrokeCap.round,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text('Loading profile...',
+                  style: GoogleFonts.inter(
+                      color: _muted, fontSize: 13, fontWeight: FontWeight.w500)),
+            ],
+          ),
+        ),
       );
     }
 
@@ -410,7 +449,7 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                     const SizedBox(height: 32),
 
                     // 3. Info Content
-                    _buildSectionTitle('ABOUT ME'),
+                    _buildSectionTitle('About Me'),
                     _buildAboutCard(profile.bio),
                     const SizedBox(height: 24),
 
@@ -420,7 +459,7 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildSectionTitle('MEMBER SINCE'),
+                              _buildSectionTitle('Member Since'),
                               _buildInfoBadge(
                                 DateFormat('MMMM d, yyyy')
                                     .format(profile.createdAt),
@@ -435,7 +474,7 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _buildSectionTitle('ROLES'),
+                                _buildSectionTitle('Roles'),
                                 _buildRolesList(),
                               ],
                             ),
@@ -446,7 +485,7 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
 
                     if (profile.badges.isNotEmpty) ...[
                       const SizedBox(height: 24),
-                      _buildSectionTitle('BADGES'),
+                      _buildSectionTitle('Badges'),
                       _buildBadgesRow(profile.badges),
                     ],
 
@@ -458,13 +497,13 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
 
                     if (!isOwnProfile && _mutualServers.isNotEmpty) ...[
                       const SizedBox(height: 24),
-                      _buildSectionTitle('MUTUAL SERVERS'),
+                      _buildSectionTitle('Mutual Servers'),
                       _buildMutualServers(),
                     ],
 
                     if (!isOwnProfile) ...[
                       const SizedBox(height: 24),
-                      _buildSectionTitle('PRIVATE NOTE'),
+                      _buildSectionTitle('Private Note'),
                       _buildNoteSection(),
                     ],
 
@@ -488,46 +527,61 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.person_off_rounded, size: 64, color: _muted),
-            const SizedBox(height: 16),
-            Text('USER NOT FOUND',
-                style: GoogleFonts.epilogue(
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: _surface,
+                shape: BoxShape.circle,
+                border: Border.all(color: _muted.withValues(alpha: 0.2)),
+              ),
+              child: const Icon(Icons.person_off_rounded, size: 48, color: _muted),
+            ),
+            const SizedBox(height: 24),
+            Text('User Not Found',
+                style: GoogleFonts.inter(
                     color: _white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                    fontStyle: FontStyle.italic)),
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700)),
             const SizedBox(height: 8),
-            Text(_errorMessage ?? 'This profile is unavailable or private.',
-                style: GoogleFonts.inter(color: _muted, fontSize: 13),
-                textAlign: TextAlign.center),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 40),
+              child: Text(
+                  _errorMessage ?? 'This profile is unavailable or private.',
+                  style: GoogleFonts.inter(color: _muted, fontSize: 14, height: 1.5),
+                  textAlign: TextAlign.center),
+            ),
             const SizedBox(height: 32),
             GestureDetector(
               onTap: () => context.pop(),
               child: Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
                 decoration: BoxDecoration(
-                    color: _surface,
-                    border: Border.all(color: _muted.withValues(alpha: 0.3))),
-                child: Text('GO BACK',
-                    style: GoogleFonts.spaceGrotesk(
-                        color: _white, fontWeight: FontWeight.w800)),
+                  color: _surface,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: _accent.withValues(alpha: 0.3)),
+                ),
+                child: Text('Go Back',
+                    style: GoogleFonts.inter(
+                        color: _accent, fontWeight: FontWeight.w600, fontSize: 14)),
               ),
             ),
           ],
-        ).animate().fadeIn().scale(begin: const Offset(0.9, 0.9)),
+        ).animate().fadeIn(duration: 400.ms).scale(
+            begin: const Offset(0.95, 0.95),
+            curve: Curves.easeOutCubic),
       ),
     );
   }
 
   Widget _buildBanner(UserModel profile, bool isOwnProfile) {
     final bannerUrl = profile.bannerUrl;
-    final accentHex = profile.accentColor ?? '#C0F500';
+    final accentHex = profile.accentColor ?? '#7DCEA0';
     Color accentColor;
     try {
       accentColor = Color(int.parse(accentHex.replaceFirst('#', '0xFF')));
     } catch (_) {
-      accentColor = const Color(0xFFC0F500);
+      accentColor = _accent;
     }
 
     final bannerColors = profile.bannerColors;
@@ -539,18 +593,18 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
               return accentColor;
             }
           }).toList()
-        : [accentColor, accentColor.withValues(alpha: 0.4)];
+        : [accentColor, accentColor.withValues(alpha: 0.2)];
 
     final hasBanner = bannerUrl != null && bannerUrl.isNotEmpty;
 
     return SizedBox(
-      height: 220,
+      height: 240,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          // Banner Image/Gradient
+          // Banner Image/Gradient with bottom fade
           Container(
-            height: 180,
+            height: 200,
             width: double.infinity,
             decoration: BoxDecoration(
               gradient: !hasBanner
@@ -562,31 +616,57 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                   : null,
             ),
             child: hasBanner
-                ? Image.network(
-                    bannerUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [...gradientColors, _bg],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
+                ? Stack(
+                    children: [
+                      Positioned.fill(
+                        child: Image.network(
+                          bannerUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [...gradientColors, _bg],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
+                      // Smooth bottom fade
+                      Positioned(
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        height: 100,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                _bg.withValues(alpha: 0.0),
+                                _bg.withValues(alpha: 0.6),
+                                _bg,
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   )
                 : null,
           ),
 
           // Top Actions
           Positioned(
-            top: 40,
-            left: 10,
-            right: 10,
+            top: 46,
+            left: 14,
+            right: 14,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildCircleBtn(Icons.arrow_back, () {
+                _buildCircleBtn(Icons.arrow_back_rounded, () {
                   if (context.canPop()) context.pop();
                 }),
                 Row(
@@ -594,31 +674,47 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                     _buildCircleBtn(Icons.share_outlined, () {
                       context.push('/profile/settings/share-profile');
                     }),
-                    const SizedBox(width: 8),
-                    _buildCircleBtn(Icons.more_vert, _showMoreOptions),
+                    const SizedBox(width: 10),
+                    _buildCircleBtn(Icons.more_horiz_rounded, _showMoreOptions),
                   ],
                 ),
               ],
             ),
           ),
 
-          // Avatar
+          // Avatar with animated glow ring
           Positioned(
-            top: 130,
+            top: 148,
             left: 20,
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: _bg,
-                shape: BoxShape.circle,
-                border: Border.all(color: accentColor, width: 2),
-                boxShadow: [
-                  BoxShadow(
-                      color: accentColor.withValues(alpha: 0.2),
-                      blurRadius: 30,
-                      spreadRadius: 5)
-                ],
-              ),
+            child: AnimatedBuilder(
+              animation: _glowController,
+              builder: (context, child) {
+                final glowOpacity = 0.15 + (_glowController.value * 0.2);
+                return Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: _bg,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: accentColor.withValues(alpha: 0.6),
+                      width: 2.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: accentColor.withValues(alpha: glowOpacity),
+                        blurRadius: 30,
+                        spreadRadius: 8,
+                      ),
+                      BoxShadow(
+                        color: accentColor.withValues(alpha: glowOpacity * 0.5),
+                        blurRadius: 60,
+                        spreadRadius: 15,
+                      ),
+                    ],
+                  ),
+                  child: child,
+                );
+              },
               child: UserAvatar(
                 imageUrl: profile.avatarUrl,
                 name: profile.displayName ?? profile.username,
@@ -639,70 +735,105 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
   Widget _buildCircleBtn(IconData icon, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.5),
-          shape: BoxShape.circle,
-          border: Border.all(color: _white.withValues(alpha: 0.1)),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(50),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.35),
+              shape: BoxShape.circle,
+              border: Border.all(color: _white.withValues(alpha: 0.12)),
+            ),
+            child: Icon(icon, color: _white, size: 20),
+          ),
         ),
-        child: Icon(icon, color: _white, size: 20),
       ),
     );
   }
 
   Widget _buildIdentity(UserModel profile) {
     final statusColor = profile.onlineStatus == 'online'
-        ? _neon
+        ? _accent
         : profile.onlineStatus == 'idle'
             ? const Color(0xFFFEE75C)
             : _muted;
 
+    final statusLabel = profile.onlineStatus == 'online'
+        ? 'Online'
+        : profile.onlineStatus == 'idle'
+            ? 'Idle'
+            : profile.onlineStatus == 'dnd'
+                ? 'Do Not Disturb'
+                : 'Offline';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Display name with elegant styling
         Text(
-          (profile.displayName ?? profile.username).toUpperCase(),
-          style: GoogleFonts.epilogue(
+          profile.displayName ?? profile.username,
+          style: GoogleFonts.inter(
             color: _white,
-            fontSize: 32,
-            fontWeight: FontWeight.w900,
-            letterSpacing: -1.5,
-            fontStyle: FontStyle.italic,
-            height: 1.1,
+            fontSize: 28,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.5,
+            height: 1.15,
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         Row(
           children: [
             Text('@${profile.username}',
-                style: GoogleFonts.spaceMono(
-                    color: _neon, fontSize: 14, fontWeight: FontWeight.w600)),
-            const SizedBox(width: 12),
+                style: GoogleFonts.jetBrainsMono(
+                    color: _accent, fontSize: 14, fontWeight: FontWeight.w500)),
+            const SizedBox(width: 14),
             Container(
-                width: 8,
-                height: 8,
-                decoration:
-                    BoxDecoration(color: statusColor, shape: BoxShape.circle)),
-            const SizedBox(width: 8),
-            Text(profile.onlineStatus.toUpperCase(),
-                style: GoogleFonts.spaceMono(
-                    color: _muted,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.5)),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: statusColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: statusColor.withValues(alpha: 0.25)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      color: statusColor,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: statusColor.withValues(alpha: 0.5),
+                          blurRadius: 6,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(statusLabel,
+                      style: GoogleFonts.inter(
+                          color: statusColor,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ),
           ],
         ),
         if (profile.location != null && profile.location!.isNotEmpty) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Row(
             children: [
-              const Icon(Icons.location_on_rounded, color: _neon, size: 16),
+              Icon(Icons.location_on_outlined, color: _accent.withValues(alpha: 0.7), size: 16),
               const SizedBox(width: 6),
               Text(
                 profile.location!,
-                style: GoogleFonts.spaceMono(
-                  color: _white.withValues(alpha: 0.7),
+                style: GoogleFonts.inter(
+                  color: _white.withValues(alpha: 0.5),
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),
@@ -711,12 +842,13 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
           ),
         ],
         if (profile.customStatus != null) ...[
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
               color: _surface,
-              border: Border.all(color: _white.withValues(alpha: 0.05)),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _white.withValues(alpha: 0.06)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -730,7 +862,7 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                   child: Text(
                     profile.customStatus!,
                     style: GoogleFonts.inter(
-                        color: _white.withValues(alpha: 0.7), fontSize: 14),
+                        color: _white.withValues(alpha: 0.6), fontSize: 14),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -751,22 +883,22 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
         ? <_QuickEntry>[
             _QuickEntry(
               icon: Icons.storefront_rounded,
-              label: 'STORE',
+              label: 'Store',
               onTap: () => context.push('/store'),
             ),
             _QuickEntry(
               icon: Icons.brush_rounded,
-              label: 'CREATOR',
+              label: 'Creator',
               onTap: () => context.push('/creator'),
             ),
             _QuickEntry(
               icon: Icons.music_note_rounded,
-              label: 'SONIC',
+              label: 'Sonic',
               onTap: () => context.push('/profile/settings/sonic-drip'),
             ),
             _QuickEntry(
               icon: Icons.workspace_premium_rounded,
-              label: 'PLUS',
+              label: 'Plus',
               onTap: () => context.push('/premium/plus'),
             ),
           ]
@@ -775,7 +907,7 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
     if (entries.isEmpty) return const SizedBox.shrink();
 
     return SizedBox(
-      height: 64,
+      height: 72,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
@@ -784,34 +916,41 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
         itemBuilder: (context, i) {
           final e = entries[i];
           return InkWell(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
             onTap: e.onTap,
             child: Container(
-              width: 64,
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+              width: 68,
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
               decoration: BoxDecoration(
                 color: _surface,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: _white.withValues(alpha: 0.06)),
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(e.icon, color: _neon, size: 22),
-                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: _accent.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(e.icon, color: _accent, size: 18),
+                  ),
+                  const SizedBox(height: 6),
                   Text(
                     e.label,
-                    style: GoogleFonts.jetBrainsMono(
-                      color: _white,
-                      fontSize: 9,
+                    style: GoogleFonts.inter(
+                      color: _white.withValues(alpha: 0.7),
+                      fontSize: 10,
                       fontWeight: FontWeight.w600,
-                      letterSpacing: 1,
                     ),
                   ),
                 ],
               ),
             ),
-          );
+          ).animate().fadeIn(delay: Duration(milliseconds: 80 * i)).slideX(
+              begin: 0.1, curve: Curves.easeOutCubic);
         },
       ),
     );
@@ -836,7 +975,7 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
           artist: track.artistName,
           artworkUrl: track.imageUrl,
           isPlaying: status == PlaybackStatus.playing,
-          accent: _neon,
+          accent: _accent,
           onTap: () => context.push('/profile/settings/sonic-drip'),
         );
       },
@@ -849,8 +988,8 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
         children: [
           Expanded(
             child: _buildBtn(
-              'EDIT PROFILE',
-              Icons.edit_rounded,
+              'Edit Profile',
+              Icons.edit_outlined,
               () => context.push('/profile/settings/edit-profile'),
               primary: false,
             ),
@@ -862,25 +1001,25 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
       );
     }
 
-    String friendLabel = 'ADD FRIEND';
-    Color friendColor = _neon;
-    Color friendTextColor = Colors.black;
+    String friendLabel = 'Add Friend';
+    Color friendBgColor = _accent;
+    Color friendTextColor = const Color(0xFF0A0A0F);
     IconData friendIcon = Icons.person_add_rounded;
 
     if (_friendStatus == 'friends') {
-      friendLabel = 'FRIENDS';
-      friendColor = _surface;
-      friendTextColor = _white;
+      friendLabel = 'Friends';
+      friendBgColor = _accent.withValues(alpha: 0.12);
+      friendTextColor = _accent;
       friendIcon = Icons.check_circle_rounded;
     } else if (_friendStatus == 'pending_sent') {
-      friendLabel = 'PENDING';
-      friendColor = _surface;
+      friendLabel = 'Pending';
+      friendBgColor = _surface;
       friendTextColor = _muted;
       friendIcon = Icons.access_time_filled_rounded;
     } else if (_friendStatus == 'pending_received') {
-      friendLabel = 'ACCEPT';
-      friendColor = _neon;
-      friendTextColor = Colors.black;
+      friendLabel = 'Accept';
+      friendBgColor = _accent;
+      friendTextColor = const Color(0xFF0A0A0F);
       friendIcon = Icons.how_to_reg_rounded;
     }
 
@@ -893,15 +1032,15 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
             _handleFriendAction,
             primary:
                 _friendStatus == 'none' || _friendStatus == 'pending_received',
-            backgroundColor: friendColor,
+            backgroundColor: friendBgColor,
             textColor: friendTextColor,
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: _buildBtn(
-            'MESSAGE',
-            Icons.chat_bubble_rounded,
+            'Message',
+            Icons.chat_bubble_outline_rounded,
             () => ScaffoldMessenger.of(context)
                 .showSnackBar(const SnackBar(content: Text('Coming Soon'))),
             primary: false,
@@ -913,28 +1052,42 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
 
   Widget _buildBtn(String label, IconData icon, VoidCallback onTap,
       {bool primary = true, Color? backgroundColor, Color? textColor}) {
-    final bgColor = backgroundColor ?? (primary ? _neon : _surface);
-    final txtColor = textColor ?? (primary ? Colors.black : _white);
+    final bgColor = backgroundColor ?? (primary ? _accent : _surface);
+    final txtColor = textColor ?? (primary ? const Color(0xFF0A0A0F) : _white);
 
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
           color: bgColor,
-          border: Border.all(color: _white.withValues(alpha: 0.05)),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: primary
+                ? Colors.transparent
+                : _white.withValues(alpha: 0.08),
+          ),
+          boxShadow: primary
+              ? [
+                  BoxShadow(
+                    color: _accent.withValues(alpha: 0.2),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: txtColor, size: 18),
-            const SizedBox(width: 10),
+            Icon(icon, color: txtColor, size: 17),
+            const SizedBox(width: 8),
             Text(label,
-                style: GoogleFonts.spaceGrotesk(
+                style: GoogleFonts.inter(
                     color: txtColor,
                     fontSize: 13,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.5)),
+                    fontWeight: FontWeight.w700)),
           ],
         ),
       ),
@@ -945,12 +1098,13 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: _surface,
-          border: Border.all(color: _white.withValues(alpha: 0.1)),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _white.withValues(alpha: 0.08)),
         ),
-        child: Icon(icon, color: _white, size: 20),
+        child: Icon(icon, color: _white.withValues(alpha: 0.8), size: 20),
       ),
     );
   }
@@ -960,15 +1114,24 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(title,
-            style: GoogleFonts.epilogue(
-                color: _white,
-                fontSize: 14,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1.5,
-                fontStyle: FontStyle.italic)),
-        const SizedBox(height: 8),
-        Container(height: 1, width: 40, color: _neon),
-        const SizedBox(height: 16),
+            style: GoogleFonts.inter(
+                color: _white.withValues(alpha: 0.9),
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.3)),
+        const SizedBox(height: 6),
+        // Gradient accent bar
+        Container(
+          height: 2,
+          width: 32,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(1),
+            gradient: const LinearGradient(
+              colors: [_accent, _accentLight],
+            ),
+          ),
+        ),
+        const SizedBox(height: 14),
       ],
     );
   }
@@ -976,17 +1139,19 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
   Widget _buildAboutCard(String? bio) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: _surface,
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: _white.withValues(alpha: 0.05)),
       ),
       child: Text(
         bio ?? 'This user has no bio.',
         style: GoogleFonts.inter(
-          color: _white.withValues(alpha: 0.7),
-          fontSize: 15,
-          height: 1.6,
+          color: bio != null ? _white.withValues(alpha: 0.65) : _muted,
+          fontSize: 14,
+          height: 1.65,
+          fontStyle: bio == null ? FontStyle.italic : FontStyle.normal,
         ),
       ),
     );
@@ -994,17 +1159,30 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
 
   Widget _buildInfoBadge(String text, IconData icon) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-          color: _surface,
-          border: Border.all(color: _white.withValues(alpha: 0.05))),
+        color: _surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _white.withValues(alpha: 0.05)),
+      ),
       child: Row(
         children: [
-          Icon(icon, color: _neon, size: 18),
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: _accent.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: _accent, size: 16),
+          ),
           const SizedBox(width: 12),
-          Text(text,
-              style: GoogleFonts.spaceGrotesk(
-                  color: _white, fontWeight: FontWeight.w600)),
+          Expanded(
+            child: Text(text,
+                style: GoogleFonts.inter(
+                    color: _white.withValues(alpha: 0.8),
+                    fontWeight: FontWeight.w500,
+                    fontSize: 13)),
+          ),
         ],
       ),
     );
@@ -1023,20 +1201,29 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
             color: color.withValues(alpha: 0.1),
-            border: Border.all(color: color.withValues(alpha: 0.3)),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: color.withValues(alpha: 0.25)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                  width: 6,
-                  height: 6,
-                  decoration:
-                      BoxDecoration(color: color, shape: BoxShape.circle)),
+                width: 7,
+                height: 7,
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(color: color.withValues(alpha: 0.4), blurRadius: 4),
+                  ],
+                ),
+              ),
               const SizedBox(width: 8),
-              Text(role['name']?.toString().toUpperCase() ?? 'ROLE',
-                  style: GoogleFonts.spaceMono(
-                      color: color, fontSize: 10, fontWeight: FontWeight.w900)),
+              Text(role['name']?.toString() ?? 'Role',
+                  style: GoogleFonts.inter(
+                      color: color,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600)),
             ],
           ),
         );
@@ -1046,14 +1233,15 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
 
   Widget _buildBadgesRow(List<Badge> badges) {
     return Wrap(
-      spacing: 12,
-      runSpacing: 12,
+      spacing: 10,
+      runSpacing: 10,
       children: badges.map<Widget>((badge) {
         final color = Color(int.parse(badge.color.replaceFirst('#', '0xFF')));
         return Container(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: _surface,
+            color: color.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(color: color.withValues(alpha: 0.2)),
           ),
           child: Tooltip(
@@ -1085,14 +1273,18 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
               height: 50,
               decoration: BoxDecoration(
                 color: _surface,
-                border: Border.all(color: _white.withValues(alpha: 0.1)),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: _white.withValues(alpha: 0.08)),
               ),
+              clipBehavior: Clip.antiAlias,
               child: server['icon'] != null
                   ? Image.network(server['icon'], fit: BoxFit.cover)
                   : Center(
                       child: Text(server['name'][0].toString().toUpperCase(),
-                          style: GoogleFonts.epilogue(
-                              color: _neon, fontWeight: FontWeight.w900))),
+                          style: GoogleFonts.inter(
+                              color: _accent,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 18))),
             ),
           );
         },
@@ -1105,8 +1297,10 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-          color: _surface,
-          border: Border.all(color: _white.withValues(alpha: 0.05))),
+        color: _surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _white.withValues(alpha: 0.05)),
+      ),
       child: _isEditingNote
           ? Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1121,18 +1315,28 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                     filled: true,
                     fillColor: _bg,
                     border: OutlineInputBorder(
-                        borderSide:
-                            BorderSide(color: _white.withValues(alpha: 0.1))),
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: _white.withValues(alpha: 0.08)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: _white.withValues(alpha: 0.08)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: _accent.withValues(alpha: 0.5)),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton(
                       onPressed: () => setState(() => _isEditingNote = false),
-                      child: Text('CANCEL',
-                          style: GoogleFonts.spaceGrotesk(color: _muted)),
+                      child: Text('Cancel',
+                          style: GoogleFonts.inter(
+                              color: _muted, fontWeight: FontWeight.w600)),
                     ),
                     const SizedBox(width: 8),
                     ElevatedButton(
@@ -1143,11 +1347,15 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                         });
                       },
                       style: ElevatedButton.styleFrom(
-                          backgroundColor: _neon,
-                          foregroundColor: Colors.black),
-                      child: Text('SAVE',
-                          style: GoogleFonts.spaceGrotesk(
-                              fontWeight: FontWeight.w900)),
+                        backgroundColor: _accent,
+                        foregroundColor: const Color(0xFF0A0A0F),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                        elevation: 0,
+                      ),
+                      child: Text('Save',
+                          style: GoogleFonts.inter(
+                              fontWeight: FontWeight.w700)),
                     ),
                   ],
                 ),
@@ -1160,14 +1368,23 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
               }),
               child: Row(
                 children: [
-                  const Icon(Icons.sticky_note_2_rounded,
-                      color: _muted, size: 20),
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: _accent.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(Icons.sticky_note_2_outlined,
+                        color: _accent.withValues(alpha: 0.6), size: 18),
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       _note.isEmpty ? 'Click to add a private note...' : _note,
                       style: GoogleFonts.inter(
-                          color: _note.isEmpty ? _muted : _white,
+                          color: _note.isEmpty
+                              ? _muted
+                              : _white.withValues(alpha: 0.7),
                           fontSize: 14,
                           fontStyle: _note.isEmpty
                               ? FontStyle.italic
@@ -1185,14 +1402,26 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
       child: Column(
         children: [
           Container(
-              height: 1, width: 200, color: _white.withValues(alpha: 0.05)),
+            height: 1,
+            width: 160,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(1),
+              gradient: LinearGradient(
+                colors: [
+                  _white.withValues(alpha: 0.0),
+                  _white.withValues(alpha: 0.08),
+                  _white.withValues(alpha: 0.0),
+                ],
+              ),
+            ),
+          ),
           const SizedBox(height: 16),
-          Text('FLICKO // USER IDENTITY VERIFIED',
-              style: GoogleFonts.spaceMono(
-                  color: _white.withValues(alpha: 0.15),
-                  fontSize: 10,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 2.0)),
+          Text('Flicko · Identity Verified',
+              style: GoogleFonts.inter(
+                  color: _white.withValues(alpha: 0.12),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5)),
         ],
       ),
     );
@@ -1203,37 +1432,56 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: _surface,
-      shape: const RoundedRectangleBorder(),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-                margin: const EdgeInsets.only(top: 12, bottom: 8),
-                width: 40,
-                height: 4,
-                color: _white.withValues(alpha: 0.1)),
-            if (!isOwnProfile) ...[
-              _sheetItem(Icons.block_rounded, 'BLOCK USER', () {
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context)
-                    .showSnackBar(const SnackBar(content: Text('Coming Soon')));
-              }, color: const Color(FlickoColors.red)),
-              _sheetItem(Icons.report_problem_rounded, 'REPORT PROFILE', () {
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context)
-                    .showSnackBar(const SnackBar(content: Text('Coming Soon')));
-              }, color: const Color(FlickoColors.red)),
-            ],
-            _sheetItem(Icons.copy_rounded, 'COPY USER ID', () {
-              Clipboard.setData(ClipboardData(text: widget.userId));
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context)
-                  .showSnackBar(const SnackBar(content: Text('ID copied!')));
-            }),
-            const SizedBox(height: 16),
-          ],
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            decoration: BoxDecoration(
+              color: _cardBg.withValues(alpha: 0.95),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              border: Border(
+                top: BorderSide(color: _white.withValues(alpha: 0.08)),
+              ),
+            ),
+            child: SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Drag handle
+                  Container(
+                    margin: const EdgeInsets.only(top: 12, bottom: 12),
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: _white.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  if (!isOwnProfile) ...[
+                    _sheetItem(Icons.block_rounded, 'Block User', () {
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Coming Soon')));
+                    }, color: const Color(FlickoColors.red)),
+                    _sheetItem(Icons.report_outlined, 'Report Profile', () {
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Coming Soon')));
+                    }, color: const Color(FlickoColors.red)),
+                  ],
+                  _sheetItem(Icons.copy_rounded, 'Copy User ID', () {
+                    Clipboard.setData(ClipboardData(text: widget.userId));
+                    Navigator.pop(ctx);
+                    ScaffoldMessenger.of(context)
+                        .showSnackBar(const SnackBar(content: Text('ID copied!')));
+                  }),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -1242,10 +1490,21 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
   Widget _sheetItem(IconData icon, String label, VoidCallback onTap,
       {Color? color}) {
     return ListTile(
-      leading: Icon(icon, color: color ?? _white, size: 22),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: (color ?? _white).withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(icon, color: color ?? _white.withValues(alpha: 0.8), size: 20),
+      ),
       title: Text(label,
-          style: GoogleFonts.spaceGrotesk(
-              color: color ?? _white, fontWeight: FontWeight.w700)),
+          style: GoogleFonts.inter(
+              color: color ?? _white.withValues(alpha: 0.9),
+              fontWeight: FontWeight.w600,
+              fontSize: 14)),
       onTap: onTap,
     );
   }
@@ -1254,20 +1513,20 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle('LINKS'),
-        const SizedBox(height: 8),
+        _buildSectionTitle('Links'),
+        const SizedBox(height: 4),
         if (websiteUrl != null && websiteUrl.isNotEmpty) ...[
-          _buildBrutalistLinkCard('WEBSITE', websiteUrl),
-          const SizedBox(height: 12),
+          _buildLinkCard('Website', websiteUrl),
+          const SizedBox(height: 10),
         ],
         if (socialLink != null && socialLink.isNotEmpty) ...[
-          _buildBrutalistLinkCard('SOCIAL PROFILE', socialLink),
+          _buildLinkCard('Social Profile', socialLink),
         ],
       ],
     );
   }
 
-  Widget _buildBrutalistLinkCard(String label, String url) {
+  Widget _buildLinkCard(String label, String url) {
     final icon = _getLinkIcon(url);
     return GestureDetector(
       onTap: () async {
@@ -1279,14 +1538,22 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
         }
       },
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: _surface,
-          border: Border.all(color: _neon.withValues(alpha: 0.3), width: 1.5),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _accent.withValues(alpha: 0.15)),
         ),
         child: Row(
           children: [
-            Icon(icon, color: _neon, size: 20),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: _accent.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: _accent, size: 18),
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -1294,19 +1561,19 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                 children: [
                   Text(
                     label,
-                    style: GoogleFonts.spaceMono(
+                    style: GoogleFonts.inter(
                       color: _muted,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     url,
-                    style: GoogleFonts.spaceGrotesk(
-                      color: _white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
+                    style: GoogleFonts.inter(
+                      color: _white.withValues(alpha: 0.8),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -1314,7 +1581,8 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                 ],
               ),
             ),
-            const Icon(Icons.open_in_new_rounded, color: _muted, size: 16),
+            Icon(Icons.open_in_new_rounded,
+                color: _muted.withValues(alpha: 0.6), size: 16),
           ],
         ),
       ),

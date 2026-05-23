@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/features/store/data/store_service.dart';
 import 'package:mobile/features/store/data/wishlist_service.dart';
+import 'package:mobile/features/store/data/store_audio_preview_service.dart';
+import 'package:mobile/features/store/data/store_theme_service.dart';
 import 'package:mobile/features/store/presentation/widgets/product_preview_widget.dart';
 
 class ProductDetailScreen extends ConsumerWidget {
@@ -11,9 +13,9 @@ class ProductDetailScreen extends ConsumerWidget {
 
   const ProductDetailScreen({super.key, required this.productId});
 
-  static const Color _bg = Color(0xFF050505);
-  static const Color _surface = Color(0xFF0C0C0E);
-  static const Color _neon = Color(0xFF9B84EE);
+  static const Color _bg = Color(0xFF000000);
+  static const Color _surface = Color(0xFF000000);
+  static const Color _neon = Color(0xFF52B788);
   static const Color _white = Color(0xFFFFFFFF);
   static const Color _muted = Color(0xFF71717A);
   static const Color _lime = Color(0xFF52B788);
@@ -32,8 +34,8 @@ class ProductDetailScreen extends ConsumerWidget {
         leading: Container(
           margin: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: _surface.withValues(alpha: 0.8),
-            shape: BoxShape.circle,
+            color: Colors.black,
+            border: Border.all(color: _neon, width: 1.5),
           ),
           child: IconButton(
             icon: const Icon(Icons.arrow_back, color: _white),
@@ -44,15 +46,15 @@ class ProductDetailScreen extends ConsumerWidget {
           Container(
             margin: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: _surface.withValues(alpha: 0.8),
-              shape: BoxShape.circle,
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.share, color: _white),
-              onPressed: () {
-                // Share functionality
-              },
-            ),
+            color: Colors.black,
+            border: Border.all(color: _neon, width: 1.5),
+          ),
+          child: IconButton(
+            icon: const Icon(Icons.share, color: _white),
+            onPressed: () {
+              // Share functionality
+            },
+          ),
           ),
         ],
       ),
@@ -120,7 +122,7 @@ class ProductDetailScreen extends ConsumerWidget {
             children: [
               const SizedBox(height: 100),
               // Product preview
-              _buildProductPreview(product, rarityColor),
+              _buildProductPreview(context, ref, product, rarityColor),
               const SizedBox(height: 24),
               // Product info
               Padding(
@@ -133,13 +135,13 @@ class ProductDetailScreen extends ConsumerWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
-                            color: rarityColor,
-                            borderRadius: BorderRadius.circular(6),
+                            color: Colors.black,
+                            border: Border.all(color: rarityColor, width: 1.5),
                           ),
                           child: Text(
                             product.rarity.toUpperCase(),
                             style: GoogleFonts.spaceMono(
-                              color: Colors.black,
+                              color: rarityColor,
                               fontSize: 10,
                               fontWeight: FontWeight.w900,
                             ),
@@ -150,8 +152,8 @@ class ProductDetailScreen extends ConsumerWidget {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                             decoration: BoxDecoration(
-                              color: Colors.red,
-                              borderRadius: BorderRadius.circular(6),
+                              color: Colors.black,
+                              border: Border.all(color: Colors.red, width: 1.5),
                             ),
                             child: Row(
                               children: [
@@ -160,7 +162,7 @@ class ProductDetailScreen extends ConsumerWidget {
                                 Text(
                                   'HOT',
                                   style: GoogleFonts.spaceMono(
-                                    color: _white,
+                                    color: Colors.red,
                                     fontSize: 10,
                                     fontWeight: FontWeight.w900,
                                   ),
@@ -240,15 +242,273 @@ class ProductDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildProductPreview(StoreProduct product, Color rarityColor) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: ProductPreviewWidget(
-        productType: product.type,
-        productName: product.name,
-        primaryColor: rarityColor,
-        secondaryColor: Colors.black,
-        height: 280,
+  Widget _buildProductPreview(BuildContext context, WidgetRef ref, StoreProduct product, Color rarityColor) {
+    if (product.type.toUpperCase() == 'THEME') {
+      final theme = BuiltInThemes.getById(product.id) ?? BuiltInThemes.sonicDrip;
+      return _buildThemeMockSimulator(theme);
+    }
+
+    final previewStatus = ref.watch(storeAudioPreviewProvider);
+    final isPlaying = previewStatus.productId == product.id && previewStatus.state == AudioPreviewState.playing;
+    final isLoading = previewStatus.productId == product.id && previewStatus.state == AudioPreviewState.loading;
+
+    return _buildVinylRecordPreview(ref, product, rarityColor, isPlaying, isLoading);
+  }
+
+  Widget _buildThemeMockSimulator(StoreTheme theme) {
+    return Container(
+      height: 280,
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      decoration: BoxDecoration(
+        color: theme.backgroundColor,
+        border: Border.all(color: theme.primaryColor, width: 2.5),
+        boxShadow: [
+          BoxShadow(
+            color: theme.primaryColor,
+            offset: const Offset(4, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Simulated App Bar
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: theme.surfaceColor,
+              border: Border(bottom: BorderSide(color: theme.primaryColor.withValues(alpha: 0.3), width: 1.5)),
+            ),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 12,
+                  backgroundColor: theme.primaryColor,
+                  child: const Icon(Icons.tag, color: Colors.black, size: 12),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'general-chat',
+                  style: GoogleFonts.spaceGrotesk(
+                    color: theme.textPrimary,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 12,
+                  ),
+                ),
+                const Spacer(),
+                Icon(Icons.headset, color: theme.primaryColor, size: 14),
+              ],
+            ),
+          ),
+          // Chat messages
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(12),
+              physics: const NeverScrollableScrollPhysics(),
+              children: [
+                _buildSimulatedMessage(
+                  theme: theme,
+                  sender: 'Alice',
+                  message: 'This theme looks absolutely dope! 🔥',
+                  avatarColor: theme.primaryColor,
+                ),
+                const SizedBox(height: 8),
+                _buildSimulatedMessage(
+                  theme: theme,
+                  sender: 'Bob',
+                  message: 'Clean brutalist aesthetic. Drop the needle!',
+                  avatarColor: theme.secondaryColor,
+                  isMe: true,
+                ),
+              ],
+            ),
+          ),
+          // Mock Message Input
+          Container(
+            padding: const EdgeInsets.all(8),
+            color: theme.surfaceColor,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: theme.backgroundColor,
+                      border: Border.all(color: theme.primaryColor.withValues(alpha: 0.5)),
+                    ),
+                    child: Text(
+                      'Message #general-chat',
+                      style: GoogleFonts.spaceGrotesk(color: theme.textSecondary, fontSize: 11),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Icon(Icons.emoji_emotions, color: theme.primaryColor, size: 18),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSimulatedMessage({
+    required StoreTheme theme,
+    required String sender,
+    required String message,
+    required Color avatarColor,
+    bool isMe = false,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        CircleAvatar(
+          radius: 14,
+          backgroundColor: avatarColor,
+          child: Text(sender[0], style: const TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold)),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                sender,
+                style: GoogleFonts.spaceGrotesk(
+                  color: avatarColor,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 11,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: isMe ? theme.surfaceColor : Colors.black,
+                  border: Border.all(color: isMe ? theme.primaryColor : theme.textSecondary.withValues(alpha: 0.2)),
+                ),
+                child: Text(
+                  message,
+                  style: GoogleFonts.spaceGrotesk(color: theme.textPrimary, fontSize: 11),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildVinylRecordPreview(WidgetRef ref, StoreProduct product, Color rarityColor, bool isPlaying, bool isLoading) {
+    return Container(
+      height: 280,
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      decoration: BoxDecoration(
+        color: Colors.black,
+        border: Border.all(color: rarityColor, width: 2.5),
+        boxShadow: [
+          BoxShadow(
+            color: rarityColor,
+            offset: const Offset(4, 4),
+          ),
+        ],
+      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Vinyl Record disk representation
+          AnimatedRotation(
+            turns: isPlaying ? 50 : 0,
+            duration: const Duration(seconds: 100),
+            child: Container(
+              width: 180,
+              height: 180,
+              decoration: BoxDecoration(
+                color: const Color(0xFF111111),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.black, width: 6),
+                boxShadow: const [
+                  BoxShadow(color: Colors.black45, blurRadius: 10),
+                ],
+              ),
+              child: Center(
+                // Vinyl Label
+                child: Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: rarityColor,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.black, width: 3),
+                  ),
+                  child: Center(
+                    child: Container(
+                      width: 14,
+                      height: 14,
+                      decoration: const BoxDecoration(
+                        color: Colors.black,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // Interactive Needle Arm overlay
+          Positioned(
+            right: 40,
+            top: 30,
+            child: AnimatedRotation(
+              turns: isPlaying ? 0.08 : 0.0,
+              alignment: Alignment.topRight,
+              duration: const Duration(milliseconds: 500),
+              child: SizedBox(
+                width: 60,
+                height: 100,
+                child: CustomPaint(
+                  painter: _NeedleArmPainter(color: rarityColor),
+                ),
+              ),
+            ),
+          ),
+          // Play Overlay Button
+          GestureDetector(
+            onTap: () {
+              final audioUrl = product.previewUrl ?? 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+              ref.read(storeAudioPreviewProvider.notifier).playPreview(product.id, audioUrl);
+            },
+            child: Container(
+              width: 54,
+              height: 54,
+              decoration: const BoxDecoration(
+                color: Colors.black,
+                shape: BoxShape.circle,
+                boxShadow: [BoxShadow(color: Colors.black54, blurRadius: 4)],
+              ),
+              child: Center(
+                child: isLoading
+                    ? CircularProgressIndicator(color: rarityColor, strokeWidth: 3)
+                    : Icon(
+                        isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                        color: rarityColor,
+                        size: 32,
+                      ),
+              ),
+            ),
+          ),
+          // Subtitle info
+          Positioned(
+            bottom: 12,
+            child: Text(
+              isPlaying ? 'NOW PREVIEWING...' : 'TAP TO PREVIEW AUDIO',
+              style: GoogleFonts.spaceMono(
+                color: isPlaying ? rarityColor : _white.withValues(alpha: 0.5),
+                fontSize: 10,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -326,8 +586,8 @@ class ProductDetailScreen extends ConsumerWidget {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: _surface,
-            borderRadius: BorderRadius.circular(12),
+            color: Colors.black,
+            border: Border.all(color: _neon, width: 1.5),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -338,8 +598,8 @@ class ProductDetailScreen extends ConsumerWidget {
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: _neon.withValues(alpha: 0.3),
-                      shape: BoxShape.circle,
+                      color: Colors.black,
+                      border: Border.all(color: _neon, width: 1.5),
                     ),
                     child: const Icon(Icons.person, color: _neon, size: 18),
                   ),
@@ -383,9 +643,9 @@ class ProductDetailScreen extends ConsumerWidget {
 
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: _surface,
-        border: Border(top: BorderSide(color: _white.withValues(alpha: 0.1))),
+      decoration: const BoxDecoration(
+        color: Colors.black,
+        border: Border(top: BorderSide(color: _neon, width: 2.5)),
       ),
       child: SafeArea(
         child: Row(
@@ -408,15 +668,36 @@ class ProductDetailScreen extends ConsumerWidget {
                 width: 52,
                 height: 52,
                 decoration: BoxDecoration(
-                  color: _bg,
-                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.black,
                   border: Border.all(
-                    color: isInWishlist ? Colors.red : _white.withValues(alpha: 0.2),
+                    color: isInWishlist ? Colors.red : _white,
+                    width: 2,
                   ),
                 ),
                 child: Icon(
                   isInWishlist ? Icons.favorite : Icons.favorite_border,
                   color: isInWishlist ? Colors.red : _white.withValues(alpha: 0.7),
+                  size: 24,
+                ),
+              ),
+            ),
+            // Gift button
+            GestureDetector(
+              onTap: () => _showGiftFriendSelector(context, ref, product),
+              child: Container(
+                width: 52,
+                height: 52,
+                margin: const EdgeInsets.only(left: 8),
+                decoration: BoxDecoration(
+                  color: Colors.black,
+                  border: Border.all(
+                    color: _neon,
+                    width: 2,
+                  ),
+                ),
+                child: const Icon(
+                  Icons.card_giftcard,
+                  color: _neon,
                   size: 24,
                 ),
               ),
@@ -471,13 +752,16 @@ class ProductDetailScreen extends ConsumerWidget {
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 16),
+                  margin: const EdgeInsets.only(right: 4, bottom: 4),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: inCart
-                          ? [_lime, _lime]
-                          : [_neon, const Color(0xFF00E5FF)],
-                    ),
-                    borderRadius: BorderRadius.circular(12),
+                    color: inCart ? _lime : _neon,
+                    border: Border.all(color: Colors.black, width: 2),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.white,
+                        offset: Offset(4, 4),
+                      ),
+                    ],
                   ),
                   child: Center(
                     child: Row(
@@ -504,6 +788,117 @@ class ProductDetailScreen extends ConsumerWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  void _showGiftFriendSelector(BuildContext context, WidgetRef ref, StoreProduct product) {
+    final friends = [
+      {'id': '1', 'username': 'alice', 'displayName': 'Alice', 'status': 'online'},
+      {'id': '2', 'username': 'bob', 'displayName': 'Bob', 'status': 'idle'},
+      {'id': '3', 'username': 'charlie', 'displayName': 'Charlie', 'status': 'dnd'},
+      {'id': '4', 'username': 'dave', 'displayName': 'Dave', 'status': 'offline'},
+      {'id': '5', 'username': 'eve', 'displayName': 'Eve', 'status': 'offline'},
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.black,
+      shape: const Border(
+        top: BorderSide(color: _neon, width: 3),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'GIFT TO A FRIEND',
+                style: GoogleFonts.spaceGrotesk(
+                  color: _white,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 18,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Select a friend to gift "${product.name}" to:',
+                style: GoogleFonts.spaceGrotesk(color: _muted, fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: friends.length,
+                  itemBuilder: (ctx, index) {
+                    final friend = friends[index];
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8, right: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black,
+                        border: Border.all(color: _neon.withValues(alpha: 0.3), width: 1.5),
+                      ),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: _neon,
+                          child: Text(
+                            friend['displayName']![0],
+                            style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        title: Text(
+                          friend['displayName']!,
+                          style: GoogleFonts.spaceGrotesk(color: _white, fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text(
+                          '@${friend['username']!}',
+                          style: GoogleFonts.spaceMono(color: _muted, fontSize: 11),
+                        ),
+                        trailing: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          margin: const EdgeInsets.only(right: 4, bottom: 4),
+                          decoration: BoxDecoration(
+                            color: _neon,
+                            border: Border.all(color: Colors.black, width: 1.5),
+                            boxShadow: const [
+                              BoxShadow(color: Colors.white, offset: Offset(2, 2)),
+                            ],
+                          ),
+                          child: Text(
+                            'GIFT',
+                            style: GoogleFonts.spaceGrotesk(
+                              color: Colors.black,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ),
+                        onTap: () async {
+                          Navigator.pop(ctx);
+                          final storeService = ref.read(storeServiceProvider);
+                          final success = await storeService.giftProduct(
+                            product,
+                            friend['id']!,
+                            friend['displayName']!,
+                          );
+                          if (success && context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Gifted ${product.name} to ${friend['displayName']!}!'),
+                                backgroundColor: _lime,
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -571,4 +966,40 @@ class ProductDetailScreen extends ConsumerWidget {
         return Icons.store_rounded;
     }
   }
+}
+
+class _NeedleArmPainter extends CustomPainter {
+  final Color color;
+  _NeedleArmPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 3.5
+      ..style = PaintingStyle.stroke;
+
+    final path = Path()
+      ..moveTo(size.width, 0)
+      ..lineTo(size.width * 0.4, size.height * 0.5)
+      ..lineTo(size.width * 0.2, size.height * 0.9);
+
+    canvas.drawPath(path, paint);
+
+    // Draw the cartridge
+    final cartridgePaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+    canvas.drawRect(
+      Rect.fromCenter(
+        center: Offset(size.width * 0.2, size.height * 0.9),
+        width: 12,
+        height: 18,
+      ),
+      cartridgePaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

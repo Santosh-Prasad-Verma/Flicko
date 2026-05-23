@@ -14,6 +14,8 @@ import 'package:mobile/features/calling/services/call_signaling_service.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/features/voice/presentation/controllers/voice_controller.dart';
+import 'package:mobile/features/store/data/warp_service.dart';
+import 'package:mobile/features/shared/presentation/widgets/entrance_warp_overlay.dart';
 
 class DMChatScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -34,6 +36,7 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
   String? _myUserId;
   String? _participantName;
   String? _participantAvatarUrl;
+  bool _showEntranceWarp = true;
 
   @override
   void initState() {
@@ -414,162 +417,176 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
     final participantName =
         participant?.displayName ?? participant?.username ?? 'Chat';
     final onlineStatus = participant?.onlineStatus ?? 'offline';
+    final equippedWarp = ref.watch(equippedWarpProvider).value;
 
     return Scaffold(
       backgroundColor: const Color(FlickoColors.bgPrimary),
-      body: Column(
+      body: Stack(
         children: [
-          // ── CHAT APP BAR ──
-          SafeArea(
-            bottom: false,
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(4, 6, 8, 12),
-              decoration: BoxDecoration(
-                color: const Color(FlickoColors.bgPrimary),
-                border: Border(
-                  bottom: BorderSide(
-                    color: const Color(FlickoColors.border).withValues(alpha: 0.5),
-                    width: 1,
+          Column(
+            children: [
+              // ── CHAT APP BAR ──
+              SafeArea(
+                bottom: false,
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(4, 6, 8, 12),
+                  decoration: BoxDecoration(
+                    color: const Color(FlickoColors.bgPrimary),
+                    border: Border(
+                      bottom: BorderSide(
+                        color: const Color(FlickoColors.border).withValues(alpha: 0.5),
+                        width: 1,
+                      ),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      // Back button
+                      IconButton(
+                        onPressed: () => context.pop(),
+                        icon: const Icon(Icons.arrow_back_rounded,
+                            color: Color(FlickoColors.textPrimary), size: 22),
+                      ),
+
+                      // Tappable avatar + name + status
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => _showProfileOptions(
+                            participant?.id,
+                            participantName,
+                            participant?.avatarUrl,
+                            onlineStatus,
+                          ),
+                          child: Row(
+                            children: [
+                              if (participant != null)
+                                UserAvatar(
+                                  imageUrl: participant.avatarUrl,
+                                  name: participantName,
+                                  size: 36,
+                                  status: onlineStatus,
+                                  showStatus: true,
+                                ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      participantName,
+                                      style: const TextStyle(
+                                        color: Color(FlickoColors.textPrimary),
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 0.1,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 1),
+                                    Text(
+                                      _getStatusLabel(onlineStatus),
+                                      style: TextStyle(
+                                        color: _getStatusColor(onlineStatus),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      // Voice call button
+                      _AppBarAction(
+                        icon: Icons.call_rounded,
+                        onTap: () => _startVoiceCall(
+                            participantName, participant?.avatarUrl),
+                      ),
+                      const SizedBox(width: 4),
+                      // Video call button
+                      _AppBarAction(
+                        icon: Icons.videocam_rounded,
+                        onTap: () => _startVideoCall(
+                            participantName, participant?.avatarUrl),
+                      ),
+                    ],
                   ),
                 ),
               ),
-              child: Row(
-                children: [
-                  // Back button
-                  IconButton(
-                    onPressed: () => context.pop(),
-                    icon: const Icon(Icons.arrow_back_rounded,
-                        color: Color(FlickoColors.textPrimary), size: 22),
-                  ),
 
-                  // Tappable avatar + name + status
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => _showProfileOptions(
-                        participant?.id,
-                        participantName,
-                        participant?.avatarUrl,
-                        onlineStatus,
-                      ),
-                      child: Row(
-                        children: [
-                          if (participant != null)
-                            UserAvatar(
-                              imageUrl: participant.avatarUrl,
-                              name: participantName,
-                              size: 36,
-                              status: onlineStatus,
-                              showStatus: true,
-                            ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  participantName,
-                                  style: const TextStyle(
-                                    color: Color(FlickoColors.textPrimary),
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 0.1,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
+              // ── MESSAGES ──
+              Expanded(
+                child: state.isLoading && state.messages.isEmpty
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          color: Color(FlickoColors.emeraldGreen),
+                          strokeWidth: 2.5,
+                        ),
+                      )
+                    : ListView.builder(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.fromLTRB(0, 12, 0, 20),
+                        reverse: true,
+                        itemCount: state.messages.length + (state.hasMore ? 1 : 0),
+                        itemBuilder: (context, index) {
+                          if (index == state.messages.length) {
+                            return const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(8.0),
+                                child: CircularProgressIndicator(
+                                  color: Color(FlickoColors.emeraldGreen),
+                                  strokeWidth: 2,
                                 ),
-                                const SizedBox(height: 1),
-                                Text(
-                                  _getStatusLabel(onlineStatus),
-                                  style: TextStyle(
-                                    color: _getStatusColor(onlineStatus),
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  // Voice call button
-                  _AppBarAction(
-                    icon: Icons.call_rounded,
-                    onTap: () => _startVoiceCall(
-                        participantName, participant?.avatarUrl),
-                  ),
-                  const SizedBox(width: 4),
-                  // Video call button
-                  _AppBarAction(
-                    icon: Icons.videocam_rounded,
-                    onTap: () => _startVideoCall(
-                        participantName, participant?.avatarUrl),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // ── MESSAGES ──
-          Expanded(
-            child: state.isLoading && state.messages.isEmpty
-                ? const Center(
-                    child: CircularProgressIndicator(
-                      color: Color(FlickoColors.emeraldGreen),
-                      strokeWidth: 2.5,
-                    ),
-                  )
-                : ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.fromLTRB(0, 12, 0, 20),
-                    reverse: true,
-                    itemCount: state.messages.length + (state.hasMore ? 1 : 0),
-                    itemBuilder: (context, index) {
-                      if (index == state.messages.length) {
-                        return const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(8.0),
-                            child: CircularProgressIndicator(
-                              color: Color(FlickoColors.emeraldGreen),
-                              strokeWidth: 2,
-                            ),
-                          ),
-                        );
-                      }
-                      final message = state.messages[index];
-                      final senderName = message.sender?.displayName ?? message.sender?.username ?? 'Unknown';
-                      return MessageBubble(
-                        message: message,
-                        onTapProfile: () {
-                          _showProfileOptions(
-                            message.sender?.id,
-                            senderName,
-                            message.sender?.avatarUrl,
-                            message.sender?.onlineStatus ?? 'offline',
+                              ),
+                            );
+                          }
+                          final message = state.messages[index];
+                          final senderName = message.sender?.displayName ?? message.sender?.username ?? 'Unknown';
+                          return MessageBubble(
+                            message: message,
+                            onTapProfile: () {
+                              _showProfileOptions(
+                                message.sender?.id,
+                                senderName,
+                                message.sender?.avatarUrl,
+                                message.sender?.onlineStatus ?? 'offline',
+                              );
+                            },
                           );
                         },
+                      ),
+              ),
+
+              // ── INPUT ──
+              DMChatInput(
+                onSend: (content, {attachments, gifUrl, stickerUrl}) {
+                  var messageContent = content;
+                  if (gifUrl != null) messageContent = gifUrl;
+                  if (stickerUrl != null) messageContent = stickerUrl;
+
+                  ref
+                      .read(dmChatControllerProvider(widget.userId).notifier)
+                      .sendMessage(
+                        messageContent,
+                        localAttachments: attachments,
                       );
-                    },
-                  ),
+                },
+              ),
+            ],
           ),
-
-          // ── INPUT ──
-          DMChatInput(
-            onSend: (content, {attachments, gifUrl, stickerUrl}) {
-              var messageContent = content;
-              if (gifUrl != null) messageContent = gifUrl;
-              if (stickerUrl != null) messageContent = stickerUrl;
-
-              ref
-                  .read(dmChatControllerProvider(widget.userId).notifier)
-                  .sendMessage(
-                    messageContent,
-                    localAttachments: attachments,
-                  );
-            },
-          ),
+          if (_showEntranceWarp && equippedWarp != null)
+            EntranceWarpOverlay(
+              warpId: equippedWarp.id,
+              onComplete: () {
+                setState(() {
+                  _showEntranceWarp = false;
+                });
+              },
+            ),
         ],
       ),
     );

@@ -51,6 +51,15 @@ import 'package:mobile/features/store/presentation/cart_screen.dart';
 import 'package:mobile/features/store/presentation/product_detail_screen.dart';
 import 'package:mobile/features/store/presentation/inventory_screen.dart';
 import 'package:mobile/features/store/presentation/theme_picker_screen.dart';
+import 'package:mobile/features/store/presentation/myinstants_explorer_screen.dart';
+import 'package:mobile/features/store/presentation/soundboard_creator_studio.dart';
+import 'package:mobile/features/store/presentation/cosmetic_fusion_screen.dart';
+import 'package:mobile/features/store/presentation/gacha_unboxing_screen.dart';
+import 'package:mobile/features/store/presentation/avatar_decoration_store_screen.dart';
+import 'package:mobile/features/store/presentation/nameplate_store_screen.dart';
+import 'package:mobile/features/store/presentation/voice_skin_store_screen.dart';
+import 'package:mobile/features/store/presentation/warp_drip_store_screen.dart';
+import 'package:mobile/features/store/presentation/badge_alchemy_screen.dart';
 import 'package:mobile/features/creator/presentation/creator_screen.dart';
 import 'package:mobile/features/creator/presentation/screens/creator_profile_screen.dart';
 import 'package:mobile/features/creator/presentation/screens/creator_thread_screen.dart';
@@ -100,7 +109,7 @@ import 'package:mobile/features/server_settings/presentation/bot_marketplace_scr
 // Voice
 import 'package:mobile/features/server_channels/voice/presentation/screens/voice_activities_screen.dart';
 import 'package:mobile/features/server_channels/voice/presentation/screens/voice_channel_screen.dart';
-import 'package:mobile/features/voice/presentation/sonic_drip_screen.dart';
+import 'package:mobile/features/sonic_music/Screens/Home/home.dart';
 
 // Gaming
 import 'package:mobile/features/gaming/presentation/screens/gaming_hub_screen.dart';
@@ -116,6 +125,11 @@ import 'package:mobile/features/server_channels/stage/presentation/screens/stage
 
 // Thread
 import 'package:mobile/features/server_channels/thread/presentation/screens/thread_view_screen.dart';
+
+// Aura AI Assistant
+import 'package:mobile/features/ai_assistant/presentation/aura_dashboard_screen.dart';
+import 'package:mobile/features/ai_assistant/presentation/aura_chat_screen.dart';
+import 'package:mobile/features/ai_assistant/presentation/aura_voice_screen.dart';
 
 /// The global navigation key for the root navigator.
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -301,9 +315,27 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                       GoRoute(path: 'change-username', builder: (context, state) => const ChangeUsernameScreen()),
                       GoRoute(path: 'change-password', builder: (context, state) => const ChangePasswordScreen()),
                       GoRoute(path: 'billing', builder: (context, state) => const BillingSettingsScreen()),
-                      GoRoute(path: 'sonic-drip', builder: (context, state) => const SonicDripScreen()),
+                      GoRoute(path: 'sonic-drip', builder: (context, state) => HomePage()),
                       GoRoute(path: 'encryption', builder: (context, state) => const E2EESettingsScreen()),
                       GoRoute(path: 'add-card', builder: (context, state) => const AddCardScreen()),
+                      GoRoute(
+                        path: 'aura',
+                        builder: (context, state) => const AuraDashboardScreen(),
+                        routes: [
+                          GoRoute(
+                            path: 'chat',
+                            builder: (context, state) {
+                              final category = state.uri.queryParameters['category'] ?? 'Text Writer';
+                              final sessionId = state.uri.queryParameters['sessionId'];
+                              return AuraChatScreen(category: category, sessionId: sessionId);
+                            },
+                          ),
+                          GoRoute(
+                            path: 'voice',
+                            builder: (context, state) => const AuraVoiceScreen(),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                   GoRoute(
@@ -436,6 +468,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/store/cart', builder: (context, state) => const CartScreen()),
       GoRoute(path: '/store/inventory', builder: (context, state) => const InventoryScreen()),
       GoRoute(path: '/store/themes', builder: (context, state) => const ThemePickerScreen()),
+      GoRoute(path: '/store/myinstants', builder: (context, state) => const MyInstantsExplorerScreen()),
+      GoRoute(path: '/store/sound-studio', builder: (context, state) => const SoundboardCreatorStudio()),
+      GoRoute(path: '/store/fusion', builder: (context, state) => const CosmeticFusionScreen()),
+      GoRoute(path: '/store/gacha', builder: (context, state) => const GachaUnboxingScreen()),
+      GoRoute(path: '/store/decorations', builder: (context, state) => const AvatarDecorationStoreScreen()),
+      GoRoute(path: '/store/nameplates', builder: (context, state) => const NameplateStoreScreen()),
+      GoRoute(path: '/store/voice-skins', builder: (context, state) => const VoiceSkinStoreScreen()),
+      GoRoute(path: '/store/warp-drips', builder: (context, state) => const WarpDripStoreScreen()),
+      GoRoute(path: '/store/badge-alchemy', builder: (context, state) => const BadgeAlchemyScreen()),
       GoRoute(
         path: '/store/product/:productId',
         builder: (context, state) => ProductDetailScreen(

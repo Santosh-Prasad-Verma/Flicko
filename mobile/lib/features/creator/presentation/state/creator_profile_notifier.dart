@@ -67,6 +67,7 @@ class CreatorProfileNotifier extends Notifier<CreatorProfileState> {
     try {
       final profile = await _repository.getUserProfile(_userId);
       final postsList = await _repository.getUserPosts(_userId, limit: 20);
+      if (!ref.mounted) return;
 
       final nextCursor = postsList.isNotEmpty ? _buildCursor(postsList.last) : null;
       final hasMore = postsList.length == 20;
@@ -79,6 +80,7 @@ class CreatorProfileNotifier extends Notifier<CreatorProfileState> {
         isLoading: false,
       );
     } catch (e) {
+      if (!ref.mounted) return;
       state = state.copyWith(
         isLoading: false,
         error: e.toString(),
@@ -96,6 +98,7 @@ class CreatorProfileNotifier extends Notifier<CreatorProfileState> {
         cursor: state.cursor,
         limit: 20,
       );
+      if (!ref.mounted) return;
 
       final nextCursor = postsList.isNotEmpty ? _buildCursor(postsList.last) : null;
       final hasMore = postsList.length == 20;
@@ -110,6 +113,7 @@ class CreatorProfileNotifier extends Notifier<CreatorProfileState> {
         isLoadMore: false,
       );
     } catch (e) {
+      if (!ref.mounted) return;
       state = state.copyWith(
         isLoadMore: false,
         error: e.toString(),
@@ -134,12 +138,14 @@ class CreatorProfileNotifier extends Notifier<CreatorProfileState> {
 
     try {
       final actualFollowing = await _repository.toggleFollow(_userId);
+      if (!ref.mounted) return;
       state = state.copyWith(
         profile: state.profile?.copyWith(
           isFollowing: actualFollowing,
         ),
       );
     } catch (_) {
+      if (!ref.mounted) return;
       // Rollback
       state = state.copyWith(profile: oldProfile);
       rethrow;
@@ -164,6 +170,7 @@ class CreatorProfileNotifier extends Notifier<CreatorProfileState> {
 
     try {
       final actual = await _repository.toggleLike(postId);
+      if (!ref.mounted) return;
       state = state.copyWith(
         posts: state.posts.map((p) {
           if (p.id == postId) {
@@ -173,6 +180,7 @@ class CreatorProfileNotifier extends Notifier<CreatorProfileState> {
         }).toList(),
       );
     } catch (_) {
+      if (!ref.mounted) return;
       state = state.copyWith(posts: oldPosts);
     }
   }
@@ -195,6 +203,7 @@ class CreatorProfileNotifier extends Notifier<CreatorProfileState> {
 
     try {
       final actual = await _repository.toggleRepost(postId);
+      if (!ref.mounted) return;
       state = state.copyWith(
         posts: state.posts.map((p) {
           if (p.id == postId) {
@@ -204,6 +213,7 @@ class CreatorProfileNotifier extends Notifier<CreatorProfileState> {
         }).toList(),
       );
     } catch (_) {
+      if (!ref.mounted) return;
       state = state.copyWith(posts: oldPosts);
     }
   }

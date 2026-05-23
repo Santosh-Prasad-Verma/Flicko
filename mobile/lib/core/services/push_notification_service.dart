@@ -245,14 +245,22 @@ class PushNotificationService {
         return;
       }
 
-      // Store token in user_devices table
-      await supabase.from('user_devices').upsert({
+      String platformStr = 'web';
+      if (Platform.isAndroid) {
+        platformStr = 'android';
+      } else if (Platform.isIOS) {
+        platformStr = 'ios';
+      }
+
+      // Store token in push_notification_tokens table
+      await supabase.from('push_notification_tokens').upsert({
         'user_id': userId,
-        'fcm_token': token,
-        'platform': Platform.operatingSystem,
-        'device_name': Platform.localHostname,
-        'last_used_at': DateTime.now().toIso8601String(),
-      }, onConflict: 'user_id,fcm_token');
+        'token': token,
+        'platform': platformStr,
+        'device_id': Platform.localHostname,
+        'is_active': true,
+        'updated_at': DateTime.now().toIso8601String(),
+      }, onConflict: 'user_id,token');
 
       debugPrint('✅ FCM token registered with Supabase');
     } catch (e) {
@@ -270,10 +278,10 @@ class PushNotificationService {
       
       if (userId != null && _fcmToken != null) {
         await supabase
-            .from('user_devices')
+            .from('push_notification_tokens')
             .delete()
             .eq('user_id', userId)
-            .eq('fcm_token', _fcmToken!);
+            .eq('token', _fcmToken!);
       }
 
       _fcmToken = null;

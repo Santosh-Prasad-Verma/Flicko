@@ -8,6 +8,7 @@ import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/data/models/flicko_message.dart';
 import 'package:mobile/features/shared/presentation/widgets/safe_network_media.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
+import 'package:mobile/features/shared/presentation/widgets/kinetic_nameplate_text.dart';
 
 class MessageItem extends StatelessWidget {
   final FlickoMessage message;
@@ -120,8 +121,9 @@ class MessageItem extends StatelessWidget {
 
     return Row(
       children: [
-        Text(
-          authorName,
+        KineticNameplateText(
+          text: authorName,
+          userId: message.author?.id,
           style: GoogleFonts.inter(
             color: roleColor,
             fontWeight: FontWeight.w600,

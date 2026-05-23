@@ -1,9 +1,7 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:mobile/features/calling/presentation/incoming_call_overlay.dart';
 
 /// Call signal types exchanged between caller and callee.
 enum CallSignal {
@@ -126,8 +124,6 @@ class CallSignalingService {
 
   /// Send a call signal to a recipient via their broadcast channel.
   Future<void> sendSignal(CallSignalPayload signal) async {
-    if (_supabase == null) return;
-
     final recipientChannel = _supabase.channel('call:${signal.calleeId}');
 
     try {

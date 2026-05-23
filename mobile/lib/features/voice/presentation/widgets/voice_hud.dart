@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/voice/presentation/controllers/voice_controller.dart';
+import 'package:mobile/features/voice/presentation/controllers/voice_state.dart';
+import 'voice_synth_board_sheet.dart';
 
 class VoiceHUD extends ConsumerWidget {
   const VoiceHUD({super.key});
@@ -57,13 +59,13 @@ class VoiceHUD extends ConsumerWidget {
               ],
             ),
           ),
-          _buildActionButtons(ref, voiceState),
+          _buildActionButtons(context, ref, voiceState),
         ],
       ),
     );
   }
 
-  Widget _buildStatusIndicator(voiceState) {
+  Widget _buildStatusIndicator(VoiceState voiceState) {
     return Container(
       width: 40,
       height: 40,
@@ -79,12 +81,27 @@ class VoiceHUD extends ConsumerWidget {
     );
   }
 
-  Widget _buildActionButtons(WidgetRef ref, voiceState) {
+  Widget _buildActionButtons(BuildContext context, WidgetRef ref, VoiceState voiceState) {
     final controller = ref.read(voiceControllerProvider.notifier);
     
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
+        IconButton(
+          icon: const Icon(
+            Icons.tune_rounded,
+            color: Color(FlickoColors.green),
+          ),
+          tooltip: 'Vocal Synthesizer',
+          onPressed: () {
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (context) => const VoiceSynthBoardSheet(),
+            );
+          },
+        ),
         IconButton(
           icon: Icon(
             voiceState.isMuted ? Icons.mic_off : Icons.mic,
@@ -107,3 +124,4 @@ class VoiceHUD extends ConsumerWidget {
     );
   }
 }
+

@@ -43,6 +43,8 @@
 	<string>Flicko uses Bluetooth to connect to headsets for audio.</string>
 	<key>NSBluetoothPeripheralUsageDescription</key>
 	<string>Flicko uses Bluetooth to connect to headsets for audio.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Flicko needs speech recognition to transcribe voice messages into text for Aura AI.</string>
 
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>

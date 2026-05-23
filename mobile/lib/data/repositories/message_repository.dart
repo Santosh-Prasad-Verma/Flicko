@@ -3,7 +3,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:io';
-import 'package:path/path.dart' as p;
 import 'package:mobile/data/models/flicko_message.dart';
 import 'package:mobile/data/clients/dio_client.dart';
 import 'package:mobile/core/services/appwrite_storage_service.dart';

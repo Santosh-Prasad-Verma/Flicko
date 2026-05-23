@@ -1,7 +1,5 @@
-import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/data/models/music_model.dart';
-import 'package:mobile/data/clients/dio_client.dart';
 import 'package:mobile/features/voice/data/drip_bash_repository.dart';
 import 'package:mobile/features/voice/domain/music_models.dart' as sonic;
 

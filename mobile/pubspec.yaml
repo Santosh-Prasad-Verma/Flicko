@@ -10,6 +10,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   
   # UI & Design
   cupertino_icons: ^1.0.6
@@ -88,6 +90,38 @@ dependencies:
   youtube_explode_dart: ^2.0.4
   dart_des: ^1.0.2
   share_plus: ^12.0.2
+  speech_to_text: ^7.4.0
+  flutter_tts: ^4.2.5
+  
+  # BlackHole Dependencies
+  app_links: ^3.5.0
+  audiotagger:
+    path: ./packages/audiotagger
+  carousel_slider: ^5.0.0
+  connectivity_plus: any
+  device_info_plus: any
+  file_picker: ^11.0.2
+  flip_card: ^0.7.0
+  flutter_archive: ^6.0.0
+  flutter_displaymode: ^0.6.0
+  flutter_lyric: ^2.0.4+6
+  get_it: ^7.6.4
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  html_unescape: ^2.0.0
+  logging: ^1.2.0
+  marquee: ^2.2.3
+  material_design_icons_flutter: 5.0.5955-rc.1
+  metadata_god: ^1.1.0
+  flutter_rust_bridge: 2.11.1
+  on_audio_query: ^2.9.0
+  package_info_plus: any
+  palette_generator: ^0.3.3+3
+  persistent_bottom_nav_bar: ^6.2.1
+  receive_sharing_intent: any
+  sizer: ^2.0.15
+  sliding_up_panel: any
+  uuid: any
 
 dev_dependencies:
   flutter_test:
@@ -105,6 +139,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  generate: true
 
   assets:
     - assets/images/

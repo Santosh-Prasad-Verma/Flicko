@@ -10,12 +10,14 @@ list(APPEND FLUTTER_PLUGIN_LIST
   firebase_core
   flutter_inappwebview_windows
   flutter_secure_storage_windows
+  flutter_tts
   flutter_webrtc
   livekit_client
   local_auth_windows
   permission_handler_windows
   record_windows
   share_plus
+  speech_to_text_windows
   url_launcher_windows
   window_to_front
 )
@@ -23,6 +25,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
 list(APPEND FLUTTER_FFI_PLUGIN_LIST
   flutter_local_notifications_windows
   jni
+  metadata_god
 )
 
 set(PLUGIN_BUNDLED_LIBRARIES)

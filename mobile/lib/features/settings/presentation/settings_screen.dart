@@ -192,6 +192,16 @@ class SettingsScreen extends ConsumerWidget {
             const SizedBox(height: 24),
             _buildPremiumBanner(context),
             const SizedBox(height: 32),
+            _buildSectionHeader('AI COMPANION'),
+            _buildSettingsRow(
+              context,
+              Icons.blur_on_rounded,
+              'Aura AI Assistant',
+              () => context.push('/profile/settings/aura'),
+              subtitle: 'Chat & voice companion',
+              trailing: _buildPremiumBadge('AURA'),
+            ),
+            const SizedBox(height: 32),
             _buildSectionHeader('SYSTEM CONTROLS'),
             _buildSettingsRow(
               context, 

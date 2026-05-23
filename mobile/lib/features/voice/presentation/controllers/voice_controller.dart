@@ -125,7 +125,11 @@ class VoiceController extends Notifier<VoiceState> {
 
   Future<void> _playRemoteSound(String url) async {
     try {
-      await _audioPlayer.setUrl(url);
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        await _audioPlayer.setUrl(url);
+      } else {
+        await _audioPlayer.setFilePath(url);
+      }
       await _audioPlayer.play();
     } catch (e) {
       print('Error playing remote sound: $e');

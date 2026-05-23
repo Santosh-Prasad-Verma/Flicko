@@ -7,6 +7,9 @@ import 'package:mobile/features/voice/presentation/controllers/voice_controller.
 import 'package:mobile/data/models/soundboard_model.dart';
 import 'package:mobile/data/services/soundboard_service.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/features/store/data/store_service.dart';
+import 'package:mobile/features/store/data/custom_recording_service.dart';
+import 'package:mobile/features/store/data/badge_alchemy_service.dart';
 
 class SoundboardSheet extends ConsumerStatefulWidget {
   final String serverId;
@@ -31,7 +34,7 @@ class _SoundboardSheetState extends ConsumerState<SoundboardSheet> with SingleTi
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _loadTrendingSounds();
   }
 
@@ -94,6 +97,9 @@ class _SoundboardSheetState extends ConsumerState<SoundboardSheet> with SingleTi
 
     // Track play count in Supabase
     await ref.read(soundboardServiceProvider).playSound(sound.id);
+
+    // Increment alchemy stat
+    ref.read(badgeAlchemyProvider.notifier).incrementSoundsPlayed();
 
     // Simulate playback duration for UI feedback
     Future.delayed(Duration(seconds: sound.duration), () {
@@ -191,6 +197,7 @@ class _SoundboardSheetState extends ConsumerState<SoundboardSheet> with SingleTi
                 Tab(text: 'Favorites', icon: Icon(Icons.star, size: 20)),
                 Tab(text: 'Server', icon: Icon(Icons.music_note, size: 20)),
                 Tab(text: 'Trending', icon: Icon(Icons.trending_up, size: 20)),
+                Tab(text: 'Purchased', icon: Icon(Icons.shopping_bag, size: 20)),
               ],
             ),
 
@@ -230,6 +237,7 @@ class _SoundboardSheetState extends ConsumerState<SoundboardSheet> with SingleTi
                       _buildSoundGrid(isFavorite: true),
                       _buildSoundGrid(serverId: widget.serverId),
                       _buildTrendingGrid(),
+                      _buildPurchasedSoundsGrid(),
                     ],
                   ),
           ),
@@ -366,5 +374,86 @@ class _SoundboardSheetState extends ConsumerState<SoundboardSheet> with SingleTi
         );
       },
     );
+  }
+
+  Widget _buildPurchasedSoundsGrid() {
+    final purchasesAsync = ref.watch(userPurchasesProvider);
+
+    return purchasesAsync.when(
+      data: (purchases) {
+        final soundPurchases = purchases.where((p) => p.productType.toUpperCase() == 'SOUNDS').toList();
+        final List<SoundboardSound> purchasedSounds = [];
+        for (final p in soundPurchases) {
+          purchasedSounds.addAll(_getSoundsForPurchasedItem(p.productId));
+        }
+
+        return FutureBuilder<List<CustomSoundRecord>>(
+          future: ref.read(customRecordingServiceProvider).getCustomRecordings(),
+          builder: (context, snapshot) {
+            final customSounds = snapshot.data ?? [];
+            final mappedCustom = customSounds.map((c) => SoundboardSound(
+              id: c.id,
+              serverId: 'custom',
+              name: c.name.toUpperCase(),
+              emoji: c.emoji,
+              url: c.url ?? 'https://www.myinstants.com/media/sounds/vine-boom.mp3',
+              duration: c.duration.toInt(),
+              creatorId: 'user',
+              createdAt: c.createdAt,
+            )).toList();
+
+            final allSounds = [...purchasedSounds, ...mappedCustom];
+
+            if (allSounds.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.shopping_bag_outlined, size: 48, color: const Color(FlickoColors.textMuted).withValues(alpha: 0.2)),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'No purchased store sounds yet',
+                      style: TextStyle(color: Color(FlickoColors.textMuted)),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return _buildSoundGridFromList(allSounds);
+          },
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, _) => Center(child: Text('Error: $err', style: const TextStyle(color: Colors.red))),
+    );
+  }
+
+  List<SoundboardSound> _getSoundsForPurchasedItem(String productId) {
+    final now = DateTime.now();
+    if (productId == 'myinstants-trending') {
+      return [
+        SoundboardSound(id: 'trending_1', serverId: 'store', name: 'Vine Boom', emoji: '💥', url: 'https://www.myinstants.com/media/sounds/vine-boom.mp3', duration: 2, creatorId: 'store', createdAt: now),
+        SoundboardSound(id: 'trending_2', serverId: 'store', name: 'Bruh Moment', emoji: '🤦', url: 'https://www.myinstants.com/media/sounds/bruh-sound-effect-2.mp3', duration: 2, creatorId: 'store', createdAt: now),
+        SoundboardSound(id: 'trending_3', serverId: 'store', name: 'Sad Violin', emoji: '🎻', url: 'https://www.myinstants.com/media/sounds/sad-violin.mp3', duration: 4, creatorId: 'store', createdAt: now),
+      ];
+    } else if (productId == 'classic-memes') {
+      return [
+        SoundboardSound(id: 'classic_1', serverId: 'store', name: 'OOF Death', emoji: '💀', url: 'https://www.myinstants.com/media/sounds/roblox-death-sound_1.mp3', duration: 1, creatorId: 'store', createdAt: now),
+        SoundboardSound(id: 'classic_2', serverId: 'store', name: 'Meme Airhorn', emoji: '📢', url: 'https://www.myinstants.com/media/sounds/mlg-airhorn.mp3', duration: 2, creatorId: 'store', createdAt: now),
+        SoundboardSound(id: 'classic_3', serverId: 'store', name: 'Anime Wow', emoji: '✨', url: 'https://www.myinstants.com/media/sounds/anime-wow.mp3', duration: 2, creatorId: 'store', createdAt: now),
+      ];
+    } else if (productId == 'retro-beeps') {
+      return [
+        SoundboardSound(id: 'retro_1', serverId: 'store', name: 'Super Mario Jump', emoji: '🍄', url: 'https://www.myinstants.com/media/sounds/super-mario-jump.mp3', duration: 1, creatorId: 'store', createdAt: now),
+        SoundboardSound(id: 'retro_2', serverId: 'store', name: 'Pacman Death', emoji: '👾', url: 'https://www.myinstants.com/media/sounds/pacman-death.mp3', duration: 2, creatorId: 'store', createdAt: now),
+      ];
+    } else if (productId == 'chill-beats') {
+      return [
+        SoundboardSound(id: 'chill_1', serverId: 'store', name: 'Lofi Chime', emoji: '🍃', url: 'https://www.myinstants.com/media/sounds/lofi-chime.mp3', duration: 3, creatorId: 'store', createdAt: now),
+        SoundboardSound(id: 'chill_2', serverId: 'store', name: 'Rain Loop', emoji: '🌧️', url: 'https://www.myinstants.com/media/sounds/rain-sound.mp3', duration: 5, creatorId: 'store', createdAt: now),
+      ];
+    }
+    return [];
   }
 }

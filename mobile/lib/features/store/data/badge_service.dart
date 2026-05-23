@@ -129,7 +129,61 @@ class BuiltInBadges {
     hasGlow: true,
   );
 
-  static const all = [ogBadge, verifiedPlus, premiumStar, boltMaster, diamondElite];
+  static const cosmicOverlord = BadgeDefinition(
+    id: 'cosmic-overlord-badge',
+    name: 'Cosmic Overlord',
+    slug: 'cosmic-overlord-badge',
+    primaryColor: Color(0xFFFF007F),
+    secondaryColor: Color(0xFF00FF66),
+    icon: Icons.military_tech,
+    isAnimated: true,
+    hasGlow: true,
+  );
+
+  static const alchemistBadge = BadgeDefinition(
+    id: 'alchemist-badge',
+    name: 'Badge Alchemist',
+    slug: 'alchemist-badge',
+    primaryColor: Color(0xFFFF33CC),
+    secondaryColor: Color(0xFF330066),
+    icon: Icons.whatshot,
+    isAnimated: true,
+    hasGlow: true,
+  );
+
+  static const soundboardDj = BadgeDefinition(
+    id: 'soundboard-dj',
+    name: 'Soundboard DJ',
+    slug: 'soundboard-dj',
+    primaryColor: Color(0xFFFAA61A),
+    secondaryColor: Color(0xFFED4245),
+    icon: Icons.volume_up,
+    isAnimated: true,
+    hasGlow: true,
+  );
+
+  static const chatVeteran = BadgeDefinition(
+    id: 'chat-veteran-badge',
+    name: 'Chat Veteran',
+    slug: 'chat-veteran-badge',
+    primaryColor: Color(0xFF00E5FF),
+    secondaryColor: Color(0xFF52B788),
+    icon: Icons.emoji_events,
+    isAnimated: true,
+    hasGlow: true,
+  );
+
+  static const all = [
+    ogBadge,
+    verifiedPlus,
+    premiumStar,
+    boltMaster,
+    diamondElite,
+    cosmicOverlord,
+    alchemistBadge,
+    soundboardDj,
+    chatVeteran,
+  ];
 
   static BadgeDefinition? getById(String id) {
     try {

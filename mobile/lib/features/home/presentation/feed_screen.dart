@@ -8,7 +8,6 @@ import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/data/models/auth_state.dart' as app_auth;
 import 'package:mobile/features/voice/application/sonic_drip_notifier.dart';
-import 'package:mobile/features/voice/domain/music_models.dart';
 
 /// Feed/Home Screen — Discord Mobile Style
 ///

@@ -11,6 +11,18 @@ import 'core/router/app_router.dart';
 import 'core/services/push_notification_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/services/translation_service.dart';
+import 'package:mobile/features/sonic_music/localization/app_localizations.dart';
+
+import 'dart:io';
+import 'package:get_it/get_it.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:metadata_god/metadata_god.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:mobile/features/sonic_music/Helpers/config.dart';
+import 'package:mobile/features/sonic_music/Helpers/logging.dart';
+import 'package:mobile/features/sonic_music/providers/audio_service_provider.dart';
+import 'package:mobile/features/sonic_music/constants/constants.dart';
+import 'package:mobile/features/sonic_music/Screens/Player/audioplayer.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,12 +61,58 @@ void main() async {
   final container = ProviderContainer();
   await container.read(translationServiceProvider.notifier).loadLocale('en');
 
+  // BlackHole initialization
+  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+    await Hive.initFlutter('BlackHole/Database');
+  } else if (Platform.isIOS) {
+    await Hive.initFlutter('Database');
+  } else {
+    await Hive.initFlutter();
+  }
+  for (final box in hiveBoxes) {
+    await openHiveBox(
+      box['name'].toString(),
+      limit: box['limit'] as bool? ?? false,
+    );
+  }
+  await startBlackHoleService();
+
   runApp(
     UncontrolledProviderScope(
       container: container,
       child: const FlickoApp(),
     ),
   );
+}
+
+Future<void> startBlackHoleService() async {
+  await initializeLogging();
+  MetadataGod.initialize();
+  final audioHandlerHelper = AudioHandlerHelper();
+  final AudioPlayerHandler audioHandler =
+      await audioHandlerHelper.getAudioHandler();
+  GetIt.I.registerSingleton<AudioPlayerHandler>(audioHandler);
+  GetIt.I.registerSingleton<MyTheme>(MyTheme());
+}
+
+Future<void> openHiveBox(String boxName, {bool limit = false}) async {
+  final box = await Hive.openBox(boxName).onError((error, stackTrace) async {
+    final Directory dir = await getApplicationDocumentsDirectory();
+    final String dirPath = dir.path;
+    File dbFile = File('$dirPath/$boxName.hive');
+    File lockFile = File('$dirPath/$boxName.lock');
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      dbFile = File('$dirPath/BlackHole/$boxName.hive');
+      lockFile = File('$dirPath/BlackHole/$boxName.lock');
+    }
+    await dbFile.delete();
+    await lockFile.delete();
+    await Hive.openBox(boxName);
+    throw 'Failed to open $boxName Box\nError: $error';
+  });
+  if (limit && box.length > 500) {
+    box.clear();
+  }
 }
 
 class FlickoApp extends ConsumerWidget {
@@ -73,6 +131,8 @@ class FlickoApp extends ConsumerWidget {
           ThemeMode.dark, // Default to dark mode based on Discord-like request
       routerConfig: router,
       debugShowCheckedModeBanner: false,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
     );
   }
 }

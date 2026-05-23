@@ -14,10 +14,9 @@ class ThemePickerScreen extends ConsumerStatefulWidget {
 
 class _ThemePickerScreenState extends ConsumerState<ThemePickerScreen> {
   String? _previewThemeId;
-  bool _isApplying = false;
 
-  static const Color _bg = Color(0xFF050505);
-  static const Color _surface = Color(0xFF0C0C0E);
+  static const Color _bg = Color(0xFF000000);
+  static const Color _surface = Color(0xFF000000);
   static const Color _white = Color(0xFFFFFFFF);
   static const Color _muted = Color(0xFF71717A);
   static const Color _lime = Color(0xFF52B788);
@@ -42,12 +41,19 @@ class _ThemePickerScreenState extends ConsumerState<ThemePickerScreen> {
           onPressed: () => context.pop(),
         ),
         title: Text(
-          'Themes',
-          style: GoogleFonts.epilogue(
+          'THEMES_CATALOG',
+          style: GoogleFonts.spaceGrotesk(
             color: _white,
             fontWeight: FontWeight.w900,
-            fontSize: 20,
-            fontStyle: FontStyle.italic,
+            fontSize: 18,
+            letterSpacing: 2,
+          ),
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(2.5),
+          child: Container(
+            color: _lime,
+            height: 2.5,
           ),
         ),
         actions: [
@@ -57,8 +63,9 @@ class _ThemePickerScreenState extends ConsumerState<ThemePickerScreen> {
               'GET MORE',
               style: GoogleFonts.spaceGrotesk(
                 color: _lime,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w900,
                 fontSize: 12,
+                letterSpacing: 1,
               ),
             ),
           ),
@@ -68,7 +75,7 @@ class _ThemePickerScreenState extends ConsumerState<ThemePickerScreen> {
         children: [
           // Current theme preview
           _buildCurrentPreview(activeTheme),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
           // Theme grid
           Expanded(
             child: _buildThemeGrid(activeTheme, ownedThemeIds),
@@ -83,29 +90,38 @@ class _ThemePickerScreenState extends ConsumerState<ThemePickerScreen> {
         ? BuiltInThemes.getById(_previewThemeId!)
         : activeTheme;
 
+    final primaryCol = previewTheme?.primaryColor ?? _lime;
+    final secondaryCol = previewTheme?.secondaryColor ?? _muted;
+
     return Container(
-      margin: const EdgeInsets.all(16),
-      height: 180,
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      height: 160,
       decoration: BoxDecoration(
-        gradient: previewTheme != null
-            ? LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  previewTheme.primaryColor,
-                  previewTheme.secondaryColor,
-                ],
-              )
-            : null,
-        color: previewTheme == null ? _surface : null,
-        borderRadius: BorderRadius.circular(16),
+        color: _surface,
         border: Border.all(
-          color: _white.withValues(alpha: 0.1),
+          color: primaryCol,
+          width: 2.5,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: secondaryCol,
+            offset: const Offset(5, 5),
+          ),
+        ],
       ),
       child: Stack(
         children: [
-          // Sample UI elements
+          // Brutalist background patterns
+          Positioned.fill(
+            child: Opacity(
+              opacity: 0.08,
+              child: CustomPaint(
+                painter: _ThemePatternPainter(primaryCol),
+              ),
+            ),
+          ),
+          
+          // Sample Chat/UI elements in brutalist style
           Positioned(
             top: 16,
             left: 16,
@@ -113,13 +129,13 @@ class _ThemePickerScreenState extends ConsumerState<ThemePickerScreen> {
             child: Row(
               children: [
                 Container(
-                  width: 40,
-                  height: 40,
+                  width: 36,
+                  height: 36,
                   decoration: BoxDecoration(
-                    color: Colors.black38,
-                    shape: BoxShape.circle,
+                    color: Colors.black,
+                    border: Border.all(color: primaryCol, width: 1.5),
                   ),
-                  child: const Icon(Icons.person, color: Colors.white, size: 20),
+                  child: Icon(Icons.person, color: primaryCol, size: 18),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -128,72 +144,73 @@ class _ThemePickerScreenState extends ConsumerState<ThemePickerScreen> {
                     children: [
                       Container(
                         height: 12,
-                        width: 100,
+                        width: 90,
                         decoration: BoxDecoration(
-                          color: Colors.black38,
-                          borderRadius: BorderRadius.circular(6),
+                          color: primaryCol.withValues(alpha: 0.4),
+                          border: Border.all(color: primaryCol, width: 1),
                         ),
                       ),
                       const SizedBox(height: 6),
                       Container(
                         height: 8,
-                        width: 60,
+                        width: 50,
                         decoration: BoxDecoration(
-                          color: Colors.black26,
-                          borderRadius: BorderRadius.circular(4),
+                          color: secondaryCol.withValues(alpha: 0.3),
                         ),
                       ),
                     ],
                   ),
                 ),
-                Icon(Icons.more_vert, color: Colors.white54, size: 20),
               ],
             ),
           ),
-          // Chat preview
+          
+          // Chat box simulation
           Positioned(
             bottom: 16,
             left: 16,
             right: 16,
             child: Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.black38,
-                borderRadius: BorderRadius.circular(12),
+                color: Colors.black,
+                border: Border.all(color: primaryCol, width: 1.5),
               ),
               child: Row(
                 children: [
                   Expanded(
-                    child: Container(
-                      height: 24,
-                      decoration: BoxDecoration(
-                        color: Colors.white10,
-                        borderRadius: BorderRadius.circular(12),
+                    child: Text(
+                      'PREVIEW_STREAM_TEXT_BOX_OK',
+                      style: GoogleFonts.spaceMono(
+                        color: primaryCol.withValues(alpha: 0.6),
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Icon(Icons.send, color: Colors.white54, size: 20),
+                  Icon(Icons.send_rounded, color: primaryCol, size: 14),
                 ],
               ),
             ),
           ),
-          // Theme name badge
+          
+          // Top right theme indicator badge
           Positioned(
             top: 16,
             right: 16,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.black54,
-                borderRadius: BorderRadius.circular(20),
+                color: primaryCol,
+                border: Border.all(color: Colors.black, width: 1.5),
               ),
               child: Text(
-                previewTheme?.name ?? 'Default',
-                style: GoogleFonts.spaceGrotesk(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12,
+                (previewTheme?.name ?? 'DEFAULT').toUpperCase(),
+                style: GoogleFonts.spaceMono(
+                  color: Colors.black,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 10,
+                  letterSpacing: 1,
                 ),
               ),
             ),
@@ -205,11 +222,11 @@ class _ThemePickerScreenState extends ConsumerState<ThemePickerScreen> {
 
   Widget _buildThemeGrid(StoreTheme? activeTheme, List<String> ownedThemeIds) {
     return GridView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(20),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
         childAspectRatio: 0.85,
       ),
       itemCount: BuiltInThemes.all.length,
@@ -237,45 +254,37 @@ class _ThemePickerScreenState extends ConsumerState<ThemePickerScreen> {
     required bool isPreviewing,
     required VoidCallback onTap,
   }) {
+    final borderCol = isActive ? _lime : (isPreviewing ? theme.accentColor : theme.primaryColor);
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              theme.primaryColor,
-              theme.secondaryColor,
-            ],
-          ),
-          borderRadius: BorderRadius.circular(16),
+          color: Colors.black,
           border: Border.all(
-            color: isActive ? _lime : (isPreviewing ? theme.accentColor : Colors.transparent),
-            width: isActive ? 3 : (isPreviewing ? 2 : 0),
+            color: borderCol,
+            width: isActive ? 3 : 2,
           ),
-          boxShadow: isActive
-              ? [
-                  BoxShadow(
-                    color: theme.primaryColor.withValues(alpha: 0.4),
-                    blurRadius: 15,
-                    offset: const Offset(0, 5),
-                  ),
-                ]
-              : null,
+          boxShadow: [
+            BoxShadow(
+              color: isActive ? _lime : theme.secondaryColor,
+              offset: const Offset(4, 4),
+            ),
+          ],
         ),
         child: Stack(
           children: [
-            // Preview pattern
+            // Micro patterns in background
             Positioned.fill(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
+              child: Opacity(
+                opacity: 0.05,
                 child: CustomPaint(
                   painter: _ThemePatternPainter(theme.primaryColor),
                 ),
               ),
             ),
-            // Content
+            
+            // Content Card overlay
             Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
@@ -284,34 +293,40 @@ class _ThemePickerScreenState extends ConsumerState<ThemePickerScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.black54,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          theme.name,
-                          style: GoogleFonts.spaceGrotesk(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 11,
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.black,
+                            border: Border.all(color: borderCol, width: 1),
+                          ),
+                          child: Text(
+                            theme.name.toUpperCase(),
+                            style: GoogleFonts.spaceGrotesk(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 10,
+                              letterSpacing: 0.5,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ),
+                      const SizedBox(width: 4),
                       if (isActive)
                         Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: _lime,
+                          padding: const EdgeInsets.all(2),
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.check, color: Colors.black, size: 14),
+                          child: const Icon(Icons.check, color: Colors.black, size: 10),
                         ),
                     ],
                   ),
                   const Spacer(),
-                  // Color swatches
+                  // Color swatches (squares instead of circles)
                   Row(
                     children: [
                       _buildColorSwatch(theme.primaryColor),
@@ -322,24 +337,26 @@ class _ThemePickerScreenState extends ConsumerState<ThemePickerScreen> {
                     ],
                   ),
                   const SizedBox(height: 8),
+                  
+                  // Locked indicator style
                   if (!isOwned)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                       decoration: BoxDecoration(
-                        color: Colors.black54,
-                        borderRadius: BorderRadius.circular(8),
+                        color: const Color(0xFFED4245),
+                        border: Border.all(color: Colors.black, width: 1),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.lock, color: Colors.white54, size: 12),
+                          const Icon(Icons.lock, color: Colors.white, size: 10),
                           const SizedBox(width: 4),
                           Text(
-                            'OWN TO USE',
-                            style: GoogleFonts.spaceGrotesk(
-                              color: Colors.white54,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w700,
+                            'OWN_TO_USE',
+                            style: GoogleFonts.spaceMono(
+                              color: Colors.white,
+                              fontSize: 8,
+                              fontWeight: FontWeight.w900,
                             ),
                           ),
                         ],
@@ -356,12 +373,11 @@ class _ThemePickerScreenState extends ConsumerState<ThemePickerScreen> {
 
   Widget _buildColorSwatch(Color color) {
     return Container(
-      width: 20,
-      height: 20,
+      width: 16,
+      height: 16,
       decoration: BoxDecoration(
         color: color,
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white24, width: 1),
+        border: Border.all(color: Colors.white, width: 1.5),
       ),
     );
   }
@@ -385,73 +401,101 @@ class _ThemePickerScreenState extends ConsumerState<ThemePickerScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: _surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [theme.primaryColor, theme.secondaryColor],
+        backgroundColor: Colors.black,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.zero,
+        ),
+        contentPadding: EdgeInsets.zero,
+        content: Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: theme.primaryColor, width: 3),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                color: theme.primaryColor,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                width: double.infinity,
+                child: Text(
+                  'ACCESS_LOCKED',
+                  style: GoogleFonts.spaceGrotesk(
+                    color: Colors.black,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 2,
+                  ),
                 ),
-                borderRadius: BorderRadius.circular(8),
               ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              theme.name,
-              style: GoogleFonts.spaceGrotesk(
-                color: _white,
-                fontWeight: FontWeight.w700,
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'You do not own the ${theme.name} theme yet. Purchase it from the Flicko Store catalog to customize your interface.',
+                      style: GoogleFonts.spaceGrotesk(
+                        color: Colors.white,
+                        fontSize: 13,
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          child: Text(
+                            'CANCEL',
+                            style: GoogleFonts.spaceMono(
+                              color: _muted,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            context.push('/store/product/${theme.id}');
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _lime,
+                            foregroundColor: Colors.black,
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.zero,
+                            ),
+                            elevation: 0,
+                          ),
+                          child: Text(
+                            'GO_TO_STORE',
+                            style: GoogleFonts.spaceMono(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'You don\'t own this theme yet.',
-              style: GoogleFonts.spaceGrotesk(color: _muted),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Purchase it from the store to unlock it.',
-              style: GoogleFonts.spaceGrotesk(color: _white),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel', style: GoogleFonts.spaceGrotesk(color: _muted)),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              context.push('/store/product/${theme.id}');
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: _lime),
-            child: Text('Go to Store', style: GoogleFonts.spaceGrotesk(color: Colors.black, fontWeight: FontWeight.w700)),
-          ),
-        ],
+        ),
       ),
     );
   }
 
   Future<void> _applyTheme(StoreTheme theme) async {
-    setState(() => _isApplying = true);
-
     try {
       await ref.read(activeStoreThemeProvider.notifier).setTheme(theme);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${theme.name} theme applied!'),
+            content: Text('${theme.name.toUpperCase()} THEME APPLIED!'),
             backgroundColor: _lime,
           ),
         );
@@ -460,13 +504,11 @@ class _ThemePickerScreenState extends ConsumerState<ThemePickerScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to apply theme: $e'),
+            content: Text('FAILED TO APPLY THEME: $e'),
             backgroundColor: Colors.red,
           ),
         );
       }
-    } finally {
-      if (mounted) setState(() => _isApplying = false);
     }
   }
 }

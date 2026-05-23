@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile/features/direct_messages/domain/dm_models.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
+import 'package:mobile/features/shared/presentation/widgets/kinetic_nameplate_text.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:mobile/features/shared/presentation/widgets/safe_network_media.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/features/shared/presentation/widgets/message_drip_card.dart';
 
 class MessageBubble extends StatelessWidget {
   final DMMessage message;
@@ -67,8 +70,9 @@ class MessageBubble extends StatelessWidget {
                     behavior: HitTestBehavior.opaque,
                     child: Padding(
                       padding: const EdgeInsets.only(bottom: 6),
-                      child: Text(
-                        senderName.toUpperCase(),
+                      child: KineticNameplateText(
+                        text: senderName.toUpperCase(),
+                        userId: message.senderId,
                         style: const TextStyle(
                           color: Color(FlickoColors.emeraldGreen),
                           fontWeight: FontWeight.w800,
@@ -78,25 +82,33 @@ class MessageBubble extends StatelessWidget {
                       ),
                     ),
                   ),
-                Container(
-                  constraints: const BoxConstraints(maxWidth: 300),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: FlickoSpacing.md,
-                    vertical: 14,
-                  ),
-                  decoration: BoxDecoration(
-                    color: bubbleColor,
-                    border: Border.all(color: borderColor, width: 1.5),
-                    boxShadow: isMine
-                        ? const [
-                            BoxShadow(
-                              color: Color(FlickoColors.emeraldGreen),
-                              blurRadius: 0,
-                              offset: Offset(4, 4),
-                            ),
-                          ]
-                        : null,
-                  ),
+                Consumer(
+                  builder: (context, ref, child) {
+                    return MessageDripCard(
+                      authorId: message.senderId,
+                      child: Container(
+                        constraints: const BoxConstraints(maxWidth: 300),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: FlickoSpacing.md,
+                          vertical: 14,
+                        ),
+                        decoration: BoxDecoration(
+                          color: bubbleColor,
+                          border: Border.all(color: borderColor, width: 1.5),
+                          boxShadow: isMine
+                              ? const [
+                                  BoxShadow(
+                                    color: Color(FlickoColors.emeraldGreen),
+                                    blurRadius: 0,
+                                    offset: Offset(4, 4),
+                                  ),
+                                ]
+                              : null,
+                        ),
+                        child: child,
+                      ),
+                    );
+                  },
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

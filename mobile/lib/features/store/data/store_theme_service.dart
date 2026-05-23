@@ -207,6 +207,23 @@ class BuiltInThemes {
     hasAnimations: true,
   );
 
+  /// Premium Theme: Sonic Drip
+  /// Pure black background with lime green accents and brutalist elements
+  static const sonicDrip = StoreTheme(
+    id: 'sonic-drip',
+    name: 'Sonic Drip',
+    slug: 'sonic-drip',
+    primaryColor: Color(0xFF52B788),
+    secondaryColor: Color(0xFF2E7D32),
+    accentColor: Color(0xFF52B788),
+    backgroundColor: Color(0xFF000000),
+    surfaceColor: Color(0xFF0A0A0A),
+    textPrimary: Color(0xFFFFFFFF),
+    textSecondary: Color(0xFF71717A),
+    isGradient: false,
+    hasAnimations: true,
+  );
+
   static const all = [
     neonPulse,
     cyberGlow,
@@ -217,6 +234,7 @@ class BuiltInThemes {
     amoledCord,
     darkDiscord,
     pmTheme,
+    sonicDrip,
   ];
 
   static StoreTheme? getById(String id) {
