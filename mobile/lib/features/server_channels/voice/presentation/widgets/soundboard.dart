@@ -1,12 +1,16 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
+import 'package:mobile/data/services/soundboard_service.dart';
+import 'package:mobile/data/models/soundboard_model.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Soundboard Widget
 ///
 /// Discord-style soundboard for playing sound effects in voice channels.
-/// Mirrors the React Native Soundboard component.
+/// Loads trending sounds from MyInstants and supports live search.
 class Soundboard extends StatefulWidget {
   final String serverId;
   final String channelId;
@@ -24,84 +28,108 @@ class Soundboard extends StatefulWidget {
 class _SoundboardState extends State<Soundboard> {
   final TextEditingController _searchController = TextEditingController();
   final AudioPlayer _audioPlayer = AudioPlayer();
-  
-  String _activeTab = 'favorites';
-  bool _isLoading = false;
+  late final SoundboardService _soundboardService;
+
+  String _activeTab = 'trending';
+  bool _isLoading = true;
   String? _currentlyPlayingId;
   double _volume = 0.8;
+  Timer? _searchDebounce;
 
-  // Mock sound data (in production, fetch from API)
-  final List<SoundboardSound> _favoriteSounds = [
-    SoundboardSound(id: '1', name: 'Air Horn', emoji: '📢', url: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav'),
-    SoundboardSound(id: '2', name: 'Clapping', emoji: '👏', url: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav'),
-    SoundboardSound(id: '3', name: 'Crickets', emoji: '🦗', url: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav'),
-    SoundboardSound(id: '4', name: 'Drum Roll', emoji: '🥁', url: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav'),
-    SoundboardSound(id: '5', name: 'Sad Trombone', emoji: '📯', url: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav'),
-    SoundboardSound(id: '6', name: 'Laugh Track', emoji: '😂', url: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav'),
-  ];
+  List<SoundboardSound> _trendingSounds = [];
+  List<SoundboardSound> _searchResults = [];
+  List<SoundboardSound> _serverSounds = [];
+  List<SoundboardSound> _favoriteSounds = [];
+  bool _isSearching = false;
 
-  final List<SoundboardSound> _serverSounds = [
-    SoundboardSound(id: '7', name: 'Victory', emoji: '🏆', url: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav'),
-    SoundboardSound(id: '8', name: 'Dun Dun Dun', emoji: '🎭', url: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav'),
-    SoundboardSound(id: '9', name: 'Yeet', emoji: '🚀', url: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav'),
-    SoundboardSound(id: '10', name: 'F', emoji: '🪦', url: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav'),
-    SoundboardSound(id: '11', name: 'Bonk', emoji: '🔨', url: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav'),
-    SoundboardSound(id: '12', name: 'Nani?!', emoji: '😱', url: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav'),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _soundboardService = SoundboardService(Supabase.instance.client);
+    _loadSounds();
+  }
 
-  final List<SoundboardSound> _trendingSounds = [
-    SoundboardSound(id: '13', name: 'Bruh', emoji: '😐', url: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav'),
-    SoundboardSound(id: '14', name: 'Wow', emoji: '😮', url: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav'),
-    SoundboardSound(id: '15', name: 'Oof', emoji: '💀', url: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav'),
-    SoundboardSound(id: '16', name: 'Ping', emoji: '🔔', url: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav'),
-    SoundboardSound(id: '17', name: 'Suspense', emoji: '🎬', url: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav'),
-    SoundboardSound(id: '18', name: 'Tada!', emoji: '✨', url: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav'),
-  ];
+  Future<void> _loadSounds() async {
+    setState(() => _isLoading = true);
+    try {
+      final trending = await _soundboardService.getTrendingSounds();
+      final server = await _soundboardService.getServerSounds(widget.serverId);
+      final favorites = await _soundboardService.getFavoriteSounds();
+      if (mounted) {
+        setState(() {
+          _trendingSounds = trending;
+          _serverSounds = server;
+          _favoriteSounds = favorites;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading sounds: $e');
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  void _onSearchChanged(String query) {
+    _searchDebounce?.cancel();
+    if (query.trim().isEmpty) {
+      setState(() {
+        _isSearching = false;
+        _searchResults = [];
+      });
+      return;
+    }
+    setState(() => _isSearching = true);
+    _searchDebounce = Timer(const Duration(milliseconds: 500), () async {
+      try {
+        final results = await _soundboardService.searchSounds(query);
+        if (mounted) {
+          setState(() {
+            _searchResults = results;
+            _isSearching = false;
+          });
+        }
+      } catch (e) {
+        debugPrint('Error searching sounds: $e');
+        if (mounted) setState(() => _isSearching = false);
+      }
+    });
+  }
 
   List<SoundboardSound> get _currentSounds {
-    List<SoundboardSound> sounds;
+    if (_searchController.text.isNotEmpty) {
+      return _searchResults;
+    }
+
     switch (_activeTab) {
       case 'favorites':
-        sounds = _favoriteSounds;
-        break;
+        return _favoriteSounds;
       case 'server':
-        sounds = _serverSounds;
-        break;
+        return _serverSounds;
       case 'trending':
-        sounds = _trendingSounds;
-        break;
+        return _trendingSounds;
       default:
-        sounds = [];
+        return [];
     }
-
-    // Filter by search
-    if (_searchController.text.isNotEmpty) {
-      final query = _searchController.text.toLowerCase();
-      sounds = sounds.where((s) =>
-        s.name.toLowerCase().contains(query) ||
-        s.emoji.contains(query)
-      ).toList();
-    }
-
-    return sounds;
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     _audioPlayer.dispose();
+    _searchDebounce?.cancel();
     super.dispose();
   }
 
   Future<void> _playSound(SoundboardSound sound) async {
     try {
       setState(() => _currentlyPlayingId = sound.id);
-      
+
       await _audioPlayer.setUrl(sound.url);
       await _audioPlayer.setVolume(_volume);
       await _audioPlayer.play();
-      
-      // Reset after playing
+
       _audioPlayer.playerStateStream.listen((state) {
         if (state.processingState == ProcessingState.completed) {
           if (mounted) {
@@ -130,7 +158,6 @@ class _SoundboardState extends State<Soundboard> {
       ),
       child: Column(
         children: [
-          // Handle bar
           Container(
             margin: const EdgeInsets.only(top: 8),
             width: 36,
@@ -140,8 +167,6 @@ class _SoundboardState extends State<Soundboard> {
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          
-          // Header
           Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
@@ -156,13 +181,8 @@ class _SoundboardState extends State<Soundboard> {
                     ),
                   ),
                 ),
-                
-                // Volume control
                 _buildVolumeControl(),
-                
                 const SizedBox(width: 8),
-                
-                // Close button
                 IconButton(
                   icon: const Icon(Icons.close, color: Color(FlickoColors.textMuted)),
                   onPressed: () => Navigator.pop(context),
@@ -170,16 +190,14 @@ class _SoundboardState extends State<Soundboard> {
               ],
             ),
           ),
-          
-          // Search bar
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: TextField(
               controller: _searchController,
-              onChanged: (_) => setState(() {}),
+              onChanged: _onSearchChanged,
               style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary)),
               decoration: InputDecoration(
-                hintText: 'Search sounds...',
+                hintText: 'Search MyInstants sounds...',
                 hintStyle: GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
                 prefixIcon: const Icon(Icons.search, color: Color(FlickoColors.textMuted)),
                 suffixIcon: _searchController.text.isNotEmpty
@@ -187,7 +205,7 @@ class _SoundboardState extends State<Soundboard> {
                         icon: const Icon(Icons.clear, color: Color(FlickoColors.textMuted)),
                         onPressed: () {
                           _searchController.clear();
-                          setState(() {});
+                          _onSearchChanged('');
                         },
                       )
                     : null,
@@ -200,17 +218,11 @@ class _SoundboardState extends State<Soundboard> {
               ),
             ),
           ),
-          
           const SizedBox(height: 16),
-          
-          // Tab bar
-          _buildTabBar(),
-          
+          if (_searchController.text.isEmpty) _buildTabBar(),
           const Divider(color: Color(FlickoColors.bgTertiary), height: 1),
-          
-          // Sound grid
           Expanded(
-            child: _isLoading
+            child: _isLoading || _isSearching
                 ? const Center(child: CircularProgressIndicator())
                 : _buildSoundGrid(),
           ),
@@ -231,7 +243,7 @@ class _SoundboardState extends State<Soundboard> {
         children: [
           IconButton(
             icon: Icon(
-              _volume == 0 ? Icons.volume_off : 
+              _volume == 0 ? Icons.volume_off :
               _volume < 0.5 ? Icons.volume_down : Icons.volume_up,
               color: const Color(FlickoColors.textSecondary),
               size: 18,
@@ -258,9 +270,9 @@ class _SoundboardState extends State<Soundboard> {
 
   Widget _buildTabBar() {
     final tabs = [
-      _TabData(key: 'favorites', label: 'Favorites', icon: Icons.star),
-      _TabData(key: 'server', label: 'Server', icon: Icons.music_note),
       _TabData(key: 'trending', label: 'Trending', icon: Icons.trending_up),
+      _TabData(key: 'server', label: 'Server', icon: Icons.music_note),
+      _TabData(key: 'favorites', label: 'Favorites', icon: Icons.star),
     ];
 
     return Container(
@@ -277,8 +289,8 @@ class _SoundboardState extends State<Soundboard> {
                 decoration: BoxDecoration(
                   border: Border(
                     bottom: BorderSide(
-                      color: isActive 
-                          ? const Color(FlickoColors.blurple) 
+                      color: isActive
+                          ? const Color(FlickoColors.blurple)
                           : Colors.transparent,
                       width: 2,
                     ),
@@ -290,16 +302,16 @@ class _SoundboardState extends State<Soundboard> {
                     Icon(
                       tab.icon,
                       size: 16,
-                      color: isActive 
-                          ? const Color(FlickoColors.blurple) 
+                      color: isActive
+                          ? const Color(FlickoColors.blurple)
                           : const Color(FlickoColors.textMuted),
                     ),
                     const SizedBox(width: 4),
                     Text(
                       tab.label,
                       style: GoogleFonts.inter(
-                        color: isActive 
-                            ? const Color(FlickoColors.blurple) 
+                        color: isActive
+                            ? const Color(FlickoColors.blurple)
                             : const Color(FlickoColors.textMuted),
                         fontSize: 13,
                         fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
@@ -317,7 +329,7 @@ class _SoundboardState extends State<Soundboard> {
 
   Widget _buildSoundGrid() {
     final sounds = _currentSounds;
-    
+
     if (sounds.isEmpty) {
       return Center(
         child: Column(
@@ -330,7 +342,9 @@ class _SoundboardState extends State<Soundboard> {
             ),
             const SizedBox(height: 16),
             Text(
-              'No sounds found',
+              _searchController.text.isNotEmpty
+                  ? 'No sounds found for "${_searchController.text}"'
+                  : 'No sounds found',
               style: GoogleFonts.inter(
                 color: const Color(FlickoColors.textSecondary),
                 fontSize: 16,
@@ -353,7 +367,7 @@ class _SoundboardState extends State<Soundboard> {
       itemBuilder: (context, index) {
         final sound = sounds[index];
         final isPlaying = _currentlyPlayingId == sound.id;
-        
+
         return GestureDetector(
           onTap: () => isPlaying ? _stopSound() : _playSound(sound),
           child: Container(
@@ -375,7 +389,6 @@ class _SoundboardState extends State<Soundboard> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Emoji / Icon
                 Container(
                   width: 48,
                   height: 48,
@@ -387,28 +400,17 @@ class _SoundboardState extends State<Soundboard> {
                   ),
                   child: Center(
                     child: isPlaying
-                        ? const Icon(
-                            Icons.stop,
-                            color: Colors.white,
-                            size: 24,
-                          )
-                        : Text(
-                            sound.emoji,
-                            style: const TextStyle(fontSize: 24),
-                          ),
+                        ? const Icon(Icons.stop, color: Colors.white, size: 24)
+                        : Text(sound.emoji, style: const TextStyle(fontSize: 24)),
                   ),
                 ),
                 const SizedBox(height: 8),
-                
-                // Sound name
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   child: Text(
                     sound.name,
                     style: GoogleFonts.inter(
-                      color: isPlaying
-                          ? Colors.white
-                          : const Color(FlickoColors.textPrimary),
+                      color: isPlaying ? Colors.white : const Color(FlickoColors.textPrimary),
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
@@ -417,8 +419,6 @@ class _SoundboardState extends State<Soundboard> {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                
-                // Duration placeholder
                 if (isPlaying)
                   Padding(
                     padding: const EdgeInsets.only(top: 2),
@@ -447,23 +447,6 @@ class _TabData {
   final IconData icon;
 
   _TabData({required this.key, required this.label, required this.icon});
-}
-
-/// Soundboard sound model
-class SoundboardSound {
-  final String id;
-  final String name;
-  final String emoji;
-  final String url;
-  final int? usageCount;
-
-  SoundboardSound({
-    required this.id,
-    required this.name,
-    required this.emoji,
-    required this.url,
-    this.usageCount,
-  });
 }
 
 /// Extension to show Soundboard
