@@ -146,22 +146,37 @@ class StoreService {
 
   List<StoreProduct> _getSampleProducts({String? type, String? search}) {
     final allProducts = [
-      StoreProduct(id: '1', slug: 'neon-pulse', name: 'Neon Pulse', type: 'THEME', price: 4.99, rarity: 'epic', isHot: true, description: 'Vibrant neon colors that pulse with energy'),
-      StoreProduct(id: '2', slug: 'cyber-glow', name: 'Cyber Glow', type: 'THEME', price: 3.99, rarity: 'rare', description: 'Futuristic cyberpunk aesthetic'),
-      StoreProduct(id: '3', slug: 'midnight', name: 'Midnight', type: 'THEME', price: 0, rarity: 'common', description: 'Dark and elegant theme'),
-      StoreProduct(id: '4', slug: 'flame-pack', name: 'Flame Pack', type: 'STICKERS', price: 1.99, rarity: 'rare', isHot: true, description: 'Hot flame sticker collection'),
-      StoreProduct(id: '5', slug: 'space-vibes', name: 'Space Vibes', type: 'STICKERS', price: 2.49, rarity: 'epic', description: 'Cosmic sticker pack'),
-      StoreProduct(id: '6', slug: 'retro-beeps', name: 'Retro Beeps', type: 'SOUNDS', price: 0.99, rarity: 'common', description: 'Retro notification sounds'),
-      StoreProduct(id: '7', slug: 'og-badge', name: 'OG Badge', type: 'BADGE', price: 9.99, rarity: 'legendary', isHot: true, description: 'Original gangster badge'),
-      StoreProduct(id: '8', slug: 'verified-plus', name: 'Verified+', type: 'BADGE', price: 14.99, rarity: 'legendary', description: 'Premium verified badge'),
-      StoreProduct(id: '9', slug: 'aurora-borealis', name: 'Aurora Borealis', type: 'THEME', price: 6.99, rarity: 'legendary', isHot: true, description: 'Stunning northern lights theme'),
-      StoreProduct(id: '10', slug: 'pixel-art', name: 'Pixel Art Pack', type: 'STICKERS', price: 2.99, rarity: 'rare', description: 'Retro pixel art stickers'),
-      StoreProduct(id: '11', slug: 'synth-wave', name: 'Synthwave', type: 'THEME', price: 4.99, rarity: 'epic', description: '80s inspired synthwave theme'),
-      StoreProduct(id: '12', slug: 'chill-beats', name: 'Chill Beats', type: 'SOUNDS', price: 1.49, rarity: 'rare', description: 'Relaxing notification sounds'),
+      // Premium Themes from cloned repos
+      StoreProduct(id: 'amoled-cord', slug: 'amoled-cord', name: 'AMOLED Cord', type: 'THEME', price: 2.99, rarity: 'epic', isHot: true, description: 'Ultra-dark AMOLED true-black theme with soft purple accents. Pure black saves battery on OLED screens.'),
+      StoreProduct(id: 'dark-discord', slug: 'dark-discord', name: 'Dark Discord', type: 'THEME', price: 1.99, rarity: 'rare', isHot: true, description: 'Official Discord blurple on ultra-dark base. The darkest Discord experience with green accent highlights.'),
+      StoreProduct(id: 'pm-theme', slug: 'pm-theme', name: 'PM Theme', type: 'THEME', price: 2.49, rarity: 'epic', description: 'Warm orange-amber tones on a rich dark brown base. Cozy and premium feel for late-night chatting.'),
+      // Built-in themes
+      StoreProduct(id: 'neon-pulse', slug: 'neon-pulse', name: 'Neon Pulse', type: 'THEME', price: 4.99, rarity: 'epic', isHot: true, description: 'Vibrant neon colors that pulse with energy'),
+      StoreProduct(id: 'cyber-glow', slug: 'cyber-glow', name: 'Cyber Glow', type: 'THEME', price: 3.99, rarity: 'rare', description: 'Futuristic cyberpunk aesthetic'),
+      StoreProduct(id: 'midnight', slug: 'midnight', name: 'Midnight', type: 'THEME', price: 0, rarity: 'common', description: 'Dark and elegant free theme'),
+      StoreProduct(id: 'aurora-borealis', slug: 'aurora-borealis', name: 'Aurora Borealis', type: 'THEME', price: 6.99, rarity: 'legendary', isHot: true, description: 'Stunning northern lights theme'),
+      StoreProduct(id: 'synthwave', slug: 'synthwave', name: 'Synthwave', type: 'THEME', price: 4.99, rarity: 'epic', description: '80s inspired synthwave theme'),
+      StoreProduct(id: 'fire', slug: 'fire', name: 'Fire', type: 'THEME', price: 3.99, rarity: 'rare', description: 'Hot flames and warm embers'),
+
+      // Sticker Packs — Handy Emoji Panel (246 premium stickers)
+      StoreProduct(id: 'handy-emoji-panel', slug: 'handy-emoji-panel', name: 'Handy Emoji Panel', type: 'STICKERS', price: 2.99, rarity: 'epic', isHot: true, description: '246 premium stickers — cute, expressive, and animated. Perfect for every conversation.'),
+      StoreProduct(id: 'flame-pack', slug: 'flame-pack', name: 'Flame Pack', type: 'STICKERS', price: 1.99, rarity: 'rare', description: 'Hot flame sticker collection'),
+      StoreProduct(id: 'space-vibes', slug: 'space-vibes', name: 'Space Vibes', type: 'STICKERS', price: 2.49, rarity: 'epic', description: 'Cosmic sticker pack'),
+      StoreProduct(id: 'pixel-art', slug: 'pixel-art', name: 'Pixel Art Pack', type: 'STICKERS', price: 2.99, rarity: 'rare', description: 'Retro pixel art stickers'),
+
+      // Sound Packs — MyInstants powered
+      StoreProduct(id: 'myinstants-trending', slug: 'myinstants-trending', name: 'Trending Sounds', type: 'SOUNDS', price: 0, rarity: 'common', description: 'Free trending sound effects from MyInstants. Updated daily with the hottest sounds.'),
+      StoreProduct(id: 'classic-memes', slug: 'classic-memes', name: 'Classic Memes', type: 'SOUNDS', price: 0.99, rarity: 'rare', isHot: true, description: 'Vine Boom, Bruh, Oof, Airhorn — the essential meme soundboard classics.'),
+      StoreProduct(id: 'retro-beeps', slug: 'retro-beeps', name: 'Retro Beeps', type: 'SOUNDS', price: 0.99, rarity: 'common', description: 'Retro notification and game sounds'),
+      StoreProduct(id: 'chill-beats', slug: 'chill-beats', name: 'Chill Beats', type: 'SOUNDS', price: 1.49, rarity: 'rare', description: 'Relaxing notification sounds'),
+
+      // Badges
+      StoreProduct(id: 'og-badge', slug: 'og-badge', name: 'OG Badge', type: 'BADGE', price: 9.99, rarity: 'legendary', isHot: true, description: 'Original gangster badge'),
+      StoreProduct(id: 'verified-plus', slug: 'verified-plus', name: 'Verified+', type: 'BADGE', price: 14.99, rarity: 'legendary', description: 'Premium verified badge'),
     ];
 
     var filtered = allProducts;
-    
+
     if (type != null && type != 'ALL') {
       final typeLower = type.toUpperCase();
       filtered = filtered.where((p) => p.type.toUpperCase() == typeLower).toList();

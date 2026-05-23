@@ -2,10 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
+import 'package:mobile/core/constants/stickers_list.dart';
 import 'package:mobile/features/store/data/store_service.dart';
 import 'package:mobile/features/store/data/equipment_service.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+
+/// Base URL for streaming stickers from raw GitHub CDN
+const String _stickerCdnBase =
+    'https://raw.githubusercontent.com/SuhasDissa/Handy_emoji_panel/main/Sticker/';
 
 /// Sticker pack item from store
 class StickerItem {
@@ -13,12 +19,14 @@ class StickerItem {
   final String name;
   final String url;
   final String? packId;
+  final bool isNetworkImage;
 
   const StickerItem({
     required this.id,
     required this.name,
     required this.url,
     this.packId,
+    this.isNetworkImage = false,
   });
 }
 
@@ -35,15 +43,16 @@ class _StickerPickerState extends ConsumerState<StickerPicker>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   List<StickerItem> _recentStickers = [];
-  
+  final TextEditingController _searchController = TextEditingController();
+
   static const Color _neon = Color(0xFF9B84EE);
   static const Color _bg = Color(0xFF050505);
   static const Color _surface = Color(0xFF0C0C0E);
   static const Color _white = Color(0xFFFBF9FA);
   static const Color _muted = Color(0xFF71717A);
 
-  // Default stickers for users without purchased ones
-  static const List<StickerItem> _defaultStickers = [
+  // Default emoji stickers for users without purchased ones
+  static const List<StickerItem> _defaultEmojis = [
     StickerItem(id: 'wave', name: 'Wave', url: '👋'),
     StickerItem(id: 'fire', name: 'Fire', url: '🔥'),
     StickerItem(id: 'heart', name: 'Heart', url: '❤️'),
@@ -62,16 +71,30 @@ class _StickerPickerState extends ConsumerState<StickerPicker>
     StickerItem(id: 'shrug', name: 'Shrug', url: '🤷'),
   ];
 
+  /// 246 premium stickers streamed from raw GitHub CDN
+  static late final List<StickerItem> _handyStickers = handyStickersList
+      .asMap()
+      .entries
+      .map((entry) => StickerItem(
+            id: 'handy_${entry.key}',
+            name: 'Sticker ${entry.key + 1}',
+            url: '$_stickerCdnBase${Uri.encodeComponent(entry.value)}',
+            packId: 'handy_emoji_panel',
+            isNetworkImage: true,
+          ))
+      .toList();
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _loadRecentStickers();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -87,6 +110,7 @@ class _StickerPickerState extends ConsumerState<StickerPicker>
                     id: e['id'] ?? '',
                     name: e['name'] ?? '',
                     url: e['url'] ?? '',
+                    isNetworkImage: e['isNetworkImage'] == true,
                   ))
               .toList();
         });
@@ -103,6 +127,7 @@ class _StickerPickerState extends ConsumerState<StickerPicker>
           'id': e.id,
           'name': e.name,
           'url': e.url,
+          'isNetworkImage': e.isNetworkImage,
         }).toList()),
       );
     } catch (_) {}
@@ -116,7 +141,7 @@ class _StickerPickerState extends ConsumerState<StickerPicker>
       _recentStickers = _recentStickers.sublist(0, 16);
     }
     _saveRecentStickers();
-    
+
     widget.onStickerSelected(sticker.url);
     Navigator.pop(context);
   }
@@ -130,7 +155,7 @@ class _StickerPickerState extends ConsumerState<StickerPicker>
         color: _surface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      height: 380,
+      height: 420,
       child: Column(
         children: [
           // Handle
@@ -170,8 +195,10 @@ class _StickerPickerState extends ConsumerState<StickerPicker>
             indicatorColor: _neon,
             labelColor: _white,
             unselectedLabelColor: _muted,
+            isScrollable: true,
             labelStyle: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.w700, fontSize: 11),
             tabs: const [
+              Tab(text: 'PREMIUM'),
               Tab(text: 'OWNED'),
               Tab(text: 'RECENT'),
               Tab(text: 'DEFAULT'),
@@ -182,6 +209,7 @@ class _StickerPickerState extends ConsumerState<StickerPicker>
             child: TabBarView(
               controller: _tabController,
               children: [
+                _buildPremiumStickers(),
                 _buildOwnedStickers(inventoryAsync),
                 _buildRecentStickers(),
                 _buildDefaultStickers(),
@@ -191,6 +219,10 @@ class _StickerPickerState extends ConsumerState<StickerPicker>
         ],
       ),
     );
+  }
+
+  Widget _buildPremiumStickers() {
+    return _buildNetworkStickerGrid(_handyStickers);
   }
 
   Widget _buildOwnedStickers(AsyncValue<List<UserPurchase>> inventoryAsync) {
@@ -208,9 +240,8 @@ class _StickerPickerState extends ConsumerState<StickerPicker>
           );
         }
 
-        // For now, show default stickers as preview
-        // In real app, would load from purchased pack data
-        return _buildStickerGrid(_defaultStickers);
+        // Show premium stickers for purchased packs
+        return _buildNetworkStickerGrid(_handyStickers);
       },
       loading: () => const Center(child: CircularProgressIndicator(color: _neon)),
       error: (_, __) => _buildEmptyState('Error loading stickers', null, Icons.error_outline),
@@ -225,14 +256,60 @@ class _StickerPickerState extends ConsumerState<StickerPicker>
         Icons.history,
       );
     }
-    return _buildStickerGrid(_recentStickers);
+    // Recent stickers may be a mix of emoji and network stickers
+    return _buildMixedStickerGrid(_recentStickers);
   }
 
   Widget _buildDefaultStickers() {
-    return _buildStickerGrid(_defaultStickers);
+    return _buildEmojiStickerGrid(_defaultEmojis);
   }
 
-  Widget _buildStickerGrid(List<StickerItem> stickers) {
+  Widget _buildNetworkStickerGrid(List<StickerItem> stickers) {
+    return GridView.builder(
+      padding: const EdgeInsets.all(12),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 4,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+      ),
+      itemCount: stickers.length,
+      itemBuilder: (context, index) {
+        final sticker = stickers[index];
+        return GestureDetector(
+          onTap: () => _onStickerSelected(sticker),
+          child: Container(
+            decoration: BoxDecoration(
+              color: _neon.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _neon.withValues(alpha: 0.15)),
+            ),
+            padding: const EdgeInsets.all(4),
+            child: CachedNetworkImage(
+              imageUrl: sticker.url,
+              fit: BoxFit.contain,
+              placeholder: (context, url) => Center(
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: _neon.withValues(alpha: 0.4),
+                  ),
+                ),
+              ),
+              errorWidget: (context, url, error) => Icon(
+                Icons.broken_image_outlined,
+                color: _muted,
+                size: 28,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildEmojiStickerGrid(List<StickerItem> stickers) {
     return GridView.builder(
       padding: const EdgeInsets.all(12),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -260,6 +337,60 @@ class _StickerPickerState extends ConsumerState<StickerPicker>
                 style: const TextStyle(fontSize: 28),
               ),
             ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildMixedStickerGrid(List<StickerItem> stickers) {
+    return GridView.builder(
+      padding: const EdgeInsets.all(12),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 4,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+      ),
+      itemCount: stickers.length,
+      itemBuilder: (context, index) {
+        final sticker = stickers[index];
+        final isNetwork = sticker.isNetworkImage || sticker.url.startsWith('http');
+
+        return GestureDetector(
+          onTap: () => _onStickerSelected(sticker),
+          child: Container(
+            decoration: BoxDecoration(
+              color: _neon.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _neon.withValues(alpha: 0.15)),
+            ),
+            padding: isNetwork ? const EdgeInsets.all(4) : EdgeInsets.zero,
+            child: isNetwork
+                ? CachedNetworkImage(
+                    imageUrl: sticker.url,
+                    fit: BoxFit.contain,
+                    placeholder: (context, url) => Center(
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: _neon.withValues(alpha: 0.4),
+                        ),
+                      ),
+                    ),
+                    errorWidget: (context, url, error) => Icon(
+                      Icons.broken_image_outlined,
+                      color: _muted,
+                      size: 28,
+                    ),
+                  )
+                : Center(
+                    child: Text(
+                      sticker.url,
+                      style: const TextStyle(fontSize: 28),
+                    ),
+                  ),
           ),
         );
       },

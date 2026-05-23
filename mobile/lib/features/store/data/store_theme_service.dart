@@ -156,7 +156,68 @@ class BuiltInThemes {
     hasAnimations: true,
   );
 
-  static const all = [neonPulse, cyberGlow, midnight, auroraBorealis, synthwave, fire];
+  /// Premium Theme: AMOLED-Cord
+  /// Ultra-dark AMOLED true-black with soft purple accents
+  static const amoledCord = StoreTheme(
+    id: 'amoled-cord',
+    name: 'AMOLED Cord',
+    slug: 'amoled-cord',
+    primaryColor: Color(0xFF9B84EE),
+    secondaryColor: Color(0xFF7B68C4),
+    accentColor: Color(0xFF00E5FF),
+    backgroundColor: Color(0xFF000000),
+    surfaceColor: Color(0xFF080808),
+    textPrimary: Color(0xFFFFFFFF),
+    textSecondary: Color(0xFF8A8A8A),
+    isGradient: false,
+    hasAnimations: true,
+  );
+
+  /// Premium Theme: Dark Discord
+  /// Official Discord blurple on ultra-dark base
+  static const darkDiscord = StoreTheme(
+    id: 'dark-discord',
+    name: 'Dark Discord',
+    slug: 'dark-discord',
+    primaryColor: Color(0xFF5865F2),
+    secondaryColor: Color(0xFF4752C4),
+    accentColor: Color(0xFF23A55A),
+    backgroundColor: Color(0xFF0C0C0C),
+    surfaceColor: Color(0xFF141414),
+    textPrimary: Color(0xFFFFFFFF),
+    textSecondary: Color(0xFF949BA4),
+    isGradient: false,
+    hasAnimations: true,
+  );
+
+  /// Premium Theme: PM Theme Discord
+  /// Warm orange-amber tones on dark brown base
+  static const pmTheme = StoreTheme(
+    id: 'pm-theme',
+    name: 'PM Theme',
+    slug: 'pm-theme',
+    primaryColor: Color(0xFFE88D48),
+    secondaryColor: Color(0xFFD4783A),
+    accentColor: Color(0xFFF28C38),
+    backgroundColor: Color(0xFF0F0D0C),
+    surfaceColor: Color(0xFF1A1715),
+    textPrimary: Color(0xFFFFF5EB),
+    textSecondary: Color(0xFFB8A68E),
+    isGradient: false,
+    hasAnimations: true,
+  );
+
+  static const all = [
+    neonPulse,
+    cyberGlow,
+    midnight,
+    auroraBorealis,
+    synthwave,
+    fire,
+    amoledCord,
+    darkDiscord,
+    pmTheme,
+  ];
 
   static StoreTheme? getById(String id) {
     try {

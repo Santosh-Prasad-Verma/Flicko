@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/data/models/flicko_message.dart';
 import 'package:mobile/features/shared/presentation/widgets/safe_network_media.dart';
@@ -298,6 +299,29 @@ class _EnhancedMessageItemState extends State<EnhancedMessageItem> {
   }
 
   Widget _buildContent() {
+    // Detect sticker URLs from Handy Emoji Panel CDN
+    final trimmed = widget.message.content.trim();
+    if (_isStickerUrl(trimmed)) {
+      return CachedNetworkImage(
+        imageUrl: trimmed,
+        width: 160,
+        height: 160,
+        fit: BoxFit.contain,
+        placeholder: (context, url) => const SizedBox(
+          width: 80,
+          height: 80,
+          child: Center(
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+        errorWidget: (context, url, error) => const Icon(
+          Icons.broken_image_outlined,
+          color: Color(FlickoColors.textMuted),
+          size: 48,
+        ),
+      );
+    }
+
     return MarkdownBody(
       data: widget.message.content,
       styleSheet: MarkdownStyleSheet(
@@ -334,6 +358,13 @@ class _EnhancedMessageItemState extends State<EnhancedMessageItem> {
         }
       },
     );
+  }
+
+  bool _isStickerUrl(String content) {
+    return content.startsWith('https://raw.githubusercontent.com/SuhasDissa/Handy_emoji_panel/') ||
+        (content.startsWith('https://') &&
+         (content.endsWith('.png') || content.endsWith('.gif') || content.endsWith('.jpeg')) &&
+         content.contains('Sticker'));
   }
 
   Widget _buildEditField() {

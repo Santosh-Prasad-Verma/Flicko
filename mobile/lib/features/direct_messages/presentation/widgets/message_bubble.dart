@@ -5,6 +5,7 @@ import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:mobile/features/shared/presentation/widgets/safe_network_media.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class MessageBubble extends StatelessWidget {
@@ -100,17 +101,19 @@ class MessageBubble extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (message.content.isNotEmpty)
-                        MarkdownBody(
-                          data: message.content,
-                          styleSheet: MarkdownStyleSheet(
-                            p: const TextStyle(
-                              color: Color(FlickoColors.textPrimary),
-                              fontSize: 15,
-                              height: 1.45,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
+                        _isStickerUrl(message.content)
+                            ? _buildStickerContent(message.content)
+                            : MarkdownBody(
+                                data: message.content,
+                                styleSheet: MarkdownStyleSheet(
+                                  p: const TextStyle(
+                                    color: Color(FlickoColors.textPrimary),
+                                    fontSize: 15,
+                                    height: 1.45,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
                       if (message.attachments != null &&
                           message.attachments!.isNotEmpty)
                         Padding(
@@ -183,6 +186,37 @@ class MessageBubble extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Check if the message content is a sticker URL from Handy Emoji Panel CDN
+  bool _isStickerUrl(String content) {
+    final trimmed = content.trim();
+    return trimmed.startsWith('https://raw.githubusercontent.com/SuhasDissa/Handy_emoji_panel/') ||
+        (trimmed.startsWith('https://') && 
+         (trimmed.endsWith('.png') || trimmed.endsWith('.gif') || trimmed.endsWith('.jpeg')) &&
+         trimmed.contains('Sticker'));
+  }
+
+  /// Render a sticker URL as an inline cached network image
+  Widget _buildStickerContent(String url) {
+    return CachedNetworkImage(
+      imageUrl: url.trim(),
+      width: 160,
+      height: 160,
+      fit: BoxFit.contain,
+      placeholder: (context, url) => const SizedBox(
+        width: 80,
+        height: 80,
+        child: Center(
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      ),
+      errorWidget: (context, url, error) => const Icon(
+        Icons.broken_image_outlined,
+        color: Color(FlickoColors.textMuted),
+        size: 48,
       ),
     );
   }
