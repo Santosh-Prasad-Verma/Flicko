@@ -29,32 +29,34 @@ class ShowSnackBar {
     Duration duration = const Duration(seconds: 1),
     bool noAction = false,
   }) {
-    try {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          duration: duration,
-          elevation: 6,
-          backgroundColor: Colors.grey[900],
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      try {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            duration: duration,
+            elevation: 6,
+            backgroundColor: Colors.grey[900],
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            behavior: SnackBarBehavior.floating,
+            content: Text(
+              title,
+              style: const TextStyle(color: Colors.white),
+            ),
+            action: noAction
+                ? null
+                : action ??
+                    SnackBarAction(
+                      textColor: Theme.of(context).colorScheme.secondary,
+                      label: AppLocalizations.of(context)!.ok,
+                      onPressed: () {},
+                    ),
           ),
-          behavior: SnackBarBehavior.floating,
-          content: Text(
-            title,
-            style: const TextStyle(color: Colors.white),
-          ),
-          action: noAction
-              ? null
-              : action ??
-                  SnackBarAction(
-                    textColor: Theme.of(context).colorScheme.secondary,
-                    label: AppLocalizations.of(context)!.ok,
-                    onPressed: () {},
-                  ),
-        ),
-      );
-    } catch (e) {
-      Logger.root.severe('Failed to show Snackbar with title: $title', e);
-    }
+        );
+      } catch (e) {
+        Logger.root.severe('Failed to show Snackbar with title: $title', e);
+      }
+    });
   }
 }
