@@ -88,7 +88,7 @@ class BillingHistoryScreen extends ConsumerWidget {
           margin: const EdgeInsets.only(left: 16.0),
           child: Center(
             child: IconButton(
-              icon: const Icon(Icons.arrow_back, color: white, size: 20),
+              icon: Image.asset('assets/images/back.png', width: 20, height: 20, fit: BoxFit.contain),
               onPressed: () => context.pop(),
             ),
           ),

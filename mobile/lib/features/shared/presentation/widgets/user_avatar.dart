@@ -6,6 +6,8 @@ import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/store/data/badge_service.dart' hide AnimatedBuilder;
 import 'package:mobile/features/store/data/avatar_decoration_service.dart';
 
+import 'package:mobile/features/auth/application/auth_notifier.dart';
+
 enum UserStatus { online, idle, dnd, offline }
 
 class UserAvatar extends ConsumerWidget {
@@ -32,11 +34,14 @@ class UserAvatar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final badgeAsync = showBadge ? ref.watch(equippedBadgeProvider) : null;
-    final decorationAsync = ref.watch(equippedDecorationProvider);
+    final currentUserId = ref.watch(currentUserIdProvider);
+    final isCurrentUser = userId == null || (currentUserId != null && userId == currentUserId);
 
-    // If widget has explicit decoration param, use it. Otherwise resolve dynamic equipped decoration
-    final activeDecoration = decoration ?? decorationAsync.value?.id;
+    final badgeAsync = showBadge && isCurrentUser ? ref.watch(equippedBadgeProvider) : null;
+    final decorationAsync = isCurrentUser ? ref.watch(equippedDecorationProvider) : null;
+
+    // If widget has explicit decoration param, use it. Otherwise resolve dynamic equipped decoration for current user
+    final activeDecoration = decoration ?? (isCurrentUser ? decorationAsync?.value?.id : null);
     
     return SizedBox(
       width: size,
@@ -85,7 +90,7 @@ class UserAvatar extends ConsumerWidget {
   }
 
   Widget _buildAvatar(String? activeDec) {
-    final hasDecoration = activeDec != null && activeDec != 'none';
+    final hasDecoration = activeDec != null && activeDec != 'none' && activeDec.isNotEmpty;
 
     final ringThickness = size * 0.08;
     final innerSize = size - (ringThickness * 2);

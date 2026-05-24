@@ -152,6 +152,9 @@ flutter:
     - assets/images/emojis/
     - assets/images/emojis/static/
     - assets/images/emojis/animated/
+    - assets/images/emojis/emojis/static/
+    - assets/images/emojis/emojis/animated/
+    - assets/sounds/
     - assets/icons/
     - assets/animations/
     - assets/translations/

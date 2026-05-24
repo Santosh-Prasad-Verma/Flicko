@@ -644,7 +644,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  product.price == 0 ? 'FREE' : '\$${product.price.toStringAsFixed(2)}',
+                  product.price == 0 ? 'FREE' : '₹${product.price.toStringAsFixed(0)}',
                   style: GoogleFonts.spaceGrotesk(color: _lime, fontWeight: FontWeight.w900),
                 ),
               ],
@@ -714,7 +714,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                         border: Border.all(color: Colors.white),
                       ),
                       child: Text(
-                        '\$4.99',
+                        '₹399',
                         style: GoogleFonts.spaceGrotesk(
                           color: Colors.black,
                           fontWeight: FontWeight.w900,
@@ -796,7 +796,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
           Positioned.fill(
             child: GestureDetector(
               onTap: () {
-                if (product.id == 'myinstants-trending' || product.type.toUpperCase() == 'SOUNDS') {
+                if (product.id == 'myinstants-trending') {
                   context.push('/store/myinstants');
                 } else if (product.type.toUpperCase() == 'AVATAR_DECORATION') {
                   context.push('/store/decorations');
@@ -909,7 +909,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                           Row(
                             children: [
                               Text(
-                                isFree ? 'FREE' : '\$${product.price.toStringAsFixed(2)}',
+                                isFree ? 'FREE' : '₹${product.price.toStringAsFixed(0)}',
                                 style: GoogleFonts.robotoMono(
                                   color: isFree ? _lime : Colors.white,
                                   fontWeight: FontWeight.w900,
@@ -1832,7 +1832,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
             const Icon(Icons.shopping_bag, color: Colors.black),
             const SizedBox(width: 8),
             Text(
-              '${cart.length} item${cart.length == 1 ? '' : 's'} • \$${ref.read(cartProvider.notifier).total.toStringAsFixed(2)}',
+              '${cart.length} item${cart.length == 1 ? '' : 's'} • ₹${ref.read(cartProvider.notifier).total.toStringAsFixed(0)}',
               style: GoogleFonts.spaceGrotesk(
                 color: Colors.black,
                 fontWeight: FontWeight.w900,

@@ -66,7 +66,11 @@ class StoreAudioPreviewNotifier extends Notifier<AudioPreviewStatus> {
       await _player.stop();
       state = AudioPreviewStatus(productId: productId, state: AudioPreviewState.loading);
 
-      await _player.setUrl(audioUrl);
+      if (audioUrl.startsWith('assets/')) {
+        await _player.setAsset(audioUrl);
+      } else {
+        await _player.setUrl(audioUrl);
+      }
       state = state.copyWith(state: AudioPreviewState.playing);
       // ignore: unawaited_futures
       _player.play();

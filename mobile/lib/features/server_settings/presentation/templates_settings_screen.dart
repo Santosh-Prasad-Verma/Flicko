@@ -311,7 +311,7 @@ class _TemplatesSettingsScreenState extends ConsumerState<TemplatesSettingsScree
         backgroundColor: const Color(FlickoColors.bgPrimary),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),
+          icon: Image.asset('assets/images/back.png', width: 20, height: 20, fit: BoxFit.contain),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(

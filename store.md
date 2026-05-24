@@ -293,17 +293,17 @@ The store offers **10+ distinct cosmetic categories**:
 
 | Category | Type Key | Count | Price Range | Description |
 |----------|----------|-------|-------------|-------------|
-| **Themes** | `THEME` | 10 | $0 – $6.99 | Full app color schemes (Sonic Drip, AMOLED Cord, etc.) |
-| **Sticker Packs** | `STICKERS` | 4 | $1.99 – $2.99 | Emoji/sticker collections (Handy Emoji Panel: 246 stickers) |
-| **Sound Packs** | `SOUNDS` | 4 | $0 – $1.49 | Notification sounds and soundboard effects |
-| **Badges** | `BADGE` | 9 | $0 – $14.99 | Profile badges (OG, Verified+, Diamond Elite, etc.) |
-| **Avatar Decorations** | `AVATAR_DECORATION` | 5 | $2.99 – $5.99 | Animated profile frames (Neon Cyber, Glitch Matrix, etc.) |
-| **Nameplates** | `NAMEPLATE` | 5 | $2.99 – $5.99 | Kinetic text effects for username display |
-| **Voice Skins** | `VOICE_SKIN` | 4 | $1.99 – $5.99 | Audio filters + visualizers for voice messages |
-| **Entrance Warps** | `ENTRANCE_WARP` | 3 | $3.99 – $5.99 | Animated entrances when joining a chat |
-| **Drip Cards** | `DRIP_CARD` | 3 | $3.49 – $6.99 | Custom message bubble styling |
-| **Mystery Crates** | `CRATE` | 1 | $1.99 | Gacha system with weighted random rewards |
-| **Bundles** | `BUNDLE` | 1 | $7.99 | Multi-item value packs (Sonic Cyber Bundle) |
+| **Themes** | `THEME` | 10 | ₹0 – ₹549 | Full app color schemes (Sonic Drip, AMOLED Cord, etc.) |
+| **Sticker Packs** | `STICKERS` | 7 | ₹149 – ₹249 | Emoji/sticker collections (Handy Emoji Panel: 246 stickers, Meme & Anime stickers) |
+| **Sound Packs** | `SOUNDS` | 9 | ₹0 – ₹199 | Notification sounds, soundboard effects, and premium Flicko Beats backing loops |
+| **Badges** | `BADGE` | 9 | ₹0 – ₹1199 | Profile badges (OG, Verified+, Diamond Elite, etc.) |
+| **Avatar Decorations** | `AVATAR_DECORATION` | 5 | ₹249 – ₹499 | Animated profile frames (Neon Cyber, Glitch Matrix, etc.) |
+| **Nameplates** | `NAMEPLATE` | 5 | ₹249 – ₹499 | Kinetic text effects for username display |
+| **Voice Skins** | `VOICE_SKIN` | 4 | ₹149 – ₹499 | Audio filters + visualizers for voice messages |
+| **Entrance Warps** | `ENTRANCE_WARP` | 3 | ₹299 – ₹499 | Animated entrances when joining a chat |
+| **Drip Cards** | `DRIP_CARD` | 3 | ₹279 – ₹549 | Custom message bubble styling |
+| **Mystery Crates** | `CRATE` | 1 | ₹149 | Gacha system with weighted random rewards |
+| **Bundles** | `BUNDLE` | 1 | ₹599 | Multi-item value packs (Sonic Cyber Bundle) |
 
 ---
 
@@ -344,7 +344,7 @@ The store offers **10+ distinct cosmetic categories**:
 
 The Mystery Crate uses a **decelerating vinyl turntable** animation:
 
-1. User purchases a Mystery Vinyl Crate ($1.99)
+1. User purchases a Mystery Vinyl Crate (₹149)
 2. A turntable needle-drop animation spins through possible rewards
 3. The spin decelerates with easing physics
 4. The needle lands on a random reward with rarity-weighted probability
@@ -414,7 +414,7 @@ Fuse **any combination of cosmetics** (not just badges) to create upgraded or tr
 
 ### Bundle Handling
 
-The **Sonic Cyber Bundle** ($7.99) automatically unlocks all 3 included items individually:
+The **Sonic Cyber Bundle** (₹599) automatically unlocks all 3 included items individually:
 - Sonic Drip Theme
 - OG Badge
 - Classic Memes Soundboard
@@ -438,20 +438,20 @@ The **Sonic Cyber Bundle** ($7.99) automatically unlocks all 3 included items in
 │  ┌─────────────────────────────┐   │
 │  │ 🔥 FEATURED                 │   │
 │  │ ┌──────────────────────────┐│   │  ← Featured/Hot carousel
-│  │ │  Sonic Drip Theme   $4.99││   │
+│  │ │  Sonic Drip Theme    ₹399││   │
 │  │ │  ★★★★★ LEGENDARY  🔥 HOT ││   │
 │  │ └──────────────────────────┘│   │
 │  └─────────────────────────────┘   │
 ├─────────────────────────────────────┤
 │  ┌──────┐ ┌──────┐ ┌──────┐       │
-│  │Theme │ │Badge │ │Sound │       │  ← Product grid
-│  │$2.99 │ │$9.99 │ │ FREE │       │     (2-column)
-│  │EPIC  │ │LEGEND│ │COMMON│       │
+│  │Theme  │ │Badge  │ │Sound  │       │  ← Product grid
+│  │₹249  │ │₹799  │ │ FREE  │       │     (2-column)
+│  │EPIC   │ │LEGEND│ │COMMON│       │
 │  └──────┘ └──────┘ └──────┘       │
 │  ┌──────┐ ┌──────┐ ┌──────┐       │
-│  │Warp  │ │Skin  │ │Crate │       │
-│  │$4.99 │ │$3.99 │ │$1.99 │       │
-│  │EPIC  │ │EPIC  │ │EPIC  │       │
+│  │Warp   │ │Skin   │ │Crate  │       │
+│  │₹399  │ │₹299  │ │₹149  │       │
+│  │EPIC   │ │EPIC  │ │EPIC   │       │
 │  └──────┘ └──────┘ └──────┘       │
 └─────────────────────────────────────┘
 ```

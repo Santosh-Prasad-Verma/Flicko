@@ -427,7 +427,7 @@ class _NameplateStoreScreenState extends ConsumerState<NameplateStoreScreen> {
                           ),
                         ),
                         Text(
-                          '\$${product.price.toStringAsFixed(2)}',
+                          '₹${product.price.toStringAsFixed(0)}',
                           style: GoogleFonts.epilogue(
                             color: _white,
                             fontSize: 22,

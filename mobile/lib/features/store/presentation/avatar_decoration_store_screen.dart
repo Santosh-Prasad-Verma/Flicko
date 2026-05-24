@@ -453,7 +453,7 @@ class _AvatarDecorationStoreScreenState extends ConsumerState<AvatarDecorationSt
                           ),
                         ),
                         Text(
-                          '\$${product.price.toStringAsFixed(2)}',
+                          '₹${product.price.toStringAsFixed(0)}',
                           style: GoogleFonts.epilogue(
                             color: _white,
                             fontSize: 22,

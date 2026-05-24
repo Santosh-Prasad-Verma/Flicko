@@ -70,7 +70,7 @@ class HelpScreen extends StatelessWidget {
               decoration: const BoxDecoration(
                 border: Border.fromBorderSide(BorderSide(color: Colors.transparent)),
               ),
-              child: const Icon(Icons.arrow_back, color: _textWhite, size: 20),
+              child: Image.asset('assets/images/back.png', width: 20, height: 20, fit: BoxFit.contain),
             ),
           ),
           Expanded(

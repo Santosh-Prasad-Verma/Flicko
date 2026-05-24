@@ -310,7 +310,7 @@ class CartScreen extends ConsumerWidget {
                       ),
                       const Spacer(),
                       Text(
-                        '\$${(item.product.price * item.quantity).toStringAsFixed(2)}',
+                        '₹${(item.product.price * item.quantity).toStringAsFixed(0)}',
                         style: GoogleFonts.epilogue(
                           color: _kWhite,
                           fontWeight: FontWeight.w900,
@@ -382,7 +382,7 @@ class CartScreen extends ConsumerWidget {
                   ),
                 ),
                 Text(
-                  '\$${total.toStringAsFixed(2)}',
+                  '₹${total.toStringAsFixed(0)}',
                   style: GoogleFonts.epilogue(
                     color: _kWhite,
                     fontSize: 28,
@@ -637,7 +637,7 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
                 ),
               ),
               Text(
-                '\$${total.toStringAsFixed(2)}',
+                '₹${total.toStringAsFixed(0)}',
                 style: GoogleFonts.spaceGrotesk(
                   color: _kWhite,
                   fontWeight: FontWeight.w900,
@@ -658,7 +658,7 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
                   ),
                 ),
                 Text(
-                  '-\$${discount.toStringAsFixed(2)}',
+                  '-₹${discount.toStringAsFixed(0)}',
                   style: GoogleFonts.spaceGrotesk(
                     color: _kLime,
                     fontWeight: FontWeight.w900,
@@ -682,7 +682,7 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
                 ),
               ),
               Text(
-                '\$${finalTotal.toStringAsFixed(2)}',
+                '₹${finalTotal.toStringAsFixed(0)}',
                 style: GoogleFonts.epilogue(
                   color: _kWhite,
                   fontWeight: FontWeight.w900,
@@ -1015,7 +1015,7 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          isFree ? 'CLAIM FREE ITEMS' : 'PAY \$${finalTotal.toStringAsFixed(2)}',
+                          isFree ? 'CLAIM FREE ITEMS' : 'PAY ₹${finalTotal.toStringAsFixed(0)}',
                           style: GoogleFonts.spaceGrotesk(
                             color: Colors.black,
                             fontWeight: FontWeight.w900,

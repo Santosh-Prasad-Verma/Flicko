@@ -7,6 +7,7 @@ import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
 import 'package:mobile/data/models/user_model.dart';
+import 'package:intl/intl.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -49,7 +50,7 @@ class ProfileScreen extends ConsumerWidget {
                   const SizedBox(height: 24),
                   _buildCardSection('ABOUT ME', bio),
                   const SizedBox(height: 16),
-                  _buildCardSection('MEMBER SINCE', 'Apr 22, 2026'), // Mocked
+                  _buildMemberSinceCard(profile?.createdAt ?? DateTime.now()),
                   if ((websiteUrl != null && websiteUrl.isNotEmpty) || (socialLink != null && socialLink.isNotEmpty)) ...[
                     const SizedBox(height: 24),
                     _buildLinksSection(websiteUrl, socialLink),
@@ -226,6 +227,58 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildMemberSinceCard(DateTime createdAt) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(FlickoColors.bgSecondary),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'MEMBER SINCE',
+            style: GoogleFonts.spaceGrotesk(
+              color: const Color(FlickoColors.textMuted),
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.06),
+                  shape: BoxShape.circle,
+                ),
+                child: Image.asset(
+                  'assets/images/Flicko-for-black-background.png',
+                  width: 18,
+                  height: 18,
+                  fit: BoxFit.contain,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                DateFormat('MMMM d, yyyy').format(createdAt),
+                style: GoogleFonts.outfit(
+                  color: const Color(FlickoColors.textSecondary),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildCardSection(String title, String content) {
     return Container(
       width: double.infinity,
@@ -298,7 +351,7 @@ class ProfileScreen extends ConsumerWidget {
       children: [
         Text(
           'LINKS',
-          style: GoogleFonts.epilogue(
+          style: GoogleFonts.spaceGrotesk(
             color: const Color(FlickoColors.textMuted),
             fontSize: 12,
             fontWeight: FontWeight.bold,
@@ -321,10 +374,18 @@ class ProfileScreen extends ConsumerWidget {
     final icon = _getLinkIcon(url);
     return GestureDetector(
       onTap: () async {
-        final uri = Uri.tryParse(url);
+        String formattedUrl = url.trim();
+        if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
+          formattedUrl = 'https://$formattedUrl';
+        }
+        final uri = Uri.tryParse(formattedUrl);
         if (uri != null) {
-          if (await canLaunchUrl(uri)) {
-            await launchUrl(uri, mode: LaunchMode.externalApplication);
+          try {
+            if (await canLaunchUrl(uri)) {
+              await launchUrl(uri, mode: LaunchMode.externalApplication);
+            }
+          } catch (e) {
+            debugPrint('Could not launch URL: $e');
           }
         }
       },
@@ -350,7 +411,7 @@ class ProfileScreen extends ConsumerWidget {
                 children: [
                   Text(
                     label,
-                    style: GoogleFonts.epilogue(
+                    style: GoogleFonts.spaceGrotesk(
                       color: const Color(FlickoColors.textMuted),
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
@@ -359,7 +420,7 @@ class ProfileScreen extends ConsumerWidget {
                   const SizedBox(height: 2),
                   Text(
                     url,
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.outfit(
                       color: Colors.white,
                       fontSize: 14,
                       fontWeight: FontWeight.w600,

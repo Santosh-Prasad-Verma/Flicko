@@ -103,7 +103,7 @@ class _BotMarketplaceScreenState extends State<BotMarketplaceScreen> with Single
         ),
       ),
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: Colors.white),
+        icon: Image.asset('assets/images/back.png', width: 20, height: 20, fit: BoxFit.contain),
         onPressed: () => context.pop(),
       ),
     );

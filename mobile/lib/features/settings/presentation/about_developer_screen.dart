@@ -124,9 +124,7 @@ class _AboutDeveloperScreenState extends State<AboutDeveloperScreen> {
         children: [
           GestureDetector(
             onTap: () => context.pop(),
-            child: const Padding(
-              padding: EdgeInsets.all(8),
-              child: Icon(Icons.arrow_back, color: _textWhite, size: 20),
+            child: Padding(padding: const EdgeInsets.all(8), child: Image.asset('assets/images/back.png', width: 20, height: 20, fit: BoxFit.contain),
             ),
           ),
           Expanded(

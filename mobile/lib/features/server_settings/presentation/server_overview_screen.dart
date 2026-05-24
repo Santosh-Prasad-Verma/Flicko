@@ -282,7 +282,7 @@ class _ServerOverviewScreenState extends ConsumerState<ServerOverviewScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
+                icon: Image.asset('assets/images/back.png', width: 20, height: 20, fit: BoxFit.contain),
                 onPressed: () => context.pop(),
               ),
               Text(

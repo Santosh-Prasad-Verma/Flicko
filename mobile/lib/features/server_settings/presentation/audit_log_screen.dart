@@ -83,8 +83,7 @@ class _AuditLogScreenState extends ConsumerState<AuditLogScreen> {
         backgroundColor: const Color(FlickoColors.bgSecondary),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back,
-              color: Color(FlickoColors.textPrimary), size: 20),
+          icon: Image.asset('assets/images/back.png', width: 20, height: 20, fit: BoxFit.contain),
           onPressed: () => context.pop(),
         ),
         centerTitle: true,

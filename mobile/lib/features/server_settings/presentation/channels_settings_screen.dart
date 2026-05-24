@@ -241,7 +241,7 @@ class _ChannelsSettingsScreenState extends ConsumerState<ChannelsSettingsScreen>
         backgroundColor: const Color(FlickoColors.bgPrimary),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Color(FlickoColors.brandLime), size: 20),
+          icon: Image.asset('assets/images/back.png', width: 20, height: 20, fit: BoxFit.contain),
           onPressed: () => context.pop(),
         ),
         centerTitle: true,

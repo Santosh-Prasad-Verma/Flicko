@@ -220,8 +220,7 @@ class _BansScreenState extends ConsumerState<BansScreen> {
         backgroundColor: Colors.black,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new,
-              color: Color(0xFF52B788), size: 20),
+          icon: Image.asset('assets/images/back.png', width: 20, height: 20, fit: BoxFit.contain),
           onPressed: () => context.pop(),
         ),
         centerTitle: true,

@@ -463,7 +463,7 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
                               _buildInfoBadge(
                                 DateFormat('MMMM d, yyyy')
                                     .format(profile.createdAt),
-                                Icons.calendar_today_rounded,
+                                imageAsset: 'assets/images/Flicko-for-black-background.png',
                               ),
                             ],
                           ),
@@ -682,49 +682,42 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
             ),
           ),
 
-          // Avatar with animated glow ring
+          // Avatar with clean cutout & conditional decoration glow
           Positioned(
             top: 148,
             left: 20,
-            child: AnimatedBuilder(
-              animation: _glowController,
-              builder: (context, child) {
-                final glowOpacity = 0.15 + (_glowController.value * 0.2);
+            child: Builder(
+              builder: (context) {
+                final hasDec = profile.avatarDecoration != null &&
+                    profile.avatarDecoration != 'none' &&
+                    profile.avatarDecoration!.isNotEmpty;
                 return Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
                     color: _bg,
                     shape: BoxShape.circle,
-                    border: Border.all(
-                      color: accentColor.withValues(alpha: 0.6),
-                      width: 2.5,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: accentColor.withValues(alpha: glowOpacity),
-                        blurRadius: 30,
-                        spreadRadius: 8,
-                      ),
-                      BoxShadow(
-                        color: accentColor.withValues(alpha: glowOpacity * 0.5),
-                        blurRadius: 60,
-                        spreadRadius: 15,
-                      ),
-                    ],
+                    boxShadow: hasDec
+                        ? [
+                            BoxShadow(
+                              color: accentColor.withValues(alpha: 0.25),
+                              blurRadius: 20,
+                              spreadRadius: 4,
+                            ),
+                          ]
+                        : null,
                   ),
-                  child: child,
+                  child: UserAvatar(
+                    imageUrl: profile.avatarUrl,
+                    name: profile.displayName ?? profile.username,
+                    size: 90,
+                    status: profile.onlineStatus,
+                    showStatus: true,
+                    decoration: profile.avatarDecoration,
+                    userId: widget.userId,
+                    showBadge: true,
+                  ),
                 );
               },
-              child: UserAvatar(
-                imageUrl: profile.avatarUrl,
-                name: profile.displayName ?? profile.username,
-                size: 90,
-                status: profile.onlineStatus,
-                showStatus: true,
-                decoration: profile.avatarDecoration,
-                userId: widget.userId,
-                showBadge: true,
-              ),
             ),
           ),
         ],
@@ -774,7 +767,7 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
         // Display name with elegant styling
         Text(
           profile.displayName ?? profile.username,
-          style: GoogleFonts.inter(
+          style: GoogleFonts.spaceGrotesk(
             color: _white,
             fontSize: 28,
             fontWeight: FontWeight.w800,
@@ -815,7 +808,7 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
                   ),
                   const SizedBox(width: 6),
                   Text(statusLabel,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.spaceGrotesk(
                           color: statusColor,
                           fontSize: 11,
                           fontWeight: FontWeight.w600)),
@@ -832,7 +825,7 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
               const SizedBox(width: 6),
               Text(
                 profile.location!,
-                style: GoogleFonts.inter(
+                style: GoogleFonts.outfit(
                   color: _white.withValues(alpha: 0.5),
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
@@ -861,7 +854,7 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
                 Flexible(
                   child: Text(
                     profile.customStatus!,
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.outfit(
                         color: _white.withValues(alpha: 0.6), fontSize: 14),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -870,8 +863,7 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
               ],
             ),
           ),
-        ],
-      ],
+        ],      ],
     );
   }
 
@@ -1114,7 +1106,7 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(title,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.spaceGrotesk(
                 color: _white.withValues(alpha: 0.9),
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
@@ -1147,7 +1139,7 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
       ),
       child: Text(
         bio ?? 'This user has no bio.',
-        style: GoogleFonts.inter(
+        style: GoogleFonts.outfit(
           color: bio != null ? _white.withValues(alpha: 0.65) : _muted,
           fontSize: 14,
           height: 1.65,
@@ -1157,12 +1149,12 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
     );
   }
 
-  Widget _buildInfoBadge(String text, IconData icon) {
+  Widget _buildInfoBadge(String text, {IconData? icon, String? imageAsset}) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: _surface,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: _white.withValues(alpha: 0.05)),
       ),
       child: Row(
@@ -1170,24 +1162,28 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: _accent.withValues(alpha: 0.1),
+              color: _accent.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icon, color: _accent, size: 16),
+            child: imageAsset != null
+                ? Image.asset(imageAsset, width: 16, height: 16, fit: BoxFit.contain)
+                : Icon(icon, color: _accent, size: 16),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(text,
-                style: GoogleFonts.inter(
-                    color: _white.withValues(alpha: 0.8),
-                    fontWeight: FontWeight.w500,
-                    fontSize: 13)),
+            child: Text(
+              text,
+              style: GoogleFonts.outfit(
+                color: _white.withValues(alpha: 0.85),
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
+            ),
           ),
         ],
       ),
     );
   }
-
   Widget _buildRolesList() {
     return Wrap(
       spacing: 8,
@@ -1525,15 +1521,22 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
       ],
     );
   }
-
   Widget _buildLinkCard(String label, String url) {
     final icon = _getLinkIcon(url);
     return GestureDetector(
       onTap: () async {
-        final uri = Uri.tryParse(url);
+        String formattedUrl = url.trim();
+        if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
+          formattedUrl = 'https://$formattedUrl';
+        }
+        final uri = Uri.tryParse(formattedUrl);
         if (uri != null) {
-          if (await canLaunchUrl(uri)) {
-            await launchUrl(uri, mode: LaunchMode.externalApplication);
+          try {
+            if (await canLaunchUrl(uri)) {
+              await launchUrl(uri, mode: LaunchMode.externalApplication);
+            }
+          } catch (e) {
+            debugPrint('Could not launch URL: $e');
           }
         }
       },
@@ -1541,7 +1544,7 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: _surface,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(color: _accent.withValues(alpha: 0.15)),
         ),
         child: Row(
@@ -1561,16 +1564,17 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
                 children: [
                   Text(
                     label,
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.spaceGrotesk(
                       color: _muted,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     url,
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.outfit(
                       color: _white.withValues(alpha: 0.8),
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
@@ -1588,7 +1592,6 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
       ),
     );
   }
-
   IconData _getLinkIcon(String url) {
     final lower = url.toLowerCase();
     if (lower.contains('github.com')) {

@@ -57,7 +57,7 @@ class _AppearanceSettingsScreenState
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, color: _limeColor, size: 20),
+          icon: Image.asset('assets/images/back.png', width: 20, height: 20, fit: BoxFit.contain),
           onPressed: () => context.pop(),
         ),
         title: Text(

@@ -96,6 +96,7 @@ class _MyInstantsExplorerScreenState extends ConsumerState<MyInstantsExplorerScr
   void _onSearch(String query) {
     setState(() {
       _searchQuery = query;
+      _isLoading = true;
     });
     _fetchSounds();
   }
@@ -264,10 +265,14 @@ class _MyInstantsExplorerScreenState extends ConsumerState<MyInstantsExplorerScr
               child: TextField(
                 controller: _searchController,
                 style: GoogleFonts.spaceMono(color: Colors.white),
+                onChanged: (val) => setState(() {}),
                 decoration: InputDecoration(
                   hintText: 'SEARCH MYINSTANTS CLIPS...',
                   hintStyle: GoogleFonts.spaceMono(color: _muted, fontSize: 13),
-                  prefixIcon: const Icon(Icons.search, color: _neonGreen),
+                  prefixIcon: IconButton(
+                    icon: const Icon(Icons.search, color: _neonGreen),
+                    onPressed: () => _onSearch(_searchController.text),
+                  ),
                   suffixIcon: _searchController.text.isNotEmpty
                       ? IconButton(
                           icon: const Icon(Icons.clear, color: Colors.white),

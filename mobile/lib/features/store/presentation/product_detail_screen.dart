@@ -717,7 +717,7 @@ class ProductDetailScreen extends ConsumerWidget {
                     ),
                   ),
                   Text(
-                    isFree ? 'FREE' : '\$${product.price.toStringAsFixed(2)}',
+                    isFree ? 'FREE' : '₹${product.price.toStringAsFixed(0)}',
                     style: GoogleFonts.epilogue(
                       color: isFree ? _lime : _white,
                       fontSize: 24,

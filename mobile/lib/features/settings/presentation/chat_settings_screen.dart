@@ -83,7 +83,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                   BorderSide(color: Colors.transparent),
                 ),
               ),
-              child: const Icon(Icons.arrow_back, color: _textWhite, size: 20),
+              child: Image.asset('assets/images/back.png', width: 20, height: 20, fit: BoxFit.contain),
             ),
           ),
           Expanded(

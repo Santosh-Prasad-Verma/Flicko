@@ -384,7 +384,7 @@ class _ShareQrSheetState extends State<_ShareQrSheet> with SingleTickerProviderS
                 border: Border.all(color: _theme.accent.withValues(alpha: 0.2), width: 1.5),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(Icons.arrow_back_ios_new_rounded, color: _theme.textColor, size: 16),
+              child: Image.asset('assets/images/back.png', width: 20, height: 20, fit: BoxFit.contain),
             ),
           ),
           const SizedBox(width: 16),
