@@ -104,7 +104,7 @@ func TestLudoEngine_RollDice_Normal(t *testing.T) {
 
 	// Since they all start in base (-1) and we roll a 5, there are NO legal moves!
 	// Therefore, it should auto-consume and advance to the next player.
-	state, err = engine.RollDice(context.Background(), gameID, "player_red")
+	state, err := engine.RollDice(context.Background(), gameID, "player_red")
 	assert.NoError(t, err)
 	assert.Equal(t, 1, state.ActivePlayerIndex) // Rotated to player_green
 	assert.True(t, state.Turn.IsConsumed)
