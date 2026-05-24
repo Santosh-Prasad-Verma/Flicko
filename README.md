@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/branding/Flicko-for-black-background.png" alt="Flicko Logo" width="140" height="140" />
+  <img src="assets/branding/Flicko-banner.png" alt="Flicko App Banner" width="100%" />
 </p>
 
 <h1 align="center">Flicko</h1>
@@ -30,10 +30,6 @@
 </p>
 
 ---
-
-<p align="center">
-  <img src="assets/branding/Flicko-banner.png" alt="Flicko App Banner" />
-</p>
 
 ## Table of contents
 
