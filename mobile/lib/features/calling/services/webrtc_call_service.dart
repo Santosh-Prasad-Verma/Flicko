@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:audio_session/audio_session.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:mobile/core/config/app_config.dart';
@@ -38,6 +39,7 @@ class WebRtcCallService extends ChangeNotifier {
   RTCPeerConnection? _peer;
   MediaStream? _localStream;
   MediaStream? _remoteStream;
+  AudioSession? _audioSession;
   Timer? _offerRetryTimer;
   RTCSessionDescription? _lastLocalOffer;
   final List<RTCIceCandidate> _pendingRemoteIceCandidates = [];
@@ -50,6 +52,7 @@ class WebRtcCallService extends ChangeNotifier {
   bool _muted = false;
   bool _cameraEnabled = false;
   bool _speakerEnabled = true;
+  bool _callAudioSessionActive = false;
   String? _roomName;
   String? _myUserId;
   String? _peerUserId;
@@ -148,10 +151,21 @@ class WebRtcCallService extends ChangeNotifier {
   }
 
   Future<void> setMicrophoneEnabled(bool enabled) async {
-    for (final track
-        in _localStream?.getAudioTracks() ?? <MediaStreamTrack>[]) {
-      track.enabled = enabled;
+    final audioTracks = _localStream?.getAudioTracks() ?? <MediaStreamTrack>[];
+    if (audioTracks.isEmpty) {
+      debugPrint('[FlickoRTC] no local microphone track to toggle');
+      return;
     }
+
+    if (enabled && !_callAudioSessionActive) {
+      await _startPhoneAudioSession();
+    }
+
+    for (final track in audioTracks) {
+      track.enabled = enabled;
+      await Helper.setMicrophoneMute(!enabled, track);
+    }
+
     _muted = !enabled;
     await _sendSignal(_RtcSignalType.media, payload: _mediaPayload());
     notifyListeners();
@@ -220,6 +234,8 @@ class WebRtcCallService extends ChangeNotifier {
     }
     _channel = null;
 
+    await _stopPhoneAudioSession();
+
     _started = false;
     _remoteReady = false;
     _answerReceived = false;
@@ -244,6 +260,7 @@ class WebRtcCallService extends ChangeNotifier {
 
   Future<void> _openLocalMedia({required bool videoEnabled}) async {
     await _ensureMediaPermissions(videoEnabled: videoEnabled);
+    await _startPhoneAudioSession();
 
     final constraints = <String, dynamic>{
       'audio': {
@@ -262,10 +279,16 @@ class WebRtcCallService extends ChangeNotifier {
     };
 
     _localStream = await navigator.mediaDevices.getUserMedia(constraints);
-    for (final track
-        in _localStream?.getAudioTracks() ?? <MediaStreamTrack>[]) {
-      track.enabled = true;
+    final audioTracks = _localStream?.getAudioTracks() ?? <MediaStreamTrack>[];
+    if (audioTracks.isEmpty) {
+      throw StateError('No microphone audio track was created');
     }
+
+    for (final track in audioTracks) {
+      track.enabled = true;
+      await Helper.setMicrophoneMute(false, track);
+    }
+
     localRenderer.srcObject = _localStream;
     await Helper.setSpeakerphoneOn(_speakerEnabled);
     debugPrint(
@@ -281,6 +304,8 @@ class WebRtcCallService extends ChangeNotifier {
       throw StateError('Microphone permission denied');
     }
 
+    unawaited(_requestOptionalBluetoothPermission());
+
     if (videoEnabled) {
       final camera = await Permission.camera.request();
       if (!camera.isGranted) {
@@ -289,9 +314,63 @@ class WebRtcCallService extends ChangeNotifier {
     }
   }
 
+  Future<void> _requestOptionalBluetoothPermission() async {
+    try {
+      final status = await Permission.bluetoothConnect.status;
+      if (status.isDenied || status.isRestricted || status.isLimited) {
+        final result = await Permission.bluetoothConnect.request();
+        debugPrint('[FlickoRTC] bluetooth audio permission: $result');
+      }
+    } catch (error) {
+      debugPrint('[FlickoRTC] bluetooth permission ignored: $error');
+    }
+  }
+
+  Future<void> _startPhoneAudioSession() async {
+    _audioSession ??= await AudioSession.instance;
+    await _audioSession!.configure(AudioSessionConfiguration(
+      avAudioSessionCategory: AVAudioSessionCategory.playAndRecord,
+      avAudioSessionCategoryOptions:
+          AVAudioSessionCategoryOptions.allowBluetooth |
+              AVAudioSessionCategoryOptions.defaultToSpeaker,
+      avAudioSessionMode: AVAudioSessionMode.voiceChat,
+      androidAudioAttributes: AndroidAudioAttributes(
+        contentType: AndroidAudioContentType.speech,
+        flags: AndroidAudioFlags.none,
+        usage: AndroidAudioUsage.voiceCommunication,
+      ),
+      androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
+      androidWillPauseWhenDucked: false,
+    ));
+
+    final activated = await _audioSession!.setActive(true);
+    if (!activated) {
+      throw StateError('Phone call audio session did not activate');
+    }
+
+    _callAudioSessionActive = true;
+    debugPrint('[FlickoRTC] phone call audio session active');
+  }
+
+  Future<void> _stopPhoneAudioSession() async {
+    if (!_callAudioSessionActive && _audioSession == null) return;
+
+    try {
+      await _audioSession?.setActive(false);
+      await _audioSession?.configure(const AudioSessionConfiguration.music());
+    } catch (error) {
+      debugPrint('[FlickoRTC] phone call audio session stop ignored: $error');
+    } finally {
+      _callAudioSessionActive = false;
+    }
+  }
+
   Future<void> _createPeerConnection() async {
     _peer = await createPeerConnection(
-      {'sdpSemantics': 'unified-plan', 'iceServers': _iceServers()},
+      {
+        'sdpSemantics': 'unified-plan',
+        'iceServers': _iceServers(),
+      },
       {
         'mandatory': {},
         'optional': [
@@ -362,8 +441,7 @@ class WebRtcCallService extends ChangeNotifier {
     if (event.streams.isNotEmpty) {
       stream = event.streams.first;
     } else {
-      stream =
-          _remoteStream ??
+      stream = _remoteStream ??
           await createLocalMediaStream('flicko-remote-${_roomName ?? 'call'}');
       await stream.addTrack(event.track, addToNative: false);
     }
