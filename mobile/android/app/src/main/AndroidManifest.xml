@@ -18,7 +18,8 @@
         android:label="Flicko"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
-        android:enableOnBackInvokedCallback="true">
+        android:enableOnBackInvokedCallback="true"
+        android:usesCleartextTraffic="true">
 
         <!-- Foreground Service Registration -->
         <service 

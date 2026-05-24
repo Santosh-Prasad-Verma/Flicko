@@ -39,7 +39,7 @@ class AudioHandlerHelper {
       config: AudioServiceConfig(
         androidNotificationChannelId: 'com.shadow.blackhole.channel.audio',
         androidNotificationChannelName: 'Sonic',
-        androidNotificationIcon: 'drawable/ic_stat_music_note',
+        androidNotificationIcon: 'mipmap/ic_launcher',
         androidShowNotificationBadge: true,
         androidStopForegroundOnPause: false,
         // Hive.box('settings').get('stopServiceOnPause', defaultValue: true) as bool,
