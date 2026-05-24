@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/branding/Flicko-new-banner.png" alt="Flicko App Banner" width="100%" />
+  <img src="assets/branding/Flicko-for-black-background.png" alt="Flicko Logo" width="140" height="140" />
 </p>
 
 <h1 align="center">Flicko</h1>
@@ -27,6 +27,12 @@
   <a href="#features"><strong>Features</strong></a> ·
   <a href="#self-hosting"><strong>Self-hosting</strong></a> ·
   <a href="docs/README.md"><strong>Full docs</strong></a>
+</p>
+
+---
+
+<p align="center">
+  <img src="assets/branding/Flicko-new-banner.png" alt="Flicko App New Banner" width="100%" />
 </p>
 
 ---
