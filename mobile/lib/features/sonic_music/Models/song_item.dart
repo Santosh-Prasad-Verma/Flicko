@@ -86,8 +86,12 @@ class SongItem {
     try {
       final List<String> parts = map['duration'].toString().split(':');
       int dur = 0;
-      for (int i = 0; i < parts.length; i++) {
-        dur += int.parse(parts[i]) * (60 ^ (parts.length - i - 1));
+      if (parts.length == 3) {
+        dur = int.parse(parts[0]) * 3600 + int.parse(parts[1]) * 60 + int.parse(parts[2]);
+      } else if (parts.length == 2) {
+        dur = int.parse(parts[0]) * 60 + int.parse(parts[1]);
+      } else if (parts.length == 1) {
+        dur = int.tryParse(parts[0]) ?? 0;
       }
       final songItem = SongItem(
         id: map['id'].toString(),

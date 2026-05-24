@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>About The Developer</title>
+  <!-- Google Fonts: Outfit (grotesque bold), Caveat (curly hand-drawn arrow style), and Mr Dafoe (glowing script) -->
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;800;900&family=Playfair+Display:ital,wght@1,400;1,700&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-black: #050505;
+      --card-bg: #0C0C0E;
+      --neon-green: #2CE67F;
+      --neon-purple: #8B5CF6;
+      --neon-red: #FF3366;
+      --neon-yellow: #FFD600;
+      --text-white: #FFFFFF;
+      --text-grey: #7C7C8A;
+      --border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-black);
+      color: var(--text-white);
+      font-family: 'Outfit', sans-serif;
+      overflow-x: hidden;
+      min-height: 100vh;
+      line-height: 1.3;
+      padding: 40px 20px;
+    }
+
+    .wrapper {
+      max-width: 500px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    /* ─── IMAGE 1 STYLE: MUSEUM OF DIGITAL ARTS CARD ─── */
+    .museum-card-wrapper {
+      margin-bottom: 60px;
+    }
+
+    .museum-card {
+      background: var(--card-bg);
+      border-radius: 40px; /* Highly rounded corners like reference Image 1 */
+      padding: 40px 25px 35px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6);
+      transition: box-shadow 0.3s ease, border-color 0.3s ease;
+      position: relative;
+    }
+
+    .museum-card:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+      box-shadow: 0 40px 80px rgba(0, 0, 0, 0.8);
+    }
+
+    /* Large top octopus filling the frame */
+    .octopus-header-visual {
+      width: 100%;
+      height: 480px;
+      position: relative;
+      margin-bottom: 10px;
+      margin-top: -40px;
+    }
+
+    .octopus-image {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 20px 40px rgba(0,0,0,0.75));
+      animation: gentleFloating 4s infinite ease-in-out;
+    }
+
+    /* Styled mixed typography exact replica of Reference 1 */
+    .museum-title-group {
+      text-align: center;
+      margin-bottom: 25px;
+    }
+
+    .museum-title-main {
+      font-size: 40px;
+      font-weight: 800;
+      line-height: 0.95;
+      letter-spacing: -1.5px;
+      text-transform: uppercase;
+    }
+
+    .museum-title-italic {
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
+      font-weight: 400;
+      font-size: 38px;
+      text-transform: lowercase;
+      color: var(--text-white);
+      display: block;
+      margin: 2px 0;
+    }
+
+    /* Outlined open button badge */
+    .museum-status-badge {
+      display: inline-block;
+      border: 1.5px solid var(--text-white);
+      border-radius: 20px;
+      padding: 6px 16px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-top: 12px;
+      background: transparent;
+      transition: all 0.3s ease;
+    }
+
+    .museum-status-badge span {
+      color: var(--neon-green);
+      margin-right: 6px;
+    }
+
+    .museum-card:hover .museum-status-badge {
+      background: var(--text-white);
+      color: var(--bg-black);
+    }
+
+    /* Stats telemetry bar */
+    .museum-stats-divider {
+      display: grid;
+      grid-template-columns: 1fr 1px 1fr;
+      align-items: center;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding-top: 20px;
+      margin-top: 10px;
+    }
+
+    .stat-column {
+      text-align: center;
+    }
+
+    .stat-label-mini {
+      font-size: 8.5px;
+      color: var(--text-grey);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 6px;
+    }
+
+    .stat-value-large {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -1px;
+    }
+
+    .stat-divider-vertical {
+      height: 40px;
+      width: 1px;
+      background-color: rgba(255, 255, 255, 0.08);
+    }
+
+    /* Two rotating circular badges at the bottom (Reference 1) */
+    .circular-badges-row {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 40px;
+      margin-top: 35px;
+      position: relative;
+    }
+
+    .spinning-circle-badge {
+      width: 86px;
+      height: 86px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .spinning-circle-badge.green-badge {
+      background-color: var(--neon-green);
+      color: var(--bg-black);
+    }
+
+    .spinning-circle-badge.purple-badge {
+      background-color: var(--neon-purple);
+      color: var(--text-white);
+    }
+
+    /* Global mesh inside badge */
+    .badge-icon {
+      font-size: 20px;
+      position: relative;
+      z-index: 10;
+    }
+
+    /* Rotating text overlay using SVG */
+    .rotating-svg-text {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      animation: rotateBadge 12s infinite linear;
+    }
+
+    .spinning-circle-badge.purple-badge .rotating-svg-text {
+      animation-direction: reverse;
+    }
+
+    @keyframes rotateBadge {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* Curly hand-drawn arrow overlay */
+    .curly-arrow-overlay {
+      position: absolute;
+      top: -15px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 45px;
+      height: 45px;
+      pointer-events: none;
+    }
+
+    .arrow-vector {
+      fill: none;
+      stroke: var(--text-white);
+      stroke-width: 1.5;
+      stroke-dasharray: 4,4;
+      animation: dashVector 2s infinite linear;
+    }
+
+    @keyframes dashVector {
+      to { stroke-dashoffset: -20; }
+    }
+
+    /* Upwards scrolling indicator at card base */
+    .scroll-notch-bottom {
+      display: flex;
+      justify-content: center;
+      margin-top: 25px;
+    }
+
+    .scroll-arrow-icon {
+      width: 22px;
+      height: 12px;
+      fill: none;
+      stroke: rgba(255,255,255,0.25);
+      stroke-width: 2;
+    }
+
+    /* ─── IMAGE 2 STYLE: THE STUDIO PORTFOLIO ─── */
+    .studio-portfolio-section {
+      margin-top: 60px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      padding-top: 50px;
+    }
+
+    /* Massive blocky Reference 2 header */
+    .studio-massive-h1 {
+      font-size: 56px;
+      font-weight: 900;
+      letter-spacing: -2px;
+      line-height: 0.9;
+      text-transform: uppercase;
+      margin-bottom: 40px;
+    }
+
+    /* Developer Bio with circular backdrop (Reference 2 style) */
+    .studio-bio-row {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 20px;
+      align-items: center;
+      margin-bottom: 40px;
+    }
+
+    .avatar-yellow-circle-wrapper {
+      width: 130px;
+      height: 130px;
+      background: var(--neon-yellow);
+      border-radius: 50%;
+      position: relative;
+      overflow: visible;
+    }
+
+    .smiling-man-asset {
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 140px;
+      height: 140px;
+      object-fit: contain;
+      filter: drop-shadow(0 10px 20px rgba(0,0,0,0.4));
+    }
+
+    .studio-bio-p {
+      font-size: 13.5px;
+      color: var(--text-grey);
+      line-height: 1.55;
+    }
+
+    .highlight-yellow {
+      color: var(--neon-yellow);
+      font-weight: 700;
+    }
+
+    /* Offset slightly rotated cards (Reference 2 style) */
+    .studio-cards-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 35px;
+      margin-top: 40px;
+    }
+
+    .offset-studio-card {
+      padding: 24px;
+      border-radius: 12px;
+      position: relative;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      color: var(--text-white);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+    }
+
+    .offset-studio-card.red-card {
+      background-color: var(--neon-red);
+      transform: rotate(-1.5deg) translateX(-5px);
+    }
+
+    .offset-studio-card.purple-card {
+      background-color: var(--neon-purple);
+      transform: rotate(1.5deg) translateX(5px);
+    }
+
+    .offset-studio-card.yellow-card {
+      background-color: var(--neon-yellow);
+      color: var(--bg-black);
+      transform: rotate(-1deg) translateX(-3px);
+    }
+
+    .offset-studio-card.yellow-card .card-title-mini,
+    .offset-studio-card.yellow-card .card-desc-p {
+      color: rgba(5, 5, 5, 0.8);
+    }
+
+    .offset-studio-card:hover {
+      transform: scale(1.03) rotate(0deg) translateY(-5px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    }
+
+    /* Watermark decoration behind card using stacked-layers asset */
+    .card-watermark-squares {
+      position: absolute;
+      right: 10px;
+      bottom: 10px;
+      width: 80px;
+      height: 80px;
+      opacity: 0.15;
+      background-image: url('stacked-layers-of-rounded-squares.png');
+      background-size: contain;
+      background-repeat: no-repeat;
+      pointer-events: none;
+    }
+
+    .card-title-mini {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      opacity: 0.85;
+      margin-bottom: 6px;
+      font-weight: bold;
+    }
+
+    .card-title-main {
+      font-size: 24px;
+      font-weight: 900;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .card-desc-p {
+      font-size: 12px;
+      opacity: 0.85;
+      line-height: 1.45;
+    }
+
+    /* ─── CONNECT FOOTER (Reference 2 Style) ─── */
+    .studio-connect-footer {
+      margin-top: 80px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      padding-top: 50px;
+      text-align: center;
+    }
+
+    .connect-h1-footer {
+      font-size: 64px;
+      font-weight: 900;
+      letter-spacing: -3px;
+      line-height: 0.9;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .connect-subtext {
+      font-size: 13.5px;
+      color: var(--text-grey);
+      margin-bottom: 30px;
+    }
+
+    .social-links-row {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 40px;
+    }
+
+    .social-banner-button {
+      height: 58px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 24px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border-color);
+      border-radius: 30px;
+      color: var(--text-white);
+      text-decoration: none;
+      font-weight: 800;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+    }
+
+    .social-banner-button:hover {
+      background: var(--text-white);
+      color: var(--bg-black);
+      border-color: var(--text-white);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(255, 255, 255, 0.05);
+    }
+
+    .social-label-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .social-icon-svg {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+      transition: transform 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .social-banner-button:hover .social-icon-svg {
+      transform: scale(1.15) rotate(-5deg);
+    }
+
+    .social-banner-arrow {
+      font-size: 14px;
+      transition: transform 0.3s ease;
+    }
+
+    .social-banner-button:hover .social-banner-arrow {
+      transform: translateX(4px);
+    }
+
+    .studio-bottom-copyright {
+      font-family: 'Space Mono', monospace;
+      font-size: 8px;
+      color: var(--text-grey);
+      letter-spacing: 2px;
+      margin-top: 30px;
+    }
+
+    .principle-card {
+      background: rgba(255,255,255,0.015);
+      border: 1px solid rgba(255,255,255,0.04);
+      padding: 22px;
+      border-radius: 16px;
+      transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+      position: relative;
+      overflow: hidden;
+    }
+    .principle-card:hover {
+      background: rgba(255,255,255,0.04);
+      border-color: rgba(255,255,255,0.1);
+      transform: translateY(-3px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    }
+    .principle-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: transparent;
+    }
+    .principle-card.green-p::before { background: var(--neon-green); }
+    .principle-card.purple-p::before { background: var(--neon-purple); }
+    .principle-card.yellow-p::before { background: var(--neon-yellow); }
+
+    @keyframes gentleFloating {
+      0%, 100% { transform: translateZ(40px) translateY(0px) rotate(0deg); }
+      50% { transform: translateZ(55px) translateY(-10px) rotate(1.5deg); }
+    }
+
+    /* ─── NEW HUD & SPECIALIZATION STYLING ─── */
+    .hud-specialization-card {
+      background: rgba(255, 255, 255, 0.01);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: 24px;
+      padding: 24px;
+      margin-top: 30px;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+    .hud-specialization-card:hover {
+      border-color: rgba(44, 230, 127, 0.25);
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .hud-grid-row {
+      display: grid;
+      grid-template-columns: 1fr 100px;
+      gap: 15px;
+      align-items: center;
+    }
+    .hud-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 15px;
+    }
+    .hud-list-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .hud-bullet-square {
+      width: 6px;
+      height: 6px;
+      background: var(--neon-green);
+      margin-top: 5px;
+      border-radius: 1px;
+    }
+    .hud-item-text {
+      font-size: 12.5px;
+      color: var(--text-grey);
+      line-height: 1.45;
+    }
+    .hud-item-text strong {
+      color: var(--text-white);
+      text-transform: uppercase;
+      font-size: 11.5px;
+      font-family: 'Space Mono', monospace;
+      letter-spacing: 0.5px;
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    /* ─── NEW TIMELINE ROADMAP STYLING ─── */
+    .roadmap-timeline {
+      position: relative;
+      margin-top: 30px;
+      padding-left: 20px;
+    }
+    .roadmap-timeline::before {
+      content: '';
+      position: absolute;
+      top: 5px;
+      left: 4px;
+      width: 1px;
+      height: calc(100% - 10px);
+      background: linear-gradient(to bottom, var(--neon-green), var(--neon-purple), var(--neon-yellow));
+      opacity: 0.25;
+    }
+    .timeline-node {
+      position: relative;
+      margin-bottom: 30px;
+    }
+    .timeline-node:last-child {
+      margin-bottom: 0;
+    }
+    .timeline-bullet {
+      position: absolute;
+      top: 5px;
+      left: -20px;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--bg-black);
+      border: 2px solid var(--neon-green);
+      z-index: 2;
+    }
+    .timeline-node.purple-node .timeline-bullet { border-color: var(--neon-purple); }
+    .timeline-node.yellow-node .timeline-bullet { border-color: var(--neon-yellow); }
+    
+    .timeline-content-card {
+      background: rgba(255,255,255,0.015);
+      border: 1px solid rgba(255,255,255,0.04);
+      padding: 16px;
+      border-radius: 14px;
+      transition: all 0.3s ease;
+    }
+    .timeline-content-card:hover {
+      background: rgba(255,255,255,0.03);
+      border-color: rgba(255,255,255,0.08);
+      transform: translateX(3px);
+    }
+    .timeline-year {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 1px;
+      font-weight: bold;
+      color: var(--text-grey);
+    }
+    .timeline-node.green-node .timeline-year { color: var(--neon-green); }
+    .timeline-node.purple-node .timeline-year { color: var(--neon-purple); }
+    .timeline-node.yellow-node .timeline-year { color: var(--neon-yellow); }
+    
+    .timeline-title {
+      font-size: 14px;
+      font-weight: 800;
+      margin: 4px 0 6px 0;
+      text-transform: uppercase;
+      color: var(--text-white);
+      letter-spacing: -0.5px;
+    }
+    .timeline-desc {
+      font-size: 12px;
+      color: var(--text-grey);
+      line-height: 1.45;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SVG text filters are not needed since we rotate inline SVG paths, extremely robust! -->
+
+  <div class="wrapper">
+
+    <!-- ─── INTRO STAGE: MUSEUM OF DIGITAL ARTS CARD (IMAGE 1) ─── -->
+    <div class="museum-card-wrapper" id="cardWrapper">
+      <div class="museum-card" id="museumCard">
+        
+        <!-- White Octopus header render -->
+        <div class="octopus-header-visual">
+          <img src="octopus.png" class="octopus-image" alt="3D Octopus model">
+        </div>
+        
+        <!-- Styled Title exactly matching image 1 mixed serif-italic style -->
+        <div class="museum-title-group">
+          <h1 class="museum-title-main">
+            Creator
+            <span class="museum-title-italic">of flicko</span>
+            App
+          </h1>
+          <!-- Outlined pill badge -->
+          <div class="museum-status-badge">
+            <span>●</span> ACTIVE NOW
+          </div>
+        </div>
+
+        <!-- Divided statistics telemetry row -->
+        <div class="museum-stats-divider">
+          <div class="stat-column">
+            <div class="stat-label-mini">Engine Commits</div>
+            <div class="stat-value-large">177</div>
+          </div>
+          <div class="stat-divider-vertical"></div>
+          <div class="stat-column">
+            <div class="stat-label-mini">Releases Shipped</div>
+            <div class="stat-value-large">1</div>
+          </div>
+        </div>
+
+        <!-- Spinning green/purple badges and curly arrow (Reference 1) -->
+        <div class="circular-badges-row">
+          
+          <!-- Neon Green Globe text badge -->
+          <div class="spinning-circle-badge green-badge">
+            <span class="badge-icon">🌐</span>
+            <svg class="rotating-svg-text" viewBox="0 0 100 100">
+              <path id="greenTextPath" d="M 50,50 m -35,0 a 35,35 0 1,1 70,0 a 35,35 0 1,1 -70,0" fill="none"/>
+              <text font-family="'Outfit', sans-serif" font-weight="900" font-size="8.8px" fill="#050505" letter-spacing="1">
+                <textPath href="#greenTextPath" startOffset="0%">
+                  DEVELOPER • DEVELOPER • DEVELOPER • 
+                </textPath>
+              </text>
+            </svg>
+          </div>
+
+          <!-- Neon Purple Globe text badge -->
+          <div class="spinning-circle-badge purple-badge">
+            <span class="badge-icon">🔮</span>
+            <svg class="rotating-svg-text" viewBox="0 0 100 100">
+              <path id="purpleTextPath" d="M 50,50 m -35,0 a 35,35 0 1,1 70,0 a 35,35 0 1,1 -70,0" fill="none"/>
+              <text font-family="'Outfit', sans-serif" font-weight="900" font-size="8.8px" fill="#FFFFFF" letter-spacing="1">
+                <textPath href="#purpleTextPath" startOffset="0%">
+                  FLICKO.SYS • FLICKO.SYS • FLICKO.SYS • 
+                </textPath>
+              </text>
+            </svg>
+          </div>
+
+          <!-- Hand-drawn vector curly arrow overlay -->
+          <div class="curly-arrow-overlay">
+            <svg viewBox="0 0 50 50" width="100%" height="100%">
+              <path class="arrow-vector" d="M 12 15 C 20 2, 30 2, 38 15 C 42 22, 38 32, 28 32 C 20 32, 18 24, 25 24 L 23 20 M 25 24 L 28 20" />
+            </svg>
+          </div>
+
+        </div>
+
+        <!-- Scroll upwards indicator double-arrow at base -->
+        <div class="scroll-notch-bottom">
+          <svg class="scroll-arrow-icon" viewBox="0 0 24 12">
+            <path d="M 4 10 L 12 2 L 20 10 M 4 6 L 12 -2 L 20 6" />
+          </svg>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ─── BIO STAGE: THE STUDIO (IMAGE 2) ─── -->
+    <div class="studio-portfolio-section">
+      <!-- Massive chunky Title from Reference 2 -->
+      <h1 class="studio-massive-h1">The<br>Architect</h1>
+      
+      <!-- Bio description and solid yellow circular avatar (Reference 2) -->
+      <div class="studio-bio-row">
+        <div class="avatar-yellow-circle-wrapper">
+          <img src="3d-business-young-man-in-formalwear-sitting-on-the-floor-and-taking-photo.png" class="smiling-man-asset" alt="Young Man Taking Photo">
+        </div>
+        <p class="studio-bio-p">
+          This application is proudly developed by a <span class="highlight-yellow">single developer</span>. I am a 3rd year student studying at <span class="highlight-yellow">Parul University, Vadodara</span>, and I am currently focused on <span class="highlight-yellow">Data Engineering</span>. I specialize in designing highly optimized big data architectures, relational database pipelines, and scalable cloud-native backend systems.
+        </p>
+      </div>
+
+      <!-- Rotated asymmetrical card stack with squares watermarks (Reference 2) -->
+      <div class="studio-cards-grid">
+        
+        <!-- Card 1: Flicko Beats -->
+        <div class="offset-studio-card red-card">
+          <div class="card-watermark-squares"></div>
+          <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 15px;">
+            <div style="flex: 1;">
+              <div class="card-title-mini">Lead Architect</div>
+              <h2 class="card-title-main">Flicko Beats</h2>
+              <p class="card-desc-p">Low-latency concurrent audio streaming arrays, utilizing custom ring-buffer structures and raw assets compilation engines.</p>
+            </div>
+            <img src="3d-flame-crypto-trader-making-a-successful-financial-investment.png" style="width: 70px; height: 70px; object-fit: contain; margin-top: -5px; filter: drop-shadow(0 8px 16px rgba(0,0,0,0.35));" alt="Flicko Beats">
+          </div>
+        </div>
+
+        <!-- Card 2: Sonic Drip -->
+        <div class="offset-studio-card purple-card">
+          <div class="card-watermark-squares"></div>
+          <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 15px;">
+            <div style="flex: 1;">
+              <div class="card-title-mini">Interface Design</div>
+              <h2 class="card-title-main">Sonic Drip</h2>
+              <p class="card-desc-p">Theme compiler allowing deep interface injection, responsive structural sizing, custom frame options, and aesthetic layouts.</p>
+            </div>
+            <img src="3d-playful-send-message-symbol-with-blue-paper-plane-icon.png" style="width: 70px; height: 70px; object-fit: contain; margin-top: -5px; filter: drop-shadow(0 8px 16px rgba(0,0,0,0.35));" alt="Sonic Drip">
+          </div>
+        </div>
+
+        <!-- Card 3: Aura AI -->
+        <div class="offset-studio-card yellow-card">
+          <div class="card-watermark-squares"></div>
+          <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 15px;">
+            <div style="flex: 1;">
+              <div class="card-title-mini">Neural Companion</div>
+              <h2 class="card-title-main">Aura AI</h2>
+              <p class="card-desc-p">Fully integrated client-side assistant. Orchestrates background behaviors, reads user telemetry, and automates UI transformations.</p>
+            </div>
+            <img src="3d-playful-virtual-robot-helper-head-and-chat-bubble-with-three-dots.png" style="width: 70px; height: 70px; object-fit: contain; margin-top: -5px; filter: drop-shadow(0 8px 16px rgba(0,0,0,0.2));" alt="Aura AI">
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Core Principles Section (Enriching length & design) -->
+      <div class="studio-principles-section" style="margin-top: 60px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 40px;">
+        <div class="card-title-mini" style="color: var(--neon-green); margin-bottom: 20px;">[03 // MISSION COMMAND]</div>
+        <h2 style="font-size: 32px; font-weight: 800; text-transform: uppercase; margin-bottom: 25px; letter-spacing: -1.5px;">Core Principles</h2>
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+          
+          <div class="principle-card green-p">
+            <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 18px;">
+              <div style="flex: 1;">
+                <span style="font-family: 'Space Mono', monospace; font-size: 9px; color: var(--neon-green); letter-spacing: 1.5px; font-weight: bold;">01 // ZERO COMPROMISE</span>
+                <div style="font-size: 15px; font-weight: 800; margin: 6px 0; text-transform: uppercase; color: var(--text-white);">Pixel-Perfect Execution</div>
+                <p style="font-size: 12.5px; color: var(--text-grey); line-height: 1.5;">Every pixel, interaction, and micro-animation is tuned to absolute premium fidelity. No generic standard templates or lazy compromises.</p>
+              </div>
+              <img src="3d-playful-trophy-cup-with-award-ribbon-for-achievement-recognition.png" style="width: 65px; height: 65px; object-fit: contain; filter: drop-shadow(0 6px 12px rgba(0,0,0,0.3));" alt="Trophy">
+            </div>
+          </div>
+
+          <div class="principle-card purple-p">
+            <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 18px;">
+              <div style="flex: 1;">
+                <span style="font-family: 'Space Mono', monospace; font-size: 9px; color: var(--neon-purple); letter-spacing: 1.5px; font-weight: bold;">02 // SPEED OVER EVERYTHING</span>
+                <div style="font-size: 15px; font-weight: 800; margin: 6px 0; text-transform: uppercase; color: var(--text-white);">60FPS Interaction Layer</div>
+                <p style="font-size: 12.5px; color: var(--text-grey); line-height: 1.5;">High-performance client engines. Deep audio syncs, lightning-fast transitions, and optimized loading pipelines to feel instant.</p>
+              </div>
+              <img src="3d-playful-send-message-symbol-with-blue-paper-plane-icon.png" style="width: 65px; height: 65px; object-fit: contain; filter: drop-shadow(0 6px 12px rgba(0,0,0,0.3));" alt="Speed">
+            </div>
+          </div>
+
+          <div class="principle-card yellow-p">
+            <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 18px;">
+              <div style="flex: 1;">
+                <span style="font-family: 'Space Mono', monospace; font-size: 9px; color: var(--neon-yellow); letter-spacing: 1.5px; font-weight: bold;">03 // VISUAL SPECTACLE</span>
+                <div style="font-size: 15px; font-weight: 800; margin: 6px 0; text-transform: uppercase; color: var(--text-white);">Premium Aesthetic Glow</div>
+                <p style="font-size: 12.5px; color: var(--text-grey); line-height: 1.5;">Integrating HSL tailored palettes, glassmorphism, dynamic organic backdrops, and modern grotesque typography for unmatched impact.</p>
+              </div>
+              <img src="chat-bubbles-blue-and-purple-messages-dialogue-symbol.png" style="width: 65px; height: 65px; object-fit: contain; filter: drop-shadow(0 6px 12px rgba(0,0,0,0.3));" alt="Visuals">
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ─── DATA PIPELINES HUD (NEW SECTION) ─── -->
+      <div class="studio-principles-section" style="margin-top: 60px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 40px;">
+        <div class="card-title-mini" style="color: var(--neon-green); margin-bottom: 20px;">[04 // PIPELINE INFRASTRUCTURE]</div>
+        <h2 style="font-size: 32px; font-weight: 800; text-transform: uppercase; margin-bottom: 25px; letter-spacing: -1.5px;">Data & Analytics HUD</h2>
+        
+        <div class="hud-specialization-card">
+          <div class="hud-grid-row">
+            <div>
+              <p style="font-size: 13px; color: var(--text-white); font-weight: bold; line-height: 1.4; margin-bottom: 10px;">Data Engineering Specialization</p>
+              <p style="font-size: 12px; color: var(--text-grey); line-height: 1.5;">Architecting robust telemetry frameworks and low-latency storage pipelines to scale distributed app communications.</p>
+            </div>
+            <img src="3d-playful-data-metrics-screen-visualization-dashboard-financial-analytics-display.png" style="width: 80px; height: 80px; object-fit: contain; filter: drop-shadow(0 8px 16px rgba(0,0,0,0.3));" alt="Metrics Dashboard">
+          </div>
+          
+          <div class="hud-list">
+            <div class="hud-list-item">
+              <div class="hud-bullet-square"></div>
+              <div class="hud-item-text">
+                <strong>High-Throughput Streaming</strong>
+                Design client-side message queues and binary buffers to route data packet logs with zero concurrency bottlenecks.
+              </div>
+            </div>
+            <div class="hud-list-item">
+              <div class="hud-bullet-square" style="background: var(--neon-purple);"></div>
+              <div class="hud-item-text">
+                <strong>Relational Telemetry DB</strong>
+                Indexing schemas and query structures in SQLite and Postgres for rapid reads, ensuring instantaneous UI synchronization.
+              </div>
+            </div>
+            <div class="hud-list-item">
+              <div class="hud-bullet-square" style="background: var(--neon-yellow);"></div>
+              <div class="hud-item-text">
+                <strong>ETL Automation</strong>
+                Orchestrating automated deployment models, asset builders, and data processing routines to streamline server flows.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- ─── SECURITY HUBS (NEW SECTION) ─── -->
+      <div class="studio-principles-section" style="margin-top: 60px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 40px; margin-bottom: 20px;">
+        <div class="card-title-mini" style="color: var(--neon-yellow); margin-bottom: 20px;">[05 // ENCRYPTED CACHE]</div>
+        <h2 style="font-size: 32px; font-weight: 800; text-transform: uppercase; margin-bottom: 25px; letter-spacing: -1.5px;">Security & Caching</h2>
+        
+        <div class="principle-card yellow-p" style="border-radius: 20px; background: rgba(255,255,255,0.015);">
+          <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 15px;">
+            <div style="flex: 1;">
+              <span style="font-family: 'Space Mono', monospace; font-size: 9px; color: var(--neon-yellow); letter-spacing: 1.5px; font-weight: bold;">SECURE TELEMETRY LINK</span>
+              <div style="font-size: 15px; font-weight: 800; margin: 6px 0; text-transform: uppercase; color: var(--text-white);">End-to-End Core Security</div>
+              <p style="font-size: 12.5px; color: var(--text-grey); line-height: 1.5;">Every connection to Flicko's backend is double-sanitized. We run encrypted local databases, secure keychains, and sandboxed web socket pipelines to ensure client safety.</p>
+            </div>
+            <img src="3d-playful-mobile-data-security-account-protection-smartphone-with-shield-and-password.png" style="width: 75px; height: 75px; object-fit: contain; filter: drop-shadow(0 8px 16px rgba(0,0,0,0.3));" alt="Security Shield">
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ─── CONNECT FOOTER (Reference 2) ─── -->
+    <div class="studio-connect-footer">
+      <h1 class="connect-h1-footer">Work<br>With Me</h1>
+      <p class="connect-subtext">Want to work together? Let's establish a secure telemetry link.</p>
+      
+      <div class="social-links-row">
+        <a href="https://github.com/Tarun10A" class="social-banner-button" target="_blank">
+          <div class="social-label-group">
+            <svg class="social-icon-svg" viewBox="0 0 24 24" width="20" height="20">
+              <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
+            </svg>
+            <span>GitHub Profile</span>
+          </div>
+          <span class="social-banner-arrow">&rarr;</span>
+        </a>
+        <a href="https://x.com" class="social-banner-button" target="_blank">
+          <div class="social-label-group">
+            <svg class="social-icon-svg" viewBox="0 0 24 24" width="20" height="20">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
+            <span>Twitter / X</span>
+          </div>
+          <span class="social-banner-arrow">&rarr;</span>
+        </a>
+        <a href="https://linkedin.com" class="social-banner-button" target="_blank">
+          <div class="social-label-group">
+            <svg class="social-icon-svg" viewBox="0 0 24 24" width="20" height="20">
+              <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+            </svg>
+            <span>LinkedIn Network</span>
+          </div>
+          <span class="social-banner-arrow">&rarr;</span>
+        </a>
+      </div>
+
+      <div class="studio-bottom-copyright">
+        TARUN VERMA
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

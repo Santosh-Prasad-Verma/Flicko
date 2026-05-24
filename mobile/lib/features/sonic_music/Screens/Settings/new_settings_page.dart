@@ -27,7 +27,7 @@ class _NewSettingsPageState extends State<NewSettingsPage>
   final ValueNotifier<String> searchQuery = ValueNotifier<String>('');
   final List sectionsToShow = Hive.box('settings').get(
     'sectionsToShow',
-    defaultValue: ['Home', 'Top Charts', 'YouTube', 'Library'],
+    defaultValue: ['Home', 'YouTube', 'Library', 'Settings'],
   ) as List;
 
   @override
@@ -78,14 +78,14 @@ class _NewSettingsPageState extends State<NewSettingsPage>
   }
 
   Widget _searchBar(BuildContext context) {
-    return Card(
+    return GradientCard(
       margin: const EdgeInsets.fromLTRB(20.0, 10.0, 20.0, 0.0),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(
-          10.0,
-        ),
-      ),
-      elevation: 2.0,
+      radius: BorderRadius.circular(10.0),
+      elevation: 0.0,
+      gradientColors: [
+        Colors.white.withOpacity(0.08),
+        Colors.white.withOpacity(0.02),
+      ],
       child: SizedBox(
         height: 55.0,
         child: Center(
@@ -95,6 +95,7 @@ class _NewSettingsPageState extends State<NewSettingsPage>
               return TextField(
                 controller: controller,
                 textAlignVertical: TextAlignVertical.center,
+                style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   focusedBorder: const UnderlineInputBorder(
                     borderSide: BorderSide(
@@ -102,19 +103,19 @@ class _NewSettingsPageState extends State<NewSettingsPage>
                       color: Colors.transparent,
                     ),
                   ),
-                  fillColor: Theme.of(context).colorScheme.secondary,
-                  prefixIcon: const Icon(CupertinoIcons.search),
+                  prefixIcon: const Icon(CupertinoIcons.search, color: Colors.white70),
                   suffixIcon: query.trim() != ''
                       ? IconButton(
                           onPressed: () {
                             controller.clear();
                             searchQuery.value = '';
                           },
-                          icon: const Icon(Icons.close_rounded),
+                          icon: const Icon(Icons.close_rounded, color: Colors.white70),
                         )
                       : null,
                   border: InputBorder.none,
                   hintText: AppLocalizations.of(context)!.search,
+                  hintStyle: const TextStyle(color: Colors.white60),
                 ),
                 keyboardType: TextInputType.text,
                 textInputAction: TextInputAction.search,
@@ -360,40 +361,45 @@ class _NewSettingsPageState extends State<NewSettingsPage>
     BuildContext context,
     List<Map> options,
   ) {
-    return Card(
+    return GradientCard(
       margin: const EdgeInsets.symmetric(
         horizontal: 18.0,
         vertical: 10,
       ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(
-          10.0,
-        ),
-      ),
+      radius: BorderRadius.circular(10.0),
       elevation: 8.0,
+      gradientColors: [
+        Colors.white.withOpacity(0.08),
+        Colors.white.withOpacity(0.02),
+      ],
       child: SizedBox(
-        height: options.length * 70,
+        height: options.length * 70.0 > 250.0 ? 250.0 : options.length * 70.0,
         child: ListView.builder(
           padding: const EdgeInsets.only(left: 10, top: 10),
           physics: const BouncingScrollPhysics(),
           itemCount: options.length,
-          itemExtent: 70,
           itemBuilder: (context, index) {
-            return ListTile(
-              leading: Text(options[index]['title'].toString()),
-              onTap: () {
-                searchQuery.value = '';
-                controller.text = '';
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => options[index]['route'] as Widget,
-                    settings: RouteSettings(
-                      arguments: options[index]['title'],
+            return SizedBox(
+              height: 70,
+              child: ListTile(
+                leading: Text(
+                  options[index]['title'].toString(),
+                  style: const TextStyle(color: Colors.white),
+                ),
+                onTap: () {
+                  searchQuery.value = '';
+                  controller.text = '';
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => options[index]['route'] as Widget,
+                      settings: RouteSettings(
+                        arguments: options[index]['title'],
+                      ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             );
           },
         ),

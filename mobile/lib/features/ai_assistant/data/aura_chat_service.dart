@@ -487,32 +487,67 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
   }
 
   String generateTextResponse(String prompt) {
-    final lower = prompt.toLowerCase();
-    if (lower.contains('healthy') || lower.contains('eat') || lower.contains('food')) {
-      return 'Basic principles of a healthy diet:\n\n'
-          '• **Balance**: Make sure your diet contains all the essential macro and micronutrients in the correct proportions: carbohydrates, proteins, fats, vitamins and minerals.\n'
-          '• **Hydration**: Drink at least 2-3 liters of water daily to maintain cognitive and metabolic performance.\n'
-          '• **Caloric Intake**: Match your active metabolic output to avoid fat storage or muscle degradation.\n'
-          '• **Sports Connection**: Consume complex carbs 2 hours before training for explosive energy, and premium protein source within 45 mins post-workout to maximize muscle fibers repair.';
-    } else if (lower.contains('marketing') || lower.contains('trends') || lower.contains('instagram')) {
-      return 'Instagram Marketing Trends for 2025/2026:\n\n'
-          '1. **Hyper-Personalized AI Dialogues**: AI models dynamically generating conversation paths inside Direct Messages.\n'
-          '2. **Immersive AR Retail**: Instantly trying clothes or furniture through interactive feed posts.\n'
-          '3. **Micro-Community Broadcasts**: Private, text/voice-only channels where fans receive premium, unfiltered drops.\n'
-          '4. **Trigonometric Video Edits**: Highly-polished audio-visual synced micro-animations to hook retention instantly.\n'
-          '5. **Nano-Influencer Pools**: Companies sponsoring networks of 1K-5K follower accounts for extreme local trust.';
-    } else if (lower.contains('clothing') || lower.contains('style') || lower.contains('summer')) {
-      return 'Smart Casual Summer Style:\n\n'
-          '• **Fabric**: Prioritize organic linen and lightweight cotton blends.\n'
-          '• **Tops**: A crisp linen button-up with rolled sleeves or a knit polo in charcoal or ivory.\n'
-          '• **Bottoms**: Tapered sand chinos or light grey drawstring linen trousers.\n'
-          '• **Footwear**: Clean, low-profile leather sneakers or slip-on suede loafers.';
+    final lower = prompt.toLowerCase().trim();
+    
+    // Greetings / Hellos
+    if (lower == 'hello' || lower == 'hi' || lower == 'hey' || lower.startsWith('hello ') || lower.startsWith('hi ')) {
+      final greetings = [
+        "Hello! I'm Aura, your AI voice companion. It's wonderful to talk to you today. How can I help you?",
+        "Hi there! Aura here, ready to assist. What's on your mind today?",
+        "Hey! Great to connect with you. I'm here to chat, answer questions, or just keep you company. How can I help you?"
+      ];
+      // Deterministic choice based on time
+      return greetings[DateTime.now().millisecond % greetings.length];
     }
-    return 'That is a fascinating topic! Under my **Text Writer** toolkit, I suggest structuring that concept around key pillars:\n\n'
-        '1. **The Core Premise**: Establish what makes this idea unique.\n'
-        '2. **Visual Narrative**: Keep sentences punchy and outline transitions.\n'
-        '3. **Actionable Takeaways**: Give the reader a clear, immediate step forward.\n\n'
-        'Would you like me to elaborate on any of these pillars for your content?';
+    
+    // Jokes / Humor
+    if (lower.contains('joke') || lower.contains('clever')) {
+      final jokes = [
+        "Why do programmers wear glasses? Because they can't C#!",
+        "How many programmers does it take to change a light bulb? None, that's a hardware problem!",
+        "There are 10 types of people in the world: those who understand binary, and those who don't.",
+        "Why did the database administrator leave his wife? She had one-to-many relationships!"
+      ];
+      return jokes[DateTime.now().millisecond % jokes.length];
+    }
+    
+    // Data Engineering
+    if (lower.contains('data engineering') || lower.contains('data engineer')) {
+      return "Data engineering is the practice of designing and building systems for collecting, storing, and analyzing data at scale. It focuses on clean pipelines, schemas, and robust storage rather than visual design.";
+    }
+    
+    // Glassmorphism / UI Design
+    if (lower.contains('glassmorphism') || lower.contains('design') || lower.contains('ui')) {
+      return "Glassmorphism is a popular design trend characterized by translucent, frosted-glass-like elements. It uses subtle borders, background blurs, and vibrant multi-colored radial background glows to create an immersive, futuristic cybernetic look.";
+    }
+
+    // Healthy eating & habits
+    if (lower.contains('healthy') || lower.contains('eat') || lower.contains('food') || lower.contains('habit')) {
+      return "Basic principles of a healthy diet:\n\n"
+          "• **Balance**: Make sure your diet contains all the essential macro and micronutrients in the correct proportions: carbohydrates, proteins, fats, vitamins and minerals.\n"
+          "• **Hydration**: Drink at least 2-3 liters of water daily to maintain cognitive and metabolic performance.\n"
+          "• **Caloric Intake**: Match your active metabolic output to avoid fat storage or muscle degradation.\n"
+          "• **Sports Connection**: Consume complex carbs 2 hours before training for explosive energy, and premium protein sources within 45 mins post-workout to maximize muscle fiber repair.";
+    }
+
+    // Flutter / coding
+    if (lower.contains('flutter') || lower.contains('widget') || lower.contains('dart')) {
+      return "Flutter is Google's portable UI toolkit for crafting beautiful, natively compiled applications for mobile, web, and desktop from a single codebase. It uses the Dart programming language and provides high-performance rendering.";
+    }
+
+    // Music
+    if (lower.contains('music') || lower.contains('song') || lower.contains('play')) {
+      return "Music is the art of arranging sounds in time to produce a composition through the elements of melody, harmony, rhythm, and timbre. I can play songs for you if you tell me what to play!";
+    }
+
+    // General fallback that repeats some user context
+    final genericResponses = [
+      "I hear you! That's a really interesting point. Could you tell me more about what you mean by '$prompt'?",
+      "That's a fascinating question about '$prompt'. While I'm in simulated fallback mode right now, I'd say the key is to look at it from a structural perspective.",
+      "Aura here! I'm interested in hearing more of your thoughts on '$prompt'. Let's explore that topic further!",
+      "I completely understand. If we look deeper into '$prompt', we can find some really interesting patterns. What specific aspect would you like to focus on?"
+    ];
+    return genericResponses[lower.length % genericResponses.length];
   }
 
   String _generateCodeResponse(String prompt) {

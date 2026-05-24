@@ -23,12 +23,14 @@ import 'package:mobile/features/sonic_music/CustomWidgets/drawer.dart';
 import 'package:mobile/features/sonic_music/CustomWidgets/textinput_dialog.dart';
 import 'package:mobile/features/sonic_music/Screens/Home/saavn.dart';
 import 'package:mobile/features/sonic_music/Screens/Search/search.dart';
+import 'package:mobile/features/sonic_music/Screens/Library/liked.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile/features/sonic_music/localization/app_localizations.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
@@ -41,6 +43,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final ScrollController _scrollController = ScrollController();
+  String _activeCategory = 'All';
 
   @override
   void initState() {
@@ -53,232 +56,206 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
+  Widget _buildOutlinedHeaderButton({required IconData icon, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.white.withOpacity(0.04),
+          border: Border.all(color: Colors.white.withOpacity(0.12), width: 1.2),
+        ),
+        child: Icon(icon, color: Colors.white, size: 18),
+      ),
+    );
+  }
+
+  Widget _buildCategoryPill(String label, {bool isActive = false, VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        decoration: BoxDecoration(
+          color: isActive ? const Color(0xFFC0EC54) : const Color(0xFF13101C),
+          borderRadius: BorderRadius.circular(30),
+          border: isActive
+              ? null
+              : Border.all(color: Colors.white.withOpacity(0.08), width: 1),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.spaceGrotesk(
+            color: isActive ? const Color(0xFF07040A) : Colors.white.withOpacity(0.6),
+            fontWeight: FontWeight.w800,
+            fontSize: 13,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    String name =
-        Hive.box('settings').get('name', defaultValue: 'Guest') as String;
     final double screenWidth = MediaQuery.sizeOf(context).width;
     final bool rotated = MediaQuery.sizeOf(context).height < screenWidth;
-    return SafeArea(
-      child: Stack(
-        children: [
-          NestedScrollView(
-            physics: const BouncingScrollPhysics(),
-            controller: _scrollController,
-            headerSliverBuilder: (
-              BuildContext context,
-              bool innerBoxScrolled,
-            ) {
-              return <Widget>[
-                SliverAppBar(
-                  expandedHeight: 135,
-                  backgroundColor: Colors.transparent,
-                  elevation: 0,
-                  // pinned: true,
-                  toolbarHeight: 65,
-                  // floating: true,
-                  automaticallyImplyLeading: false,
-                  flexibleSpace: LayoutBuilder(
-                    builder: (
-                      BuildContext context,
-                      BoxConstraints constraints,
-                    ) {
-                      return FlexibleSpaceBar(
-                        // collapseMode: CollapseMode.parallax,
-                        background: GestureDetector(
-                          onTap: () async {
-                            showTextInputDialog(
-                              context: context,
-                              title: 'Name',
-                              initialText: name,
-                              keyboardType: TextInputType.name,
-                              onSubmitted:
-                                  (String value, BuildContext context) {
-                                Hive.box('settings').put(
-                                  'name',
-                                  value.trim(),
-                                );
-                                name = value.trim();
-                                Navigator.pop(context);
-                              },
-                            );
-                            // setState(() {});
-                          },
+
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF07040A),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFF381559).withOpacity(0.35),
+            const Color(0xFF07040A),
+            const Color(0xFF07040A),
+          ],
+        ),
+      ),
+      child: SafeArea(
+        child: Stack(
+          children: [
+            NestedScrollView(
+              physics: const BouncingScrollPhysics(),
+              controller: _scrollController,
+              headerSliverBuilder: (
+                BuildContext context,
+                bool innerBoxScrolled,
+              ) {
+                return <Widget>[
+                  SliverToBoxAdapter(
+                    child: Consumer(
+                      builder: (context, ref, child) {
+                        final authState = ref.watch(authNotifierProvider);
+                        final profileName = authState.maybeWhen(
+                          authenticated: (user, profile) => profile?.displayName ?? profile?.username,
+                          orElse: () => null,
+                        );
+                        final avatarUrl = authState.maybeWhen(
+                          authenticated: (user, profile) => profile?.avatarUrl,
+                          orElse: () => null,
+                        );
+                        final String displayName = profileName ?? (Hive.box('settings').get('name')?.toString() ?? 'Guest');
+                        final String firstWordName = displayName.split(' ')[0];
+
+                        return Container(
+                          padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
                           child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: <Widget>[
-                              const SizedBox(
-                                height: 60,
-                              ),
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Top Row: Avatar & outlined search/heart
                               Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Padding(
-                                    padding: const EdgeInsets.only(
-                                      left: 15.0,
-                                    ),
-                                    child: Text(
-                                      AppLocalizations.of(
-                                        context,
-                                      )!
-                                          .homeGreet,
-                                      style: TextStyle(
-                                        letterSpacing: 2,
-                                        color: Theme.of(
+                                   GestureDetector(
+                                     onTap: () {
+                                       Scaffold.of(context).openDrawer();
+                                     },
+                                     child: Container(
+                                       width: 42,
+                                       height: 42,
+                                       decoration: BoxDecoration(
+                                         shape: BoxShape.circle,
+                                         color: Colors.white.withOpacity(0.04),
+                                         border: Border.all(color: Colors.white.withOpacity(0.12), width: 1.2),
+                                       ),
+                                       child: const Icon(
+                                         Icons.menu_rounded,
+                                         color: Colors.white,
+                                         size: 22,
+                                       ),
+                                     ),
+                                   ),
+                                  Row(
+                                    children: [
+                                      _buildOutlinedHeaderButton(
+                                        icon: CupertinoIcons.search,
+                                        onTap: () => Navigator.push(
                                           context,
-                                        ).colorScheme.secondary,
-                                        fontSize: 30,
-                                        fontWeight: FontWeight.bold,
+                                          MaterialPageRoute(
+                                            builder: (context) => const SearchPage(
+                                              query: '',
+                                              fromHome: true,
+                                              autofocus: true,
+                                            ),
+                                          ),
+                                        ),
                                       ),
-                                    ),
+                                      const SizedBox(width: 12),
+                                      _buildOutlinedHeaderButton(
+                                        icon: CupertinoIcons.heart,
+                                        onTap: () async {
+                                          await Hive.openBox('Favorite Songs');
+                                          if (context.mounted) {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) => const LikedSongs(
+                                                  playlistName: 'Favorite Songs',
+                                                  showName: 'Favorite Songs',
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                        },
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
-                              Padding(
-                                padding: const EdgeInsets.only(
-                                  left: 15.0,
+                              const SizedBox(height: 24),
+                              // Hi, User
+                              Text(
+                                'Hi, $firstWordName',
+                                style: GoogleFonts.spaceGrotesk(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 32,
+                                  height: 1.1,
                                 ),
+                              ),
+                              const SizedBox(height: 20),
+                              // Categories horizontal scrolling pills
+                              SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                physics: const BouncingScrollPhysics(),
                                 child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
-                                    Consumer(
-                                      builder: (context, ref, child) {
-                                        final authState = ref.watch(authNotifierProvider);
-                                        final profileName = authState.maybeWhen(
-                                          authenticated: (user, profile) => profile?.displayName ?? profile?.username,
-                                          orElse: () => null,
-                                        );
-                                        return ValueListenableBuilder(
-                                          valueListenable: Hive.box(
-                                            'settings',
-                                          ).listenable(),
-                                          builder: (
-                                            BuildContext context,
-                                            Box box,
-                                            Widget? child,
-                                          ) {
-                                            final String? boxName = box.get('name')?.toString();
-                                            final String displayName = profileName ?? ((boxName == null || boxName.isEmpty) ? 'Guest' : boxName);
-                                            return Text(
-                                              displayName.split(' ')[0],
-                                              style: const TextStyle(
-                                                letterSpacing: 2,
-                                                fontSize: 20,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            );
-                                          },
-                                        );
-                                      },
+                                    _buildCategoryPill(
+                                      'All',
+                                      isActive: _activeCategory == 'All',
+                                      onTap: () => setState(() => _activeCategory = 'All'),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    _buildCategoryPill(
+                                      'New Release',
+                                      isActive: _activeCategory == 'New Release',
+                                      onTap: () => setState(() => _activeCategory = 'New Release'),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    _buildCategoryPill(
+                                      'Trending',
+                                      isActive: _activeCategory == 'Trending',
+                                      onTap: () => setState(() => _activeCategory = 'Trending'),
                                     ),
                                   ],
                                 ),
                               ),
                             ],
                           ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                SliverAppBar(
-                  automaticallyImplyLeading: false,
-                  pinned: true,
-                  backgroundColor: Colors.transparent,
-                  elevation: 0,
-                  stretch: true,
-                  toolbarHeight: 65,
-                  title: Align(
-                    alignment: Alignment.centerRight,
-                    child: AnimatedBuilder(
-                      animation: _scrollController,
-                      builder: (context, child) {
-                        return GestureDetector(
-                          child: AnimatedContainer(
-                            width: (!_scrollController.hasClients ||
-                                    _scrollController.positions.length > 1)
-                                ? MediaQuery.sizeOf(context).width
-                                : max(
-                                    MediaQuery.sizeOf(context).width -
-                                        _scrollController.offset
-                                            .roundToDouble(),
-                                    MediaQuery.sizeOf(context).width -
-                                        (rotated ? 0 : 75),
-                                  ),
-                            height: 55.0,
-                            duration: const Duration(
-                              milliseconds: 150,
-                            ),
-                            padding: const EdgeInsets.all(2.0),
-                            // margin: EdgeInsets.zero,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(
-                                10.0,
-                              ),
-                              color: Theme.of(context).cardColor,
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Colors.black26,
-                                  blurRadius: 5.0,
-                                  offset: Offset(1.5, 1.5),
-                                  // shadow direction: bottom right
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              children: [
-                                const SizedBox(
-                                  width: 10.0,
-                                ),
-                                Icon(
-                                  CupertinoIcons.search,
-                                  color:
-                                      Theme.of(context).colorScheme.secondary,
-                                ),
-                                const SizedBox(
-                                  width: 10.0,
-                                ),
-                                Text(
-                                  AppLocalizations.of(
-                                    context,
-                                  )!
-                                      .searchText,
-                                  style: TextStyle(
-                                    fontSize: 16.0,
-                                    color: Theme.of(context)
-                                        .textTheme
-                                        .bodySmall!
-                                        .color,
-                                    fontWeight: FontWeight.normal,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const SearchPage(
-                                query: '',
-                                fromHome: true,
-                                autofocus: true,
-                              ),
-                            ),
-                          ),
                         );
                       },
                     ),
                   ),
-                ),
-              ];
-            },
-            body: SaavnHomePage(),
-          ),
-          if (!rotated)
-            homeDrawer(
-              context: context,
-              padding: const EdgeInsets.only(top: 8.0, left: 4.0),
+                ];
+              },
+              body: SaavnHomePage(activeCategory: _activeCategory),
             ),
-        ],
+
+          ],
+        ),
       ),
     );
   }

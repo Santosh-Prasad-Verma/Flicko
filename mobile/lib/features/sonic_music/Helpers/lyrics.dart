@@ -87,12 +87,33 @@ class Lyrics {
 
   static Future<String> getSaavnLyrics(String id) async {
     try {
-      final Uri lyricsUrl = Uri.https(
-        'www.jiosaavn.com',
-        '/api.php?__call=lyrics.getLyrics&lyrics_id=$id&ctx=web6dot0&api_version=4&_format=json',
+      final Uri lyricsUrl = Uri(
+        scheme: 'https',
+        host: 'www.jiosaavn.com',
+        path: '/api.php',
+        queryParameters: {
+          '__call': 'lyrics.getLyrics',
+          'lyrics_id': id,
+          'ctx': 'web6dot0',
+          'api_version': '4',
+          '_format': 'json',
+        },
       );
-      final Response res =
-          await get(lyricsUrl, headers: {'Accept': 'application/json'});
+      final Response res = await get(
+        lyricsUrl,
+        headers: const {
+          'Accept': 'application/json',
+          'Referer': 'https://www.jiosaavn.com/',
+          'User-Agent':
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        },
+      );
+      if (res.statusCode != 200 || res.body.trimLeft().startsWith('<')) {
+        Logger.root.warning(
+          'Saavn lyrics returned ${res.statusCode}: ${res.body}',
+        );
+        return '';
+      }
 
       final List<String> rawLyrics = res.body.split('-->');
       Map fetchedLyrics = {};
@@ -103,6 +124,7 @@ class Lyrics {
       }
       final String lyrics =
           fetchedLyrics['lyrics'].toString().replaceAll('<br>', '\n');
+      if (lyrics.trimLeft().startsWith('<')) return '';
       return lyrics;
     } catch (e) {
       Logger.root.severe('Error in getSaavnLyrics', e);
@@ -261,7 +283,13 @@ class Lyrics {
         }
       }
     }
-    return lyrics.trim();
+    final trimmedLyrics = lyrics.trim();
+    if (trimmedLyrics.startsWith('<') ||
+        trimmedLyrics.toLowerCase().contains('<!doctype html') ||
+        trimmedLyrics.toLowerCase().contains('<html')) {
+      return '';
+    }
+    return trimmedLyrics;
   }
 
   static Future<String> getOffLyrics(String path) async {

@@ -65,6 +65,16 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
       Hive.isBoxOpen('downloads') ? Hive.box('downloads') : null;
   final List<String> refreshLinks = [];
   bool jobRunning = false;
+  String _lastRetriedId = '';
+  final Set<String> _retryingIds = {};
+  final Set<String> _forceDirectPlayIds = {};
+  static const Map<String, String> _youtubeStreamHeaders = {
+    'User-Agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': '*/*',
+    'Origin': 'https://www.youtube.com',
+    'Referer': 'https://www.youtube.com/',
+  };
 
   final BehaviorSubject<List<MediaItem>> _recentSubject =
       BehaviorSubject.seeded(<MediaItem>[]);
@@ -153,7 +163,9 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
 
     Logger.root.info('checking connectivity & setting quality');
 
-    Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> results) {
+    Connectivity()
+        .onConnectivityChanged
+        .listen((List<ConnectivityResult> results) {
       final ConnectivityResult result =
           results.isNotEmpty ? results.first : ConnectivityResult.none;
       if (result == ConnectivityResult.mobile) {
@@ -383,6 +395,12 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
   }
 
   Future<void> refreshLink(Map newData) async {
+    if (!_hasPlayableRemoteUrl(newData)) {
+      Logger.root.warning(
+        'player | received refresh data without a playable URL for ${newData['title'] ?? newData['id']}',
+      );
+      return;
+    }
     Logger.root.info('player | received new link for ${newData['title']}');
     final MediaItem newItem = MediaItemConverter.mapToMediaItem(newData);
     // final String? boxName = mediaItem.extras!['playlistBox']?.toString();
@@ -425,6 +443,39 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
     addQueueItem(newItem);
   }
 
+  bool _hasPlayableRemoteUrl(Map? data) {
+    final url = data?['url']?.toString() ?? '';
+    return _isPlayableRemoteUrl(url);
+  }
+
+  bool _isPlayableRemoteUrl(String? url) {
+    if (url == null) return false;
+    final trimmed = url.trim();
+    return trimmed.startsWith('http') &&
+        !trimmed.contains('/watch?') &&
+        !trimmed.contains('example.com/dummy');
+  }
+
+  String? _saavnStreamUrl(MediaItem mediaItem) {
+    final rawUrl = mediaItem.extras?['url']?.toString();
+    if (!_isPlayableRemoteUrl(rawUrl)) {
+      Logger.root.warning(
+        'Skipping JioSaavn source with missing URL: ${mediaItem.id} ${mediaItem.title}',
+      );
+      return null;
+    }
+    final quality = preferredQuality.replaceAll(' kbps', '');
+    final has320 = mediaItem.extras?['320kbps'] == true ||
+        mediaItem.extras?['320kbps']?.toString().toLowerCase() == 'true';
+    if (quality == '320' && !has320) {
+      return rawUrl;
+    }
+    return rawUrl!.replaceAll(
+      '_96.',
+      '_$quality.',
+    );
+  }
+
   AudioSource? _itemToSource(MediaItem mediaItem) {
     AudioSource? audioSource;
     try {
@@ -444,10 +495,12 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
           );
         } else {
           if (mediaItem.genre == 'YouTube') {
+            final rawUrl = mediaItem.extras?['url']?.toString();
             final int expiredAt =
                 int.parse((mediaItem.extras!['expire_at'] ?? '0').toString());
-            if ((DateTime.now().millisecondsSinceEpoch ~/ 1000) + 350 >
-                expiredAt) {
+            if (!_isPlayableRemoteUrl(rawUrl) ||
+                (DateTime.now().millisecondsSinceEpoch ~/ 1000) + 350 >
+                    expiredAt) {
               // Logger.root.info(
               //   'player | youtube link expired for ${mediaItem.title}, searching cache',
               // );
@@ -476,20 +529,23 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
                     Logger.root.info(
                       'youtube link found in cache for ${mediaItem.title}',
                     );
-                    if (cacheSong) {
-                      // Change this to handle yt quality
-                      audioSource = LockCachingAudioSource(
-                        Uri.parse(cachedData.last['url'].toString()),
-                      );
-                    } else {
-                      // Change this to handle yt quality
+                    final cachedUrl = cachedData.last['url']?.toString();
+                    if (_isPlayableRemoteUrl(cachedUrl)) {
                       audioSource = AudioSource.uri(
-                        Uri.parse(cachedData.last['url'].toString()),
+                        Uri.parse(cachedUrl!),
+                        headers: _youtubeStreamHeaders,
                       );
+                      mediaItem.extras!['url'] = cachedUrl;
+                      _mediaItemExpando[audioSource] = mediaItem;
+                      return audioSource;
                     }
-                    mediaItem.extras!['url'] = cachedData.last['url'];
-                    _mediaItemExpando[audioSource] = mediaItem;
-                    return audioSource;
+                    Logger.root.warning(
+                      'cached youtube link was not playable for ${mediaItem.title}, refreshing',
+                    );
+                    refreshLinks.add(mediaItem.id);
+                    if (!jobRunning) {
+                      refreshJob();
+                    }
                   }
                 } else {
                   Logger.root.info(
@@ -510,38 +566,24 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
                 }
               }
             } else {
-              if (cacheSong) {
-                audioSource = LockCachingAudioSource(
-                  Uri.parse(mediaItem.extras!['url'].toString()),
-                );
-              } else {
-                audioSource = AudioSource.uri(
-                  Uri.parse(mediaItem.extras!['url'].toString()),
-                );
-              }
+              audioSource = AudioSource.uri(
+                Uri.parse(rawUrl!),
+                headers: _youtubeStreamHeaders,
+              );
               _mediaItemExpando[audioSource] = mediaItem;
               return audioSource;
             }
           } else {
-            if (cacheSong) {
-              audioSource = LockCachingAudioSource(
-                Uri.parse(
-                  mediaItem.extras!['url'].toString().replaceAll(
-                        '_96.',
-                        "_${preferredQuality.replaceAll(' kbps', '')}.",
-                      ),
-                ),
-              );
-            } else {
-              audioSource = AudioSource.uri(
-                Uri.parse(
-                  mediaItem.extras!['url'].toString().replaceAll(
-                        '_96.',
-                        "_${preferredQuality.replaceAll(' kbps', '')}.",
-                      ),
-                ),
+            final streamUrl = _saavnStreamUrl(mediaItem);
+            if (streamUrl == null) return null;
+            if (_forceDirectPlayIds.contains(mediaItem.id)) {
+              Logger.root.warning(
+                'Forcing direct play for track: ${mediaItem.title}',
               );
             }
+            audioSource = AudioSource.uri(
+              Uri.parse(streamUrl),
+            );
           }
         }
       }
@@ -713,29 +755,49 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
 
   @override
   Future<void> addQueueItem(MediaItem mediaItem) async {
-    final res = _itemToSource(mediaItem);
-    if (res != null) {
-      await _playlist.add(res);
+    try {
+      final res = _itemToSource(mediaItem);
+      if (res != null) {
+        await _playlist.add(res);
+      }
+    } catch (e) {
+      Logger.root.severe('Error in addQueueItem: $e');
     }
   }
 
   @override
   Future<void> addQueueItems(List<MediaItem> mediaItems) async {
-    await _playlist.addAll(_itemsToSources(mediaItems));
+    try {
+      await _playlist.addAll(_itemsToSources(mediaItems));
+    } catch (e) {
+      Logger.root.severe('Error in addQueueItems: $e');
+    }
   }
 
   @override
   Future<void> insertQueueItem(int index, MediaItem mediaItem) async {
-    final res = _itemToSource(mediaItem);
-    if (res != null) {
-      await _playlist.insert(index, res);
+    try {
+      final res = _itemToSource(mediaItem);
+      if (res != null) {
+        await _playlist.insert(index, res);
+      }
+    } catch (e) {
+      Logger.root.severe('Error in insertQueueItem: $e');
     }
   }
 
   @override
   Future<void> updateQueue(List<MediaItem> newQueue) async {
-    await _playlist.clear();
-    await _playlist.addAll(_itemsToSources(newQueue));
+    try {
+      await _playlist.clear();
+    } catch (e) {
+      Logger.root.severe('Error clearing playlist in updateQueue: $e');
+    }
+    try {
+      await _playlist.addAll(_itemsToSources(newQueue));
+    } catch (e) {
+      Logger.root.severe('Error adding sources in updateQueue: $e');
+    }
     // addLastQueue(newQueue);
     // stationId = '';
     // stationNames = newQueue.map((e) => e.id).toList();
@@ -766,18 +828,39 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
 
   @override
   Future<void> removeQueueItem(MediaItem mediaItem) async {
-    final index = queue.value.indexOf(mediaItem);
-    await _playlist.removeAt(index);
+    try {
+      final index = queue.value.indexOf(mediaItem);
+      if (index != -1) {
+        await _playlist.removeAt(index);
+      }
+    } catch (e) {
+      Logger.root.severe('Error in removeQueueItem: $e');
+    }
   }
 
   @override
   Future<void> removeQueueItemAt(int index) async {
-    await _playlist.removeAt(index);
+    try {
+      if (index >= 0 && index < _playlist.length) {
+        await _playlist.removeAt(index);
+      }
+    } catch (e) {
+      Logger.root.severe('Error in removeQueueItemAt: $e');
+    }
   }
 
   @override
   Future<void> moveQueueItem(int currentIndex, int newIndex) async {
-    await _playlist.move(currentIndex, newIndex);
+    try {
+      if (currentIndex >= 0 &&
+          currentIndex < _playlist.length &&
+          newIndex >= 0 &&
+          newIndex < _playlist.length) {
+        await _playlist.move(currentIndex, newIndex);
+      }
+    } catch (e) {
+      Logger.root.severe('Error in moveQueueItem: $e');
+    }
   }
 
   @override
@@ -924,16 +1007,20 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
     if (name == 'switchToYouTube') {
       final String? id = extras?['id'] as String?;
       if (id != null) {
-        final item = queue.value.firstWhere((element) => element.id == id);
-        fallbackToYouTube(item);
+        final index = queue.value.indexWhere((element) => element.id == id);
+        if (index != -1) {
+          fallbackToYouTube(queue.value[index]);
+        }
       }
     }
 
     if (name == 'switchToSaavn') {
       final String? id = extras?['id'] as String?;
       if (id != null) {
-        final item = queue.value.firstWhere((element) => element.id == id);
-        fallbackToSaavn(item);
+        final index = queue.value.indexWhere((element) => element.id == id);
+        if (index != -1) {
+          fallbackToSaavn(queue.value[index]);
+        }
       }
     }
     return super.customAction(name, extras);
@@ -1031,54 +1118,71 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
     }
   }
 
+  Future<void> _replaceQueueItemAndRestart(
+    int index,
+    MediaItem replacement,
+    String reason,
+  ) async {
+    if (index < 0 || index >= queue.value.length) return;
+    final bool restartCurrent = _player!.currentIndex == index;
+    if (restartCurrent) {
+      try {
+        await _player!.stop();
+      } catch (e) {
+        Logger.root.warning('Unable to stop player before $reason: $e');
+      }
+    }
+
+    final List<MediaItem> currentQueue = List<MediaItem>.from(queue.value);
+    currentQueue[index] = replacement;
+    await updateQueue(currentQueue);
+
+    if (restartCurrent && index < _playlist.length) {
+      await _player!.seek(Duration.zero, index: index);
+      await _player!.play();
+    }
+  }
+
   Future<void> fallbackToYouTube(MediaItem item) async {
     Logger.root.info('Fallback to YouTube triggered for song: ${item.title}');
     try {
       final query = '${item.title} ${item.artist}';
-      final List<Map> searchResults = await YtMusicService().search(query, filter: 'songs');
-      if (searchResults.isNotEmpty && searchResults[0]['items'].isNotEmpty) {
-        final Map firstResult = searchResults[0]['items'][0] as Map;
-        final String videoId = firstResult['id'].toString();
-        
-        final Map? ytData = await YouTubeServices.instance.refreshLink(
-          videoId,
-        );
-        
-        if (ytData != null && ytData['url'] != null && ytData['url'] != '') {
-          final MediaItem fallbackItem = MediaItem(
-            id: videoId,
-            album: item.album,
-            artist: item.artist,
-            duration: item.duration,
-            title: item.title,
-            artUri: item.artUri,
-            genre: 'YouTube',
-            extras: {
-              ...item.extras ?? {},
-              'url': ytData['url'],
-              'genre': 'YouTube',
-              'expire_at': ytData['expire_at'],
-              'perma_url': 'https://youtube.com/watch?v=$videoId',
-            },
-          );
-          
-          final index = queue.value.indexWhere((qItem) => qItem.id == item.id);
-          if (index != -1) {
-            final source = _itemToSource(fallbackItem);
-            if (source != null) {
-              _mediaItemExpando[source] = fallbackItem;
-              await _playlist.removeAt(index);
-              await _playlist.insert(index, source);
-              Logger.root.info('Successfully fell back to YouTube for ${item.title}');
-              
-              if (_player!.currentIndex == index) {
-                await _player!.seek(Duration.zero, index: index);
-                await _player!.play();
-              }
-            }
-          }
-        }
-      }
+      final List<Map> searchResults =
+          await YtMusicService().search(query, filter: 'songs');
+      final items =
+          searchResults.isEmpty ? const [] : searchResults[0]['items'] as List?;
+      if (items == null || items.isEmpty) return;
+
+      final Map firstResult = items[0] as Map;
+      final String videoId = firstResult['id'].toString();
+      if (videoId.isEmpty || videoId == 'null') return;
+
+      final Map? ytData = await YouTubeServices.instance.refreshLink(videoId);
+      if (!_hasPlayableRemoteUrl(ytData)) return;
+
+      final MediaItem fallbackItem = MediaItem(
+        id: videoId,
+        album: item.album,
+        artist: item.artist,
+        duration: item.duration,
+        title: item.title,
+        artUri: item.artUri,
+        genre: 'YouTube',
+        extras: {
+          ...item.extras ?? {},
+          'url': ytData!['url'],
+          'genre': 'YouTube',
+          'expire_at': ytData['expire_at'],
+          'perma_url': 'https://youtube.com/watch?v=$videoId',
+        },
+      );
+
+      final index = queue.value.indexWhere((qItem) => qItem.id == item.id);
+      await _replaceQueueItemAndRestart(
+        index,
+        fallbackItem,
+        'YouTube fallback',
+      );
     } catch (e) {
       Logger.root.severe('Error in fallbackToYouTube: $e');
     }
@@ -1091,48 +1195,134 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
         searchQuery: '${item.title} ${item.artist}',
         count: 5,
       );
-      if (searchResults['songs'] != null && (searchResults['songs'] as List).isNotEmpty) {
-        final Map firstSong = searchResults['songs'][0] as Map;
-        final MediaItem saavnItem = MediaItemConverter.mapToMediaItem(firstSong);
-        
-        final index = queue.value.indexWhere((qItem) => qItem.id == item.id);
-        if (index != -1) {
-          final source = _itemToSource(saavnItem);
-          if (source != null) {
-            _mediaItemExpando[source] = saavnItem;
-            await _playlist.removeAt(index);
-            await _playlist.insert(index, source);
-            Logger.root.info('Successfully switched to JioSaavn for ${item.title}');
-            
-            if (_player!.currentIndex == index) {
-              await _player!.seek(Duration.zero, index: index);
-              await _player!.play();
-            }
-          }
-        }
-      }
+      final songs = searchResults['songs'];
+      if (songs is! List || songs.isEmpty) return;
+
+      final Map firstSong = songs[0] as Map;
+      if (!_hasPlayableRemoteUrl(firstSong)) return;
+      final MediaItem saavnItem = MediaItemConverter.mapToMediaItem(firstSong);
+
+      final index = queue.value.indexWhere((qItem) => qItem.id == item.id);
+      await _replaceQueueItemAndRestart(
+        index,
+        saavnItem,
+        'JioSaavn fallback',
+      );
     } catch (e) {
       Logger.root.severe('Error in fallbackToSaavn: $e');
     }
   }
 
-  void _playbackError(err) {
-    Logger.root.severe('Error from audioservice: ${err.code}', err);
+  void _playbackError(dynamic err) {
+    final String code = (err is PlatformException) ? err.code : err.toString();
+    final String message =
+        (err is PlatformException) ? (err.message ?? '') : '';
+    Logger.root.severe('Error from audioservice: $code', err);
     if (err is PlatformException &&
-        err.code == 'abort' &&
-        err.message == 'Connection aborted') return;
+        code == 'abort' &&
+        message == 'Connection aborted') {
+      return;
+    }
     _onError(err, null);
   }
 
-  void _onError(err, stacktrace, {bool stopService = false}) {
-    Logger.root.severe('Error from audioservice: ${err.code}', err);
+  Future<void> retryYouTubeSong(MediaItem item) async {
+    Logger.root.info('Retrying YouTube song after failure: ${item.title}');
+    try {
+      final Map? ytData = await YouTubeServices.instance.refreshLink(
+        item.id,
+      );
+      if (!_hasPlayableRemoteUrl(ytData)) return;
+
+      final MediaItem updatedItem = MediaItem(
+        id: item.id,
+        album: item.album,
+        artist: item.artist,
+        duration: item.duration,
+        title: item.title,
+        artUri: item.artUri,
+        genre: 'YouTube',
+        extras: {
+          ...item.extras ?? {},
+          'url': ytData!['url'],
+          'genre': 'YouTube',
+          'expire_at': ytData['expire_at'],
+          'perma_url': 'https://youtube.com/watch?v=${item.id}',
+        },
+      );
+
+      final index = queue.value.indexWhere((qItem) => qItem.id == item.id);
+      await _replaceQueueItemAndRestart(index, updatedItem, 'YouTube retry');
+      Logger.root.info(
+        'Successfully refreshed and retried YouTube song: ${item.title}',
+      );
+    } catch (e) {
+      Logger.root.severe('Error in retryYouTubeSong: $e');
+    } finally {
+      _retryingIds.remove(item.id);
+    }
+  }
+
+  Future<void> _retryJioSaavnSongDirect(MediaItem item) async {
+    Logger.root.info(
+      'Retrying JioSaavn song with direct play after failure: ${item.title}',
+    );
+    try {
+      final index = queue.value.indexWhere((qItem) => qItem.id == item.id);
+      await _replaceQueueItemAndRestart(index, item, 'JioSaavn direct retry');
+      Logger.root.info(
+        'Successfully switched to direct play for JioSaavn song: ${item.title}',
+      );
+    } catch (e) {
+      Logger.root.severe('Error in _retryJioSaavnSongDirect: $e');
+    }
+  }
+
+  void _onError(
+    dynamic err,
+    StackTrace? stacktrace, {
+    bool stopService = false,
+  }) {
+    final String code = (err is PlatformException) ? err.code : err.toString();
+    Logger.root.severe('Error in _onError: $code', err);
     final currentItem = mediaItem.value;
-    if (currentItem != null &&
-        currentItem.genre != 'YouTube' &&
-        currentItem.extras?['url']?.toString().startsWith('http') == true) {
-      Logger.root.info('Playback error detected for JioSaavn song. Automatically falling back to YouTube...');
-      fallbackToYouTube(currentItem);
-      return;
+    if (currentItem != null) {
+      final bool isLocal = currentItem.artUri?.toString().startsWith('file:') ==
+              true ||
+          currentItem.extras?['url']?.toString().startsWith('/') == true ||
+          currentItem.extras?['url']?.toString().startsWith('file:') == true;
+
+      if (currentItem.genre != 'YouTube' && !isLocal) {
+        if (!_forceDirectPlayIds.contains(currentItem.id)) {
+          _forceDirectPlayIds.add(currentItem.id);
+          Logger.root.info(
+              'Playback error detected for JioSaavn song caching. Retrying with direct play...');
+          _retryJioSaavnSongDirect(currentItem);
+          return;
+        }
+        Logger.root.info(
+            'Playback error detected for JioSaavn song in direct play. Automatically falling back to YouTube...');
+        fallbackToYouTube(currentItem);
+        return;
+      } else if (currentItem.genre == 'YouTube') {
+        if (_retryingIds.contains(currentItem.id)) {
+          Logger.root.warning(
+              'YouTube song ${currentItem.title} retry already in progress.');
+          return;
+        }
+        if (_lastRetriedId == currentItem.id) {
+          Logger.root.warning(
+              'YouTube song ${currentItem.title} already retried. Stopping to avoid infinite loop.');
+          if (stopService) stop();
+          return;
+        }
+        _lastRetriedId = currentItem.id;
+        _retryingIds.add(currentItem.id);
+        Logger.root.info(
+            'Playback error detected for YouTube song. Automatically refreshing and retrying...');
+        retryYouTubeSong(currentItem);
+        return;
+      }
     }
     if (stopService) stop();
   }

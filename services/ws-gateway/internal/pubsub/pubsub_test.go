@@ -34,10 +34,10 @@ return rdb, mr, rec
 
 // newPS creates a RedisPubSub wired to a recorder fanout.
 func newPS(t *testing.T, rdb *goredis.Client, rec *recorder, workers int) *pubsub.RedisPubSub {
-t.Helper()
-log := zap.NewNop()
-ps := pubsub.NewRedisPubSub(rdb, rec.Fanout, workers, log)
-return ps
+	t.Helper()
+	log := zap.NewNop()
+	ps := pubsub.NewRedisPubSub(rdb, rec.Fanout, nil, "", workers, log)
+	return ps
 }
 
 // recorder collects messages delivered through FanoutFunc.
@@ -438,8 +438,8 @@ time.Sleep(50 * time.Millisecond)
 delivered.Add(1)
 }
 
-// 1 worker, chan size 2 → easy to overflow.
-ps := pubsub.NewRedisPubSub(rdb, slowFanout, 1, log)
+	// 1 worker, chan size 2 → easy to overflow.
+	ps := pubsub.NewRedisPubSub(rdb, slowFanout, nil, "", 1, log)
 
 ctx, cancel := context.WithCancel(context.Background())
 defer cancel()
@@ -483,8 +483,62 @@ time.Sleep(50 * time.Millisecond)
 ps.Publish(ctx, "strip-test", []byte("stripped"))
 waitFor(t, 2*time.Second, func() bool { return rec.Len() >= 1 })
 
-msgs := rec.Messages()
-if msgs[0].ChannelID != "strip-test" {
-t.Errorf("channelID = %q, want %q (prefix should be stripped)", msgs[0].ChannelID, "strip-test")
+	msgs := rec.Messages()
+	if msgs[0].ChannelID != "strip-test" {
+		t.Errorf("channelID = %q, want %q (prefix should be stripped)", msgs[0].ChannelID, "strip-test")
+	}
 }
+
+func TestGatewayRouting(t *testing.T) {
+	rdb, _, _ := setup(t)
+	log := zap.NewNop()
+
+	var deliveredUser atomic.Value    // stores string
+	var deliveredPayload atomic.Value // stores string
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	userFanout := func(userID string, message []byte) {
+		deliveredUser.Store(userID)
+		deliveredPayload.Store(string(message))
+		wg.Done()
+	}
+
+	ps := pubsub.NewRedisPubSub(rdb, nil, userFanout, "gateway-123", 2, log)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	if err := ps.Start(ctx); err != nil {
+		t.Fatal(err)
+	}
+	defer ps.Stop()
+
+	// Wait for reader to be ready
+	time.Sleep(50 * time.Millisecond)
+
+	// Publish to rt:gateway:gateway-123
+	payload := `{"user_id":"user_789","payload":"hello-private"}`
+	if err := rdb.Publish(ctx, "rt:gateway:gateway-123", payload).Err(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Wait for delivery
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for user fanout")
+	}
+
+	if deliveredUser.Load().(string) != "user_789" {
+		t.Errorf("got user %q, want %q", deliveredUser.Load(), "user_789")
+	}
+	if deliveredPayload.Load().(string) != "hello-private" {
+		t.Errorf("got payload %q, want %q", deliveredPayload.Load(), "hello-private")
+	}
 }

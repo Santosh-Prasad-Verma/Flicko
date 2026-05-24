@@ -13,12 +13,14 @@ type RejoinRequest struct {
 }
 
 type RejoinResponse struct {
-	Status              string `json:"status"`
-	IgnoreHistoryBefore int    `json:"ignoreHistoryBefore"`
+	Status              string          `json:"status"`
+	IgnoreHistoryBefore int             `json:"ignoreHistoryBefore"`
+	State               json.RawMessage `json:"state,omitempty"`
 }
 
 // GameStateService defines the dependency needed to pull the absolute source of truth
 type GameStateService interface {
+	GetGameState(ctx context.Context, gameID string) (json.RawMessage, int, error)
 	GetAuthoritativeMoveNum(ctx context.Context, gameID string) (int, string, error)
 }
 
@@ -54,11 +56,21 @@ func (h *RejoinHandler) HandleRejoin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Read the exact move sequence directly from the master Redis Cache/Postgres DB
-	moveNum, status, err := h.stateSvc.GetAuthoritativeMoveNum(r.Context(), req.GameID)
+	stateRaw, moveNum, err := h.stateSvc.GetGameState(r.Context(), req.GameID)
 	if err != nil {
-		h.logger.Error("failed to get authoritative move number", zap.Error(err), zap.String("game_id", req.GameID))
+		h.logger.Error("failed to get game state during rejoin", zap.Error(err), zap.String("game_id", req.GameID))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
+	}
+
+	var statusObj struct {
+		Status string `json:"status"`
+	}
+	_ = json.Unmarshal(stateRaw, &statusObj)
+	
+	status := "active"
+	if statusObj.Status != "" {
+		status = statusObj.Status
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -66,6 +78,7 @@ func (h *RejoinHandler) HandleRejoin(w http.ResponseWriter, r *http.Request) {
 	response := RejoinResponse{
 		Status:              status,
 		IgnoreHistoryBefore: moveNum,
+		State:               stateRaw,
 	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {

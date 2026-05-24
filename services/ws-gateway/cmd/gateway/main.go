@@ -87,6 +87,42 @@ func main() {
 		gatewayID = id.New()
 	}
 
+	// Register gateway on start
+	{
+		ctxReg, cancelReg := context.WithTimeout(context.Background(), 5*time.Second)
+		err = rdb.HSet(ctxReg, "flicko:gateways:registry", gatewayID, time.Now().Unix()).Err()
+		cancelReg()
+		if err != nil {
+			log.Error("failed to register gateway in Redis", zap.Error(err))
+		} else {
+			log.Info("registered gateway in registry", zap.String("gateway_id", gatewayID))
+		}
+	}
+
+	// Start heartbeat loop
+	go func() {
+		ticker := time.NewTicker(5 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				ctxHeartbeat, cancelHB := context.WithTimeout(ctx, 3*time.Second)
+				err := rdb.HSet(ctxHeartbeat, "flicko:gateways:registry", gatewayID, time.Now().Unix()).Err()
+				cancelHB()
+				if err != nil {
+					log.Warn("gateway heartbeat failed", zap.Error(err))
+				}
+			case <-ctx.Done():
+				// Deregister on shutdown
+				ctxUnreg, cancelUnreg := context.WithTimeout(context.Background(), 3*time.Second)
+				rdb.HDel(ctxUnreg, "flicko:gateways:registry", gatewayID)
+				cancelUnreg()
+				log.Info("deregistered gateway from registry", zap.String("gateway_id", gatewayID))
+				return
+			}
+		}
+	}()
+
 	// ── Connection Manager ──────────────────────────────────
 	// We wire the pubsub Publisher and PresenceUpdater after
 	// creating the pubsub, using a delayed-init adapter.
@@ -113,7 +149,7 @@ func main() {
 	if numWorkers < 4 {
 		numWorkers = 4
 	}
-	ps = pubsub.NewRedisPubSub(rdb, mgr.FanoutToChannel, numWorkers, log)
+	ps = pubsub.NewRedisPubSub(rdb, mgr.FanoutToChannel, mgr.FanoutToUser, gatewayID, numWorkers, log)
 	if err := ps.Start(ctx); err != nil {
 		log.Fatal("pubsub start", zap.Error(err))
 	}
@@ -253,3 +289,12 @@ func (a *presAdapter) SetTyping(ctx context.Context, channelID, userID string) e
 func (a *presAdapter) RefreshPresence(ctx context.Context, userID, gatewayID string) error {
 	return a.pm.RefreshPresence(ctx, userID, gatewayID)
 }
+
+func (a *presAdapter) RegisterSession(ctx context.Context, userID, gatewayID string) error {
+	return a.pm.RegisterSession(ctx, userID, gatewayID)
+}
+
+func (a *presAdapter) UnregisterSession(ctx context.Context, userID, gatewayID string) error {
+	return a.pm.UnregisterSession(ctx, userID, gatewayID)
+}
+

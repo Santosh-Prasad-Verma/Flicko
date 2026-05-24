@@ -19,6 +19,7 @@
 
 import 'package:mobile/features/sonic_music/CustomWidgets/drawer.dart';
 import 'package:mobile/features/sonic_music/CustomWidgets/on_hover.dart';
+import 'package:mobile/features/sonic_music/CustomWidgets/gradient_containers.dart';
 import 'package:mobile/features/sonic_music/Screens/Search/search.dart';
 import 'package:mobile/features/sonic_music/Screens/YouTube/youtube_playlist.dart';
 import 'package:mobile/features/sonic_music/Services/youtube_services.dart';
@@ -72,7 +73,7 @@ class _YouTubeState extends State<YouTube>
             Hive.box('cache').put('ytHomeHead', value['head']);
           });
         } else {
-          status = false;
+          setState(() {});
         }
       });
     }
@@ -110,13 +111,14 @@ class _YouTubeState extends State<YouTube>
         ? MediaQuery.sizeOf(context).width / 2
         : MediaQuery.sizeOf(context).height / 2.5;
     if (boxSize > 250) boxSize = 250;
-    return Scaffold(
+    return GradientContainer(
+        child: Scaffold(
       resizeToAvoidBottomInset: false,
       backgroundColor: Colors.transparent,
       body: SafeArea(
         child: Stack(
           children: [
-            if (searchedList.isEmpty)
+            if (searchedList.isEmpty && !status)
               const Center(
                 child: CircularProgressIndicator(),
               )
@@ -159,12 +161,14 @@ class _YouTubeState extends State<YouTube>
                               ),
                             );
                           },
-                          child: Card(
-                            elevation: 5,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10.0),
-                            ),
-                            clipBehavior: Clip.antiAlias,
+                          child: GradientCard(
+                            radius: BorderRadius.circular(10.0),
+                            elevation: 5.0,
+                            margin: EdgeInsets.zero,
+                            gradientColors: [
+                              Colors.white.withOpacity(0.08),
+                              Colors.white.withOpacity(0.02),
+                            ],
                             child: CachedNetworkImage(
                               fit: BoxFit.cover,
                               errorWidget: (context, _, __) => const Image(
@@ -450,47 +454,6 @@ class _YouTubeState extends State<YouTube>
                 ),
               ),
             GestureDetector(
-              child: Container(
-                width: MediaQuery.sizeOf(context).width,
-                height: 55.0,
-                padding: const EdgeInsets.all(5.0),
-                margin:
-                    const EdgeInsets.symmetric(horizontal: 15.0, vertical: 5.0),
-                // margin: EdgeInsets.zero,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(
-                    10.0,
-                  ),
-                  color: Theme.of(context).cardColor,
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black26,
-                      blurRadius: 5.0,
-                      offset: Offset(1.5, 1.5),
-                      // shadow direction: bottom right
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    homeDrawer(context: context),
-                    const SizedBox(
-                      width: 5.0,
-                    ),
-                    Text(
-                      AppLocalizations.of(
-                        context,
-                      )!
-                          .searchYt,
-                      style: TextStyle(
-                        fontSize: 16.0,
-                        color: Theme.of(context).textTheme.bodySmall!.color,
-                        fontWeight: FontWeight.normal,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -505,10 +468,49 @@ class _YouTubeState extends State<YouTube>
                   ),
                 ),
               ),
+              child: Container(
+                margin:
+                    const EdgeInsets.symmetric(horizontal: 15.0, vertical: 5.0),
+                child: GradientCard(
+                  radius: BorderRadius.circular(10.0),
+                  elevation: 0.0,
+                  margin: EdgeInsets.zero,
+                  gradientColors: [
+                    Colors.white.withOpacity(0.08),
+                    Colors.white.withOpacity(0.02),
+                  ],
+                  child: SizedBox(
+                    height: 55.0,
+                    width: double.infinity,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                      child: Row(
+                        children: [
+                          homeDrawer(context: context),
+                          const SizedBox(
+                            width: 15.0,
+                          ),
+                          Text(
+                            AppLocalizations.of(
+                              context,
+                            )!
+                                .searchYt,
+                            style: const TextStyle(
+                              fontSize: 16.0,
+                              color: Colors.white70,
+                              fontWeight: FontWeight.normal,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ),
           ],
         ),
       ),
-    );
+    ));
   }
 }

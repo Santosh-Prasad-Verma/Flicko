@@ -2,6 +2,7 @@ package pubsub
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 	"time"
 
@@ -16,6 +17,7 @@ const (
 	PrefixDM       = "rt:dm:"
 	PrefixTyping   = "rt:typing:"
 	PrefixPresence = "rt:presence:"
+	PrefixGateway  = "rt:gateway:"
 )
 
 // Start initialises the worker pool and stores the lifecycle context.
@@ -28,11 +30,22 @@ func (ps *RedisPubSub) Start(ctx context.Context) error {
 		go ps.worker(ps.ctx, i)
 	}
 
+	if ps.gatewayID != "" {
+		if err := ps.SubscribeSingleGateway(ps.ctx); err != nil {
+			ps.log.Error("failed to subscribe to gateway topic", zap.String("gateway_id", ps.gatewayID), zap.Error(err))
+		}
+	}
+
 	ps.log.Info("pubsub started",
 		zap.Int("workers", ps.numWorkers),
 		zap.Int("worker_chan_cap", cap(ps.workerChan)),
 	)
 	return nil
+}
+
+func (ps *RedisPubSub) SubscribeSingleGateway(ctx context.Context) error {
+	redisKey := PrefixGateway + ps.gatewayID
+	return ps.subscribeSingle(ctx, "gateway:"+ps.gatewayID, redisKey)
 }
 
 // Stop cancels the lifecycle context, waits for workers to drain,
@@ -94,12 +107,26 @@ func (ps *RedisPubSub) worker(ctx context.Context, id int) {
 	}
 }
 
-// dispatch routes a single Redis message to FanoutFunc.
+// dispatch routes a single Redis message to FanoutFunc or UserFanoutFunc.
 func (ps *RedisPubSub) dispatch(msg *goredis.Message) {
 	start := time.Now()
-
 	topic := extractID(msg.Channel)
-	ps.fanout(topic, []byte(msg.Payload), "")
+
+	if strings.HasPrefix(msg.Channel, PrefixGateway) {
+		var target struct {
+			UserID  string `json:"user_id"`
+			Payload string `json:"payload"`
+		}
+		if err := json.Unmarshal([]byte(msg.Payload), &target); err != nil {
+			ps.log.Error("failed to decode gateway-directed message", zap.Error(err))
+			return
+		}
+		if ps.userFanout != nil {
+			ps.userFanout(target.UserID, []byte(target.Payload))
+		}
+	} else {
+		ps.fanout(topic, []byte(msg.Payload), "")
+	}
 
 	ps.Met.MsgsFannedOut.Add(1)
 

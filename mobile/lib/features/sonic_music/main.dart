@@ -56,12 +56,14 @@ Future<void> main() async {
   } else {
     await Hive.initFlutter();
   }
-  for (final box in hiveBoxes) {
-    await openHiveBox(
-      box['name'].toString(),
-      limit: box['limit'] as bool? ?? false,
-    );
-  }
+  await Future.wait(
+    hiveBoxes.map(
+      (box) => openHiveBox(
+        box['name'].toString(),
+        limit: box['limit'] as bool? ?? false,
+      ),
+    ),
+  );
   if (Platform.isAndroid) {
     setOptimalDisplayMode();
   }
@@ -273,6 +275,8 @@ class _MyAppState extends State<MyApp> {
       value: SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
         systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarDividerColor: Colors.transparent,
+        systemNavigationBarContrastEnforced: false,
         statusBarIconBrightness: AppTheme.themeMode == ThemeMode.system
             ? MediaQuery.platformBrightnessOf(context) == Brightness.dark
                 ? Brightness.light

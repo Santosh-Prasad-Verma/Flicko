@@ -25,6 +25,8 @@ class AppConfig {
       String.fromEnvironment('FLICKO_RAZORPAY_KEY_ID');
   static const String _definedGoogleClientId =
       String.fromEnvironment('FLICKO_GOOGLE_CLIENT_ID');
+  static const String _definedSentryDsn =
+      String.fromEnvironment('FLICKO_SENTRY_DSN');
 
   static const String _definedLegacySupabaseUrl =
       String.fromEnvironment('SUPABASE_URL');
@@ -48,6 +50,8 @@ class AppConfig {
       String.fromEnvironment('RAZORPAY_KEY_ID');
   static const String _definedLegacyGoogleClientId =
       String.fromEnvironment('GOOGLE_CLIENT_ID');
+  static const String _definedLegacySentryDsn =
+      String.fromEnvironment('SENTRY_DSN');
 
   static late final String supabaseUrl;
   static late final String supabaseAnonKey;
@@ -62,6 +66,7 @@ class AppConfig {
   static late final String appwriteBucketId;
   static late final String razorpayKeyId;
   static late final String googleClientId;
+  static late final String sentryDsn;
 
   static void init() {
     supabaseUrl = _read(
@@ -132,6 +137,12 @@ class AppConfig {
       _definedLegacyGoogleClientId,
       'FLICKO_GOOGLE_CLIENT_ID',
       'GOOGLE_CLIENT_ID',
+    );
+    sentryDsn = _read(
+      _definedSentryDsn,
+      _definedLegacySentryDsn,
+      'FLICKO_SENTRY_DSN',
+      'SENTRY_DSN',
     );
   }
 

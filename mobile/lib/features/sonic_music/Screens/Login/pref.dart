@@ -77,7 +77,7 @@ class _PrefScreenState extends State<PrefScreen> {
                   height: MediaQuery.sizeOf(context).width,
                   child: const Image(
                     image: AssetImage(
-                      'assets/icon-white-trans.png',
+                      'assets/images/Flicko-for-black-background.png',
                     ),
                   ),
                 ),

@@ -17,6 +17,7 @@
  * Copyright (c) 2021-2023, Ankit Sangwan
  */
 
+import 'dart:ui' as ui;
 import 'package:audio_service/audio_service.dart';
 import 'package:mobile/features/sonic_music/CustomWidgets/gradient_containers.dart';
 import 'package:mobile/features/sonic_music/CustomWidgets/image_card.dart';
@@ -51,11 +52,11 @@ class _MiniPlayerState extends State<MiniPlayer> {
       child: StreamBuilder<MediaItem?>(
         stream: audioHandler.mediaItem,
         builder: (context, snapshot) {
-          // if (snapshot.connectionState != ConnectionState.active) {
-          //   return const SizedBox();
-          // }
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const SizedBox();
+          }
           final MediaItem? mediaItem = snapshot.data;
-          // if (mediaItem == null) return const SizedBox();
+          if (mediaItem == null) return const SizedBox();
 
           final List preferredMiniButtons = Hive.box('settings').get(
             'preferredMiniButtons',
@@ -79,7 +80,13 @@ class _MiniPlayerState extends State<MiniPlayer> {
                 if (direction == DismissDirection.down) {
                   audioHandler.stop();
                 } else {
-                  Navigator.pushNamed(context, '/player');
+                  Navigator.push(
+                    context,
+                    PageRouteBuilder(
+                      opaque: false,
+                      pageBuilder: (_, __, ___) => const PlayScreen(),
+                    ),
+                  );
                 }
               }
               return Future.value(false);
@@ -96,14 +103,33 @@ class _MiniPlayerState extends State<MiniPlayer> {
                 }
                 return Future.value(false);
               },
-              child: Card(
+              child: Container(
                 margin: const EdgeInsets.symmetric(
-                  horizontal: 2.0,
-                  vertical: 1.0,
+                  horizontal: 16.0,
+                  vertical: 8.0,
                 ),
-                elevation: 0,
-                child: SizedBox(
-                  child: GradientContainer(
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.55),
+                  borderRadius: BorderRadius.circular(28.0),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.08),
+                    width: 1.0,
+                  ),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Colors.black38,
+                      blurRadius: 10,
+                      offset: Offset(0, 5),
+                    )
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(28.0),
+                  child: BackdropFilter(
+                    filter: ui.ImageFilter.blur(
+                      sigmaX: 16.0,
+                      sigmaY: 16.0,
+                    ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -150,7 +176,13 @@ class _MiniPlayerState extends State<MiniPlayer> {
       onTap: isDummy
           ? null
           : () {
-              Navigator.pushNamed(context, '/player');
+              Navigator.push(
+                context,
+                PageRouteBuilder(
+                  opaque: false,
+                  pageBuilder: (_, __, ___) => const PlayScreen(),
+                ),
+              );
             },
       title: Text(
         isDummy ? 'Now Playing' : title,

@@ -3,10 +3,12 @@ package conn
 import (
 	"context"
 	"encoding/json"
+	"math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/gorilla/websocket"
 	"go.uber.org/zap"
 
 	"github.com/flicko-org/flicko/services/ws-gateway/internal/protocol"
@@ -24,6 +26,8 @@ type PresenceUpdater interface {
 	SetPresence(ctx context.Context, userID, status, gatewayID string) error
 	SetTyping(ctx context.Context, channelID, userID string) error
 	RefreshPresence(ctx context.Context, userID, gatewayID string) error
+	RegisterSession(ctx context.Context, userID, gatewayID string) error
+	UnregisterSession(ctx context.Context, userID, gatewayID string) error
 }
 
 // ChannelSubscriber is the interface for managing Redis Pub/Sub
@@ -120,6 +124,9 @@ func (m *Manager) Run(ctx context.Context) {
 				zap.String("client_id", client.ID),
 				zap.String("user_id", client.UserID),
 			)
+			if m.presence != nil {
+				_ = m.presence.RegisterSession(context.Background(), client.UserID, m.gatewayID)
+			}
 			if client.SessionID != "" {
 				if saved, ok := m.sessions.Load(client.SessionID); ok {
 					for _, ch := range saved.([]string) {
@@ -137,6 +144,12 @@ func (m *Manager) Run(ctx context.Context) {
 					zap.String("client_id", client.ID),
 					zap.String("user_id", client.UserID),
 				)
+				if m.presence != nil {
+					// Only remove gateway affinity if this was the user's last connection on this gateway
+					if m.CountUserClients(client.UserID) == 0 {
+						_ = m.presence.UnregisterSession(context.Background(), client.UserID, m.gatewayID)
+					}
+				}
 			}
 
 		case <-ctx.Done():
@@ -145,6 +158,19 @@ func (m *Manager) Run(ctx context.Context) {
 			return
 		}
 	}
+}
+
+// CountUserClients returns the number of active clients on this gateway for the given UserID.
+func (m *Manager) CountUserClients(userID string) int {
+	count := 0
+	m.clients.Range(func(_, value interface{}) bool {
+		c := value.(*Client)
+		if c.UserID == userID {
+			count++
+		}
+		return true
+	})
+	return count
 }
 
 // Register queues a client for registration.
@@ -304,6 +330,37 @@ func (m *Manager) FanoutToChannel(channelID string, message []byte, excludeClien
 			}(client, message)
 		}
 	}
+}
+
+// FanoutToUser delivers a message to all active client connections for a specific user ID on this gateway.
+func (m *Manager) FanoutToUser(userID string, message []byte) {
+	m.clients.Range(func(_, value interface{}) bool {
+		c := value.(*Client)
+		if c.UserID == userID {
+			select {
+			case c.Send <- message:
+				// Delivered to buffer immediately.
+			default:
+				// Slow consumer: try in a goroutine with grace period.
+				go func(client *Client, msg []byte) {
+					timer := time.NewTimer(2 * time.Second)
+					defer timer.Stop()
+
+					select {
+					case client.Send <- msg:
+						// Delivered after short delay
+					case <-timer.C:
+						m.log.Warn("slow consumer disconnected after user fanout grace period",
+							zap.String("user_id", client.UserID),
+							zap.String("client_id", client.ID),
+						)
+						m.unregister <- client
+					}
+				}(c, message)
+			}
+		}
+		return true
+	})
 }
 
 func (m *Manager) HandleInbound(client *Client, msgData []byte) {
@@ -538,16 +595,45 @@ func (m *Manager) removeFromAllChannels(client *Client) {
 	}
 }
 
-// closeAll disconnects every connected client. Called during shutdown.
+// closeAll disconnects every connected client with graceful connection draining.
+// Called during shutdown to prevent a "thundering herd" reconnection storm.
 func (m *Manager) closeAll() {
+	m.log.Info("commencing graceful connection draining for active clients")
+
+	var clientsToClose []*Client
 	m.clients.Range(func(key, value interface{}) bool {
-		client := value.(*Client)
-		close(client.Send)
-		client.Conn.Close()
-		m.clients.Delete(key)
-		m.activeConns.Add(-1)
+		clientsToClose = append(clientsToClose, value.(*Client))
 		return true
 	})
+
+	if len(clientsToClose) == 0 {
+		m.log.Info("no active clients to drain")
+		return
+	}
+
+	const batchSize = 50
+	const baseDelay = 100 * time.Millisecond
+
+	// Seed local random generator for jitter calculation
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	for i, client := range clientsToClose {
+		// Send CloseServiceRestart (1012) close control frame to prompt backoff reconnection
+		msg := websocket.FormatCloseMessage(websocket.CloseServiceRestart, "Server is restarting, reconnecting with backoff...")
+		_ = client.Conn.WriteControl(websocket.CloseMessage, msg, time.Now().Add(500*time.Millisecond))
+
+		close(client.Send)
+		client.Conn.Close()
+		m.clients.Delete(client.ID)
+		m.activeConns.Add(-1)
+
+		// Introduce randomized batch delays to space out reconnect requests
+		if (i+1)%batchSize == 0 {
+			jitter := time.Duration(r.Intn(50)) * time.Millisecond
+			time.Sleep(baseDelay + jitter)
+		}
+	}
+	m.log.Info("graceful connection draining complete", zap.Int("total_drained", len(clientsToClose)))
 }
 
 // ActiveConnections returns the current connection count.

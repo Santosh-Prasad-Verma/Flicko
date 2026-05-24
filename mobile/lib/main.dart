@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:sentry_logging/sentry_logging.dart';
 
 import 'core/config/env.dart';
 import 'core/config/app_config.dart';
@@ -27,22 +29,40 @@ import 'package:mobile/features/sonic_music/Screens/Player/audioplayer.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Enable native crypto acceleration (XChaCha20-Poly1305, Argon2id, etc.)
-  // for the E2EE stack. Falls back to pure-Dart automatically.
-  // (Task 1.5, R14.4)
-  FlutterCryptography.enable();
-
   // Load environment variables
   await dotenv.load(fileName: Env.fileName, isOptional: true);
 
   // Initialize AppConfig
   AppConfig.init();
 
+  // Enable native crypto acceleration (XChaCha20-Poly1305, Argon2id, etc.)
+  // for the E2EE stack. Falls back to pure-Dart automatically.
+  // (Task 1.5, R14.4)
+  FlutterCryptography.enable();
+
   final missingStartupConfig = AppConfig.missingStartupConfig;
   if (missingStartupConfig.isNotEmpty) {
     runApp(ConfigErrorApp(missingKeys: missingStartupConfig));
     return;
   }
+
+  // If Sentry DSN is configured, wrap the app startup in Sentry
+  if (AppConfig.sentryDsn.isNotEmpty) {
+    await SentryFlutter.init(
+      (options) {
+        options.dsn = AppConfig.sentryDsn;
+        options.tracesSampleRate = 1.0; // 100% of performance traces
+        options.enableLogs = true; // Searchable structured logging support
+        options.addIntegration(LoggingIntegration()); // Hook standard Dart logging package
+      },
+      appRunner: () => _initializeApp(),
+    );
+  } else {
+    await _initializeApp();
+  }
+}
+
+Future<void> _initializeApp() async {
   // Initialize Supabase
   await Supabase.initialize(
     url: AppConfig.supabaseUrl,
@@ -69,12 +89,14 @@ void main() async {
   } else {
     await Hive.initFlutter();
   }
-  for (final box in hiveBoxes) {
-    await openHiveBox(
-      box['name'].toString(),
-      limit: box['limit'] as bool? ?? false,
-    );
-  }
+  await Future.wait(
+    hiveBoxes.map(
+      (box) => openHiveBox(
+        box['name'].toString(),
+        limit: box['limit'] as bool? ?? false,
+      ),
+    ),
+  );
   await startBlackHoleService();
 
   runApp(

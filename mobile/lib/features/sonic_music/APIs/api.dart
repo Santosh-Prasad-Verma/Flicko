@@ -31,6 +31,7 @@ class SaavnAPI {
   String baseUrl = 'www.jiosaavn.com';
   String apiStr = '/api.php?_format=json&_marker=0&api_version=4&ctx=web6dot0';
   Box settingsBox = Hive.box('settings');
+  static const String saavnFallbackHost = 'saavn.dev';
   Map<String, String> endpoints = {
     'homeData': '__call=webapi.getLaunchData',
     'topSearches': '__call=content.getTopSearches',
@@ -55,39 +56,33 @@ class SaavnAPI {
   Future<Response> getResponse(
     String params, {
     bool usev4 = true,
-    bool useProxy = true,
+    bool useProxy = false,
   }) async {
-    Uri url;
-    if (!usev4) {
-      url = Uri.https(
-        baseUrl,
-        '$apiStr&$params'.replaceAll('&api_version=4', ''),
-      );
-    } else {
-      url = Uri.https(baseUrl, '$apiStr&$params');
-    }
+    final String baseQuery = apiStr.split('?').last;
+    final String query = usev4
+        ? '$baseQuery&$params'
+        : '$baseQuery&$params'.replaceAll('&api_version=4', '');
+    final Uri url = Uri(
+      scheme: 'https',
+      host: baseUrl,
+      path: '/api.php',
+      query: query,
+    );
     preferredLanguages =
         preferredLanguages.map((lang) => lang.toLowerCase()).toList();
     final String languageHeader = 'L=${preferredLanguages.join('%2C')}';
     headers = {
-      'cookie': languageHeader, 
+      'cookie': languageHeader,
       'Accept': '*/*',
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Referer': 'https://www.jiosaavn.com/',
+      'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     };
 
     if (useProxy && settingsBox.get('useProxy', defaultValue: false) as bool) {
       final String proxyIP =
           settingsBox.get('proxyIp', defaultValue: '103.47.67.134').toString();
-      // final proxyPort = settingsBox.get('proxyPort');
-      // final HttpClient httpClient = HttpClient();
-      // httpClient.findProxy = (uri) {
-      //   return 'PROXY $proxyIP:$proxyPort;';
-      // };
-      // httpClient.badCertificateCallback =
-      //     (X509Certificate cert, String host, int port) => Platform.isAndroid;
-      // final IOClient myClient = IOClient(httpClient);
-      // return myClient.get(url, headers: headers);
-      final proxyHeaders = headers;
+      final proxyHeaders = Map<String, String>.from(headers);
       proxyHeaders['X-FORWARDED-FOR'] = proxyIP;
       return get(url, headers: proxyHeaders).onError((error, stackTrace) {
         return Response(
@@ -216,7 +211,7 @@ class SaavnAPI {
       final List getMain = json.decode(res.body) as List;
       return FormatResponse.formatSongsResponse(getMain, 'song');
     } else {
-      Logger.root.severe(
+      Logger.root.warning(
         'Error in getReco returned status: ${res.statusCode}, response: ${res.body}',
       );
     }
@@ -258,7 +253,7 @@ class SaavnAPI {
     if (count > 0) {
       final String params =
           "stationid=$stationId&k=$count&next=$next&${endpoints['radioSongs']}";
-      final res = await getResponse(params);
+      final res = await getResponse(params, useProxy: false);
       if (res.statusCode == 200) {
         final Map getMain = json.decode(res.body) as Map;
         final List responseList = [];
@@ -296,9 +291,9 @@ class SaavnAPI {
     int page = 1,
   }) async {
     final String params =
-        'p=$page&q=$searchQuery&n=$count&${endpoints["getResults"]}';
+        'p=$page&q=${Uri.encodeQueryComponent(searchQuery)}&n=$count&${endpoints["getResults"]}';
     try {
-      final res = await getResponse(params);
+      final res = await getResponse(params, useProxy: false);
       if (res.statusCode == 200) {
         final Map getMain = json.decode(res.body) as Map;
         final List responseList = getMain['results'] as List;
@@ -307,11 +302,39 @@ class SaavnAPI {
         if (finalSongs.length > count) {
           finalSongs.removeRange(count, finalSongs.length);
         }
+        if (finalSongs.isNotEmpty) {
+          return {
+            'songs': finalSongs,
+            'error': '',
+          };
+        }
+        final fallbackSongs = await _fetchSongSearchResultsFromSaavnDev(
+          searchQuery: searchQuery,
+          count: count,
+          page: page,
+        );
+        if (fallbackSongs.isNotEmpty) {
+          return {
+            'songs': fallbackSongs,
+            'error': '',
+          };
+        }
         return {
           'songs': finalSongs,
           'error': '',
         };
       } else {
+        final fallbackSongs = await _fetchSongSearchResultsFromSaavnDev(
+          searchQuery: searchQuery,
+          count: count,
+          page: page,
+        );
+        if (fallbackSongs.isNotEmpty) {
+          return {
+            'songs': fallbackSongs,
+            'error': '',
+          };
+        }
         return {
           'songs': List.empty(),
           'error': res.body,
@@ -326,6 +349,114 @@ class SaavnAPI {
     }
   }
 
+  Future<List<Map>> _fetchSongSearchResultsFromSaavnDev({
+    required String searchQuery,
+    required int count,
+    required int page,
+  }) async {
+    try {
+      final url = Uri.https(saavnFallbackHost, '/api/search/songs', {
+        'query': searchQuery,
+        'page': page.toString(),
+        'limit': count.toString(),
+      });
+      final res = await get(url, headers: headers);
+      if (res.statusCode != 200 || res.body.isEmpty) {
+        Logger.root.warning(
+          'Saavn fallback search returned ${res.statusCode}: ${res.body}',
+        );
+        return List.empty();
+      }
+
+      final decoded = json.decode(res.body);
+      final data = decoded is Map ? decoded['data'] : null;
+      final results = data is Map ? data['results'] : data;
+      if (results is! List) return List.empty();
+
+      final songs = results
+          .whereType<Map>()
+          .map(_formatSaavnDevSong)
+          .where((song) => song['url']?.toString().isNotEmpty == true)
+          .toList();
+      if (songs.length > count) {
+        return songs.sublist(0, count);
+      }
+      return songs;
+    } catch (e) {
+      Logger.root.warning('Saavn fallback search failed: $e');
+      return List.empty();
+    }
+  }
+
+  Map _formatSaavnDevSong(Map song) {
+    final album = song['album'];
+    final artists = song['artists'];
+    final image = _pickSaavnValue(song['image']);
+    final streamUrl = _pickSaavnValue(song['downloadUrl'], preferHigh: true);
+    final artist = _artistNames(artists);
+    final language = _capitalize(song['language']?.toString() ?? '');
+
+    return {
+      'id': song['id'],
+      'type': 'song',
+      'album': album is Map ? album['name'] : song['album'] ?? '',
+      'year': song['year'],
+      'duration': song['duration'] ?? '180',
+      'language': language.isEmpty ? 'Hindi' : language,
+      'genre': language.isEmpty ? 'Hindi' : language,
+      '320kbps': streamUrl.contains('_320.') || streamUrl.contains('320'),
+      'has_lyrics': song['hasLyrics'] ?? false,
+      'lyrics_snippet': '',
+      'release_date': song['releaseDate'],
+      'album_id': album is Map ? album['id'] : null,
+      'subtitle': artist.isEmpty
+          ? (album is Map ? album['name']?.toString() ?? '' : '')
+          : '$artist - ${album is Map ? album['name'] ?? '' : ''}',
+      'title': song['name'] ?? song['title'] ?? '',
+      'artist': artist.isEmpty ? 'Unknown' : artist,
+      'album_artist': artist,
+      'image': image,
+      'perma_url': song['url'],
+      'url': streamUrl,
+    };
+  }
+
+  String _pickSaavnValue(dynamic values, {bool preferHigh = false}) {
+    if (values is String) return values;
+    if (values is! List || values.isEmpty) return '';
+
+    final maps = values.whereType<Map>().toList();
+    if (maps.isEmpty) return '';
+    Map selected = maps.last;
+    if (preferHigh) {
+      selected = maps.firstWhere(
+        (item) => item['quality']?.toString().contains('320') == true,
+        orElse: () => maps.last,
+      );
+    }
+    return (selected['url'] ?? selected['link'] ?? '').toString();
+  }
+
+  String _artistNames(dynamic artists) {
+    if (artists is String) return artists;
+    if (artists is! Map) return '';
+
+    final allArtists = artists['primary'] ?? artists['all'];
+    if (allArtists is List) {
+      return allArtists
+          .whereType<Map>()
+          .map((artist) => artist['name']?.toString() ?? '')
+          .where((name) => name.isNotEmpty)
+          .join(', ');
+    }
+    return '';
+  }
+
+  String _capitalize(String value) {
+    if (value.isEmpty) return value;
+    return value[0].toUpperCase() + value.substring(1).toLowerCase();
+  }
+
   Future<List<Map<String, dynamic>>> fetchSearchResults(
     String searchQuery,
   ) async {
@@ -338,26 +469,31 @@ class SaavnAPI {
     List searchedTopQueryList = [];
 
     final String params =
-        '__call=autocomplete.get&cc=in&includeMetaTags=1&query=$searchQuery';
+        '__call=autocomplete.get&cc=in&includeMetaTags=1&query=${Uri.encodeQueryComponent(searchQuery)}';
 
-    final res = await getResponse(params, usev4: false);
+    final res = await getResponse(params, usev4: false, useProxy: false);
     if (res.statusCode == 200) {
       final getMain = json.decode(res.body);
       if (getMain is Map) {
-        if (getMain['albums'] != null && getMain['albums'] is Map && getMain['albums']['data'] != null) {
+        if (getMain['albums'] != null &&
+            getMain['albums'] is Map &&
+            getMain['albums']['data'] != null) {
           final List albumResponseList = getMain['albums']['data'] as List;
           if (getMain['albums']['position'] != null) {
             position[getMain['albums']['position'] as int] = 'Albums';
           }
-          searchedAlbumList =
-              await FormatResponse.formatAlbumResponse(albumResponseList, 'album');
+          searchedAlbumList = await FormatResponse.formatAlbumResponse(
+              albumResponseList, 'album');
           if (searchedAlbumList.isNotEmpty) {
             result['Albums'] = searchedAlbumList;
           }
         }
 
-        if (getMain['playlists'] != null && getMain['playlists'] is Map && getMain['playlists']['data'] != null) {
-          final List playlistResponseList = getMain['playlists']['data'] as List;
+        if (getMain['playlists'] != null &&
+            getMain['playlists'] is Map &&
+            getMain['playlists']['data'] != null) {
+          final List playlistResponseList =
+              getMain['playlists']['data'] as List;
           if (getMain['playlists']['position'] != null) {
             position[getMain['playlists']['position'] as int] = 'Playlists';
           }
@@ -370,7 +506,9 @@ class SaavnAPI {
           }
         }
 
-        if (getMain['artists'] != null && getMain['artists'] is Map && getMain['artists']['data'] != null) {
+        if (getMain['artists'] != null &&
+            getMain['artists'] is Map &&
+            getMain['artists']['data'] != null) {
           final List artistResponseList = getMain['artists']['data'] as List;
           if (getMain['artists']['position'] != null) {
             position[getMain['artists']['position'] as int] = 'Artists';
@@ -393,17 +531,23 @@ class SaavnAPI {
           result['Songs'] = searchedSongList;
         }
 
-        final topQueryData = getMain['topquery'] != null && getMain['topquery'] is Map ? getMain['topquery']['data'] : null;
+        final topQueryData =
+            getMain['topquery'] != null && getMain['topquery'] is Map
+                ? getMain['topquery']['data']
+                : null;
         final List topQuery = topQueryData is List ? topQueryData : [];
 
         if (topQuery.isNotEmpty &&
             (topQuery[0]['type'] != 'playlist' ||
                 topQuery[0]['type'] == 'artist' ||
                 topQuery[0]['type'] == 'album')) {
-          if (getMain['topquery'] != null && getMain['topquery']['position'] != null) {
+          if (getMain['topquery'] != null &&
+              getMain['topquery']['position'] != null) {
             position[getMain['topquery']['position'] as int] = 'Top Result';
           }
-          if (getMain['songs'] != null && getMain['songs'] is Map && getMain['songs']['position'] != null) {
+          if (getMain['songs'] != null &&
+              getMain['songs'] is Map &&
+              getMain['songs']['position'] != null) {
             position[getMain['songs']['position'] as int] = 'Songs';
           }
 
@@ -416,8 +560,8 @@ class SaavnAPI {
               searchedTopQueryList =
                   await FormatResponse.formatAlbumResponse(topQuery, 'album');
             case 'playlist':
-              searchedTopQueryList =
-                  await FormatResponse.formatAlbumResponse(topQuery, 'playlist');
+              searchedTopQueryList = await FormatResponse.formatAlbumResponse(
+                  topQuery, 'playlist');
             default:
               break;
           }
@@ -426,11 +570,14 @@ class SaavnAPI {
           }
         } else {
           if (topQuery.isNotEmpty && topQuery[0]['type'] == 'song') {
-            if (getMain['topquery'] != null && getMain['topquery']['position'] != null) {
+            if (getMain['topquery'] != null &&
+                getMain['topquery']['position'] != null) {
               position[getMain['topquery']['position'] as int] = 'Songs';
             }
           } else {
-            if (getMain['songs'] != null && getMain['songs'] is Map && getMain['songs']['position'] != null) {
+            if (getMain['songs'] != null &&
+                getMain['songs'] is Map &&
+                getMain['songs']['position'] != null) {
               position[getMain['songs']['position'] as int] = 'Songs';
             }
           }
@@ -447,6 +594,16 @@ class SaavnAPI {
         finalList.add({'title': entry.value, 'items': result[entry.value]});
       }
     }
+    if (finalList.isEmpty) {
+      final songs = (await fetchSongSearchResults(
+            searchQuery: searchQuery,
+            count: 20,
+          ))['songs'] as List? ??
+          [];
+      if (songs.isNotEmpty) {
+        finalList.add({'title': 'Songs', 'items': songs});
+      }
+    }
     return finalList;
   }
 
@@ -459,13 +616,15 @@ class SaavnAPI {
     String? params;
     if (type == 'playlist') {
       params =
-          'p=$page&q=$searchQuery&n=$count&${endpoints["playlistResults"]}';
+          'p=$page&q=${Uri.encodeQueryComponent(searchQuery)}&n=$count&${endpoints["playlistResults"]}';
     }
     if (type == 'album') {
-      params = 'p=$page&q=$searchQuery&n=$count&${endpoints["albumResults"]}';
+      params =
+          'p=$page&q=${Uri.encodeQueryComponent(searchQuery)}&n=$count&${endpoints["albumResults"]}';
     }
     if (type == 'artist') {
-      params = 'p=$page&q=$searchQuery&n=$count&${endpoints["artistResults"]}';
+      params =
+          'p=$page&q=${Uri.encodeQueryComponent(searchQuery)}&n=$count&${endpoints["artistResults"]}';
     }
 
     final res = await getResponse(params!);
@@ -638,8 +797,14 @@ class SaavnAPI {
       final res = await getResponse(params);
       if (res.statusCode == 200) {
         final Map data = json.decode(res.body) as Map;
+        final songs = data['songs'];
+        if (songs is! List || songs.isEmpty) {
+          Logger.root
+              .warning('Song details not found for $songId: ${res.body}');
+          return {};
+        }
         return await FormatResponse.formatSingleSongResponse(
-          data['songs'][0] as Map,
+          songs[0] as Map,
         );
       }
     } catch (e) {

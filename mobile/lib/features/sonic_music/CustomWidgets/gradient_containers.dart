@@ -17,6 +17,7 @@
  * Copyright (c) 2021-2023, Ankit Sangwan
  */
 
+import 'dart:ui';
 import 'package:mobile/features/sonic_music/Helpers/config.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -33,16 +34,17 @@ class _GradientContainerState extends State<GradientContainer> {
   MyTheme currentTheme = GetIt.I<MyTheme>();
   @override
   Widget build(BuildContext context) {
-    // ignore: use_decorated_box
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: Theme.of(context).brightness == Brightness.dark
-              ? ((widget.opacity == true)
-                  ? currentTheme.getTransBackGradient()
-                  : currentTheme.getBackGradient())
+              ? [
+                  const Color(0xFF150B29), // Rich Deep Purple
+                  const Color(0xFF07040A), // Black
+                  const Color(0xFF07040A), // Black
+                ]
               : [
                   const Color(0xfff5f9ff),
                   Colors.white,
@@ -74,24 +76,39 @@ class _BottomGradientContainerState extends State<BottomGradientContainer> {
   MyTheme currentTheme = GetIt.I<MyTheme>();
   @override
   Widget build(BuildContext context) {
+    final borderRadius = widget.borderRadius ?? const BorderRadius.all(Radius.circular(15.0));
     return Container(
       margin: widget.margin ?? const EdgeInsets.fromLTRB(25, 0, 25, 25),
-      padding: widget.padding ?? const EdgeInsets.fromLTRB(10, 15, 10, 15),
-      decoration: BoxDecoration(
-        borderRadius: widget.borderRadius ??
-            const BorderRadius.all(Radius.circular(15.0)),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: Theme.of(context).brightness == Brightness.dark
-              ? currentTheme.getBottomGradient()
-              : [
-                  Colors.white,
-                  Theme.of(context).canvasColor,
-                ],
+      child: ClipRRect(
+        borderRadius: borderRadius,
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          child: Container(
+            padding: widget.padding ?? const EdgeInsets.fromLTRB(10, 15, 10, 15),
+            decoration: BoxDecoration(
+              borderRadius: borderRadius,
+              border: Border.all(
+                color: Colors.white.withOpacity(0.08),
+                width: 1.0,
+              ),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: Theme.of(context).brightness == Brightness.dark
+                    ? [
+                        Colors.black.withOpacity(0.7),
+                        const Color(0xFF130924).withOpacity(0.5),
+                      ]
+                    : [
+                        Colors.white.withOpacity(0.85),
+                        Colors.white.withOpacity(0.6),
+                      ],
+              ),
+            ),
+            child: widget.child,
+          ),
         ),
       ),
-      child: widget.child,
     );
   }
 }
@@ -123,35 +140,48 @@ class _GradientCardState extends State<GradientCard> {
   MyTheme currentTheme = GetIt.I<MyTheme>();
   @override
   Widget build(BuildContext context) {
+    final borderRadius = widget.radius ?? BorderRadius.circular(10.0);
     return Card(
       elevation: widget.elevation ?? 3,
       shape: RoundedRectangleBorder(
-        borderRadius: widget.radius ?? BorderRadius.circular(10.0),
+        borderRadius: borderRadius,
       ),
       clipBehavior: Clip.antiAlias,
       margin: widget.margin ?? EdgeInsets.zero,
       color: Colors.transparent,
-      child: widget.elevation == 0
-          ? widget.child
-          : DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: widget.gradientBegin ?? Alignment.topLeft,
-                  end: widget.gradientEnd ?? Alignment.bottomRight,
-                  colors: widget.gradientColors ??
-                      (Theme.of(context).brightness == Brightness.dark
-                          ? currentTheme.getCardGradient()
-                          : [
-                              Colors.white,
-                              Theme.of(context).canvasColor,
-                            ]),
-                ),
+      child: ClipRRect(
+        borderRadius: borderRadius,
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: borderRadius,
+              border: Border.all(
+                color: Colors.white.withOpacity(0.08),
+                width: 1.0,
               ),
-              child: Padding(
-                padding: widget.padding ?? EdgeInsets.zero,
-                child: widget.child,
+              gradient: LinearGradient(
+                begin: widget.gradientBegin ?? Alignment.topLeft,
+                end: widget.gradientEnd ?? Alignment.bottomRight,
+                colors: widget.gradientColors ??
+                    (Theme.of(context).brightness == Brightness.dark
+                        ? [
+                            Colors.white.withOpacity(0.06),
+                            Colors.white.withOpacity(0.01),
+                          ]
+                        : [
+                            Colors.white.withOpacity(0.8),
+                            Colors.white.withOpacity(0.4),
+                          ]),
               ),
             ),
+            child: Padding(
+              padding: widget.padding ?? EdgeInsets.zero,
+              child: widget.child,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

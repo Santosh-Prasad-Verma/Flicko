@@ -20,6 +20,7 @@ import (
 	"github.com/flicko-org/flicko-backend/internal/handlers"
 	"github.com/flicko-org/flicko-backend/internal/middleware"
 	"github.com/flicko-org/flicko-backend/internal/services"
+	"github.com/flicko-org/flicko-backend/internal/telemetry"
 	"github.com/gorilla/mux"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
@@ -57,6 +58,23 @@ func main() {
 	cfg, err := config.Load()
 	if err != nil {
 		logger.Fatal("failed to load configuration", zap.Error(err))
+	}
+
+	// 1b. Initialize OpenTelemetry Tracer
+	otelCtx, otelCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	otelShutdown, otelErr := telemetry.InitTracer(otelCtx, "flicko-backend", os.Getenv("OTEL_COLLECTOR_ENDPOINT"))
+	otelCancel()
+	if otelErr != nil {
+		logger.Warn("failed to initialize OpenTelemetry tracer", zap.Error(otelErr))
+	} else {
+		logger.Info("OpenTelemetry tracer initialized successfully")
+		defer func() {
+			shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer shutdownCancel()
+			if err := otelShutdown(shutdownCtx); err != nil {
+				logger.Error("failed to shutdown OpenTelemetry tracer", zap.Error(err))
+			}
+		}()
 	}
 
 	// 2. Setup Database
@@ -147,6 +165,7 @@ func main() {
 
 	// Apply request ID middleware before all other middleware
 	r.Use(middleware.RequestID)
+	r.Use(middleware.Tracing)
 
 	api := r.PathPrefix("/api/v1").Subrouter()
 

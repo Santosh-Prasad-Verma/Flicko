@@ -3,6 +3,8 @@ package matchmaking
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -14,43 +16,109 @@ var (
 	ErrNoMatch      = errors.New("no match found")
 )
 
-// Lua script to atomically find and pop two eligible players from the queue
-// ARGV[1] = current time (Unix epoch) to check expiry
+// Lua script to atomically evaluate ELO match window expansion and pop two mutual candidates.
+// KEYS[1] = queue sorted set key (queue:{gameType})
+// ARGV[1] = current Unix timestamp (seconds)
+// ARGV[2] = base ELO tolerance range (e.g., 50)
+// ARGV[3] = expansion rate of ELO range per second (e.g., 10)
 const matchPlayersLua = `
 local queueKey = KEYS[1]
 local now = tonumber(ARGV[1])
+local baseRange = tonumber(ARGV[2])
+local expansionRate = tonumber(ARGV[3])
 
--- Find the top 2 oldest entries in the queue (lowest scores/earliest expiries)
-local players = redis.call('ZRANGE', queueKey, 0, 1, 'WITHSCORES')
+-- Get all queued players with their ELO scores
+local players = redis.call('ZRANGE', queueKey, 0, -1, 'WITHSCORES')
 
 if #players < 4 then
-	-- Not enough players (returns pairs of user, score)
+	-- Not enough players in queue (WITHSCORES returns pairs of [member, score])
 	return {}
 end
 
-local p1 = players[1]
-local score1 = tonumber(players[2])
-local p2 = players[3]
-local score2 = tonumber(players[4])
+local oldestMember = nil
+local oldestP = nil
+local oldestJoinTime = now + 999999
+local oldestElo = 0
+local oldestIndex = 0
 
--- Check if either player has expired
-if score1 < now or score2 < now then
-	-- One or both expired, we must prune expired.
-	-- We remove anything older than 'now'
-	redis.call('ZREMRANGEBYSCORE', queueKey, '-inf', '(' .. now)
+-- 1. Find the oldest player in the queue (the one who has been waiting longest)
+for i = 1, #players, 2 do
+	local member = players[i]
+	local elo = tonumber(players[i+1])
+	
+	local colonIdx = string.find(member, ":")
+	if colonIdx then
+		local pID = string.sub(member, 1, colonIdx - 1)
+		local joinTime = tonumber(string.sub(member, colonIdx + 1))
+		
+		-- Prune expired entries: if joinTime is older than 60s, remove it
+		if now - joinTime > 60 then
+			redis.call('ZREM', queueKey, member)
+		elseif joinTime < oldestJoinTime then
+			oldestJoinTime = joinTime
+			oldestMember = member
+			oldestP = pID
+			oldestElo = elo
+			oldestIndex = i
+		end
+	end
+end
+
+if not oldestMember then
 	return {}
 end
 
--- Both are valid, pop them
-redis.call('ZREM', queueKey, p1, p2)
+-- 2. Calculate the oldest player's wait time and dynamic ELO band
+local waitSec = math.max(0, now - oldestJoinTime)
+local allowedDiff = baseRange + (waitSec * expansionRate)
 
-return {p1, p2}
+local bestCandidateMember = nil
+local bestCandidateP = nil
+local bestGap = 999999
+
+-- 3. Scan other queued players to find a mutually eligible match candidate
+for i = 1, #players, 2 do
+	if i ~= oldestIndex then
+		local member = players[i]
+		local elo = tonumber(players[i+1])
+		
+		local colonIdx = string.find(member, ":")
+		if colonIdx then
+			local pID = string.sub(member, 1, colonIdx - 1)
+			local joinTime = tonumber(string.sub(member, colonIdx + 1))
+			
+			local eloGap = math.abs(elo - oldestElo)
+			if eloGap <= allowedDiff then
+				-- Check mutual consent: candidate's own ELO gap tolerance
+				local candWait = math.max(0, now - joinTime)
+				local candAllowedDiff = baseRange + (candWait * expansionRate)
+				
+				if eloGap <= candAllowedDiff then
+					if eloGap < bestGap then
+						bestGap = eloGap
+						bestCandidateMember = member
+						bestCandidateP = pID
+					end
+				end
+			end
+		end
+	end
+end
+
+-- 4. Atomically remove matches if a mutually consenting player is found
+if bestCandidateMember then
+	redis.call('ZREM', queueKey, oldestMember, bestCandidateMember)
+	return {oldestP, bestCandidateP}
+end
+
+return {}
 `
 
 type MatchmakingService interface {
-	JoinQueue(ctx context.Context, gameType, userID string) error
-	HeartbeatQueue(ctx context.Context, gameType, userID string) error
+	JoinQueue(ctx context.Context, gameType, userID string, elo int) error
+	HeartbeatQueue(ctx context.Context, gameType, userID string, elo int) error
 	AttemptMatch(ctx context.Context, gameType string) ([]string, error)
+	RemovePlayerFromQueue(ctx context.Context, gameType, userID string) error
 }
 
 type matchmakingService struct {
@@ -65,14 +133,22 @@ func NewMatchmakingService(rc *redis.Client, logger *zap.Logger) MatchmakingServ
 	}
 }
 
-// JoinQueue adds a user to the Redis Sorted Set queue with an expiry timestamp
-func (s *matchmakingService) JoinQueue(ctx context.Context, gameType, userID string) error {
+// JoinQueue adds a user to the Redis Sorted Set queue with ELO as the score
+// and user_id:join_timestamp as the compound member.
+func (s *matchmakingService) JoinQueue(ctx context.Context, gameType, userID string, elo int) error {
 	queueKey := "queue:" + gameType
-	expiry := time.Now().Add(30 * time.Second).Unix()
+	now := time.Now().Unix()
+	member := fmt.Sprintf("%s:%d", userID, now)
 
-	err := s.redisClient.ZAdd(ctx, queueKey, redis.Z{
-		Score:  float64(expiry),
-		Member: userID,
+	// Clean up any existing entries for this player to prevent duplicates
+	err := s.RemovePlayerFromQueue(ctx, gameType, userID)
+	if err != nil {
+		s.logger.Warn("failed to clean up player from queue", zap.Error(err), zap.String("userID", userID))
+	}
+
+	err = s.redisClient.ZAdd(ctx, queueKey, redis.Z{
+		Score:  float64(elo),
+		Member: member,
 	}).Err()
 
 	if err != nil {
@@ -82,36 +158,45 @@ func (s *matchmakingService) JoinQueue(ctx context.Context, gameType, userID str
 	return nil
 }
 
-// HeartbeatQueue updates the TTL (score) of a queue entry using GT.
-// GT ensures the score can only be increased (pushed further into the future).
-// Since we use ZRANGE ascending (lowest score/oldest expiry is matched first),
-// a malicious client sending a tiny score to jump to the front will be rejected by GT.
-func (s *matchmakingService) HeartbeatQueue(ctx context.Context, gameType, userID string) error {
+// HeartbeatQueue maintains the player's presence in the queue by extending the joinTimestamp
+func (s *matchmakingService) HeartbeatQueue(ctx context.Context, gameType, userID string, elo int) error {
 	queueKey := "queue:" + gameType
-	expiry := time.Now().Add(30 * time.Second).Unix()
 
-	// ZAddArgs with XX and GT requires Redis 6.2+
-	// XX prevents recreating a popped user, GT prevents score shrinking.
-	err := s.redisClient.ZAddArgs(ctx, queueKey, redis.ZAddArgs{
-		XX: true,
-		GT: true,
-		Members: []redis.Z{
-			{Score: float64(expiry), Member: userID},
-		},
-	}).Err()
-
+	// Find the current ZSET member for this user
+	members, err := s.redisClient.ZRange(ctx, queueKey, 0, -1).Result()
 	if err != nil {
 		return err
 	}
-	return nil
+
+	var foundMember string
+	for _, m := range members {
+		if strings.HasPrefix(m, userID+":") {
+			foundMember = m
+			break
+		}
+	}
+
+	if foundMember == "" {
+		// Player popped or not queued, rejoin queue
+		return s.JoinQueue(ctx, gameType, userID, elo)
+	}
+
+	// Keep existing join time to preserve queue seniority, but update ZSET score if ELO changed
+	err = s.redisClient.ZAdd(ctx, queueKey, redis.Z{
+		Score:  float64(elo),
+		Member: foundMember,
+	}).Err()
+
+	return err
 }
 
-// AttemptMatch runs the Lua script to atomically pop two matched players
+// AttemptMatch runs the Lua script to atomically evaluate dynamic ELO window expansion and pop matches
 func (s *matchmakingService) AttemptMatch(ctx context.Context, gameType string) ([]string, error) {
 	queueKey := "queue:" + gameType
 	now := time.Now().Unix()
 
-	result, err := s.redisClient.Eval(ctx, matchPlayersLua, []string{queueKey}, now).Result()
+	// Base ELO tolerance = 50, expands by 10 points per second
+	result, err := s.redisClient.Eval(ctx, matchPlayersLua, []string{queueKey}, now, 50, 10).Result()
 	if err != nil {
 		if err == redis.Nil {
 			return nil, ErrNoMatch
@@ -131,4 +216,20 @@ func (s *matchmakingService) AttemptMatch(ctx context.Context, gameType string) 
 	}
 
 	return []string{p1, p2}, nil
+}
+
+// RemovePlayerFromQueue scans and removes a player from the queue
+func (s *matchmakingService) RemovePlayerFromQueue(ctx context.Context, gameType, userID string) error {
+	queueKey := "queue:" + gameType
+	members, err := s.redisClient.ZRange(ctx, queueKey, 0, -1).Result()
+	if err != nil {
+		return err
+	}
+
+	for _, m := range members {
+		if strings.HasPrefix(m, userID+":") {
+			return s.redisClient.ZRem(ctx, queueKey, m).Err()
+		}
+	}
+	return nil
 }

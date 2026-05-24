@@ -20,6 +20,7 @@
 import 'dart:io';
 
 import 'package:audio_service/audio_service.dart';
+import 'package:mobile/features/sonic_music/APIs/api.dart';
 import 'package:mobile/features/sonic_music/Helpers/mediaitem_converter.dart';
 import 'package:mobile/features/sonic_music/Screens/Player/audioplayer.dart';
 import 'package:mobile/features/sonic_music/Services/youtube_services.dart';
@@ -33,6 +34,61 @@ import 'package:path_provider/path_provider.dart';
 // ignore: avoid_classes_with_only_static_members
 class PlayerInvoke {
   static final AudioPlayerHandler audioHandler = GetIt.I<AudioPlayerHandler>();
+
+  static bool _hasPlayableRemoteUrl(Map? data) {
+    final url = data?['url']?.toString() ?? '';
+    return url.startsWith('http') &&
+        !url.contains('/watch?') &&
+        !url.contains('example.com/dummy');
+  }
+
+  static Future<void> _refreshSaavnItemIfNeeded(Map playItem) async {
+    if (playItem['genre'] == 'YouTube' || _hasPlayableRemoteUrl(playItem)) {
+      return;
+    }
+
+    final id = playItem['id']?.toString() ?? '';
+    Map refreshed = {};
+    if (id.isNotEmpty && id != 'null') {
+      refreshed = await SaavnAPI().fetchSongDetails(id);
+    }
+
+    if (!_hasPlayableRemoteUrl(refreshed)) {
+      final query =
+          '${playItem['title'] ?? ''} ${playItem['artist'] ?? ''}'.trim();
+      if (query.isNotEmpty) {
+        final search = await SaavnAPI().fetchSongSearchResults(
+          searchQuery: query,
+          count: 1,
+        );
+        final songs = search['songs'];
+        if (songs is List && songs.isNotEmpty) {
+          refreshed = songs.first as Map;
+        }
+      }
+    }
+
+    if (_hasPlayableRemoteUrl(refreshed)) {
+      playItem
+        ..['id'] = refreshed['id']
+        ..['url'] = refreshed['url']
+        ..['title'] = refreshed['title'] ?? playItem['title']
+        ..['artist'] = refreshed['artist'] ?? playItem['artist']
+        ..['album'] = refreshed['album'] ?? playItem['album']
+        ..['duration'] = refreshed['duration'] ?? playItem['duration']
+        ..['image'] = refreshed['image'] ?? playItem['image']
+        ..['language'] = refreshed['language'] ?? playItem['language']
+        ..['genre'] = refreshed['genre'] ?? refreshed['language']
+        ..['has_lyrics'] = refreshed['has_lyrics'] ?? playItem['has_lyrics']
+        ..['320kbps'] = refreshed['320kbps'] ?? playItem['320kbps']
+        ..['perma_url'] = refreshed['perma_url'] ?? playItem['perma_url'];
+      Logger.root.info('Refreshed playable Saavn URL for ${playItem['title']}');
+    } else {
+      Logger.root.warning(
+        'Unable to refresh playable Saavn URL for ${playItem['title'] ?? id}',
+      );
+    }
+  }
 
   static Future<void> init({
     required List songsList,
@@ -213,10 +269,15 @@ class PlayerInvoke {
             Logger.root.info(
               'before service | received new link for ${playItem["title"]}',
             );
-            if (newData != null) {
-              playItem['url'] = newData['url'];
-              playItem['duration'] = newData['duration'];
-              playItem['expire_at'] = newData['expire_at'];
+            if (_hasPlayableRemoteUrl(newData)) {
+              final data = newData!;
+              playItem['url'] = data['url'];
+              playItem['duration'] = data['duration'];
+              playItem['expire_at'] = data['expire_at'];
+            } else {
+              Logger.root.warning(
+                'before service | no playable YouTube link for ${playItem["title"]}',
+              );
             }
           } else {
             // giving cache link
@@ -231,10 +292,15 @@ class PlayerInvoke {
           Logger.root.info(
             'before service | received new link for ${playItem["title"]}',
           );
-          if (newData != null) {
-            playItem['url'] = newData['url'];
-            playItem['duration'] = newData['duration'];
-            playItem['expire_at'] = newData['expire_at'];
+          if (_hasPlayableRemoteUrl(newData)) {
+            final data = newData!;
+            playItem['url'] = data['url'];
+            playItem['duration'] = data['duration'];
+            playItem['expire_at'] = data['expire_at'];
+          } else {
+            Logger.root.warning(
+              'before service | no playable YouTube link for ${playItem["title"]}',
+            );
           }
         }
       } else {
@@ -243,10 +309,15 @@ class PlayerInvoke {
         Logger.root.info(
           'before service | received new link for ${playItem["title"]}',
         );
-        if (newData != null) {
-          playItem['url'] = newData['url'];
-          playItem['duration'] = newData['duration'];
-          playItem['expire_at'] = newData['expire_at'];
+        if (_hasPlayableRemoteUrl(newData)) {
+          final data = newData!;
+          playItem['url'] = data['url'];
+          playItem['duration'] = data['duration'];
+          playItem['expire_at'] = data['expire_at'];
+        } else {
+          Logger.root.warning(
+            'before service | no playable YouTube link for ${playItem["title"]}',
+          );
         }
       }
     }
@@ -264,9 +335,13 @@ class PlayerInvoke {
         index == response.length - 1 ? null : response[index + 1] as Map;
     if (playItem['genre'] == 'YouTube') {
       await refreshYtLink(playItem);
+    } else {
+      await _refreshSaavnItemIfNeeded(playItem);
     }
     if (nextItem != null && nextItem['genre'] == 'YouTube') {
       await refreshYtLink(nextItem);
+    } else if (nextItem != null) {
+      await _refreshSaavnItemIfNeeded(nextItem);
     }
 
     queue.addAll(

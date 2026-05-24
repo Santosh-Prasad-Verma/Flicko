@@ -14,6 +14,10 @@ goredis "github.com/redis/go-redis/v9"
 // the originating client is on a different gateway instance.
 type FanoutFunc func(channelID string, message []byte, excludeClientID string)
 
+// UserFanoutFunc is the callback invoked to deliver a message directly
+// to a specific user's connection(s) on this gateway.
+type UserFanoutFunc func(userID string, message []byte)
+
 // Default configuration.
 const (
 DefaultNumWorkers = 16
@@ -33,9 +37,11 @@ cancel context.CancelFunc
 // workerChan is a buffered channel (inherently safe); Metrics
 // uses atomics. No external locking required.
 type RedisPubSub struct {
-rdb     *goredis.Client
-fanout  FanoutFunc
-log     *zap.Logger
+rdb        *goredis.Client
+fanout     FanoutFunc
+userFanout UserFanoutFunc
+gatewayID  string
+log        *zap.Logger
 
 // Worker pool.
 numWorkers int
@@ -57,14 +63,18 @@ Met Metrics
 //
 //   - rdb:        connected go-redis client
 //   - fanout:     typically manager.FanoutToChannel
+//   - userFanout: callback for user-targeted messages
+//   - gatewayID:  the unique ID of this gateway instance
 //   - numWorkers: worker pool size; 0 → DefaultNumWorkers (16)
-func NewRedisPubSub(rdb *goredis.Client, fanout FanoutFunc, numWorkers int, log *zap.Logger) *RedisPubSub {
+func NewRedisPubSub(rdb *goredis.Client, fanout FanoutFunc, userFanout UserFanoutFunc, gatewayID string, numWorkers int, log *zap.Logger) *RedisPubSub {
 if numWorkers <= 0 {
 numWorkers = DefaultNumWorkers
 }
 return &RedisPubSub{
 rdb:        rdb,
 fanout:     fanout,
+userFanout: userFanout,
+gatewayID:  gatewayID,
 log:        log.Named("pubsub"),
 numWorkers: numWorkers,
 workerChan: make(chan *goredis.Message, DefaultWorkerChanSize),

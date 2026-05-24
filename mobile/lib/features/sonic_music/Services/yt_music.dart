@@ -329,6 +329,7 @@ class YtMusicService {
                 [];
 
         for (final childItem in sectionChildItems) {
+          if (childItem == null) continue;
           final res = parseInfoFromSubtitle(childItem as Map);
           if (res != null) sectionSearchResults.add(res);
         }
@@ -557,8 +558,11 @@ class YtMusicService {
       //     }
       //   }
       // }
-      final videoDetails =
-          await NavClass.nav(response, ['videoDetails']) as Map;
+      final videoDetails = NavClass.nav(response, ['videoDetails']);
+      if (videoDetails is! Map) {
+        Logger.root.warning('YtMusic returned no videoDetails for $videoId');
+        return {};
+      }
       // final reg = RegExp('url=(.*)');
       // final matches = reg.firstMatch(url!);
       // final String result = matches!.group(1).toString().unescape();
@@ -576,20 +580,28 @@ class YtMusicService {
           urls = urlsData.map((e) => e['url'].toString()).toList();
         }
       }
+      final List thumbnails =
+          (videoDetails['thumbnail']?['thumbnails'] as List?) ?? [];
+      final thumbnailUrl = thumbnails.isEmpty
+          ? (data?['image'] ?? '')
+          : ((thumbnails.last as Map)['url'] ?? '');
 
       return {
-        'id': videoDetails['videoId'],
-        'title': videoDetails['title'],
+        'id': videoDetails['videoId'] ?? videoId,
+        'title': videoDetails['title'] ?? data?['title'] ?? '',
         'album': (data?['album'] ?? '') != ''
             ? data!['album']
             : videoDetails['album'] ?? '',
         'artist': (data?['artist'] ?? '') != ''
             ? data!['artist']
-            : videoDetails['author'].replaceAll('- Topic', '').trim(),
-        'duration': videoDetails['lengthSeconds'],
+            : videoDetails['author']
+                ?.toString()
+                .replaceAll('- Topic', '')
+                .trim(),
+        'duration': videoDetails['lengthSeconds'] ?? data?['duration'] ?? '180',
         'views': videoDetails['viewCount'],
-        'image': videoDetails['thumbnail']['thumbnails'].last['url'],
-        'images': videoDetails['thumbnail']['thumbnails'].map((e) => e['url']),
+        'image': thumbnailUrl,
+        'images': thumbnails.map((e) => e['url']),
         'language': 'YouTube',
         'genre': 'YouTube',
         'channelId': videoDetails['channelId'],

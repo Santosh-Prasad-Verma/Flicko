@@ -26,6 +26,7 @@ import (
 	"github.com/flicko-org/flicko/services/msg-service/internal/handler"
 	"github.com/flicko-org/flicko/services/msg-service/internal/pubsub"
 	"github.com/flicko-org/flicko/services/msg-service/internal/repository"
+	"github.com/flicko-org/flicko/services/msg-service/internal/search"
 	"github.com/flicko-org/flicko/services/msg-service/internal/service"
 	"github.com/flicko-org/flicko/services/shared/auth"
 	"github.com/flicko-org/flicko/services/shared/config"
@@ -33,6 +34,7 @@ import (
 	"github.com/flicko-org/flicko/services/shared/metrics"
 	"github.com/flicko-org/flicko/services/shared/ratelimit"
 	flickoredis "github.com/flicko-org/flicko/services/shared/redis"
+	"github.com/hibiken/asynq"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -147,10 +149,32 @@ func run(log *zap.Logger) error {
 	// ── Pub/Sub Publisher (realtime fanout after DB write) ──
 	eventPublisher := pubsub.NewPublisher(rdb, log)
 
+	// ── Asynq Client & Background Worker ────────────────────
+	asynqOpts, err := asynq.ParseRedisURI(cfg.RedisURL)
+	var asynqClient *asynq.Client
+	if err == nil {
+		asynqClient = asynq.NewClient(asynqOpts)
+		defer asynqClient.Close()
+	} else {
+		log.Error("failed to parse redis url for asynq", zap.Error(err))
+	}
+
+	// ── Meilisearch Client ──────────────────────────────────
+	meiliClient := search.NewMeiliSearchClient(log)
+
+	// ── CDC Search Sync Worker ──────────────────────────────
+	cdcWorker := search.NewCDCWorker(cfg.RedisURL, meiliClient, log)
+	go func() {
+		if err := cdcWorker.Start(); err != nil {
+			log.Error("failed to start CDC search sync worker", zap.Error(err))
+		}
+	}()
+
 	// ── Services ────────────────────────────────────────────
-	messageSvc := service.NewMessageService(messageRepo, channelRepo, msgBatcher, idempotencyStore, cache, abuseDetector, abuseEnforcer, eventPublisher, log)
+	messageSvc := service.NewMessageService(messageRepo, channelRepo, msgBatcher, idempotencyStore, cache, abuseDetector, abuseEnforcer, eventPublisher, asynqClient, log)
 	channelSvc := service.NewChannelService(channelRepo, guildRepo, log)
 	guildSvc := service.NewGuildService(guildRepo, log)
+	searchSvc := service.NewSearchService(messageRepo, channelRepo, meiliClient, log)
 
 	// ── Handlers ────────────────────────────────────────────
 	mediaSvc := service.NewMediaService(nil, "flicko-media", log)
@@ -159,6 +183,8 @@ func run(log *zap.Logger) error {
 	guildH := handler.NewGuildHandler(guildSvc, log)
 	uploadH := handler.NewUploadHandler(mediaSvc, log)
 	healthH := handler.NewHealthHandler(dbPool, rdb, log)
+	livekitWebhookH := handler.NewLivekitWebhookHandler(rdb, log)
+	searchH := handler.NewSearchHandler(searchSvc, log)
 
 	// ── Router ──────────────────────────────────────────────
 	router := handler.NewRouter(handler.RouterDeps{
@@ -167,6 +193,8 @@ func run(log *zap.Logger) error {
 		Guild:          guildH,
 		Upload:         uploadH,
 		Health:         healthH,
+		LivekitWebhook: livekitWebhookH,
+		Search:         searchH,
 		KeySet:         keySet,
 		RateLimiter:    rateLimiter,
 		Idempotency:    idempotencyStore,
@@ -235,6 +263,7 @@ func run(log *zap.Logger) error {
 		log.Warn("batcher drain timed out")
 	}
 	dlq.Stop()
+	cdcWorker.Stop()
 
 	log.Info("msg-service stopped")
 	return nil

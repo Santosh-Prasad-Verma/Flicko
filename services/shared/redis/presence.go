@@ -177,3 +177,40 @@ func (p *PresenceManager) RemoveGuildOnline(ctx context.Context, guildID, userID
 	key := "flicko:guild:online:" + guildID
 	return p.rdb.ZRem(ctx, key, userID).Err()
 }
+
+// ---------- User Session Directory (Clustering) ----------
+
+// RegisterSession adds a gateway instance ID to the user's active session set.
+// Key: flicko:sessions:user:{userID} (Redis Set)
+func (p *PresenceManager) RegisterSession(ctx context.Context, userID, gatewayID string) error {
+	key := "flicko:sessions:user:" + userID
+	pipe := p.rdb.Pipeline()
+	pipe.SAdd(ctx, key, gatewayID)
+	pipe.Expire(ctx, key, 24*time.Hour) // Session TTL
+	_, err := pipe.Exec(ctx)
+	if err != nil {
+		return fmt.Errorf("presence: register session %s on %s: %w", userID, gatewayID, err)
+	}
+	return nil
+}
+
+// UnregisterSession removes a gateway instance ID from the user's active session set.
+func (p *PresenceManager) UnregisterSession(ctx context.Context, userID, gatewayID string) error {
+	key := "flicko:sessions:user:" + userID
+	err := p.rdb.SRem(ctx, key, gatewayID).Err()
+	if err != nil {
+		return fmt.Errorf("presence: unregister session %s on %s: %w", userID, gatewayID, err)
+	}
+	return nil
+}
+
+// GetUserGateways returns the list of active gateway IDs for a user.
+func (p *PresenceManager) GetUserGateways(ctx context.Context, userID string) ([]string, error) {
+	key := "flicko:sessions:user:" + userID
+	gateways, err := p.rdb.SMembers(ctx, key).Result()
+	if err != nil {
+		return nil, fmt.Errorf("presence: get sessions for %s: %w", userID, err)
+	}
+	return gateways, nil
+}
+

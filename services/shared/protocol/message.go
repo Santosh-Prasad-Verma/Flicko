@@ -22,6 +22,9 @@ type GatewayMessage struct {
 	// N is the client-generated nonce for idempotency.
 	// Sent by clients on OpMessageCreate, echoed back on OpMessageAck.
 	N string `json:"n,omitempty"`
+
+	// TraceParent is the W3C traceparent header propagated across the WebSocket boundary.
+	TraceParent string `json:"traceparent,omitempty"`
 }
 
 // IdentifyPayload is sent by the client immediately after WebSocket open.

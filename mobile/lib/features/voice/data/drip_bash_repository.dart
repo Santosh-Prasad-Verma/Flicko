@@ -61,10 +61,11 @@ class DripBashRepositoryImpl implements DripBashRepository {
     final DES desECB = DES(key: _desKey.codeUnits);
     final Uint8List encrypted = base64.decode(input);
     final List<int> decrypted = desECB.decrypt(encrypted);
-    final String decoded = utf8.decode(decrypted)
-        .replaceAll(RegExp(r'\.mp4.*'), '.mp4')
-        .replaceAll(RegExp(r'\.m4a.*'), '.m4a')
-        .replaceAll(RegExp(r'\.mp3.*'), '.mp3');
+    String decoded = utf8.decode(decrypted);
+    
+    // Trim control characters and padding bytes (0x00 to 0x1F and 0x7F to 0x9F) from the end
+    decoded = decoded.replaceAll(RegExp(r'[\x00-\x1F\x7F-\x9F]+$'), '');
+    
     return decoded.replaceAll('http:', 'https:');
   }
 

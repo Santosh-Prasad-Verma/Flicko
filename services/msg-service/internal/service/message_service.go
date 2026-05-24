@@ -17,9 +17,11 @@ import (
 	"github.com/flicko-org/flicko/services/msg-service/internal/batcher"
 	"github.com/flicko-org/flicko/services/msg-service/internal/pubsub"
 	"github.com/flicko-org/flicko/services/msg-service/internal/repository"
+	"github.com/flicko-org/flicko/services/msg-service/internal/search"
 	fkerr "github.com/flicko-org/flicko/services/shared/errors"
 	"github.com/flicko-org/flicko/services/shared/id"
 	flickoredis "github.com/flicko-org/flicko/services/shared/redis"
+	"github.com/hibiken/asynq"
 )
 
 // MaxContentLength is the maximum message content length (2000 Unicode chars).
@@ -35,6 +37,7 @@ type MessageService struct {
 	detector    *abuse.Detector
 	enforcer    *abuse.Enforcer
 	publisher   *pubsub.Publisher
+	asynqClient *asynq.Client
 	log         *zap.Logger
 }
 
@@ -59,6 +62,7 @@ func NewMessageService(
 	detector *abuse.Detector,
 	enforcer *abuse.Enforcer,
 	pub *pubsub.Publisher,
+	asynqClient *asynq.Client,
 	log *zap.Logger,
 ) *MessageService {
 	return &MessageService{
@@ -70,6 +74,7 @@ func NewMessageService(
 		detector:    detector,
 		enforcer:    enforcer,
 		publisher:   pub,
+		asynqClient: asynqClient,
 		log:         log.Named("svc.message"),
 	}
 }
@@ -209,6 +214,15 @@ func (s *MessageService) CreateMessage(ctx context.Context, req CreateMessageReq
 				s.log.Error("pubsub publish failed (message persisted)",
 					zap.String("message_id", msg.ID),
 					zap.String("channel_id", msg.ChannelID),
+					zap.Error(err),
+				)
+			}
+		}
+
+		if s.asynqClient != nil {
+			if err := search.EnqueueSearchSync(context.Background(), s.asynqClient, msg, s.log); err != nil {
+				s.log.Error("failed to enqueue search sync task (message persisted)",
+					zap.String("message_id", msg.ID),
 					zap.Error(err),
 				)
 			}

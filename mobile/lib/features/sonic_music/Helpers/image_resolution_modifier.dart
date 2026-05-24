@@ -18,7 +18,7 @@
  */
 
 String getImageUrl(String? imageUrl, {String quality = 'high'}) {
-  if (imageUrl == null) return '';
+  if (imageUrl == null || imageUrl == 'null') return 'https://ui-avatars.com/api/?name=Music&background=random';
   switch (quality) {
     case 'high':
       return imageUrl

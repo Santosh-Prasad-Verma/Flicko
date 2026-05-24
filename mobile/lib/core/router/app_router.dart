@@ -38,8 +38,10 @@ import 'package:mobile/features/settings/presentation/change_email_screen.dart';
 import 'package:mobile/features/settings/presentation/change_username_screen.dart';
 import 'package:mobile/features/settings/presentation/change_password_screen.dart';
 import 'package:mobile/features/settings/presentation/billing_settings_screen.dart';
+import 'package:mobile/features/settings/presentation/billing_history_screen.dart';
 import 'package:mobile/features/e2ee/presentation/e2ee_settings_screen.dart';
 import 'package:mobile/features/settings/presentation/share_profile_screen.dart';
+import 'package:mobile/features/settings/presentation/about_developer_screen.dart';
 
 // Premium
 import 'package:mobile/features/premium/presentation/premium_billing_screen.dart';
@@ -314,10 +316,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                       GoRoute(path: 'change-email', builder: (context, state) => const ChangeEmailScreen()),
                       GoRoute(path: 'change-username', builder: (context, state) => const ChangeUsernameScreen()),
                       GoRoute(path: 'change-password', builder: (context, state) => const ChangePasswordScreen()),
-                      GoRoute(path: 'billing', builder: (context, state) => const BillingSettingsScreen()),
+                      GoRoute(
+                        path: 'billing',
+                        builder: (context, state) => const BillingSettingsScreen(),
+                        routes: [
+                          GoRoute(path: 'history', builder: (context, state) => const BillingHistoryScreen()),
+                        ],
+                      ),
                       GoRoute(path: 'sonic-drip', builder: (context, state) => HomePage()),
                       GoRoute(path: 'encryption', builder: (context, state) => const E2EESettingsScreen()),
                       GoRoute(path: 'add-card', builder: (context, state) => const AddCardScreen()),
+                      GoRoute(path: 'about-developer', builder: (context, state) => const AboutDeveloperScreen()),
                       GoRoute(
                         path: 'aura',
                         builder: (context, state) => const AuraDashboardScreen(),
@@ -541,6 +550,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/u/:userId',
+        redirect: (context, state) =>
+            '/profile/${state.pathParameters['userId']}',
+      ),
+      GoRoute(
+        path: '/u/profile/:userId',
         redirect: (context, state) =>
             '/profile/${state.pathParameters['userId']}',
       ),

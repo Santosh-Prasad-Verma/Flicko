@@ -29,6 +29,7 @@ type Hub struct {
 	matchmakingSvc matchmaking.MatchmakingService
 	chessValidator *gameSvc.ChessValidator
 	ludoValidator  *gameSvc.LudoValidator
+	ludoEngine     gameSvc.LudoEngine
 	stockfishPool  chess.StockfishPool
 	botCoordinator bots.BotCoordinator
 }
@@ -113,6 +114,7 @@ func Initialize(ctx context.Context, logger *zap.Logger, db *pgxpool.Pool, rc *r
 	// 4. Game Logic Validators
 	chessValidator := gameSvc.NewChessValidator(lockService)
 	ludoValidator := gameSvc.NewLudoValidator(rngSvc)
+	ludoEngine := gameSvc.NewLudoEngine(stateService, ludoValidator, lockService, rngSvc)
 
 	// 5. Bot Intelligence
 	// Creates a bounded pool of 10 persistent stockfish engines
@@ -126,6 +128,7 @@ func Initialize(ctx context.Context, logger *zap.Logger, db *pgxpool.Pool, rc *r
 	// 6. Edge Handlers (API & Proxy)
 	proxyHandler := centrifugo.NewCentrifugoProxyHandler(logger, &hubGameAccessValidator{stateService: stateService})
 	rejoinHandler := game.NewRejoinHandler(logger, stateService)
+	ludoHandler := game.NewLudoHandler(logger, ludoEngine)
 
 	// 7. Route Mounting
 	api := r.PathPrefix("/api/v1/gaming").Subrouter()
@@ -136,6 +139,8 @@ func Initialize(ctx context.Context, logger *zap.Logger, db *pgxpool.Pool, rc *r
 	_ = eloService
 	
 	api.HandleFunc("/rejoin", rejoinHandler.HandleRejoin).Methods("POST")
+	api.HandleFunc("/ludo/roll", ludoHandler.HandleRoll).Methods("POST")
+	api.HandleFunc("/ludo/move", ludoHandler.HandleMove).Methods("POST")
 	
 	// Centrifugo proxy hook endpoints
 	centriRouter := r.PathPrefix("/centrifugo").Subrouter()
@@ -150,6 +155,7 @@ func Initialize(ctx context.Context, logger *zap.Logger, db *pgxpool.Pool, rc *r
 		matchmakingSvc: matchmakingSvc,
 		chessValidator: chessValidator,
 		ludoValidator:  ludoValidator,
+		ludoEngine:     ludoEngine,
 		stockfishPool:  stockfishPool,
 		botCoordinator: botCoordinator,
 	}, nil

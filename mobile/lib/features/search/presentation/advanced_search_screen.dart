@@ -48,7 +48,7 @@ class _AdvancedSearchScreenState extends ConsumerState<AdvancedSearchScreen> {
       // Search messages in Supabase
       var queryBuilder = Supabase.instance.client
           .from('messages')
-          .select('*, profiles!inner(username, display_name, avatar_url:avatar)')
+          .select('*, profiles!inner(username, display_name, avatar_url:avatar), channels!inner(server_id)')
           .ilike('content', '%$query%');
 
       if (widget.channelId != null) {
@@ -56,7 +56,7 @@ class _AdvancedSearchScreenState extends ConsumerState<AdvancedSearchScreen> {
       }
 
       if (widget.serverId != null) {
-        queryBuilder = queryBuilder.eq('server_id', widget.serverId!);
+        queryBuilder = queryBuilder.eq('channels.server_id', widget.serverId!);
       }
 
       final response = await queryBuilder.order('created_at', ascending: false).limit(50);

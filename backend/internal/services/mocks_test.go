@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/flicko-org/flicko-backend/internal/database"
 	"github.com/flicko-org/flicko-backend/internal/models"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -57,6 +58,19 @@ func (m *MockDatabaseClient) Pool() *pgxpool.Pool {
 		return nil
 	}
 	return args.Get(0).(*pgxpool.Pool)
+}
+
+func (m *MockDatabaseClient) ReplicaPool() *pgxpool.Pool {
+	args := m.Called()
+	if args.Get(0) == nil {
+		return nil
+	}
+	return args.Get(0).(*pgxpool.Pool)
+}
+
+func (m *MockDatabaseClient) CBState() database.CircuitState {
+	args := m.Called()
+	return args.Get(0).(database.CircuitState)
 }
 
 func (m *MockDatabaseClient) Begin(ctx context.Context) (pgx.Tx, error) {

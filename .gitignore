@@ -312,3 +312,4 @@ react-native-ludo-game/
 # Self-hosted LiveKit config — contains API key/secret pair
 livekit.yaml
 livekit.dev.yaml
+API.md

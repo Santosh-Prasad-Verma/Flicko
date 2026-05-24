@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
+	"github.com/flicko-org/flicko-backend/internal/cache"
+	"github.com/flicko-org/flicko-backend/internal/database"
 	"github.com/flicko-org/flicko-backend/internal/models"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type AuditLogService interface {
@@ -17,13 +19,15 @@ type AuditLogService interface {
 }
 
 type auditLogService struct {
-	db          *pgxpool.Pool
+	db          database.DatabaseClient
+	cache       cache.CacheLayer
 	permService PermissionService
 }
 
-func NewAuditLogService(db *pgxpool.Pool, permService PermissionService) AuditLogService {
+func NewAuditLogService(db database.DatabaseClient, cache cache.CacheLayer, permService PermissionService) AuditLogService {
 	return &auditLogService{
 		db:          db,
+		cache:       cache,
 		permService: permService,
 	}
 }
@@ -52,21 +56,39 @@ func (s *auditLogService) CreateLog(ctx context.Context, serverID string, actorI
 		targetUUID = &id
 	}
 
-	var changesJSON []byte
+	// Create the raw audit log model (with a generated UUID and current time)
+	log := &models.AuditLog{
+		ID:         uuid.New().String(),
+		ServerID:   serverUUID.String(),
+		ActionType: actionType,
+		TargetType: targetType,
+		CreatedAt:  time.Now().UTC(),
+	}
+	if actorUUID != nil {
+		actStr := actorUUID.String()
+		log.ActorID = &actStr
+	}
+	if targetUUID != nil {
+		tgtStr := targetUUID.String()
+		log.TargetID = &tgtStr
+	}
+	if reason != nil {
+		log.Reason = reason
+	}
 	if changes != nil {
-		changesJSON, err = json.Marshal(changes)
-		if err != nil {
-			return fmt.Errorf("failed to encode changes: %w", err)
-		}
+		log.Changes = changes
 	}
 
-	query := `
-		INSERT INTO public.audit_logs (server_id, actor_id, action_type, target_type, target_id, reason, changes)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
-	`
-	_, err = s.db.Exec(ctx, query, serverUUID, actorUUID, actionType, targetType, targetUUID, reason, changesJSON)
+	payload, err := json.Marshal(log)
 	if err != nil {
-		return fmt.Errorf("failed to create audit log: %w", err)
+		return fmt.Errorf("failed to serialize audit log for queue: %w", err)
+	}
+
+	// Push onto the list
+	redisClient := s.cache.GetRedisClient()
+	err = redisClient.LPush(ctx, "flicko:audit:queue", payload).Err()
+	if err != nil {
+		return fmt.Errorf("failed to queue audit log: %w", err)
 	}
 
 	return nil

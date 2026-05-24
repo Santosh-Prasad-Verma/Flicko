@@ -36,7 +36,6 @@ import 'package:mobile/features/sonic_music/Screens/LocalMusic/downed_songs.dart
 import 'package:mobile/features/sonic_music/Screens/LocalMusic/downed_songs_desktop.dart';
 import 'package:mobile/features/sonic_music/Screens/Player/audioplayer.dart';
 import 'package:mobile/features/sonic_music/Screens/Settings/new_settings_page.dart';
-import 'package:mobile/features/sonic_music/Screens/Top Charts/top.dart';
 import 'package:mobile/features/sonic_music/Screens/YouTube/youtube_home.dart';
 import 'package:mobile/features/sonic_music/Services/ext_storage_provider.dart';
 import 'package:device_info_plus/device_info_plus.dart';
@@ -65,7 +64,7 @@ class _HomePageState extends State<HomePage> {
       Hive.box('settings').get('autoBackup', defaultValue: false) as bool;
   List sectionsToShow = Hive.box('settings').get(
     'sectionsToShow',
-    defaultValue: ['Home', 'Top Charts', 'YouTube', 'Library'],
+    defaultValue: ['Home', 'YouTube', 'Library', 'Settings'],
   ) as List;
   DateTime? backButtonPressTime;
   final bool useDense = Hive.box('settings').get(
@@ -76,7 +75,7 @@ class _HomePageState extends State<HomePage> {
   void callback() {
     sectionsToShow = Hive.box('settings').get(
       'sectionsToShow',
-      defaultValue: ['Home', 'Top Charts', 'YouTube', 'Library'],
+      defaultValue: ['Home', 'YouTube', 'Library', 'Settings'],
     ) as List;
     onItemTapped(0);
     setState(() {});
@@ -269,6 +268,7 @@ class _HomePageState extends State<HomePage> {
           backgroundColor: Colors.transparent,
           elevation: 0,
         ),
+        extendBody: true,
         extendBodyBehindAppBar: true,
         resizeToAvoidBottomInset: false,
         backgroundColor: Colors.transparent,
@@ -288,7 +288,7 @@ class _HomePageState extends State<HomePage> {
                   flexibleSpace: FlexibleSpaceBar(
                     title: RichText(
                       text: TextSpan(
-                        text: 'Sonic',
+                        text: 'Flicko',
                         style: const TextStyle(
                           fontSize: 30.0,
                           fontWeight: FontWeight.w600,
@@ -306,30 +306,6 @@ class _HomePageState extends State<HomePage> {
                     ),
                     titlePadding: const EdgeInsets.only(bottom: 40.0),
                     centerTitle: true,
-                    background: ShaderMask(
-                      shaderCallback: (rect) {
-                        return LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.black.withOpacity(0.8),
-                            Colors.black.withOpacity(0.1),
-                          ],
-                        ).createShader(
-                          Rect.fromLTRB(0, 0, rect.width, rect.height),
-                        );
-                      },
-                      blendMode: BlendMode.dstIn,
-                      child: Image(
-                        fit: BoxFit.cover,
-                        alignment: Alignment.topCenter,
-                        image: AssetImage(
-                          Theme.of(context).brightness == Brightness.dark
-                              ? 'assets/images/header-dark.jpg'
-                              : 'assets/images/header.jpg',
-                        ),
-                      ),
-                    ),
                   ),
                 ),
                 SliverList(
@@ -547,13 +523,7 @@ class _HomePageState extends State<HomePage> {
                             icon: const Icon(Icons.home_rounded),
                             label: Text(AppLocalizations.of(context)!.home),
                           );
-                        case 'Top Charts':
-                          return NavigationRailDestination(
-                            icon: const Icon(Icons.trending_up_rounded),
-                            label: Text(
-                              AppLocalizations.of(context)!.topCharts,
-                            ),
-                          );
+
                         case 'YouTube':
                           return NavigationRailDestination(
                             icon: const Icon(MdiIcons.youtube),
@@ -583,9 +553,15 @@ class _HomePageState extends State<HomePage> {
                     context,
                     controller: _controller,
                     itemCount: sectionsToShow.length,
+                    backgroundColor: Colors.transparent,
                     handleAndroidBackButtonPress: true,
                     onWillPop: (ctx) async {
-                      return true;
+                      if (ctx != null && Navigator.of(ctx).canPop()) {
+                        Navigator.of(ctx).pop();
+                        return false;
+                      }
+                      Navigator.of(context).pop();
+                      return false;
                     },
                     navBarHeight: rotated ? 0.0 : 60.0,
                     bottomScreenMargin: 60.0 +
@@ -628,11 +604,7 @@ class _HomePageState extends State<HomePage> {
                         case 'Home':
                           screenWidget = const HomeScreen();
                           break;
-                        case 'Top Charts':
-                          screenWidget = TopCharts(
-                            pageController: _pageController,
-                          );
-                          break;
+
                         case 'YouTube':
                           screenWidget = const YouTube();
                           break;
@@ -684,12 +656,7 @@ class _HomePageState extends State<HomePage> {
             title: Text(AppLocalizations.of(context)!.home),
             selectedColor: Theme.of(context).colorScheme.secondary,
           );
-        case 'Top Charts':
-          return CustomBottomNavBarItem(
-            icon: const Icon(Icons.trending_up_rounded),
-            title: Text(AppLocalizations.of(context)!.topCharts),
-            selectedColor: Theme.of(context).colorScheme.secondary,
-          );
+
         case 'YouTube':
           return CustomBottomNavBarItem(
             icon: const Icon(MdiIcons.youtube),

@@ -1,9 +1,11 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:mobile/features/ai_assistant/data/aura_chat_service.dart';
+import 'package:mobile/features/auth/application/auth_notifier.dart';
 
 class AuraDashboardScreen extends ConsumerStatefulWidget {
   const AuraDashboardScreen({super.key});
@@ -30,341 +32,404 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen> {
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final sessions = ref.watch(auraSessionsProvider);
-    
-    // Filter sessions based on search query
-    final filteredSessions = sessions.where((session) {
-      final query = _searchQuery.toLowerCase();
-      return session.title.toLowerCase().contains(query) ||
-          session.category.toLowerCase().contains(query);
-    }).toList();
-
-    return Scaffold(
-      backgroundColor: _bgBlack,
-      body: Stack(
-        children: [
-          // Cybernetic magenta-purple soft radial glow in the background
-          Positioned(
-            top: -100,
-            right: -50,
-            child: Container(
-              width: 300,
-              height: 300,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    _accentPink.withValues(alpha: 0.15),
-                    _accentPurple.withValues(alpha: 0.05),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-            ),
-          ),
-          SafeArea(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(context),
-                Expanded(
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 12),
-                          _buildTitleSection(),
-                          const SizedBox(height: 24),
-                          _buildSearchField(),
-                          const SizedBox(height: 28),
-                          _buildQuickToolsSection(),
-                          const SizedBox(height: 36),
-                          _buildHistorySection(filteredSessions),
-                          const SizedBox(height: 32),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push('/profile/settings/aura/voice'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        label: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(30),
-            gradient: const LinearGradient(
-              colors: [_accentPink, _accentPurple],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: _accentPink.withValues(alpha: 0.4),
-                blurRadius: 15,
-                spreadRadius: 1,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.mic_none_rounded, color: Colors.white, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                'TALK TO AURA',
-                style: GoogleFonts.spaceGrotesk(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 12,
-                  letterSpacing: 1.0,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ).animate().scale(delay: 500.ms, duration: 400.ms, curve: Curves.easeOutBack),
-    );
-  }
-
-  void _showApiKeyDialog(BuildContext context) async {
+  Future<void> _showApiKeyDialog(BuildContext context) async {
     final notifier = ref.read(auraSessionsProvider.notifier);
-    final currentKey = await notifier.getApiKey() ?? '';
-    final controller = TextEditingController(text: currentKey);
+    final currentKey = await notifier.getApiKey();
+    final defaultKey = 'AIzaSyDhEKT-KK1COPAeRzy_ggDgHXwujIbtH64';
+    final isCustom = currentKey != null && currentKey != defaultKey;
+
+    final controller = TextEditingController(text: isCustom ? currentKey : '');
+    bool obscureText = true;
 
     if (!context.mounted) return;
 
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          backgroundColor: _cardGrey,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: const BorderSide(color: _borderGrey),
-          ),
-          title: Row(
-            children: [
-              const Icon(Icons.vpn_key_rounded, color: _accentPink, size: 22),
-              const SizedBox(width: 10),
-              Text(
-                'GEMINI API KEY',
-                style: GoogleFonts.spaceGrotesk(
-                  color: _textWhite,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 16,
-                  letterSpacing: 1.0,
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Dialog(
+              backgroundColor: const Color(0xFF13101C),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+                side: BorderSide(
+                  color: Colors.white.withOpacity(0.08),
+                  width: 1.2,
                 ),
               ),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Enter your Gemini API key to enable live responses. Leave empty to use local simulated mode.',
-                style: GoogleFonts.spaceMono(color: _textMuted, fontSize: 11, height: 1.4),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                decoration: BoxDecoration(
-                  color: _bgBlack,
-                  border: Border.all(color: _borderGrey),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: TextField(
-                  controller: controller,
-                  obscureText: true,
-                  style: GoogleFonts.spaceMono(color: _textWhite, fontSize: 13),
-                  decoration: InputDecoration(
-                    hintText: 'AIzaSy...',
-                    hintStyle: GoogleFonts.spaceMono(color: _textMuted.withValues(alpha: 0.5), fontSize: 13),
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(
-                'CANCEL',
-                style: GoogleFonts.spaceMono(color: _textMuted, fontSize: 12, fontWeight: FontWeight.bold),
-              ),
-            ),
-            TextButton(
-              onPressed: () async {
-                final key = controller.text.trim();
-                await notifier.saveApiKey(key);
-                if (context.mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(key.isEmpty ? 'Using simulated local engine' : 'Gemini API Key saved'),
-                      backgroundColor: _accentPink,
-                      behavior: SnackBarBehavior.floating,
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Gemini API Key',
+                      style: GoogleFonts.spaceGrotesk(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
-                  );
-                }
-              },
-              child: Text(
-                'SAVE',
-                style: GoogleFonts.spaceMono(color: _accentPink, fontSize: 12, fontWeight: FontWeight.bold),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Provide your own Gemini API key to activate live responses. If left empty, a shared default key is used.',
+                      style: GoogleFonts.spaceGrotesk(
+                        color: Colors.white.withOpacity(0.6),
+                        fontSize: 13,
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.04),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.08),
+                          width: 1.2,
+                        ),
+                      ),
+                      child: TextField(
+                        controller: controller,
+                        obscureText: obscureText,
+                        style: GoogleFonts.spaceMono(
+                          color: Colors.white,
+                          fontSize: 13,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'Enter API Key...',
+                          hintStyle: GoogleFonts.spaceMono(
+                            color: Colors.white.withOpacity(0.3),
+                            fontSize: 13,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          border: InputBorder.none,
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              obscureText
+                                  ? Icons.visibility_off_outlined
+                                  : Icons.visibility_outlined,
+                              color: Colors.white.withOpacity(0.6),
+                              size: 20,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                obscureText = !obscureText;
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: Text(
+                            'Cancel',
+                            style: GoogleFonts.spaceGrotesk(
+                              color: Colors.white.withOpacity(0.6),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFC0EC54),
+                            foregroundColor: const Color(0xFF07040A),
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          onPressed: () async {
+                            final newKey = controller.text.trim();
+                            await notifier.saveApiKey(newKey.isEmpty ? null : newKey);
+                            if (context.mounted) {
+                              Navigator.of(context).pop();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    newKey.isEmpty
+                                        ? 'Using default shared Gemini API key.'
+                                        : 'Gemini API key updated successfully!',
+                                  ),
+                                  backgroundColor: const Color(0xFF13101C),
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                            }
+                          },
+                          child: Text(
+                            'Save',
+                            style: GoogleFonts.spaceGrotesk(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            );
+          },
         );
       },
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: const BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: _borderGrey, width: 1),
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          IconButton(
-            onPressed: () => context.pop(),
-            icon: const Icon(Icons.arrow_back, color: _textWhite, size: 22),
-          ),
-          Row(
-            children: [
-              Container(
-                width: 10,
-                height: 10,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    colors: [_accentPink, _accentPurple],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'AURA AI COMPANION',
-                style: GoogleFonts.spaceGrotesk(
-                  color: _textWhite,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.5,
-                ),
-              ),
-            ],
-          ),
-          IconButton(
-            onPressed: () => _showApiKeyDialog(context),
-            icon: const Icon(Icons.vpn_key_rounded, color: _textMuted, size: 20),
-          ),
-        ],
-      ),
+  Widget _buildTopRow(BuildContext context) {
+    final authState = ref.watch(authNotifierProvider);
+    final String displayName = authState.maybeWhen(
+      authenticated: (authUser, userProfile) {
+        if (userProfile != null && userProfile.displayName != null && userProfile.displayName!.isNotEmpty) {
+          return userProfile.displayName!;
+        }
+        if (userProfile != null) {
+          return userProfile.username;
+        }
+        final meta = authUser.userMetadata;
+        if (meta != null && meta.containsKey('display_name')) {
+          return meta['display_name'] as String;
+        }
+        if (meta != null && meta.containsKey('username')) {
+          return meta['username'] as String;
+        }
+        if (authUser.email != null) {
+          return authUser.email!.split('@').first;
+        }
+        return 'Buddy';
+      },
+      orElse: () => 'Buddy',
     );
-  }
 
-  Widget _buildTitleSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          'Create, explore,\nbe inspired',
-          style: GoogleFonts.epilogue(
-            color: _textWhite,
-            fontSize: 38,
-            fontWeight: FontWeight.w900,
-            height: 1.05,
-            letterSpacing: -1,
+        GestureDetector(
+          onTap: () => Navigator.of(context).pop(),
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withOpacity(0.04),
+              border: Border.all(color: Colors.white.withOpacity(0.08), width: 1.2),
+            ),
+            child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 18),
           ),
-        ).animate().fadeIn(duration: 400.ms).slideX(begin: -0.1),
+        ),
+        Row(
+          children: [
+            Text(
+              'Hi, $displayName',
+              style: GoogleFonts.spaceGrotesk(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Text('👋', style: TextStyle(fontSize: 14)),
+          ],
+        ),
+        GestureDetector(
+          onTap: () => _showApiKeyDialog(context),
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withOpacity(0.04),
+            ),
+            child: const Icon(Icons.key_rounded, color: Color(0xFFC0EC54), size: 18),
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildSearchField() {
-    return Container(
-      height: 52,
-      decoration: BoxDecoration(
-        color: _cardGrey,
-        border: Border.all(color: _borderGrey),
-        borderRadius: BorderRadius.circular(8),
+  Widget _buildWelcomeHeading() {
+    return Text(
+      'How may I help\nyou today?',
+      style: GoogleFonts.spaceGrotesk(
+        color: Colors.white,
+        fontSize: 28,
+        fontWeight: FontWeight.w800,
+        height: 1.15,
       ),
-      child: TextField(
-        controller: _searchController,
-        style: GoogleFonts.spaceMono(color: _textWhite, fontSize: 14),
-        onChanged: (val) {
-          setState(() {
-            _searchQuery = val;
-          });
-        },
-        decoration: InputDecoration(
-          prefixIcon: const Icon(Icons.search, color: _textMuted, size: 20),
-          hintText: 'Search queries or topics...',
-          hintStyle: GoogleFonts.spaceMono(color: _textMuted, fontSize: 13),
-          border: InputBorder.none,
-          enabledBorder: InputBorder.none,
-          focusedBorder: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 15),
-          suffixIcon: _searchQuery.isNotEmpty
-              ? GestureDetector(
-                  onTap: () {
-                    _searchController.clear();
-                    setState(() {
-                      _searchQuery = '';
-                    });
-                  },
-                  child: const Icon(Icons.clear, color: _textWhite, size: 16),
-                )
-              : null,
-        ),
-      ),
-    ).animate().fadeIn(delay: 100.ms, duration: 400.ms);
+    ).animate().fadeIn(duration: 400.ms).slideX(begin: -0.1);
   }
 
-  Widget _buildQuickToolsSection() {
-    return Column(
+  Widget _buildBentoGrid() {
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          physics: const BouncingScrollPhysics(),
-          child: Row(
+        // Left Column: Talk with Bot
+        Expanded(
+          flex: 5,
+          child: GestureDetector(
+            onTap: () => context.push('/profile/settings/aura/voice'),
+            child: Container(
+              height: 180,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: const Color(0xFFC0EC54),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFC0EC54).withOpacity(0.15),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.black.withOpacity(0.06),
+                        ),
+                        child: const Icon(Icons.mic_none_rounded, color: Color(0xFF07040A), size: 22),
+                      ),
+                      const Icon(Icons.arrow_outward_rounded, color: Color(0xFF07040A), size: 20),
+                    ],
+                  ),
+                  Text(
+                    'Talk\nwith Bot',
+                    style: GoogleFonts.spaceGrotesk(
+                      color: const Color(0xFF07040A),
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      height: 1.15,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 14),
+        // Right Column: Chat with Bot & Brain card
+        Expanded(
+          flex: 6,
+          child: Column(
             children: [
-              _buildToolCard(
-                'AI text\nwriter',
-                'Text Writer',
-                const Icon(Icons.edit_note_rounded, color: _accentPink, size: 28),
+              // Top: Chat with Bot Card
+              GestureDetector(
+                onTap: () async {
+                  final session = await ref.read(auraSessionsProvider.notifier).createNewSession('Chat');
+                  if (mounted) {
+                    context.push('/profile/settings/aura/chat?category=Chat&sessionId=${session.id}');
+                  }
+                },
+                child: Container(
+                  height: 84,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF13101C),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white.withOpacity(0.04), width: 1.2),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withOpacity(0.04),
+                        ),
+                        child: const Icon(Icons.chat_bubble_outline_rounded, color: Color(0xFFCBB6FC), size: 18),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Chat with Bot',
+                              style: GoogleFonts.spaceGrotesk(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(Icons.arrow_outward_rounded, color: Colors.white.withOpacity(0.4), size: 16),
+                    ],
+                  ),
+                ),
               ),
-              const SizedBox(width: 14),
-              _buildToolCard(
-                'AI image\ngenerator',
-                'Image Generator',
-                const Icon(Icons.image_search_rounded, color: _accentPurple, size: 28),
-              ),
-              const SizedBox(width: 14),
-              _buildToolCard(
-                'AI code\ntutor',
-                'Code Tutor',
-                const Icon(Icons.code_rounded, color: Color(0xFF00FFCC), size: 28),
+              const SizedBox(height: 12),
+              // Bottom: Cyber Brain Graphic Card
+              Container(
+                height: 84,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF13101C),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white.withOpacity(0.04), width: 1.2),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: Opacity(
+                          opacity: 0.65,
+                          child: ShaderMask(
+                            shaderCallback: (bounds) {
+                              return const LinearGradient(
+                                colors: [Color(0xFFCBB6FC), Color(0xFFFFD1B3), Color(0xFFBFF6EB)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ).createShader(bounds);
+                            },
+                            child: CustomPaint(
+                              painter: BrainWavePainter(),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Align(
+                          alignment: Alignment.bottomLeft,
+                          child: Text(
+                            'AURA ENGINE v2.5',
+                            style: GoogleFonts.spaceMono(
+                              color: Colors.white.withOpacity(0.4),
+                              fontSize: 9,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
@@ -373,44 +438,83 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen> {
     ).animate().fadeIn(delay: 200.ms, duration: 400.ms);
   }
 
-  Widget _buildToolCard(String label, String category, Widget icon) {
-    return GestureDetector(
-      onTap: () async {
-        final session = await ref.read(auraSessionsProvider.notifier).createNewSession(category);
-        if (mounted) {
-          context.push('/profile/settings/aura/chat?category=$category&sessionId=${session.id}');
-        }
+  Widget _buildHistoryItem(AuraSession session) {
+    final Map<String, Color> bulletColors = {
+      'Text Writer': const Color(0xFFCBB6FC),
+      'Image Generator': const Color(0xFFFFD1B3),
+      'Code Tutor': const Color(0xFFC0EC54),
+      'Chat': const Color(0xFFCBB6FC),
+    };
+    final dotColor = bulletColors[session.category] ?? const Color(0xFFCBB6FC);
+
+    return Dismissible(
+      key: Key(session.id),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        color: Colors.red.withOpacity(0.2),
+        child: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+      ),
+      onDismissed: (direction) {
+        ref.read(auraSessionsProvider.notifier).deleteSession(session.id);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Session "${session.title}" deleted.'),
+            backgroundColor: const Color(0xFF13101C),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       },
       child: Container(
-        width: 140,
-        height: 145,
-        padding: const EdgeInsets.all(16),
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: _cardGrey,
-          border: Border.all(color: _borderGrey),
+          color: const Color(0xFF13101C),
           borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withOpacity(0.04), width: 1.2),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                icon,
-                const Icon(Icons.arrow_outward_rounded, color: _textMuted, size: 18),
+        child: ListTile(
+          contentPadding: EdgeInsets.zero,
+          visualDensity: VisualDensity.compact,
+          onTap: () {
+            context.push('/profile/settings/aura/chat?category=${session.category}&sessionId=${session.id}');
+          },
+          leading: Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: dotColor,
+              boxShadow: [
+                BoxShadow(
+                  color: dotColor.withOpacity(0.5),
+                  blurRadius: 8,
+                  spreadRadius: 1,
+                ),
               ],
             ),
-            Text(
-              label,
-              style: GoogleFonts.spaceGrotesk(
-                color: _textWhite,
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-                height: 1.15,
-              ),
+          ),
+          title: Text(
+            session.title,
+            style: GoogleFonts.spaceGrotesk(
+              color: Colors.white.withOpacity(0.9),
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
             ),
-          ],
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          trailing: GestureDetector(
+            onTap: () {
+              ref.read(auraSessionsProvider.notifier).deleteSession(session.id);
+            },
+            child: Icon(
+              Icons.more_vert_rounded,
+              color: Colors.white.withOpacity(0.3),
+              size: 20,
+            ),
+          ),
         ),
       ),
     );
@@ -425,23 +529,23 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen> {
           children: [
             Text(
               'History',
-              style: GoogleFonts.epilogue(
-                color: _textWhite,
-                fontSize: 22,
+              style: GoogleFonts.spaceGrotesk(
+                color: Colors.white,
+                fontSize: 20,
                 fontWeight: FontWeight.w800,
               ),
             ),
             if (filteredSessions.isNotEmpty)
-              TextButton(
-                onPressed: () {
+              GestureDetector(
+                onTap: () {
                   ref.read(auraSessionsProvider.notifier).clearHistory();
                 },
                 child: Text(
                   'Clear all',
-                  style: GoogleFonts.spaceMono(
-                    color: _accentPink,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
+                  style: GoogleFonts.spaceGrotesk(
+                    color: Colors.white.withOpacity(0.4),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
@@ -454,11 +558,11 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen> {
             alignment: Alignment.center,
             child: Column(
               children: [
-                const Icon(Icons.history_toggle_off_rounded, color: _textMuted, size: 36),
+                const Icon(Icons.history_toggle_off_rounded, color: Colors.white30, size: 36),
                 const SizedBox(height: 12),
                 Text(
                   'No search results or history',
-                  style: GoogleFonts.spaceMono(color: _textMuted, fontSize: 13),
+                  style: GoogleFonts.spaceMono(color: Colors.white30, fontSize: 13),
                 ),
               ],
             ),
@@ -467,107 +571,112 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen> {
           ListView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: filteredSessions.length,
+            itemCount: min(filteredSessions.length, 5),
             itemBuilder: (context, index) {
               final session = filteredSessions[index];
-              final categoryColors = {
-                'Text Writer': _accentPink,
-                'Image Generator': _accentPurple,
-                'Code Tutor': const Color(0xFF00FFCC),
-              };
-              final accent = categoryColors[session.category] ?? _accentPink;
-
-              return Dismissible(
-                key: Key(session.id),
-                direction: DismissDirection.endToStart,
-                background: Container(
-                  alignment: Alignment.centerRight,
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  color: Colors.red.withValues(alpha: 0.2),
-                  child: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
-                ),
-                onDismissed: (direction) {
-                  ref.read(auraSessionsProvider.notifier).deleteSession(session.id);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Session "${session.title}" deleted.'),
-                      backgroundColor: _cardGrey,
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                },
-                child: Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  decoration: BoxDecoration(
-                    color: _cardGrey,
-                    border: Border.all(color: _borderGrey),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                    onTap: () {
-                      context.push('/profile/settings/aura/chat?category=${session.category}&sessionId=${session.id}');
-                    },
-                    leading: Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: accent.withValues(alpha: 0.08),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: accent.withValues(alpha: 0.2)),
-                      ),
-                      child: Center(
-                        child: Icon(
-                          session.category == 'Text Writer'
-                              ? Icons.edit_note_rounded
-                              : session.category == 'Image Generator'
-                                  ? Icons.image_search_rounded
-                                  : Icons.code_rounded,
-                          color: accent,
-                          size: 20,
-                        ),
-                      ),
-                    ),
-                    title: Text(
-                      session.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.spaceGrotesk(
-                        color: _textWhite,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                      ),
-                    ),
-                    subtitle: Text(
-                      '${session.category} · ${_formatTime(session.lastActive)}',
-                      style: GoogleFonts.spaceMono(
-                        color: _textMuted,
-                        fontSize: 10,
-                      ),
-                    ),
-                    trailing: const Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      color: _textMuted,
-                      size: 14,
-                    ),
-                  ),
-                ),
-              );
+              return _buildHistoryItem(session);
             },
           ),
       ],
     ).animate().fadeIn(delay: 300.ms, duration: 400.ms);
   }
 
-  String _formatTime(DateTime time) {
-    final now = DateTime.now();
-    final diff = now.difference(time);
-    if (diff.inMinutes < 60) {
-      return '${diff.inMinutes}m ago';
-    } else if (diff.inHours < 24) {
-      return '${diff.inHours}h ago';
-    } else {
-      return '${diff.inDays}d ago';
-    }
+  @override
+  Widget build(BuildContext context) {
+    final sessions = ref.watch(auraSessionsProvider);
+    
+    final filteredSessions = sessions.where((session) {
+      final query = _searchQuery.toLowerCase();
+      return session.title.toLowerCase().contains(query) ||
+          session.category.toLowerCase().contains(query);
+    }).toList();
+
+    return Scaffold(
+      backgroundColor: const Color(0xFF07040A),
+      body: Stack(
+        children: [
+          // Cybernetic magenta-purple soft radial glow in the background
+          Positioned(
+            top: -100,
+            right: -50,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFF381559).withOpacity(0.2),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+          SafeArea(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildTopRow(context),
+                    const SizedBox(height: 32),
+                    _buildWelcomeHeading(),
+                    const SizedBox(height: 24),
+                    _buildBentoGrid(),
+                    const SizedBox(height: 36),
+                    _buildHistorySection(filteredSessions),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
+}
+
+class BrainWavePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+
+    final path = Path();
+    path.moveTo(0, size.height * 0.5);
+    path.cubicTo(
+      size.width * 0.25, size.height * 0.1,
+      size.width * 0.5, size.height * 0.9,
+      size.width * 0.75, size.height * 0.3,
+    );
+    path.cubicTo(
+      size.width * 0.85, size.height * 0.1,
+      size.width * 0.95, size.height * 0.6,
+      size.width, size.height * 0.4,
+    );
+
+    final path2 = Path();
+    path2.moveTo(0, size.height * 0.7);
+    path2.cubicTo(
+      size.width * 0.3, size.height * 0.3,
+      size.width * 0.55, size.height * 0.8,
+      size.width * 0.8, size.height * 0.2,
+    );
+    path2.lineTo(size.width, size.height * 0.5);
+
+    canvas.drawPath(path, paint);
+    canvas.drawPath(path2, paint);
+
+    canvas.drawCircle(Offset(size.width * 0.5, size.height * 0.5), 3, paint..style = PaintingStyle.fill);
+    canvas.drawCircle(Offset(size.width * 0.75, size.height * 0.3), 2, paint);
+    canvas.drawCircle(Offset(size.width * 0.25, size.height * 0.4), 2, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

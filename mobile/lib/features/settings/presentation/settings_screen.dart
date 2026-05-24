@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
 class DevModeNotifier extends Notifier<bool> {
   @override
@@ -236,6 +237,45 @@ class SettingsScreen extends ConsumerWidget {
               Icons.bug_report_outlined, 
               'Bug Report', 
               () => launchUrl(Uri.parse('https://github.com/Tarun10A/flicko/issues'))
+            ),
+            _buildSettingsRow(
+              context, 
+              Icons.error_outline_rounded, 
+              'Verify Sentry Setup', 
+              () async {
+                try {
+                  final id = await Sentry.captureException(
+                    StateError('This is test exception for verifying setup'),
+                  );
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Sentry Event captured! ID: $id'),
+                        backgroundColor: _neonGreen,
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Sentry capture failed: $e'),
+                        backgroundColor: Colors.red,
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  }
+                }
+              }
+            ),
+            _buildSettingsRow(
+              context,
+              Icons.hexagon_outlined,
+              'About Developer',
+              () => context.push('/profile/settings/about-developer'),
+              subtitle: 'Interactive 3D space & architect dossier',
+              trailing: _buildPremiumBadge('DEV'),
             ),
             const SizedBox(height: 32),
             _buildSectionHeader('ACCOUNT ACTIONS'),

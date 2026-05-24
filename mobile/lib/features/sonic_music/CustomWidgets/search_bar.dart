@@ -22,6 +22,7 @@ import 'dart:math';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:mobile/features/sonic_music/CustomWidgets/gradient_containers.dart';
 
 class SearchBar extends StatefulWidget {
   final Widget body;
@@ -89,19 +90,15 @@ class _SearchBarState extends State<SearchBar> {
         ),
         Column(
           children: [
-            Card(
+            GradientCard(
               margin: const EdgeInsets.fromLTRB(
                 18.0,
                 10.0,
                 18.0,
                 15.0,
               ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(
-                  10.0,
-                ),
-              ),
-              elevation: 8.0,
+              radius: BorderRadius.circular(24.0),
+              elevation: 4.0,
               child: SizedBox(
                 height: 52.0,
                 child: Center(
@@ -115,7 +112,8 @@ class _SearchBarState extends State<SearchBar> {
                           color: Colors.transparent,
                         ),
                       ),
-                      fillColor: Theme.of(context).colorScheme.secondary,
+                      fillColor: Colors.transparent,
+                      filled: true,
                       prefixIcon: widget.leading,
                       suffixIcon: widget.showClose
                           ? ValueListenableBuilder(
@@ -200,101 +198,99 @@ class _SearchBarState extends State<SearchBar> {
                 ),
               ),
             ),
-            ValueListenableBuilder(
-              valueListenable: hide,
-              builder: (
-                BuildContext context,
-                bool hidden,
-                Widget? child,
-              ) {
-                return Visibility(
-                  visible: !hidden,
-                  child: ValueListenableBuilder(
-                    valueListenable: suggestionsList,
-                    builder: (
-                      BuildContext context,
-                      List suggestedList,
-                      Widget? child,
-                    ) {
-                      return suggestedList.isEmpty
-                          ? const SizedBox()
-                          : Card(
-                              margin: const EdgeInsets.symmetric(
-                                horizontal: 18.0,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(
-                                  10.0,
+            Flexible(
+              child: ValueListenableBuilder(
+                valueListenable: hide,
+                builder: (
+                  BuildContext context,
+                  bool hidden,
+                  Widget? child,
+                ) {
+                  return Visibility(
+                    visible: !hidden,
+                    child: ValueListenableBuilder(
+                      valueListenable: suggestionsList,
+                      builder: (
+                        BuildContext context,
+                        List suggestedList,
+                        Widget? child,
+                      ) {
+                        return suggestedList.isEmpty
+                            ? const SizedBox()
+                            : GradientCard(
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 18.0,
                                 ),
-                              ),
-                              elevation: 8.0,
-                              child: SizedBox(
-                                height: min(
-                                  MediaQuery.sizeOf(context).height / 1.75,
-                                  70.0 * suggestedList.length,
-                                ),
-                                child: ListView.builder(
-                                  physics: const BouncingScrollPhysics(),
-                                  padding: const EdgeInsets.only(
-                                    top: 10,
-                                    bottom: 10,
+                                radius: BorderRadius.circular(16.0),
+                                elevation: 4.0,
+                                child: SizedBox(
+                                  height: min(
+                                    MediaQuery.sizeOf(context).height / 1.75,
+                                    70.0 * suggestedList.length,
                                   ),
-                                  shrinkWrap: true,
-                                  itemExtent: 70.0,
-                                  itemCount: suggestedList.length,
-                                  itemBuilder: (context, index) {
-                                    return ListTile(
-                                      leading:
-                                          const Icon(CupertinoIcons.search),
-                                      title: Text(
-                                        suggestedList[index].toString(),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      onTap: () {
-                                        widget.onSubmitted(
+                                  child: ListView.builder(
+                                    physics: const BouncingScrollPhysics(),
+                                    padding: const EdgeInsets.only(
+                                      top: 10,
+                                      bottom: 10,
+                                    ),
+                                    shrinkWrap: true,
+                                    itemExtent: 70.0,
+                                    itemCount: suggestedList.length,
+                                    itemBuilder: (context, index) {
+                                      return ListTile(
+                                        leading:
+                                            const Icon(CupertinoIcons.search),
+                                        title: Text(
                                           suggestedList[index].toString(),
-                                        );
-                                        hide.value = true;
-                                        FocusManager.instance.primaryFocus
-                                            ?.unfocus();
-                                        List searchQueries =
-                                            Hive.box('settings').get(
-                                          'search',
-                                          defaultValue: [],
-                                        ) as List;
-                                        if (searchQueries.contains(
-                                          suggestedList[index]
-                                              .toString()
-                                              .trim(),
-                                        )) {
-                                          searchQueries.remove(
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        onTap: () {
+                                          widget.onSubmitted(
+                                            suggestedList[index].toString(),
+                                          );
+                                          hide.value = true;
+                                          FocusManager.instance.primaryFocus
+                                              ?.unfocus();
+                                          List searchQueries =
+                                              Hive.box('settings').get(
+                                            'search',
+                                            defaultValue: [],
+                                          ) as List;
+                                          if (searchQueries.contains(
+                                            suggestedList[index]
+                                                .toString()
+                                                .trim(),
+                                          )) {
+                                            searchQueries.remove(
+                                              suggestedList[index]
+                                                  .toString()
+                                                  .trim(),
+                                            );
+                                          }
+                                          searchQueries.insert(
+                                            0,
                                             suggestedList[index]
                                                 .toString()
                                                 .trim(),
                                           );
-                                        }
-                                        searchQueries.insert(
-                                          0,
-                                          suggestedList[index]
-                                              .toString()
-                                              .trim(),
-                                        );
-                                        if (searchQueries.length > 10) {
-                                          searchQueries =
-                                              searchQueries.sublist(0, 10);
-                                        }
-                                        Hive.box('settings')
-                                            .put('search', searchQueries);
-                                      },
-                                    );
-                                  },
+                                          if (searchQueries.length > 10) {
+                                            searchQueries =
+                                                searchQueries.sublist(0, 10);
+                                          }
+                                          Hive.box('settings')
+                                              .put('search', searchQueries);
+                                        },
+                                      );
+                                    },
+                                  ),
                                 ),
-                              ),
-                            );
-                    },
-                  ),
-                );
-              },
+                              );
+                      },
+                    ),
+                  );
+                },
+              ),
             ),
           ],
         ),

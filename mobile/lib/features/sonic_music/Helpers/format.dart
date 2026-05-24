@@ -35,12 +35,29 @@ class FormatResponse {
 
     final Uint8List encrypted = base64.decode(input);
     final List<int> decrypted = desECB.decrypt(encrypted);
-    final String decoded = utf8
-        .decode(decrypted)
+    String decoded = utf8
+        .decode(decrypted, allowMalformed: true)
         .replaceAll(RegExp(r'\.mp4.*'), '.mp4')
         .replaceAll(RegExp(r'\.m4a.*'), '.m4a')
         .replaceAll(RegExp(r'\.mp3.*'), '.mp3');
+
     return decoded.replaceAll('http:', 'https:');
+  }
+
+  static String? _encryptedMediaUrl(Map response) {
+    final value = response['more_info']?['encrypted_media_url'] ??
+        response['encrypted_media_url'];
+    final url = value?.toString().trim();
+    if (url == null || url.isEmpty || url == 'null') return null;
+    return url;
+  }
+
+  static String? _decodedMediaUrl(Map response) {
+    final encryptedUrl = _encryptedMediaUrl(response);
+    if (encryptedUrl == null) return null;
+    final decoded = decode(encryptedUrl);
+    if (!decoded.startsWith('http')) return null;
+    return decoded;
   }
 
   static Future<List> formatSongsResponse(
@@ -80,6 +97,13 @@ class FormatResponse {
     //   return cachedSong;
     // }
     try {
+      final mediaUrl = _decodedMediaUrl(response);
+      if (mediaUrl == null) {
+        return {
+          'Error':
+              'Missing playable media URL for song ${response['id'] ?? ''}',
+        };
+      }
       final List artistNames = [];
       if (response['more_info']?['artistMap'] == false ||
           response['more_info']?['artistMap']?['primary_artists'] == null ||
@@ -143,9 +167,7 @@ class FormatResponse {
             : response['more_info']['music'],
         'image': getImageUrl(response['image'].toString()),
         'perma_url': response['perma_url'],
-        'url': (response['more_info']?['encrypted_media_url'] ?? response['encrypted_media_url']) != null
-            ? decode((response['more_info']?['encrypted_media_url'] ?? response['encrypted_media_url']).toString())
-            : '',
+        'url': mediaUrl,
       };
       // Hive.box('cache').put(response['id'].toString(), info);
     } catch (e) {
@@ -156,6 +178,13 @@ class FormatResponse {
 
   static Future<Map> formatSingleAlbumSongResponse(Map response) async {
     try {
+      final mediaUrl = _decodedMediaUrl(response);
+      if (mediaUrl == null) {
+        return {
+          'Error':
+              'Missing playable media URL for album song ${response['id'] ?? ''}',
+        };
+      }
       final List artistNames = [];
       if (response['primary_artists'] == null ||
           response['primary_artists'].toString().trim() == '') {
@@ -211,9 +240,7 @@ class FormatResponse {
             : response['more_info']['music'],
         'image': getImageUrl(response['image'].toString()),
         'perma_url': response['perma_url'],
-        'url': (response['encrypted_media_url'] ?? response['more_info']?['encrypted_media_url']) != null
-            ? decode((response['encrypted_media_url'] ?? response['more_info']?['encrypted_media_url']).toString())
-            : '',
+        'url': mediaUrl,
       };
     } catch (e) {
       Logger.root.severe('Error inside FormatSingleAlbumSongResponse: $e');

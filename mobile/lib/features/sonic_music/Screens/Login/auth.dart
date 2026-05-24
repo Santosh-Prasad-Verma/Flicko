@@ -63,7 +63,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   height: MediaQuery.sizeOf(context).width,
                   child: const Image(
                     image: AssetImage(
-                      'assets/icon-white-trans.png',
+                      'assets/images/Flicko-for-black-background.png',
                     ),
                   ),
                 ),

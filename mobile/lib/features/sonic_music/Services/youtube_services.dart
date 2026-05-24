@@ -97,28 +97,89 @@ class YouTubeServices {
     String quality;
     try {
       quality =
-          Hive.box('settings').get('quality', defaultValue: 'Low').toString();
+          Hive.box('settings').get('ytQuality', defaultValue: 'Low').toString();
     } catch (e) {
       quality = 'Low';
     }
     if (useYTM) {
-      final Map res = await YtMusicService().getSongData(
-        videoId: id,
-        quality: quality,
-      );
-      return res;
+      try {
+        final Map res = await YtMusicService().getSongData(
+          videoId: id,
+          quality: quality,
+        );
+        if (_hasPlayableUrl(res)) return res;
+        Logger.root.warning('YtMusic returned no playable URL for $id');
+      } catch (e) {
+        Logger.root.warning('YtMusic refresh failed for $id: $e');
+      }
     }
-    final Video? res = await getVideoFromId(id);
-    if (res == null) {
-      return null;
+
+    try {
+      final Video? res = await getVideoFromId(id);
+      if (res == null) {
+        return null;
+      }
+      final Map? data = await formatVideo(video: res, quality: quality);
+      if (data != null && _hasPlayableUrl(data)) return data;
+    } catch (e) {
+      Logger.root.severe('youtube_explode refresh failed for $id', e);
     }
-    final Map? data = await formatVideo(video: res, quality: quality);
-    return data;
+    return null;
+  }
+
+  bool _hasPlayableUrl(Map data) {
+    final url = data['url']?.toString() ?? '';
+    return url.startsWith('http') && !url.contains('/watch?');
   }
 
   Future<Playlist> getPlaylistDetails(String id) async {
     final Playlist metadata = await yt.playlists.get(id);
     return metadata;
+  }
+
+  Map? _extractInitialData(String html) {
+    final markers = [
+      'var ytInitialData =',
+      'window["ytInitialData"] =',
+      'ytInitialData =',
+    ];
+    for (final marker in markers) {
+      final markerIndex = html.indexOf(marker);
+      if (markerIndex == -1) continue;
+
+      final start = html.indexOf('{', markerIndex);
+      if (start == -1) continue;
+
+      var depth = 0;
+      var inString = false;
+      var escaped = false;
+      for (var i = start; i < html.length; i++) {
+        final char = html[i];
+        if (escaped) {
+          escaped = false;
+          continue;
+        }
+        if (char == '\\') {
+          escaped = true;
+          continue;
+        }
+        if (char == '"') {
+          inString = !inString;
+          continue;
+        }
+        if (inString) continue;
+        if (char == '{') depth++;
+        if (char == '}') {
+          depth--;
+          if (depth == 0) {
+            final jsonText = html.substring(start, i + 1);
+            final decoded = json.decode(jsonText);
+            return decoded is Map ? decoded : null;
+          }
+        }
+      }
+    }
+    return null;
   }
 
   Future<Map<String, List>> getMusicHome() async {
@@ -127,14 +188,15 @@ class YouTubeServices {
       paths['music'].toString(),
     );
     try {
-      final Response response = await get(link);
+      final Response response = await get(link, headers: headers);
       if (response.statusCode != 200) {
         return {};
       }
-      final String searchResults =
-          RegExp(r'(\"contents\":{.*?}),\"metadata\"', dotAll: true)
-              .firstMatch(response.body)![1]!;
-      final Map data = json.decode('{$searchResults}') as Map;
+      final Map? data = _extractInitialData(response.body);
+      if (data == null) {
+        Logger.root.warning('Unable to parse YouTube Music home payload');
+        return {};
+      }
 
       final List result = data['contents']['twoColumnBrowseResultsRenderer']
               ['tabs'][0]['tabRenderer']['content']['sectionListRenderer']
@@ -370,11 +432,13 @@ class YouTubeServices {
     String expireAt = '0';
     if (getUrl) {
       urlsData = await getYtStreamUrls(video.id.value);
-      final Map finalUrlData =
-          quality == 'High' ? urlsData.last : urlsData.first;
-      finalUrl = finalUrlData['url'].toString();
-      expireAt = finalUrlData['expireAt'].toString();
-      allUrls = urlsData.map((e) => e['url'].toString()).toList();
+      if (urlsData.isNotEmpty) {
+        final Map finalUrlData =
+            quality == 'High' ? urlsData.last : urlsData.first;
+        finalUrl = finalUrlData['url'].toString();
+        expireAt = finalUrlData['expireAt'].toString();
+        allUrls = urlsData.map((e) => e['url'].toString()).toList();
+      }
     }
     return {
       'id': video.id.value,
@@ -524,12 +588,14 @@ class YouTubeServices {
   }
 
   String getExpireAt(String url) {
-    final match = RegExp('expire=(.*?)&').firstMatch(url);
+    final match = RegExp(r'[?&]expire=([^&]+)').firstMatch(url);
     if (match != null && match.groupCount >= 1) {
       return match.group(1) ??
-          (DateTime.now().millisecondsSinceEpoch ~/ 1000 + 3600 * 5.5).toString();
+          (DateTime.now().millisecondsSinceEpoch ~/ 1000 + 3600 * 5.5)
+              .toString();
     }
-    return (DateTime.now().millisecondsSinceEpoch ~/ 1000 + 3600 * 5.5).toString();
+    return (DateTime.now().millisecondsSinceEpoch ~/ 1000 + 3600 * 5.5)
+        .toString();
   }
 
   Future<List<Map>> getYtStreamUrls(String videoId) async {
@@ -555,7 +621,7 @@ class YouTubeServices {
           } else {
             // giving cache link
             Logger.root.info('cache found for $videoId');
-            urlData = cachedData as List<Map>;
+            urlData = List<Map>.from(cachedData);
           }
         } else {
           // old version cache is present

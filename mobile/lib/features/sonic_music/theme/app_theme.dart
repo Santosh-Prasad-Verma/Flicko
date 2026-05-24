@@ -52,7 +52,12 @@ class AppTheme {
       appBarTheme: AppBarTheme(
         backgroundColor: currentTheme.currentColor(),
         foregroundColor: Colors.black,
-        systemOverlayStyle: SystemUiOverlayStyle.dark,
+        systemOverlayStyle: SystemUiOverlayStyle.dark.copyWith(
+          statusBarColor: Colors.transparent,
+          systemNavigationBarColor: Colors.transparent,
+          systemNavigationBarDividerColor: Colors.transparent,
+          systemNavigationBarContrastEnforced: false,
+        ),
       ),
       cardTheme: CardThemeData(
         clipBehavior: Clip.antiAlias,
@@ -112,7 +117,12 @@ class AppTheme {
       appBarTheme: AppBarTheme(
         color: currentTheme.getCanvasColor(),
         foregroundColor: Colors.white,
-        systemOverlayStyle: SystemUiOverlayStyle.light,
+        systemOverlayStyle: SystemUiOverlayStyle.light.copyWith(
+          statusBarColor: Colors.transparent,
+          systemNavigationBarColor: Colors.transparent,
+          systemNavigationBarDividerColor: Colors.transparent,
+          systemNavigationBarContrastEnforced: false,
+        ),
       ),
       canvasColor: currentTheme.getCanvasColor(),
       cardColor: currentTheme.getCardColor(),

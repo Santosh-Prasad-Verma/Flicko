@@ -60,7 +60,7 @@ class _AboutScreenState extends State<AboutScreen> {
               child: const Image(
                 fit: BoxFit.fill,
                 image: AssetImage(
-                  'assets/icon-white-trans.png',
+                  'assets/images/Flicko-for-black-background.png',
                 ),
               ),
             ),
@@ -103,7 +103,7 @@ class _AboutScreenState extends State<AboutScreen> {
                         child: const SizedBox(
                           width: 150,
                           child: Image(
-                            image: AssetImage('assets/ic_launcher.png'),
+                            image: AssetImage('assets/images/Flicko-for-black-background.png'),
                           ),
                         ),
                       ),

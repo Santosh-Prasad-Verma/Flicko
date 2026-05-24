@@ -17,7 +17,7 @@ class BadgeAlchemyScreen extends ConsumerStatefulWidget {
   ConsumerState<BadgeAlchemyScreen> createState() => _BadgeAlchemyScreenState();
 }
 
-class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with SingleTickerProviderStateMixin {
+class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with TickerProviderStateMixin {
   late TabController _tabController;
   late AnimationController _animationController;
 
