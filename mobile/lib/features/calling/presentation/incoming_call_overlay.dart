@@ -161,6 +161,10 @@ class CallOverlay {
     required String peerName,
     String? peerAvatarUrl,
     bool isVideo = false,
+    String? roomName,
+    String? myUserId,
+    String? peerUserId,
+    bool isCaller = false,
     VoidCallback? onHangUp,
   }) {
     // Pop the incoming/outgoing screen first
@@ -174,6 +178,10 @@ class CallOverlay {
         peerName: peerName,
         peerAvatarUrl: peerAvatarUrl,
         isVideo: isVideo,
+        roomName: roomName,
+        myUserId: myUserId,
+        peerUserId: peerUserId,
+        isCaller: isCaller,
         onHangUp: onHangUp,
       ),
     );

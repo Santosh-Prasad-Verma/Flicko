@@ -21,7 +21,7 @@ class CallSignalPayload {
   final String? callerAvatarUrl;
   final String calleeId;
   final String callType; // 'voice' or 'video'
-  final String roomName; // LiveKit room for accepted calls
+  final String roomName; // WebRTC signaling room for accepted calls
 
   CallSignalPayload({
     required this.signal,
@@ -75,7 +75,7 @@ final callSignalingServiceProvider = Provider<CallSignalingService>((ref) {
 ///   Caller -> send ring to callee's channel
 ///   Callee -> receives ring, shows IncomingCallScreen
 ///   Callee -> sends accept or decline
-///   Caller -> receives accept -> joins LiveKit room
+///   Caller -> receives accept -> both users join the WebRTC signaling room
 ///   Caller -> receives decline -> shows missed call
 class CallSignalingService {
   final SupabaseClient _supabase;
@@ -108,9 +108,9 @@ class CallSignalingService {
           event: 'call_signal',
           callback: (payload) {
             try {
-              final data = payload as Map<String, dynamic>;
-              final signal = CallSignalPayload.fromJson(data);
-              debugPrint('[CallSignal] Received: ${signal.signal.name} from ${signal.callerName}');
+              final signal = CallSignalPayload.fromJson(payload);
+              debugPrint(
+                  '[CallSignal] Received: ${signal.signal.name} from ${signal.callerName}');
               _signalController.add(signal);
             } catch (e) {
               debugPrint('[CallSignal] Error parsing incoming signal: $e');
@@ -118,8 +118,8 @@ class CallSignalingService {
           },
         )
         .subscribe((status, _) {
-          debugPrint('[CallSignal] Subscription status: $status');
-        });
+      debugPrint('[CallSignal] Subscription status: $status');
+    });
   }
 
   /// Send a call signal to a recipient via their broadcast channel.
@@ -127,12 +127,14 @@ class CallSignalingService {
     final recipientChannel = _supabase.channel('call:${signal.calleeId}');
 
     try {
-      await recipientChannel.subscribe();
+      recipientChannel.subscribe();
+      await Future<void>.delayed(const Duration(milliseconds: 150));
       await recipientChannel.sendBroadcastMessage(
         event: 'call_signal',
         payload: signal.toJson(),
       );
-      debugPrint('[CallSignal] Sent ${signal.signal.name} to ${signal.calleeId}');
+      debugPrint(
+          '[CallSignal] Sent ${signal.signal.name} to ${signal.calleeId}');
     } catch (e) {
       debugPrint('[CallSignal] Error sending signal: $e');
     } finally {
@@ -141,10 +143,10 @@ class CallSignalingService {
     }
   }
 
-  /// Generate a deterministic LiveKit room name for a DM pair.
+  /// Generate a unique WebRTC room name for a DM pair.
   static String roomNameForDM(String userId1, String userId2) {
     final ids = [userId1, userId2]..sort();
-    return 'dm_call_${ids[0]}_${ids[1]}';
+    return 'dm_call_${ids[0]}_${ids[1]}_${DateTime.now().millisecondsSinceEpoch}';
   }
 
   /// Clean up subscriptions.

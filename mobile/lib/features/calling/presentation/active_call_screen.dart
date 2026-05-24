@@ -2,7 +2,10 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/features/calling/services/webrtc_call_service.dart';
 import 'call_theme.dart';
 
 /// Active in-call screen with cyberpunk HUD.
@@ -10,10 +13,14 @@ import 'call_theme.dart';
 /// Supports both voice and video calls. Video mode shows full-screen
 /// remote video with PiP self-view. Voice mode shows animated
 /// waveform visualizer around the avatar.
-class ActiveCallScreen extends StatefulWidget {
+class ActiveCallScreen extends ConsumerStatefulWidget {
   final String peerName;
   final String? peerAvatarUrl;
   final bool isVideo;
+  final String? roomName;
+  final String? myUserId;
+  final String? peerUserId;
+  final bool isCaller;
   final VoidCallback? onHangUp;
 
   const ActiveCallScreen({
@@ -21,14 +28,19 @@ class ActiveCallScreen extends StatefulWidget {
     required this.peerName,
     this.peerAvatarUrl,
     this.isVideo = false,
+    this.roomName,
+    this.myUserId,
+    this.peerUserId,
+    this.isCaller = false,
     this.onHangUp,
   });
 
   @override
-  State<ActiveCallScreen> createState() => _ActiveCallScreenState();
+  ConsumerState<ActiveCallScreen> createState() => _ActiveCallScreenState();
 }
 
-class _ActiveCallScreenState extends State<ActiveCallScreen> with TickerProviderStateMixin {
+class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen>
+    with TickerProviderStateMixin {
   late AnimationController _waveController;
   late AnimationController _pulseController;
   late AnimationController _tickerController;
@@ -39,6 +51,9 @@ class _ActiveCallScreenState extends State<ActiveCallScreen> with TickerProvider
   bool _isSpeaker = false;
   bool _isVideoOn = false;
   bool _isHolding = false;
+  bool _endingCall = false;
+  WebRtcCallService? _rtc;
+  Future<void>? _startCallFuture;
   double _bitrate = 4.2;
   int _packetLoss = 0;
   int _jitter = 2;
@@ -46,6 +61,11 @@ class _ActiveCallScreenState extends State<ActiveCallScreen> with TickerProvider
 
   // PiP drag position
   Offset _pipOffset = const Offset(16, 100);
+
+  bool get _hasRtcSession =>
+      widget.roomName != null &&
+      widget.myUserId != null &&
+      widget.peerUserId != null;
 
   @override
   void initState() {
@@ -69,6 +89,19 @@ class _ActiveCallScreenState extends State<ActiveCallScreen> with TickerProvider
       duration: const Duration(seconds: 25),
     )..repeat();
 
+    if (_hasRtcSession) {
+      _rtc = ref.read(webRtcCallServiceProvider);
+      _rtc!.addListener(_handleRtcUpdate);
+      _isSpeaker = _rtc!.speakerEnabled;
+      _startCallFuture = _rtc!.startCall(
+        roomName: widget.roomName!,
+        myUserId: widget.myUserId!,
+        peerUserId: widget.peerUserId!,
+        isCaller: widget.isCaller,
+        videoEnabled: widget.isVideo,
+      );
+    }
+
     _timerTick = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
       setState(() {
@@ -82,12 +115,40 @@ class _ActiveCallScreenState extends State<ActiveCallScreen> with TickerProvider
 
   @override
   void dispose() {
+    _rtc?.removeListener(_handleRtcUpdate);
+    if (_hasRtcSession && !_endingCall) {
+      unawaited(_rtc?.endCall(notifyPeer: true));
+    }
     _waveController.dispose();
     _pulseController.dispose();
     _tickerController.dispose();
     _timerTick.cancel();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
+  }
+
+  void _handleRtcUpdate() {
+    final rtc = _rtc;
+    if (!mounted || rtc == null) return;
+    setState(() {
+      _isMuted = rtc.isMuted;
+      _isSpeaker = rtc.speakerEnabled;
+      _isVideoOn = widget.isVideo && rtc.cameraEnabled;
+    });
+    if (!_endingCall && rtc.phase == WebRtcCallPhase.ended) {
+      _endingCall = true;
+      Navigator.of(context, rootNavigator: true).maybePop();
+    }
+  }
+
+  Future<void> _hangUp() async {
+    if (_endingCall) return;
+    _endingCall = true;
+    await _rtc?.endCall(notifyPeer: true);
+    widget.onHangUp?.call();
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
   }
 
   String _formatTime(int seconds) {
@@ -106,6 +167,7 @@ class _ActiveCallScreenState extends State<ActiveCallScreen> with TickerProvider
             size: MediaQuery.of(context).size,
             painter: GridPainter(),
           ),
+          if (widget.isVideo) _buildRemoteVideoStage(),
           // Main content
           SafeArea(
             child: Column(
@@ -114,7 +176,7 @@ class _ActiveCallScreenState extends State<ActiveCallScreen> with TickerProvider
                 const SizedBox(height: 8),
                 _buildConnectionStats(),
                 const Spacer(),
-                if (!_isVideoOn) _buildVoiceVisualizer(),
+                if (!widget.isVideo) _buildVoiceVisualizer(),
                 const Spacer(),
                 _buildControls(),
                 const SizedBox(height: 16),
@@ -124,7 +186,7 @@ class _ActiveCallScreenState extends State<ActiveCallScreen> with TickerProvider
             ),
           ),
           // PiP self-view (video mode only)
-          if (_isVideoOn) _buildPiPView(),
+          if (widget.isVideo) _buildPiPView(),
         ],
       ),
     );
@@ -204,6 +266,95 @@ class _ActiveCallScreenState extends State<ActiveCallScreen> with TickerProvider
     );
   }
 
+  Widget _buildRemoteVideoStage() {
+    final rtc = _rtc;
+    final showRemote = rtc != null && rtc.renderersReady && rtc.hasRemoteVideo;
+
+    return Positioned.fill(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (showRemote)
+            RTCVideoView(
+              rtc.remoteRenderer,
+              objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+            )
+          else
+            Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0xFF07100C),
+                    CallTheme.bg,
+                  ],
+                ),
+              ),
+              child: Center(
+                child: FutureBuilder<void>(
+                  future: _startCallFuture,
+                  builder: (context, snapshot) {
+                    final status = rtc?.phaseLabel ?? 'PREPARING MEDIA';
+                    final error = rtc?.error ?? snapshot.error?.toString();
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.videocam_outlined,
+                          color: error == null
+                              ? CallTheme.neonGreen
+                              : CallTheme.red,
+                          size: 48,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          error == null ? status : 'VIDEO LINK FAILED',
+                          style: CallTheme.monoLabel(
+                            color: error == null
+                                ? CallTheme.neonGreen
+                                : CallTheme.red,
+                            size: 13,
+                            weight: FontWeight.w700,
+                          ),
+                        ),
+                        if (error != null) ...[
+                          const SizedBox(height: 8),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 36),
+                            child: Text(
+                              error,
+                              textAlign: TextAlign.center,
+                              style: CallTheme.monoLabel(size: 10),
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ),
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withValues(alpha: 0.30),
+                  Colors.transparent,
+                  Colors.black.withValues(alpha: 0.70),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildConnectionStats() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -224,7 +375,9 @@ class _ActiveCallScreenState extends State<ActiveCallScreen> with TickerProvider
               ),
               const SizedBox(height: 2),
               Text(
-                _isHolding ? '◆ ON HOLD' : '◆ ${widget.isVideo ? 'VIDEO' : 'VOICE'} ACTIVE',
+                _isHolding
+                    ? '◆ ON HOLD'
+                    : '◆ ${widget.isVideo ? 'VIDEO' : 'VOICE'} ACTIVE',
                 style: CallTheme.monoLabel(
                   color: _isHolding ? CallTheme.amber : CallTheme.neonGreen,
                   size: 10,
@@ -236,7 +389,8 @@ class _ActiveCallScreenState extends State<ActiveCallScreen> with TickerProvider
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              CallTheme.techLabel('${_bitrate.toStringAsFixed(1)} MBPS', color: CallTheme.neonGreen),
+              CallTheme.techLabel('${_bitrate.toStringAsFixed(1)} MBPS',
+                  color: CallTheme.neonGreen),
               CallTheme.techLabel('LOSS: $_packetLoss%'),
               CallTheme.techLabel('JITTER: ${_jitter}MS'),
             ],
@@ -366,43 +520,63 @@ class _ActiveCallScreenState extends State<ActiveCallScreen> with TickerProvider
               ),
             ],
           ),
-          child: Stack(
-            children: [
-              // Placeholder for camera feed
-              Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.person, color: CallTheme.textDim, size: 40),
-                    const SizedBox(height: 4),
-                    Text(
-                      'YOU',
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Stack(
+              children: [
+                if (_rtc != null &&
+                    _rtc!.renderersReady &&
+                    _rtc!.hasLocalVideo &&
+                    _isVideoOn)
+                  Positioned.fill(
+                    child: RTCVideoView(
+                      _rtc!.localRenderer,
+                      mirror: true,
+                      objectFit:
+                          RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                    ),
+                  )
+                else
+                  Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.person,
+                          color: CallTheme.textDim,
+                          size: 40,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _isVideoOn ? 'STARTING' : 'CAM OFF',
+                          style: CallTheme.monoLabel(
+                            size: 8,
+                            weight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                // HUD label
+                Positioned(
+                  top: 6,
+                  left: 6,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                    color: CallTheme.bg.withValues(alpha: 0.7),
+                    child: Text(
+                      'LOCAL',
                       style: CallTheme.monoLabel(
-                        size: 8,
+                        color: CallTheme.neonGreen,
+                        size: 7,
                         weight: FontWeight.w700,
                       ),
                     ),
-                  ],
-                ),
-              ),
-              // HUD label
-              Positioned(
-                top: 6,
-                left: 6,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                  color: CallTheme.bg.withValues(alpha: 0.7),
-                  child: Text(
-                    'LOCAL',
-                    style: CallTheme.monoLabel(
-                      color: CallTheme.neonGreen,
-                      size: 7,
-                      weight: FontWeight.w700,
-                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -420,20 +594,29 @@ class _ActiveCallScreenState extends State<ActiveCallScreen> with TickerProvider
             label: _isMuted ? 'UNMUTE' : 'MUTE',
             isActive: _isMuted,
             activeColor: CallTheme.red,
-            onTap: () => setState(() => _isMuted = !_isMuted),
+            onTap: () {
+              if (_rtc != null) {
+                unawaited(_rtc!.setMicrophoneEnabled(_isMuted));
+              } else {
+                setState(() => _isMuted = !_isMuted);
+              }
+            },
           ),
           CallTheme.actionButton(
             icon: _isVideoOn ? Icons.videocam : Icons.videocam_off,
             label: 'VIDEO',
             isActive: _isVideoOn,
-            onTap: () => setState(() => _isVideoOn = !_isVideoOn),
+            onTap: () {
+              if (_rtc != null) {
+                unawaited(_rtc!.setCameraEnabled(!_isVideoOn));
+              } else {
+                setState(() => _isVideoOn = !_isVideoOn);
+              }
+            },
           ),
           // Hang up
           GestureDetector(
-            onTap: () {
-              widget.onHangUp?.call();
-              if (mounted) Navigator.of(context).pop();
-            },
+            onTap: () => unawaited(_hangUp()),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -451,7 +634,8 @@ class _ActiveCallScreenState extends State<ActiveCallScreen> with TickerProvider
                       ),
                     ],
                   ),
-                  child: const Icon(Icons.call_end, color: CallTheme.white, size: 28),
+                  child: const Icon(Icons.call_end,
+                      color: CallTheme.white, size: 28),
                 ),
                 const SizedBox(height: 6),
                 Text(
@@ -469,14 +653,28 @@ class _ActiveCallScreenState extends State<ActiveCallScreen> with TickerProvider
             icon: _isSpeaker ? Icons.volume_up : Icons.volume_down,
             label: 'SPEAKER',
             isActive: _isSpeaker,
-            onTap: () => setState(() => _isSpeaker = !_isSpeaker),
+            onTap: () {
+              if (_rtc != null) {
+                unawaited(_rtc!.setSpeakerEnabled(!_isSpeaker));
+              } else {
+                setState(() => _isSpeaker = !_isSpeaker);
+              }
+            },
           ),
           CallTheme.actionButton(
-            icon: _isHolding ? Icons.play_arrow : Icons.pause,
-            label: _isHolding ? 'RESUME' : 'HOLD',
-            isActive: _isHolding,
+            icon: widget.isVideo
+                ? Icons.cameraswitch
+                : (_isHolding ? Icons.play_arrow : Icons.pause),
+            label: widget.isVideo ? 'FLIP' : (_isHolding ? 'RESUME' : 'HOLD'),
+            isActive: widget.isVideo ? false : _isHolding,
             activeColor: CallTheme.amber,
-            onTap: () => setState(() => _isHolding = !_isHolding),
+            onTap: () {
+              if (widget.isVideo && _rtc != null) {
+                unawaited(_rtc!.switchCamera());
+              } else {
+                setState(() => _isHolding = !_isHolding);
+              }
+            },
           ),
         ],
       ),
@@ -532,7 +730,8 @@ class _WaveformPainter extends CustomPainter {
 
     for (int i = 0; i <= segments; i++) {
       final angle = (i / segments) * 2 * pi;
-      final wave = sin(angle * 8 + phase * 2 * pi) * (6 + 4 * sin(phase * 2 * pi + angle * 3));
+      final wave = sin(angle * 8 + phase * 2 * pi) *
+          (6 + 4 * sin(phase * 2 * pi + angle * 3));
       final r = baseRadius + wave;
       final x = center.dx + r * cos(angle);
       final y = center.dy + r * sin(angle);

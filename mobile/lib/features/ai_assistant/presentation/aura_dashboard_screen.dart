@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:mobile/core/config/app_config.dart';
 import 'package:mobile/features/ai_assistant/data/aura_chat_service.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 
@@ -11,7 +12,8 @@ class AuraDashboardScreen extends ConsumerStatefulWidget {
   const AuraDashboardScreen({super.key});
 
   @override
-  ConsumerState<AuraDashboardScreen> createState() => _AuraDashboardScreenState();
+  ConsumerState<AuraDashboardScreen> createState() =>
+      _AuraDashboardScreenState();
 }
 
 class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen> {
@@ -35,10 +37,12 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen> {
   Future<void> _showApiKeyDialog(BuildContext context) async {
     final notifier = ref.read(auraSessionsProvider.notifier);
     final currentKey = await notifier.getApiKey();
-    final defaultKey = 'AIzaSyDhEKT-KK1COPAeRzy_ggDgHXwujIbtH64';
-    final isCustom = currentKey != null && currentKey != defaultKey;
+    final envKey = AppConfig.geminiApiKey.trim();
+    final isLocalOverride = currentKey != null && currentKey != envKey;
 
-    final controller = TextEditingController(text: isCustom ? currentKey : '');
+    final controller = TextEditingController(
+      text: isLocalOverride ? currentKey : '',
+    );
     bool obscureText = true;
 
     if (!context.mounted) return;
@@ -73,7 +77,9 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'Provide your own Gemini API key to activate live responses. If left empty, a shared default key is used.',
+                      envKey.isNotEmpty
+                          ? 'A runtime Gemini key is configured. Add a key here only if you want to override it on this device.'
+                          : 'Provide a Gemini API key to activate live text and native-audio voice responses.',
                       style: GoogleFonts.spaceGrotesk(
                         color: Colors.white.withOpacity(0.6),
                         fontSize: 13,
@@ -156,14 +162,18 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen> {
                           ),
                           onPressed: () async {
                             final newKey = controller.text.trim();
-                            await notifier.saveApiKey(newKey.isEmpty ? null : newKey);
+                            await notifier.saveApiKey(
+                              newKey.isEmpty ? null : newKey,
+                            );
                             if (context.mounted) {
                               Navigator.of(context).pop();
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(
                                     newKey.isEmpty
-                                        ? 'Using default shared Gemini API key.'
+                                        ? (envKey.isNotEmpty
+                                              ? 'Using configured environment Gemini API key.'
+                                              : 'Gemini API key cleared. Aura Live needs a key to answer online.')
                                         : 'Gemini API key updated successfully!',
                                   ),
                                   backgroundColor: const Color(0xFF13101C),
@@ -196,7 +206,9 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen> {
     final authState = ref.watch(authNotifierProvider);
     final String displayName = authState.maybeWhen(
       authenticated: (authUser, userProfile) {
-        if (userProfile != null && userProfile.displayName != null && userProfile.displayName!.isNotEmpty) {
+        if (userProfile != null &&
+            userProfile.displayName != null &&
+            userProfile.displayName!.isNotEmpty) {
           return userProfile.displayName!;
         }
         if (userProfile != null) {
@@ -227,9 +239,16 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen> {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: Colors.white.withOpacity(0.04),
-              border: Border.all(color: Colors.white.withOpacity(0.08), width: 1.2),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.08),
+                width: 1.2,
+              ),
             ),
-            child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 18),
+            child: const Icon(
+              Icons.arrow_back_rounded,
+              color: Colors.white,
+              size: 18,
+            ),
           ),
         ),
         Row(
@@ -254,7 +273,11 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen> {
               shape: BoxShape.circle,
               color: Colors.white.withOpacity(0.04),
             ),
-            child: const Icon(Icons.key_rounded, color: Color(0xFFC0EC54), size: 18),
+            child: const Icon(
+              Icons.key_rounded,
+              color: Color(0xFFC0EC54),
+              size: 18,
+            ),
           ),
         ),
       ],
@@ -309,9 +332,17 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen> {
                           shape: BoxShape.circle,
                           color: Colors.black.withOpacity(0.06),
                         ),
-                        child: const Icon(Icons.mic_none_rounded, color: Color(0xFF07040A), size: 22),
+                        child: const Icon(
+                          Icons.mic_none_rounded,
+                          color: Color(0xFF07040A),
+                          size: 22,
+                        ),
                       ),
-                      const Icon(Icons.arrow_outward_rounded, color: Color(0xFF07040A), size: 20),
+                      const Icon(
+                        Icons.arrow_outward_rounded,
+                        color: Color(0xFF07040A),
+                        size: 20,
+                      ),
                     ],
                   ),
                   Text(
@@ -337,18 +368,28 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen> {
               // Top: Chat with Bot Card
               GestureDetector(
                 onTap: () async {
-                  final session = await ref.read(auraSessionsProvider.notifier).createNewSession('Chat');
+                  final session = await ref
+                      .read(auraSessionsProvider.notifier)
+                      .createNewSession('Chat');
                   if (mounted) {
-                    context.push('/profile/settings/aura/chat?category=Chat&sessionId=${session.id}');
+                    context.push(
+                      '/profile/settings/aura/chat?category=Chat&sessionId=${session.id}',
+                    );
                   }
                 },
                 child: Container(
                   height: 84,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFF13101C),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white.withOpacity(0.04), width: 1.2),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.04),
+                      width: 1.2,
+                    ),
                   ),
                   child: Row(
                     children: [
@@ -358,7 +399,11 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen> {
                           shape: BoxShape.circle,
                           color: Colors.white.withOpacity(0.04),
                         ),
-                        child: const Icon(Icons.chat_bubble_outline_rounded, color: Color(0xFFCBB6FC), size: 18),
+                        child: const Icon(
+                          Icons.chat_bubble_outline_rounded,
+                          color: Color(0xFFCBB6FC),
+                          size: 18,
+                        ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -377,7 +422,11 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen> {
                           ],
                         ),
                       ),
-                      Icon(Icons.arrow_outward_rounded, color: Colors.white.withOpacity(0.4), size: 16),
+                      Icon(
+                        Icons.arrow_outward_rounded,
+                        color: Colors.white.withOpacity(0.4),
+                        size: 16,
+                      ),
                     ],
                   ),
                 ),
@@ -389,7 +438,10 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen> {
                 decoration: BoxDecoration(
                   color: const Color(0xFF13101C),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white.withOpacity(0.04), width: 1.2),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.04),
+                    width: 1.2,
+                  ),
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(20),
@@ -401,14 +453,16 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen> {
                           child: ShaderMask(
                             shaderCallback: (bounds) {
                               return const LinearGradient(
-                                colors: [Color(0xFFCBB6FC), Color(0xFFFFD1B3), Color(0xFFBFF6EB)],
+                                colors: [
+                                  Color(0xFFCBB6FC),
+                                  Color(0xFFFFD1B3),
+                                  Color(0xFFBFF6EB),
+                                ],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                               ).createShader(bounds);
                             },
-                            child: CustomPaint(
-                              painter: BrainWavePainter(),
-                            ),
+                            child: CustomPaint(painter: BrainWavePainter()),
                           ),
                         ),
                       ),
@@ -454,7 +508,10 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen> {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.symmetric(horizontal: 20),
         color: Colors.red.withOpacity(0.2),
-        child: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+        child: const Icon(
+          Icons.delete_outline_rounded,
+          color: Colors.redAccent,
+        ),
       ),
       onDismissed: (direction) {
         ref.read(auraSessionsProvider.notifier).deleteSession(session.id);
@@ -478,7 +535,9 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen> {
           contentPadding: EdgeInsets.zero,
           visualDensity: VisualDensity.compact,
           onTap: () {
-            context.push('/profile/settings/aura/chat?category=${session.category}&sessionId=${session.id}');
+            context.push(
+              '/profile/settings/aura/chat?category=${session.category}&sessionId=${session.id}',
+            );
           },
           leading: Container(
             width: 8,
@@ -558,11 +617,18 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen> {
             alignment: Alignment.center,
             child: Column(
               children: [
-                const Icon(Icons.history_toggle_off_rounded, color: Colors.white30, size: 36),
+                const Icon(
+                  Icons.history_toggle_off_rounded,
+                  color: Colors.white30,
+                  size: 36,
+                ),
                 const SizedBox(height: 12),
                 Text(
                   'No search results or history',
-                  style: GoogleFonts.spaceMono(color: Colors.white30, fontSize: 13),
+                  style: GoogleFonts.spaceMono(
+                    color: Colors.white30,
+                    fontSize: 13,
+                  ),
                 ),
               ],
             ),
@@ -584,7 +650,7 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final sessions = ref.watch(auraSessionsProvider);
-    
+
     final filteredSessions = sessions.where((session) {
       final query = _searchQuery.toLowerCase();
       return session.title.toLowerCase().contains(query) ||
@@ -650,29 +716,42 @@ class BrainWavePainter extends CustomPainter {
     final path = Path();
     path.moveTo(0, size.height * 0.5);
     path.cubicTo(
-      size.width * 0.25, size.height * 0.1,
-      size.width * 0.5, size.height * 0.9,
-      size.width * 0.75, size.height * 0.3,
+      size.width * 0.25,
+      size.height * 0.1,
+      size.width * 0.5,
+      size.height * 0.9,
+      size.width * 0.75,
+      size.height * 0.3,
     );
     path.cubicTo(
-      size.width * 0.85, size.height * 0.1,
-      size.width * 0.95, size.height * 0.6,
-      size.width, size.height * 0.4,
+      size.width * 0.85,
+      size.height * 0.1,
+      size.width * 0.95,
+      size.height * 0.6,
+      size.width,
+      size.height * 0.4,
     );
 
     final path2 = Path();
     path2.moveTo(0, size.height * 0.7);
     path2.cubicTo(
-      size.width * 0.3, size.height * 0.3,
-      size.width * 0.55, size.height * 0.8,
-      size.width * 0.8, size.height * 0.2,
+      size.width * 0.3,
+      size.height * 0.3,
+      size.width * 0.55,
+      size.height * 0.8,
+      size.width * 0.8,
+      size.height * 0.2,
     );
     path2.lineTo(size.width, size.height * 0.5);
 
     canvas.drawPath(path, paint);
     canvas.drawPath(path2, paint);
 
-    canvas.drawCircle(Offset(size.width * 0.5, size.height * 0.5), 3, paint..style = PaintingStyle.fill);
+    canvas.drawCircle(
+      Offset(size.width * 0.5, size.height * 0.5),
+      3,
+      paint..style = PaintingStyle.fill,
+    );
     canvas.drawCircle(Offset(size.width * 0.75, size.height * 0.3), 2, paint);
     canvas.drawCircle(Offset(size.width * 0.25, size.height * 0.4), 2, paint);
   }

@@ -6,6 +6,7 @@ import 'package:mobile/data/models/music_model.dart';
 import 'package:mobile/data/services/music_service.dart';
 import 'package:mobile/features/voice/application/music_notifier.dart';
 import 'package:mobile/data/services/user_search_service.dart';
+import 'package:mobile/core/config/app_config.dart';
 import 'package:mobile/features/direct_messages/data/dm_repository.dart';
 import 'package:mobile/features/home/application/servers_notifier.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
@@ -63,8 +64,8 @@ class AuraMessage {
       id: map['id'] ?? '',
       sender: map['sender'] ?? 'aura',
       text: map['text'] ?? '',
-      timestamp: map['timestamp'] != null 
-          ? DateTime.parse(map['timestamp']) 
+      timestamp: map['timestamp'] != null
+          ? DateTime.parse(map['timestamp'])
           : DateTime.now(),
       isLiked: map['isLiked'] ?? false,
       isDisliked: map['isDisliked'] ?? false,
@@ -117,12 +118,13 @@ class AuraSession {
       id: map['id'] ?? '',
       category: map['category'] ?? 'Text Writer',
       title: map['title'] ?? '',
-      messages: (map['messages'] as List?)
+      messages:
+          (map['messages'] as List?)
               ?.map((m) => AuraMessage.fromMap(m as Map<String, dynamic>))
               .toList() ??
           [],
-      lastActive: map['lastActive'] != null 
-          ? DateTime.parse(map['lastActive']) 
+      lastActive: map['lastActive'] != null
+          ? DateTime.parse(map['lastActive'])
           : DateTime.now(),
     );
   }
@@ -140,10 +142,11 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
   Future<String?> getApiKey() async {
     final prefs = await SharedPreferences.getInstance();
     final storedKey = prefs.getString(_apiKeyStorageKey);
-    if (storedKey == null || storedKey.isEmpty) {
-      return 'AIzaSyDhEKT-KK1COPAeRzy_ggDgHXwujIbtH64';
+    if (storedKey != null && storedKey.trim().isNotEmpty) {
+      return storedKey.trim();
     }
-    return storedKey;
+    final envKey = AppConfig.geminiApiKey.trim();
+    return envKey.isEmpty ? null : envKey;
   }
 
   Future<void> saveApiKey(String? key) async {
@@ -174,8 +177,19 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
             title: 'How to use Visual Studio',
             lastActive: DateTime.now().subtract(const Duration(hours: 2)),
             messages: [
-              AuraMessage(id: 'm1-1', sender: 'user', text: 'How do I start a simple debug session in VS?', timestamp: DateTime.now().subtract(const Duration(hours: 2))),
-              AuraMessage(id: 'm1-2', sender: 'aura', text: 'To start debugging in Visual Studio:\n1. Open your project.\n2. Set a breakpoint by clicking in the left margin next to the code line.\n3. Press **F5** or click the green Start Debugging play button in the toolbar.\n4. Use **F10** to step over, and **F11** to step into functions.', timestamp: DateTime.now().subtract(const Duration(hours: 2))),
+              AuraMessage(
+                id: 'm1-1',
+                sender: 'user',
+                text: 'How do I start a simple debug session in VS?',
+                timestamp: DateTime.now().subtract(const Duration(hours: 2)),
+              ),
+              AuraMessage(
+                id: 'm1-2',
+                sender: 'aura',
+                text:
+                    'To start debugging in Visual Studio:\n1. Open your project.\n2. Set a breakpoint by clicking in the left margin next to the code line.\n3. Press **F5** or click the green Start Debugging play button in the toolbar.\n4. Use **F10** to step over, and **F11** to step into functions.',
+                timestamp: DateTime.now().subtract(const Duration(hours: 2)),
+              ),
             ],
           ),
           AuraSession(
@@ -185,16 +199,18 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
             lastActive: DateTime.now().subtract(const Duration(hours: 5)),
             messages: [
               AuraMessage(
-                id: 'm2-1', 
-                sender: 'user', 
-                text: 'Describe to me the basic principles of healthy eating. Briefly, but with all the important aspects, please, also you can tell me a little more about the topic of sports and training', 
-                timestamp: DateTime.now().subtract(const Duration(hours: 5))
+                id: 'm2-1',
+                sender: 'user',
+                text:
+                    'Describe to me the basic principles of healthy eating. Briefly, but with all the important aspects, please, also you can tell me a little more about the topic of sports and training',
+                timestamp: DateTime.now().subtract(const Duration(hours: 5)),
               ),
               AuraMessage(
-                id: 'm2-2', 
-                sender: 'aura', 
-                text: 'Basic principles of a healthy diet:\nBalance: Make sure your diet contains all the essential macro and micronutrients in the correct proportions: carbohydrates, proteins, fats, vitamins and minerals. It is important to maintain a balance of calories to meet your body\'s needs, but not to overeat.', 
-                timestamp: DateTime.now().subtract(const Duration(hours: 5))
+                id: 'm2-2',
+                sender: 'aura',
+                text:
+                    'Basic principles of a healthy diet:\nBalance: Make sure your diet contains all the essential macro and micronutrients in the correct proportions: carbohydrates, proteins, fats, vitamins and minerals. It is important to maintain a balance of calories to meet your body\'s needs, but not to overeat.',
+                timestamp: DateTime.now().subtract(const Duration(hours: 5)),
               ),
             ],
           ),
@@ -204,13 +220,20 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
             title: 'Dog in red plaid in house in winter',
             lastActive: DateTime.now().subtract(const Duration(days: 1)),
             messages: [
-              AuraMessage(id: 'm3-1', sender: 'user', text: 'Dog in red plaid in house in winter', timestamp: DateTime.now().subtract(const Duration(days: 1))),
               AuraMessage(
-                id: 'm3-2', 
-                sender: 'aura', 
-                text: 'Here is your generated image of a cozy dog in red plaid inside a warm cabin during a snowy winter day.', 
+                id: 'm3-1',
+                sender: 'user',
+                text: 'Dog in red plaid in house in winter',
                 timestamp: DateTime.now().subtract(const Duration(days: 1)),
-                imageUrl: 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&q=80&w=800',
+              ),
+              AuraMessage(
+                id: 'm3-2',
+                sender: 'aura',
+                text:
+                    'Here is your generated image of a cozy dog in red plaid inside a warm cabin during a snowy winter day.',
+                timestamp: DateTime.now().subtract(const Duration(days: 1)),
+                imageUrl:
+                    'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&q=80&w=800',
               ),
             ],
           ),
@@ -220,8 +243,20 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
             title: 'Best clothing combinations',
             lastActive: DateTime.now().subtract(const Duration(days: 2)),
             messages: [
-              AuraMessage(id: 'm4-1', sender: 'user', text: 'What clothing items combine best for a smart casual summer look?', timestamp: DateTime.now().subtract(const Duration(days: 2))),
-              AuraMessage(id: 'm4-2', sender: 'aura', text: 'For a perfect smart casual summer look:\n1. **Tops**: Light linen shirts (white, light blue, soft olive) or high-quality knit polos.\n2. **Bottoms**: Well-fitted chinos in beige, sand, or navy, or linen-blend trousers.\n3. **Footwear**: Leather loafers, clean white minimalist sneakers, or suede espadrilles.\n4. **Accessories**: A brown leather belt matching your loafers, and classic tortoiseshell sunglasses.', timestamp: DateTime.now().subtract(const Duration(days: 2))),
+              AuraMessage(
+                id: 'm4-1',
+                sender: 'user',
+                text:
+                    'What clothing items combine best for a smart casual summer look?',
+                timestamp: DateTime.now().subtract(const Duration(days: 2)),
+              ),
+              AuraMessage(
+                id: 'm4-2',
+                sender: 'aura',
+                text:
+                    'For a perfect smart casual summer look:\n1. **Tops**: Light linen shirts (white, light blue, soft olive) or high-quality knit polos.\n2. **Bottoms**: Well-fitted chinos in beige, sand, or navy, or linen-blend trousers.\n3. **Footwear**: Leather loafers, clean white minimalist sneakers, or suede espadrilles.\n4. **Accessories**: A brown leather belt matching your loafers, and classic tortoiseshell sunglasses.',
+                timestamp: DateTime.now().subtract(const Duration(days: 2)),
+              ),
             ],
           ),
         ];
@@ -240,10 +275,15 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
     } catch (_) {}
   }
 
-  Future<AuraSession> createNewSession(String category, {String? initialPrompt}) async {
+  Future<AuraSession> createNewSession(
+    String category, {
+    String? initialPrompt,
+  }) async {
     final newId = 'session_${DateTime.now().millisecondsSinceEpoch}';
-    final String initialTitle = initialPrompt != null 
-        ? (initialPrompt.length > 30 ? '${initialPrompt.substring(0, 27)}...' : initialPrompt)
+    final String initialTitle = initialPrompt != null
+        ? (initialPrompt.length > 30
+              ? '${initialPrompt.substring(0, 27)}...'
+              : initialPrompt)
         : 'New $category Session';
 
     final newSession = AuraSession(
@@ -269,7 +309,12 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
     await _saveSessions();
   }
 
-  Future<void> updateMessageFeedback(String sessionId, String messageId, {bool? like, bool? dislike}) async {
+  Future<void> updateMessageFeedback(
+    String sessionId,
+    String messageId, {
+    bool? like,
+    bool? dislike,
+  }) async {
     state = state.map((session) {
       if (session.id == sessionId) {
         final updatedMessages = session.messages.map((msg) {
@@ -299,7 +344,7 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
     // Add user message immediately
     state = state.map((session) {
       if (session.id == sessionId) {
-        final updatedTitle = session.messages.isEmpty 
+        final updatedTitle = session.messages.isEmpty
             ? (text.length > 30 ? '${text.substring(0, 27)}...' : text)
             : session.title;
         return session.copyWith(
@@ -327,29 +372,40 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
     // 1. Try local command parsing first for quick execution and mock fallback
     String? localCommandResponse;
     final lowerText = text.trim().toLowerCase();
-    
+
     if (lowerText.startsWith('play ') || lowerText.startsWith('queue ')) {
       final query = text.substring(text.indexOf(' ') + 1).trim();
       localCommandResponse = await _executeTool('play_song', {'query': query});
-    } else if (lowerText.startsWith('message ') || lowerText.startsWith('msg ') || lowerText.startsWith('text ')) {
+    } else if (lowerText.startsWith('message ') ||
+        lowerText.startsWith('msg ') ||
+        lowerText.startsWith('text ')) {
       final firstSpace = text.indexOf(' ');
       final colon = text.indexOf(':');
       if (firstSpace != -1) {
         if (colon > firstSpace) {
           final username = text.substring(firstSpace + 1, colon).trim();
           final msg = text.substring(colon + 1).trim();
-          localCommandResponse = await _executeTool('send_dm', {'recipientUsername': username, 'message': msg});
+          localCommandResponse = await _executeTool('send_dm', {
+            'recipientUsername': username,
+            'message': msg,
+          });
         } else {
           final rest = text.substring(firstSpace + 1).trim();
           final firstInnerSpace = rest.indexOf(' ');
           if (firstInnerSpace != -1) {
             final username = rest.substring(0, firstInnerSpace).trim();
             final msg = rest.substring(firstInnerSpace + 1).trim();
-            localCommandResponse = await _executeTool('send_dm', {'recipientUsername': username, 'message': msg});
+            localCommandResponse = await _executeTool('send_dm', {
+              'recipientUsername': username,
+              'message': msg,
+            });
           }
         }
       }
-    } else if (lowerText == 'list servers' || lowerText == 'show servers' || lowerText == 'my servers' || lowerText.contains('list my servers')) {
+    } else if (lowerText == 'list servers' ||
+        lowerText == 'show servers' ||
+        lowerText == 'my servers' ||
+        lowerText.contains('list my servers')) {
       localCommandResponse = await _executeTool('list_servers', {});
     }
 
@@ -363,63 +419,62 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
       try {
         final dio = Dio();
         final response = await dio.post(
-          'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$apiKey',
+          'https://generativelanguage.googleapis.com/v1beta/models/${AppConfig.geminiTextModel}:generateContent?key=$apiKey',
           data: {
             'contents': [
               {
                 'parts': [
-                  {
-                    'text': '${_buildSystemPrompt(category)}\n\nUser: $text'
-                  }
-                ]
-              }
+                  {'text': '${_buildSystemPrompt(category)}\n\nUser: $text'},
+                ],
+              },
             ],
             'tools': [
               {
                 'functionDeclarations': [
                   {
                     'name': 'play_song',
-                    'description': 'Play a specific song or search and play music on Sonic Drip.',
+                    'description':
+                        'Play a specific song or search and play music on Sonic Drip.',
                     'parameters': {
                       'type': 'OBJECT',
                       'properties': {
                         'query': {
                           'type': 'STRING',
-                          'description': 'The song title or search query.'
-                        }
+                          'description': 'The song title or search query.',
+                        },
                       },
-                      'required': ['query']
-                    }
+                      'required': ['query'],
+                    },
                   },
                   {
                     'name': 'send_dm',
-                    'description': 'Send a direct message to a user/friend by name.',
+                    'description':
+                        'Send a direct message to a user/friend by name.',
                     'parameters': {
                       'type': 'OBJECT',
                       'properties': {
                         'recipientUsername': {
                           'type': 'STRING',
-                          'description': 'The username or display name of the friend.'
+                          'description':
+                              'The username or display name of the friend.',
                         },
                         'message': {
                           'type': 'STRING',
-                          'description': 'The text message content to send.'
-                        }
+                          'description': 'The text message content to send.',
+                        },
                       },
-                      'required': ['recipientUsername', 'message']
-                    }
+                      'required': ['recipientUsername', 'message'],
+                    },
                   },
                   {
                     'name': 'list_servers',
-                    'description': 'List the servers the user is currently joined to.',
-                    'parameters': {
-                      'type': 'OBJECT',
-                      'properties': {}
-                    }
-                  }
-                ]
-              }
-            ]
+                    'description':
+                        'List the servers the user is currently joined to.',
+                    'parameters': {'type': 'OBJECT', 'properties': {}},
+                  },
+                ],
+              },
+            ],
           },
         );
 
@@ -434,7 +489,9 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
                 if (firstPart is Map && firstPart.containsKey('functionCall')) {
                   final functionCall = firstPart['functionCall'] as Map;
                   final name = functionCall['name'] as String;
-                  final args = Map<String, dynamic>.from(functionCall['args'] ?? {});
+                  final args = Map<String, dynamic>.from(
+                    functionCall['args'] ?? {},
+                  );
                   responseText = await _executeTool(name, args);
                   liveSuccess = true;
                 } else if (firstPart is Map && firstPart.containsKey('text')) {
@@ -460,7 +517,8 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
       }
 
       if (apiKey != null && apiKey.isNotEmpty) {
-        responseText = '*(Live API Call failed; falling back to simulated response)*\n\n$fallbackText';
+        responseText =
+            '*(Live API Call failed; falling back to simulated response)*\n\n$fallbackText';
       } else {
         responseText = fallbackText;
       }
@@ -488,41 +546,50 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
 
   String generateTextResponse(String prompt) {
     final lower = prompt.toLowerCase().trim();
-    
+
     // Greetings / Hellos
-    if (lower == 'hello' || lower == 'hi' || lower == 'hey' || lower.startsWith('hello ') || lower.startsWith('hi ')) {
+    if (lower == 'hello' ||
+        lower == 'hi' ||
+        lower == 'hey' ||
+        lower.startsWith('hello ') ||
+        lower.startsWith('hi ')) {
       final greetings = [
         "Hello! I'm Aura, your AI voice companion. It's wonderful to talk to you today. How can I help you?",
         "Hi there! Aura here, ready to assist. What's on your mind today?",
-        "Hey! Great to connect with you. I'm here to chat, answer questions, or just keep you company. How can I help you?"
+        "Hey! Great to connect with you. I'm here to chat, answer questions, or just keep you company. How can I help you?",
       ];
       // Deterministic choice based on time
       return greetings[DateTime.now().millisecond % greetings.length];
     }
-    
+
     // Jokes / Humor
     if (lower.contains('joke') || lower.contains('clever')) {
       final jokes = [
         "Why do programmers wear glasses? Because they can't C#!",
         "How many programmers does it take to change a light bulb? None, that's a hardware problem!",
         "There are 10 types of people in the world: those who understand binary, and those who don't.",
-        "Why did the database administrator leave his wife? She had one-to-many relationships!"
+        "Why did the database administrator leave his wife? She had one-to-many relationships!",
       ];
       return jokes[DateTime.now().millisecond % jokes.length];
     }
-    
+
     // Data Engineering
     if (lower.contains('data engineering') || lower.contains('data engineer')) {
       return "Data engineering is the practice of designing and building systems for collecting, storing, and analyzing data at scale. It focuses on clean pipelines, schemas, and robust storage rather than visual design.";
     }
-    
+
     // Glassmorphism / UI Design
-    if (lower.contains('glassmorphism') || lower.contains('design') || lower.contains('ui')) {
+    if (lower.contains('glassmorphism') ||
+        lower.contains('design') ||
+        lower.contains('ui')) {
       return "Glassmorphism is a popular design trend characterized by translucent, frosted-glass-like elements. It uses subtle borders, background blurs, and vibrant multi-colored radial background glows to create an immersive, futuristic cybernetic look.";
     }
 
     // Healthy eating & habits
-    if (lower.contains('healthy') || lower.contains('eat') || lower.contains('food') || lower.contains('habit')) {
+    if (lower.contains('healthy') ||
+        lower.contains('eat') ||
+        lower.contains('food') ||
+        lower.contains('habit')) {
       return "Basic principles of a healthy diet:\n\n"
           "• **Balance**: Make sure your diet contains all the essential macro and micronutrients in the correct proportions: carbohydrates, proteins, fats, vitamins and minerals.\n"
           "• **Hydration**: Drink at least 2-3 liters of water daily to maintain cognitive and metabolic performance.\n"
@@ -531,12 +598,16 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
     }
 
     // Flutter / coding
-    if (lower.contains('flutter') || lower.contains('widget') || lower.contains('dart')) {
+    if (lower.contains('flutter') ||
+        lower.contains('widget') ||
+        lower.contains('dart')) {
       return "Flutter is Google's portable UI toolkit for crafting beautiful, natively compiled applications for mobile, web, and desktop from a single codebase. It uses the Dart programming language and provides high-performance rendering.";
     }
 
     // Music
-    if (lower.contains('music') || lower.contains('song') || lower.contains('play')) {
+    if (lower.contains('music') ||
+        lower.contains('song') ||
+        lower.contains('play')) {
       return "Music is the art of arranging sounds in time to produce a composition through the elements of melody, harmony, rhythm, and timbre. I can play songs for you if you tell me what to play!";
     }
 
@@ -545,14 +616,16 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
       "I hear you! That's a really interesting point. Could you tell me more about what you mean by '$prompt'?",
       "That's a fascinating question about '$prompt'. While I'm in simulated fallback mode right now, I'd say the key is to look at it from a structural perspective.",
       "Aura here! I'm interested in hearing more of your thoughts on '$prompt'. Let's explore that topic further!",
-      "I completely understand. If we look deeper into '$prompt', we can find some really interesting patterns. What specific aspect would you like to focus on?"
+      "I completely understand. If we look deeper into '$prompt', we can find some really interesting patterns. What specific aspect would you like to focus on?",
     ];
     return genericResponses[lower.length % genericResponses.length];
   }
 
   String _generateCodeResponse(String prompt) {
     final lower = prompt.toLowerCase();
-    if (lower.contains('flutter') || lower.contains('widget') || lower.contains('custom')) {
+    if (lower.contains('flutter') ||
+        lower.contains('widget') ||
+        lower.contains('custom')) {
       return 'Here is a custom premium Glassmorphic card widget in Flutter:\n\n'
           '```dart\n'
           'import \'dart:ui\';\n'
@@ -584,7 +657,9 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
           '}\n'
           '```\n\n'
           'This uses `BackdropFilter` combined with transparent borders for a beautiful cybernetic look.';
-    } else if (lower.contains('animation') || lower.contains('3d') || lower.contains('sphere')) {
+    } else if (lower.contains('animation') ||
+        lower.contains('3d') ||
+        lower.contains('sphere')) {
       return 'To draw a custom 3D projected spherical wireframe, you can write a `CustomPainter` like this:\n\n'
           '```dart\n'
           'class Sphere3DPainter extends CustomPainter {\n'
@@ -628,10 +703,13 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
     if (name == 'play_song') {
       final query = args['query'] as String? ?? '';
       if (query.isEmpty) return 'No song name provided.';
-      
+
       try {
         final musicService = ref.read(musicServiceProvider);
-        final results = await musicService.searchMusic(query: query, type: MusicType.track);
+        final results = await musicService.searchMusic(
+          query: query,
+          type: MusicType.track,
+        );
         if (results.isEmpty) {
           return 'No matching songs found on Sonic Drip for "$query".';
         }
@@ -642,13 +720,16 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
         return 'Error playing song: $e';
       }
     } else if (name == 'send_dm') {
-      final recipientUsername = args['recipientUsername'] as String? ?? args['recipientName'] as String? ?? '';
+      final recipientUsername =
+          args['recipientUsername'] as String? ??
+          args['recipientName'] as String? ??
+          '';
       final message = args['message'] as String? ?? '';
-      
+
       if (recipientUsername.isEmpty || message.isEmpty) {
         return 'Recipient username or message is empty.';
       }
-      
+
       try {
         final searchService = ref.read(userSearchServiceProvider);
         final matches = await searchService.searchUsers(recipientUsername);
@@ -656,22 +737,24 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
           return 'Could not find a user matching "$recipientUsername" in contacts.';
         }
         final match = matches.first;
-        
+
         final authState = ref.read(authNotifierProvider);
         final myId = authState.maybeWhen(
           authenticated: (user, _) => user.id,
           orElse: () => '',
         );
-        
+
         if (myId.isEmpty) {
           return 'You must be logged in to send DMs.';
         }
-        
-        await ref.read(dmRepositoryProvider).sendMessage(
-          senderId: myId,
-          recipientId: match.id,
-          content: message,
-        );
+
+        await ref
+            .read(dmRepositoryProvider)
+            .sendMessage(
+              senderId: myId,
+              recipientId: match.id,
+              content: message,
+            );
         return '💬 Direct message sent to **@${match.username}**: "$message"';
       } catch (e) {
         return 'Failed to send message: $e';
@@ -698,9 +781,13 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
       return 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&q=80&w=800';
     } else if (lower.contains('car') || lower.contains('cyber')) {
       return 'https://images.unsplash.com/photo-1511919884226-fd3cad34687c?auto=format&fit=crop&q=80&w=800';
-    } else if (lower.contains('mountain') || lower.contains('nature') || lower.contains('winter')) {
+    } else if (lower.contains('mountain') ||
+        lower.contains('nature') ||
+        lower.contains('winter')) {
       return 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80&w=800';
-    } else if (lower.contains('music') || lower.contains('concert') || lower.contains('neon')) {
+    } else if (lower.contains('music') ||
+        lower.contains('concert') ||
+        lower.contains('neon')) {
       return 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&q=80&w=800';
     }
     // Default placeholder abstract aesthetic
@@ -719,4 +806,6 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
   }
 }
 
-final auraSessionsProvider = NotifierProvider<AuraNotifier, List<AuraSession>>(AuraNotifier.new);
+final auraSessionsProvider = NotifierProvider<AuraNotifier, List<AuraSession>>(
+  AuraNotifier.new,
+);

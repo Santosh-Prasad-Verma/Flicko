@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
+import 'package:mobile/features/calling/presentation/call_signal_listener.dart';
 import 'package:mobile/features/voice/presentation/widgets/voice_hud.dart';
 
 /// Flicko main navigation shell — premium edge-to-edge rectangular glassmorphic bottom bar.
@@ -60,18 +61,16 @@ class MainNavigationShell extends StatelessWidget {
             padding: EdgeInsets.only(
               bottom: showNavBar ? navBarHeight : 0,
             ),
-            child: child,
+            child: CallSignalListener(child: child),
           ),
-          
+
           // Voice HUD - animated position so it floats perfectly above the navbar or at screen bottom
           AnimatedPositioned(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOutQuart,
             left: 0,
             right: 0,
-            bottom: showNavBar 
-                ? (navBarHeight + 8.0) 
-                : (bottomPadding + 16.0),
+            bottom: showNavBar ? (navBarHeight + 8.0) : (bottomPadding + 16.0),
             child: const VoiceHUD(),
           ),
 

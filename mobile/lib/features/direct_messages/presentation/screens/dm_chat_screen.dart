@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/features/direct_messages/presentation/controllers/dm_chat_controller.dart';
@@ -11,9 +10,9 @@ import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
 import 'package:mobile/features/calling/presentation/incoming_call_overlay.dart';
 import 'package:mobile/features/calling/services/call_signaling_service.dart';
+import 'package:mobile/features/calling/services/webrtc_call_service.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mobile/features/voice/presentation/controllers/voice_controller.dart';
 import 'package:mobile/features/store/data/warp_service.dart';
 import 'package:mobile/features/shared/presentation/widgets/entrance_warp_overlay.dart';
 
@@ -52,9 +51,6 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
       if (_myUserId == null) return;
 
       _signalingService = ref.read(callSignalingServiceProvider);
-      _signalingService!.initialize(_myUserId!);
-
-      _signalSub = _signalingService!.onSignal.listen(_handleCallSignal);
     });
   }
 
@@ -65,6 +61,32 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
     super.dispose();
   }
 
+  String _currentUserName() {
+    return ref.read(authNotifierProvider).maybeWhen(
+          authenticated: (user, profile) =>
+              profile?.displayName ??
+              profile?.username ??
+              user.email?.split('@').first ??
+              'Flicko User',
+          orElse: () => 'Flicko User',
+        );
+  }
+
+  String? _currentUserAvatarUrl() {
+    return ref.read(authNotifierProvider).maybeWhen(
+          authenticated: (_, profile) => profile?.avatarUrl,
+          orElse: () => null,
+        );
+  }
+
+  void _showCallUnavailable() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Sign in again before starting a call.')),
+    );
+  }
+
+  // ignore: unused_element
   void _handleCallSignal(CallSignalPayload signal) {
     if (!mounted) return;
 
@@ -72,11 +94,14 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
       case CallSignal.ring:
         // Incoming call — show the incoming call screen.
         final convoState = ref.read(dmControllerProvider);
+        // ignore: unused_local_variable
         final conversation = convoState.conversations
             .cast<DMConversation?>()
             .firstWhere((c) => c?.id == signal.callerId, orElse: () => null);
         final callerName = signal.callerName;
         final callerAvatar = signal.callerAvatarUrl;
+        final myName = _currentUserName();
+        final myAvatar = _currentUserAvatarUrl();
 
         final isVideo = signal.callType == 'video';
         if (isVideo) {
@@ -89,17 +114,38 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
                 signal: CallSignal.accept,
                 calleeId: signal.callerId,
                 callerId: _myUserId!,
+                callerName: myName,
+                callerAvatarUrl: myAvatar,
                 roomName: signal.roomName,
                 callType: signal.callType,
               );
-              // Join the LiveKit room.
-              _joinCall(signal.roomName);
+              CallOverlay.acceptCall(
+                context,
+                peerName: callerName,
+                peerAvatarUrl: callerAvatar,
+                isVideo: true,
+                roomName: signal.roomName,
+                myUserId: _myUserId!,
+                peerUserId: signal.callerId,
+                isCaller: false,
+                onHangUp: () => _sendSignal(
+                  signal: CallSignal.end,
+                  calleeId: signal.callerId,
+                  callerId: _myUserId!,
+                  callerName: myName,
+                  callerAvatarUrl: myAvatar,
+                  roomName: signal.roomName,
+                  callType: signal.callType,
+                ),
+              );
             },
             onDecline: () {
               _sendSignal(
                 signal: CallSignal.decline,
                 calleeId: signal.callerId,
                 callerId: _myUserId!,
+                callerName: myName,
+                callerAvatarUrl: myAvatar,
                 roomName: signal.roomName,
                 callType: signal.callType,
               );
@@ -116,16 +162,38 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
                 signal: CallSignal.accept,
                 calleeId: signal.callerId,
                 callerId: _myUserId!,
+                callerName: myName,
+                callerAvatarUrl: myAvatar,
                 roomName: signal.roomName,
                 callType: signal.callType,
               );
-              _joinCall(signal.roomName);
+              CallOverlay.acceptCall(
+                context,
+                peerName: callerName,
+                peerAvatarUrl: callerAvatar,
+                isVideo: false,
+                roomName: signal.roomName,
+                myUserId: _myUserId!,
+                peerUserId: signal.callerId,
+                isCaller: false,
+                onHangUp: () => _sendSignal(
+                  signal: CallSignal.end,
+                  calleeId: signal.callerId,
+                  callerId: _myUserId!,
+                  callerName: myName,
+                  callerAvatarUrl: myAvatar,
+                  roomName: signal.roomName,
+                  callType: signal.callType,
+                ),
+              );
             },
             onDecline: () {
               _sendSignal(
                 signal: CallSignal.decline,
                 calleeId: signal.callerId,
                 callerId: _myUserId!,
+                callerName: myName,
+                callerAvatarUrl: myAvatar,
                 roomName: signal.roomName,
                 callType: signal.callType,
               );
@@ -136,13 +204,28 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
 
       case CallSignal.accept:
         // Caller side: callee accepted. Join the room.
+        final peerName = signal.callerName.isNotEmpty
+            ? signal.callerName
+            : (_participantName ?? 'Friend');
         CallOverlay.acceptCall(
           context,
-          peerName: signal.callerName,
-          peerAvatarUrl: signal.callerAvatarUrl,
+          peerName: peerName,
+          peerAvatarUrl: signal.callerAvatarUrl ?? _participantAvatarUrl,
           isVideo: signal.callType == 'video',
+          roomName: signal.roomName,
+          myUserId: _myUserId!,
+          peerUserId: signal.callerId,
+          isCaller: true,
+          onHangUp: () => _sendSignal(
+            signal: CallSignal.end,
+            calleeId: signal.callerId,
+            callerId: _myUserId!,
+            callerName: _currentUserName(),
+            callerAvatarUrl: _currentUserAvatarUrl(),
+            roomName: signal.roomName,
+            callType: signal.callType,
+          ),
         );
-        _joinCall(signal.roomName);
         break;
 
       case CallSignal.decline:
@@ -166,6 +249,10 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
 
       case CallSignal.end:
         // Either side: call ended.
+        ref.read(webRtcCallServiceProvider).endCall(notifyPeer: false);
+        if (Navigator.of(context, rootNavigator: true).canPop()) {
+          Navigator.of(context, rootNavigator: true).pop();
+        }
         break;
 
       case CallSignal.connected:
@@ -183,6 +270,7 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
     required String roomName,
     required String callType,
   }) async {
+    _signalingService ??= ref.read(callSignalingServiceProvider);
     if (_signalingService == null) return;
 
     final payload = CallSignalPayload(
@@ -198,11 +286,6 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
     await _signalingService!.sendSignal(payload);
   }
 
-  void _joinCall(String roomName) {
-    debugPrint('[DMChat] Joining call room: $roomName');
-    ref.read(voiceControllerProvider.notifier).joinChannel(roomName, 'dm');
-  }
-
   void _onScroll() {
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
@@ -213,19 +296,26 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
   }
 
   void _startVoiceCall(String name, String? avatarUrl) {
+    if (_myUserId == null || _myUserId!.isEmpty) {
+      _showCallUnavailable();
+      return;
+    }
     _participantName = name;
     _participantAvatarUrl = avatarUrl;
+    final myName = _currentUserName();
+    final myAvatar = _currentUserAvatarUrl();
 
     final roomName = CallSignalingService.roomNameForDM(
-      _myUserId ?? '', widget.userId,
+      _myUserId!,
+      widget.userId,
     );
 
     _sendSignal(
       signal: CallSignal.ring,
       calleeId: widget.userId,
-      callerId: _myUserId ?? '',
-      callerName: name,
-      callerAvatarUrl: avatarUrl,
+      callerId: _myUserId!,
+      callerName: myName,
+      callerAvatarUrl: myAvatar,
       roomName: roomName,
       callType: 'voice',
     );
@@ -239,8 +329,9 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
         _sendSignal(
           signal: CallSignal.cancel,
           calleeId: widget.userId,
-          callerId: _myUserId ?? '',
-          callerName: name,
+          callerId: _myUserId!,
+          callerName: myName,
+          callerAvatarUrl: myAvatar,
           roomName: roomName,
           callType: 'voice',
         );
@@ -249,19 +340,26 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
   }
 
   void _startVideoCall(String name, String? avatarUrl) {
+    if (_myUserId == null || _myUserId!.isEmpty) {
+      _showCallUnavailable();
+      return;
+    }
     _participantName = name;
     _participantAvatarUrl = avatarUrl;
+    final myName = _currentUserName();
+    final myAvatar = _currentUserAvatarUrl();
 
     final roomName = CallSignalingService.roomNameForDM(
-      _myUserId ?? '', widget.userId,
+      _myUserId!,
+      widget.userId,
     );
 
     _sendSignal(
       signal: CallSignal.ring,
       calleeId: widget.userId,
-      callerId: _myUserId ?? '',
-      callerName: name,
-      callerAvatarUrl: avatarUrl,
+      callerId: _myUserId!,
+      callerName: myName,
+      callerAvatarUrl: myAvatar,
       roomName: roomName,
       callType: 'video',
     );
@@ -274,8 +372,9 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
         _sendSignal(
           signal: CallSignal.cancel,
           calleeId: widget.userId,
-          callerId: _myUserId ?? '',
-          callerName: name,
+          callerId: _myUserId!,
+          callerName: myName,
+          callerAvatarUrl: myAvatar,
           roomName: roomName,
           callType: 'video',
         );
@@ -283,8 +382,8 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
     );
   }
 
-  void _showProfileOptions(String? userId, String name, String? avatarUrl,
-      String onlineStatus) {
+  void _showProfileOptions(
+      String? userId, String name, String? avatarUrl, String onlineStatus) {
     if (userId == null) return;
 
     showModalBottomSheet(
@@ -434,7 +533,8 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
                     color: const Color(FlickoColors.bgPrimary),
                     border: Border(
                       bottom: BorderSide(
-                        color: const Color(FlickoColors.border).withValues(alpha: 0.5),
+                        color: const Color(FlickoColors.border)
+                            .withValues(alpha: 0.5),
                         width: 1,
                       ),
                     ),
@@ -531,7 +631,8 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
                         controller: _scrollController,
                         padding: const EdgeInsets.fromLTRB(0, 12, 0, 20),
                         reverse: true,
-                        itemCount: state.messages.length + (state.hasMore ? 1 : 0),
+                        itemCount:
+                            state.messages.length + (state.hasMore ? 1 : 0),
                         itemBuilder: (context, index) {
                           if (index == state.messages.length) {
                             return const Center(
@@ -545,7 +646,9 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
                             );
                           }
                           final message = state.messages[index];
-                          final senderName = message.sender?.displayName ?? message.sender?.username ?? 'Unknown';
+                          final senderName = message.sender?.displayName ??
+                              message.sender?.username ??
+                              'Unknown';
                           return MessageBubble(
                             message: message,
                             onTapProfile: () {

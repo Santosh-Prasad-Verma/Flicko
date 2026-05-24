@@ -3,55 +3,119 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 class AppConfig {
   static const bool isDebug = bool.fromEnvironment('dart.vm.product') == false;
 
-  static const String _definedSupabaseUrl =
-      String.fromEnvironment('FLICKO_SUPABASE_URL');
-  static const String _definedSupabaseAnonKey =
-      String.fromEnvironment('FLICKO_SUPABASE_ANON_KEY');
-  static const String _definedLivekitUrl =
-      String.fromEnvironment('FLICKO_LIVEKIT_URL');
-  static const String _definedApiBaseUrl =
-      String.fromEnvironment('FLICKO_API_URL');
-  static const String _definedGiphyApiKey =
-      String.fromEnvironment('FLICKO_GIPHY_API_KEY');
-  static const String _definedAppwriteProjectId =
-      String.fromEnvironment('FLICKO_APPWRITE_PROJECT_ID');
-  static const String _definedAppwriteProjectName =
-      String.fromEnvironment('FLICKO_APPWRITE_PROJECT_NAME');
-  static const String _definedAppwritePublicEndpoint =
-      String.fromEnvironment('FLICKO_APPWRITE_PUBLIC_ENDPOINT');
-  static const String _definedAppwriteBucketId =
-      String.fromEnvironment('FLICKO_APPWRITE_BUCKET_ID');
-  static const String _definedRazorpayKeyId =
-      String.fromEnvironment('FLICKO_RAZORPAY_KEY_ID');
-  static const String _definedGoogleClientId =
-      String.fromEnvironment('FLICKO_GOOGLE_CLIENT_ID');
-  static const String _definedSentryDsn =
-      String.fromEnvironment('FLICKO_SENTRY_DSN');
+  static const String _definedSupabaseUrl = String.fromEnvironment(
+    'FLICKO_SUPABASE_URL',
+  );
+  static const String _definedSupabaseAnonKey = String.fromEnvironment(
+    'FLICKO_SUPABASE_ANON_KEY',
+  );
+  static const String _definedLivekitUrl = String.fromEnvironment(
+    'FLICKO_LIVEKIT_URL',
+  );
+  static const String _definedApiBaseUrl = String.fromEnvironment(
+    'FLICKO_API_URL',
+  );
+  static const String _definedGiphyApiKey = String.fromEnvironment(
+    'FLICKO_GIPHY_API_KEY',
+  );
+  static const String _definedAppwriteProjectId = String.fromEnvironment(
+    'FLICKO_APPWRITE_PROJECT_ID',
+  );
+  static const String _definedAppwriteProjectName = String.fromEnvironment(
+    'FLICKO_APPWRITE_PROJECT_NAME',
+  );
+  static const String _definedAppwritePublicEndpoint = String.fromEnvironment(
+    'FLICKO_APPWRITE_PUBLIC_ENDPOINT',
+  );
+  static const String _definedAppwriteBucketId = String.fromEnvironment(
+    'FLICKO_APPWRITE_BUCKET_ID',
+  );
+  static const String _definedRazorpayKeyId = String.fromEnvironment(
+    'FLICKO_RAZORPAY_KEY_ID',
+  );
+  static const String _definedGoogleClientId = String.fromEnvironment(
+    'FLICKO_GOOGLE_CLIENT_ID',
+  );
+  static const String _definedSentryDsn = String.fromEnvironment(
+    'FLICKO_SENTRY_DSN',
+  );
+  static const String _definedGeminiApiKey = String.fromEnvironment(
+    'FLICKO_GEMINI_API_KEY',
+  );
+  static const String _definedGeminiTextModel = String.fromEnvironment(
+    'FLICKO_GEMINI_TEXT_MODEL',
+  );
+  static const String _definedGeminiLiveModel = String.fromEnvironment(
+    'FLICKO_GEMINI_LIVE_MODEL',
+  );
+  static const String _definedRtcStunUrls = String.fromEnvironment(
+    'FLICKO_RTC_STUN_URLS',
+  );
+  static const String _definedRtcTurnUrl = String.fromEnvironment(
+    'FLICKO_RTC_TURN_URL',
+  );
+  static const String _definedRtcTurnUsername = String.fromEnvironment(
+    'FLICKO_RTC_TURN_USERNAME',
+  );
+  static const String _definedRtcTurnCredential = String.fromEnvironment(
+    'FLICKO_RTC_TURN_CREDENTIAL',
+  );
 
-  static const String _definedLegacySupabaseUrl =
-      String.fromEnvironment('SUPABASE_URL');
-  static const String _definedLegacySupabaseAnonKey =
-      String.fromEnvironment('SUPABASE_ANON_KEY');
-  static const String _definedLegacyLivekitUrl =
-      String.fromEnvironment('LIVEKIT_URL');
-  static const String _definedLegacyApiBaseUrl =
-      String.fromEnvironment('API_BASE_URL');
-  static const String _definedLegacyGiphyApiKey =
-      String.fromEnvironment('GIPHY_API_KEY');
-  static const String _definedLegacyAppwriteProjectId =
-      String.fromEnvironment('APPWRITE_PROJECT_ID');
+  static const String _definedLegacySupabaseUrl = String.fromEnvironment(
+    'SUPABASE_URL',
+  );
+  static const String _definedLegacySupabaseAnonKey = String.fromEnvironment(
+    'SUPABASE_ANON_KEY',
+  );
+  static const String _definedLegacyLivekitUrl = String.fromEnvironment(
+    'LIVEKIT_URL',
+  );
+  static const String _definedLegacyApiBaseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+  );
+  static const String _definedLegacyGiphyApiKey = String.fromEnvironment(
+    'GIPHY_API_KEY',
+  );
+  static const String _definedLegacyAppwriteProjectId = String.fromEnvironment(
+    'APPWRITE_PROJECT_ID',
+  );
   static const String _definedLegacyAppwriteProjectName =
       String.fromEnvironment('APPWRITE_PROJECT_NAME');
   static const String _definedLegacyAppwritePublicEndpoint =
       String.fromEnvironment('APPWRITE_PUBLIC_ENDPOINT');
-  static const String _definedLegacyAppwriteBucketId =
-      String.fromEnvironment('APPWRITE_BUCKET_ID');
-  static const String _definedLegacyRazorpayKeyId =
-      String.fromEnvironment('RAZORPAY_KEY_ID');
-  static const String _definedLegacyGoogleClientId =
-      String.fromEnvironment('GOOGLE_CLIENT_ID');
-  static const String _definedLegacySentryDsn =
-      String.fromEnvironment('SENTRY_DSN');
+  static const String _definedLegacyAppwriteBucketId = String.fromEnvironment(
+    'APPWRITE_BUCKET_ID',
+  );
+  static const String _definedLegacyRazorpayKeyId = String.fromEnvironment(
+    'RAZORPAY_KEY_ID',
+  );
+  static const String _definedLegacyGoogleClientId = String.fromEnvironment(
+    'GOOGLE_CLIENT_ID',
+  );
+  static const String _definedLegacySentryDsn = String.fromEnvironment(
+    'SENTRY_DSN',
+  );
+  static const String _definedLegacyGeminiApiKey = String.fromEnvironment(
+    'GEMINI_API_KEY',
+  );
+  static const String _definedLegacyGeminiTextModel = String.fromEnvironment(
+    'GEMINI_TEXT_MODEL',
+  );
+  static const String _definedLegacyGeminiLiveModel = String.fromEnvironment(
+    'GEMINI_LIVE_MODEL',
+  );
+  static const String _definedLegacyRtcStunUrls = String.fromEnvironment(
+    'RTC_STUN_URLS',
+  );
+  static const String _definedLegacyRtcTurnUrl = String.fromEnvironment(
+    'RTC_TURN_URL',
+  );
+  static const String _definedLegacyRtcTurnUsername = String.fromEnvironment(
+    'RTC_TURN_USERNAME',
+  );
+  static const String _definedLegacyRtcTurnCredential = String.fromEnvironment(
+    'RTC_TURN_CREDENTIAL',
+  );
 
   static late final String supabaseUrl;
   static late final String supabaseAnonKey;
@@ -67,6 +131,13 @@ class AppConfig {
   static late final String razorpayKeyId;
   static late final String googleClientId;
   static late final String sentryDsn;
+  static late final String geminiApiKey;
+  static late final String geminiTextModel;
+  static late final String geminiLiveModel;
+  static late final String rtcStunUrls;
+  static late final String rtcTurnUrl;
+  static late final String rtcTurnUsername;
+  static late final String rtcTurnCredential;
 
   static void init() {
     supabaseUrl = _read(
@@ -143,6 +214,51 @@ class AppConfig {
       _definedLegacySentryDsn,
       'FLICKO_SENTRY_DSN',
       'SENTRY_DSN',
+    );
+    geminiApiKey = _read(
+      _definedGeminiApiKey,
+      _definedLegacyGeminiApiKey,
+      'FLICKO_GEMINI_API_KEY',
+      'GEMINI_API_KEY',
+    );
+    geminiTextModel = _firstNonEmpty([
+      _definedGeminiTextModel,
+      _definedLegacyGeminiTextModel,
+      dotenv.env['FLICKO_GEMINI_TEXT_MODEL'],
+      dotenv.env['GEMINI_TEXT_MODEL'],
+      'gemini-2.5-flash',
+    ]);
+    geminiLiveModel = _firstNonEmpty([
+      _definedGeminiLiveModel,
+      _definedLegacyGeminiLiveModel,
+      dotenv.env['FLICKO_GEMINI_LIVE_MODEL'],
+      dotenv.env['GEMINI_LIVE_MODEL'],
+      'gemini-2.5-flash-native-audio-preview-12-2025',
+    ]);
+    rtcStunUrls = _firstNonEmpty([
+      _definedRtcStunUrls,
+      _definedLegacyRtcStunUrls,
+      dotenv.env['FLICKO_RTC_STUN_URLS'],
+      dotenv.env['RTC_STUN_URLS'],
+      'stun:stun.l.google.com:19302,stun:stun1.l.google.com:19302',
+    ]);
+    rtcTurnUrl = _read(
+      _definedRtcTurnUrl,
+      _definedLegacyRtcTurnUrl,
+      'FLICKO_RTC_TURN_URL',
+      'RTC_TURN_URL',
+    );
+    rtcTurnUsername = _read(
+      _definedRtcTurnUsername,
+      _definedLegacyRtcTurnUsername,
+      'FLICKO_RTC_TURN_USERNAME',
+      'RTC_TURN_USERNAME',
+    );
+    rtcTurnCredential = _read(
+      _definedRtcTurnCredential,
+      _definedLegacyRtcTurnCredential,
+      'FLICKO_RTC_TURN_CREDENTIAL',
+      'RTC_TURN_CREDENTIAL',
     );
   }
 

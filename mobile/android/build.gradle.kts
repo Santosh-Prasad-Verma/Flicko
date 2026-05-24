@@ -20,6 +20,16 @@ subprojects {
 }
 
 subprojects {
+    plugins.withId("com.android.library") {
+        extensions.configure<com.android.build.gradle.LibraryExtension>("android") {
+            if (namespace.isNullOrBlank()) {
+                namespace = "tech.focko.flicko.plugin.${project.name.replace("-", "_")}"
+            }
+        }
+    }
+}
+
+subprojects {
     tasks.withType<JavaCompile>().configureEach {
         sourceCompatibility = "11"
         targetCompatibility = "11"

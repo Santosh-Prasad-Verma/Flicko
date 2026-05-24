@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
@@ -16,9 +15,12 @@ import 'package:speech_to_text/speech_to_text.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:mobile/core/config/app_config.dart';
+import 'package:mobile/core/services/foreground_service.dart';
 import 'package:mobile/features/ai_assistant/data/aura_chat_service.dart';
+import 'package:mobile/features/ai_assistant/data/aura_live_audio_service.dart';
 
-enum AuraVoiceState { idle, listening, thinking, speaking }
+enum AuraVoiceState { idle, connecting, listening, thinking, speaking }
 
 class AuraVoiceScreen extends ConsumerStatefulWidget {
   const AuraVoiceScreen({super.key});
@@ -27,15 +29,16 @@ class AuraVoiceScreen extends ConsumerStatefulWidget {
   ConsumerState<AuraVoiceScreen> createState() => _AuraVoiceScreenState();
 }
 
-class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen> with TickerProviderStateMixin {
+class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
+    with TickerProviderStateMixin {
   late AnimationController _animationController;
   late AnimationController _glowController;
   late AnimationController _pulseController;
-  
+
   AuraVoiceState _currentState = AuraVoiceState.idle;
   String _subtitleText = "Tap the microphone to talk with Aura";
   String _activeSpeechWord = "";
-  
+
   // Suggested prompt chips for immediate testing/interaction
   final List<String> _suggestions = [
     "What is Data Engineering?",
@@ -46,14 +49,16 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen> with TickerPr
 
   // Voice Settings configuration
   String _selectedVoice = "Aoede"; // Puck, Charon, Kore, Fenrir, Aoede
-  String _selectedModel = "gemini-2.5-flash"; // gemini-2.5-flash, gemini-2.0-flash
+  String _selectedModel = AuraLiveAudioService.defaultModel;
 
   // Audio recording, STT, TTS and just_audio player objects
   final AudioRecorder _audioRecorder = AudioRecorder();
   final SpeechToText _speechToText = SpeechToText();
   final FlutterTts _flutterTts = FlutterTts();
   final AudioPlayer _audioPlayer = AudioPlayer();
-  
+  final AuraLiveAudioService _liveAudioService = AuraLiveAudioService();
+  final ForegroundService _foregroundService = ForegroundService();
+
   bool _speechInitialized = false;
   Timer? _amplitudeTimer;
   double _currentAmplitude = 0.0;
@@ -70,7 +75,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen> with TickerPr
       vsync: this,
       duration: const Duration(seconds: 8),
     )..repeat();
-    
+
     _glowController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 3),
@@ -81,7 +86,11 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen> with TickerPr
       duration: const Duration(milliseconds: 1200),
     )..repeat(reverse: true);
 
+    _selectedModel = AppConfig.geminiLiveModel.isNotEmpty
+        ? AppConfig.geminiLiveModel
+        : AuraLiveAudioService.defaultModel;
     _initVoiceServices();
+    _foregroundService.initialize();
   }
 
   Future<void> _initVoiceServices() async {
@@ -100,6 +109,8 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen> with TickerPr
   @override
   void dispose() {
     _amplitudeTimer?.cancel();
+    _liveAudioService.dispose();
+    _foregroundService.dispose();
     _audioRecorder.dispose();
     _speechToText.stop();
     _flutterTts.stop();
@@ -147,6 +158,206 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen> with TickerPr
     return wavData;
   }
 
+  String _liveSystemInstruction() {
+    return [
+      'You are Aura inside Flicko, a real-time voice companion.',
+      'Answer normally and helpfully in a natural human conversational tone.',
+      'Keep spoken answers concise unless the user asks for detail.',
+      'Do not add app-side topic limits. Follow the provider safety policy and be direct.',
+      'If the user asks to control Flicko, explain what you can do and what needs a visible user confirmation.',
+    ].join(' ');
+  }
+
+  Future<void> _startAuraLiveForeground() async {
+    await _foregroundService.startVoiceCallService(
+      channelName: 'Aura Live',
+      serverName: 'Gemini 2.5 Flash Native Audio',
+      onDisconnectPressed: _resetFlow,
+      onNotificationPressed: () {
+        ForegroundService.launchApp('/profile/settings/aura/voice');
+      },
+    );
+  }
+
+  Future<void> _stopAuraLiveForegroundIfIdle() async {
+    if (!_isContinuousActive) {
+      await _foregroundService.stopVoiceCallService();
+    }
+  }
+
+  Future<bool> _tryGeminiLiveTurn({String? preSetText}) async {
+    final notifier = ref.read(auraSessionsProvider.notifier);
+    final apiKey = await notifier.getApiKey();
+    if (apiKey == null || apiKey.trim().isEmpty) {
+      return false;
+    }
+
+    try {
+      await _startAuraLiveForeground();
+      final result = preSetText == null
+          ? await _liveAudioService.runPushToTalkTurn(
+              apiKey: apiKey,
+              model: _selectedModel,
+              voiceName: _selectedVoice,
+              systemInstruction: _liveSystemInstruction(),
+              onPhase: _handleLivePhase,
+              onInputLevel: (level) {
+                if (!mounted) return;
+                setState(() {
+                  _currentAmplitude = level.clamp(0.0, 1.0);
+                });
+              },
+              onInputTranscript: (transcript) {
+                if (!mounted || transcript.trim().isEmpty) return;
+                setState(() {
+                  _subtitleText = transcript.trim();
+                });
+              },
+              onOutputTranscript: (transcript) {
+                if (!mounted || transcript.trim().isEmpty) return;
+                setState(() {
+                  _subtitleText = transcript.trim();
+                });
+              },
+            )
+          : await _liveAudioService.runTextTurn(
+              apiKey: apiKey,
+              prompt: preSetText,
+              model: _selectedModel,
+              voiceName: _selectedVoice,
+              systemInstruction: _liveSystemInstruction(),
+              onPhase: _handleLivePhase,
+              onOutputTranscript: (transcript) {
+                if (!mounted || transcript.trim().isEmpty) return;
+                setState(() {
+                  _subtitleText = transcript.trim();
+                });
+              },
+            );
+
+      if (!result.hasNativeAudio) {
+        debugPrint('[Aura] Gemini Live returned no native audio.');
+        return false;
+      }
+
+      await _playLiveNativeAudio(result);
+      await _completeVoiceFlow();
+      return true;
+    } catch (e) {
+      debugPrint('[Aura] Gemini Live turn failed: $e');
+      if (mounted) {
+        setState(() {
+          _subtitleText = 'Live voice unavailable. Falling back...';
+          _currentAmplitude = 0.0;
+        });
+      }
+      return false;
+    } finally {
+      await _stopAuraLiveForegroundIfIdle();
+    }
+  }
+
+  void _handleLivePhase(AuraLivePhase phase) {
+    if (!mounted) return;
+    setState(() {
+      switch (phase) {
+        case AuraLivePhase.connecting:
+          _currentState = AuraVoiceState.connecting;
+          _subtitleText = 'Connecting to Gemini Live...';
+          break;
+        case AuraLivePhase.ready:
+          _currentState = AuraVoiceState.listening;
+          _subtitleText = 'Speak now...';
+          break;
+        case AuraLivePhase.listening:
+          _currentState = AuraVoiceState.listening;
+          _subtitleText = 'Listening...';
+          break;
+        case AuraLivePhase.responding:
+          _currentState = AuraVoiceState.thinking;
+          _subtitleText = 'Aura is answering...';
+          break;
+        case AuraLivePhase.complete:
+          _currentState = AuraVoiceState.speaking;
+          break;
+      }
+    });
+  }
+
+  Future<void> _playLiveNativeAudio(AuraLiveTurnResult result) async {
+    final responseText = result.displayText;
+    final wavBytes = _pcmToWav(result.audioPcm, result.outputSampleRate);
+    final tempDir = await getTemporaryDirectory();
+    final wavFile = File(
+      '${tempDir.path}/aura_live_${DateTime.now().millisecondsSinceEpoch}.wav',
+    );
+    await wavFile.writeAsBytes(wavBytes, flush: true);
+
+    if (!mounted) return;
+    setState(() {
+      _currentState = AuraVoiceState.speaking;
+      _subtitleText = responseText;
+      _activeSpeechWord = '';
+    });
+
+    final duration = await _audioPlayer.setFilePath(wavFile.path);
+    final durationMs = duration?.inMilliseconds ?? 3000;
+    await _audioPlayer.play();
+    await _animateSpokenSubtitle(responseText, durationMs);
+  }
+
+  Future<void> _animateSpokenSubtitle(String text, int durationMs) async {
+    final words =
+        text.split(RegExp(r'\s+')).where((word) => word.isNotEmpty).toList();
+    if (words.isEmpty) {
+      await Future.delayed(Duration(milliseconds: durationMs));
+      return;
+    }
+
+    final msPerWord = math.max(120, (durationMs / words.length).round());
+    final sw = Stopwatch()..start();
+    for (int i = 0; i < words.length; i++) {
+      if (!mounted || _currentState != AuraVoiceState.speaking) break;
+      setState(() {
+        _activeSpeechWord = words[i];
+        _subtitleText = words.sublist(0, i + 1).join(' ');
+        _currentAmplitude = 0.2 + 0.5 * math.sin(i * 1.2).abs();
+      });
+      final targetMs = (i + 1) * msPerWord;
+      final delay = targetMs - sw.elapsedMilliseconds;
+      if (delay > 0) {
+        await Future.delayed(Duration(milliseconds: delay));
+      }
+    }
+
+    final remaining = durationMs - sw.elapsedMilliseconds;
+    if (remaining > 0) {
+      await Future.delayed(Duration(milliseconds: remaining));
+    }
+  }
+
+  Future<void> _completeVoiceFlow() async {
+    if (!mounted) return;
+    setState(() {
+      _currentState = AuraVoiceState.idle;
+      _subtitleText = _isContinuousActive
+          ? 'Listening again...'
+          : 'Aura has finished speaking. Tap mic to talk again.';
+      _activeSpeechWord = '';
+      _currentAmplitude = 0.0;
+    });
+
+    if (_isContinuousActive) {
+      Future.delayed(const Duration(milliseconds: 600), () {
+        if (mounted &&
+            _currentState == AuraVoiceState.idle &&
+            _isContinuousActive) {
+          _triggerVoiceFlow();
+        }
+      });
+    }
+  }
+
   void _triggerVoiceFlow({String? preSetText}) async {
     if (_currentState != AuraVoiceState.idle) return;
 
@@ -157,9 +368,13 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen> with TickerPr
     // 1. Listening state
     setState(() {
       _currentState = AuraVoiceState.listening;
-      _subtitleText = "Listening...";
+      _subtitleText = preSetText == null ? "Listening..." : preSetText;
       _currentAmplitude = 0.0;
     });
+
+    final liveHandled = await _tryGeminiLiveTurn(preSetText: preSetText);
+    if (liveHandled) return;
+    if (!mounted) return;
 
     String spokenText = preSetText ?? "";
 
@@ -273,130 +488,18 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen> with TickerPr
     final apiKey = await notifier.getApiKey();
 
     if (apiKey != null && apiKey.isNotEmpty) {
-      // List of models to try in cascading fallback order
+      final textModel = AppConfig.geminiTextModel.isNotEmpty
+          ? AppConfig.geminiTextModel
+          : 'gemini-2.5-flash';
       final modelsToTry = [
-        _selectedModel, // e.g. gemini-2.5-flash or gemini-2.0-flash
-        if (_selectedModel != "gemini-2.0-flash") "gemini-2.0-flash",
-        "gemini-1.5-flash",
+        textModel,
+        if (textModel != 'gemini-2.5-flash') 'gemini-2.5-flash',
+        if (textModel != 'gemini-2.0-flash') 'gemini-2.0-flash',
+        'gemini-1.5-flash',
       ];
 
-      // --- STAGE 1: Attempt Gemini Native Voice response (Audio Modality) ---
-      for (final model in modelsToTry) {
-        if (audioSuccess) break;
-        try {
-          final dio = Dio();
-          final response = await dio.post(
-            'https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey',
-            data: {
-              'contents': [
-                {
-                  'parts': [
-                    {
-                      'text': "You are Aura, a voice companion. Keep your response extremely brief, conversational, and direct (max 2 sentences).\n\nUser: $spokenText"
-                    }
-                  ]
-                }
-              ],
-              'generationConfig': {
-                'responseModalities': ['AUDIO'],
-                'speechConfig': {
-                  'voiceConfig': {
-                    'prebuiltVoiceConfig': {
-                      'voiceName': _selectedVoice
-                    }
-                  }
-                }
-              }
-            },
-          );
-
-          if (response.statusCode == 200 && response.data != null) {
-            final candidates = response.data['candidates'] as List?;
-            if (candidates != null && candidates.isNotEmpty) {
-              final content = candidates[0]['content'];
-              if (content != null) {
-                final parts = content['parts'] as List?;
-                String? base64Audio;
-                int sampleRate = 24000;
-
-                if (parts != null) {
-                  for (var part in parts) {
-                    if (part is Map) {
-                      if (part.containsKey('text')) {
-                        responseText += part['text'] as String;
-                      }
-                      if (part.containsKey('inlineData')) {
-                        final inlineData = part['inlineData'] as Map;
-                        base64Audio = inlineData['data'] as String?;
-                        final mimeType = inlineData['mimeType'] as String?;
-                        if (mimeType != null && mimeType.contains('rate=')) {
-                          final rateStr = mimeType.split('rate=').last;
-                          sampleRate = int.tryParse(rateStr) ?? 24000;
-                        }
-                      }
-                    }
-                  }
-                }
-
-                if (base64Audio != null && base64Audio.isNotEmpty) {
-                  final pcmBytes = base64Decode(base64Audio);
-                  final wavBytes = _pcmToWav(pcmBytes, sampleRate);
-
-                  final tempDir = await getTemporaryDirectory();
-                  final wavFile = File('${tempDir.path}/aura_voice_response.wav');
-                  await wavFile.writeAsBytes(wavBytes);
-
-                  if (responseText.isEmpty) {
-                    responseText = "Sure! Here is the response.";
-                  }
-
-                  setState(() {
-                    _currentState = AuraVoiceState.speaking;
-                    _subtitleText = responseText;
-                  });
-
-                  final duration = await _audioPlayer.setFilePath(wavFile.path);
-                  final durationMs = duration?.inMilliseconds ?? 3000;
-
-                  _audioPlayer.play();
-                  audioSuccess = true;
-                  debugPrint('[Aura] Native audio success using model: $model');
-
-                  // Sync subtitle words to audio duration
-                  final words = responseText.split(' ');
-                  final msPerWord = words.isNotEmpty ? (durationMs / words.length).round() : 250;
-                  final sw = Stopwatch()..start();
-
-                  for (int i = 0; i < words.length; i++) {
-                    if (!mounted || _currentState != AuraVoiceState.speaking) break;
-                    setState(() {
-                      _activeSpeechWord = words[i];
-                      _subtitleText = words.sublist(0, i + 1).join(' ');
-                      // Paint visualization wave pulses
-                      _currentAmplitude = 0.2 + 0.5 * math.sin(i * 1.2).abs();
-                    });
-                    final targetMs = (i + 1) * msPerWord;
-                    final delay = targetMs - sw.elapsedMilliseconds;
-                    if (delay > 0) {
-                      await Future.delayed(Duration(milliseconds: delay));
-                    }
-                  }
-
-                  // Wait for audio completion if stopwatch finished earlier
-                  final remainingPlayTime = durationMs - sw.elapsedMilliseconds;
-                  if (remainingPlayTime > 0) {
-                    await Future.delayed(Duration(milliseconds: remainingPlayTime));
-                  }
-                }
-              }
-            }
-          }
-        } catch (e) {
-          debugPrint('[Aura] Audio API error with model $model: $e');
-        }
-      }
-
-      // --- STAGE 2: Fallback to Text-only Generation + local TTS if Audio fails ---
+      // Gemini native audio is handled by the Live WebSocket path above.
+      // This REST path is only a fallback so users still get an answer.
       if (!audioSuccess) {
         for (final model in modelsToTry) {
           if (textFallbackSuccess) break;
@@ -409,20 +512,24 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen> with TickerPr
                   {
                     'parts': [
                       {
-                        'text': "You are Aura, a voice companion. Keep your response extremely brief, conversational, and direct (max 2 sentences).\n\nUser: $spokenText"
-                      }
-                    ]
-                  }
-                ]
+                        'text':
+                            "You are Aura, a voice companion. Keep your response extremely brief, conversational, and direct (max 2 sentences).\n\nUser: $spokenText",
+                      },
+                    ],
+                  },
+                ],
               },
             );
 
             if (response.statusCode == 200 && response.data != null) {
               final candidates = response.data['candidates'] as List?;
               if (candidates != null && candidates.isNotEmpty) {
-                responseText = candidates[0]['content']['parts'][0]['text'] ?? '';
+                responseText =
+                    candidates[0]['content']['parts'][0]['text'] ?? '';
                 textFallbackSuccess = true;
-                debugPrint('[Aura] Text API fallback success using model: $model');
+                debugPrint(
+                  '[Aura] Text API fallback success using model: $model',
+                );
               }
             }
           } catch (e) {
@@ -435,11 +542,13 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen> with TickerPr
     // --- STAGE 3: Local simulation fallback if all online attempts fail ---
     if (!audioSuccess && !textFallbackSuccess) {
       responseText = notifier.generateTextResponse(spokenText);
-      responseText = responseText.replaceAll('*', '').replaceAll('•', '').trim();
-      
+      responseText =
+          responseText.replaceAll('*', '').replaceAll('•', '').trim();
+
       // Clearly alert the user if their API key calls are failing
       if (apiKey != null && apiKey.isNotEmpty) {
-        responseText = "[API Key rate limit exceeded (429) or invalid. Using simulated Aura fallback]\n\n$responseText";
+        responseText =
+            "[Gemini Live/Text API unavailable. Using simulated Aura fallback]\n\n$responseText";
       }
     }
 
@@ -481,7 +590,9 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen> with TickerPr
 
     if (_isContinuousActive) {
       Future.delayed(const Duration(milliseconds: 600), () {
-        if (mounted && _currentState == AuraVoiceState.idle && _isContinuousActive) {
+        if (mounted &&
+            _currentState == AuraVoiceState.idle &&
+            _isContinuousActive) {
           _triggerVoiceFlow();
         }
       });
@@ -504,9 +615,11 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen> with TickerPr
     } catch (_) {}
   }
 
-  void _resetFlow() {
+  void _resetFlow() async {
     HapticFeedback.lightImpact();
     _stopAmplitudeRecording();
+    await _liveAudioService.dispose();
+    await _foregroundService.stopVoiceCallService();
     _audioPlayer.stop();
     _flutterTts.stop();
     setState(() {
@@ -550,7 +663,10 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen> with TickerPr
                     BlendMode.srcOver,
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 28,
+                    ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -594,22 +710,31 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen> with TickerPr
                           ),
                         ),
                         const SizedBox(height: 12),
-                        Row(
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
                           children: [
                             _buildSheetSelector(
-                              title: "Gemini 2.5 Flash",
-                              isSelected: _selectedModel == "gemini-2.5-flash",
+                              title: "2.5 Flash Live Audio",
+                              isSelected: _selectedModel ==
+                                  AuraLiveAudioService.defaultModel,
                               onTap: () {
-                                setSheetState(() => _selectedModel = "gemini-2.5-flash");
+                                setSheetState(
+                                  () => _selectedModel =
+                                      AuraLiveAudioService.defaultModel,
+                                );
                                 setState(() {});
                               },
                             ),
-                            const SizedBox(width: 12),
                             _buildSheetSelector(
-                              title: "Gemini 2.0 Flash",
-                              isSelected: _selectedModel == "gemini-2.0-flash",
+                              title: "Env Live Model",
+                              isSelected:
+                                  _selectedModel == AppConfig.geminiLiveModel,
                               onTap: () {
-                                setSheetState(() => _selectedModel = "gemini-2.0-flash");
+                                setSheetState(
+                                  () => _selectedModel =
+                                      AppConfig.geminiLiveModel,
+                                );
                                 setState(() {});
                               },
                             ),
@@ -722,15 +847,26 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen> with TickerPr
         children: [
           // Dynamic pulsing radial background glow
           AnimatedBuilder(
-            animation: Listenable.merge([_animationController, _glowController]),
+            animation: Listenable.merge([
+              _animationController,
+              _glowController,
+            ]),
             builder: (context, child) {
               double opacityFactor = 0.12 + 0.05 * _glowController.value;
               if (_currentState == AuraVoiceState.listening) {
-                opacityFactor = 0.22 + 0.08 * math.sin(_animationController.value * math.pi * 12).abs();
+                opacityFactor = 0.22 +
+                    0.08 *
+                        math
+                            .sin(_animationController.value * math.pi * 12)
+                            .abs();
               } else if (_currentState == AuraVoiceState.thinking) {
                 opacityFactor = 0.26;
               } else if (_currentState == AuraVoiceState.speaking) {
-                opacityFactor = 0.18 + 0.07 * math.cos(_animationController.value * math.pi * 8).abs();
+                opacityFactor = 0.18 +
+                    0.07 *
+                        math
+                            .cos(_animationController.value * math.pi * 8)
+                            .abs();
               }
 
               return Positioned.fill(
@@ -740,8 +876,12 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen> with TickerPr
                       center: Alignment.center,
                       radius: 0.85,
                       colors: [
-                        const Color(0xFF381559).withOpacity(opacityFactor * 1.5),
-                        const Color(0xFF0F031D).withOpacity(opacityFactor * 0.4),
+                        const Color(
+                          0xFF381559,
+                        ).withOpacity(opacityFactor * 1.5),
+                        const Color(
+                          0xFF0F031D,
+                        ).withOpacity(opacityFactor * 0.4),
                         Colors.transparent,
                       ],
                     ),
@@ -750,13 +890,13 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen> with TickerPr
               );
             },
           ),
-          
+
           SafeArea(
             child: Column(
               children: [
                 // Top Custom Header Row
                 _buildHeaderRow(),
-                
+
                 // Fluid Central Orb Graphic
                 Expanded(
                   child: Center(
@@ -770,15 +910,16 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen> with TickerPr
                     ),
                   ),
                 ),
-                
+
                 // Floating suggestion chips for query triggers (only show when idle)
-                if (_currentState == AuraVoiceState.idle) _buildSuggestionsRow(),
+                if (_currentState == AuraVoiceState.idle)
+                  _buildSuggestionsRow(),
                 const SizedBox(height: 24),
-                
+
                 // Subtitles Overlay Panel
                 _buildSubtitleOverlay(),
                 const SizedBox(height: 40),
-                
+
                 // Voice Controls Action Bar
                 _buildVoiceControlBar(),
                 const SizedBox(height: 32),
@@ -806,9 +947,16 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen> with TickerPr
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: Colors.white.withOpacity(0.04),
-                border: Border.all(color: Colors.white.withOpacity(0.08), width: 1.2),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.08),
+                  width: 1.2,
+                ),
               ),
-              child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 16),
+              child: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: Colors.white,
+                size: 16,
+              ),
             ),
           ),
           _buildTopBadge(),
@@ -822,9 +970,16 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen> with TickerPr
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: Colors.white.withOpacity(0.04),
-                border: Border.all(color: Colors.white.withOpacity(0.08), width: 1.2),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.08),
+                  width: 1.2,
+                ),
               ),
-              child: const Icon(Icons.tune_rounded, color: _accentLime, size: 16),
+              child: const Icon(
+                Icons.tune_rounded,
+                color: _accentLime,
+                size: 16,
+              ),
             ),
           ),
         ],
@@ -889,7 +1044,10 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen> with TickerPr
                   backgroundColor: Colors.white.withOpacity(0.03),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
-                    side: BorderSide(color: Colors.white.withOpacity(0.06), width: 1.0),
+                    side: BorderSide(
+                      color: Colors.white.withOpacity(0.06),
+                      width: 1.0,
+                    ),
                   ),
                   onPressed: () {
                     _triggerVoiceFlow(preSetText: text);
@@ -934,6 +1092,11 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen> with TickerPr
         icon = Icons.hearing_rounded;
         color = const Color(0xFF00D4FF);
         break;
+      case AuraVoiceState.connecting:
+        label = 'Connecting';
+        icon = Icons.wifi_tethering_rounded;
+        color = const Color(0xFFCBB6FC);
+        break;
       case AuraVoiceState.thinking:
         label = 'Processing';
         icon = Icons.auto_awesome_rounded;
@@ -965,7 +1128,11 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen> with TickerPr
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, color: color.withValues(alpha: pulseAlpha), size: 14),
+              Icon(
+                icon,
+                color: color.withValues(alpha: pulseAlpha),
+                size: 14,
+              ),
               const SizedBox(width: 6),
               Text(
                 label.toUpperCase(),
@@ -980,7 +1147,10 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen> with TickerPr
           ),
         );
       },
-    ).animate().fadeIn(duration: 200.ms).scale(begin: const Offset(0.9, 0.9), end: const Offset(1.0, 1.0));
+    )
+        .animate()
+        .fadeIn(duration: 200.ms)
+        .scale(begin: const Offset(0.9, 0.9), end: const Offset(1.0, 1.0));
   }
 
   Widget _buildSubtitleOverlay() {
@@ -1016,7 +1186,10 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen> with TickerPr
               decoration: BoxDecoration(
                 color: _accentLime.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: _accentLime.withOpacity(0.3), width: 1.0),
+                border: Border.all(
+                  color: _accentLime.withOpacity(0.3),
+                  width: 1.0,
+                ),
               ),
               child: Text(
                 _activeSpeechWord.toUpperCase(),
@@ -1028,7 +1201,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen> with TickerPr
                 ),
               ),
             ).animate().fadeIn(duration: 100.ms),
-          ]
+          ],
         ],
       ),
     );
@@ -1045,16 +1218,20 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen> with TickerPr
             Icons.keyboard_outlined,
             () async {
               HapticFeedback.lightImpact();
-              final session = await ref.read(auraSessionsProvider.notifier).createNewSession('Chat');
+              final session = await ref
+                  .read(auraSessionsProvider.notifier)
+                  .createNewSession('Chat');
               if (mounted) {
-                context.pushReplacement('/profile/settings/aura/chat?category=Chat&sessionId=${session.id}');
+                context.pushReplacement(
+                  '/profile/settings/aura/chat?category=Chat&sessionId=${session.id}',
+                );
               }
             },
             size: 54,
             backgroundColor: const Color(0xFF13101C),
             iconColor: Colors.white.withOpacity(0.9),
           ),
-          
+
           // Central Microphone Activation Pulsing Button
           GestureDetector(
             onTap: () {
@@ -1079,7 +1256,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen> with TickerPr
                 } else if (_currentState == AuraVoiceState.thinking) {
                   glowScale = 1.02;
                 }
-                
+
                 return Transform.scale(
                   scale: glowScale,
                   child: Container(
@@ -1091,8 +1268,11 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen> with TickerPr
                       boxShadow: [
                         BoxShadow(
                           color: _accentLime.withOpacity(0.35),
-                          blurRadius: _currentState == AuraVoiceState.listening ? 24 : 12,
-                          spreadRadius: _currentState == AuraVoiceState.listening ? 6 : 2,
+                          blurRadius: _currentState == AuraVoiceState.listening
+                              ? 24
+                              : 12,
+                          spreadRadius:
+                              _currentState == AuraVoiceState.listening ? 6 : 2,
                         ),
                       ],
                     ),
@@ -1100,11 +1280,13 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen> with TickerPr
                       child: Icon(
                         _currentState == AuraVoiceState.listening
                             ? Icons.graphic_eq_rounded
-                            : _currentState == AuraVoiceState.speaking
-                                ? Icons.volume_up_rounded
-                                : _currentState == AuraVoiceState.thinking
-                                    ? Icons.hourglass_empty_rounded
-                                    : Icons.mic_none_rounded,
+                            : _currentState == AuraVoiceState.connecting
+                                ? Icons.wifi_tethering_rounded
+                                : _currentState == AuraVoiceState.speaking
+                                    ? Icons.volume_up_rounded
+                                    : _currentState == AuraVoiceState.thinking
+                                        ? Icons.hourglass_empty_rounded
+                                        : Icons.mic_none_rounded,
                         color: const Color(0xFF020104),
                         size: 32,
                       ),
@@ -1114,10 +1296,12 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen> with TickerPr
               },
             ),
           ),
-          
+
           // Reset/Close Button
           _buildCircleButton(
-            _currentState != AuraVoiceState.idle ? Icons.refresh_rounded : Icons.close_rounded,
+            _currentState != AuraVoiceState.idle
+                ? Icons.refresh_rounded
+                : Icons.close_rounded,
             () {
               setState(() {
                 _isContinuousActive = false;
@@ -1155,9 +1339,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen> with TickerPr
           shape: BoxShape.circle,
           border: Border.all(color: Colors.white.withOpacity(0.06), width: 1.2),
         ),
-        child: Center(
-          child: Icon(icon, color: iconColor, size: 22),
-        ),
+        child: Center(child: Icon(icon, color: iconColor, size: 22)),
       ),
     );
   }
@@ -1187,6 +1369,10 @@ class AuraFluidOrbPainter extends CustomPainter {
       case AuraVoiceState.listening:
         wiggleSpeed = 2.5;
         wiggleScale = 0.10 + 0.22 * amplitude;
+        break;
+      case AuraVoiceState.connecting:
+        wiggleSpeed = 3.0;
+        wiggleScale = 0.10;
         break;
       case AuraVoiceState.speaking:
         wiggleSpeed = 1.8;
@@ -1220,12 +1406,18 @@ class AuraFluidOrbPainter extends CustomPainter {
       final colors = g == 0
           ? [const Color(0xFF7B2FFF).withValues(alpha: ga), Colors.transparent]
           : g == 1
-              ? [const Color(0xFFFF007F).withValues(alpha: ga * 0.6), Colors.transparent]
-              : [const Color(0xFF00D4FF).withValues(alpha: ga * 0.4), Colors.transparent];
+              ? [
+                  const Color(0xFFFF007F).withValues(alpha: ga * 0.6),
+                  Colors.transparent,
+                ]
+              : [
+                  const Color(0xFF00D4FF).withValues(alpha: ga * 0.4),
+                  Colors.transparent,
+                ];
       final glowPaint = Paint()
-        ..shader = RadialGradient(colors: colors).createShader(
-          Rect.fromCircle(center: center, radius: gr),
-        );
+        ..shader = RadialGradient(
+          colors: colors,
+        ).createShader(Rect.fromCircle(center: center, radius: gr));
       canvas.drawCircle(center, gr, glowPaint);
     }
 
@@ -1248,7 +1440,8 @@ class AuraFluidOrbPainter extends CustomPainter {
           const Color(0xFFCBB6FC),
           const Color(0xFFC0EC54),
           (i / particleCount),
-        )!.withValues(alpha: pa);
+        )!
+            .withValues(alpha: pa);
       canvas.drawCircle(Offset(px, py), particleSize, pPaint);
     }
 
@@ -1259,10 +1452,9 @@ class AuraFluidOrbPainter extends CustomPainter {
       final double rr = radius * (1.50 + ring * 0.22);
       final ringPaint = Paint()
         ..style = PaintingStyle.stroke
-        ..color = (ring == 0
-                ? const Color(0xFFC0EC54)
-                : const Color(0xFFCBB6FC))
-            .withValues(alpha: 0.06 + 0.04 * breathe)
+        ..color =
+            (ring == 0 ? const Color(0xFFC0EC54) : const Color(0xFFCBB6FC))
+                .withValues(alpha: 0.06 + 0.04 * breathe)
         ..strokeWidth = 0.8;
       canvas.drawCircle(center, rr, ringPaint);
 
@@ -1271,7 +1463,8 @@ class AuraFluidOrbPainter extends CustomPainter {
         final double na = phase * (0.25 + ring * 0.1) + (n * 2 * math.pi / 3);
         final double nx = cx + rr * math.cos(na);
         final double ny = cy + rr * math.sin(na);
-        final nodeColor = ring == 0 ? const Color(0xFFC0EC54) : const Color(0xFFCBB6FC);
+        final nodeColor =
+            ring == 0 ? const Color(0xFFC0EC54) : const Color(0xFFCBB6FC);
         // Glow halo
         canvas.drawCircle(
           Offset(nx, ny),
@@ -1319,6 +1512,9 @@ class AuraFluidOrbPainter extends CustomPainter {
         case AuraVoiceState.thinking:
           barH = 3.0 + 14.0 * math.sin(angle * 9 + phase * 4.0).abs();
           break;
+        case AuraVoiceState.connecting:
+          barH = 3.0 + 9.0 * math.sin(angle * 5 + phase * 3.2).abs();
+          break;
         case AuraVoiceState.idle:
           barH = 2.5 + 3.5 * math.sin(angle * 2 + phase * 0.8).abs();
           break;
@@ -1334,7 +1530,9 @@ class AuraFluidOrbPainter extends CustomPainter {
         const Color(0xFFC0EC54),
         t,
       )!;
-      final barAlpha = state == AuraVoiceState.idle ? 0.4 : 0.75 + 0.25 * (barH / 30.0).clamp(0.0, 1.0);
+      final barAlpha = state == AuraVoiceState.idle
+          ? 0.4
+          : 0.75 + 0.25 * (barH / 30.0).clamp(0.0, 1.0);
 
       final bPaint = Paint()
         ..style = PaintingStyle.stroke
@@ -1355,10 +1553,12 @@ class AuraFluidOrbPainter extends CustomPainter {
         double h;
         switch (state) {
           case AuraVoiceState.listening:
-            h = 2.0 + 12.0 * amplitude * math.sin(angle * 7 + phase * 3.5).abs();
+            h = 2.0 +
+                12.0 * amplitude * math.sin(angle * 7 + phase * 3.5).abs();
             break;
           case AuraVoiceState.speaking:
-            h = 2.0 + 10.0 * amplitude * math.cos(angle * 5 - phase * 2.5).abs();
+            h = 2.0 +
+                10.0 * amplitude * math.cos(angle * 5 - phase * 2.5).abs();
             break;
           case AuraVoiceState.thinking:
             h = 2.0 + 6.0 * math.sin(angle * 10 + phase * 5.0).abs();
@@ -1377,7 +1577,9 @@ class AuraFluidOrbPainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.6
           ..strokeCap = StrokeCap.round
-          ..color = const Color(0xFF00D4FF).withValues(alpha: 0.35 + 0.35 * (h / 12.0).clamp(0.0, 1.0));
+          ..color = const Color(
+            0xFF00D4FF,
+          ).withValues(alpha: 0.35 + 0.35 * (h / 12.0).clamp(0.0, 1.0));
         canvas.drawLine(Offset(outerX, outerY), Offset(innerX, innerY), bPaint);
       }
     }
@@ -1423,7 +1625,12 @@ class AuraFluidOrbPainter extends CustomPainter {
       for (int i = 0; i < pts; i++) {
         final cur = points[i];
         final nxt = points[(i + 1) % pts];
-        path.quadraticBezierTo(cur.dx, cur.dy, (cur.dx + nxt.dx) / 2, (cur.dy + nxt.dy) / 2);
+        path.quadraticBezierTo(
+          cur.dx,
+          cur.dy,
+          (cur.dx + nxt.dx) / 2,
+          (cur.dy + nxt.dy) / 2,
+        );
       }
       path.close();
 
@@ -1434,7 +1641,10 @@ class AuraFluidOrbPainter extends CustomPainter {
           Paint()..blendMode = BlendMode.screen,
         );
       }
-      canvas.drawPath(path, paint..color = Colors.white.withValues(alpha: layerAlphas[layer]));
+      canvas.drawPath(
+        path,
+        paint..color = Colors.white.withValues(alpha: layerAlphas[layer]),
+      );
       if (layer > 0) {
         canvas.restore();
       }
