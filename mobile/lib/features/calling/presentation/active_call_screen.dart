@@ -168,6 +168,7 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen>
             painter: GridPainter(),
           ),
           if (widget.isVideo) _buildRemoteVideoStage(),
+          if (!widget.isVideo) _buildHiddenRemoteAudioRenderer(),
           // Main content
           SafeArea(
             child: Column(
@@ -285,10 +286,7 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen>
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0xFF07100C),
-                    CallTheme.bg,
-                  ],
+                  colors: [Color(0xFF07100C), CallTheme.bg],
                 ),
               ),
               child: Center(
@@ -389,8 +387,10 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen>
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              CallTheme.techLabel('${_bitrate.toStringAsFixed(1)} MBPS',
-                  color: CallTheme.neonGreen),
+              CallTheme.techLabel(
+                '${_bitrate.toStringAsFixed(1)} MBPS',
+                color: CallTheme.neonGreen,
+              ),
               CallTheme.techLabel('LOSS: $_packetLoss%'),
               CallTheme.techLabel('JITTER: ${_jitter}MS'),
             ],
@@ -484,6 +484,21 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen>
     );
   }
 
+  Widget _buildHiddenRemoteAudioRenderer() {
+    final rtc = _rtc;
+    if (rtc == null || !rtc.renderersReady) return const SizedBox.shrink();
+
+    return Positioned(
+      left: 0,
+      top: 0,
+      width: 1,
+      height: 1,
+      child: IgnorePointer(
+        child: Opacity(opacity: 0.01, child: RTCVideoView(rtc.remoteRenderer)),
+      ),
+    );
+  }
+
   Widget _avatarFallback() {
     return Center(
       child: Text(
@@ -562,8 +577,10 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen>
                   top: 6,
                   left: 6,
                   child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 2,
+                    ),
                     color: CallTheme.bg.withValues(alpha: 0.7),
                     child: Text(
                       'LOCAL',
@@ -634,8 +651,11 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen>
                       ),
                     ],
                   ),
-                  child: const Icon(Icons.call_end,
-                      color: CallTheme.white, size: 28),
+                  child: const Icon(
+                    Icons.call_end,
+                    color: CallTheme.white,
+                    size: 28,
+                  ),
                 ),
                 const SizedBox(height: 6),
                 Text(
@@ -730,7 +750,8 @@ class _WaveformPainter extends CustomPainter {
 
     for (int i = 0; i <= segments; i++) {
       final angle = (i / segments) * 2 * pi;
-      final wave = sin(angle * 8 + phase * 2 * pi) *
+      final wave =
+          sin(angle * 8 + phase * 2 * pi) *
           (6 + 4 * sin(phase * 2 * pi + angle * 3));
       final r = baseRadius + wave;
       final x = center.dx + r * cos(angle);

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:mobile/core/config/app_config.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -38,12 +39,14 @@ class WebRtcCallService extends ChangeNotifier {
   MediaStream? _localStream;
   MediaStream? _remoteStream;
   Timer? _offerRetryTimer;
+  RTCSessionDescription? _lastLocalOffer;
+  final List<RTCIceCandidate> _pendingRemoteIceCandidates = [];
 
   bool _renderersReady = false;
   bool _started = false;
   bool _isCaller = false;
   bool _remoteReady = false;
-  bool _offerSent = false;
+  bool _answerReceived = false;
   bool _muted = false;
   bool _cameraEnabled = false;
   bool _speakerEnabled = true;
@@ -54,6 +57,7 @@ class WebRtcCallService extends ChangeNotifier {
   WebRtcCallPhase _phase = WebRtcCallPhase.idle;
   RTCPeerConnectionState? _peerConnectionState;
   RTCIceConnectionState? _iceConnectionState;
+  static const Duration _roomSubscribeTimeout = Duration(seconds: 8);
 
   bool get renderersReady => _renderersReady;
   bool get isStarted => _started;
@@ -108,7 +112,9 @@ class WebRtcCallService extends ChangeNotifier {
     _cameraEnabled = videoEnabled;
     _speakerEnabled = true;
     _remoteReady = false;
-    _offerSent = false;
+    _answerReceived = false;
+    _lastLocalOffer = null;
+    _pendingRemoteIceCandidates.clear();
     _error = null;
     _setPhase(WebRtcCallPhase.preparing);
 
@@ -130,7 +136,7 @@ class WebRtcCallService extends ChangeNotifier {
           if (_remoteReady || timer.tick >= 2) {
             unawaited(_createAndSendOffer());
           }
-          if (timer.tick >= 5) timer.cancel();
+          if (timer.tick >= 8) timer.cancel();
         });
       }
     } catch (error, stackTrace) {
@@ -170,6 +176,9 @@ class WebRtcCallService extends ChangeNotifier {
   Future<void> setSpeakerEnabled(bool enabled) async {
     _speakerEnabled = enabled;
     await Helper.setSpeakerphoneOn(enabled);
+    if (_remoteStream != null) {
+      await _activateRemoteAudio();
+    }
     notifyListeners();
   }
 
@@ -213,7 +222,9 @@ class WebRtcCallService extends ChangeNotifier {
 
     _started = false;
     _remoteReady = false;
-    _offerSent = false;
+    _answerReceived = false;
+    _lastLocalOffer = null;
+    _pendingRemoteIceCandidates.clear();
     _roomName = null;
     _myUserId = null;
     _peerUserId = null;
@@ -232,6 +243,8 @@ class WebRtcCallService extends ChangeNotifier {
   }
 
   Future<void> _openLocalMedia({required bool videoEnabled}) async {
+    await _ensureMediaPermissions(videoEnabled: videoEnabled);
+
     final constraints = <String, dynamic>{
       'audio': {
         'echoCancellation': true,
@@ -249,16 +262,36 @@ class WebRtcCallService extends ChangeNotifier {
     };
 
     _localStream = await navigator.mediaDevices.getUserMedia(constraints);
+    for (final track
+        in _localStream?.getAudioTracks() ?? <MediaStreamTrack>[]) {
+      track.enabled = true;
+    }
     localRenderer.srcObject = _localStream;
     await Helper.setSpeakerphoneOn(_speakerEnabled);
+    debugPrint(
+      '[FlickoRTC] local media opened: '
+      'audio=${_localStream?.getAudioTracks().length ?? 0}, '
+      'video=${_localStream?.getVideoTracks().length ?? 0}',
+    );
+  }
+
+  Future<void> _ensureMediaPermissions({required bool videoEnabled}) async {
+    final microphone = await Permission.microphone.request();
+    if (!microphone.isGranted) {
+      throw StateError('Microphone permission denied');
+    }
+
+    if (videoEnabled) {
+      final camera = await Permission.camera.request();
+      if (!camera.isGranted) {
+        throw StateError('Camera permission denied');
+      }
+    }
   }
 
   Future<void> _createPeerConnection() async {
     _peer = await createPeerConnection(
-      {
-        'sdpSemantics': 'unified-plan',
-        'iceServers': _iceServers(),
-      },
+      {'sdpSemantics': 'unified-plan', 'iceServers': _iceServers()},
       {
         'mandatory': {},
         'optional': [
@@ -274,6 +307,7 @@ class WebRtcCallService extends ChangeNotifier {
     _peer!
       ..onIceCandidate = (candidate) {
         if (candidate.candidate == null || candidate.candidate!.isEmpty) return;
+        debugPrint('[FlickoRTC] local ICE candidate generated');
         unawaited(
           _sendSignal(
             _RtcSignalType.ice,
@@ -286,14 +320,11 @@ class WebRtcCallService extends ChangeNotifier {
         );
       }
       ..onTrack = (event) {
-        if (event.streams.isNotEmpty) {
-          _remoteStream = event.streams.first;
-          remoteRenderer.srcObject = _remoteStream;
-          notifyListeners();
-        }
+        unawaited(_attachRemoteTrack(event));
       }
       ..onConnectionState = (state) {
         _peerConnectionState = state;
+        debugPrint('[FlickoRTC] peer connection state: $state');
         switch (state) {
           case RTCPeerConnectionState.RTCPeerConnectionStateConnected:
             _setPhase(WebRtcCallPhase.connected);
@@ -316,23 +347,92 @@ class WebRtcCallService extends ChangeNotifier {
       }
       ..onIceConnectionState = (state) {
         _iceConnectionState = state;
+        debugPrint('[FlickoRTC] ICE connection state: $state');
         notifyListeners();
       };
+  }
+
+  Future<void> _attachRemoteTrack(RTCTrackEvent event) async {
+    debugPrint(
+      '[FlickoRTC] remote ${event.track.kind} track received '
+      'streams=${event.streams.length}',
+    );
+
+    MediaStream stream;
+    if (event.streams.isNotEmpty) {
+      stream = event.streams.first;
+    } else {
+      stream =
+          _remoteStream ??
+          await createLocalMediaStream('flicko-remote-${_roomName ?? 'call'}');
+      await stream.addTrack(event.track, addToNative: false);
+    }
+
+    _remoteStream = stream;
+    remoteRenderer.srcObject = stream;
+    await _activateRemoteAudio();
+    notifyListeners();
+  }
+
+  Future<void> _activateRemoteAudio() async {
+    final audioTracks = _remoteStream?.getAudioTracks() ?? <MediaStreamTrack>[];
+    for (final track in audioTracks) {
+      track.enabled = true;
+    }
+
+    try {
+      await remoteRenderer.setVolume(1.0);
+      await Helper.setSpeakerphoneOn(_speakerEnabled);
+    } catch (error) {
+      debugPrint('[FlickoRTC] remote audio route failed: $error');
+    }
+
+    debugPrint('[FlickoRTC] remote audio tracks=${audioTracks.length}');
   }
 
   Future<void> _subscribeRoom() async {
     final roomName = _roomName;
     if (roomName == null) return;
 
-    _channel = _supabase.channel('flicko_rtc:$roomName').onBroadcast(
+    _channel = _supabase
+        .channel(
+          'flicko_rtc:$roomName',
+          opts: const RealtimeChannelConfig(ack: true),
+        )
+        .onBroadcast(
           event: 'rtc_signal',
           callback: (payload) {
             unawaited(_handleSignal(payload));
           },
         );
 
-    _channel!.subscribe();
-    await Future<void>.delayed(const Duration(milliseconds: 250));
+    await _subscribeRealtimeChannel(_channel!, label: 'rtc:$roomName');
+  }
+
+  Future<void> _subscribeRealtimeChannel(
+    RealtimeChannel channel, {
+    required String label,
+  }) async {
+    final completer = Completer<void>();
+    channel.subscribe((status, error) {
+      debugPrint('[FlickoRTC] $label subscription status: $status');
+      if (status == RealtimeSubscribeStatus.subscribed) {
+        if (!completer.isCompleted) completer.complete();
+      } else if (status == RealtimeSubscribeStatus.channelError ||
+          status == RealtimeSubscribeStatus.closed ||
+          status == RealtimeSubscribeStatus.timedOut) {
+        if (!completer.isCompleted) {
+          completer.completeError(
+            StateError('$label subscription failed: $status ${error ?? ''}'),
+          );
+        }
+      }
+    });
+
+    await completer.future.timeout(
+      _roomSubscribeTimeout,
+      onTimeout: () => throw TimeoutException('$label subscription timed out'),
+    );
   }
 
   Future<void> _handleSignal(dynamic payload) async {
@@ -383,14 +483,19 @@ class WebRtcCallService extends ChangeNotifier {
   }
 
   Future<void> _createAndSendOffer() async {
-    if (!_started || !_isCaller || _offerSent || _peer == null) return;
-    _offerSent = true;
+    if (!_started || !_isCaller || _answerReceived || _peer == null) return;
     _setPhase(WebRtcCallPhase.connecting);
-    final offer = await _peer!.createOffer({
-      'offerToReceiveAudio': true,
-      'offerToReceiveVideo': true,
-    });
-    await _peer!.setLocalDescription(offer);
+
+    var offer = _lastLocalOffer;
+    if (offer == null) {
+      offer = await _peer!.createOffer({
+        'offerToReceiveAudio': true,
+        'offerToReceiveVideo': true,
+      });
+      await _peer!.setLocalDescription(offer);
+      _lastLocalOffer = offer;
+    }
+
     await _sendSignal(
       _RtcSignalType.offer,
       payload: {'sdp': offer.sdp, 'sdpType': offer.type},
@@ -401,7 +506,22 @@ class WebRtcCallService extends ChangeNotifier {
     final sdp = payload['sdp'] as String?;
     if (sdp == null || _peer == null) return;
     _setPhase(WebRtcCallPhase.connecting);
+
+    final existingRemote = await _safeRemoteDescription();
+    final existingLocal = await _safeLocalDescription();
+    if (existingRemote?.type == 'offer' && existingRemote?.sdp == sdp) {
+      if (existingLocal?.type == 'answer' &&
+          existingLocal?.sdp?.isNotEmpty == true) {
+        await _sendSignal(
+          _RtcSignalType.answer,
+          payload: {'sdp': existingLocal!.sdp, 'sdpType': existingLocal.type},
+        );
+      }
+      return;
+    }
+
     await _peer!.setRemoteDescription(RTCSessionDescription(sdp, 'offer'));
+    await _flushPendingRemoteIceCandidates();
     final answer = await _peer!.createAnswer({
       'offerToReceiveAudio': true,
       'offerToReceiveVideo': true,
@@ -416,20 +536,68 @@ class WebRtcCallService extends ChangeNotifier {
   Future<void> _handleAnswer(Map payload) async {
     final sdp = payload['sdp'] as String?;
     if (sdp == null || _peer == null) return;
+    if (_answerReceived) return;
     await _peer!.setRemoteDescription(RTCSessionDescription(sdp, 'answer'));
+    _answerReceived = true;
+    _offerRetryTimer?.cancel();
+    _offerRetryTimer = null;
+    await _flushPendingRemoteIceCandidates();
   }
 
   Future<void> _handleIce(Map payload) async {
     if (_peer == null) return;
     final candidate = payload['candidate'] as String?;
     if (candidate == null || candidate.isEmpty) return;
-    await _peer!.addCandidate(
-      RTCIceCandidate(
-        candidate,
-        payload['sdpMid'] as String?,
-        payload['sdpMLineIndex'] as int?,
-      ),
+
+    final iceCandidate = RTCIceCandidate(
+      candidate,
+      payload['sdpMid'] as String?,
+      payload['sdpMLineIndex'] as int?,
     );
+
+    final remoteDescription = await _safeRemoteDescription();
+    if (remoteDescription?.sdp?.isNotEmpty != true) {
+      _pendingRemoteIceCandidates.add(iceCandidate);
+      debugPrint('[FlickoRTC] queued remote ICE candidate');
+      return;
+    }
+
+    await _addRemoteIceCandidate(iceCandidate);
+  }
+
+  Future<void> _flushPendingRemoteIceCandidates() async {
+    if (_pendingRemoteIceCandidates.isEmpty || _peer == null) return;
+    final queued = List<RTCIceCandidate>.from(_pendingRemoteIceCandidates);
+    _pendingRemoteIceCandidates.clear();
+    debugPrint('[FlickoRTC] flushing ${queued.length} remote ICE candidates');
+    for (final candidate in queued) {
+      await _addRemoteIceCandidate(candidate);
+    }
+  }
+
+  Future<void> _addRemoteIceCandidate(RTCIceCandidate candidate) async {
+    try {
+      await _peer?.addCandidate(candidate);
+      debugPrint('[FlickoRTC] remote ICE candidate added');
+    } catch (error) {
+      debugPrint('[FlickoRTC] add remote ICE failed: $error');
+    }
+  }
+
+  Future<RTCSessionDescription?> _safeRemoteDescription() async {
+    try {
+      return await _peer?.getRemoteDescription();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<RTCSessionDescription?> _safeLocalDescription() async {
+    try {
+      return await _peer?.getLocalDescription();
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> _sendSignal(
@@ -451,10 +619,15 @@ class WebRtcCallService extends ChangeNotifier {
     };
 
     try {
-      await channel.sendBroadcastMessage(
+      final response = await channel.sendBroadcastMessage(
         event: 'rtc_signal',
         payload: message,
       );
+      if (response != ChannelResponse.ok) {
+        debugPrint('[FlickoRTC] send ${type.name} returned $response');
+      } else {
+        debugPrint('[FlickoRTC] sent ${type.name}');
+      }
     } catch (error) {
       debugPrint('[FlickoRTC] send ${type.name} failed: $error');
     }
