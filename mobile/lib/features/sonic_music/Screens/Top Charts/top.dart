@@ -171,15 +171,98 @@ Future<List> getChartDetails(String accessToken, String type) async {
   return data;
 }
 
-Future<void> scrapData(String type, {bool signIn = false}) async {
-  final bool spotifySigned =
-      Hive.box('settings').get('spotifySigned', defaultValue: false) as bool;
+final List<Map<String, String>> fallbackGlobalSongs = [
+  {
+    'name': 'Blinding Lights',
+    'artist': 'The Weeknd',
+    'image_url_small': 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=150',
+    'image_url_big': 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=500',
+    'spotifyUrl': 'https://open.spotify.com/track/0VjIjW4GlmCkgfZXML7vzc',
+  },
+  {
+    'name': 'Shape of You',
+    'artist': 'Ed Sheeran',
+    'image_url_small': 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=150',
+    'image_url_big': 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500',
+    'spotifyUrl': 'https://open.spotify.com/track/7qiZRh27v26yGjAuoxFqsb',
+  },
+  {
+    'name': 'Starboy',
+    'artist': 'The Weeknd',
+    'image_url_small': 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=150',
+    'image_url_big': 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=500',
+    'spotifyUrl': 'https://open.spotify.com/track/7MXV7vKXZxy6rfH1hx516Y',
+  },
+  {
+    'name': 'As It Was',
+    'artist': 'Harry Styles',
+    'image_url_small': 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=150',
+    'image_url_big': 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500',
+    'spotifyUrl': 'https://open.spotify.com/track/4D75Vzs5TVJzR7Z3wTAZJD',
+  },
+  {
+    'name': 'Stay',
+    'artist': 'The Kid LAROI & Justin Bieber',
+    'image_url_small': 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=150',
+    'image_url_big': 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=500',
+    'spotifyUrl': 'https://open.spotify.com/track/5HCyWek36zo12gpH1J4rz5',
+  },
+];
 
-  if (!spotifySigned && !signIn) {
-    return;
-  }
+final List<Map<String, String>> fallbackLocalSongs = [
+  {
+    'name': 'Kaise Hua',
+    'artist': 'Vishal Mishra',
+    'image_url_small': 'https://images.unsplash.com/photo-1487180142328-054b783fc471?w=150',
+    'image_url_big': 'https://images.unsplash.com/photo-1487180142328-054b783fc471?w=500',
+    'spotifyUrl': 'https://open.spotify.com/track/25Y2wXm6XG54pT4Hwz1sO6',
+  },
+  {
+    'name': 'Tum Hi Ho',
+    'artist': 'Arijit Singh',
+    'image_url_small': 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150',
+    'image_url_big': 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500',
+    'spotifyUrl': 'https://open.spotify.com/track/56tU8c1u4aC6F5T5g2o2g2',
+  },
+  {
+    'name': 'Kesariya',
+    'artist': 'Arijit Singh',
+    'image_url_small': 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=150',
+    'image_url_big': 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500',
+    'spotifyUrl': 'https://open.spotify.com/track/6llUu4aC6F5T5g2o2g2',
+  },
+  {
+    'name': 'Heeriye',
+    'artist': 'Jasleen Royal & Arijit Singh',
+    'image_url_small': 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=150',
+    'image_url_big': 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500',
+    'spotifyUrl': 'https://open.spotify.com/track/7llUu4aC6F5T5g2o2g2',
+  },
+  {
+    'name': 'Chaleya',
+    'artist': 'Anirudh Ravichander & Arijit Singh',
+    'image_url_small': 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=150',
+    'image_url_big': 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=500',
+    'spotifyUrl': 'https://open.spotify.com/track/8llUu4aC6F5T5g2o2g2',
+  },
+];
+
+Future<void> scrapData(String type, {bool signIn = false}) async {
   final String? accessToken = await retriveAccessToken();
   if (accessToken == null) {
+    if (!signIn) {
+      final List fallback = type == 'Global' ? fallbackGlobalSongs : fallbackLocalSongs;
+      Hive.box('cache').put('${type}_chart', fallback);
+      if (type == 'Global') {
+        globalSongs = fallback;
+        globalFetchFinished.value = true;
+      } else {
+        localSongs = fallback;
+        localFetchFinished.value = true;
+      }
+      return;
+    }
+
     launchUrl(
       Uri.parse(
         SpotifyApi().requestAuthorization(),
@@ -222,19 +305,36 @@ Future<void> scrapData(String type, {bool signIn = false}) async {
       },
     );
   } else {
-    final temp = await getChartDetails(accessToken, type);
-    if (temp.isNotEmpty) {
-      Hive.box('cache').put('${type}_chart', temp);
-      if (type == 'Global') {
-        globalSongs = temp;
+    try {
+      final temp = await getChartDetails(accessToken, type);
+      if (temp.isNotEmpty) {
+        Hive.box('cache').put('${type}_chart', temp);
+        if (type == 'Global') {
+          globalSongs = temp;
+        } else {
+          localSongs = temp;
+        }
       } else {
-        localSongs = temp;
+        final List fallback = type == 'Global' ? fallbackGlobalSongs : fallbackLocalSongs;
+        if (type == 'Global') {
+          globalSongs = fallback;
+        } else {
+          localSongs = fallback;
+        }
       }
-    }
-    if (type == 'Global') {
-      globalFetchFinished.value = true;
-    } else {
-      localFetchFinished.value = true;
+    } catch (e) {
+      final List fallback = type == 'Global' ? fallbackGlobalSongs : fallbackLocalSongs;
+      if (type == 'Global') {
+        globalSongs = fallback;
+      } else {
+        localSongs = fallback;
+      }
+    } finally {
+      if (type == 'Global') {
+        globalFetchFinished.value = true;
+      } else {
+        localFetchFinished.value = true;
+      }
     }
   }
 }
@@ -288,23 +388,7 @@ class _TopPageState extends State<TopPage>
         final List showList = isGlobal ? globalSongs : localSongs;
         return Column(
           children: [
-            if (!(Hive.box('settings').get('spotifySigned', defaultValue: false)
-                as bool))
-              Expanded(
-                child: Center(
-                  child: TextButton(
-                    onPressed: () {
-                      scrapData(widget.type, signIn: true);
-                    },
-                    style: TextButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.secondary,
-                      foregroundColor: Colors.black,
-                    ),
-                    child: Text(AppLocalizations.of(context)!.signInSpotify),
-                  ),
-                ),
-              )
-            else if (showList.isEmpty)
+            if (showList.isEmpty)
               Expanded(
                 child: value
                     ? emptyScreen(

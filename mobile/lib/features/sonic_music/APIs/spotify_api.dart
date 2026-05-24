@@ -84,10 +84,10 @@ class SpotifyApi {
         'grant_type': 'refresh_token',
         'refresh_token': refreshToken,
       };
-    }
-
-    if (body == null) {
-      return [];
+    } else {
+      body = {
+        'grant_type': 'client_credentials',
+      };
     }
 
     try {

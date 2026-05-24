@@ -363,7 +363,7 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
       try {
         final dio = Dio();
         final response = await dio.post(
-          'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey',
+          'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$apiKey',
           data: {
             'contents': [
               {

@@ -226,7 +226,7 @@ class CartScreen extends ConsumerWidget {
                 ),
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
             // Product details
             Expanded(
               child: Column(
@@ -286,15 +286,16 @@ class CartScreen extends ConsumerWidget {
                           );
                         },
                       ),
-                      Container(
-                        width: 40,
-                        alignment: Alignment.center,
-                        child: Text(
-                          '${item.quantity}',
-                          style: GoogleFonts.spaceGrotesk(
-                            color: _kWhite,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 16,
+                      SizedBox(
+                        width: 32,
+                        child: Center(
+                          child: Text(
+                            '${item.quantity}',
+                            style: GoogleFonts.spaceGrotesk(
+                              color: _kWhite,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 16,
+                            ),
                           ),
                         ),
                       ),
@@ -324,6 +325,8 @@ class CartScreen extends ConsumerWidget {
             const SizedBox(width: 8),
             // Remove button
             IconButton(
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
               icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
               onPressed: () {
                 ref.read(cartProvider.notifier).remove(item.product.id);

@@ -31,12 +31,10 @@ Future<String?> retriveAccessToken() async {
       ?.toString();
   final double expiredAt = Hive.box('settings')
       .get('spotifyTokenExpireAt', defaultValue: 0.0) as double;
+  final currentTime = DateTime.now().millisecondsSinceEpoch / 1000;
 
-  if (accessToken == null || refreshToken == null) {
-    return null;
-  } else {
-    final currentTime = DateTime.now().millisecondsSinceEpoch / 1000;
-    if ((currentTime + 60) >= expiredAt) {
+  if (accessToken == null || (currentTime + 60) >= expiredAt) {
+    if (refreshToken != null && refreshToken != 'null') {
       final List<String> data =
           await SpotifyApi().getAccessToken(refreshToken: refreshToken);
       if (data.isNotEmpty) {
@@ -50,9 +48,18 @@ Future<String?> retriveAccessToken() async {
         Hive.box('settings')
             .put('spotifyTokenExpireAt', currentTime + double.parse(data[2]));
       }
+    } else {
+      final List<String> data = await SpotifyApi().getAccessToken();
+      if (data.isNotEmpty) {
+        accessToken = data[0];
+        Hive.box('settings').put('spotifyAccessToken', data[0]);
+        Hive.box('settings').put('spotifyRefreshToken', 'null');
+        Hive.box('settings')
+            .put('spotifyTokenExpireAt', currentTime + double.parse(data[2]));
+      }
     }
-    return accessToken;
   }
+  return accessToken;
 }
 
 Future<void> callSpotifyFunction({
