@@ -4,14 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Call signal types exchanged between caller and callee.
-enum CallSignal {
-  ring,
-  accept,
-  decline,
-  cancel,
-  connected,
-  end,
-}
+enum CallSignal { ring, accept, decline, cancel, connected, end }
 
 /// Payload for a call signal event.
 class CallSignalPayload {
@@ -46,14 +39,14 @@ class CallSignalPayload {
   }
 
   Map<String, dynamic> toJson() => {
-        'signal': signal.name,
-        'caller_id': callerId,
-        'caller_name': callerName,
-        'caller_avatar_url': callerAvatarUrl,
-        'callee_id': calleeId,
-        'call_type': callType,
-        'room_name': roomName,
-      };
+    'signal': signal.name,
+    'caller_id': callerId,
+    'caller_name': callerName,
+    'caller_avatar_url': callerAvatarUrl,
+    'callee_id': calleeId,
+    'call_type': callType,
+    'room_name': roomName,
+  };
 }
 
 /// Provider for the [CallSignalingService] singleton.
@@ -79,6 +72,7 @@ final callSignalingServiceProvider = Provider<CallSignalingService>((ref) {
 ///   Caller -> receives decline -> shows missed call
 class CallSignalingService {
   final SupabaseClient _supabase;
+  static const Duration _subscribeTimeout = Duration(seconds: 8);
 
   RealtimeChannel? _incomingChannel;
   String? _myUserId;
@@ -98,49 +92,91 @@ class CallSignalingService {
   Future<void> _startListening() async {
     if (_myUserId == null || _myUserId!.isEmpty) return;
 
-    _incomingChannel?.unsubscribe();
+    await _incomingChannel?.unsubscribe();
 
     debugPrint('[CallSignal] Subscribing to incoming calls on call:$_myUserId');
 
     _incomingChannel = _supabase
-        .channel('call:$_myUserId')
+        .channel(
+          'call:$_myUserId',
+          opts: const RealtimeChannelConfig(ack: true),
+        )
         .onBroadcast(
           event: 'call_signal',
           callback: (payload) {
             try {
               final signal = CallSignalPayload.fromJson(payload);
               debugPrint(
-                  '[CallSignal] Received: ${signal.signal.name} from ${signal.callerName}');
+                '[CallSignal] Received: ${signal.signal.name} from ${signal.callerName}',
+              );
               _signalController.add(signal);
             } catch (e) {
               debugPrint('[CallSignal] Error parsing incoming signal: $e');
             }
           },
-        )
-        .subscribe((status, _) {
-      debugPrint('[CallSignal] Subscription status: $status');
-    });
+        );
+
+    await _subscribeChannel(
+      _incomingChannel!,
+      label: 'incoming call:$_myUserId',
+    );
   }
 
   /// Send a call signal to a recipient via their broadcast channel.
   Future<void> sendSignal(CallSignalPayload signal) async {
-    final recipientChannel = _supabase.channel('call:${signal.calleeId}');
+    final recipientChannel = _supabase.channel(
+      'call:${signal.calleeId}',
+      opts: const RealtimeChannelConfig(ack: true),
+    );
 
     try {
-      recipientChannel.subscribe();
-      await Future<void>.delayed(const Duration(milliseconds: 150));
-      await recipientChannel.sendBroadcastMessage(
+      await _subscribeChannel(
+        recipientChannel,
+        label: 'outgoing call:${signal.calleeId}',
+      );
+      final response = await recipientChannel.sendBroadcastMessage(
         event: 'call_signal',
         payload: signal.toJson(),
       );
+      if (response != ChannelResponse.ok) {
+        throw StateError('Supabase broadcast failed: $response');
+      }
       debugPrint(
-          '[CallSignal] Sent ${signal.signal.name} to ${signal.calleeId}');
+        '[CallSignal] Sent ${signal.signal.name} to ${signal.calleeId}',
+      );
     } catch (e) {
       debugPrint('[CallSignal] Error sending signal: $e');
     } finally {
       await Future.delayed(const Duration(milliseconds: 500));
       await recipientChannel.unsubscribe();
     }
+  }
+
+  Future<void> _subscribeChannel(
+    RealtimeChannel channel, {
+    required String label,
+  }) async {
+    final completer = Completer<void>();
+    channel.subscribe((status, error) {
+      debugPrint('[CallSignal] $label subscription status: $status');
+      if (status == RealtimeSubscribeStatus.subscribed) {
+        if (!completer.isCompleted) completer.complete();
+      } else if (status == RealtimeSubscribeStatus.channelError ||
+          status == RealtimeSubscribeStatus.closed ||
+          status == RealtimeSubscribeStatus.timedOut) {
+        if (!completer.isCompleted) {
+          completer.completeError(
+            StateError('$label subscription failed: $status ${error ?? ''}'),
+          );
+        }
+      }
+    });
+    await completer.future.timeout(
+      _subscribeTimeout,
+      onTimeout: () {
+        throw TimeoutException('$label subscription timed out');
+      },
+    );
   }
 
   /// Generate a unique WebRTC room name for a DM pair.

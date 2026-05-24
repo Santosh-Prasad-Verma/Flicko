@@ -10,10 +10,7 @@ import 'package:mobile/features/calling/services/webrtc_call_service.dart';
 class CallSignalListener extends ConsumerStatefulWidget {
   final Widget child;
 
-  const CallSignalListener({
-    super.key,
-    required this.child,
-  });
+  const CallSignalListener({super.key, required this.child});
 
   @override
   ConsumerState<CallSignalListener> createState() => _CallSignalListenerState();
@@ -27,7 +24,7 @@ class _CallSignalListenerState extends ConsumerState<CallSignalListener> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(_initialize);
+    Future.microtask(() => _syncUser(ref.read(currentUserIdProvider)));
   }
 
   @override
@@ -36,19 +33,21 @@ class _CallSignalListenerState extends ConsumerState<CallSignalListener> {
     super.dispose();
   }
 
-  Future<void> _initialize() async {
-    final myUserId = ref.read(currentUserIdProvider);
+  Future<void> _syncUser(String? myUserId) async {
     if (myUserId == null || myUserId.isEmpty) return;
+    if (_myUserId == myUserId && _signalSub != null) return;
 
+    await _signalSub?.cancel();
     _myUserId = myUserId;
     _signalingService = ref.read(callSignalingServiceProvider);
     await _signalingService!.initialize(myUserId);
-    _signalSub?.cancel();
     _signalSub = _signalingService!.onSignal.listen(_handleSignal);
   }
 
   String _currentUserName() {
-    return ref.read(authNotifierProvider).maybeWhen(
+    return ref
+        .read(authNotifierProvider)
+        .maybeWhen(
           authenticated: (user, profile) =>
               profile?.displayName ??
               profile?.username ??
@@ -59,7 +58,9 @@ class _CallSignalListenerState extends ConsumerState<CallSignalListener> {
   }
 
   String? _currentUserAvatarUrl() {
-    return ref.read(authNotifierProvider).maybeWhen(
+    return ref
+        .read(authNotifierProvider)
+        .maybeWhen(
           authenticated: (_, profile) => profile?.avatarUrl,
           orElse: () => null,
         );
@@ -113,7 +114,8 @@ class _CallSignalListenerState extends ConsumerState<CallSignalListener> {
         break;
       case CallSignal.end:
         unawaited(
-            ref.read(webRtcCallServiceProvider).endCall(notifyPeer: false));
+          ref.read(webRtcCallServiceProvider).endCall(notifyPeer: false),
+        );
         _dismissTopRoute();
         break;
       case CallSignal.connected:
@@ -206,5 +208,11 @@ class _CallSignalListenerState extends ConsumerState<CallSignalListener> {
   }
 
   @override
-  Widget build(BuildContext context) => widget.child;
+  Widget build(BuildContext context) {
+    ref.listen<String?>(currentUserIdProvider, (_, next) {
+      unawaited(_syncUser(next));
+    });
+
+    return widget.child;
+  }
 }
