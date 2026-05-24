@@ -99,7 +99,7 @@ func TestLudoEngine_RollDice_Normal(t *testing.T) {
 	gameID := "game_123"
 
 	// Init game
-	state, err := engine.InitializeGame(context.Background(), gameID, players)
+	_, err := engine.InitializeGame(context.Background(), gameID, players)
 	assert.NoError(t, err)
 
 	// Since they all start in base (-1) and we roll a 5, there are NO legal moves!
