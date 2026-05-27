@@ -7,10 +7,13 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0
 	github.com/flicko-org/flicko/services/shared v0.0.0
 	github.com/go-chi/chi/v5 v5.2.5
+	github.com/hibiken/asynq v0.26.0
 	github.com/jackc/pgx/v5 v5.8.0
 	github.com/livekit/protocol v1.45.3
+	github.com/meilisearch/meilisearch-go v0.36.2
 	github.com/prometheus/client_golang v1.23.2
 	github.com/redis/go-redis/v9 v9.18.0
+	github.com/stretchr/testify v1.11.1
 	go.uber.org/zap v1.27.1
 )
 
@@ -24,6 +27,7 @@ require (
 	github.com/benbjohnson/clock v1.3.5 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/caarlos0/env/v10 v10.0.0 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dennwc/iters v1.1.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/frostbyte73/core v0.1.1 // indirect
@@ -34,7 +38,8 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
 	github.com/google/cel-go v0.25.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/hibiken/asynq v0.26.0 // indirect
+	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
+	github.com/hashicorp/go-retryablehttp v0.7.7 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
@@ -44,7 +49,6 @@ require (
 	github.com/lithammer/shortuuid/v4 v4.2.0 // indirect
 	github.com/livekit/mageutil v0.0.0-20250511045019-0f1ff63f7731 // indirect
 	github.com/livekit/psrpc v0.7.1 // indirect
-	github.com/meilisearch/meilisearch-go v0.36.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/nats-io/nats.go v1.43.0 // indirect
 	github.com/nats-io/nkeys v0.4.11 // indirect
@@ -66,6 +70,7 @@ require (
 	github.com/pion/transport/v3 v3.0.7 // indirect
 	github.com/pion/turn/v4 v4.0.2 // indirect
 	github.com/pion/webrtc/v4 v4.1.2 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.66.1 // indirect
 	github.com/prometheus/procfs v0.16.1 // indirect
