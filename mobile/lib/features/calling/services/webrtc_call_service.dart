@@ -225,8 +225,18 @@ class WebRtcCallService extends ChangeNotifier {
     } catch (_) {}
     _localStream = null;
     _remoteStream = null;
-    localRenderer.srcObject = null;
-    remoteRenderer.srcObject = null;
+    if (_renderersReady) {
+      try {
+        localRenderer.srcObject = null;
+      } catch (error) {
+        debugPrint('[FlickoRTC] local renderer clear ignored: $error');
+      }
+      try {
+        remoteRenderer.srcObject = null;
+      } catch (error) {
+        debugPrint('[FlickoRTC] remote renderer clear ignored: $error');
+      }
+    }
 
     try {
       await _channel?.unsubscribe();

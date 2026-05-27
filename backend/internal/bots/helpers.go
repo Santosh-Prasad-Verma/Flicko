@@ -190,7 +190,7 @@ func HasPermission(ctx context.Context, bctx BotContext, serverID, userID string
 // in command handlers:
 //
 //	if err := bots.RequirePermission(ctx, bctx, serverID, userID, bots.PermBanMembers); err != nil {
-//	    return permissionDeniedResponse(err), nil
+//	    return "❌ You don't have permission to use this command.", nil
 //	}
 func RequirePermission(ctx context.Context, bctx BotContext, serverID, userID string, want PermissionBits) error {
 	if HasPermission(ctx, bctx, serverID, userID, want) {
@@ -285,16 +285,4 @@ func ParseDuration(s string) (time.Duration, error) {
 		return 0, errors.New("duration too long (maximum is 30 days)")
 	}
 	return d, nil
-}
-
-// permissionDeniedResponse is a convenience for handlers when
-// RequirePermission rejects.
-//
-// Not exported because it depends on the commands package; the bots
-// importing this helper are in the same package.
-func permissionDeniedResponse(reason string) string {
-	if reason == "" {
-		reason = "You don't have permission to use this command."
-	}
-	return "❌ " + reason
 }
