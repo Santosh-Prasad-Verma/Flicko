@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
@@ -99,42 +101,61 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final chatState = ref.watch(chatNotifierProvider(widget.channelId));
     final equippedWarp = ref.watch(equippedWarpProvider).value;
 
-    return Scaffold(
-      backgroundColor: const Color(FlickoColors.bgTertiary),
-      appBar: AppBar(
-        backgroundColor: const Color(FlickoColors.bgPrimary),
-        elevation: 0,
-        titleSpacing: 0,
-        title: Row(
-          children: [
-            const Icon(Icons.tag, color: Color(FlickoColors.textMuted), size: 20),
-            const SizedBox(width: 8),
-            Text(
-              widget.channelName ?? 'Channel',
-              style: GoogleFonts.inter(
-                color: const Color(FlickoColors.textPrimary),
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF1E1E2C), // Deep premium purple/black
+            Color(0xFF2D2D44),
+            Color(0xFF1A1A24),
+          ],
+        ),
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        extendBodyBehindAppBar: true,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          flexibleSpace: ClipRRect(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+              child: Container(color: Colors.black.withValues(alpha: 0.2)),
+            ),
+          ),
+          titleSpacing: 0,
+          title: Row(
+            children: [
+              const Icon(Icons.tag, color: Color(FlickoColors.textMuted), size: 20),
+              const SizedBox(width: 8),
+              Text(
+                widget.channelName ?? 'Channel',
+                style: GoogleFonts.inter(
+                  color: const Color(FlickoColors.textPrimary),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
+            ],
+          ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.phone_in_talk_outlined, color: Color(FlickoColors.textMuted)),
+              onPressed: () => _showComingSoon('Voice channels'),
+            ),
+            IconButton(
+              icon: const Icon(Icons.videocam_outlined, color: Color(FlickoColors.textMuted)),
+              onPressed: () => _showComingSoon('Video channels'),
+            ),
+            IconButton(
+              icon: const Icon(Icons.people_outline, color: Color(FlickoColors.textMuted)),
+              onPressed: () {},
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.phone_in_talk_outlined, color: Color(FlickoColors.textMuted)),
-            onPressed: () => _showComingSoon('Voice channels'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.videocam_outlined, color: Color(FlickoColors.textMuted)),
-            onPressed: () => _showComingSoon('Video channels'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.people_outline, color: Color(FlickoColors.textMuted)),
-            onPressed: () {},
-          ),
-        ],
-      ),
-      body: Stack(
+        body: Stack(
         children: [
           ParticleFxEngine(
             controller: _particleController,
@@ -162,64 +183,64 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                             }
 
                             return ListView.builder(
-                        controller: _scrollController,
-                        reverse: true, // Discord style lists newest at bottom
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        itemCount: chatState.messages.length + (chatState.isFetchingMore ? 1 : 0),
-                        itemBuilder: (context, index) {
-                          if (index == chatState.messages.length) {
-                            return const Padding(
-                              padding: EdgeInsets.all(8.0),
-                              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                              controller: _scrollController,
+                              reverse: true, // Discord style lists newest at bottom
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              itemCount: chatState.messages.length + (chatState.isFetchingMore ? 1 : 0),
+                              itemBuilder: (context, index) {
+                                if (index == chatState.messages.length) {
+                                  return const Padding(
+                                    padding: EdgeInsets.all(8.0),
+                                    child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                                  );
+                                }
+
+                                final message = chatState.messages[index];
+                                final nextMessage = index > 0 ? chatState.messages[index - 1] : null;
+
+                                // Grouping logic: Same author and within 5 minutes
+                                bool isContinuation = false;
+                                if (nextMessage != null && 
+                                    nextMessage.authorId == message.authorId &&
+                                    nextMessage.type != 'system') {
+                                  final diff = nextMessage.createdAt.difference(message.createdAt).abs();
+                                  if (diff.inMinutes < 5) {
+                                    isContinuation = true;
+                                  }
+                                }
+
+                                final currentUserId = ref.read(authNotifierProvider).maybeWhen(
+                                  authenticated: (user, _) => user.id,
+                                  orElse: () => '',
+                                );
+
+                                return EnhancedMessageItem(
+                                  message: message,
+                                  isContinuation: isContinuation,
+                                  onReactionToggle: (emoji) => ref
+                                      .read(chatNotifierProvider(widget.channelId).notifier)
+                                      .toggleReaction(message.id, emoji),
+                                  onLongPress: () => _onMessageLongPress(message),
+                                  onEdit: (newContent) => ref
+                                      .read(chatNotifierProvider(widget.channelId).notifier)
+                                      .editMessage(message.id, newContent),
+                                  onDelete: () => ref
+                                      .read(chatNotifierProvider(widget.channelId).notifier)
+                                      .deleteMessage(message.id),
+                                  onReply: () => setState(() => _replyTo = message),
+                                  onCopy: () {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Copied to clipboard', style: GoogleFonts.inter()),
+                                        duration: const Duration(seconds: 1),
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
                             );
-                          }
-
-                          final message = chatState.messages[index];
-                          final nextMessage = index > 0 ? chatState.messages[index - 1] : null;
-
-                          // Grouping logic: Same author and within 5 minutes
-                          bool isContinuation = false;
-                          if (nextMessage != null && 
-                              nextMessage.authorId == message.authorId &&
-                              nextMessage.type != 'system') {
-                            final diff = nextMessage.createdAt.difference(message.createdAt).abs();
-                            if (diff.inMinutes < 5) {
-                              isContinuation = true;
-                            }
-                          }
-
-                          final currentUserId = ref.read(authNotifierProvider).maybeWhen(
-                            authenticated: (user, _) => user.id,
-                            orElse: () => '',
-                          );
-
-                          return EnhancedMessageItem(
-                            message: message,
-                            isContinuation: isContinuation,
-                            onReactionToggle: (emoji) => ref
-                                .read(chatNotifierProvider(widget.channelId).notifier)
-                                .toggleReaction(message.id, emoji),
-                            onLongPress: () => _onMessageLongPress(message),
-                            onEdit: (newContent) => ref
-                                .read(chatNotifierProvider(widget.channelId).notifier)
-                                .editMessage(message.id, newContent),
-                            onDelete: () => ref
-                                .read(chatNotifierProvider(widget.channelId).notifier)
-                                .deleteMessage(message.id),
-                            onReply: () => setState(() => _replyTo = message),
-                            onCopy: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Copied to clipboard', style: GoogleFonts.inter()),
-                                  duration: const Duration(seconds: 1),
-                                ),
-                              );
-                            },
-                          );
-                        },
-                      );
-                    },
-                  ),
+                          },
+                        ),
                 ),
               if (chatState.typingUsers.isNotEmpty)
                 Padding(
@@ -252,10 +273,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   if (stickerUrl != null) messageContent = stickerUrl;
 
                   ref.read(chatNotifierProvider(widget.channelId).notifier).sendMessage(
-                        messageContent,
-                        replyToId: _replyTo?.id,
-                        localAttachments: attachments,
-                      );
+                    messageContent,
+                    replyToId: _replyTo?.id,
+                    localAttachments: attachments,
+                  );
                   setState(() => _replyTo = null);
                 },
                 onTypingStart: () {
@@ -278,6 +299,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               },
             ),
         ],
+      ),
       ),
     );
   }

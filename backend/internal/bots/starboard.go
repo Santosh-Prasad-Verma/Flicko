@@ -67,6 +67,19 @@ func (b *StarboardBot) registerCommands() {
 // ── Command Handlers ────────────────────────────────────────────────────────
 
 func (b *StarboardBot) handleStarboard(ctx commands.CommandContext) (*commands.CommandResponse, error) {
+	if ctx.Ctx == nil {
+		ctx.Ctx = context.Background()
+	}
+	reqCtx, cancel := context.WithTimeout(ctx.Ctx, 15*time.Second)
+	defer cancel()
+
+	if !HasPermission(reqCtx, b.ctx, ctx.ServerID, ctx.UserID, PermManageGuild) {
+		return &commands.CommandResponse{
+			Content:   "❌ You need the Manage Server permission to configure the starboard.",
+			Ephemeral: true,
+		}, nil
+	}
+
 	action, _ := ctx.Options["action"].(string)
 
 	switch strings.ToLower(action) {
@@ -128,7 +141,7 @@ func (b *StarboardBot) handleStarboard(ctx commands.CommandContext) (*commands.C
 		if err != nil {
 			return nil, err
 		}
-		return &commands.CommandResponse{Content: fmt.Sprintf("⭐ Self-starring %s.", boolEmoji(enabled))}, nil
+		return &commands.CommandResponse{Content: fmt.Sprintf("⭐ Self-starring %s.", BoolEmoji(enabled))}, nil
 
 	default:
 		return &commands.CommandResponse{Content: "❌ Unknown action. Use: setup, status, threshold, emoji, ignore, self-star", Ephemeral: true}, nil
@@ -154,7 +167,7 @@ func (b *StarboardBot) handleStars(ctx commands.CommandContext) (*commands.Comma
 			 ORDER BY star_count DESC LIMIT 1`,
 			ctx.ServerID, targetID).Scan(&topMessage, &topStars)
 
-		username := b.getUsername(targetID)
+		username := LookupUsername(b.ctx, targetID)
 		if len(topMessage) > 50 {
 			topMessage = topMessage[:50] + "..."
 		}
@@ -190,7 +203,7 @@ func (b *StarboardBot) handleStars(ctx commands.CommandContext) (*commands.Comma
 		if err := rows.Scan(&userID, &stars); err != nil {
 			continue
 		}
-		username := b.getUsername(userID)
+		username := LookupUsername(b.ctx, userID)
 		medal := fmt.Sprintf("#%d", pos)
 		switch pos {
 		case 1:
@@ -252,10 +265,10 @@ func (b *StarboardBot) getStatus(serverID string) (*commands.CommandResponse, er
 			Title: "⭐ Starboard Configuration",
 			Color: "#FFD700",
 			Fields: []commands.EmbedField{
-				{Name: "Status", Value: boolEmoji(s.Enabled), Inline: true},
+				{Name: "Status", Value: BoolEmoji(s.Enabled), Inline: true},
 				{Name: "Channel", Value: channelStr, Inline: true},
 				{Name: "Threshold", Value: fmt.Sprintf("%d %s", s.Threshold, s.Emoji), Inline: true},
-				{Name: "Self-Star", Value: boolEmoji(s.SelfStar), Inline: true},
+				{Name: "Self-Star", Value: BoolEmoji(s.SelfStar), Inline: true},
 				{Name: "Total Entries", Value: fmt.Sprintf("%d", totalEntries), Inline: true},
 			},
 		},
@@ -313,7 +326,7 @@ func (b *StarboardBot) onReactionAdd(evt events.Event) error {
 	// Get message info
 	var authorID, content string
 	err = b.ctx.DB.QueryRow(context.Background(),
-		`SELECT user_id, content FROM messages WHERE id = $1`, messageID).Scan(&authorID, &content)
+		`SELECT author_id, content FROM messages WHERE id = $1`, messageID).Scan(&authorID, &content)
 	if err != nil {
 		return nil
 	}
@@ -405,7 +418,7 @@ func (b *StarboardBot) onReactionRemove(evt events.Event) error {
 // ── Starboard Message ───────────────────────────────────────────────────────
 
 func (b *StarboardBot) postOrUpdateStarboardMessage(entryID, starboardChannelID, originalChannelID, originalMessageID, authorID, content string, starCount int, emoji string) {
-	username := b.getUsername(authorID)
+	username := LookupUsername(b.ctx, authorID)
 
 	if len(content) > 200 {
 		content = content[:200] + "..."
@@ -416,36 +429,41 @@ func (b *StarboardBot) postOrUpdateStarboardMessage(entryID, starboardChannelID,
 
 	// Check if already posted
 	var sbMessageID *string
-	b.ctx.DB.QueryRow(context.Background(),
+	_ = b.ctx.DB.QueryRow(context.Background(),
 		`SELECT starboard_message_id FROM starboard_entries WHERE id = $1`, entryID).Scan(&sbMessageID)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	systemID, _ := EnsureSystemUser(ctx, b.ctx)
 
 	if sbMessageID != nil {
 		// Update existing
-		b.ctx.DB.Exec(context.Background(),
+		_, _ = b.ctx.DB.Exec(ctx,
 			`UPDATE messages SET content = $2 WHERE id = $1`, *sbMessageID, starMsg)
 	} else {
-		// Create new
+		// Create new (CRIT-6 fix: use author_id column, nullable)
 		var newMsgID string
-		err := b.ctx.DB.QueryRow(context.Background(),
-			`INSERT INTO messages (channel_id, content, type, created_at)
-			 VALUES ($1, $2, 'system', $3) RETURNING id`,
-			starboardChannelID, starMsg, time.Now()).Scan(&newMsgID)
+		var err error
+		if systemID != "" {
+			err = b.ctx.DB.QueryRow(ctx,
+				`INSERT INTO messages (channel_id, author_id, content, type, created_at)
+				 VALUES ($1, $2, $3, 'system', NOW()) RETURNING id`,
+				starboardChannelID, systemID, starMsg).Scan(&newMsgID)
+		} else {
+			err = b.ctx.DB.QueryRow(ctx,
+				`INSERT INTO messages (channel_id, author_id, content, type, created_at)
+				 VALUES ($1, NULL, $2, 'system', NOW()) RETURNING id`,
+				starboardChannelID, starMsg).Scan(&newMsgID)
+		}
 		if err != nil {
 			b.logger.Error("starboard message post failed", zap.Error(err))
 			return
 		}
-		b.ctx.DB.Exec(context.Background(),
+		_, _ = b.ctx.DB.Exec(ctx,
 			`UPDATE starboard_entries SET starboard_message_id = $2 WHERE id = $1`,
 			entryID, newMsgID)
 	}
 }
 
-func (b *StarboardBot) getUsername(userID string) string {
-	var username string
-	b.ctx.DB.QueryRow(context.Background(),
-		`SELECT COALESCE(display_name, username) FROM users WHERE id = $1`, userID).Scan(&username)
-	if username == "" {
-		return userID[:8]
-	}
-	return username
-}
+// getUsername removed — use LookupUsername from helpers.go

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -10,9 +11,8 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
-import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
 
-// ─── QR Theme Presets (Upgraded with Premium Gradients & Glows) ─────
+// ─── QR Theme Presets (Redesigned with Premium Frosted Gradients & Glowing Accents) ─────
 class _QrTheme {
   final String id;
   final String label;
@@ -38,63 +38,43 @@ class _QrTheme {
 const _themes = <_QrTheme>[
   _QrTheme(
     id: 'neon',
-    label: 'NEON',
-    bgStart: Color(0xFF030A05),
+    label: 'EMERALD GLOW',
+    bgStart: Color(0xFF030704),
     bgEnd: Color(0xFF000000),
     qrColor: Color(0xFF52B788),
     accent: Color(0xFF52B788),
     textColor: Color(0xFFFBF9FA),
-    cardGradients: [Color(0xFF0D1E15), Color(0xFF040A06)],
+    cardGradients: [Color(0xFF0E1A12), Color(0xFF050B07)],
   ),
   _QrTheme(
     id: 'cyber',
-    label: 'CYBERPUNK',
-    bgStart: Color(0xFF0B0514),
+    label: 'MAGENTA GLOW',
+    bgStart: Color(0xFF070308),
     bgEnd: Color(0xFF000000),
     qrColor: Color(0xFFFF007F),
     accent: Color(0xFFFF007F),
     textColor: Color(0xFFFFF5FB),
-    cardGradients: [Color(0xFF240414), Color(0xFF080006)],
+    cardGradients: [Color(0xFF1E0C16), Color(0xFF0C0308)],
   ),
   _QrTheme(
     id: 'midnight',
-    label: 'MIDNIGHT',
-    bgStart: Color(0xFF050B14),
+    label: 'CYAN GLOW',
+    bgStart: Color(0xFF03070A),
     bgEnd: Color(0xFF000000),
     qrColor: Color(0xFF00E5FF),
     accent: Color(0xFF00E5FF),
     textColor: Color(0xFFE0F7FA),
-    cardGradients: [Color(0xFF041824), Color(0xFF000508)],
-  ),
-  _QrTheme(
-    id: 'sunset',
-    label: 'SUNSET',
-    bgStart: Color(0xFF140707),
-    bgEnd: Color(0xFF000000),
-    qrColor: Color(0xFFFF6B6B),
-    accent: Color(0xFFFF6B6B),
-    textColor: Color(0xFFFFF0F0),
-    cardGradients: [Color(0xFF240808), Color(0xFF080000)],
+    cardGradients: [Color(0xFF0A1820), Color(0xFF03080A)],
   ),
   _QrTheme(
     id: 'gold',
-    label: 'GOLD',
-    bgStart: Color(0xFF0E0B05),
+    label: 'GOLD GLOW',
+    bgStart: Color(0xFF070603),
     bgEnd: Color(0xFF000000),
     qrColor: Color(0xFFFFD700),
     accent: Color(0xFFFFD700),
     textColor: Color(0xFFFFF8DC),
-    cardGradients: [Color(0xFF241C04), Color(0xFF080500)],
-  ),
-  _QrTheme(
-    id: 'royal',
-    label: 'ROYAL',
-    bgStart: Color(0xFF0D0A1A),
-    bgEnd: Color(0xFF000000),
-    qrColor: Color(0xFFBB86FC),
-    accent: Color(0xFFBB86FC),
-    textColor: Color(0xFFF3E5F5),
-    cardGradients: [Color(0xFF1A1230), Color(0xFF05030A)],
+    cardGradients: [Color(0xFF1F1A0A), Color(0xFF0B0A05)],
   ),
 ];
 
@@ -145,13 +125,17 @@ class _ShareQrSheet extends StatefulWidget {
   State<_ShareQrSheet> createState() => _ShareQrSheetState();
 }
 
-class _ShareQrSheetState extends State<_ShareQrSheet> with SingleTickerProviderStateMixin {
+class _ShareQrSheetState extends State<_ShareQrSheet> with TickerProviderStateMixin {
   int _selectedThemeIndex = 0;
   _QrDotStyle _dotStyle = _QrDotStyle.rounded;
   bool _showCustomizer = false;
   bool _isSaving = false;
   final GlobalKey _qrCardKey = GlobalKey();
+
+  // Animation controllers for organic visual states
   late AnimationController _pulseCtrl;
+  late AnimationController _particlesCtrl;
+  final List<_StarParticle> _stars = [];
 
   _QrTheme get _theme => _themes[_selectedThemeIndex];
 
@@ -162,11 +146,31 @@ class _ShareQrSheetState extends State<_ShareQrSheet> with SingleTickerProviderS
       vsync: this,
       duration: const Duration(seconds: 3),
     )..repeat(reverse: true);
+
+    // Star drift/constellation animation controller
+    _particlesCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 20),
+    )..repeat();
+
+    // Generate drift star coordinates
+    final random = Random();
+    for (int i = 0; i < 40; i++) {
+      _stars.add(
+        _StarParticle(
+          x: random.nextDouble(),
+          y: random.nextDouble(),
+          size: 1.0 + random.nextDouble() * 2.0,
+          speed: 0.05 + random.nextDouble() * 0.05,
+        ),
+      );
+    }
   }
 
   @override
   void dispose() {
     _pulseCtrl.dispose();
+    _particlesCtrl.dispose();
     super.dispose();
   }
 
@@ -233,7 +237,7 @@ class _ShareQrSheetState extends State<_ShareQrSheet> with SingleTickerProviderS
 
       await SharePlus.instance.share(
         ShareParams(
-          text: 'Join me on Flicko: ${widget.link}',
+          text: 'Scan to connect with me on Flicko: ${widget.link}',
           files: [XFile(file.path)],
         ),
       );
@@ -256,7 +260,7 @@ class _ShareQrSheetState extends State<_ShareQrSheet> with SingleTickerProviderS
         children: [
           // Background Gradient matching active theme
           AnimatedContainer(
-            duration: const Duration(milliseconds: 600),
+            duration: const Duration(milliseconds: 800),
             width: double.infinity,
             height: double.infinity,
             decoration: BoxDecoration(
@@ -267,17 +271,33 @@ class _ShareQrSheetState extends State<_ShareQrSheet> with SingleTickerProviderS
               ),
             ),
           ),
-          
-          // Ambient Glow Orb
+
+          // Glowing space constellation particle field (slowly drifting)
+          Positioned.fill(
+            child: AnimatedBuilder(
+              animation: _particlesCtrl,
+              builder: (context, _) {
+                return CustomPaint(
+                  painter: _SpaceParticlesPainter(
+                    stars: _stars,
+                    progress: _particlesCtrl.value,
+                    color: _theme.accent.withValues(alpha: 0.35),
+                  ),
+                );
+              },
+            ),
+          ),
+
+          // Ambient Glow Aura behind card
           AnimatedBuilder(
             animation: _pulseCtrl,
             builder: (context, child) {
-              final double scale = 1.0 + 0.12 * _pulseCtrl.value;
+              final double scale = 1.0 + 0.1 * _pulseCtrl.value;
               return Positioned(
-                top: MediaQuery.of(context).size.height * 0.15,
+                top: MediaQuery.of(context).size.height * 0.18,
                 left: MediaQuery.of(context).size.width * 0.1,
                 child: Opacity(
-                  opacity: 0.15 + 0.08 * _pulseCtrl.value,
+                  opacity: 0.18 + 0.08 * _pulseCtrl.value,
                   child: Container(
                     width: 320 * scale,
                     height: 320 * scale,
@@ -303,17 +323,19 @@ class _ShareQrSheetState extends State<_ShareQrSheet> with SingleTickerProviderS
                 Expanded(
                   child: SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
                     child: Column(
                       children: [
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 20),
                         _buildQrCard(),
                         const SizedBox(height: 28),
-                        _buildActionButtons(),
-                        const SizedBox(height: 24),
+                        _buildPrimaryShareBtn(),
+                        const SizedBox(height: 16),
+                        _buildActionsRow(),
+                        const SizedBox(height: 20),
                         _buildCustomizeToggle(),
                         
-                        // Customizer Panel (Sleek accordion with glass border)
+                        // Customizer Panel (Frosted glassmorphic card accordion)
                         AnimatedCrossFade(
                           firstChild: const SizedBox.shrink(),
                           secondChild: Padding(
@@ -340,13 +362,13 @@ class _ShareQrSheetState extends State<_ShareQrSheet> with SingleTickerProviderS
           // Saving Overlay
           if (_isSaving)
             Container(
-              color: Colors.black.withValues(alpha: 0.7),
+              color: Colors.black.withValues(alpha: 0.75),
               child: Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     CircularProgressIndicator(color: _theme.accent, strokeWidth: 3),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 18),
                     Text(
                       'GENERATING HI-RES QR CARD...',
                       style: GoogleFonts.spaceMono(
@@ -380,9 +402,9 @@ class _ShareQrSheetState extends State<_ShareQrSheet> with SingleTickerProviderS
             child: Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: _theme.accent.withValues(alpha: 0.04),
-                border: Border.all(color: _theme.accent.withValues(alpha: 0.2), width: 1.5),
-                borderRadius: BorderRadius.circular(10),
+                color: _theme.accent.withValues(alpha: 0.03),
+                border: Border.all(color: _theme.accent.withValues(alpha: 0.15), width: 1.5),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Image.asset('assets/images/back.png', width: 20, height: 20, fit: BoxFit.contain),
             ),
@@ -405,7 +427,7 @@ class _ShareQrSheetState extends State<_ShareQrSheet> with SingleTickerProviderS
                 Text(
                   'CYBERNETIC IDENTITY BEACON',
                   style: GoogleFonts.spaceMono(
-                    color: _theme.accent.withValues(alpha: 0.5),
+                    color: _theme.accent.withValues(alpha: 0.4),
                     fontSize: 8,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 1.5,
@@ -414,7 +436,7 @@ class _ShareQrSheetState extends State<_ShareQrSheet> with SingleTickerProviderS
               ],
             ),
           ),
-          const SizedBox(width: 48), // Balancing spacer
+          const SizedBox(width: 48), // Balance spacer
         ],
       ),
     );
@@ -424,18 +446,14 @@ class _ShareQrSheetState extends State<_ShareQrSheet> with SingleTickerProviderS
     return RepaintBoundary(
       key: _qrCardKey,
       child: Container(
-        padding: const EdgeInsets.all(28),
+        width: double.infinity,
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: _theme.cardGradients,
-          ),
-          border: Border.all(color: _theme.accent.withValues(alpha: 0.25), width: 1.5),
-          borderRadius: BorderRadius.circular(24),
+          color: Colors.black.withValues(alpha: 0.4),
+          border: Border.all(color: _theme.accent.withValues(alpha: 0.2), width: 1.5),
+          borderRadius: BorderRadius.circular(36),
           boxShadow: [
             BoxShadow(
-              color: _theme.accent.withValues(alpha: 0.06),
+              color: _theme.accent.withValues(alpha: 0.08),
               blurRadius: 36,
               spreadRadius: 4,
             ),
@@ -443,198 +461,169 @@ class _ShareQrSheetState extends State<_ShareQrSheet> with SingleTickerProviderS
         ),
         child: Stack(
           children: [
-            // Ambient grid effect inside card
+            // Soft background grid texture
             Positioned.fill(
-              child: CustomPaint(
-                painter: _GridPatternPainter(_theme.accent.withValues(alpha: 0.04)),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(36),
+                child: CustomPaint(
+                  painter: _GridTexturePainter(_theme.accent.withValues(alpha: 0.02)),
+                ),
               ),
             ),
             
-            Column(
-              children: [
-                // User Details Row
-                Row(
-                  children: [
-                    Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        // Dynamic glowing ring
-                        AnimatedBuilder(
-                          animation: _pulseCtrl,
-                          builder: (context, child) {
-                            return Container(
-                              width: 58 + 4 * _pulseCtrl.value,
-                              height: 58 + 4 * _pulseCtrl.value,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: _theme.accent.withValues(alpha: 0.3 + 0.4 * _pulseCtrl.value),
-                                  width: 1.5,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                        // Inner ring
-                        Container(
-                          padding: const EdgeInsets.all(3),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: _theme.accent, width: 1.5),
-                          ),
-                          child: UserAvatar(
-                            imageUrl: widget.avatarUrl,
-                            name: widget.displayName,
-                            size: 44,
-                          ),
-                        ),
-                      ],
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+              child: Column(
+                children: [
+                  // Heading Details (Big, Beautiful Green Outfit font like the vision board reference)
+                  Text(
+                    widget.displayName,
+                    style: GoogleFonts.outfit(
+                      color: _theme.qrColor,
+                      fontSize: 32,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.5,
+                      height: 1.1,
                     ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            widget.displayName.toUpperCase(),
-                            style: GoogleFonts.epilogue(
-                              color: _theme.textColor,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w900,
-                              fontStyle: FontStyle.italic,
-                              letterSpacing: -0.2,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 3),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: _theme.accent.withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(color: _theme.accent.withValues(alpha: 0.2), width: 1),
-                            ),
-                            child: Text(
-                              '@${widget.username}',
-                              style: GoogleFonts.spaceMono(
-                                color: _theme.accent,
-                                fontSize: 9.5,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // High-end Cyber Tag
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: _theme.accent,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.verified_user_rounded, color: _theme.bgStart, size: 10),
-                          const SizedBox(width: 4),
-                          Text(
-                            'FLICKO',
-                            style: GoogleFonts.spaceGrotesk(
-                              color: _theme.bgStart,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 8.5,
-                              letterSpacing: 1.0,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 28),
-                
-                // QR Enclosure with Corner Brackets
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.4),
-                    border: Border.all(color: _theme.accent.withValues(alpha: 0.12), width: 1.5),
-                    borderRadius: BorderRadius.circular(16),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  child: Stack(
-                    alignment: Alignment.center,
+                  const SizedBox(height: 6),
+                  Text(
+                    'FLICKO SYSTEM PROFILE',
+                    style: GoogleFonts.spaceMono(
+                      color: _theme.textColor.withValues(alpha: 0.4),
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  
+                  // QR Enclosure with Slanted Pill Badge
+                  Stack(
+                    clipBehavior: Clip.none,
                     children: [
-                      // Tech Corner Brackets
-                      Positioned.fill(
-                        child: CustomPaint(
-                          painter: _CyberBracketsPainter(_theme.accent),
+                      Container(
+                        padding: const EdgeInsets.all(22),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.55),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.04), width: 1),
+                          borderRadius: BorderRadius.circular(28),
+                        ),
+                        child: QrImageView(
+                          data: widget.link,
+                          version: QrVersions.auto,
+                          size: 190,
+                          gapless: true,
+                          eyeStyle: QrEyeStyle(
+                            eyeShape: _dotStyle == _QrDotStyle.circle
+                                ? QrEyeShape.circle
+                                : QrEyeShape.square,
+                            color: _theme.qrColor,
+                          ),
+                          dataModuleStyle: QrDataModuleStyle(
+                            dataModuleShape: _dotStyle == _QrDotStyle.square
+                                ? QrDataModuleShape.square
+                                : QrDataModuleShape.circle,
+                            color: _theme.qrColor,
+                          ),
+                          backgroundColor: Colors.transparent,
                         ),
                       ),
                       
-                      QrImageView(
-                        data: widget.link,
-                        version: QrVersions.auto,
-                        size: 190,
-                        gapless: true,
-                        eyeStyle: QrEyeStyle(
-                          eyeShape: _dotStyle == _QrDotStyle.circle
-                              ? QrEyeShape.circle
-                              : QrEyeShape.square,
-                          color: _theme.qrColor,
+                      // Slanted Badge over QR Corner ("JOIN ME!" styled purple pill like reference's "JOIN US!")
+                      Positioned(
+                        bottom: -10,
+                        right: 8,
+                        child: Transform.rotate(
+                          angle: -0.08,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF7B2CBF), // Gorgeous reference purple
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF7B2CBF).withValues(alpha: 0.4),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: Text(
+                              'JOIN ME!',
+                              style: GoogleFonts.outfit(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 10,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
                         ),
-                        dataModuleStyle: QrDataModuleStyle(
-                          dataModuleShape: _dotStyle == _QrDotStyle.square
-                              ? QrDataModuleShape.square
-                              : QrDataModuleShape.circle,
-                          color: _theme.qrColor,
-                        ),
-                        backgroundColor: Colors.transparent,
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 24),
-                
-                // Command line block at the bottom
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.3),
-                    border: Border.all(color: _theme.accent.withValues(alpha: 0.08), width: 1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
+                  
+                  const SizedBox(height: 38),
+                  
+                  // Location details layout matching reference
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      Text(
-                        'VERIFIED SECURE IDENTITY BEACON',
-                        style: GoogleFonts.spaceMono(
-                          color: _theme.textColor.withValues(alpha: 0.3),
-                          fontSize: 7.5,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.5,
-                        ),
+                      Column(
+                        children: [
+                          Text(
+                            'IDENTITY ADDRESS',
+                            style: GoogleFonts.spaceMono(
+                              color: _theme.textColor.withValues(alpha: 0.35),
+                              fontSize: 8.5,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '@${widget.username}',
+                            style: GoogleFonts.outfit(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        widget.link.toUpperCase(),
-                        style: GoogleFonts.spaceMono(
-                          color: _theme.accent.withValues(alpha: 0.8),
-                          fontSize: 9,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5,
-                        ),
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                      Container(
+                        height: 24,
+                        width: 1,
+                        color: Colors.white.withValues(alpha: 0.08),
+                      ),
+                      Column(
+                        children: [
+                          Text(
+                            'BEACON BROADCAST',
+                            style: GoogleFonts.spaceMono(
+                              color: _theme.textColor.withValues(alpha: 0.35),
+                              fontSize: 8.5,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Online & Secure',
+                            style: GoogleFonts.outfit(
+                              color: _theme.qrColor,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
@@ -642,21 +631,53 @@ class _ShareQrSheetState extends State<_ShareQrSheet> with SingleTickerProviderS
     );
   }
 
-  Widget _buildActionButtons() {
+  Widget _buildPrimaryShareBtn() {
+    return GestureDetector(
+      onTap: _shareQr,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 18),
+        decoration: BoxDecoration(
+          color: _theme.accent,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: _theme.accent.withValues(alpha: 0.35),
+              blurRadius: 20,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Text(
+            'Share Profile',
+            style: GoogleFonts.outfit(
+              color: Colors.black,
+              fontWeight: FontWeight.w900,
+              fontSize: 17,
+              letterSpacing: 0.2,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionsRow() {
     return Row(
       children: [
-        Expanded(child: _buildActionBtn(Icons.download_rounded, 'SECURE CARD', _saveToGallery)),
-        const SizedBox(width: 12),
-        Expanded(child: _buildActionBtn(Icons.share_rounded, 'SHARE BEACON', _shareQr)),
+        Expanded(
+          child: _buildSecondaryBtn(Icons.download_rounded, 'SAVE CARD', _saveToGallery),
+        ),
         const SizedBox(width: 12),
         Expanded(
-          child: _buildActionBtn(Icons.copy_all_rounded, 'DUPLICATE', () async {
+          child: _buildSecondaryBtn(Icons.copy_all_rounded, 'COPY LINK', () async {
             await Clipboard.setData(ClipboardData(text: widget.link));
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(
-                    'BEACON ADDR DUPLICATED!',
+                    'PROFILE LINK COPY SUCCESS!',
                     style: GoogleFonts.spaceMono(fontSize: 10, color: Colors.black, fontWeight: FontWeight.bold),
                   ),
                   backgroundColor: _theme.accent,
@@ -671,27 +692,28 @@ class _ShareQrSheetState extends State<_ShareQrSheet> with SingleTickerProviderS
     );
   }
 
-  Widget _buildActionBtn(IconData icon, String label, VoidCallback onTap) {
+  Widget _buildSecondaryBtn(IconData icon, String label, VoidCallback onTap) {
     return GestureDetector(
       onTap: _isSaving ? null : onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
+        padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.015),
-          border: Border.all(color: _theme.accent.withValues(alpha: 0.2), width: 1.5),
-          borderRadius: BorderRadius.circular(12),
+          color: Colors.white.withValues(alpha: 0.02),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05), width: 1.5),
+          borderRadius: BorderRadius.circular(16),
         ),
-        child: Column(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: _theme.accent, size: 20),
-            const SizedBox(height: 8),
+            Icon(icon, color: _theme.textColor.withValues(alpha: 0.6), size: 16),
+            const SizedBox(width: 8),
             Text(
               label,
-              style: GoogleFonts.spaceGrotesk(
-                color: _theme.textColor,
-                fontSize: 9,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1,
+              style: GoogleFonts.spaceMono(
+                color: _theme.textColor.withValues(alpha: 0.8),
+                fontSize: 9.5,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
               ),
             ),
           ],
@@ -705,28 +727,28 @@ class _ShareQrSheetState extends State<_ShareQrSheet> with SingleTickerProviderS
       onTap: () => setState(() => _showCustomizer = !_showCustomizer),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 16),
+        padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
-          color: _showCustomizer ? _theme.accent : Colors.transparent,
-          border: Border.all(color: _theme.accent.withValues(alpha: 0.3), width: 1.5),
-          borderRadius: BorderRadius.circular(12),
+          color: Colors.transparent,
+          border: Border.all(color: _theme.accent.withValues(alpha: 0.25), width: 1.5),
+          borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               _showCustomizer ? Icons.palette_rounded : Icons.tune_rounded,
-              color: _showCustomizer ? Colors.black : _theme.accent,
-              size: 18,
+              color: _theme.accent,
+              size: 16,
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             Text(
-              _showCustomizer ? 'CLOSE MOD PANEL' : 'CUSTOMIZE SIGNAL',
-              style: GoogleFonts.spaceGrotesk(
-                color: _showCustomizer ? Colors.black : _theme.accent,
-                fontWeight: FontWeight.w900,
-                fontSize: 12,
-                letterSpacing: 2,
+              _showCustomizer ? 'CLOSE PANEL' : 'CUSTOMIZE DESIGN',
+              style: GoogleFonts.spaceMono(
+                color: _theme.accent,
+                fontWeight: FontWeight.bold,
+                fontSize: 11,
+                letterSpacing: 1.0,
               ),
             ),
           ],
@@ -739,9 +761,9 @@ class _ShareQrSheetState extends State<_ShareQrSheet> with SingleTickerProviderS
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.3),
-        border: Border.all(color: _theme.accent.withValues(alpha: 0.15), width: 1.5),
-        borderRadius: BorderRadius.circular(16),
+        color: Colors.white.withValues(alpha: 0.02),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05), width: 1.5),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
         children: [
@@ -758,9 +780,9 @@ class _ShareQrSheetState extends State<_ShareQrSheet> with SingleTickerProviderS
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'SELECT ENCRYPTION SCHEME (THEME)',
+          'SELECT DESIGN PALETTE',
           style: GoogleFonts.spaceMono(
-            color: _theme.textColor.withValues(alpha: 0.5),
+            color: _theme.textColor.withValues(alpha: 0.4),
             fontSize: 9,
             fontWeight: FontWeight.bold,
             letterSpacing: 1.0,
@@ -768,7 +790,7 @@ class _ShareQrSheetState extends State<_ShareQrSheet> with SingleTickerProviderS
         ),
         const SizedBox(height: 12),
         SizedBox(
-          height: 76,
+          height: 74,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
@@ -781,24 +803,24 @@ class _ShareQrSheetState extends State<_ShareQrSheet> with SingleTickerProviderS
                 onTap: () => setState(() => _selectedThemeIndex = i),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  width: 76,
+                  width: 74,
                   decoration: BoxDecoration(
                     color: t.bgStart,
                     border: Border.all(
-                      color: isSelected ? t.accent : t.accent.withValues(alpha: 0.2),
+                      color: isSelected ? t.accent : t.accent.withValues(alpha: 0.15),
                       width: isSelected ? 2.5 : 1,
                     ),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                     boxShadow: isSelected
-                        ? [BoxShadow(color: t.accent.withValues(alpha: 0.25), blurRadius: 10)]
+                        ? [BoxShadow(color: t.accent.withValues(alpha: 0.2), blurRadius: 10)]
                         : [],
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Container(
-                        width: 22,
-                        height: 22,
+                        width: 20,
+                        height: 20,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: t.qrColor,
@@ -807,12 +829,11 @@ class _ShareQrSheetState extends State<_ShareQrSheet> with SingleTickerProviderS
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        t.label,
+                        t.label.split(' ')[0],
                         style: GoogleFonts.spaceMono(
-                          color: t.textColor,
+                          color: t.textColor.withValues(alpha: isSelected ? 1.0 : 0.6),
                           fontSize: 8,
                           fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5,
                         ),
                       ),
                     ],
@@ -833,7 +854,7 @@ class _ShareQrSheetState extends State<_ShareQrSheet> with SingleTickerProviderS
         Text(
           'SIGNAL DENSITY (DOT STYLE)',
           style: GoogleFonts.spaceMono(
-            color: _theme.textColor.withValues(alpha: 0.5),
+            color: _theme.textColor.withValues(alpha: 0.4),
             fontSize: 9,
             fontWeight: FontWeight.bold,
             letterSpacing: 1.0,
@@ -850,14 +871,14 @@ class _ShareQrSheetState extends State<_ShareQrSheet> with SingleTickerProviderS
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   margin: EdgeInsets.only(right: style != _QrDotStyle.circle ? 10 : 0),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
                   decoration: BoxDecoration(
                     color: isSelected ? _theme.accent : Colors.transparent,
                     border: Border.all(
-                      color: isSelected ? _theme.accent : _theme.accent.withValues(alpha: 0.2),
+                      color: isSelected ? _theme.accent : _theme.accent.withValues(alpha: 0.15),
                       width: isSelected ? 2 : 1,
                     ),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Column(
                     children: [
@@ -868,13 +889,13 @@ class _ShareQrSheetState extends State<_ShareQrSheet> with SingleTickerProviderS
                                 ? Icons.rounded_corner_rounded
                                 : Icons.circle_outlined,
                         color: isSelected ? Colors.black : _theme.accent,
-                        size: 18,
+                        size: 16,
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 4),
                       Text(
                         label,
                         style: GoogleFonts.spaceMono(
-                          color: isSelected ? Colors.black : _theme.textColor,
+                          color: isSelected ? Colors.black : _theme.textColor.withValues(alpha: 0.8),
                           fontSize: 8.5,
                           fontWeight: FontWeight.bold,
                         ),
@@ -898,7 +919,7 @@ class _ShareQrSheetState extends State<_ShareQrSheet> with SingleTickerProviderS
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'BEACON ADDR DUPLICATED!',
+                'LINK COPIED TO CLIPBOARD!',
                 style: GoogleFonts.spaceMono(fontSize: 10, color: Colors.black, fontWeight: FontWeight.bold),
               ),
               backgroundColor: _theme.accent,
@@ -910,21 +931,21 @@ class _ShareQrSheetState extends State<_ShareQrSheet> with SingleTickerProviderS
       },
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.015),
-          border: Border.all(color: _theme.accent.withValues(alpha: 0.12), width: 1.5),
-          borderRadius: BorderRadius.circular(12),
+          color: Colors.white.withValues(alpha: 0.01),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.04), width: 1.5),
+          borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
           children: [
-            Icon(Icons.link_rounded, color: _theme.accent, size: 20),
+            Icon(Icons.link_rounded, color: _theme.accent, size: 18),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 widget.link,
                 style: GoogleFonts.spaceMono(
-                  color: _theme.textColor.withValues(alpha: 0.6),
+                  color: _theme.textColor.withValues(alpha: 0.5),
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
                 ),
@@ -935,8 +956,8 @@ class _ShareQrSheetState extends State<_ShareQrSheet> with SingleTickerProviderS
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: _theme.accent.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(6),
+                color: _theme.accent.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
                 'COPY',
@@ -944,7 +965,7 @@ class _ShareQrSheetState extends State<_ShareQrSheet> with SingleTickerProviderS
                   color: _theme.accent,
                   fontSize: 9,
                   fontWeight: FontWeight.w900,
-                  letterSpacing: 1,
+                  letterSpacing: 1.0,
                 ),
               ),
             ),
@@ -955,10 +976,76 @@ class _ShareQrSheetState extends State<_ShareQrSheet> with SingleTickerProviderS
   }
 }
 
-// ─── Custom Grid Pattern Painter for Card Detailing ─────────────────
-class _GridPatternPainter extends CustomPainter {
+// ─── Glowing Star Particle definition ──────────────────────────────
+class _StarParticle {
+  double x;
+  double y;
+  final double size;
+  final double speed;
+
+  _StarParticle({
+    required this.x,
+    required this.y,
+    required this.size,
+    required this.speed,
+  });
+}
+
+// ─── Custom Star Particles Painter for Space Backdrop ───────────────
+class _SpaceParticlesPainter extends CustomPainter {
+  final List<_StarParticle> stars;
+  final double progress;
+  final Color color;
+
+  const _SpaceParticlesPainter({
+    required this.stars,
+    required this.progress,
+    required this.color,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+
+    final linePaint = Paint()
+      ..color = color.withValues(alpha: 0.05)
+      ..strokeWidth = 0.5;
+
+    for (int i = 0; i < stars.length; i++) {
+      final star = stars[i];
+      // Slow downward drift
+      double currentY = (star.y + progress * star.speed) % 1.0;
+      final px = star.x * size.width;
+      final py = currentY * size.height;
+
+      // Draw particle dot
+      canvas.drawCircle(Offset(px, py), star.size, paint);
+
+      // Faint lines to neighbor stars (creating space constellation look)
+      if (i < stars.length - 1) {
+        final nextStar = stars[i + 1];
+        double nextY = (nextStar.y + progress * nextStar.speed) % 1.0;
+        final npx = nextStar.x * size.width;
+        final npy = nextY * size.height;
+        
+        final double dist = sqrt(pow(px - npx, 2) + pow(py - npy, 2));
+        if (dist < 110) {
+          canvas.drawLine(Offset(px, py), Offset(npx, npy), linePaint);
+        }
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
+
+// ─── Custom Paint for Background Card Grid Texture ──────────────────
+class _GridTexturePainter extends CustomPainter {
   final Color gridColor;
-  const _GridPatternPainter(this.gridColor);
+  const _GridTexturePainter(this.gridColor);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -966,48 +1053,13 @@ class _GridPatternPainter extends CustomPainter {
       ..color = gridColor
       ..strokeWidth = 1.0;
 
-    const double step = 20.0;
+    const double step = 24.0;
     for (double i = 0; i < size.width; i += step) {
       canvas.drawLine(Offset(i, 0), Offset(i, size.height), paint);
     }
     for (double i = 0; i < size.height; i += step) {
       canvas.drawLine(Offset(0, i), Offset(size.width, i), paint);
     }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-// ─── Custom Paint for Cyber Corner Brackets ────────────────────────
-class _CyberBracketsPainter extends CustomPainter {
-  final Color accentColor;
-  const _CyberBracketsPainter(this.accentColor);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = accentColor.withValues(alpha: 0.6)
-      ..strokeWidth = 2.0
-      ..style = PaintingStyle.stroke;
-
-    const double len = 16.0;
-
-    // Top-Left
-    canvas.drawLine(const Offset(0, 0), const Offset(len, 0), paint);
-    canvas.drawLine(const Offset(0, 0), const Offset(0, len), paint);
-
-    // Top-Right
-    canvas.drawLine(Offset(size.width, 0), Offset(size.width - len, 0), paint);
-    canvas.drawLine(Offset(size.width, 0), Offset(size.width, len), paint);
-
-    // Bottom-Left
-    canvas.drawLine(Offset(0, size.height), Offset(len, size.height), paint);
-    canvas.drawLine(Offset(0, size.height), Offset(0, size.height - len), paint);
-
-    // Bottom-Right
-    canvas.drawLine(Offset(size.width, size.height), Offset(size.width - len, size.height), paint);
-    canvas.drawLine(Offset(size.width, size.height), Offset(size.width, size.height - len), paint);
   }
 
   @override

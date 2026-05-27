@@ -10,7 +10,7 @@ import 'package:mobile/data/models/flicko_message.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/features/shared/presentation/widgets/safe_network_media.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
-import 'package:mobile/features/shared/presentation/widgets/message_drip_card.dart';
+// Note: MessageDripCard removed in favor of glass theme
 import 'poll_message_card.dart';
 
 /// Enhanced MessageItem with reply preview, inline editing, and edited indicator
@@ -122,11 +122,8 @@ class _EnhancedMessageItemState extends ConsumerState<EnhancedMessageItem> {
 
                   const SizedBox(height: 4),
 
-                   // Message content or edit field wrapped in MessageDripCard
-                   MessageDripCard(
-                     authorId: widget.message.authorId,
-                     child: _isEditing ? _buildEditField() : _buildContent(),
-                   ),
+                  // Message content or edit field
+                   _isEditing ? _buildEditField() : _buildContent(),
 
                   // Attachments
                   if (widget.message.attachments.isNotEmpty) ...[
@@ -204,23 +201,28 @@ class _EnhancedMessageItemState extends ConsumerState<EnhancedMessageItem> {
 
   Widget _buildReplyPreview() {
     final replyTo = widget.message.replyTo!;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 4),
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: const Color(FlickoColors.bgSecondary),
-        borderRadius: BorderRadius.circular(4),
-        border: Border(
-          left: BorderSide(
-            color: Color(int.tryParse(
-                    replyTo.author?.accentColor?.replaceFirst('#', '0xFF') ??
-                        '0xFF5865F2') ??
-                FlickoColors.blurple),
-            width: 3,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 4),
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(8),
+          border: Border(
+            left: BorderSide(
+              color: Color(int.tryParse(
+                      replyTo.author?.accentColor?.replaceFirst('#', '0xFF') ??
+                          '0xFF5865F2') ??
+                  FlickoColors.blurple),
+              width: 3,
+            ),
+            top: BorderSide(color: Colors.white.withValues(alpha: 0.1), width: 1),
+            right: BorderSide(color: Colors.white.withValues(alpha: 0.1), width: 1),
+            bottom: BorderSide(color: Colors.white.withValues(alpha: 0.1), width: 1),
           ),
         ),
-      ),
-      child: Row(
+        child: Row(
         children: [
           Icon(
             Icons.reply,
@@ -262,6 +264,7 @@ class _EnhancedMessageItemState extends ConsumerState<EnhancedMessageItem> {
           ),
         ],
       ),
+    ),
     );
   }
 
@@ -327,41 +330,58 @@ class _EnhancedMessageItemState extends ConsumerState<EnhancedMessageItem> {
       );
     }
 
-    return MarkdownBody(
-      data: widget.message.content,
-      styleSheet: MarkdownStyleSheet(
-        p: GoogleFonts.inter(
-          color: const Color(FlickoColors.textPrimary),
-          fontSize: 15,
-          height: 1.4,
-        ),
-        code: GoogleFonts.inter(
-          color: const Color(FlickoColors.textPrimary),
-          fontSize: 13,
-          backgroundColor: const Color(FlickoColors.bgSecondary),
-        ),
-        codeblockDecoration: BoxDecoration(
-          color: const Color(FlickoColors.bgSecondary),
-          borderRadius: BorderRadius.circular(4),
-        ),
-        blockquote: GoogleFonts.inter(
-          color: const Color(FlickoColors.textSecondary),
-          fontSize: 15,
-        ),
-        a: GoogleFonts.inter(
-          color: const Color(FlickoColors.blurple),
-          fontSize: 15,
-          decoration: TextDecoration.underline,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.1),
+              width: 1,
+            ),
+          ),
+          child: MarkdownBody(
+            data: widget.message.content,
+            styleSheet: MarkdownStyleSheet(
+              p: GoogleFonts.inter(
+                color: const Color(FlickoColors.textPrimary),
+                fontSize: 15,
+                height: 1.4,
+              ),
+              code: GoogleFonts.inter(
+                color: const Color(FlickoColors.textPrimary),
+                fontSize: 13,
+                backgroundColor: Colors.black.withValues(alpha: 0.3),
+              ),
+              codeblockDecoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              blockquote: GoogleFonts.inter(
+                color: const Color(FlickoColors.textSecondary),
+                fontSize: 15,
+              ),
+              a: GoogleFonts.inter(
+                color: const Color(FlickoColors.blurple),
+                fontSize: 15,
+                decoration: TextDecoration.underline,
+              ),
+            ),
+            onTapLink: (text, href, title) async {
+              if (href != null) {
+                final uri = Uri.parse(href);
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                }
+              }
+            },
+          ),
         ),
       ),
-      onTapLink: (text, href, title) async {
-        if (href != null) {
-          final uri = Uri.parse(href);
-          if (await canLaunchUrl(uri)) {
-            await launchUrl(uri, mode: LaunchMode.externalApplication);
-          }
-        }
-      },
     );
   }
 

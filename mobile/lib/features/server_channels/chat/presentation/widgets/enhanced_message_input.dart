@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -40,7 +41,7 @@ class EnhancedMessageInput extends ConsumerStatefulWidget {
 
 class _EnhancedMessageInputState extends ConsumerState<EnhancedMessageInput> {
   static const Color _neonGreen = Color(0xFF52B788);
-  static const Color _bgBlack = Color(0xFF050505);
+  // Removed _bgBlack
   static const Color _surfaceContainer = Color(0xFF0C0C0E);
   static const Color _textWhite = Color(0xFFFBF9FA);
   static const Color _textMuted = Color(0xFF71717A);
@@ -342,17 +343,20 @@ class _EnhancedMessageInputState extends ConsumerState<EnhancedMessageInput> {
       return _buildRecordingUI();
     }
 
-    return Container(
-      decoration: BoxDecoration(
-        color: _surfaceContainer,
-        border: Border(
-          top: BorderSide(
-            color: _textWhite.withValues(alpha: 0.05),
-            width: 1,
+    return ClipRRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.2),
+            border: Border(
+              top: BorderSide(
+                color: Colors.white.withValues(alpha: 0.1),
+                width: 1,
+              ),
+            ),
           ),
-        ),
-      ),
-      child: SafeArea(
+          child: SafeArea(
         top: false,
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -374,13 +378,16 @@ class _EnhancedMessageInputState extends ConsumerState<EnhancedMessageInput> {
 
             // Extras Drawer
             if (_showExtras)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: _bgBlack,
-                  border: Border(bottom: BorderSide(color: _textWhite.withValues(alpha: 0.05))),
-                ),
-                child: SingleChildScrollView(
+              ClipRRect(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.2),
+                      border: Border(bottom: BorderSide(color: _textWhite.withValues(alpha: 0.05))),
+                    ),
+                    child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
@@ -433,7 +440,7 @@ class _EnhancedMessageInputState extends ConsumerState<EnhancedMessageInput> {
                     ],
                   ),
                 ),
-              ),
+              ))),
 
             // Main input row
             Padding(
@@ -448,7 +455,7 @@ class _EnhancedMessageInputState extends ConsumerState<EnhancedMessageInput> {
                       width: 44,
                       height: 44,
                       decoration: BoxDecoration(
-                        color: _showExtras ? _neonGreen.withValues(alpha: 0.2) : _bgBlack,
+                        color: _showExtras ? _neonGreen.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.05),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: _showExtras ? _neonGreen : _textWhite.withValues(alpha: 0.1),
@@ -470,10 +477,10 @@ class _EnhancedMessageInputState extends ConsumerState<EnhancedMessageInput> {
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
-                        color: _bgBlack,
-                        borderRadius: BorderRadius.circular(12),
+                        color: Colors.white.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: _textWhite.withValues(alpha: 0.1),
+                          color: Colors.white.withValues(alpha: 0.15),
                           width: 1,
                         ),
                       ),
@@ -509,7 +516,7 @@ class _EnhancedMessageInputState extends ConsumerState<EnhancedMessageInput> {
                       width: 44,
                       height: 44,
                       decoration: BoxDecoration(
-                        color: _isEmpty ? _bgBlack : _neonGreen,
+                        color: _isEmpty ? Colors.white.withValues(alpha: 0.05) : _neonGreen,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: _isEmpty ? _textWhite.withValues(alpha: 0.1) : _neonGreen,
@@ -536,22 +543,25 @@ class _EnhancedMessageInputState extends ConsumerState<EnhancedMessageInput> {
           ],
         ),
       ),
-    );
+    )));
   }
 
   Widget _buildRecordingUI() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: _surfaceContainer,
-        border: Border(
-          top: BorderSide(
-            color: _textWhite.withValues(alpha: 0.05),
-            width: 1,
+    return ClipRRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.2),
+            border: Border(
+              top: BorderSide(
+                color: Colors.white.withValues(alpha: 0.1),
+                width: 1,
+              ),
+            ),
           ),
-        ),
-      ),
-      child: SafeArea(
+          child: SafeArea(
         top: false,
         child: Row(
           children: [
@@ -590,7 +600,7 @@ class _EnhancedMessageInputState extends ConsumerState<EnhancedMessageInput> {
               child: Container(
                 height: 40,
                 decoration: BoxDecoration(
-                  color: _bgBlack,
+                  color: Colors.white.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: _textWhite.withValues(alpha: 0.1)),
                 ),
@@ -642,7 +652,7 @@ class _EnhancedMessageInputState extends ConsumerState<EnhancedMessageInput> {
           ],
         ),
       ),
-    );
+    )));
   }
 
   Widget _buildAttachmentPreview() {
@@ -701,7 +711,7 @@ class _EnhancedMessageInputState extends ConsumerState<EnhancedMessageInput> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: _bgBlack,
+        color: Colors.white.withValues(alpha: 0.05),
         border: Border(bottom: BorderSide(color: _textWhite.withValues(alpha: 0.05))),
       ),
       child: Row(

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/flicko-org/flicko-backend/internal/commands"
@@ -66,11 +67,24 @@ func (b *AutoModBot) registerCommands() {
 }
 
 func (b *AutoModBot) handleAutomod(ctx commands.CommandContext) (*commands.CommandResponse, error) {
+	if ctx.Ctx == nil {
+		ctx.Ctx = context.Background()
+	}
+	reqCtx, cancel := context.WithTimeout(ctx.Ctx, 15*time.Second)
+	defer cancel()
+
+	if !HasPermission(reqCtx, b.ctx, ctx.ServerID, ctx.UserID, PermManageGuild) {
+		return &commands.CommandResponse{
+			Content:   "❌ You need the Manage Server permission to configure AutoMod.",
+			Ephemeral: true,
+		}, nil
+	}
+
 	action, _ := ctx.Options["action"].(string)
 
 	switch strings.ToLower(action) {
 	case "enable":
-		_, err := b.ctx.DB.Exec(context.Background(),
+		_, err := b.ctx.DB.Exec(reqCtx,
 			`INSERT INTO automod_settings (server_id, enabled) VALUES ($1, true)
 			 ON CONFLICT (server_id) DO UPDATE SET enabled = true, updated_at = now()`,
 			ctx.ServerID)
@@ -80,7 +94,7 @@ func (b *AutoModBot) handleAutomod(ctx commands.CommandContext) (*commands.Comma
 		return &commands.CommandResponse{Content: "✅ Auto-moderation enabled."}, nil
 
 	case "disable":
-		_, err := b.ctx.DB.Exec(context.Background(),
+		_, err := b.ctx.DB.Exec(reqCtx,
 			`UPDATE automod_settings SET enabled = false, updated_at = now() WHERE server_id = $1`,
 			ctx.ServerID)
 		if err != nil {
@@ -102,6 +116,19 @@ func (b *AutoModBot) handleAutomod(ctx commands.CommandContext) (*commands.Comma
 }
 
 func (b *AutoModBot) handleAutomodExempt(ctx commands.CommandContext) (*commands.CommandResponse, error) {
+	if ctx.Ctx == nil {
+		ctx.Ctx = context.Background()
+	}
+	reqCtx, cancel := context.WithTimeout(ctx.Ctx, 15*time.Second)
+	defer cancel()
+
+	if !HasPermission(reqCtx, b.ctx, ctx.ServerID, ctx.UserID, PermManageGuild) {
+		return &commands.CommandResponse{
+			Content:   "❌ You need the Manage Server permission to manage AutoMod exemptions.",
+			Ephemeral: true,
+		}, nil
+	}
+
 	exemptType, _ := ctx.Options["type"].(string)
 	target, _ := ctx.Options["target"].(string)
 	remove, _ := ctx.Options["remove"].(bool)
@@ -125,16 +152,15 @@ func (b *AutoModBot) handleAutomodExempt(ctx commands.CommandContext) (*commands
 		query = fmt.Sprintf(`UPDATE automod_settings SET %s = array_append(%s, $2::uuid) WHERE server_id = $1`, column, column)
 	}
 
-	_, err := b.ctx.DB.Exec(context.Background(), query, ctx.ServerID, target)
-	if err != nil {
+	if _, err := b.ctx.DB.Exec(reqCtx, query, ctx.ServerID, target); err != nil {
 		return nil, err
 	}
 
-	action := "added"
+	actionWord := "added"
 	if remove {
-		action = "removed"
+		actionWord = "removed"
 	}
-	return &commands.CommandResponse{Content: fmt.Sprintf("✅ Exemption %s for %s %s.", action, exemptType, target)}, nil
+	return &commands.CommandResponse{Content: fmt.Sprintf("✅ Exemption %s for %s %s.", actionWord, exemptType, target)}, nil
 }
 
 func (b *AutoModBot) getStatus(serverID string) (*commands.CommandResponse, error) {
@@ -175,12 +201,12 @@ func (b *AutoModBot) getStatus(serverID string) (*commands.CommandResponse, erro
 			Color: "#5865F2",
 			Fields: []commands.EmbedField{
 				{Name: "Status", Value: status, Inline: true},
-				{Name: "Invite Filter", Value: boolEmoji(settings.InviteFilter), Inline: true},
-				{Name: "Link Filter", Value: boolEmoji(settings.LinkFilter), Inline: true},
-				{Name: "Caps Filter", Value: fmt.Sprintf("%s (%d%%)", boolEmoji(settings.CapsFilter), settings.CapsThreshold), Inline: true},
-				{Name: "Emoji Filter", Value: fmt.Sprintf("%s (max %d)", boolEmoji(settings.EmojiFilter), settings.EmojiThreshold), Inline: true},
-				{Name: "Mention Filter", Value: fmt.Sprintf("%s (max %d)", boolEmoji(settings.MentionFilter), settings.MentionThreshold), Inline: true},
-				{Name: "Duplicate Filter", Value: boolEmoji(settings.DuplicateFilter), Inline: true},
+				{Name: "Invite Filter", Value: BoolEmoji(settings.InviteFilter), Inline: true},
+				{Name: "Link Filter", Value: BoolEmoji(settings.LinkFilter), Inline: true},
+				{Name: "Caps Filter", Value: fmt.Sprintf("%s (%d%%)", BoolEmoji(settings.CapsFilter), settings.CapsThreshold), Inline: true},
+				{Name: "Emoji Filter", Value: fmt.Sprintf("%s (max %d)", BoolEmoji(settings.EmojiFilter), settings.EmojiThreshold), Inline: true},
+				{Name: "Mention Filter", Value: fmt.Sprintf("%s (max %d)", BoolEmoji(settings.MentionFilter), settings.MentionThreshold), Inline: true},
+				{Name: "Duplicate Filter", Value: BoolEmoji(settings.DuplicateFilter), Inline: true},
 			},
 		},
 	}, nil
@@ -215,9 +241,11 @@ func (b *AutoModBot) configureFilter(serverID, filter, value string) (*commands.
 // ── Message Evaluation Engine ───────────────────────────────────────────────
 
 var (
-	inviteRegex  = regexp.MustCompile(`(?i)(discord\.gg|discordapp\.com/invite|invite\.gg)/\w+`)
-	urlRegex     = regexp.MustCompile(`https?://[^\s]+`)
-	mentionRegex = regexp.MustCompile(`<@!?\w+>`)
+	inviteRegex = regexp.MustCompile(`(?i)(discord\.gg|discordapp\.com/invite|invite\.gg|flicko\.gg)/\w+`)
+	urlRegex    = regexp.MustCompile(`https?://[^\s]+`)
+	// MED-11 fix: Flicko mentions wrap UUIDs (with hyphens), not Discord
+	// snowflakes. Match hex+hyphens.
+	mentionRegex = regexp.MustCompile(`<@!?[a-fA-F0-9-]+>`)
 	emojiRegex   = regexp.MustCompile(`<a?:\w+:\d+>|[\x{1F600}-\x{1F64F}]|[\x{1F300}-\x{1F5FF}]|[\x{1F680}-\x{1F6FF}]|[\x{1F1E0}-\x{1F1FF}]`)
 )
 
@@ -343,18 +371,32 @@ func (b *AutoModBot) isExempt(serverID, userID, channelID string, roles, channel
 }
 
 func (b *AutoModBot) takeAction(serverID, channelID, messageID, userID, reason string) {
-	// Delete the message
-	_, err := b.ctx.DB.Exec(context.Background(),
-		`DELETE FROM messages WHERE id = $1 AND channel_id = $2`, messageID, channelID)
-	if err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// HIGH-18: Delete via the messages table is acceptable here because we
+	// also publish a MESSAGE_DELETE event so realtime clients reconcile.
+	// Attachment cleanup is owned by the attachment_cleanup service that
+	// runs on a separate sweep; we do not duplicate that here.
+	if _, err := b.ctx.DB.Exec(ctx,
+		`DELETE FROM messages WHERE id = $1 AND channel_id = $2`, messageID, channelID); err != nil {
 		b.logger.Error("automod delete failed", zap.Error(err))
+		return
 	}
 
-	// Log the action
-	_, _ = b.ctx.DB.Exec(context.Background(),
-		`INSERT INTO audit_logs (server_id, moderator_id, target_id, action, reason)
-		 VALUES ($1, $1, $2, 'automod', $3)`,
-		serverID, userID, reason)
+	// Audit (uses canonical schema via shared helper).
+	LogAudit(ctx, b.ctx, serverID, userID, "automod", "user", userID, reason)
+
+	// Realtime fan-out.
+	b.ctx.EventBus.Publish(events.Event{
+		Type:      events.MessageDelete,
+		ServerID:  serverID,
+		ChannelID: channelID,
+		Data: map[string]interface{}{
+			"message_id": messageID,
+			"reason":     "automod:" + reason,
+		},
+	})
 
 	b.logger.Info("automod action taken",
 		zap.String("server", serverID),
@@ -383,9 +425,6 @@ func capsPercentage(s string) int {
 	return (caps * 100) / total
 }
 
-func boolEmoji(v bool) string {
-	if v {
-		return "✅ Enabled"
-	}
-	return "❌ Disabled"
-}
+// boolEmoji is provided by helpers.go (BoolEmoji). The local copy used to
+// duplicate that function — kept this comment to make the deletion obvious
+// in code review.

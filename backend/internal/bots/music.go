@@ -31,7 +31,6 @@ func (b *MusicBot) Register(bctx BotContext) error {
 	b.logger = bctx.Logger.Named("bot.music")
 
 	b.registerCommands()
-	b.ensureTables()
 
 	b.logger.Info("music bot registered")
 	return nil
@@ -39,64 +38,53 @@ func (b *MusicBot) Register(bctx BotContext) error {
 
 func (b *MusicBot) Shutdown() error { return nil }
 
-func (b *MusicBot) ensureTables() {
-	// Create music-specific tables if they don't exist
-	queries := []string{
-		`CREATE TABLE IF NOT EXISTS music_queues (
-			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-			server_id UUID NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
-			title TEXT NOT NULL,
-			url TEXT NOT NULL,
-			duration_seconds INTEGER DEFAULT 0,
-			requested_by UUID REFERENCES users(id),
-			position INTEGER DEFAULT 0,
-			created_at TIMESTAMPTZ DEFAULT now()
-		)`,
-		`CREATE TABLE IF NOT EXISTS music_settings (
-			server_id UUID PRIMARY KEY REFERENCES servers(id) ON DELETE CASCADE,
-			enabled BOOLEAN DEFAULT true,
-			default_volume INTEGER DEFAULT 50,
-			dj_role_id UUID,
-			now_playing_channel_id UUID REFERENCES channels(id) ON DELETE SET NULL,
-			repeat_mode TEXT DEFAULT 'off' CHECK (repeat_mode IN ('off', 'song', 'queue')),
-			created_at TIMESTAMPTZ DEFAULT now(),
-			updated_at TIMESTAMPTZ DEFAULT now()
-		)`,
-		`CREATE TABLE IF NOT EXISTS playlists (
-			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-			server_id UUID NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
-			name TEXT NOT NULL,
-			creator_id UUID REFERENCES users(id),
-			is_public BOOLEAN DEFAULT true,
-			created_at TIMESTAMPTZ DEFAULT now(),
-			UNIQUE(server_id, name)
-		)`,
-		`CREATE TABLE IF NOT EXISTS playlist_tracks (
-			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-			playlist_id UUID NOT NULL REFERENCES playlists(id) ON DELETE CASCADE,
-			title TEXT NOT NULL,
-			url TEXT NOT NULL,
-			duration_seconds INTEGER DEFAULT 0,
-			position INTEGER DEFAULT 0,
-			added_by UUID REFERENCES users(id),
-			created_at TIMESTAMPTZ DEFAULT now()
-		)`,
-		`CREATE TABLE IF NOT EXISTS song_history (
-			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-			server_id UUID NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
-			title TEXT NOT NULL,
-			url TEXT NOT NULL,
-			played_by UUID REFERENCES users(id),
-			played_at TIMESTAMPTZ DEFAULT now()
-		)`,
+// requireDJ ensures the caller is allowed to mutate playback. Server owners
+// and members holding the configured dj_role_id are allowed; if no DJ role is
+// configured, all members may control playback.
+//
+// HIGH-17 fix: a transient DB error now DENIES access (fail-closed) rather
+// than opening DJ control to everyone.
+func (b *MusicBot) requireDJ(ctx commands.CommandContext) (bool, string) {
+	reqCtx := ctx.Ctx
+	if reqCtx == nil {
+		reqCtx = context.Background()
 	}
 
-	for _, q := range queries {
-		_, err := b.ctx.DB.Exec(context.Background(), q)
-		if err != nil {
-			b.logger.Warn("music table creation skipped", zap.Error(err))
+	var djRoleID *string
+	err := b.ctx.DB.QueryRow(reqCtx,
+		`SELECT dj_role_id::text FROM music_settings WHERE server_id = $1`,
+		ctx.ServerID).Scan(&djRoleID)
+	if err != nil {
+		// No settings row → no DJ role configured → allow everyone.
+		// But distinguish "no row" from "query error":
+		if err.Error() == "no rows in result set" || strings.Contains(err.Error(), "no rows") {
+			return true, ""
 		}
+		// Transient error → fail-closed.
+		b.logger.Warn("requireDJ: DB error, denying access", zap.Error(err))
+		return false, "❌ Could not verify DJ permissions. Try again."
 	}
+	if djRoleID == nil || *djRoleID == "" {
+		return true, "" // No DJ role configured → everyone allowed.
+	}
+
+	// Owner bypass.
+	if HasPermission(reqCtx, b.ctx, ctx.ServerID, ctx.UserID, PermManageGuild) {
+		return true, ""
+	}
+
+	// Role membership check.
+	var has bool
+	_ = b.ctx.DB.QueryRow(reqCtx,
+		`SELECT EXISTS(
+			SELECT 1 FROM member_roles mr
+			WHERE mr.server_id = $1 AND mr.user_id = $2 AND mr.role_id = $3
+		)`,
+		ctx.ServerID, ctx.UserID, *djRoleID).Scan(&has)
+	if has {
+		return true, ""
+	}
+	return false, "❌ Only DJs can do that."
 }
 
 func (b *MusicBot) registerCommands() {
@@ -222,19 +210,35 @@ func (b *MusicBot) handlePlay(ctx commands.CommandContext) (*commands.CommandRes
 		return &commands.CommandResponse{Content: "❌ Provide a song name or URL.", Ephemeral: true}, nil
 	}
 
-	// Get next position
-	var maxPos int
-	b.ctx.DB.QueryRow(context.Background(),
-		`SELECT COALESCE(MAX(position), 0) FROM music_queues WHERE server_id = $1`,
-		ctx.ServerID).Scan(&maxPos)
+	// MED-2: enforce music_settings.enabled before mutating the queue.
+	// A row may not exist yet; treat that as "enabled by default" so the
+	// first /play in a server still works.
+	var enabled bool = true
+	_ = b.ctx.DB.QueryRow(context.Background(),
+		`SELECT enabled FROM music_settings WHERE server_id = $1`,
+		ctx.ServerID).Scan(&enabled)
+	if !enabled {
+		return &commands.CommandResponse{
+			Content:   "🔴 The music bot is disabled on this server. An admin can enable it with `/music-config enable`.",
+			Ephemeral: true,
+		}, nil
+	}
 
-	// Determine if it's a URL or search query
+	// Determine if it's a URL or search query (resolved client-side).
 	title, trackURL, duration := b.resolveTrackMetadata(query)
 
-	_, err := b.ctx.DB.Exec(context.Background(),
+	// Single-statement insert avoids the SELECT MAX → INSERT race that produced
+	// duplicate positions on concurrent /play commands.
+	var assignedPos int
+	err := b.ctx.DB.QueryRow(context.Background(),
 		`INSERT INTO music_queues (server_id, title, url, requested_by, position, duration_seconds)
-		 VALUES ($1, $2, $3, $4, $5, $6)`,
-		ctx.ServerID, title, trackURL, ctx.UserID, maxPos+1, duration)
+		 VALUES (
+			$1, $2, $3, $4,
+			(SELECT COALESCE(MAX(position), 0) + 1 FROM music_queues WHERE server_id = $1),
+			$5
+		 )
+		 RETURNING position`,
+		ctx.ServerID, title, trackURL, ctx.UserID, duration).Scan(&assignedPos)
 	if err != nil {
 		return nil, err
 	}
@@ -243,15 +247,18 @@ func (b *MusicBot) handlePlay(ctx commands.CommandContext) (*commands.CommandRes
 	b.ctx.EventBus.Publish(events.Event{
 		Type:     events.MusicUpdate,
 		ServerID: ctx.ServerID,
-		Data:     map[string]interface{}{"action": "queue_add", "title": title, "url": trackURL},
+		Data:     map[string]interface{}{"action": "queue_add", "title": title, "url": trackURL, "position": assignedPos},
 	})
 
 	return &commands.CommandResponse{
-		Content: fmt.Sprintf("🎵 Added to queue: **%s** (Position #%d)", title, maxPos+1),
+		Content: fmt.Sprintf("🎵 Added to queue: **%s** (Position #%d)", title, assignedPos),
 	}, nil
 }
 
 func (b *MusicBot) handleSkip(ctx commands.CommandContext) (*commands.CommandResponse, error) {
+	if ok, msg := b.requireDJ(ctx); !ok {
+		return &commands.CommandResponse{Content: msg, Ephemeral: true}, nil
+	}
 	// Remove the first item from queue
 	var title string
 	err := b.ctx.DB.QueryRow(context.Background(),
@@ -341,7 +348,7 @@ func (b *MusicBot) handleNowPlaying(ctx commands.CommandContext) (*commands.Comm
 		return &commands.CommandResponse{Content: "🎵 Nothing is currently playing."}, nil
 	}
 
-	username := b.getUsername(requestedBy)
+	username := LookupUsername(b.ctx, requestedBy)
 	return &commands.CommandResponse{
 		Embed: &commands.Embed{
 			Title:       "🎵 Now Playing",
@@ -352,6 +359,9 @@ func (b *MusicBot) handleNowPlaying(ctx commands.CommandContext) (*commands.Comm
 }
 
 func (b *MusicBot) handlePause(ctx commands.CommandContext) (*commands.CommandResponse, error) {
+	if ok, msg := b.requireDJ(ctx); !ok {
+		return &commands.CommandResponse{Content: msg, Ephemeral: true}, nil
+	}
 	b.ctx.EventBus.Publish(events.Event{
 		Type:     events.MusicUpdate,
 		ServerID: ctx.ServerID,
@@ -361,6 +371,9 @@ func (b *MusicBot) handlePause(ctx commands.CommandContext) (*commands.CommandRe
 }
 
 func (b *MusicBot) handleResume(ctx commands.CommandContext) (*commands.CommandResponse, error) {
+	if ok, msg := b.requireDJ(ctx); !ok {
+		return &commands.CommandResponse{Content: msg, Ephemeral: true}, nil
+	}
 	b.ctx.EventBus.Publish(events.Event{
 		Type:     events.MusicUpdate,
 		ServerID: ctx.ServerID,
@@ -370,6 +383,9 @@ func (b *MusicBot) handleResume(ctx commands.CommandContext) (*commands.CommandR
 }
 
 func (b *MusicBot) handleStop(ctx commands.CommandContext) (*commands.CommandResponse, error) {
+	if ok, msg := b.requireDJ(ctx); !ok {
+		return &commands.CommandResponse{Content: msg, Ephemeral: true}, nil
+	}
 	_, err := b.ctx.DB.Exec(context.Background(),
 		`DELETE FROM music_queues WHERE server_id = $1`, ctx.ServerID)
 	if err != nil {
@@ -384,6 +400,9 @@ func (b *MusicBot) handleStop(ctx commands.CommandContext) (*commands.CommandRes
 }
 
 func (b *MusicBot) handleShuffle(ctx commands.CommandContext) (*commands.CommandResponse, error) {
+	if ok, msg := b.requireDJ(ctx); !ok {
+		return &commands.CommandResponse{Content: msg, Ephemeral: true}, nil
+	}
 	// Randomize positions
 	_, err := b.ctx.DB.Exec(context.Background(),
 		`UPDATE music_queues SET position = sub.new_pos
@@ -404,6 +423,9 @@ func (b *MusicBot) handleShuffle(ctx commands.CommandContext) (*commands.Command
 }
 
 func (b *MusicBot) handleRepeat(ctx commands.CommandContext) (*commands.CommandResponse, error) {
+	if ok, msg := b.requireDJ(ctx); !ok {
+		return &commands.CommandResponse{Content: msg, Ephemeral: true}, nil
+	}
 	mode, _ := ctx.Options["mode"].(string)
 	if mode != "off" && mode != "song" && mode != "queue" {
 		return &commands.CommandResponse{Content: "❌ Mode must be: off, song, or queue", Ephemeral: true}, nil
@@ -427,6 +449,9 @@ func (b *MusicBot) handleRepeat(ctx commands.CommandContext) (*commands.CommandR
 }
 
 func (b *MusicBot) handleVolume(ctx commands.CommandContext) (*commands.CommandResponse, error) {
+	if ok, msg := b.requireDJ(ctx); !ok {
+		return &commands.CommandResponse{Content: msg, Ephemeral: true}, nil
+	}
 	levelFloat, _ := ctx.Options["level"].(float64)
 	level := int(levelFloat)
 	if level < 0 || level > 100 {
@@ -587,7 +612,7 @@ func (b *MusicBot) handleHistory(ctx commands.CommandContext) (*commands.Command
 		if err := rows.Scan(&title, &playedBy, &playedAt); err != nil {
 			continue
 		}
-		username := b.getUsername(playedBy)
+		username := LookupUsername(b.ctx, playedBy)
 		lines = append(lines, fmt.Sprintf("🎵 **%s** — played by %s at %s",
 			title, username, playedAt.Format("15:04")))
 	}
@@ -606,6 +631,19 @@ func (b *MusicBot) handleHistory(ctx commands.CommandContext) (*commands.Command
 }
 
 func (b *MusicBot) handleMusicConfig(ctx commands.CommandContext) (*commands.CommandResponse, error) {
+	if ctx.Ctx == nil {
+		ctx.Ctx = context.Background()
+	}
+	reqCtx, cancel := context.WithTimeout(ctx.Ctx, 15*time.Second)
+	defer cancel()
+
+	if !HasPermission(reqCtx, b.ctx, ctx.ServerID, ctx.UserID, PermManageGuild) {
+		return &commands.CommandResponse{
+			Content:   "❌ You need the Manage Server permission to configure the music bot.",
+			Ephemeral: true,
+		}, nil
+	}
+
 	action, _ := ctx.Options["action"].(string)
 
 	switch strings.ToLower(action) {
@@ -657,18 +695,7 @@ func (b *MusicBot) handleMusicConfig(ctx commands.CommandContext) (*commands.Com
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-func (b *MusicBot) getUsername(userID string) string {
-	var username string
-	b.ctx.DB.QueryRow(context.Background(),
-		`SELECT COALESCE(display_name, username) FROM users WHERE id = $1`, userID).Scan(&username)
-	if username == "" {
-		if len(userID) >= 8 {
-			return userID[:8]
-		}
-		return userID
-	}
-	return username
-}
+// getUsername removed — use LookupUsername from helpers.go
 
 func (b *MusicBot) resolveTrackMetadata(query string) (string, string, int) {
 	if strings.HasPrefix(query, "http") {

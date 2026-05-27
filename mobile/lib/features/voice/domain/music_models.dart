@@ -5,8 +5,6 @@ enum MusicType { track, album, artist }
 
 enum PlaybackStatus { idle, loading, playing, paused, error }
 
-
-
 /// A single playable music item.
 class Track {
   final String id;
@@ -38,6 +36,18 @@ class Track {
     final s = total % 60;
     return '$m:${s.toString().padLeft(2, '0')}';
   }
+
+  /// Equality is identity-by-id+source. Two tracks pulled from the same source
+  /// with the same id refer to the same logical track even if previewUrl is
+  /// resolved later. This matters for `queue.contains(track)`,
+  /// `FutureProvider.family` keys, and de-dup logic.
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Track && other.id == id && other.source == source);
+
+  @override
+  int get hashCode => Object.hash(id, source);
 }
 
 /// Playback state snapshot.
@@ -106,6 +116,33 @@ class PlaybackState {
       error: clearError ? null : (error ?? this.error),
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PlaybackState &&
+          other.status == status &&
+          other.currentTrack == currentTrack &&
+          other.position == position &&
+          other.duration == duration &&
+          other.volume == volume &&
+          other.shuffle == shuffle &&
+          other.repeat == repeat &&
+          other.autoplay == autoplay &&
+          other.error == error);
+
+  @override
+  int get hashCode => Object.hash(
+        status,
+        currentTrack,
+        position,
+        duration,
+        volume,
+        shuffle,
+        repeat,
+        autoplay,
+        error,
+      );
 }
 
 /// A categorized search result section (Songs, Albums, Artists, etc.)
@@ -121,8 +158,7 @@ class CategorizedSearchResults {
   final List<SearchCategory> categories;
   final bool isEmpty;
 
-  const CategorizedSearchResults({required this.categories})
-      : isEmpty = false;
+  const CategorizedSearchResults({required this.categories}) : isEmpty = false;
 
   const CategorizedSearchResults.empty()
       : categories = const [],
@@ -131,4 +167,3 @@ class CategorizedSearchResults {
   int get totalCount =>
       categories.fold(0, (sum, cat) => sum + cat.items.length);
 }
-

@@ -1,18 +1,18 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/features/calling/services/webrtc_call_service.dart';
-import 'call_theme.dart';
 
-/// Active in-call screen with cyberpunk HUD.
+/// Redesigned Active Call Screen (Frosted Glassmorphic, smooth, and modern)
 ///
-/// Supports both voice and video calls. Video mode shows full-screen
-/// remote video with PiP self-view. Voice mode shows animated
-/// waveform visualizer around the avatar.
+/// Supports both voice and video calls. Video mode displays full-screen remote
+/// WebRTC video with a premium floating glass PiP self-view. Voice mode shows
+/// a beautiful slowly shifting organic orb backdrop with a pulsing avatar ring.
 class ActiveCallScreen extends ConsumerStatefulWidget {
   final String peerName;
   final String? peerAvatarUrl;
@@ -39,11 +39,11 @@ class ActiveCallScreen extends ConsumerStatefulWidget {
   ConsumerState<ActiveCallScreen> createState() => _ActiveCallScreenState();
 }
 
-class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen>
-    with TickerProviderStateMixin {
+class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen> with TickerProviderStateMixin {
+  // Animation Controllers
+  late AnimationController _orbController;
   late AnimationController _waveController;
   late AnimationController _pulseController;
-  late AnimationController _tickerController;
   late Timer _timerTick;
 
   int _elapsedSeconds = 0;
@@ -52,6 +52,7 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen>
   bool _isVideoOn = false;
   bool _isHolding = false;
   bool _endingCall = false;
+
   WebRtcCallService? _rtc;
   Future<void>? _startCallFuture;
   double _bitrate = 4.2;
@@ -61,6 +62,14 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen>
 
   // PiP drag position
   Offset _pipOffset = const Offset(16, 100);
+
+  // Colors
+  static const Color _bgBlack = Color(0xFF060608);
+  static const Color _neonGreen = Color(0xFF52B788);
+  static const Color _neonCyan = Color(0xFF00E5FF);
+  static const Color _amber = Color(0xFFFFAB00);
+  static const Color _red = Color(0xFFFF3B3B);
+  static const Color _white = Colors.white;
 
   bool get _hasRtcSession =>
       widget.roomName != null &&
@@ -74,19 +83,20 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen>
 
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
+    // Slowly pulsing background glow orbs for voice calls
+    _orbController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 10),
+    )..repeat(reverse: true);
+
     _waveController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    )..repeat();
+      duration: const Duration(milliseconds: 1400),
+    )..repeat(reverse: true);
 
     _pulseController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2000),
-    )..repeat();
-
-    _tickerController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 25),
+      duration: const Duration(seconds: 2),
     )..repeat();
 
     if (_hasRtcSession) {
@@ -119,9 +129,9 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen>
     if (_hasRtcSession && !_endingCall) {
       unawaited(_rtc?.endCall(notifyPeer: true));
     }
+    _orbController.dispose();
     _waveController.dispose();
     _pulseController.dispose();
-    _tickerController.dispose();
     _timerTick.cancel();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
@@ -159,34 +169,100 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen>
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final primaryColor = widget.isVideo ? _neonCyan : _neonGreen;
+
     return Scaffold(
-      backgroundColor: CallTheme.bg,
+      backgroundColor: _bgBlack,
       body: Stack(
         children: [
-          CustomPaint(
-            size: MediaQuery.of(context).size,
-            painter: GridPainter(),
-          ),
+          // 1. Voice Mode: Slowly Shifting Organic Backdrop Orbs
+          if (!widget.isVideo)
+            Positioned.fill(
+              child: AnimatedBuilder(
+                animation: _orbController,
+                builder: (context, _) {
+                  final val = _orbController.value;
+                  final orb1Align = Alignment(-0.6 + 0.3 * sin(val * pi * 2), -0.5 + 0.4 * cos(val * pi * 2));
+                  final orb2Align = Alignment(0.6 - 0.3 * cos(val * pi * 2), 0.5 - 0.4 * sin(val * pi * 2));
+
+                  return Stack(
+                    children: [
+                      Align(
+                        alignment: orb1Align,
+                        child: Container(
+                          width: size.width * 0.9,
+                          height: size.width * 0.9,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: RadialGradient(
+                              colors: [
+                                _neonGreen.withValues(alpha: 0.15),
+                                Colors.transparent,
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      Align(
+                        alignment: orb2Align,
+                        child: Container(
+                          width: size.width * 0.85,
+                          height: size.width * 0.85,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: RadialGradient(
+                              colors: [
+                                _neonCyan.withValues(alpha: 0.12),
+                                Colors.transparent,
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+
+          // 2. Video Mode: Remote Live Video Stage
           if (widget.isVideo) _buildRemoteVideoStage(),
           if (!widget.isVideo) _buildHiddenRemoteAudioRenderer(),
-          // Main content
-          SafeArea(
-            child: Column(
-              children: [
-                _buildTopBar(),
-                const SizedBox(height: 8),
-                _buildConnectionStats(),
-                const Spacer(),
-                if (!widget.isVideo) _buildVoiceVisualizer(),
-                const Spacer(),
-                _buildControls(),
-                const SizedBox(height: 16),
-                _buildBottomTelemetry(),
-                const SizedBox(height: 8),
-              ],
+
+          // 3. Frosted Backdrop Blur overlay
+          Positioned.fill(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: widget.isVideo ? 5 : 45, sigmaY: widget.isVideo ? 5 : 45),
+              child: Container(
+                color: Colors.black.withValues(alpha: widget.isVideo ? 0.35 : 0.45),
+              ),
             ),
           ),
-          // PiP self-view (video mode only)
+
+          // 4. UI Content overlay
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildTopBar(),
+                  const SizedBox(height: 12),
+                  _buildConnectionStats(),
+                  const Spacer(),
+                  if (!widget.isVideo) _buildVoiceVisualizer(),
+                  const Spacer(),
+                  _buildControls(),
+                  const SizedBox(height: 18),
+                  _buildBottomTelemetry(),
+                  const SizedBox(height: 8),
+                ],
+              ),
+            ),
+          ),
+
+          // 5. PiP Self camera view (video mode only)
           if (widget.isVideo) _buildPiPView(),
         ],
       ),
@@ -194,76 +270,74 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen>
   }
 
   Widget _buildTopBar() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        children: [
-          // Status indicator
-          AnimatedBuilder(
-            animation: _pulseController,
-            builder: (context, _) {
-              final alpha = 0.5 + 0.5 * sin(_pulseController.value * 2 * pi);
-              return Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: _isHolding
-                      ? CallTheme.amber.withValues(alpha: alpha)
-                      : CallTheme.neonGreen.withValues(alpha: alpha),
+    final statusColor = _isHolding ? _amber : _neonGreen;
+    return Row(
+      children: [
+        // Pulsing active call status ring
+        AnimatedBuilder(
+          animation: _pulseController,
+          builder: (context, _) {
+            final alpha = 0.5 + 0.5 * sin(_pulseController.value * 2 * pi);
+            return Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: statusColor.withValues(alpha: alpha),
+              ),
+            );
+          },
+        ),
+        const SizedBox(width: 10),
+        // E2E Encrypted Glass Badge
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.03),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.05),
+            ),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.lock_outline, color: _neonGreen, size: 11),
+              const SizedBox(width: 6),
+              Text(
+                'E2E SECURED',
+                style: GoogleFonts.spaceMono(
+                  color: _neonGreen,
+                  fontSize: 8.5,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.5,
                 ),
-              );
-            },
-          ),
-          const SizedBox(width: 8),
-          // Encrypted badge
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              border: Border.all(
-                color: CallTheme.neonGreen.withValues(alpha: 0.4),
               ),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.lock_outline, color: CallTheme.neonGreen, size: 10),
-                const SizedBox(width: 4),
-                Text(
-                  'E2E ENCRYPTED',
-                  style: CallTheme.monoLabel(
-                    color: CallTheme.neonGreen,
-                    size: 8,
-                    weight: FontWeight.w700,
-                  ),
-                ),
-              ],
+            ],
+          ),
+        ),
+        const Spacer(),
+        // Frosted Glass Timer Container
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.03),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.05),
             ),
           ),
-          const Spacer(),
-          // Timer
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: CallTheme.neonGreen.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(
-                color: CallTheme.neonGreen.withValues(alpha: 0.3),
-              ),
-            ),
-            child: Text(
-              _formatTime(_elapsedSeconds),
-              style: GoogleFonts.jetBrainsMono(
-                color: CallTheme.neonGreen,
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 2,
-              ),
+          child: Text(
+            _formatTime(_elapsedSeconds),
+            style: GoogleFonts.spaceMono(
+              color: _neonGreen,
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 2,
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -286,34 +360,30 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen>
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Color(0xFF07100C), CallTheme.bg],
+                  colors: [Color(0xFF0A120E), _bgBlack],
                 ),
               ),
               child: Center(
                 child: FutureBuilder<void>(
                   future: _startCallFuture,
                   builder: (context, snapshot) {
-                    final status = rtc?.phaseLabel ?? 'PREPARING MEDIA';
+                    final status = rtc?.phaseLabel ?? 'PREPARING MEDIASTAGE';
                     final error = rtc?.error ?? snapshot.error?.toString();
                     return Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
                           Icons.videocam_outlined,
-                          color: error == null
-                              ? CallTheme.neonGreen
-                              : CallTheme.red,
-                          size: 48,
+                          color: error == null ? _neonCyan : _red,
+                          size: 44,
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 14),
                         Text(
-                          error == null ? status : 'VIDEO LINK FAILED',
-                          style: CallTheme.monoLabel(
-                            color: error == null
-                                ? CallTheme.neonGreen
-                                : CallTheme.red,
-                            size: 13,
-                            weight: FontWeight.w700,
+                          error == null ? status : 'VIDEO STREAM UNSTABLE',
+                          style: GoogleFonts.spaceMono(
+                            color: error == null ? _neonCyan : _red,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                         if (error != null) ...[
@@ -323,8 +393,8 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen>
                             child: Text(
                               error,
                               textAlign: TextAlign.center,
-                              style: CallTheme.monoLabel(size: 10),
-                              maxLines: 3,
+                              style: GoogleFonts.inter(color: Colors.white38, fontSize: 10),
+                              maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -335,15 +405,16 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen>
                 ),
               ),
             ),
+          // Gradient shadow overlay
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Colors.black.withValues(alpha: 0.30),
+                  Colors.black.withValues(alpha: 0.4),
                   Colors.transparent,
-                  Colors.black.withValues(alpha: 0.70),
+                  Colors.black.withValues(alpha: 0.65),
                 ],
               ),
             ),
@@ -354,67 +425,71 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen>
   }
 
   Widget _buildConnectionStats() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                widget.peerName.toUpperCase(),
-                style: GoogleFonts.spaceGrotesk(
-                  color: CallTheme.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 2,
-                ),
+    final statusColor = _isHolding ? _amber : _neonGreen;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.peerName,
+              style: GoogleFonts.outfit(
+                color: _white,
+                fontSize: 32,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.5,
               ),
-              const SizedBox(height: 2),
-              Text(
-                _isHolding
-                    ? '◆ ON HOLD'
-                    : '◆ ${widget.isVideo ? 'VIDEO' : 'VOICE'} ACTIVE',
-                style: CallTheme.monoLabel(
-                  color: _isHolding ? CallTheme.amber : CallTheme.neonGreen,
-                  size: 10,
-                  weight: FontWeight.w700,
-                ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              _isHolding
+                  ? '◆ CALL ON HOLD'
+                  : '◆ SECURE ${widget.isVideo ? 'VIDEO' : 'VOICE'} LINK',
+              style: GoogleFonts.spaceMono(
+                color: statusColor,
+                fontSize: 9.5,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.0,
               ),
-            ],
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              CallTheme.techLabel(
-                '${_bitrate.toStringAsFixed(1)} MBPS',
-                color: CallTheme.neonGreen,
-              ),
-              CallTheme.techLabel('LOSS: $_packetLoss%'),
-              CallTheme.techLabel('JITTER: ${_jitter}MS'),
-            ],
-          ),
-        ],
-      ),
+            ),
+          ],
+        ),
+        // Frosted stats column
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              '${_bitrate.toStringAsFixed(1)} MBPS',
+              style: GoogleFonts.spaceMono(color: _neonGreen, fontSize: 10, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              'LOSS: $_packetLoss%  |  JITTER: ${_jitter}MS',
+              style: GoogleFonts.spaceMono(color: _white.withValues(alpha: 0.3), fontSize: 8.5, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
   Widget _buildVoiceVisualizer() {
+    final primaryColor = widget.isVideo ? _neonCyan : _neonGreen;
     return SizedBox(
-      width: 280,
-      height: 280,
+      width: 260,
+      height: 260,
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // Audio wave rings
-          ...List.generate(4, (i) {
+          // Audio breathing rings
+          ...List.generate(3, (i) {
             return AnimatedBuilder(
-              animation: _waveController,
+              animation: _pulseController,
               builder: (context, _) {
-                final phase = (_waveController.value + i * 0.25) % 1.0;
-                final scale = 0.6 + phase * 0.5;
-                final opacity = _isMuted ? 0.05 : (1.0 - phase) * 0.25;
+                final phase = (_pulseController.value + i * 0.33) % 1.0;
+                final scale = 0.7 + phase * 0.45;
+                final opacity = _isMuted ? 0.03 : (1.0 - phase) * 0.25;
                 return Transform.scale(
                   scale: scale,
                   child: Container(
@@ -423,7 +498,7 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen>
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: CallTheme.neonGreen.withValues(alpha: opacity),
+                        color: primaryColor.withValues(alpha: opacity),
                         width: 1.5,
                       ),
                     ),
@@ -432,31 +507,40 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen>
               },
             );
           }),
-          // Waveform bars
+          
+          // Organic waveform glow around avatar
           AnimatedBuilder(
             animation: _waveController,
             builder: (context, _) {
               return CustomPaint(
-                size: const Size(280, 280),
-                painter: _WaveformPainter(
+                size: const Size(260, 260),
+                painter: _OrganicWaveformPainter(
                   phase: _waveController.value,
-                  color: CallTheme.neonGreen,
+                  color: primaryColor,
                   isMuted: _isMuted,
                 ),
               );
             },
           ),
-          // Center avatar
+          
+          // Core circular avatar
           Container(
-            width: 100,
-            height: 100,
+            width: 110,
+            height: 110,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: CallTheme.surfaceDark,
+              color: Colors.white.withValues(alpha: 0.03),
               border: Border.all(
-                color: _isMuted ? CallTheme.textDim : CallTheme.neonGreen,
-                width: 2,
+                color: _isMuted ? Colors.white.withValues(alpha: 0.1) : primaryColor.withValues(alpha: 0.3),
+                width: 2.5,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: (_isMuted ? Colors.transparent : primaryColor).withValues(alpha: 0.1),
+                  blurRadius: 24,
+                  spreadRadius: 2,
+                ),
+              ],
             ),
             child: widget.peerAvatarUrl != null
                 ? ClipOval(
@@ -468,16 +552,17 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen>
                   )
                 : _avatarFallback(),
           ),
+          
           // Muted overlay
           if (_isMuted)
             Container(
-              width: 100,
-              height: 100,
+              width: 110,
+              height: 110,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: CallTheme.bg.withValues(alpha: 0.6),
+                color: Colors.black.withValues(alpha: 0.55),
               ),
-              child: const Icon(Icons.mic_off, color: CallTheme.red, size: 36),
+              child: const Icon(Icons.mic_off, color: _red, size: 36),
             ),
         ],
       ),
@@ -503,7 +588,11 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen>
     return Center(
       child: Text(
         widget.peerName.isNotEmpty ? widget.peerName[0].toUpperCase() : '?',
-        style: CallTheme.heading(size: 40),
+        style: GoogleFonts.outfit(
+          color: widget.isVideo ? _neonCyan : _neonGreen,
+          fontSize: 48,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
@@ -522,33 +611,29 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen>
           });
         },
         child: Container(
-          width: 120,
-          height: 170,
+          width: 110,
+          height: 160,
           decoration: BoxDecoration(
-            color: CallTheme.surfaceDark,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: CallTheme.neonGreen, width: 1.5),
+            color: Colors.black.withValues(alpha: 0.45),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: _neonCyan.withValues(alpha: 0.35), width: 1.5),
             boxShadow: [
               BoxShadow(
-                color: CallTheme.bg.withValues(alpha: 0.8),
+                color: Colors.black.withValues(alpha: 0.5),
                 blurRadius: 20,
               ),
             ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(20),
             child: Stack(
               children: [
-                if (_rtc != null &&
-                    _rtc!.renderersReady &&
-                    _rtc!.hasLocalVideo &&
-                    _isVideoOn)
+                if (_rtc != null && _rtc!.renderersReady && _rtc!.hasLocalVideo && _isVideoOn)
                   Positioned.fill(
                     child: RTCVideoView(
                       _rtc!.localRenderer,
                       mirror: true,
-                      objectFit:
-                          RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                      objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
                     ),
                   )
                 else
@@ -557,37 +642,38 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen>
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         const Icon(
-                          Icons.person,
-                          color: CallTheme.textDim,
-                          size: 40,
+                          Icons.videocam_off_outlined,
+                          color: Colors.white24,
+                          size: 32,
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 6),
                         Text(
                           _isVideoOn ? 'STARTING' : 'CAM OFF',
-                          style: CallTheme.monoLabel(
-                            size: 8,
-                            weight: FontWeight.w700,
+                          style: GoogleFonts.spaceMono(
+                            color: Colors.white38,
+                            fontSize: 7.5,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ],
                     ),
                   ),
-                // HUD label
+                // Frosted label indicator
                 Positioned(
-                  top: 6,
-                  left: 6,
+                  top: 8,
+                  left: 8,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 4,
-                      vertical: 2,
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(6),
                     ),
-                    color: CallTheme.bg.withValues(alpha: 0.7),
                     child: Text(
-                      'LOCAL',
-                      style: CallTheme.monoLabel(
-                        color: CallTheme.neonGreen,
-                        size: 7,
-                        weight: FontWeight.w700,
+                      'SELF',
+                      style: GoogleFonts.spaceMono(
+                        color: _neonCyan,
+                        fontSize: 7,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
@@ -601,16 +687,22 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen>
   }
 
   Widget _buildControls() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05), width: 1),
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          CallTheme.actionButton(
+          // Mute Button
+          _buildGlassActionBtn(
             icon: _isMuted ? Icons.mic_off : Icons.mic,
-            label: _isMuted ? 'UNMUTE' : 'MUTE',
+            label: 'MUTE',
             isActive: _isMuted,
-            activeColor: CallTheme.red,
+            activeColor: _red,
             onTap: () {
               if (_rtc != null) {
                 unawaited(_rtc!.setMicrophoneEnabled(_isMuted));
@@ -619,7 +711,9 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen>
               }
             },
           ),
-          CallTheme.actionButton(
+          
+          // Camera On/Off
+          _buildGlassActionBtn(
             icon: _isVideoOn ? Icons.videocam : Icons.videocam_off,
             label: 'VIDEO',
             isActive: _isVideoOn,
@@ -631,45 +725,31 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen>
               }
             },
           ),
-          // Hang up
+          
+          // Main hangup button (red glowing circle)
           GestureDetector(
             onTap: () => unawaited(_hangUp()),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: CallTheme.red,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: CallTheme.red.withValues(alpha: 0.4),
-                        blurRadius: 12,
-                        spreadRadius: 2,
-                      ),
-                    ],
+            child: Container(
+              width: 66,
+              height: 66,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _red,
+                boxShadow: [
+                  BoxShadow(
+                    color: _red.withValues(alpha: 0.35),
+                    blurRadius: 28,
+                    spreadRadius: 2,
+                    offset: const Offset(0, 4),
                   ),
-                  child: const Icon(
-                    Icons.call_end,
-                    color: CallTheme.white,
-                    size: 28,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'END',
-                  style: CallTheme.monoLabel(
-                    color: CallTheme.red,
-                    size: 8,
-                    weight: FontWeight.w700,
-                  ),
-                ),
-              ],
+                ],
+              ),
+              child: const Icon(Icons.call_end, color: Colors.black, size: 28),
             ),
           ),
-          CallTheme.actionButton(
+          
+          // Speaker toggle
+          _buildGlassActionBtn(
             icon: _isSpeaker ? Icons.volume_up : Icons.volume_down,
             label: 'SPEAKER',
             isActive: _isSpeaker,
@@ -681,13 +761,13 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen>
               }
             },
           ),
-          CallTheme.actionButton(
-            icon: widget.isVideo
-                ? Icons.cameraswitch
-                : (_isHolding ? Icons.play_arrow : Icons.pause),
-            label: widget.isVideo ? 'FLIP' : (_isHolding ? 'RESUME' : 'HOLD'),
+          
+          // Flip camera or hold
+          _buildGlassActionBtn(
+            icon: widget.isVideo ? Icons.cameraswitch : (_isHolding ? Icons.play_arrow : Icons.pause),
+            label: widget.isVideo ? 'FLIP' : 'HOLD',
             isActive: widget.isVideo ? false : _isHolding,
-            activeColor: CallTheme.amber,
+            activeColor: _amber,
             onTap: () {
               if (widget.isVideo && _rtc != null) {
                 unawaited(_rtc!.switchCamera());
@@ -701,32 +781,103 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen>
     );
   }
 
-  Widget _buildBottomTelemetry() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget _buildGlassActionBtn({
+    required IconData icon,
+    required String label,
+    required bool isActive,
+    Color activeColor = _neonGreen,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          CallTheme.bottomStat('OPUS @ 48KHZ'),
-          CallTheme.bottomSeparator(),
-          CallTheme.bottomStat('BUF: ${2 + _random.nextInt(3)}MS'),
-          CallTheme.bottomSeparator(),
-          CallTheme.bottomStat('E2E: 256-BIT'),
-          CallTheme.bottomSeparator(),
-          CallTheme.bottomStat('LINK: STABLE', color: CallTheme.neonGreen),
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isActive ? activeColor.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.03),
+              border: Border.all(
+                color: isActive ? activeColor.withValues(alpha: 0.4) : Colors.white.withValues(alpha: 0.05),
+                width: 1.5,
+              ),
+            ),
+            child: Icon(
+              icon,
+              color: isActive ? activeColor : _white.withValues(alpha: 0.65),
+              size: 20,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            style: GoogleFonts.spaceMono(
+              color: isActive ? activeColor : _white.withValues(alpha: 0.35),
+              fontSize: 8,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBottomTelemetry() {
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _bottomText('OPUS CODEC @ 48KHZ'),
+          const SizedBox(width: 10),
+          _bottomSeparator(),
+          const SizedBox(width: 10),
+          _bottomText('BUFFER: ${3 + _random.nextInt(3)}MS'),
+          const SizedBox(width: 10),
+          _bottomSeparator(),
+          const SizedBox(width: 10),
+          _bottomText('E2EE AES-256'),
+          const SizedBox(width: 10),
+          _bottomSeparator(),
+          const SizedBox(width: 10),
+          _bottomText('LINK STABLE', color: _neonGreen),
+        ],
+      ),
+    );
+  }
+
+  Widget _bottomText(String text, {Color? color}) {
+    return Text(
+      text,
+      style: GoogleFonts.spaceMono(
+        color: color ?? _white.withValues(alpha: 0.25),
+        fontSize: 9,
+        fontWeight: FontWeight.bold,
+      ),
+    );
+  }
+
+  Widget _bottomSeparator() {
+    return Text(
+      '|',
+      style: GoogleFonts.spaceMono(
+        color: Colors.white.withValues(alpha: 0.04),
+        fontSize: 9,
       ),
     );
   }
 }
 
-// Waveform Painter
-class _WaveformPainter extends CustomPainter {
+// ─── Organic Waveform Painter for Center Avatar ─────────────────────
+class _OrganicWaveformPainter extends CustomPainter {
   final double phase;
   final Color color;
   final bool isMuted;
 
-  _WaveformPainter({
+  const _OrganicWaveformPainter({
     required this.phase,
     required this.color,
     required this.isMuted,
@@ -737,22 +888,20 @@ class _WaveformPainter extends CustomPainter {
     if (isMuted) return;
 
     final center = Offset(size.width / 2, size.height / 2);
-    final baseRadius = 65.0;
+    const baseRadius = 65.0;
 
     final paint = Paint()
-      ..color = color.withValues(alpha: 0.4)
+      ..color = color.withValues(alpha: 0.3)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
+      ..strokeWidth = 2.0;
 
-    // Draw circular waveform
     final path = Path();
-    const segments = 64;
+    const segments = 80;
 
     for (int i = 0; i <= segments; i++) {
       final angle = (i / segments) * 2 * pi;
-      final wave =
-          sin(angle * 8 + phase * 2 * pi) *
-          (6 + 4 * sin(phase * 2 * pi + angle * 3));
+      // Beautiful smooth organic waveform calculations
+      final wave = sin(angle * 6 + phase * 2 * pi) * (4 + 3 * sin(phase * pi + angle * 2));
       final r = baseRadius + wave;
       final x = center.dx + r * cos(angle);
       final y = center.dy + r * sin(angle);
@@ -769,6 +918,6 @@ class _WaveformPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _WaveformPainter oldDelegate) =>
+  bool shouldRepaint(covariant _OrganicWaveformPainter oldDelegate) =>
       oldDelegate.phase != phase || oldDelegate.isMuted != isMuted;
 }

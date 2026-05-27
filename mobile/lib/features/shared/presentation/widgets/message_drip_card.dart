@@ -104,16 +104,17 @@ class _MessageDripCardState extends ConsumerState<MessageDripCard> with TickerPr
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
       decoration: BoxDecoration(
-        color: Colors.black,
+        color: const Color(0xFF00FF66).withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: const Color(0xFF00FF66),
-          width: 2.0,
+          color: const Color(0xFF00FF66).withValues(alpha: 0.4),
+          width: 1.0,
         ),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color(0xFF003311),
-            offset: Offset(4, 4),
-            blurRadius: 0,
+            color: const Color(0xFF00FF66).withValues(alpha: 0.2),
+            blurRadius: 15,
+            spreadRadius: 2,
           ),
         ],
       ),
@@ -186,10 +187,11 @@ class _MessageDripCardState extends ConsumerState<MessageDripCard> with TickerPr
             // Front container
             Container(
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.9),
+                color: Colors.black.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: Colors.white,
-                  width: 1.5,
+                  color: Colors.white.withValues(alpha: 0.3),
+                  width: 1.0,
                 ),
               ),
               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
@@ -208,16 +210,17 @@ class _MessageDripCardState extends ConsumerState<MessageDripCard> with TickerPr
         return Container(
           margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
           decoration: BoxDecoration(
-            color: Colors.black,
+            color: const Color(0xFFFFD700).withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: const Color(0xFFFFD700),
-              width: 3.0,
+              color: const Color(0xFFFFD700).withValues(alpha: 0.5),
+              width: 1.5,
             ),
-            boxShadow: const [
+            boxShadow: [
               BoxShadow(
-                color: Color(0xFF5A4500),
-                offset: Offset(3, 3),
-                blurRadius: 0,
+                color: const Color(0xFF5A4500).withValues(alpha: 0.3),
+                blurRadius: 15,
+                spreadRadius: 2,
               ),
             ],
           ),

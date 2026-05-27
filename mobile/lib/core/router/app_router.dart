@@ -31,6 +31,9 @@ import 'package:mobile/features/settings/presentation/notifications_settings_scr
 import 'package:mobile/features/settings/presentation/accessibility_settings_screen.dart';
 import 'package:mobile/features/settings/presentation/voice_settings_screen.dart';
 import 'package:mobile/features/settings/presentation/help_screen.dart';
+import 'package:mobile/features/settings/presentation/faq_screen.dart';
+import 'package:mobile/features/settings/presentation/terms_screen.dart';
+import 'package:mobile/features/settings/presentation/privacy_policy_screen.dart';
 import 'package:mobile/features/settings/presentation/language_screen.dart';
 import 'package:mobile/features/settings/presentation/status_screen.dart';
 import 'package:mobile/features/settings/presentation/server_profiles_screen.dart';
@@ -111,7 +114,9 @@ import 'package:mobile/features/server_settings/presentation/bot_marketplace_scr
 // Voice
 import 'package:mobile/features/server_channels/voice/presentation/screens/voice_activities_screen.dart';
 import 'package:mobile/features/server_channels/voice/presentation/screens/voice_channel_screen.dart';
-import 'package:mobile/features/sonic_music/Screens/Home/home.dart';
+import 'package:mobile/features/voice/presentation/sonic_drip_screen.dart';
+import 'package:mobile/features/sonic_music/Screens/Home/home.dart' as sonic_music;
+import 'package:mobile/features/sonic_music/theme/app_theme.dart' as sonic_theme;
 
 // Gaming
 import 'package:mobile/features/gaming/presentation/screens/gaming_hub_screen.dart';
@@ -136,14 +141,28 @@ import 'package:mobile/features/ai_assistant/presentation/aura_voice_screen.dart
 /// The global navigation key for the root navigator.
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
+/// A [Listenable] that triggers when the Riverpod provider changes.
+/// This allows [GoRouter] to rebuild/redirect without recreating the router provider itself,
+/// which avoids duplicate [GlobalKey] conflicts.
+class RiverpodRefreshListenable extends ChangeNotifier {
+  RiverpodRefreshListenable(Ref ref) {
+    ref.listen<AuthState>(
+      authNotifierProvider,
+      (previous, next) => notifyListeners(),
+    );
+  }
+}
+
 /// Provides the [GoRouter] instance to the entire app via Riverpod.
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authNotifierProvider);
+  final listenable = RiverpodRefreshListenable(ref);
 
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/',
+    refreshListenable: listenable,
     redirect: (context, state) {
+      final authState = ref.read(authNotifierProvider);
       final location = state.matchedLocation;
       final isAuthRoute = [
         '/login',
@@ -308,7 +327,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                       GoRoute(path: 'notifications', builder: (context, state) => const NotificationsSettingsScreen()),
                       GoRoute(path: 'voice', builder: (context, state) => const VoiceSettingsScreen()),
                       GoRoute(path: 'accessibility', builder: (context, state) => const AccessibilitySettingsScreen()),
-                      GoRoute(path: 'help', builder: (context, state) => const HelpScreen()),
+                      GoRoute(
+                        path: 'help',
+                        builder: (context, state) => const HelpScreen(),
+                        routes: [
+                          GoRoute(path: 'faq', builder: (context, state) => const FAQScreen()),
+                          GoRoute(path: 'terms', builder: (context, state) => const TermsOfServiceScreen()),
+                          GoRoute(path: 'privacy-policy', builder: (context, state) => const PrivacyPolicyScreen()),
+                        ],
+                      ),
                       GoRoute(path: 'language', builder: (context, state) => const LanguageScreen()),
                       GoRoute(path: 'storage', builder: (context, state) => const StorageSettingsScreen()),
                       GoRoute(path: 'status', builder: (context, state) => const StatusScreen()),
@@ -323,7 +350,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                           GoRoute(path: 'history', builder: (context, state) => const BillingHistoryScreen()),
                         ],
                       ),
-                      GoRoute(path: 'sonic-drip', builder: (context, state) => HomePage()),
+                      GoRoute(
+                        path: 'sonic-drip',
+                        builder: (context, state) => Theme(
+                          data: sonic_theme.AppTheme.darkTheme(context: context),
+                          child: sonic_music.HomePage(),
+                        ),
+                      ),
                       GoRoute(path: 'encryption', builder: (context, state) => const E2EESettingsScreen()),
                       GoRoute(path: 'add-card', builder: (context, state) => const AddCardScreen()),
                       GoRoute(path: 'about-developer', builder: (context, state) => const AboutDeveloperScreen()),
@@ -439,9 +472,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           channelId: state.uri.queryParameters['channelId'],
         ),
       ),
-
-      // Notifications
-      GoRoute(path: '/notifications', builder: (context, state) => const NotificationsScreen()),
 
       // Profile
       GoRoute(path: '/profile/:userId', builder: (context, state) => ProfileViewScreen(userId: state.pathParameters['userId']!)),

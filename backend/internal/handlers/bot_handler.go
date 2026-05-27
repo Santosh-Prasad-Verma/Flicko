@@ -1,10 +1,14 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
+	"github.com/flicko-org/flicko-backend/internal/cache"
 	"github.com/flicko-org/flicko-backend/internal/commands"
 	"github.com/flicko-org/flicko-backend/internal/database"
 	"github.com/flicko-org/flicko-backend/internal/events"
@@ -18,12 +22,40 @@ type BotHandler struct {
 	db       database.DatabaseClient
 	eventBus *events.EventBus
 	router   *commands.Router
+	cache    cache.CacheLayer // optional; nil disables idempotency dedup
 	logger   *zap.Logger
 }
 
 // NewBotHandler creates a new BotHandler.
-func NewBotHandler(db database.DatabaseClient, bus *events.EventBus, router *commands.Router, logger *zap.Logger) *BotHandler {
-	return &BotHandler{db: db, eventBus: bus, router: router, logger: logger}
+//
+// The cache parameter is optional (may be nil). When non-nil, the notify
+// endpoints use it to dedup events so a replayed request from the client
+// does not double-trigger XP grants, AutoMod actions, etc.
+func NewBotHandler(db database.DatabaseClient, bus *events.EventBus, router *commands.Router, c cache.CacheLayer, logger *zap.Logger) *BotHandler {
+	return &BotHandler{
+		db:       db,
+		eventBus: bus,
+		router:   router,
+		cache:    c,
+		logger:   logger,
+	}
+}
+
+// idempotent returns true if this is the first time we've seen the given key
+// within ttl. Subsequent calls with the same key (within ttl) return false.
+// If the cache is unavailable, returns true (fail-open) to avoid blocking
+// the bus on a Redis outage.
+func (h *BotHandler) idempotent(ctx context.Context, key string, ttl time.Duration) bool {
+	if h.cache == nil {
+		return true
+	}
+	rdb := h.cache.GetRedisClient()
+	ok, err := rdb.SetNX(ctx, "bot:idem:"+key, "1", ttl).Result()
+	if err != nil {
+		h.logger.Debug("idempotency check error (fail-open)", zap.Error(err))
+		return true
+	}
+	return ok
 }
 
 // ── Slash Command Endpoints ─────────────────────────────────────────────────
@@ -66,6 +98,19 @@ func (h *BotHandler) InvokeCommand(w http.ResponseWriter, r *http.Request) {
 	body.ServerID = h.sanitizeString(body.ServerID, 100)
 	body.ChannelID = h.sanitizeString(body.ChannelID, 100)
 
+	// HIGH-13: Per-(user, command) rate limit. Discord-style commands like
+	// /ban or /purge have huge blast radius if spammed; /rank is harmless.
+	// Use a token bucket via Redis INCR with EXPIRE. Limits:
+	//   • write commands (ban/kick/mute/warn/purge/ticket-config/automod/etc.) → 10/min
+	//   • read commands (rank/leaderboard/stars/etc.)                          → 60/min
+	//   • everything else                                                      → 30/min
+	if !h.rateLimitOK(r.Context(), userID, body.CommandName) {
+		writeJSON(w, http.StatusTooManyRequests, map[string]string{
+			"error": "You're using this command too quickly. Try again in a moment.",
+		})
+		return
+	}
+
 	// Security: Validate command name against known commands to prevent injection
 	defs := h.router.GetDefinitions()
 	commandExists := false
@@ -88,19 +133,34 @@ func (h *BotHandler) InvokeCommand(w http.ResponseWriter, r *http.Request) {
 	sanitizedOptions := h.sanitizeOptions(body.Options)
 	body.Options = sanitizedOptions
 
-	// Create an interaction record
+	// Create an interaction record matching the deployed schema
+	// (supabase/migrations/054_phase2_rich_experience_tables.sql).
+	// type=2 == APPLICATION_COMMAND in the Discord-style enum.
 	var interactionID string
-	err := h.db.QueryRow(r.Context(),
-		`INSERT INTO interactions (command_name, user_id, server_id, channel_id, options, status)
-		 VALUES ($1, $2, $3, $4, $5, 'pending')
-		 RETURNING id`,
-		body.CommandName, userID, body.ServerID, body.ChannelID, body.Options).Scan(&interactionID)
-	if err != nil {
-		h.logger.Error("interaction insert failed", zap.Error(err))
-		interactionID = "temp-" + body.CommandName
+	{
+		data := map[string]interface{}{
+			"name":    body.CommandName,
+			"options": body.Options,
+		}
+		err := h.db.QueryRow(r.Context(),
+			`INSERT INTO interactions (type, guild_id, channel_id, user_id, data)
+			 VALUES (2, $1, $2, $3, $4)
+			 RETURNING id`,
+			body.ServerID, body.ChannelID, userID, data).Scan(&interactionID)
+		if err != nil {
+			h.logger.Error("interaction insert failed",
+				zap.Error(err),
+				zap.String("command", body.CommandName),
+			)
+			// Continue with a synthetic ID; the slash command itself should
+			// still execute even if the audit row failed.
+			interactionID = "temp-" + body.CommandName
+		}
 	}
 
-	// Build and publish the command event
+	// Build and publish the command event for analytics / external bots.
+	// IMPORTANT: this is fire-and-forget. The router does NOT execute on
+	// receiving this event (CRIT-8 fix). Execution happens via Dispatch below.
 	evt := events.Event{
 		Type:      events.CommandInvoke,
 		ServerID:  body.ServerID,
@@ -113,8 +173,9 @@ func (h *BotHandler) InvokeCommand(w http.ResponseWriter, r *http.Request) {
 			"options":        body.Options,
 		},
 	}
+	h.eventBus.Publish(evt)
 
-	// Process the command synchronously so we can return the response
+	// Process the command synchronously so we can return the response.
 	cmdCtx := commands.CommandContext{
 		Ctx:           r.Context(),
 		Command:       body.CommandName,
@@ -130,60 +191,29 @@ func (h *BotHandler) InvokeCommand(w http.ResponseWriter, r *http.Request) {
 		cmdCtx.SubCommand = sub
 	}
 
-	// Also publish the event for any listeners
-	h.eventBus.Publish(evt)
-
-	// Execute command directly via router for synchronous response
-	resp, err := h.executeCommand(cmdCtx)
+	resp, err := h.router.Dispatch(cmdCtx)
 	if err != nil {
 		h.logger.Error("command execution failed",
 			zap.String("command", body.CommandName),
 			zap.Error(err),
 		)
-		// Update interaction status
-		h.db.Exec(r.Context(),
-			`UPDATE interactions SET status = 'failed', response = $2 WHERE id = $1`,
-			interactionID, map[string]string{"error": err.Error()})
+		// Update interaction status (best-effort)
+		_, _ = h.db.Exec(r.Context(),
+			`UPDATE interactions SET responded = true WHERE id = $1`,
+			interactionID)
 
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
 
-	// Update interaction status
-	h.db.Exec(r.Context(),
-		`UPDATE interactions SET status = 'completed' WHERE id = $1`, interactionID)
+	// Update interaction status (best-effort)
+	_, _ = h.db.Exec(r.Context(),
+		`UPDATE interactions SET responded = true WHERE id = $1`, interactionID)
 
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"interaction_id": interactionID,
 		"response":       resp,
 	})
-}
-
-func (h *BotHandler) executeCommand(ctx commands.CommandContext) (*commands.CommandResponse, error) {
-	// Use the router's handlers directly
-	evt := events.Event{
-		Type:      events.CommandInvoke,
-		ServerID:  ctx.ServerID,
-		ChannelID: ctx.ChannelID,
-		UserID:    ctx.UserID,
-		Data: map[string]interface{}{
-			"command_name":   ctx.Command,
-			"interaction_id": ctx.InteractionID,
-			"options":        ctx.Options,
-		},
-	}
-
-	err := h.router.HandleEvent(evt)
-	if err != nil {
-		return nil, err
-	}
-
-	// Try to extract response from event data
-	if resp, ok := evt.Data["response"].(*commands.CommandResponse); ok {
-		return resp, nil
-	}
-
-	return &commands.CommandResponse{Content: "✅ Command executed."}, nil
 }
 
 // ── Bot Settings Endpoints ──────────────────────────────────────────────────
@@ -229,19 +259,18 @@ func (h *BotHandler) GetBotSettings(w http.ResponseWriter, r *http.Request) {
 }
 
 // UpdateBotSettings updates settings for a specific bot in a server.
+// Permission (HIGH-12 fix): server owner OR any role with the MANAGE_GUILD
+// permission bit (0x20). This allows co-admins to manage bots.
 func (h *BotHandler) UpdateBotSettings(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	serverID := vars["serverId"]
 	botName := vars["botName"]
 	userID, _ := r.Context().Value(middleware.GetUserIDKey()).(string)
 
-	// Verify the user is the server owner or admin
-	var isOwner bool
-	h.db.QueryRow(r.Context(),
-		`SELECT EXISTS(SELECT 1 FROM servers WHERE id = $1 AND owner_id = $2)`,
-		serverID, userID).Scan(&isOwner)
-	if !isOwner {
-		writeJSON(w, http.StatusForbidden, map[string]string{"error": "Only server owners can manage bot settings"})
+	if !h.canManageBots(r.Context(), serverID, userID) {
+		writeJSON(w, http.StatusForbidden, map[string]string{
+			"error": "You need MANAGE_GUILD permission to manage bot settings",
+		})
 		return
 	}
 
@@ -558,6 +587,8 @@ func (h *BotHandler) GetStarboardEntries(w http.ResponseWriter, r *http.Request)
 // NotifyMemberJoin publishes a MEMBER_JOIN event so bots (e.g. WelcomeBot) can
 // react when a user joins a server. The frontend calls this after adding the
 // member directly via Supabase.
+//
+// Idempotent per (server_id, user_id) for 60 seconds to absorb retries.
 func (h *BotHandler) NotifyMemberJoin(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	serverID := vars["serverId"]
@@ -575,6 +606,11 @@ func (h *BotHandler) NotifyMemberJoin(w http.ResponseWriter, r *http.Request) {
 		serverID, userID).Scan(&exists)
 	if err != nil || !exists {
 		writeJSON(w, http.StatusForbidden, map[string]string{"error": "user is not a member of this server"})
+		return
+	}
+
+	if !h.idempotent(r.Context(), "join:"+serverID+":"+userID, 60*time.Second) {
+		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 
@@ -615,6 +651,11 @@ func (h *BotHandler) NotifyMemberLeave(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !h.idempotent(r.Context(), "leave:"+serverID+":"+userID, 60*time.Second) {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
 	// Look up username for the goodbye message
 	var username string
 	if err := h.db.QueryRow(r.Context(),
@@ -637,6 +678,12 @@ func (h *BotHandler) NotifyMemberLeave(w http.ResponseWriter, r *http.Request) {
 
 // NotifyMessageCreate publishes a MESSAGE_CREATE event so bots (AutoMod,
 // Leveling) can process new messages.
+//
+// Security (CRIT-14): the message MUST exist server-side, MUST belong to the
+// claimed channel, and MUST be authored by the calling user. Content is
+// re-read from the database — never trusted from the request body.
+//
+// Idempotent per message_id for 5 minutes.
 func (h *BotHandler) NotifyMessageCreate(w http.ResponseWriter, r *http.Request) {
 	userID, _ := r.Context().Value(middleware.GetUserIDKey()).(string)
 
@@ -644,25 +691,43 @@ func (h *BotHandler) NotifyMessageCreate(w http.ResponseWriter, r *http.Request)
 		MessageID string `json:"message_id"`
 		ChannelID string `json:"channel_id"`
 		ServerID  string `json:"server_id"`
-		Content   string `json:"content"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid request body"})
 		return
 	}
 
-	if body.ChannelID == "" || body.ServerID == "" {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "channel_id and server_id are required"})
+	if body.MessageID == "" || body.ChannelID == "" || body.ServerID == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "message_id, channel_id, and server_id are required"})
 		return
 	}
 
-	// Verify user is a member of this server
-	var exists bool
+	// Verify the message exists, is in the claimed channel/server, and was
+	// authored by the calling user. Re-read content from the DB so a client
+	// cannot inject fake content for AutoMod to act on.
+	var (
+		dbAuthorID  string
+		dbChannelID string
+		dbServerID  string
+		dbContent   string
+	)
 	err := h.db.QueryRow(r.Context(),
-		`SELECT EXISTS(SELECT 1 FROM server_members WHERE server_id = $1 AND user_id = $2)`,
-		body.ServerID, userID).Scan(&exists)
-	if err != nil || !exists {
-		writeJSON(w, http.StatusForbidden, map[string]string{"error": "user is not a member of this server"})
+		`SELECT m.author_id, m.channel_id, c.server_id, m.content
+		 FROM messages m
+		 JOIN channels c ON c.id = m.channel_id
+		 WHERE m.id = $1`,
+		body.MessageID).Scan(&dbAuthorID, &dbChannelID, &dbServerID, &dbContent)
+	if err != nil {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "message not found"})
+		return
+	}
+	if dbAuthorID != userID || dbChannelID != body.ChannelID || dbServerID != body.ServerID {
+		writeJSON(w, http.StatusForbidden, map[string]string{"error": "message ownership mismatch"})
+		return
+	}
+
+	if !h.idempotent(r.Context(), "msg:"+body.MessageID, 5*time.Minute) {
+		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 
@@ -673,7 +738,7 @@ func (h *BotHandler) NotifyMessageCreate(w http.ResponseWriter, r *http.Request)
 		UserID:    userID,
 		Data: map[string]interface{}{
 			"message_id": body.MessageID,
-			"content":    body.Content,
+			"content":    dbContent,
 			"author_id":  userID,
 		},
 		Timestamp: time.Now(),
@@ -683,6 +748,7 @@ func (h *BotHandler) NotifyMessageCreate(w http.ResponseWriter, r *http.Request)
 }
 
 // NotifyReactionAdd publishes a REACTION_ADD event so bots (Starboard) can react.
+// Idempotent per (message_id, user_id, emoji) for 60 seconds.
 func (h *BotHandler) NotifyReactionAdd(w http.ResponseWriter, r *http.Request) {
 	userID, _ := r.Context().Value(middleware.GetUserIDKey()).(string)
 
@@ -699,6 +765,11 @@ func (h *BotHandler) NotifyReactionAdd(w http.ResponseWriter, r *http.Request) {
 
 	if body.MessageID == "" || body.ServerID == "" || body.Emoji == "" {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "message_id, server_id, and emoji are required"})
+		return
+	}
+
+	if !h.idempotent(r.Context(), "rx+:"+body.MessageID+":"+userID+":"+body.Emoji, 60*time.Second) {
+		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 
@@ -793,29 +864,159 @@ func (h *BotHandler) sanitizeArray(arr []interface{}) []interface{} {
 	return sanitized
 }
 
-// sanitizeString sanitizes a string value by stripping HTML tags, script content,
-// and limiting the length. This prevents XSS and injection attacks.
+// sanitizeString sanitizes a string value by stripping HTML tags / script
+// content and limiting the length, while preserving Discord-style mentions
+// like <#channelid>, <@userid>, <@&roleid>, <a:emoji:id> (MED-5 fix).
+//
+// Heuristic: anything inside <…> that starts with #, @, &, a:, or :
+// is preserved as-is; everything else inside <…> is stripped.
 func (h *BotHandler) sanitizeString(input string, maxLength int) string {
 	if len(input) > maxLength {
 		input = input[:maxLength]
 	}
 
-	// Strip HTML tags and script content
-	result := ""
-	inTag := false
-	for _, ch := range input {
-		if ch == '<' {
-			inTag = true
+	var b strings.Builder
+	b.Grow(len(input))
+
+	i := 0
+	runes := []rune(input)
+	for i < len(runes) {
+		ch := runes[i]
+		if ch != '<' {
+			b.WriteRune(ch)
+			i++
 			continue
 		}
-		if ch == '>' {
-			inTag = false
+		// Find the matching '>'.
+		j := i + 1
+		for j < len(runes) && runes[j] != '>' {
+			j++
+		}
+		if j >= len(runes) {
+			// Unmatched '<' — drop it and stop scanning the tag.
+			i++
 			continue
 		}
-		if !inTag {
-			result += string(ch)
+		inner := string(runes[i+1 : j])
+		// Preserve Discord-style mentions and emoji refs.
+		if isMentionLike(inner) {
+			b.WriteByte('<')
+			b.WriteString(inner)
+			b.WriteByte('>')
 		}
+		// Otherwise, drop the tag entirely (HTML/script removal).
+		i = j + 1
+	}
+	return b.String()
+}
+
+// isMentionLike returns true if the body of a <…> looks like a Discord-style
+// mention/emoji rather than an HTML tag. Examples:
+//   - "@uuid"        — user mention
+//   - "@!uuid"       — user mention (legacy)
+//   - "@&uuid"       — role mention
+//   - "#channelid"   — channel mention
+//   - ":name:id"     — custom emoji
+//   - "a:name:id"    — animated custom emoji
+func isMentionLike(s string) bool {
+	if s == "" {
+		return false
+	}
+	switch s[0] {
+	case '#', '@':
+		return true
+	case ':':
+		return true
+	case 'a':
+		return strings.HasPrefix(s, "a:")
+	}
+	return false
+}
+
+
+// canManageBots returns true if the user is allowed to change bot settings
+// for the given server. The contract is:
+//   - Server owner: always allowed.
+//   - Member with at least one role carrying MANAGE_GUILD (0x20) or
+//     ADMINISTRATOR (0x8): allowed.
+//
+// All errors are treated as "not allowed" (fail-closed).
+func (h *BotHandler) canManageBots(ctx context.Context, serverID, userID string) bool {
+	if serverID == "" || userID == "" {
+		return false
 	}
 
-	return result
+	var isOwner bool
+	if err := h.db.QueryRow(ctx,
+		`SELECT EXISTS(SELECT 1 FROM servers WHERE id = $1 AND owner_id = $2)`,
+		serverID, userID,
+	).Scan(&isOwner); err == nil && isOwner {
+		return true
+	}
+
+	// Permissions bitmask: ADMINISTRATOR=0x8, MANAGE_GUILD=0x20.
+	const wantBits int64 = 0x8 | 0x20
+	var hasRole bool
+	err := h.db.QueryRow(ctx,
+		`SELECT EXISTS(
+			SELECT 1
+			FROM member_roles mr
+			JOIN roles r ON r.id = mr.role_id
+			WHERE mr.server_id = $1
+			  AND mr.user_id = $2
+			  AND (r.permissions & $3) <> 0
+		)`,
+		serverID, userID, wantBits,
+	).Scan(&hasRole)
+	if err != nil {
+		h.logger.Debug("canManageBots role lookup failed", zap.Error(err))
+		return false
+	}
+	return hasRole
+}
+
+
+// rateLimitOK applies a Redis-backed per-(user, command) token bucket.
+// Returns true if the call should proceed; false to drop with 429.
+//
+// Fail-open: if Redis is unreachable, we let the call through rather than
+// blocking the entire bot surface on a cache outage.
+func (h *BotHandler) rateLimitOK(ctx context.Context, userID, command string) bool {
+	if h.cache == nil || userID == "" {
+		return true
+	}
+
+	// Categorize commands by blast radius.
+	const (
+		writeLimit   = 10 // per minute
+		readLimit    = 60 // per minute
+		defaultLimit = 30 // per minute
+	)
+	limit := defaultLimit
+	switch command {
+	// High blast radius — moderation, config, ticket creation
+	case "ban", "unban", "kick", "mute", "unmute", "warn", "purge", "slowmode",
+		"ticket", "ticket-config", "automod", "automod-exempt",
+		"welcome", "starboard", "music-config", "level-config", "xp",
+		"poll", "quickpoll":
+		limit = writeLimit
+	// Low blast radius — read-only views
+	case "rank", "leaderboard", "warnings", "modlog", "stars",
+		"queue", "nowplaying", "history":
+		limit = readLimit
+	}
+
+	rdb := h.cache.GetRedisClient()
+	key := fmt.Sprintf("bot:rl:%s:%s", userID, command)
+
+	// INCR; on first hit, set EXPIRE.
+	count, err := rdb.Incr(ctx, key).Result()
+	if err != nil {
+		h.logger.Debug("rate limit INCR error (fail-open)", zap.Error(err))
+		return true
+	}
+	if count == 1 {
+		_ = rdb.Expire(ctx, key, time.Minute).Err()
+	}
+	return int(count) <= limit
 }

@@ -1,8 +1,12 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:mobile/core/config/app_config.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 
 class BotInfo {
@@ -89,13 +93,8 @@ class _BotsSettingsScreenState extends ConsumerState<BotsSettingsScreen> {
       'avatar': '🎵',
       'table': 'music_settings',
     },
-    {
-      'name': 'poll',
-      'displayName': 'Poll Bot',
-      'description': 'Create and manage polls',
-      'avatar': '📊',
-      'table': 'poll_settings',
-    },
+    // Note: 'poll' is intentionally omitted — there is no poll_settings table.
+    // Polls are stateless per-message; nothing to toggle on a server level.
   ];
 
   @override
@@ -154,43 +153,74 @@ class _BotsSettingsScreenState extends ConsumerState<BotsSettingsScreen> {
   }
 
   Future<void> _toggleBot(BotInfo bot, bool enabled) async {
+    // HIGH-11: Route through the backend API so the server-side permission
+    // check (server owner OR MANAGE_GUILD) runs and audits the change.
+    // Falls back to direct Supabase write only for development environments
+    // where AppConfig.apiBaseUrl is not set.
     try {
-      final botConfig = _availableBots.firstWhere((b) => b['name'] == bot.name);
-      final tableName = botConfig['table'] as String;
-
-      // Check if settings exist
-      final existing = await Supabase.instance.client
-          .from(tableName)
-          .select('*')
-          .eq('server_id', widget.serverId)
-          .maybeSingle();
-
-      if (existing != null) {
-        // Update existing
-        await Supabase.instance.client
-            .from(tableName)
-            .update({'enabled': enabled})
-            .eq('server_id', widget.serverId);
+      if (AppConfig.hasApiBaseUrl) {
+        await _toggleBotViaApi(bot, enabled);
       } else {
-        // Insert new settings
-        await Supabase.instance.client
-            .from(tableName)
-            .insert({
-              'server_id': widget.serverId,
-              'enabled': enabled,
-              'created_at': DateTime.now().toIso8601String(),
-            });
+        await _toggleBotViaSupabase(bot, enabled);
       }
-
-      // Refresh bot list
       await _loadBotStatuses();
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to toggle bot: ${e.toString()}'),
           backgroundColor: const Color(FlickoColors.danger),
         ),
       );
+    }
+  }
+
+  Future<void> _toggleBotViaApi(BotInfo bot, bool enabled) async {
+    final session = Supabase.instance.client.auth.currentSession;
+    if (session == null) {
+      throw Exception('Not authenticated');
+    }
+    final base = AppConfig.apiBaseUrl;
+    final uri = Uri.parse(
+      '${base.endsWith('/') ? base : '$base/'}api/v1/servers/${widget.serverId}/bots/${bot.name}/settings',
+    );
+    final response = await http.put(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ${session.accessToken}',
+      },
+      body: jsonEncode({'enabled': enabled}),
+    );
+    if (response.statusCode == 403) {
+      throw Exception('You need MANAGE_GUILD permission to change bot settings');
+    }
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('Server returned ${response.statusCode}: ${response.body}');
+    }
+  }
+
+  Future<void> _toggleBotViaSupabase(BotInfo bot, bool enabled) async {
+    final botConfig = _availableBots.firstWhere((b) => b['name'] == bot.name);
+    final tableName = botConfig['table'] as String;
+
+    final existing = await Supabase.instance.client
+        .from(tableName)
+        .select('*')
+        .eq('server_id', widget.serverId)
+        .maybeSingle();
+
+    if (existing != null) {
+      await Supabase.instance.client
+          .from(tableName)
+          .update({'enabled': enabled})
+          .eq('server_id', widget.serverId);
+    } else {
+      await Supabase.instance.client.from(tableName).insert({
+        'server_id': widget.serverId,
+        'enabled': enabled,
+        'created_at': DateTime.now().toIso8601String(),
+      });
     }
   }
 

@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'invoice_pdf_generator.dart';
+import 'package:mobile/features/auth/application/auth_notifier.dart';
 
 class BillingHistoryScreen extends ConsumerWidget {
   const BillingHistoryScreen({super.key});
@@ -17,12 +19,12 @@ class BillingHistoryScreen extends ConsumerWidget {
   static const Color purple = Color(0xFF9B84EE);
   static const Color gold = Color(0xFFFFD700);
 
-  // High-fidelity mockup historical transactions
+  // High-fidelity mockup historical transactions in INR
   static final List<Map<String, dynamic>> _mockTransactions = [
     {
       'id': 'TXN_FLK_9281A4',
       'productName': 'FLICKO PRO (MONTHLY)',
-      'amount': '\$9.99',
+      'amount': '₹799.00',
       'date': DateTime.now().subtract(const Duration(days: 4)),
       'paymentMethod': 'VISA •••• 4242',
       'status': 'SUCCESS',
@@ -31,7 +33,7 @@ class BillingHistoryScreen extends ConsumerWidget {
     {
       'id': 'TXN_FLK_8172B8',
       'productName': 'WARP DRIP COSMETIC FUSION',
-      'amount': '\$4.99',
+      'amount': '₹399.00',
       'date': DateTime.now().subtract(const Duration(days: 18)),
       'paymentMethod': 'VISA •••• 4242',
       'status': 'SUCCESS',
@@ -40,7 +42,7 @@ class BillingHistoryScreen extends ConsumerWidget {
     {
       'id': 'TXN_FLK_7162C3',
       'productName': 'AVATAR DECORATION (NEON SHIELD)',
-      'amount': '\$2.49',
+      'amount': '₹199.00',
       'date': DateTime.now().subtract(const Duration(days: 32)),
       'paymentMethod': 'MASTERCARD •••• 9876',
       'status': 'SUCCESS',
@@ -49,7 +51,7 @@ class BillingHistoryScreen extends ConsumerWidget {
     {
       'id': 'TXN_FLK_6152D4',
       'productName': 'FLICKO PRO (MONTHLY)',
-      'amount': '\$9.99',
+      'amount': '₹799.00',
       'date': DateTime.now().subtract(const Duration(days: 34)),
       'paymentMethod': 'VISA •••• 4242',
       'status': 'SUCCESS',
@@ -58,7 +60,7 @@ class BillingHistoryScreen extends ConsumerWidget {
     {
       'id': 'TXN_FLK_5142E9',
       'productName': 'SOUND STUDIO CREATOR SOUNDPACK',
-      'amount': '\$7.99',
+      'amount': '₹649.00',
       'date': DateTime.now().subtract(const Duration(days: 42)),
       'paymentMethod': 'PAYPAL (clay@flicko.app)',
       'status': 'SUCCESS',
@@ -67,7 +69,7 @@ class BillingHistoryScreen extends ConsumerWidget {
     {
       'id': 'TXN_FLK_4132F2',
       'productName': 'FLICKO PLUS (MONTHLY)',
-      'amount': '\$4.99',
+      'amount': '₹399.00',
       'date': DateTime.now().subtract(const Duration(days: 64)),
       'paymentMethod': 'MASTERCARD •••• 9876',
       'status': 'REFUNDED',
@@ -77,6 +79,16 @@ class BillingHistoryScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authNotifierProvider);
+    final userEmail = authState.maybeWhen(
+      authenticated: (authUser, userProfile) => authUser.email ?? '',
+      orElse: () => '',
+    );
+    final username = authState.maybeWhen(
+      authenticated: (authUser, userProfile) => userProfile?.username ?? '',
+      orElse: () => '',
+    );
+
     return Scaffold(
       backgroundColor: black,
       appBar: AppBar(
@@ -140,7 +152,7 @@ class BillingHistoryScreen extends ConsumerWidget {
               separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final txn = _mockTransactions[index];
-                return _buildTransactionCard(context, txn);
+                return _buildTransactionCard(context, txn, userEmail, username);
               },
             ),
             const SizedBox(height: 40),
@@ -230,7 +242,12 @@ class BillingHistoryScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildTransactionCard(BuildContext context, Map<String, dynamic> txn) {
+  Widget _buildTransactionCard(
+    BuildContext context,
+    Map<String, dynamic> txn,
+    String userEmail,
+    String username,
+  ) {
     final status = txn['status'] as String;
     final isSuccess = status == 'SUCCESS';
     final statusColor = isSuccess ? lime : Colors.red;
@@ -319,38 +336,102 @@ class BillingHistoryScreen extends ConsumerWidget {
                   const SizedBox(height: 8),
                   _buildDetailRow('STATUS', isSuccess ? 'SETTLED & CAPTURED' : 'REFUNDED TO CARD', false, statusColor),
                   const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 40,
-                    child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: white,
-                        side: const BorderSide(color: borderGrey, width: 1.5),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      icon: const Icon(Icons.copy_rounded, size: 16, color: lime),
-                      label: Text(
-                        'COPY DETAILS',
-                        style: GoogleFonts.spaceGrotesk(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      onPressed: () {
-                        final details = 'Transaction: ${txn['productName']}\nID: ${txn['id']}\nAmount: ${txn['amount']}\nDate: ${txn['date']}';
-                        Clipboard.setData(ClipboardData(text: details));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Transaction details copied to clipboard!'),
-                            backgroundColor: lime,
-                            behavior: SnackBarBehavior.floating,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 40,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: lime,
+                              foregroundColor: black,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            icon: const Icon(Icons.file_download_rounded, size: 16),
+                            label: Text(
+                              'DOWNLOAD',
+                              style: GoogleFonts.spaceGrotesk(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            onPressed: () async {
+                              try {
+                                final savedPath = await InvoicePdfGenerator.generateAndDownloadInvoice(
+                                  txnId: txn['id'],
+                                  productName: txn['productName'],
+                                  amountStr: txn['amount'],
+                                  date: txn['date'],
+                                  paymentMethod: txn['paymentMethod'],
+                                  status: txn['status'],
+                                  userEmail: userEmail,
+                                  username: username,
+                                );
+                                
+                                if (savedPath != null && context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Downloaded successfully to $savedPath'),
+                                      backgroundColor: lime,
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Failed to generate PDF: $e'),
+                                      backgroundColor: Colors.red,
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                }
+                              }
+                            },
                           ),
-                        );
-                      },
-                    ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: SizedBox(
+                          height: 40,
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: white,
+                              side: const BorderSide(color: borderGrey, width: 1.5),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            icon: const Icon(Icons.copy_rounded, size: 16, color: lime),
+                            label: Text(
+                              'COPY DETAILS',
+                              style: GoogleFonts.spaceGrotesk(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            onPressed: () {
+                              final details = 'Transaction: ${txn['productName']}\nID: ${txn['id']}\nAmount: ${txn['amount']}\nDate: ${txn['date']}';
+                              Clipboard.setData(ClipboardData(text: details));
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Transaction details copied to clipboard!'),
+                                  backgroundColor: lime,
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

@@ -1,11 +1,17 @@
 import 'dart:async';
 import 'dart:developer' as dev;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:get_it/get_it.dart';
 import 'package:just_audio/just_audio.dart';
-import '../data/music_repository.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../data/drip_bash_repository.dart';
+import '../data/music_repository.dart';
 import '../data/sleep_timer_service.dart';
 import '../domain/music_models.dart';
+import '../services/flicko_audio_handler.dart';
+import 'music_library_notifier.dart';
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
@@ -43,6 +49,34 @@ class SonicDripState {
       searchError: clearSearchError ? null : (searchError ?? this.searchError),
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SonicDripState &&
+          other.playback == playback &&
+          _listEq(other.queue, queue) &&
+          _listEq(other.searchResults, searchResults) &&
+          other.isSearching == isSearching &&
+          other.searchError == searchError);
+
+  @override
+  int get hashCode => Object.hash(
+        playback,
+        Object.hashAll(queue),
+        Object.hashAll(searchResults),
+        isSearching,
+        searchError,
+      );
+
+  static bool _listEq<T>(List<T> a, List<T> b) {
+    if (identical(a, b)) return true;
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
 }
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
@@ -54,54 +88,97 @@ final sonicDripProvider =
 
 class SonicDripNotifier extends Notifier<SonicDripState> {
   late final MusicRepository _repo;
-  AudioPlayer? _player;
+
+  /// We try to use the FlickoAudioHandler that drives the system media
+  /// session (lock screen, notification, Bluetooth, CarPlay). If it's not
+  /// registered yet we fall back to a private AudioPlayer so the screen
+  /// still works in tests / pre-init flows.
+  FlickoAudioHandler? _handler;
+  AudioPlayer? _localPlayer;
+
   StreamSubscription? _positionSub;
   StreamSubscription? _playerStateSub;
   Timer? _searchDebounce;
+  int _searchSeq = 0;
+  bool _advancing = false;
+  bool _fetchingRecommendations = false;
+
+  static const _volumeKey = 'sonic_drip_volume';
+
+  AudioPlayer get _player => _handler?.player ?? (_localPlayer ??= AudioPlayer());
 
   @override
   SonicDripState build() {
     _repo = ref.watch(musicRepositoryProvider);
-    _player = AudioPlayer();
+    _handler = GetIt.I.isRegistered<FlickoAudioHandler>()
+        ? GetIt.I<FlickoAudioHandler>()
+        : null;
+
+    // Wire notification next/prev buttons → notifier methods.
+    _handler?.onSkipNext = () async => skipNext();
+    _handler?.onSkipPrevious = () async => skipPrevious();
+
     _setupPlayerListeners();
-    // Register sleep timer trigger callback
-    ref.read(sleepTimerProvider.notifier).setCallback(() {
-      dev.log('Sleep timer callback triggered in SonicDripNotifier', name: 'sonic-drip');
+    _restoreVolume();
+
+    // Register sleep timer trigger callback exactly once.
+    final sleepNotifier = ref.read(sleepTimerProvider.notifier);
+    sleepNotifier.setCallback(() {
+      dev.log('Sleep timer triggered → pause', name: 'sonic-drip');
       pause();
     });
+
     ref.onDispose(() {
       _searchDebounce?.cancel();
       _positionSub?.cancel();
       _playerStateSub?.cancel();
-      _player?.dispose();
+      _handler?.onSkipNext = null;
+      _handler?.onSkipPrevious = null;
+      _localPlayer?.dispose();
     });
     return const SonicDripState();
   }
 
+  Future<void> _restoreVolume() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final v = prefs.getDouble(_volumeKey);
+      if (v != null) {
+        _player.setVolume(v.clamp(0.0, 1.0));
+        state = state.copyWith(
+          playback: state.playback.copyWith(volume: v.clamp(0.0, 1.0)),
+        );
+      }
+    } catch (_) {}
+  }
+
   void _setupPlayerListeners() {
-    // Update position in real time
-    _positionSub = _player?.positionStream.listen((position) {
+    _positionSub = _player.positionStream.listen((position) {
       if (state.playback.status == PlaybackStatus.playing) {
         final duration = state.playback.duration;
         state = state.copyWith(
           playback: state.playback.copyWith(
             position: position,
             duration: duration == Duration.zero
-                ? (_player?.duration ?? Duration.zero)
+                ? (_player.duration ?? Duration.zero)
                 : duration,
           ),
         );
       }
     });
 
-    // Handle track completion
-    _playerStateSub = _player?.playerStateStream.listen((playerState) {
-      if (playerState.processingState == ProcessingState.completed) {
+    _playerStateSub = _player.playerStateStream.listen((playerState) {
+      if (playerState.processingState == ProcessingState.completed &&
+          !_advancing) {
+        _advancing = true;
         final sleepState = ref.read(sleepTimerProvider);
         if (sleepState.isActive && sleepState.endTime == null) {
           ref.read(sleepTimerProvider.notifier).triggerAfterTrack();
+          _advancing = false;
         } else {
+          // skipNext is sync in shape but does a lot — schedule unblock.
           skipNext();
+          Future.microtask(() => _advancing = false);
         }
       }
       if (playerState.playing &&
@@ -109,7 +186,7 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
         state = state.copyWith(
           playback: state.playback.copyWith(
             status: PlaybackStatus.playing,
-            duration: _player?.duration ?? Duration.zero,
+            duration: _player.duration ?? Duration.zero,
           ),
         );
       }
@@ -122,6 +199,8 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
   void searchDebounced(String query, {MusicType type = MusicType.track}) {
     _searchDebounce?.cancel();
     if (query.trim().isEmpty) {
+      // Bump seq so any in-flight response is discarded.
+      _searchSeq++;
       state = state.copyWith(searchResults: [], clearSearchError: true);
       return;
     }
@@ -131,11 +210,15 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
   }
 
   Future<void> _doSearch(String query, {MusicType type = MusicType.track}) async {
+    final mySeq = ++_searchSeq;
     state = state.copyWith(isSearching: true, clearSearchError: true);
     try {
       final results = await _repo.search(query, type: type);
+      // Drop stale responses (user already typed something else / cleared).
+      if (mySeq != _searchSeq) return;
       state = state.copyWith(searchResults: results, isSearching: false);
     } catch (e) {
+      if (mySeq != _searchSeq) return;
       state = state.copyWith(
         isSearching: false,
         searchError: 'Search failed: ${e.toString()}',
@@ -151,7 +234,6 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
 
     final newQueue = [...state.queue, track];
 
-    // Auto-play if nothing is playing
     if (state.playback.status == PlaybackStatus.idle) {
       _playTrack(track, newQueue);
     } else {
@@ -172,10 +254,16 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
   }
 
   void clearQueue() {
-    _player?.stop();
+    _player.stop();
+    // Preserve user prefs (volume/shuffle/repeat/autoplay) when clearing.
     state = state.copyWith(
       queue: [],
-      playback: const PlaybackState(),
+      playback: PlaybackState(
+        volume: state.playback.volume,
+        shuffle: state.playback.shuffle,
+        repeat: state.playback.repeat,
+        autoplay: state.playback.autoplay,
+      ),
     );
   }
 
@@ -191,12 +279,12 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
   void togglePlayPause() {
     if (state.playback.currentTrack == null) return;
     if (state.isPlaying) {
-      _player?.pause();
+      _player.pause();
       state = state.copyWith(
         playback: state.playback.copyWith(status: PlaybackStatus.paused),
       );
     } else {
-      _player?.play();
+      _player.play();
       state = state.copyWith(
         playback: state.playback.copyWith(status: PlaybackStatus.playing),
       );
@@ -205,7 +293,7 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
 
   void pause() {
     if (state.playback.currentTrack == null) return;
-    _player?.pause();
+    _player.pause();
     state = state.copyWith(
       playback: state.playback.copyWith(status: PlaybackStatus.paused),
     );
@@ -214,7 +302,6 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
   void skipNext() {
     final queue = state.queue;
     if (queue.isEmpty) {
-      dev.log('skipNext: queue is empty, checking autoplay', name: 'sonic-drip');
       if (state.playback.autoplay && state.playback.currentTrack != null) {
         _fetchRecommendationsAndPlayNext(state.playback.currentTrack);
       }
@@ -234,14 +321,12 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
     } else if (state.playback.repeat) {
       next = queue.first;
     } else if (state.playback.autoplay) {
-      dev.log('skipNext: end of queue, triggering autoplay fetch', name: 'sonic-drip');
       _fetchRecommendationsAndPlayNext(state.playback.currentTrack);
       return;
     }
     if (next != null) {
       _playTrack(next, queue);
     } else {
-      dev.log('skipNext: no next track available', name: 'sonic-drip');
       state = state.copyWith(
         playback: state.playback.copyWith(status: PlaybackStatus.idle),
       );
@@ -252,7 +337,7 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
     final queue = state.queue;
     if (queue.isEmpty) return;
     if (state.playback.position.inSeconds > 3) {
-      _player?.seek(Duration.zero);
+      _player.seek(Duration.zero);
       return;
     }
     final currentId = state.playback.currentTrack?.id;
@@ -265,22 +350,28 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
   }
 
   void seekTo(double progress) {
-    final duration = _player?.duration ?? state.playback.duration;
+    final p = progress.clamp(0.0, 1.0);
+    final duration = _player.duration ?? state.playback.duration;
     if (duration == Duration.zero) return;
     final position = Duration(
-      milliseconds: (duration.inMilliseconds * progress).round(),
+      milliseconds: (duration.inMilliseconds * p).round(),
     );
-    _player?.seek(position);
+    _player.seek(position);
     state = state.copyWith(
       playback: state.playback.copyWith(position: position),
     );
   }
 
   void setVolume(double volume) {
-    _player?.setVolume(volume.clamp(0.0, 1.0));
+    final clamped = volume.clamp(0.0, 1.0);
+    _player.setVolume(clamped);
     state = state.copyWith(
-      playback: state.playback.copyWith(volume: volume.clamp(0.0, 1.0)),
+      playback: state.playback.copyWith(volume: clamped),
     );
+    // Persist (fire-and-forget).
+    SharedPreferences.getInstance()
+        .then((p) => p.setDouble(_volumeKey, clamped))
+        .catchError((_) {});
   }
 
   void toggleShuffle() {
@@ -301,16 +392,31 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
     );
   }
 
-
-  void stop() {
-    _player?.stop();
-    state = state.copyWith(playback: const PlaybackState());
+  void clearError() {
+    if (state.playback.status == PlaybackStatus.error) {
+      state = state.copyWith(
+        playback: state.playback.copyWith(
+          status: PlaybackStatus.idle,
+          clearError: true,
+        ),
+      );
+    }
   }
 
+  void stop() {
+    _player.stop();
+    state = state.copyWith(
+      playback: PlaybackState(
+        volume: state.playback.volume,
+        shuffle: state.playback.shuffle,
+        repeat: state.playback.repeat,
+        autoplay: state.playback.autoplay,
+      ),
+    );
+  }
 
   // ── Drip Bash (Saavn/YouTube full-song streaming) ──────────────────────────
 
-  /// Add a track from Drip Bash, resolving its streaming URL first.
   Future<void> addDripBashTrack(Track track) async {
     final wasIdle = state.playback.status == PlaybackStatus.idle;
     final resolvedTrack = await _resolveDripBashUrl(track, updateStatus: wasIdle);
@@ -328,7 +434,6 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
     }
   }
 
-  /// Play a track from Drip Bash immediately (resolves URL + starts playback).
   Future<void> playDripBash(Track track) async {
     final resolvedTrack = await _resolveDripBashUrl(track);
     if (resolvedTrack == null) return;
@@ -339,22 +444,25 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
     _playTrack(resolvedTrack, queue);
   }
 
-  /// Add all tracks from an album to the queue via Drip Bash.
+  /// Add all album tracks to the queue WITHOUT resolving each URL upfront.
+  /// Each track's previewUrl is resolved lazily inside [_playTrack] when its
+  /// turn comes. Avoids 30 serial network round-trips on a 30-track album.
   Future<void> addAlbumToQueue(List<Track> albumTracks) async {
-    for (final track in albumTracks) {
-      final wasIdle = state.playback.status == PlaybackStatus.idle;
-      final resolved = await _resolveDripBashUrl(track, updateStatus: wasIdle);
-      if (resolved != null) {
-        final alreadyInQueue = state.queue.any((t) => t.id == resolved.id);
-        if (!alreadyInQueue) {
-          final newQueue = [...state.queue, resolved];
-          if (wasIdle) {
-            _playTrack(resolved, newQueue);
-          } else {
-            state = state.copyWith(queue: newQueue);
-          }
-        }
-      }
+    if (albumTracks.isEmpty) return;
+    final wasIdle = state.playback.status == PlaybackStatus.idle;
+
+    // Filter dupes and append. Preserve order.
+    final existingIds = state.queue.map((t) => t.id).toSet();
+    final newTracks =
+        albumTracks.where((t) => !existingIds.contains(t.id)).toList();
+    if (newTracks.isEmpty) return;
+
+    final newQueue = [...state.queue, ...newTracks];
+    state = state.copyWith(queue: newQueue);
+
+    if (wasIdle) {
+      // Resolve only the first track now; the rest resolve as they play.
+      _playTrack(newTracks.first, newQueue);
     }
   }
 
@@ -362,6 +470,8 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
     try {
       final repo = ref.read(dripBashRepositoryProvider);
       String? streamUrl;
+
+      if (track.previewUrl != null) return track;
 
       if (track.source == 'youtube') {
         if (updateStatus) {
@@ -377,8 +487,6 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
           );
         }
         streamUrl = await repo.getSaavnStreamingUrl(track.id);
-      } else if (track.previewUrl != null) {
-        return track; // Already has a streaming URL
       }
 
       if (streamUrl == null) {
@@ -411,16 +519,12 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
 
   // ── Internal ──────────────────────────────────────────────────────────────
 
-  bool _fetchingRecommendations = false;
-
   Future<void> _fetchAndAppendRecommendations(Track currentTrack) async {
     if (_fetchingRecommendations) return;
     _fetchingRecommendations = true;
     try {
-      dev.log('Autoplay: prefetching recommendations for ${currentTrack.name} (${currentTrack.source})', name: 'sonic-drip');
       var recs = await _repo.getRecommendations(currentTrack.id, currentTrack.source, limit: 10);
       if (recs.isEmpty) {
-        dev.log('Autoplay: getRecommendations returned empty, trying search fallback for artist "${currentTrack.artistName}"', name: 'sonic-drip');
         String query = currentTrack.artistName;
         if (query.isEmpty || query.toLowerCase() == 'unknown artist') {
           final words = currentTrack.name.split(' ');
@@ -430,18 +534,14 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
           recs = await _repo.search(query, type: MusicType.track, limit: 10);
         }
       }
-      dev.log('Autoplay: received ${recs.length} recommendations', name: 'sonic-drip');
       if (recs.isNotEmpty) {
         final existingIds = state.queue.map((t) => t.id).toSet();
-        final List<Track> filtered = recs.where((t) => !existingIds.contains(t.id) && t.id != currentTrack.id).toList();
+        final filtered = recs
+            .where((t) => !existingIds.contains(t.id) && t.id != currentTrack.id)
+            .toList();
         if (filtered.isNotEmpty) {
-          dev.log('Autoplay: appending ${filtered.length} new recommended tracks to queue', name: 'sonic-drip');
           state = state.copyWith(queue: [...state.queue, ...filtered]);
-        } else {
-          dev.log('Autoplay: all ${recs.length} recommendations already in queue', name: 'sonic-drip');
         }
-      } else {
-        dev.log('Autoplay: recommendation service returned empty results', name: 'sonic-drip');
       }
     } catch (e, st) {
       dev.log('Autoplay recommendations error: $e\n$st', name: 'sonic-drip');
@@ -452,17 +552,12 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
 
   Future<void> _fetchRecommendationsAndPlayNext(Track? currentTrack) async {
     if (currentTrack == null) return;
-    if (_fetchingRecommendations) {
-      dev.log('Autoplay: already fetching recommendations, skipping', name: 'sonic-drip');
-      return;
-    }
+    if (_fetchingRecommendations) return;
     _fetchingRecommendations = true;
     state = state.copyWith(playback: state.playback.copyWith(status: PlaybackStatus.loading));
     try {
-      dev.log('Autoplay: queue ended, fetching recommendations for ${currentTrack.name} (${currentTrack.source})', name: 'sonic-drip');
       var recs = await _repo.getRecommendations(currentTrack.id, currentTrack.source, limit: 10);
       if (recs.isEmpty) {
-        dev.log('Autoplay: getRecommendations returned empty, trying search fallback for artist "${currentTrack.artistName}"', name: 'sonic-drip');
         String query = currentTrack.artistName;
         if (query.isEmpty || query.toLowerCase() == 'unknown artist') {
           final words = currentTrack.name.split(' ');
@@ -472,18 +567,16 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
           recs = await _repo.search(query, type: MusicType.track, limit: 10);
         }
       }
-      dev.log('Autoplay: got ${recs.length} recommendations', name: 'sonic-drip');
       if (recs.isNotEmpty) {
         final existingIds = state.queue.map((t) => t.id).toSet();
-        final List<Track> filtered = recs.where((t) => !existingIds.contains(t.id) && t.id != currentTrack.id).toList();
+        final filtered = recs
+            .where((t) => !existingIds.contains(t.id) && t.id != currentTrack.id)
+            .toList();
         if (filtered.isNotEmpty) {
-          dev.log('Autoplay: ${filtered.length} new tracks, attempting playback', name: 'sonic-drip');
           final newQueue = [...state.queue, ...filtered];
-          // Try each recommended track until one plays successfully
           for (final nextTrack in filtered) {
             try {
               await _playTrack(nextTrack, newQueue);
-              // If _playTrack succeeded (status is playing or loading), we're done
               if (state.playback.status == PlaybackStatus.playing ||
                   state.playback.status == PlaybackStatus.loading) {
                 return;
@@ -492,13 +585,7 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
               dev.log('Autoplay: failed to play ${nextTrack.name}, trying next: $e', name: 'sonic-drip');
             }
           }
-          // All tracks failed
-          dev.log('Autoplay: all recommended tracks failed to play', name: 'sonic-drip');
-        } else {
-          dev.log('Autoplay: all recommendations already in queue', name: 'sonic-drip');
         }
-      } else {
-        dev.log('Autoplay: recommendation service returned empty', name: 'sonic-drip');
       }
       state = state.copyWith(playback: state.playback.copyWith(status: PlaybackStatus.idle));
     } catch (e) {
@@ -520,11 +607,8 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
 
     Track? resolvedTrack = track;
     if (track.previewUrl == null) {
-      dev.log('_playTrack: resolving streaming URL for ${track.name} (${track.source})', name: 'sonic-drip');
       resolvedTrack = await _resolveDripBashUrl(track);
       if (resolvedTrack == null) {
-        dev.log('_playTrack: failed to resolve URL for ${track.name}', name: 'sonic-drip');
-        // Don't get stuck - set idle so skipNext can try the next track
         state = state.copyWith(
           playback: state.playback.copyWith(status: PlaybackStatus.idle),
         );
@@ -533,7 +617,9 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
     }
 
     final previewUrl = resolvedTrack.previewUrl;
-    final updatedQueue = state.queue.map((t) => t.id == resolvedTrack!.id ? resolvedTrack : t).toList();
+    final updatedQueue = state.queue
+        .map((t) => t.id == resolvedTrack!.id ? resolvedTrack : t)
+        .toList();
 
     state = state.copyWith(
       queue: updatedQueue,
@@ -553,15 +639,32 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
 
     if (previewUrl != null) {
       try {
-        await _player?.setUrl(previewUrl);
-        _player?.play();
+        if (_handler != null) {
+          await _handler!.playTrack(
+            id: resolvedTrack.id,
+            url: previewUrl,
+            title: resolvedTrack.name,
+            artist: resolvedTrack.artistName,
+            album: resolvedTrack.albumName,
+            artworkUrl: resolvedTrack.imageUrl,
+            duration: resolvedTrack.durationMs != null
+                ? Duration(milliseconds: resolvedTrack.durationMs!)
+                : null,
+          );
+        } else {
+          await _player.setUrl(previewUrl);
+          _player.play();
+        }
         state = state.copyWith(
           playback: state.playback.copyWith(
             status: PlaybackStatus.playing,
-            duration: _player?.duration ?? Duration.zero,
+            duration: _player.duration ?? Duration.zero,
           ),
         );
-        dev.log('_playTrack: now playing ${resolvedTrack.name}', name: 'sonic-drip');
+        // Record listen history (fire-and-forget).
+        try {
+          ref.read(musicLibraryProvider.notifier).addToHistory(resolvedTrack);
+        } catch (_) {}
         if (state.playback.autoplay) {
           _fetchAndAppendRecommendations(resolvedTrack);
         }
@@ -574,8 +677,8 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
           ),
         );
       }
-    } else {
-      dev.log('_playTrack: no preview URL available for ${resolvedTrack.name}', name: 'sonic-drip');
     }
   }
 }
+
+// ─── Track copyWith — uses the public extension from music_repository.dart ───

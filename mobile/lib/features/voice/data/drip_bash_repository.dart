@@ -23,7 +23,9 @@ abstract class DripBashRepository {
 }
 
 final dripBashRepositoryProvider = Provider<DripBashRepository>((ref) {
-  return DripBashRepositoryImpl();
+  final impl = DripBashRepositoryImpl();
+  ref.onDispose(impl.dispose);
+  return impl;
 });
 
 class DripBashRepositoryImpl implements DripBashRepository {
@@ -331,19 +333,27 @@ class DripBashRepositoryImpl implements DripBashRepository {
     final instances = ['https://inv.nadeko.net', 'https://invidious.nerdvpn.de'];
     for (final instance in instances) {
       try {
-        final res = await _dio.get('$instance/api/v1/videos/$videoId', options: Options(receiveTimeout: const Duration(seconds: 10)));
+        final res = await _dio.get('$instance/api/v1/videos/$videoId',
+            options: Options(receiveTimeout: const Duration(seconds: 10)));
         if (res.statusCode != 200) continue;
+        if (res.data is! Map) continue;
         final adaptiveFormats = (res.data as Map)['adaptiveFormats'] as List? ?? [];
         String? audioUrl;
         int maxBitrate = 0;
         for (final f in adaptiveFormats) {
+          if (f is! Map) continue;
           final type = (f['type'] as String?) ?? '';
           if (!type.startsWith('audio/')) continue;
           final bitrate = (f['bitrate'] as num?)?.toInt() ?? 0;
-          if (bitrate > maxBitrate) { maxBitrate = bitrate; audioUrl = f['url'] as String?; }
+          if (bitrate > maxBitrate) {
+            maxBitrate = bitrate;
+            audioUrl = f['url'] as String?;
+          }
         }
         if (audioUrl != null) return audioUrl;
-      } catch (_) { continue; }
+      } catch (_) {
+        continue;
+      }
     }
     return null;
   }

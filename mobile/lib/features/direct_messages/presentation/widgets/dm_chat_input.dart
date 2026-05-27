@@ -1,12 +1,16 @@
+import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:mobile/core/constants/flicko_colors.dart';
+import 'package:record/record.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+
 import 'package:mobile/features/server_channels/chat/presentation/widgets/emoji_picker.dart';
 import 'package:mobile/features/server_channels/chat/presentation/widgets/gif_picker.dart';
 import 'package:mobile/features/server_channels/chat/presentation/widgets/sticker_picker.dart';
-import 'dart:io';
 
 class DMChatInput extends StatefulWidget {
   final Function(String content, {List<XFile>? attachments, String? gifUrl, String? stickerUrl}) onSend;
@@ -29,9 +33,17 @@ class _DMChatInputState extends State<DMChatInput> {
 
   final TextEditingController _controller = TextEditingController();
   final ImagePicker _picker = ImagePicker();
+  final AudioRecorder _audioRecorder = AudioRecorder();
   final List<XFile> _selectedFiles = [];
   bool _showExtras = false;
   bool _isEmpty = true;
+
+  // Voice recording state
+  bool _isRecording = false;
+  bool _isLockedRecording = false;
+  Timer? _recordingTimer;
+  int _recordingSeconds = 0;
+  String? _recordingPath;
 
   @override
   void initState() {
@@ -43,6 +55,8 @@ class _DMChatInputState extends State<DMChatInput> {
   void dispose() {
     _controller.removeListener(_handleTextChanged);
     _controller.dispose();
+    _recordingTimer?.cancel();
+    _audioRecorder.dispose();
     super.dispose();
   }
 
@@ -89,6 +103,88 @@ class _DMChatInputState extends State<DMChatInput> {
     });
   }
 
+  // ── Voice Recording ──
+
+  Future<void> _startRecording() async {
+    try {
+      final status = await Permission.microphone.request();
+      if (status != PermissionStatus.granted) {
+        _showPermissionDenied('Microphone');
+        return;
+      }
+
+      final tempDir = await getTemporaryDirectory();
+      final path = '${tempDir.path}/voice_message_${DateTime.now().millisecondsSinceEpoch}.m4a';
+
+      await _audioRecorder.start(
+        const RecordConfig(encoder: AudioEncoder.aacLc),
+        path: path,
+      );
+
+      setState(() {
+        _isRecording = true;
+        _recordingSeconds = 0;
+        _recordingPath = path;
+        _showExtras = false;
+      });
+
+      _recordingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        setState(() => _recordingSeconds++);
+      });
+    } catch (e) {
+      debugPrint('Error starting recording: $e');
+    }
+  }
+
+  Future<void> _stopRecording({bool cancel = false}) async {
+    try {
+      _recordingTimer?.cancel();
+
+      if (!cancel && _recordingPath != null) {
+        await _audioRecorder.stop();
+        widget.onSend('🎤 Voice message', attachments: [XFile(_recordingPath!)]);
+      } else {
+        await _audioRecorder.stop();
+        if (_recordingPath != null) {
+          final file = File(_recordingPath!);
+          if (await file.exists()) {
+            await file.delete();
+          }
+        }
+      }
+
+      setState(() {
+        _isRecording = false;
+        _isLockedRecording = false;
+        _recordingSeconds = 0;
+        _recordingPath = null;
+      });
+    } catch (e) {
+      debugPrint('Error stopping recording: $e');
+    }
+  }
+
+  void _showPermissionDenied(String permission) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$permission permission is required'),
+        behavior: SnackBarBehavior.floating,
+        action: SnackBarAction(
+          label: 'Settings',
+          onPressed: () => openAppSettings(),
+        ),
+      ),
+    );
+  }
+
+  String _formatDuration(int seconds) {
+    final minutes = seconds ~/ 60;
+    final remainingSeconds = seconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
+  }
+
+  // ── Pickers ──
+
   void _showEmojiPicker() {
     context.showEmojiPicker(
       onEmojiSelected: (emoji) {
@@ -119,6 +215,10 @@ class _DMChatInputState extends State<DMChatInput> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isRecording || _isLockedRecording) {
+      return _buildRecordingUI();
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: _surfaceContainer,
@@ -224,6 +324,11 @@ class _DMChatInputState extends State<DMChatInput> {
                       icon: Icons.photo_library_rounded,
                       label: 'GALLERY',
                       onTap: _handlePickImage,
+                    ),
+                    _ExtraButton(
+                      icon: Icons.mic_rounded,
+                      label: 'VOICE',
+                      onTap: _startRecording,
                     ),
                   ],
                 ),
@@ -331,6 +436,112 @@ class _DMChatInputState extends State<DMChatInput> {
                     ),
                   ),
                 ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecordingUI() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: _surfaceContainer,
+        border: Border(
+          top: BorderSide(
+            color: _textWhite.withValues(alpha: 0.05),
+            width: 1,
+          ),
+        ),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            // Cancel button
+            IconButton(
+              onPressed: () => _stopRecording(cancel: true),
+              icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+            ),
+
+            // Recording indicator
+            Container(
+              width: 12,
+              height: 12,
+              decoration: const BoxDecoration(
+                color: Colors.redAccent,
+                shape: BoxShape.circle,
+              ),
+            ),
+
+            const SizedBox(width: 12),
+
+            // Recording duration
+            Text(
+              _formatDuration(_recordingSeconds),
+              style: GoogleFonts.spaceMono(
+                color: _textWhite,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+
+            const SizedBox(width: 12),
+
+            // Waveform placeholder
+            Expanded(
+              child: Container(
+                height: 40,
+                decoration: BoxDecoration(
+                  color: _bgBlack,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: _textWhite.withValues(alpha: 0.1)),
+                ),
+                child: Center(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(20, (index) {
+                      return Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                        width: 3,
+                        height: 10 + (index % 5) * 4.0,
+                        decoration: BoxDecoration(
+                          color: _neonGreen,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(width: 12),
+
+            // Send button
+            GestureDetector(
+              onTap: () => _stopRecording(),
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: _neonGreen,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _neonGreen.withValues(alpha: 0.3),
+                      blurRadius: 10,
+                      spreadRadius: 1,
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.send_rounded,
+                  size: 20, 
+                  color: Colors.black,
+                ),
               ),
             ),
           ],

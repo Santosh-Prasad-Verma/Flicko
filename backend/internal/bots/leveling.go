@@ -3,6 +3,7 @@ package bots
 import (
 	"context"
 	"fmt"
+	"math"
 	"math/rand"
 	"strings"
 	"time"
@@ -11,6 +12,9 @@ import (
 	"github.com/flicko-org/flicko-backend/internal/events"
 	"go.uber.org/zap"
 )
+
+// sqrt is a package-level alias for math.Sqrt to keep the levelForXP formula readable.
+var sqrt = math.Sqrt
 
 // LevelingBot tracks user XP, levels, and rewards.
 type LevelingBot struct {
@@ -90,6 +94,12 @@ func (b *LevelingBot) registerCommands() {
 // ── Command Handlers ────────────────────────────────────────────────────────
 
 func (b *LevelingBot) handleRank(ctx commands.CommandContext) (*commands.CommandResponse, error) {
+	if ctx.Ctx == nil {
+		ctx.Ctx = context.Background()
+	}
+	reqCtx, cancel := context.WithTimeout(ctx.Ctx, 10*time.Second)
+	defer cancel()
+
 	targetID, _ := ctx.Options["user"].(string)
 	if targetID == "" {
 		targetID = ctx.UserID
@@ -97,21 +107,25 @@ func (b *LevelingBot) handleRank(ctx commands.CommandContext) (*commands.Command
 
 	var xp, level, messageCount int
 	var rank int
-	err := b.ctx.DB.QueryRow(context.Background(),
+	err := b.ctx.DB.QueryRow(reqCtx,
 		`SELECT xp, level, message_count FROM user_xp WHERE user_id = $1 AND server_id = $2`,
 		targetID, ctx.ServerID).Scan(&xp, &level, &messageCount)
 	if err != nil {
 		return &commands.CommandResponse{Content: "This user has no XP yet. Start chatting to earn XP!", Ephemeral: true}, nil
 	}
 
-	// Get rank position
-	b.ctx.DB.QueryRow(context.Background(),
+	_ = b.ctx.DB.QueryRow(reqCtx,
 		`SELECT COUNT(*) + 1 FROM user_xp WHERE server_id = $1 AND xp > $2`,
 		ctx.ServerID, xp).Scan(&rank)
 
-	username := b.getUsername(targetID)
+	username := LookupUsername(b.ctx, targetID)
 	nextLevelXP := xpForLevel(level + 1)
-	progress := float64(xp-xpForLevel(level)) / float64(nextLevelXP-xpForLevel(level)) * 100
+	currentLevelXP := xpForLevel(level)
+	denom := float64(nextLevelXP - currentLevelXP)
+	progress := 0.0
+	if denom > 0 {
+		progress = float64(xp-currentLevelXP) / denom * 100
+	}
 
 	return &commands.CommandResponse{
 		Embed: &commands.Embed{
@@ -197,12 +211,11 @@ func (b *LevelingBot) handleXP(ctx commands.CommandContext) (*commands.CommandRe
 	amountFloat, _ := ctx.Options["amount"].(float64)
 	amount := int(amountFloat)
 
-	// Only server owner or admin can manage XP
-	if err := b.checkAdminPermission(ctx.ServerID, ctx.UserID); err != nil {
+	if !HasPermission(context.Background(), b.ctx, ctx.ServerID, ctx.UserID, PermManageGuild) {
 		return &commands.CommandResponse{Content: "❌ Only admins can manage XP.", Ephemeral: true}, nil
 	}
 
-	username := b.getUsername(targetID)
+	username := LookupUsername(b.ctx, targetID)
 
 	switch strings.ToLower(action) {
 	case "set":
@@ -255,7 +268,7 @@ func (b *LevelingBot) handleXP(ctx commands.CommandContext) (*commands.CommandRe
 func (b *LevelingBot) handleLevelConfig(ctx commands.CommandContext) (*commands.CommandResponse, error) {
 	action, _ := ctx.Options["action"].(string)
 
-	if err := b.checkAdminPermission(ctx.ServerID, ctx.UserID); err != nil {
+	if !HasPermission(context.Background(), b.ctx, ctx.ServerID, ctx.UserID, PermManageGuild) {
 		return &commands.CommandResponse{Content: "❌ Only admins can configure leveling.", Ephemeral: true}, nil
 	}
 
@@ -379,10 +392,10 @@ func (b *LevelingBot) getLevelStatus(serverID string) (*commands.CommandResponse
 			Title: "📈 Leveling Configuration",
 			Color: "#57F287",
 			Fields: []commands.EmbedField{
-				{Name: "Status", Value: boolEmoji(s.Enabled), Inline: true},
+				{Name: "Status", Value: BoolEmoji(s.Enabled), Inline: true},
 				{Name: "XP Range", Value: fmt.Sprintf("%d - %d per message", s.XPMin, s.XPMax), Inline: true},
 				{Name: "Cooldown", Value: fmt.Sprintf("%ds", s.Cooldown), Inline: true},
-				{Name: "Stack Roles", Value: boolEmoji(s.StackRoles), Inline: true},
+				{Name: "Stack Roles", Value: BoolEmoji(s.StackRoles), Inline: true},
 				{Name: "Role Rewards", Value: fmt.Sprintf("%d configured", rewardCount), Inline: true},
 				{Name: "Level-Up Message", Value: s.Message},
 			},
@@ -432,12 +445,16 @@ func (b *LevelingBot) onMessageCreate(evt events.Event) error {
 		}
 	}
 
-	// Check cooldown
+	// Check cooldown (MED-3: default 60s if settings.Cooldown is 0)
+	cooldown := settings.Cooldown
+	if cooldown <= 0 {
+		cooldown = 60
+	}
 	var lastXP time.Time
 	err = b.ctx.DB.QueryRow(context.Background(),
 		`SELECT last_xp_at FROM user_xp WHERE user_id = $1 AND server_id = $2`,
 		authorID, evt.ServerID).Scan(&lastXP)
-	if err == nil && time.Since(lastXP) < time.Duration(settings.Cooldown)*time.Second {
+	if err == nil && time.Since(lastXP) < time.Duration(cooldown)*time.Second {
 		return nil // on cooldown
 	}
 
@@ -507,7 +524,7 @@ func (b *LevelingBot) getMultiplier(serverID, userID, channelID string) float64 
 }
 
 func (b *LevelingBot) sendLevelUpMessage(serverID, channelID, userID string, level int, template string, lvlUpChannel *string) {
-	username := b.getUsername(userID)
+	username := LookupUsername(b.ctx, userID)
 
 	msg := template
 	msg = strings.ReplaceAll(msg, "{{user}}", fmt.Sprintf("<@%s>", userID))
@@ -519,15 +536,7 @@ func (b *LevelingBot) sendLevelUpMessage(serverID, channelID, userID string, lev
 		targetChannel = *lvlUpChannel
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	_, err := b.ctx.DB.Exec(ctx,
-		`INSERT INTO messages (channel_id, content, type, created_at)
-		 VALUES ($1, $2, 'system', $3)`,
-		targetChannel, msg, time.Now())
-	if err != nil {
-		b.logger.Error("level-up message failed", zap.Error(err))
-	}
+	SendBotMessage(b.ctx, targetChannel, msg)
 }
 
 func (b *LevelingBot) checkRoleRewards(serverID, userID string, level int, stackRoles bool) {
@@ -582,37 +591,8 @@ func (b *LevelingBot) recalculateLevel(serverID, userID string) {
 		userID, serverID, newLevel)
 }
 
-func (b *LevelingBot) checkAdminPermission(serverID, userID string) error {
-	var isOwner bool
-	b.ctx.DB.QueryRow(context.Background(),
-		`SELECT EXISTS(SELECT 1 FROM servers WHERE id = $1 AND owner_id = $2)`,
-		serverID, userID).Scan(&isOwner)
-	if isOwner {
-		return nil
-	}
-	var hasAdmin bool
-	b.ctx.DB.QueryRow(context.Background(),
-		`SELECT EXISTS(
-			SELECT 1 FROM member_roles mr
-			JOIN roles r ON r.id = mr.role_id
-			WHERE mr.server_id = $1 AND mr.user_id = $2
-			AND r.permissions & 8 = 8
-		)`, serverID, userID).Scan(&hasAdmin)
-	if hasAdmin {
-		return nil
-	}
-	return fmt.Errorf("insufficient permissions")
-}
-
-func (b *LevelingBot) getUsername(userID string) string {
-	var username string
-	b.ctx.DB.QueryRow(context.Background(),
-		`SELECT COALESCE(display_name, username) FROM users WHERE id = $1`, userID).Scan(&username)
-	if username == "" {
-		return userID[:8]
-	}
-	return username
-}
+// checkAdminPermission and getUsername removed — use shared helpers
+// HasPermission / LookupUsername from helpers.go.
 
 // ── XP/Level Math ───────────────────────────────────────────────────────────
 
@@ -623,10 +603,21 @@ func xpForLevel(level int) int {
 }
 
 // levelForXP returns the level for a given amount of total XP.
+// HIGH-5 fix: closed-form inverse of the quadratic formula instead of O(level) loop.
+// Formula: level = floor((-50 + sqrt(2500 + 20*(xp-100))) / 10)
 func levelForXP(xp int) int {
-	level := 0
-	for xpForLevel(level+1) <= xp {
-		level++
+	if xp < 100 {
+		return 0
+	}
+	// Solve 5*L^2 + 50*L + 100 <= xp
+	// => L <= (-50 + sqrt(2500 + 20*(xp-100))) / 10
+	discriminant := float64(2500 + 20*(xp-100))
+	if discriminant < 0 {
+		return 0
+	}
+	level := int((-50.0 + sqrt(discriminant)) / 10.0)
+	if level < 0 {
+		return 0
 	}
 	// Safety cap
 	if level > 1000 {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:ui' show ImageFilter;
 
 /// Help & Support Screen (Sleek Brutalist Black/Neon Theme)
 class HelpScreen extends StatelessWidget {
@@ -194,11 +195,7 @@ class HelpScreen extends StatelessWidget {
           subtitle: 'Frequently asked questions and answers.',
           badge: 'DOCS',
           icon: Icons.book_outlined,
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('FAQ section coming soon.')),
-            );
-          },
+          onTap: () => context.push('/profile/settings/help/faq'),
         ),
         const SizedBox(height: 14),
         _buildLinkCard(
@@ -208,11 +205,7 @@ class HelpScreen extends StatelessWidget {
           badge: 'SOCIAL',
           icon: Icons.forum_outlined,
           usePrimaryBadge: true,
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Community invite coming soon.')),
-            );
-          },
+          onTap: () => _launchUrl('https://github.com/Santosh-Prasad-Verma/Flicko'),
         ),
         const SizedBox(height: 14),
         _buildLinkCard(
@@ -252,7 +245,7 @@ class HelpScreen extends StatelessWidget {
           subtitle: 'Read the Flicko terms of service.',
           badge: 'LEGAL',
           icon: Icons.description_outlined,
-          onTap: () => _launchUrl('https://flicko.dev/terms'),
+          onTap: () => context.push('/profile/settings/help/terms'),
         ),
         const SizedBox(height: 14),
         _buildLinkCard(
@@ -261,7 +254,7 @@ class HelpScreen extends StatelessWidget {
           subtitle: 'Read the Flicko privacy policy.',
           badge: 'LEGAL',
           icon: Icons.privacy_tip_outlined,
-          onTap: () => _launchUrl('https://flicko.dev/privacy'),
+          onTap: () => context.push('/profile/settings/help/privacy-policy'),
         ),
       ],
     );
@@ -286,75 +279,79 @@ class HelpScreen extends StatelessWidget {
           color: _neonGreen,
           margin: const EdgeInsets.only(top: 6, bottom: 16),
         ),
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: _surfaceContainer,
-            border: Border.all(color: _neonGreen.withValues(alpha: 0.4), width: 1.5),
-            boxShadow: [
-              BoxShadow(
-                  color: _neonGreen.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  spreadRadius: 2)
-            ],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          'APP VERSION',
-                          style: GoogleFonts.epilogue(
-                            color: _textWhite,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            fontStyle: FontStyle.italic,
-                            letterSpacing: -0.3,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          decoration: const BoxDecoration(color: _neonGreen),
-                          child: Text(
-                            'LATEST',
-                            style: GoogleFonts.spaceMono(
-                              color: Colors.black,
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
+        GestureDetector(
+          onTap: () => _showAppInfoDialog(context),
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: _surfaceContainer,
+              border: Border.all(color: _neonGreen.withValues(alpha: 0.4), width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                    color: _neonGreen.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    spreadRadius: 2)
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'APP VERSION',
+                            style: GoogleFonts.epilogue(
+                              color: _textWhite,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              fontStyle: FontStyle.italic,
+                              letterSpacing: -0.3,
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Flicko v1.0.0',
-                      style: GoogleFonts.spaceMono(
-                        color: _neonGreen,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            decoration: const BoxDecoration(color: _neonGreen),
+                            child: Text(
+                              'LATEST',
+                              style: GoogleFonts.spaceMono(
+                                color: Colors.black,
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 8),
+                      Text(
+                        'Flicko v1.0.0',
+                        style: GoogleFonts.spaceMono(
+                          color: _neonGreen,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  border: Border.all(color: _textWhite.withValues(alpha: 0.1)),
+                const SizedBox(width: 16),
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: _textWhite.withValues(alpha: 0.1)),
+                  ),
+                  child: const Icon(Icons.info_outline, color: _neonGreen, size: 20),
                 ),
-                child: const Icon(Icons.info_outline, color: _textMuted, size: 20),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ],
@@ -372,6 +369,7 @@ class HelpScreen extends StatelessWidget {
   }) {
     return GestureDetector(
       onTap: onTap,
+      behavior: HitTestBehavior.opaque,
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
@@ -491,9 +489,145 @@ class HelpScreen extends StatelessWidget {
   }
 
   Future<void> _launchUrl(String url) async {
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
+    try {
+      final uri = Uri.parse(url);
       await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      debugPrint('[HELP_SCREEN] Failed to launch URL: $url ($e)');
     }
+  }
+
+  // ── Custom In-App Overlay Dialogs ──
+
+  void _showAppInfoDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      useRootNavigator: true,
+      barrierColor: Colors.black.withValues(alpha: 0.7),
+      builder: (ctx) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          shadowColor: Colors.transparent,
+          surfaceTintColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Transform(
+            transform: Matrix4.identity()
+              ..setEntry(3, 2, 0.0015)
+              ..rotateX(0.08)
+              ..rotateY(-0.06),
+            alignment: Alignment.center,
+            child: Container(
+              width: 320,
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.35),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: _neonGreen.withValues(alpha: 0.25),
+                    blurRadius: 40,
+                    spreadRadius: -2,
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: Padding(
+                  padding: const EdgeInsets.all(28.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: _neonGreen.withValues(alpha: 0.15),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.info_outline, color: _neonGreen, size: 20),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            'SYSTEM INFO',
+                            style: GoogleFonts.epilogue(
+                              color: _textWhite,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 16,
+                              letterSpacing: 1.0,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      _buildSystemRow('APPLICATION', 'Flicko Studio'),
+                      _buildSystemRow('BUILD VERSION', 'v1.0.0-Stable'),
+                      _buildSystemRow('RELEASE DATE', '25 May 2026'),
+                      _buildSystemRow('ENGINE SOURCE', 'Flutter 3.22.2 (Dart 3.4.3)'),
+                      _buildSystemRow('SECURITY RATIO', 'Sealed Sender E2EE Active'),
+                      _buildSystemRow('COSMETICS API', 'Supabase Realtime v2'),
+                      const SizedBox(height: 20),
+                      Text(
+                        'Designed by tech.focko under MIT License. All rights reserved.',
+                        style: GoogleFonts.inter(
+                          color: _textMuted,
+                          fontSize: 10,
+                          fontStyle: FontStyle.italic,
+                          height: 1.3,
+                        ),
+                      ),
+                      const SizedBox(height: 28),
+                      GestureDetector(
+                        onTap: () => Navigator.pop(ctx),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          decoration: BoxDecoration(
+                            color: _neonGreen.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Center(
+                            child: Text(
+                              'DISMISS',
+                              style: GoogleFonts.spaceMono(
+                                color: _neonGreen,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 14,
+                                letterSpacing: 1.0,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSystemRow(String key, String val) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            key,
+            style: GoogleFonts.spaceMono(color: _textMuted, fontSize: 10, fontWeight: FontWeight.bold),
+          ),
+          Text(
+            val,
+            style: GoogleFonts.spaceGrotesk(color: _textWhite, fontSize: 11, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    );
   }
 }

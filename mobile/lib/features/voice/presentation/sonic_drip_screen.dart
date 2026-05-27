@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../application/sonic_drip_notifier.dart';
-import '../application/music_library_notifier.dart';
 import '../data/sleep_timer_service.dart';
+import '../domain/music_models.dart';
 import 'widgets/now_playing_card.dart';
 import 'widgets/playback_controls.dart';
 import 'widgets/queue_list.dart';
@@ -56,7 +56,7 @@ class SonicDripScreen extends ConsumerWidget {
                       onSearch: () => _openSearch(context),
                       onDripBash: () => _openDripBash(context),
                       onLyrics: state.playback.currentTrack != null
-                          ? () => _openLyrics(context, state.playback.currentTrack!, state.playback.position)
+                          ? () => _openLyrics(context, state.playback.currentTrack!)
                           : null,
                     ),
                     const SizedBox(height: 40),
@@ -123,12 +123,12 @@ class SonicDripScreen extends ConsumerWidget {
     );
   }
 
-  void _openLyrics(BuildContext context, track, position) {
+  void _openLyrics(BuildContext context, Track track) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => LyricsSheet(track: track, position: position),
+      builder: (_) => LyricsSheet(track: track),
     );
   }
 }
@@ -236,8 +236,10 @@ class _ProgressSection extends ConsumerWidget {
         const SizedBox(height: 12),
         GestureDetector(
           onTapDown: (details) {
-            final box = context.findRenderObject() as RenderBox;
-            final progress = details.localPosition.dx / box.size.width;
+            final box = context.findRenderObject() as RenderBox?;
+            if (box == null || box.size.width <= 0) return;
+            final progress =
+                (details.localPosition.dx / box.size.width).clamp(0.0, 1.0);
             ref.read(sonicDripProvider.notifier).seekTo(progress);
           },
           child: Container(

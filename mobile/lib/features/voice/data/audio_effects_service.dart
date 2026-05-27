@@ -105,7 +105,13 @@ class AudioEffects {
 // Helper frequency list
 const _freqList = [31.0, 62.0, 125.0, 250.0, 500.0, 1000.0, 2000.0, 4000.0, 8000.0, 16000.0];
 
-/// Service for managing audio effects
+/// Service for managing audio effects.
+///
+/// Note: cross-platform DSP via just_audio is limited. The Android Equalizer
+/// effect is wired up by the BlackHole stack (`AudioPlayerHandlerImpl`).
+/// On iOS / desktop the band gains are persisted but only volume-coupled
+/// adjustments are applied to the live player. UI surfaces a hint when the
+/// active backend can't honor a band.
 final audioEffectsProvider =
     NotifierProvider<AudioEffectsNotifier, AudioEffects>(AudioEffectsNotifier.new);
 

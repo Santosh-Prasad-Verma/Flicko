@@ -21,6 +21,7 @@ dependencies:
   flutter_animate: ^4.5.0
   google_fonts: ^8.0.2
   intl: ^0.20.2
+  pdf: ^3.11.1
   
   # Navigation
   go_router: ^17.2.2
@@ -158,6 +159,7 @@ flutter:
     - assets/icons/
     - assets/animations/
     - assets/translations/
+    - assets/fonts/
 
   fonts:
     - family: GGSans
@@ -169,4 +171,10 @@ flutter:
         - asset: assets/fonts/GGSans-SemiBold.ttf
           weight: 600
         - asset: assets/fonts/GGSans-Bold.ttf
+          weight: 700
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/Roboto-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Roboto-Bold.ttf
           weight: 700

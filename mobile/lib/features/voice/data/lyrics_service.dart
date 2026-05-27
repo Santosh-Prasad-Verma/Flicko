@@ -208,27 +208,30 @@ class LyricsServiceImpl implements LyricsService {
   /// Parse LRC format synced lyrics
   List<LyricLine> _parseLrc(String lrc) {
     final lines = <LyricLine>[];
-    final regex = RegExp(r'\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)');
-    
+    final regex = RegExp(r'\[(\d{2}):(\d{2})\.(\d{2,3})\]');
+
     for (final line in lrc.split('\n')) {
-      final match = regex.firstMatch(line);
-      if (match != null) {
+      final matches = regex.allMatches(line).toList();
+      if (matches.isEmpty) continue;
+
+      // Text is whatever follows the last timestamp.
+      final lastEnd = matches.last.end;
+      final text = line.substring(lastEnd).trim();
+      if (text.isEmpty) continue;
+
+      for (final match in matches) {
         final minutes = int.parse(match.group(1)!);
         final seconds = int.parse(match.group(2)!);
         final msStr = match.group(3)!;
         final ms = int.parse(msStr);
-        final text = match.group(4)?.trim() ?? '';
-        
-        if (text.isNotEmpty) {
-          lines.add(LyricLine(
-            timestamp: Duration(
-              minutes: minutes,
-              seconds: seconds,
-              milliseconds: msStr.length == 2 ? ms * 10 : ms,
-            ),
-            text: text,
-          ));
-        }
+        lines.add(LyricLine(
+          timestamp: Duration(
+            minutes: minutes,
+            seconds: seconds,
+            milliseconds: msStr.length == 2 ? ms * 10 : ms,
+          ),
+          text: text,
+        ));
       }
     }
 
@@ -346,21 +349,31 @@ class _SyncedLyricsView extends StatefulWidget {
 class _SyncedLyricsViewState extends State<_SyncedLyricsView> {
   final ScrollController _scrollController = ScrollController();
   int? _lastLineIndex;
+  String? _lastTrackId;
 
   @override
   void didUpdateWidget(_SyncedLyricsView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    
+
+    // Reset scroll memory when the song changes.
+    if (widget.lyrics.trackId != _lastTrackId) {
+      _lastTrackId = widget.lyrics.trackId;
+      _lastLineIndex = null;
+    }
+
     final currentIndex = widget.lyrics.getCurrentLineIndex(widget.position);
-    
+
     if (currentIndex != null && currentIndex != _lastLineIndex) {
       _lastLineIndex = currentIndex;
-      
+
       // Auto-scroll to current line
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
         if (_scrollController.hasClients) {
           const itemHeight = 50.0;
-          final offset = currentIndex * itemHeight - MediaQuery.of(context).size.height / 2 + itemHeight;
+          final offset = currentIndex * itemHeight -
+              MediaQuery.of(context).size.height / 2 +
+              itemHeight;
           _scrollController.animateTo(
             offset.clamp(0.0, _scrollController.position.maxScrollExtent),
             duration: const Duration(milliseconds: 300),

@@ -4,7 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile/data/models/music_model.dart';
 import 'package:mobile/data/services/music_service.dart';
-import 'package:mobile/features/voice/application/music_notifier.dart';
+import 'package:mobile/features/voice/application/sonic_drip_notifier.dart';
+import 'package:mobile/features/voice/domain/music_models.dart' as sonic;
 import 'package:mobile/data/services/user_search_service.dart';
 import 'package:mobile/core/config/app_config.dart';
 import 'package:mobile/features/direct_messages/data/dm_repository.dart';
@@ -714,7 +715,19 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
           return 'No matching songs found on Sonic Drip for "$query".';
         }
         final bestMatch = results.first;
-        ref.read(musicNotifierProvider.notifier).addToQueue(bestMatch);
+        // Route through the live Sonic Drip notifier so audio actually plays.
+        final sonicTrack = sonic.Track(
+          id: bestMatch.id,
+          name: bestMatch.name,
+          artistName: bestMatch.artistName,
+          albumName: bestMatch.albumName,
+          durationMs: bestMatch.durationMs,
+          imageUrl: bestMatch.imageUrl,
+          previewUrl: bestMatch.previewUrl,
+          externalUrl: bestMatch.externalUrl,
+          source: bestMatch.source,
+        );
+        await ref.read(sonicDripProvider.notifier).playDripBash(sonicTrack);
         return '🎵 Started playing **${bestMatch.name}** by **${bestMatch.artistName}** on Sonic Drip!';
       } catch (e) {
         return 'Error playing song: $e';

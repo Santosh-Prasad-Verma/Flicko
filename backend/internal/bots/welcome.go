@@ -56,7 +56,21 @@ func (b *WelcomeBot) registerCommands() {
 }
 
 func (b *WelcomeBot) handleWelcome(ctx commands.CommandContext) (*commands.CommandResponse, error) {
+	if ctx.Ctx == nil {
+		ctx.Ctx = context.Background()
+	}
+	reqCtx, cancel := context.WithTimeout(ctx.Ctx, 15*time.Second)
+	defer cancel()
+
+	// CRIT-15: any /welcome action mutates server config — require MANAGE_GUILD.
 	action, _ := ctx.Options["action"].(string)
+	mutating := strings.ToLower(action) != "test" && strings.ToLower(action) != "status"
+	if mutating && !HasPermission(reqCtx, b.ctx, ctx.ServerID, ctx.UserID, PermManageGuild) {
+		return &commands.CommandResponse{
+			Content:   "❌ You need the Manage Server permission to configure the welcome bot.",
+			Ephemeral: true,
+		}, nil
+	}
 
 	switch strings.ToLower(action) {
 	case "setup":
@@ -64,7 +78,7 @@ func (b *WelcomeBot) handleWelcome(ctx commands.CommandContext) (*commands.Comma
 		if channelID == "" {
 			return &commands.CommandResponse{Content: "❌ Please specify a channel.", Ephemeral: true}, nil
 		}
-		_, err := b.ctx.DB.Exec(context.Background(),
+		_, err := b.ctx.DB.Exec(reqCtx,
 			`INSERT INTO welcome_settings (server_id, enabled, welcome_channel_id)
 			 VALUES ($1, true, $2)
 			 ON CONFLICT (server_id) DO UPDATE SET enabled = true, welcome_channel_id = $2, updated_at = now()`,
@@ -82,7 +96,7 @@ func (b *WelcomeBot) handleWelcome(ctx commands.CommandContext) (*commands.Comma
 		if msg == "" {
 			return &commands.CommandResponse{Content: "❌ Please provide a message. Variables: {{user}}, {{username}}, {{server}}, {{memberCount}}", Ephemeral: true}, nil
 		}
-		_, err := b.ctx.DB.Exec(context.Background(),
+		_, err := b.ctx.DB.Exec(reqCtx,
 			`UPDATE welcome_settings SET welcome_message = $2, updated_at = now() WHERE server_id = $1`,
 			ctx.ServerID, msg)
 		if err != nil {
@@ -107,8 +121,7 @@ func (b *WelcomeBot) handleWelcome(ctx commands.CommandContext) (*commands.Comma
 		}
 		query += `, updated_at = now() WHERE server_id = $1`
 
-		_, err := b.ctx.DB.Exec(context.Background(), query, args...)
-		if err != nil {
+		if _, err := b.ctx.DB.Exec(reqCtx, query, args...); err != nil {
 			return nil, err
 		}
 
@@ -123,7 +136,7 @@ func (b *WelcomeBot) handleWelcome(ctx commands.CommandContext) (*commands.Comma
 		if roleID == "" {
 			return &commands.CommandResponse{Content: "❌ Please specify a role.", Ephemeral: true}, nil
 		}
-		_, err := b.ctx.DB.Exec(context.Background(),
+		_, err := b.ctx.DB.Exec(reqCtx,
 			`UPDATE welcome_settings SET auto_roles = array_append(
 				COALESCE(auto_roles, '{}'), $2::uuid
 			), updated_at = now() WHERE server_id = $1`,
@@ -135,13 +148,12 @@ func (b *WelcomeBot) handleWelcome(ctx commands.CommandContext) (*commands.Comma
 
 	case "card":
 		enabled, _ := ctx.Options["enabled"].(bool)
-		_, err := b.ctx.DB.Exec(context.Background(),
+		if _, err := b.ctx.DB.Exec(reqCtx,
 			`UPDATE welcome_settings SET welcome_card_enabled = $2, updated_at = now() WHERE server_id = $1`,
-			ctx.ServerID, enabled)
-		if err != nil {
+			ctx.ServerID, enabled); err != nil {
 			return nil, err
 		}
-		return &commands.CommandResponse{Content: fmt.Sprintf("✅ Welcome card %s.", boolEmoji(enabled))}, nil
+		return &commands.CommandResponse{Content: fmt.Sprintf("✅ Welcome card %s.", BoolEmoji(enabled))}, nil
 
 	case "dm":
 		enabled, _ := ctx.Options["enabled"].(bool)
@@ -153,11 +165,10 @@ func (b *WelcomeBot) handleWelcome(ctx commands.CommandContext) (*commands.Comma
 			args = append(args, msg)
 		}
 		query += `, updated_at = now() WHERE server_id = $1`
-		_, err := b.ctx.DB.Exec(context.Background(), query, args...)
-		if err != nil {
+		if _, err := b.ctx.DB.Exec(reqCtx, query, args...); err != nil {
 			return nil, err
 		}
-		return &commands.CommandResponse{Content: fmt.Sprintf("✅ Welcome DMs %s.", boolEmoji(enabled))}, nil
+		return &commands.CommandResponse{Content: fmt.Sprintf("✅ Welcome DMs %s.", BoolEmoji(enabled))}, nil
 
 	case "status":
 		return b.getWelcomeStatus(ctx.ServerID)
@@ -203,12 +214,12 @@ func (b *WelcomeBot) getWelcomeStatus(serverID string) (*commands.CommandRespons
 			Title: "👋 Welcome Bot Status",
 			Color: "#57F287",
 			Fields: []commands.EmbedField{
-				{Name: "Status", Value: boolEmoji(s.Enabled), Inline: true},
+				{Name: "Status", Value: BoolEmoji(s.Enabled), Inline: true},
 				{Name: "Channel", Value: channelStr, Inline: true},
 				{Name: "Message", Value: s.Message},
-				{Name: "Leave Messages", Value: boolEmoji(s.LeaveEnabled), Inline: true},
-				{Name: "Welcome Card", Value: boolEmoji(s.CardEnabled), Inline: true},
-				{Name: "DM on Join", Value: boolEmoji(s.DMEnabled), Inline: true},
+				{Name: "Leave Messages", Value: BoolEmoji(s.LeaveEnabled), Inline: true},
+				{Name: "Welcome Card", Value: BoolEmoji(s.CardEnabled), Inline: true},
+				{Name: "DM on Join", Value: BoolEmoji(s.DMEnabled), Inline: true},
 				{Name: "Auto Roles", Value: fmt.Sprintf("%d configured", len(s.AutoRoles)), Inline: true},
 			},
 		},
@@ -235,7 +246,10 @@ func (b *WelcomeBot) onMemberJoin(evt events.Event) error {
 
 	userID := evt.UserID
 
-	// Get settings
+	// Re-read settings with FOR UPDATE-style consistency: a single SELECT
+	// captures every flag/array we need, so a concurrent UPDATE between
+	// reads can't lead to "send greeting but skip autoroles" or vice versa
+	// (MED-12 fix).
 	var settings struct {
 		Enabled     bool
 		ChannelID   *string
@@ -257,20 +271,20 @@ func (b *WelcomeBot) onMemberJoin(evt events.Event) error {
 		return nil
 	}
 
-	// Send welcome message
+	// Send welcome message (best-effort).
 	if settings.ChannelID != nil {
 		msg, err := b.buildWelcomeMessage(evt.ServerID, userID)
 		if err == nil {
-			b.sendBotMessage(*settings.ChannelID, msg)
+			SendBotMessage(b.ctx, *settings.ChannelID, msg)
 		}
 	}
 
-	// Assign auto roles
+	// Assign auto roles.
 	for _, roleID := range settings.AutoRoles {
-		_, err := b.ctx.DB.Exec(context.Background(),
-			`INSERT INTO member_roles (server_id, user_id, role_id) VALUES ($1, $2, $3::uuid) ON CONFLICT DO NOTHING`,
-			evt.ServerID, userID, roleID)
-		if err != nil {
+		if _, err := b.ctx.DB.Exec(context.Background(),
+			`INSERT INTO member_roles (server_id, user_id, role_id)
+			 VALUES ($1, $2, $3::uuid) ON CONFLICT DO NOTHING`,
+			evt.ServerID, userID, roleID); err != nil {
 			b.logger.Error("auto-role assign failed", zap.Error(err), zap.String("role", roleID))
 		}
 	}
@@ -308,7 +322,7 @@ func (b *WelcomeBot) onMemberLeave(evt events.Event) error {
 	msg := strings.ReplaceAll(leaveMessage, "{{username}}", username)
 	msg = strings.ReplaceAll(msg, "{{user}}", fmt.Sprintf("<@%s>", evt.UserID))
 
-	b.sendBotMessage(*leaveChannelID, msg)
+	SendBotMessage(b.ctx, *leaveChannelID, msg)
 	return nil
 }
 
@@ -322,36 +336,19 @@ func (b *WelcomeBot) buildWelcomeMessage(serverID, userID string) (string, error
 		return "", err
 	}
 
-	// Get user data
-	var username string
-	b.ctx.DB.QueryRow(context.Background(),
-		`SELECT COALESCE(display_name, username) FROM users WHERE id = $1`, userID).Scan(&username)
+	username := LookupUsername(b.ctx, userID)
 
-	// Get server data
 	var serverName string
 	var memberCount int
-	b.ctx.DB.QueryRow(context.Background(),
+	_ = b.ctx.DB.QueryRow(context.Background(),
 		`SELECT name FROM servers WHERE id = $1`, serverID).Scan(&serverName)
-	b.ctx.DB.QueryRow(context.Background(),
+	_ = b.ctx.DB.QueryRow(context.Background(),
 		`SELECT COUNT(*) FROM server_members WHERE server_id = $1`, serverID).Scan(&memberCount)
 
-	// Replace variables
 	message = strings.ReplaceAll(message, "{{user}}", fmt.Sprintf("<@%s>", userID))
 	message = strings.ReplaceAll(message, "{{username}}", username)
 	message = strings.ReplaceAll(message, "{{server}}", serverName)
 	message = strings.ReplaceAll(message, "{{memberCount}}", fmt.Sprintf("%d", memberCount))
 
 	return message, nil
-}
-
-func (b *WelcomeBot) sendBotMessage(channelID, content string) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	_, err := b.ctx.DB.Exec(ctx,
-		`INSERT INTO messages (channel_id, content, type, created_at)
-		 VALUES ($1, $2, 'system', $3)`,
-		channelID, content, time.Now())
-	if err != nil {
-		b.logger.Error("failed to send bot message", zap.Error(err), zap.String("channel", channelID))
-	}
 }

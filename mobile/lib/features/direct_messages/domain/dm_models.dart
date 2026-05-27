@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:mobile/data/models/user_model.dart';
+import 'package:mobile/data/models/flicko_message.dart';
 
 part 'dm_models.freezed.dart';
 part 'dm_models.g.dart';
@@ -42,10 +43,13 @@ abstract class DMMessage with _$DMMessage {
     @JsonKey(name: 'recipient_id') required String recipientId,
     required String content,
     @JsonKey(name: 'created_at') required DateTime createdAt,
+    @JsonKey(name: 'edited_at') DateTime? editedAt,
     UserModel? sender,
     UserModel? recipient,
     List<DMAttachment>? attachments,
+    @Default([]) List<FlickoReaction> reactions,
   }) = _DMMessage;
 
   factory DMMessage.fromJson(Map<String, dynamic> json) => _$DMMessageFromJson(json);
 }
+

@@ -270,7 +270,7 @@ max_frequency = "5s"
 # On Linux with Docker: use host.docker.internal or your LAN IP (e.g. 192.168.x.x)
 [auth.hook.send_email]
 enabled = true
-uri = "http://host.docker.internal:8080/hooks/email"
+uri = "http://host.docker.internal:8083/hooks/email"
 secrets = "env(SUPABASE_AUTH_HOOK_SEND_EMAIL_SECRETS)"
 
 # Configure one of the supported SMS providers: `twilio`, `twilio_verify`, `messagebird`, `textlocal`, `vonage`.

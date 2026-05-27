@@ -156,7 +156,16 @@ class _DripBashSheetState extends ConsumerState<DripBashSheet> {
     final selected = _selectedSource == source;
     return GestureDetector(
       onTap: () {
-        setState(() => _selectedSource = source);
+        setState(() {
+          _selectedSource = source;
+          // Album drill-downs are Saavn-specific — reset on source change
+          // so we never show "Add All" against an album from a different
+          // source.
+          _albumName = null;
+          _albumSongs = null;
+          _categorized = const CategorizedSearchResults.empty();
+          _flatResults = [];
+        });
         if (_searchController.text.isNotEmpty) _performSearch(_searchController.text);
       },
       child: Container(

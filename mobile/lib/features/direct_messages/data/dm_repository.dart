@@ -36,7 +36,7 @@ class DMRepository {
     try {
       final response = await _client
           .from('direct_messages')
-          .select('*, sender:profiles!sender_id(*), recipient:profiles!recipient_id(*)')
+          .select('*, sender:profiles!sender_id(*), recipient:profiles!recipient_id(*), reactions:dm_reactions(emoji, user_id)')
           .or('sender_id.eq.$userId,recipient_id.eq.$userId')
           .order('created_at', ascending: false)
           .limit(500);
@@ -59,7 +59,7 @@ class DMRepository {
     try {
       var query = _client
           .from('direct_messages')
-          .select('*, sender:profiles!sender_id(*), recipient:profiles!recipient_id(*)')
+          .select('*, sender:profiles!sender_id(*), recipient:profiles!recipient_id(*), reactions:dm_reactions(emoji, user_id)')
           .or('and(sender_id.eq.$myId,recipient_id.eq.$otherUserId),and(sender_id.eq.$otherUserId,recipient_id.eq.$myId)');
 
       if (before != null) {
@@ -129,7 +129,7 @@ class DMRepository {
       final response = await _client
           .from('direct_messages')
           .insert(payload)
-          .select('*, sender:profiles!sender_id(*), recipient:profiles!recipient_id(*)')
+          .select('*, sender:profiles!sender_id(*), recipient:profiles!recipient_id(*), reactions:dm_reactions(emoji, user_id)')
           .single();
 
       return _decodeRow(response);
@@ -161,19 +161,46 @@ class DMRepository {
 
   /// Decrypts encrypted rows; passes plaintext rows through unchanged.
   Future<DMMessage> _decodeRow(Map<String, dynamic> row) async {
+    // Post-process reactions to aggregate by emoji (matching RN / channel logic)
+    final List<dynamic> rawReactions = row['reactions'] ?? [];
+    final Map<String, Map<String, dynamic>> reactionMap = {};
+    final currentUserId = _client.auth.currentUser?.id;
+
+    for (final r in rawReactions) {
+      final emoji = r['emoji'] as String;
+      final userId = r['user_id'] as String;
+      
+      if (!reactionMap.containsKey(emoji)) {
+        reactionMap[emoji] = {
+          'emoji': emoji,
+          'count': 0,
+          'me': false,
+          'users': <String>[],
+        };
+      }
+      
+      final entry = reactionMap[emoji]!;
+      entry['count'] = (entry['count'] as int) + 1;
+      (entry['users'] as List<String>).add(userId);
+      if (userId == currentUserId) entry['me'] = true;
+    }
+    
+    final Map<String, dynamic> updatedRow = Map<String, dynamic>.from(row);
+    updatedRow['reactions'] = reactionMap.values.toList();
+
     final isEncrypted = row['is_encrypted'] == true;
     if (!isEncrypted) {
-      return DMMessage.fromJson(row);
+      return DMMessage.fromJson(updatedRow);
     }
 
     try {
       final env = EncryptedEnvelope.fromDmRow(row);
       if (_e2ee == null) throw Exception('E2EE unavailable');
       final plain = await _e2ee.decrypt(env);
-      return DMMessage.fromJson({...row, 'content': plain});
+      return DMMessage.fromJson({...updatedRow, 'content': plain});
     } catch (_) {
       return DMMessage.fromJson({
-        ...row,
+        ...updatedRow,
         'content': '🔒 [unable to decrypt]',
       });
     }
@@ -242,29 +269,26 @@ class DMRepository {
   }
 
   /// Targeted subscription for a specific conversation
-  RealtimeChannel subscribeToConversation(String myId, String otherUserId, void Function(DMMessage newMessage) onNewMessage) {
+  RealtimeChannel subscribeToConversation(String myId, String otherUserId, void Function() onUpdate) {
     developer.log('[SupabaseRealtime] Subscribing to targeted DM conversation between $myId and $otherUserId');
     return _client
         .channel('dm_convo_${myId}_${otherUserId}')
         .onPostgresChanges(
-          event: PostgresChangeEvent.insert,
+          event: PostgresChangeEvent.all,
           schema: 'public',
           table: 'direct_messages',
           callback: (payload) async {
-            final msgJson = payload.newRecord;
-            final senderId = msgJson['sender_id'];
-            final recipientId = msgJson['recipient_id'];
-            developer.log('[SupabaseRealtime] Received conversation DM insert event. Sender: $senderId, Recipient: $recipientId');
-
-            // Filter for this specific conversation
-            if ((senderId == myId && recipientId == otherUserId) ||
-                (senderId == otherUserId && recipientId == myId)) {
-              final decoded = await _decodeRow(Map<String, dynamic>.from(msgJson));
-              developer.log('[SupabaseRealtime] Match found! Decoding and calling onNewMessage for conversation');
-              onNewMessage(decoded);
-            } else {
-              developer.log('[SupabaseRealtime] DM insert event did not match this conversation filter');
-            }
+            developer.log('[SupabaseRealtime] Received conversation DM Postgres change event: ${payload.eventType}');
+            onUpdate();
+          },
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'dm_reactions',
+          callback: (payload) {
+            developer.log('[SupabaseRealtime] Received conversation DM reaction change event: ${payload.eventType}');
+            onUpdate();
           },
         )
         .subscribe((status, error) {
@@ -274,5 +298,61 @@ class DMRepository {
 
   void unsubscribe(RealtimeChannel channel) {
     _client.removeChannel(channel);
+  }
+
+  /// Updates an existing DM message content.
+  Future<void> editMessage(String messageId, String otherUserId, String content) async {
+    final encrypted = await _maybeEncryptOutgoing(otherUserId, content);
+    final updatePayload = <String, dynamic>{
+      'edited_at': DateTime.now().toIso8601String(),
+    };
+
+    if (encrypted != null) {
+      updatePayload['content'] = '[encrypted]';
+      updatePayload['is_encrypted'] = true;
+      updatePayload['ciphertext'] = encrypted.ciphertext;
+      updatePayload['nonce'] = encrypted.nonce;
+      updatePayload['sender_ephemeral_pub'] = encrypted.senderEphemeralPub;
+      updatePayload['sender_device_id'] = encrypted.senderDeviceId;
+      updatePayload['recipient_device_id'] = encrypted.recipientDeviceId;
+      if (encrypted.prekeyId != null) updatePayload['prekey_id'] = encrypted.prekeyId;
+      if (encrypted.signedPrekeyId != null) {
+        updatePayload['signed_prekey_id'] = encrypted.signedPrekeyId;
+      }
+    } else {
+      updatePayload['content'] = content;
+      updatePayload['is_encrypted'] = false;
+    }
+
+    await _client.from('direct_messages').update(updatePayload).eq('id', messageId);
+  }
+
+  /// Deletes a direct message.
+  Future<void> deleteMessage(String messageId) async {
+    await _client.from('direct_messages').delete().eq('id', messageId);
+  }
+
+  /// Toggles a reaction on a direct message.
+  Future<void> toggleReaction(String messageId, String emoji) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) return;
+
+    final existing = await _client
+        .from('dm_reactions')
+        .select('id')
+        .eq('message_id', messageId)
+        .eq('user_id', userId)
+        .eq('emoji', emoji)
+        .maybeSingle();
+
+    if (existing != null) {
+      await _client.from('dm_reactions').delete().eq('id', existing['id']);
+    } else {
+      await _client.from('dm_reactions').insert({
+        'message_id': messageId,
+        'user_id': userId,
+        'emoji': emoji,
+      });
+    }
   }
 }

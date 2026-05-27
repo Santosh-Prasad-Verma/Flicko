@@ -6,7 +6,6 @@ import 'package:mobile/features/sonic_music/CustomWidgets/snackbar.dart';
 import 'package:mobile/features/sonic_music/CustomWidgets/textinput_dialog.dart';
 import 'package:mobile/features/sonic_music/Helpers/picker.dart';
 import 'package:mobile/features/sonic_music/constants/languagecodes.dart';
-import 'package:mobile/features/sonic_music/main.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile/features/sonic_music/localization/app_localizations.dart';
@@ -86,13 +85,11 @@ class _OthersPageState extends State<OthersPage> {
                     setState(
                       () {
                         lang = newValue;
-                        MyApp.of(context).setLocale(
-                          Locale.fromSubtags(
-                            languageCode:
-                                LanguageCodes.languageCodes[newValue] ?? 'en',
-                          ),
-                        );
                         Hive.box('settings').put('lang', newValue);
+                        Hive.box('settings').put(
+                          'locale',
+                          LanguageCodes.languageCodes[newValue] ?? 'en',
+                        );
                       },
                     );
                   }

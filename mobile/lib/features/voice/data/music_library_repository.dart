@@ -1,8 +1,6 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:developer' as dev;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../domain/music_models.dart';
@@ -152,7 +150,7 @@ class MusicLibraryRepositoryImpl implements MusicLibraryRepository {
   @override
   Future<MusicLibrary> getLibrary() async {
     try {
-      final prefs = await _GetPrefs();
+      final prefs = await _getPrefs();
       
       // Load liked songs
       final likedJson = prefs.getString(_likedKey);
@@ -180,10 +178,18 @@ class MusicLibraryRepositoryImpl implements MusicLibraryRepository {
         history = list.map((e) => _trackFromJson(e)).toList();
       }
 
-      // Sync with Supabase if logged in
+      // Sync with Supabase if logged in. Merge instead of overwrite so offline
+      // edits are preserved.
       final userId = _client.auth.currentUser?.id;
       if (userId != null) {
-        await _syncFromSupabase(userId);
+        final remote = await _fetchPlaylistsFromSupabase(userId);
+        if (remote != null) {
+          playlists = _mergePlaylists(playlists, remote);
+          await prefs.setString(
+            _playlistsKey,
+            json.encode(playlists.map((p) => p.toJson()).toList()),
+          );
+        }
       }
 
       return MusicLibrary(
@@ -201,7 +207,7 @@ class MusicLibraryRepositoryImpl implements MusicLibraryRepository {
   @override
   Future<void> likeSong(Track track) async {
     try {
-      final prefs = await _GetPrefs();
+      final prefs = await _getPrefs();
       final likedJson = prefs.getString(_likedKey);
       List<Map<String, dynamic>> liked = [];
       if (likedJson != null) {
@@ -224,7 +230,7 @@ class MusicLibraryRepositoryImpl implements MusicLibraryRepository {
   @override
   Future<void> unlikeSong(String trackId) async {
     try {
-      final prefs = await _GetPrefs();
+      final prefs = await _getPrefs();
       final likedJson = prefs.getString(_likedKey);
       if (likedJson != null) {
         final List<dynamic> liked = json.decode(likedJson);
@@ -242,7 +248,7 @@ class MusicLibraryRepositoryImpl implements MusicLibraryRepository {
   @override
   Future<void> addToHistory(Track track) async {
     try {
-      final prefs = await _GetPrefs();
+      final prefs = await _getPrefs();
       final historyJson = prefs.getString(_historyKey);
       List<Map<String, dynamic>> history = [];
       if (historyJson != null) {
@@ -277,7 +283,7 @@ class MusicLibraryRepositoryImpl implements MusicLibraryRepository {
     );
 
     try {
-      final prefs = await _GetPrefs();
+      final prefs = await _getPrefs();
       final playlistsJson = prefs.getString(_playlistsKey);
       List<Map<String, dynamic>> playlists = [];
       if (playlistsJson != null) {
@@ -299,7 +305,7 @@ class MusicLibraryRepositoryImpl implements MusicLibraryRepository {
   @override
   Future<void> updatePlaylist(UserPlaylist playlist) async {
     try {
-      final prefs = await _GetPrefs();
+      final prefs = await _getPrefs();
       final playlistsJson = prefs.getString(_playlistsKey);
       if (playlistsJson != null) {
         final List<dynamic> playlists = json.decode(playlistsJson);
@@ -319,7 +325,7 @@ class MusicLibraryRepositoryImpl implements MusicLibraryRepository {
   @override
   Future<void> deletePlaylist(String playlistId) async {
     try {
-      final prefs = await _GetPrefs();
+      final prefs = await _getPrefs();
       final playlistsJson = prefs.getString(_playlistsKey);
       if (playlistsJson != null) {
         final List<dynamic> playlists = json.decode(playlistsJson);
@@ -340,7 +346,7 @@ class MusicLibraryRepositoryImpl implements MusicLibraryRepository {
   @override
   Future<void> addToPlaylist(String playlistId, Track track) async {
     try {
-      final prefs = await _GetPrefs();
+      final prefs = await _getPrefs();
       final playlistsJson = prefs.getString(_playlistsKey);
       if (playlistsJson != null) {
         final List<dynamic> playlists = json.decode(playlistsJson);
@@ -364,7 +370,7 @@ class MusicLibraryRepositoryImpl implements MusicLibraryRepository {
   @override
   Future<void> removeFromPlaylist(String playlistId, String trackId) async {
     try {
-      final prefs = await _GetPrefs();
+      final prefs = await _getPrefs();
       final playlistsJson = prefs.getString(_playlistsKey);
       if (playlistsJson != null) {
         final List<dynamic> playlists = json.decode(playlistsJson);
@@ -385,7 +391,7 @@ class MusicLibraryRepositoryImpl implements MusicLibraryRepository {
   @override
   Future<void> reorderPlaylist(String playlistId, int oldIndex, int newIndex) async {
     try {
-      final prefs = await _GetPrefs();
+      final prefs = await _getPrefs();
       final playlistsJson = prefs.getString(_playlistsKey);
       if (playlistsJson != null) {
         final List<dynamic> playlists = json.decode(playlistsJson);
@@ -408,21 +414,40 @@ class MusicLibraryRepositoryImpl implements MusicLibraryRepository {
   }
 
   // Sync helpers
-  Future<void> _syncFromSupabase(String userId) async {
+  Future<List<UserPlaylist>?> _fetchPlaylistsFromSupabase(String userId) async {
     try {
-      // Sync playlists
-      final playlistsData = await _client
+      final data = await _client
           .from('music_playlists')
           .select()
           .eq('user_id', userId);
-      
-      if (playlistsData.isNotEmpty) {
-        final prefs = await _GetPrefs();
-        await prefs.setString(_playlistsKey, json.encode(playlistsData));
-      }
+      if (data.isEmpty) return [];
+      return data
+          .map<UserPlaylist>((row) => UserPlaylist.fromJson(Map<String, dynamic>.from(row as Map)))
+          .toList();
     } catch (e) {
-      dev.log('Error syncing from Supabase: $e', name: 'music-library');
+      dev.log('Error fetching playlists from Supabase: $e', name: 'music-library');
+      return null;
     }
+  }
+
+  /// Merge local + remote by id, keeping the row with the newer updatedAt.
+  /// Local-only rows (offline-created) are preserved.
+  List<UserPlaylist> _mergePlaylists(
+    List<UserPlaylist> local,
+    List<UserPlaylist> remote,
+  ) {
+    final byId = <String, UserPlaylist>{};
+    for (final p in local) {
+      byId[p.id] = p;
+    }
+    for (final r in remote) {
+      final existing = byId[r.id];
+      if (existing == null || r.updatedAt.isAfter(existing.updatedAt)) {
+        byId[r.id] = r;
+      }
+    }
+    return byId.values.toList()
+      ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
   }
 
   Future<void> _syncLikedToSupabase(String trackId, bool liked) async {
@@ -494,6 +519,6 @@ class MusicLibraryRepositoryImpl implements MusicLibraryRepository {
 }
 
 // Typo fix helper
-Future<SharedPreferences> _GetPrefs() async {
+Future<SharedPreferences> _getPrefs() async {
   return await SharedPreferences.getInstance();
 }

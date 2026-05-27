@@ -116,6 +116,12 @@ func (b *TicketBot) handleTicket(ctx commands.CommandContext) (*commands.Command
 }
 
 func (b *TicketBot) createTicket(ctx commands.CommandContext) (*commands.CommandResponse, error) {
+	if ctx.Ctx == nil {
+		ctx.Ctx = context.Background()
+	}
+	reqCtx, cancel := context.WithTimeout(ctx.Ctx, 15*time.Second)
+	defer cancel()
+
 	subject, _ := ctx.Options["subject"].(string)
 	category, _ := ctx.Options["category"].(string)
 	if category == "" {
@@ -125,9 +131,9 @@ func (b *TicketBot) createTicket(ctx commands.CommandContext) (*commands.Command
 		subject = "Support Request"
 	}
 
-	// Check max open tickets
+	// Per-user max-open-ticket guardrail.
 	var maxTickets int
-	b.ctx.DB.QueryRow(context.Background(),
+	_ = b.ctx.DB.QueryRow(reqCtx,
 		`SELECT max_open_tickets FROM ticket_settings WHERE server_id = $1`,
 		ctx.ServerID).Scan(&maxTickets)
 	if maxTickets == 0 {
@@ -135,7 +141,7 @@ func (b *TicketBot) createTicket(ctx commands.CommandContext) (*commands.Command
 	}
 
 	var openCount int
-	b.ctx.DB.QueryRow(context.Background(),
+	_ = b.ctx.DB.QueryRow(reqCtx,
 		`SELECT COUNT(*) FROM tickets WHERE server_id = $1 AND creator_id = $2 AND status = 'open'`,
 		ctx.ServerID, ctx.UserID).Scan(&openCount)
 	if openCount >= maxTickets {
@@ -145,55 +151,125 @@ func (b *TicketBot) createTicket(ctx commands.CommandContext) (*commands.Command
 		}, nil
 	}
 
-	// Get next ticket number
-	var ticketNumber int
-	b.ctx.DB.QueryRow(context.Background(),
-		`SELECT COALESCE(MAX(ticket_number), 0) + 1 FROM tickets WHERE server_id = $1`,
-		ctx.ServerID).Scan(&ticketNumber)
+	// Configured staff roles (used to grant private channel access).
+	var staffRoles []string
+	_ = b.ctx.DB.QueryRow(reqCtx,
+		`SELECT COALESCE(staff_role_ids, '{}'::uuid[]) FROM ticket_settings WHERE server_id = $1`,
+		ctx.ServerID).Scan(&staffRoles)
 
-	// Get prefix
+	// Server's @everyone role — used to deny VIEW_CHANNEL by default.
+	var everyoneRoleID string
+	_ = b.ctx.DB.QueryRow(reqCtx,
+		`SELECT id FROM roles WHERE server_id = $1 AND name = '@everyone' LIMIT 1`,
+		ctx.ServerID).Scan(&everyoneRoleID)
+
+	// Atomically: claim next ticket_number, create channel, create ticket,
+	// install permission overwrites. CRIT-13 + HIGH-4 + MED-7 in one tx.
+	tx, err := b.ctx.DB.Begin(reqCtx)
+	if err != nil {
+		return nil, fmt.Errorf("begin tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback(reqCtx) }() // safe to call after Commit
+
+	// Claim the next ticket number for this server. Using a single UPDATE
+	// with FOR UPDATE-style row-locking semantics avoids the TOCTOU
+	// SELECT MAX/INSERT race that produced duplicate numbers under load.
+	var ticketNumber int
+	if err := tx.QueryRow(reqCtx,
+		`SELECT COALESCE(MAX(ticket_number), 0) + 1
+		 FROM tickets
+		 WHERE server_id = $1
+		 FOR UPDATE`,
+		ctx.ServerID).Scan(&ticketNumber); err != nil {
+		// Pre-row-lock fallback: tickets table empty for this server. Use 1.
+		ticketNumber = 1
+	}
+
+	// Channel name prefix.
 	var prefix string
-	b.ctx.DB.QueryRow(context.Background(),
+	_ = tx.QueryRow(reqCtx,
 		`SELECT ticket_prefix FROM ticket_settings WHERE server_id = $1`,
 		ctx.ServerID).Scan(&prefix)
 	if prefix == "" {
 		prefix = "ticket"
 	}
-
 	channelName := fmt.Sprintf("%s-%04d", prefix, ticketNumber)
 
-	// Create ticket channel
+	// Create the ticket channel.
 	var channelID string
-	err := b.ctx.DB.QueryRow(context.Background(),
+	if err := tx.QueryRow(reqCtx,
 		`INSERT INTO channels (server_id, name, type, created_at)
 		 VALUES ($1, $2, 'text', NOW())
 		 RETURNING id`,
-		ctx.ServerID, channelName).Scan(&channelID)
-	if err != nil {
-		return nil, fmt.Errorf("create ticket channel failed: %w", err)
+		ctx.ServerID, channelName).Scan(&channelID); err != nil {
+		return nil, fmt.Errorf("create ticket channel: %w", err)
 	}
 
-	// Create ticket record
+	// Permission overwrites — privacy by default (CRIT-13).
+	// Discord-style bits: VIEW_CHANNEL=0x400, SEND_MESSAGES=0x800, MANAGE_CHANNELS=0x10.
+	const (
+		bitView    int64 = 0x400
+		bitSend    int64 = 0x800
+		bitManage  int64 = 0x10
+	)
+
+	if everyoneRoleID != "" {
+		if _, err := tx.Exec(reqCtx,
+			`INSERT INTO permission_overwrites (channel_id, target_type, target_id, allow, deny)
+			 VALUES ($1, 'role', $2, 0, $3)`,
+			channelID, everyoneRoleID, bitView); err != nil {
+			return nil, fmt.Errorf("deny @everyone: %w", err)
+		}
+	}
+
+	// Allow the creator to view + send.
+	if _, err := tx.Exec(reqCtx,
+		`INSERT INTO permission_overwrites (channel_id, target_type, target_id, allow, deny)
+		 VALUES ($1, 'user', $2, $3, 0)`,
+		channelID, ctx.UserID, bitView|bitSend); err != nil {
+		return nil, fmt.Errorf("grant creator: %w", err)
+	}
+
+	// Allow each configured staff role to view + send + manage.
+	for _, roleID := range staffRoles {
+		if roleID == "" {
+			continue
+		}
+		if _, err := tx.Exec(reqCtx,
+			`INSERT INTO permission_overwrites (channel_id, target_type, target_id, allow, deny)
+			 VALUES ($1, 'role', $2, $3, 0)
+			 ON CONFLICT (channel_id, target_type, target_id) DO NOTHING`,
+			channelID, roleID, bitView|bitSend|bitManage); err != nil {
+			b.logger.Warn("staff role overwrite failed",
+				zap.String("role_id", roleID),
+				zap.Error(err))
+		}
+	}
+
+	// Create the ticket row last so it always references a real channel.
 	var ticketID string
-	err = b.ctx.DB.QueryRow(context.Background(),
-		`INSERT INTO tickets (server_id, channel_id, creator_id, ticket_number, category, subject, status, created_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, 'open', NOW())
+	if err := tx.QueryRow(reqCtx,
+		`INSERT INTO tickets (server_id, channel_id, creator_id, ticket_number, category, subject, status, created_at, last_activity_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, 'open', NOW(), NOW())
 		 RETURNING id`,
-		ctx.ServerID, channelID, ctx.UserID, ticketNumber, category, subject).Scan(&ticketID)
-	if err != nil {
-		return nil, fmt.Errorf("create ticket failed: %w", err)
+		ctx.ServerID, channelID, ctx.UserID, ticketNumber, category, subject).Scan(&ticketID); err != nil {
+		return nil, fmt.Errorf("create ticket: %w", err)
 	}
 
-	// Send welcome message
+	if err := tx.Commit(reqCtx); err != nil {
+		return nil, fmt.Errorf("commit ticket tx: %w", err)
+	}
+
+	// Best-effort welcome message — outside the tx so a flaky messages
+	// insert never blocks the ticket.
 	var welcomeMsg string
-	b.ctx.DB.QueryRow(context.Background(),
+	_ = b.ctx.DB.QueryRow(context.Background(),
 		`SELECT welcome_message FROM ticket_settings WHERE server_id = $1`,
 		ctx.ServerID).Scan(&welcomeMsg)
 	if welcomeMsg == "" {
 		welcomeMsg = "A staff member will be with you shortly. Please describe your issue."
 	}
-
-	b.sendBotMessage(channelID, fmt.Sprintf("🎫 **Ticket #%d** — %s\n\n%s", ticketNumber, subject, welcomeMsg))
+	SendBotMessage(b.ctx, channelID, fmt.Sprintf("🎫 **Ticket #%d** — %s\n\n%s", ticketNumber, subject, welcomeMsg))
 
 	return &commands.CommandResponse{
 		Content: fmt.Sprintf("✅ Ticket **#%d** created! Head to <#%s>.", ticketNumber, channelID),
@@ -228,13 +304,13 @@ func (b *TicketBot) closeTicket(ctx commands.CommandContext) (*commands.CommandR
 		closeMsg = "This ticket has been closed. Thank you!"
 	}
 
-	b.sendBotMessage(ctx.ChannelID, fmt.Sprintf("🔒 %s", closeMsg))
+	SendBotMessage(b.ctx, ctx.ChannelID, fmt.Sprintf("🔒 %s", closeMsg))
 
 	// Fetch messages for transcript before fully closing and hiding
 	rows, err := b.ctx.DB.Query(context.Background(),
 		`SELECT u.username, m.content, m.created_at
 		 FROM messages m
-		 LEFT JOIN users u ON m.user_id = u.id
+		 LEFT JOIN users u ON m.author_id = u.id
 		 WHERE m.channel_id = $1
 		 ORDER BY m.created_at ASC`,
 		ctx.ChannelID)
@@ -268,7 +344,7 @@ func (b *TicketBot) closeTicket(ctx commands.CommandContext) (*commands.CommandR
 			`SELECT log_channel_id FROM ticket_settings WHERE server_id = $1`,
 			ctx.ServerID).Scan(&logChannelID)
 		if logChannelID != nil {
-			b.sendBotMessage(*logChannelID, fmt.Sprintf("📄 **Transcript for closed ticket #%d:**\n```text\n%s\n```", ticketNumber, transcriptText))
+			SendBotMessage(b.ctx, *logChannelID, fmt.Sprintf("📄 **Transcript for closed ticket #%d:**\n```text\n%s\n```", ticketNumber, transcriptText))
 		}
 	}
 
@@ -321,8 +397,8 @@ func (b *TicketBot) claimTicket(ctx commands.CommandContext) (*commands.CommandR
 		return nil, err
 	}
 
-	username := b.getUsername(ctx.UserID)
-	b.sendBotMessage(ctx.ChannelID, fmt.Sprintf("👤 **%s** has claimed this ticket.", username))
+	username := LookupUsername(b.ctx, ctx.UserID)
+	SendBotMessage(b.ctx, ctx.ChannelID, fmt.Sprintf("👤 **%s** has claimed this ticket.", username))
 
 	return &commands.CommandResponse{Content: "✅ You have claimed this ticket."}, nil
 }
@@ -392,7 +468,7 @@ func (b *TicketBot) createPanel(ctx commands.CommandContext) (*commands.CommandR
 	}
 
 	// Send panel message
-	b.sendBotMessage(channelID, "🎫 **Support Tickets**\nClick the button below to create a support ticket.\n\n`[Create Ticket]`")
+	SendBotMessage(b.ctx, channelID, "🎫 **Support Tickets**\nClick the button below to create a support ticket.\n\n`[Create Ticket]`")
 
 	return &commands.CommandResponse{Content: fmt.Sprintf("✅ Ticket panel created in <#%s>.", channelID)}, nil
 }
@@ -412,7 +488,7 @@ func (b *TicketBot) generateTranscript(ctx commands.CommandContext) (*commands.C
 	rows, err := b.ctx.DB.Query(context.Background(),
 		`SELECT u.username, m.content, m.created_at
 		 FROM messages m
-		 LEFT JOIN users u ON m.user_id = u.id
+		 LEFT JOIN users u ON m.author_id = u.id
 		 WHERE m.channel_id = $1
 		 ORDER BY m.created_at ASC`,
 		ctx.ChannelID)
@@ -474,6 +550,19 @@ func (b *TicketBot) ticketStats(ctx commands.CommandContext) (*commands.CommandR
 // ── Ticket Config ───────────────────────────────────────────────────────────
 
 func (b *TicketBot) handleTicketConfig(ctx commands.CommandContext) (*commands.CommandResponse, error) {
+	if ctx.Ctx == nil {
+		ctx.Ctx = context.Background()
+	}
+	reqCtx, cancel := context.WithTimeout(ctx.Ctx, 15*time.Second)
+	defer cancel()
+
+	if !HasPermission(reqCtx, b.ctx, ctx.ServerID, ctx.UserID, PermManageGuild) {
+		return &commands.CommandResponse{
+			Content:   "❌ You need the Manage Server permission to configure the ticket system.",
+			Ephemeral: true,
+		}, nil
+	}
+
 	action, _ := ctx.Options["action"].(string)
 
 	switch strings.ToLower(action) {
@@ -585,7 +674,7 @@ func (b *TicketBot) getTicketStatus(serverID string) (*commands.CommandResponse,
 			Title: "🎫 Ticket System Status",
 			Color: "#5865F2",
 			Fields: []commands.EmbedField{
-				{Name: "Status", Value: boolEmoji(s.Enabled), Inline: true},
+				{Name: "Status", Value: BoolEmoji(s.Enabled), Inline: true},
 				{Name: "Open Tickets", Value: fmt.Sprintf("%d", openCount), Inline: true},
 				{Name: "Closed Tickets", Value: fmt.Sprintf("%d", closedCount), Inline: true},
 				{Name: "Max Per User", Value: fmt.Sprintf("%d", s.MaxTickets), Inline: true},
@@ -652,46 +741,28 @@ func (b *TicketBot) processAutoClose() {
 		b.ctx.DB.Exec(context.Background(),
 			`UPDATE tickets SET status = 'closed', closed_at = NOW() WHERE id = $1`, ticketID)
 
-		b.sendBotMessage(channelID, "🔒 This ticket has been automatically closed due to inactivity.")
+		SendBotMessage(b.ctx, channelID, "🔒 This ticket has been automatically closed due to inactivity.")
 		b.logTicketAction(serverID, ticketNumber, "", "auto-closed")
 	}
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-func (b *TicketBot) sendBotMessage(channelID, content string) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	_, err := b.ctx.DB.Exec(ctx,
-		`INSERT INTO messages (channel_id, content, type, created_at)
-		 VALUES ($1, $2, 'system', $3)`,
-		channelID, content, time.Now())
-	if err != nil {
-		b.logger.Error("failed to send ticket bot message", zap.Error(err))
-	}
-}
+// sendBotMessage / getUsername helpers were removed — see helpers.go for the
+// canonical SendBotMessage / LookupUsername implementations (CRIT-6, HIGH-6).
 
 func (b *TicketBot) logTicketAction(serverID string, ticketNumber int, userID, action string) {
 	var logChannelID *string
-	b.ctx.DB.QueryRow(context.Background(),
+	_ = b.ctx.DB.QueryRow(context.Background(),
 		`SELECT log_channel_id FROM ticket_settings WHERE server_id = $1`,
 		serverID).Scan(&logChannelID)
-	if logChannelID != nil {
-		username := "System"
-		if userID != "" {
-			username = b.getUsername(userID)
-		}
-		b.sendBotMessage(*logChannelID,
-			fmt.Sprintf("📋 Ticket #%d %s by %s", ticketNumber, action, username))
+	if logChannelID == nil {
+		return
 	}
-}
-
-func (b *TicketBot) getUsername(userID string) string {
-	var username string
-	b.ctx.DB.QueryRow(context.Background(),
-		`SELECT COALESCE(display_name, username) FROM users WHERE id = $1`, userID).Scan(&username)
-	if username == "" {
-		return userID[:8]
+	username := "System"
+	if userID != "" {
+		username = LookupUsername(b.ctx, userID)
 	}
-	return username
+	SendBotMessage(b.ctx, *logChannelID,
+		fmt.Sprintf("📋 Ticket #%d %s by %s", ticketNumber, action, username))
 }

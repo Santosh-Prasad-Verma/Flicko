@@ -124,6 +124,10 @@ func (m *ExternalBotManager) InstallBot(ctx context.Context, install BotInstalla
 		return fmt.Errorf("insert installation: %w", err)
 	}
 
+	// HIGH-19: invalidate the per-(event,server) cache so the new install
+	// receives events immediately.
+	m.delivery.InvalidateSubscriptionCache()
+
 	m.logger.Info("bot installed",
 		zap.String("bot_id", install.BotID),
 		zap.String("server_id", install.ServerID),
@@ -139,6 +143,8 @@ func (m *ExternalBotManager) UninstallBot(ctx context.Context, botID, serverID s
 	if err != nil {
 		return fmt.Errorf("delete installation: %w", err)
 	}
+
+	m.delivery.InvalidateSubscriptionCache()
 
 	m.logger.Info("bot uninstalled",
 		zap.String("bot_id", botID),
@@ -161,6 +167,8 @@ func (m *ExternalBotManager) SubscribeToEvents(ctx context.Context, botID string
 			return fmt.Errorf("subscribe to %s: %w", eventType, err)
 		}
 	}
+
+	m.delivery.InvalidateSubscriptionCache()
 
 	m.logger.Info("bot subscribed to events",
 		zap.String("bot_id", botID),
@@ -264,7 +272,9 @@ func (m *ExternalBotManager) updateKeyLastUsed(ctx context.Context, botID, prefi
 
 // RegisterEventHandler registers the webhook delivery handler with the event bus
 func (m *ExternalBotManager) RegisterEventHandler() {
-	// Subscribe to all event types
+	// Subscribe to all event types that external bots can receive.
+	// HIGH-7 fix: use a unique name per event type to avoid collisions
+	// when EventBus.Subscribe deduplicates by (eventType, name).
 	eventTypes := []events.EventType{
 		events.MessageCreate, events.MessageUpdate, events.MessageDelete,
 		events.MemberJoin, events.MemberLeave, events.MemberBan, events.MemberUnban,
@@ -275,7 +285,8 @@ func (m *ExternalBotManager) RegisterEventHandler() {
 	}
 
 	for _, eventType := range eventTypes {
-		m.ctx.EventBus.Subscribe(eventType, "external-bot-webhook", func(evt events.Event) error {
+		et := eventType // capture for closure
+		m.ctx.EventBus.Subscribe(et, "external-bot-webhook:"+string(et), func(evt events.Event) error {
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
 			return m.delivery.DeliverEvent(ctx, evt)

@@ -1,8 +1,12 @@
 package events
 
 import (
+	"context"
 	"sync"
 
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
@@ -44,10 +48,26 @@ func (eb *EventBus) Use(mw Middleware) {
 }
 
 // Subscribe registers a named handler for a specific event type.
+//
+// Idempotency: subscribing the same (eventType, name) pair more than once
+// REPLACES the previous handler instead of appending. This prevents duplicate
+// dispatch when a bot is re-registered (e.g. after a panic-and-recover loop).
 func (eb *EventBus) Subscribe(eventType EventType, name string, h Handler) {
 	eb.mu.Lock()
 	defer eb.mu.Unlock()
-	eb.subscribers[eventType] = append(eb.subscribers[eventType], HandlerEntry{
+
+	list := eb.subscribers[eventType]
+	for i, e := range list {
+		if e.Name == name {
+			list[i].Handler = h
+			eb.logger.Debug("handler re-subscribed (replaced)",
+				zap.String("event", string(eventType)),
+				zap.String("handler", name),
+			)
+			return
+		}
+	}
+	eb.subscribers[eventType] = append(list, HandlerEntry{
 		Name:    name,
 		Handler: h,
 	})
@@ -57,20 +77,58 @@ func (eb *EventBus) Subscribe(eventType EventType, name string, h Handler) {
 	)
 }
 
+// Unsubscribe removes a handler by (eventType, name). Safe to call even
+// if the handler is not present (no-op).
+func (eb *EventBus) Unsubscribe(eventType EventType, name string) {
+	eb.mu.Lock()
+	defer eb.mu.Unlock()
+
+	list := eb.subscribers[eventType]
+	for i, e := range list {
+		if e.Name == name {
+			eb.subscribers[eventType] = append(list[:i], list[i+1:]...)
+			return
+		}
+	}
+}
+
 // Publish dispatches an event to all subscribed handlers.
 // Errors are logged but do not stop other handlers from executing.
+//
+// MED-6: We snapshot subscribers and middleware under the read lock so
+// long-running handlers don't block Subscribe(). The snapshot is allocated
+// once per publish; under steady-state load this is ~tens of bytes.
+//
+// LOW-3: An OTel span is started per publish so handler latency / errors
+// surface in distributed traces. Per-handler spans are nested inside.
 func (eb *EventBus) Publish(evt Event) {
+	tracer := otel.GetTracerProvider().Tracer("flicko/events")
+	ctx, span := tracer.Start(context.Background(), "EventBus.Publish",
+		trace.WithAttributes(
+			attribute.String("event.type", string(evt.Type)),
+			attribute.String("server_id", evt.ServerID),
+			attribute.String("channel_id", evt.ChannelID),
+		),
+	)
+	defer span.End()
+
 	eb.mu.RLock()
-	entries := make([]HandlerEntry, len(eb.subscribers[evt.Type]))
-	copy(entries, eb.subscribers[evt.Type])
-	mws := make([]Middleware, len(eb.middleware))
-	copy(mws, eb.middleware)
+	srcEntries := eb.subscribers[evt.Type]
+	srcMws := eb.middleware
+	entries := append([]HandlerEntry(nil), srcEntries...)
+	mws := append([]Middleware(nil), srcMws...)
 	eb.mu.RUnlock()
 
 	for _, entry := range entries {
-		handler := entry.Handler
+		_, hSpan := tracer.Start(ctx, "EventBus.Handler",
+			trace.WithAttributes(
+				attribute.String("handler", entry.Name),
+				attribute.String("event.type", string(evt.Type)),
+			),
+		)
 
-		// Apply middleware in reverse order (outermost first)
+		handler := entry.Handler
+		// Apply middleware in reverse order (outermost first).
 		for i := len(mws) - 1; i >= 0; i-- {
 			handler = mws[i](handler)
 		}
@@ -82,7 +140,9 @@ func (eb *EventBus) Publish(evt Event) {
 				zap.String("server_id", evt.ServerID),
 				zap.Error(err),
 			)
+			hSpan.RecordError(err)
 		}
+		hSpan.End()
 	}
 }
 

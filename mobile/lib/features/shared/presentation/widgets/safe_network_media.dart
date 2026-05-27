@@ -1,6 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
+
 import 'package:mobile/core/constants/flicko_colors.dart';
 
 class SafeNetworkImage extends StatelessWidget {
@@ -79,51 +79,79 @@ class _GifPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () => _openGif(url),
-      child: Container(
-        width: width ?? 300,
-        height: height ?? 160,
-        constraints: const BoxConstraints(maxWidth: 300, minHeight: 120),
-        padding: const EdgeInsets.all(16),
-        color: const Color(FlickoColors.bgSecondary),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.gif_box,
-              color: Color(FlickoColors.blurpleLight),
-              size: 38,
+    return GestureDetector(
+      onTap: () => _openFullScreen(context),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: CachedNetworkImage(
+          imageUrl: url,
+          width: width ?? 300,
+          height: height ?? 200,
+          fit: BoxFit.cover,
+          placeholder: (context, url) => Container(
+            width: width ?? 300,
+            height: height ?? 200,
+            color: const Color(FlickoColors.bgSecondary),
+            child: const Center(
+                child: CircularProgressIndicator(strokeWidth: 2)),
+          ),
+          errorWidget: (context, url, error) => Container(
+            width: width ?? 300,
+            height: height ?? 200,
+            color: const Color(FlickoColors.bgSecondary),
+            child: const Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.gif_box_rounded,
+                    color: Color(FlickoColors.textMuted), size: 38),
+                SizedBox(height: 8),
+                Text('Failed to load GIF',
+                    style: TextStyle(
+                        color: Color(FlickoColors.textMuted), fontSize: 12)),
+              ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              fileName?.isNotEmpty == true ? fileName! : 'GIF attachment',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Color(FlickoColors.textPrimary),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              'Tap to open',
-              style: TextStyle(
-                color: Color(FlickoColors.textMuted),
-                fontSize: 12,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Future<void> _openGif(String value) async {
-    final uri = Uri.tryParse(value);
-    if (uri == null) return;
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  void _openFullScreen(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (context) => Scaffold(
+        backgroundColor: Colors.black,
+        appBar: AppBar(
+          backgroundColor: Colors.black,
+          leading: IconButton(
+            icon: const Icon(Icons.close_rounded, color: Colors.white),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: Text(
+            fileName ?? 'GIF',
+            style: const TextStyle(color: Colors.white70, fontSize: 14),
+            overflow: TextOverflow.ellipsis,
+          ),
+          centerTitle: true,
+        ),
+        body: Center(
+          child: InteractiveViewer(
+            minScale: 0.5,
+            maxScale: 4.0,
+            child: CachedNetworkImage(
+              imageUrl: url,
+              fit: BoxFit.contain,
+              placeholder: (context, url) => const Center(
+                  child: CircularProgressIndicator(strokeWidth: 2)),
+              errorWidget: (context, url, error) => const Icon(
+                  Icons.broken_image_outlined,
+                  color: Colors.white54,
+                  size: 64),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

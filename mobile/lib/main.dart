@@ -6,6 +6,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:sentry_logging/sentry_logging.dart';
+import 'package:audio_service/audio_service.dart';
 
 import 'core/config/env.dart';
 import 'core/config/app_config.dart';
@@ -14,6 +15,7 @@ import 'core/services/push_notification_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/services/translation_service.dart';
 import 'package:mobile/features/sonic_music/localization/app_localizations.dart';
+import 'package:mobile/features/voice/services/flicko_audio_handler.dart';
 
 import 'dart:io';
 import 'package:get_it/get_it.dart';
@@ -22,9 +24,9 @@ import 'package:metadata_god/metadata_god.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:mobile/features/sonic_music/Helpers/config.dart';
 import 'package:mobile/features/sonic_music/Helpers/logging.dart';
-import 'package:mobile/features/sonic_music/providers/audio_service_provider.dart';
 import 'package:mobile/features/sonic_music/constants/constants.dart';
-import 'package:mobile/features/sonic_music/Screens/Player/audioplayer.dart';
+import 'package:mobile/features/sonic_music/Screens/Player/audioplayer.dart' as sonic_player;
+import 'package:mobile/features/sonic_music/Services/audio_service.dart' as sonic_service;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -110,27 +112,59 @@ Future<void> _initializeApp() async {
 Future<void> startBlackHoleService() async {
   await initializeLogging();
   MetadataGod.initialize();
-  final audioHandlerHelper = AudioHandlerHelper();
-  final AudioPlayerHandler audioHandler =
-      await audioHandlerHelper.getAudioHandler();
-  GetIt.I.registerSingleton<AudioPlayerHandler>(audioHandler);
+
+  // Initialize the Flicko audio handler — single AudioService.init for the
+  // whole app. Sonic Drip's notifier (`features/voice`) discovers it via
+  // GetIt and routes playback through it so lock-screen + notification +
+  // Bluetooth controls all work.
+  final handler = await AudioService.init(
+    builder: () => FlickoAudioHandler(),
+    config: const AudioServiceConfig(
+      androidNotificationChannelId: 'tech.focko.flicko.audio',
+      androidNotificationChannelName: 'Flicko Music',
+      androidNotificationOngoing: true,
+      androidStopForegroundOnPause: true,
+    ),
+  );
+  GetIt.I.registerSingleton<FlickoAudioHandler>(handler);
   GetIt.I.registerSingleton<MyTheme>(MyTheme());
+
+  // Sonic Music UI (BlackHole-derived) looks up AudioPlayerHandler in GetIt.
+  // We register a plain AudioPlayerHandlerImpl instance — AudioService.init
+  // is already consumed by FlickoAudioHandler above, so this instance only
+  // drives in-app playback for the sonic_music screens. It does not get
+  // OS notification / lockscreen integration; that path stays on
+  // FlickoAudioHandler.
+  GetIt.I.registerSingleton<sonic_player.AudioPlayerHandler>(
+    sonic_service.AudioPlayerHandlerImpl(),
+  );
 }
 
 Future<void> openHiveBox(String boxName, {bool limit = false}) async {
   final box = await Hive.openBox(boxName).onError((error, stackTrace) async {
-    final Directory dir = await getApplicationDocumentsDirectory();
-    final String dirPath = dir.path;
-    File dbFile = File('$dirPath/$boxName.hive');
-    File lockFile = File('$dirPath/$boxName.lock');
-    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-      dbFile = File('$dirPath/BlackHole/$boxName.hive');
-      lockFile = File('$dirPath/BlackHole/$boxName.lock');
+    // The previous version unconditionally deleted the box file on any error
+    // — that wipes user data on transient I/O issues. Try the safer
+    // deleteBoxFromDisk helper inside a guard, then attempt one re-open.
+    debugPrint('Hive box "$boxName" failed to open: $error. Attempting recovery.');
+    try {
+      await Hive.deleteBoxFromDisk(boxName);
+    } catch (e) {
+      debugPrint('deleteBoxFromDisk failed for $boxName: $e');
+      // Fallback: manual file delete (kept for completeness).
+      try {
+        final Directory dir = await getApplicationDocumentsDirectory();
+        final String dirPath = dir.path;
+        File dbFile = File('$dirPath/$boxName.hive');
+        File lockFile = File('$dirPath/$boxName.lock');
+        if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+          dbFile = File('$dirPath/BlackHole/$boxName.hive');
+          lockFile = File('$dirPath/BlackHole/$boxName.lock');
+        }
+        if (await dbFile.exists()) await dbFile.delete();
+        if (await lockFile.exists()) await lockFile.delete();
+      } catch (_) {}
     }
-    await dbFile.delete();
-    await lockFile.delete();
-    await Hive.openBox(boxName);
-    throw 'Failed to open $boxName Box\nError: $error';
+    return await Hive.openBox(boxName);
   });
   if (limit && box.length > 500) {
     box.clear();

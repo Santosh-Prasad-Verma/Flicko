@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:math' as math;
 
@@ -105,49 +106,56 @@ class _ProductPreviewWidgetState extends State<ProductPreviewWidget>
             top: 20,
             left: 20,
             right: 20,
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.person, color: Colors.white, size: 18),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.25),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1.0),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          height: 10,
-                          width: 80,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.3),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          shape: BoxShape.circle,
                         ),
-                        const SizedBox(height: 4),
-                        Container(
-                          height: 6,
-                          width: 60,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(3),
-                          ),
+                        child: const Icon(Icons.person, color: Colors.white, size: 18),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              height: 10,
+                              width: 80,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.3),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Container(
+                              height: 6,
+                              width: 60,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
@@ -156,33 +164,40 @@ class _ProductPreviewWidgetState extends State<ProductPreviewWidget>
             bottom: 20,
             left: 20,
             right: 20,
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.4),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    height: 8,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.35),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1.0),
                   ),
-                  const SizedBox(height: 6),
-                  Container(
-                    height: 8,
-                    width: 150,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        height: 8,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Container(
+                        height: 8,
+                        width: 150,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
@@ -212,13 +227,26 @@ class _ProductPreviewWidgetState extends State<ProductPreviewWidget>
   }
 
   Widget _buildBadgePreview() {
-    return Container(
-      height: widget.height,
-      decoration: BoxDecoration(
-        color: const Color(0xFF0A0A0A),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Center(
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          height: widget.height,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.02),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1.0),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.white.withValues(alpha: 0.03),
+                Colors.white.withValues(alpha: 0.01),
+              ],
+            ),
+          ),
+          child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -296,17 +324,32 @@ class _ProductPreviewWidgetState extends State<ProductPreviewWidget>
           ],
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 
   Widget _buildStickerPreview() {
-    return Container(
-      height: widget.height,
-      decoration: BoxDecoration(
-        color: const Color(0xFF0A0A0A),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Stack(
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          height: widget.height,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.02),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1.0),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.white.withValues(alpha: 0.03),
+                Colors.white.withValues(alpha: 0.01),
+              ],
+            ),
+          ),
+          child: Stack(
         children: [
           // Sticker grid preview
           Positioned.fill(
@@ -382,17 +425,32 @@ class _ProductPreviewWidgetState extends State<ProductPreviewWidget>
           ),
         ],
       ),
-    );
+    ),
+  ),
+);
   }
 
   Widget _buildSoundPreview() {
-    return Container(
-      height: widget.height,
-      decoration: BoxDecoration(
-        color: const Color(0xFF0A0A0A),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          height: widget.height,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.02),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1.0),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.white.withValues(alpha: 0.03),
+                Colors.white.withValues(alpha: 0.01),
+              ],
+            ),
+          ),
+          child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           // Sound wave visualization
@@ -453,23 +511,36 @@ class _ProductPreviewWidgetState extends State<ProductPreviewWidget>
           ),
         ],
       ),
-    );
+    ),
+  ),
+);
   }
 
   Widget _buildDefaultPreview() {
-    return Container(
-      height: widget.height,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [widget.primaryColor, widget.secondaryColor],
-        ),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Center(
-        child: Icon(
-          Icons.inventory_2,
-          color: Colors.white.withValues(alpha: 0.5),
-          size: 48,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          height: widget.height,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.02),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1.0),
+            gradient: LinearGradient(
+              colors: [
+                widget.primaryColor.withValues(alpha: 0.15),
+                widget.secondaryColor.withValues(alpha: 0.05),
+              ],
+            ),
+          ),
+          child: Center(
+            child: Icon(
+              Icons.inventory_2,
+              color: Colors.white.withValues(alpha: 0.5),
+              size: 48,
+            ),
+          ),
         ),
       ),
     );

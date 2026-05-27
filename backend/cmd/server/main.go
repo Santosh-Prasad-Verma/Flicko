@@ -22,6 +22,7 @@ import (
 	"github.com/flicko-org/flicko-backend/internal/services"
 	"github.com/flicko-org/flicko-backend/internal/telemetry"
 	"github.com/gorilla/mux"
+	"github.com/hibiken/asynq"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -127,27 +128,53 @@ func main() {
 	handlers.SetBotAuthDB(db.Pool(), logger)
 	handlers.SetBotMarketplaceDB(db.Pool(), logger)
 
-	// Start background tickers for bots (minute/hour events)
+	// Start background tickers for bots (minute/hour events).
+	//
+	// HIGH-2 fix: in a multi-pod deployment, every pod's ticker would fire
+	// simultaneously and bot handlers (e.g. punishment expiry) would run
+	// N× in parallel. We acquire a short Redis lease keyed on the tick
+	// boundary; only the pod that wins publishes. The lease TTL is shorter
+	// than the tick interval so the next tick gets a fresh contest.
 	tickerCtx, tickerCancel := context.WithCancel(context.Background())
 	go func() {
 		minuteTicker := time.NewTicker(1 * time.Minute)
 		hourTicker := time.NewTicker(1 * time.Hour)
 		defer minuteTicker.Stop()
 		defer hourTicker.Stop()
+
+		rdb := redisCache.GetRedisClient()
+
+		tryPublish := func(t events.EventType, period time.Duration) {
+			// Bucket the current time to the period boundary so all pods
+			// race for the same key.
+			bucket := time.Now().Truncate(period).Unix()
+			key := fmt.Sprintf("flicko:tick:%s:%d", string(t), bucket)
+			leaseTTL := period - 5*time.Second
+			if leaseTTL < 5*time.Second {
+				leaseTTL = 5 * time.Second
+			}
+			ok, err := rdb.SetNX(tickerCtx, key, "1", leaseTTL).Result()
+			if err != nil {
+				logger.Debug("ticker SetNX error (publishing locally)", zap.Error(err))
+				ok = true // fail-open for single-Redis dev environments
+			}
+			if !ok {
+				return
+			}
+			eventBus.Publish(events.Event{
+				Type:      t,
+				Timestamp: time.Now(),
+			})
+		}
+
 		for {
 			select {
 			case <-tickerCtx.Done():
 				return
 			case <-minuteTicker.C:
-				eventBus.Publish(events.Event{
-					Type:      events.TickerMinute,
-					Timestamp: time.Now(),
-				})
+				tryPublish(events.TickerMinute, time.Minute)
 			case <-hourTicker.C:
-				eventBus.Publish(events.Event{
-					Type:      events.TickerHour,
-					Timestamp: time.Now(),
-				})
+				tryPublish(events.TickerHour, time.Hour)
 			}
 		}
 	}()
@@ -236,11 +263,17 @@ func main() {
 	videoHandler.RegisterRoutes(videoRouter)
 
 	// ── Bot API routes ──────────────────────────────────────────────────────
-	botHandler := handlers.NewBotHandler(db, eventBus, cmdRouter, logger)
+	botHandler := handlers.NewBotHandler(db, eventBus, cmdRouter, redisCache, logger)
 
 	// Start event bridge to sync internal events to Supabase Realtime
 	eventBridge := events.NewBridge(db, eventBus, logger)
 	eventBridge.Start()
+
+	// CRIT-7: Start Postgres LISTEN/NOTIFY bridge so bots react to real
+	// activity (messages, member joins, reactions) written by mobile/web
+	// clients directly via Supabase.
+	pgListener := events.NewPgListener(db.Pool(), eventBus, logger)
+	go pgListener.Start(tickerCtx)
 
 	// Slash commands
 	protected.HandleFunc("/commands", botHandler.ListCommands).Methods("GET")
@@ -372,6 +405,28 @@ func main() {
 	hub, err := gaming.Initialize(context.Background(), logger, db.Pool(), redisCache.GetRedisClient().(*redis.Client), r)
 	if err != nil {
 		logger.Fatal("failed to initialize gaming hub", zap.Error(err))
+	}
+
+	// CRIT-9: Register Asynq worker server for bot:move and ludo_bot:move tasks.
+	if coord := hub.BotCoordinatorAsynq(); coord != nil {
+		asynqRedisOpt := asynq.RedisClientOpt{Addr: cfg.RedisURL}
+		asynqSrv := asynq.NewServer(asynqRedisOpt, asynq.Config{
+			Concurrency: 8,
+			Queues:      map[string]int{"default": 1},
+		})
+		asynqMux := asynq.NewServeMux()
+		asynqMux.HandleFunc(bots.TypeBotMove, coord.HandleBotMoveTask)
+		asynqMux.HandleFunc(bots.TypeLudoBotMove, coord.HandleLudoBotMoveTask)
+		go func() {
+			if err := asynqSrv.Run(asynqMux); err != nil {
+				logger.Error("asynq server error", zap.Error(err))
+			}
+		}()
+		logger.Info("asynq bot worker registered",
+			zap.String("tasks", "bot:move, ludo_bot:move"),
+		)
+	} else {
+		logger.Warn("asynq bot worker NOT started — hub.BotCoordinatorAsynq() is nil (chess/ludo bots will use in-memory fallback)")
 	}
 
 	// Custom Emojis

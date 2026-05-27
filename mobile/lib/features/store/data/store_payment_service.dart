@@ -92,7 +92,7 @@ class StorePaymentService {
         signature: paymentResult['signature'] as String,
         email: userEmail,
         username: '',
-        amount: '\$${amount.toStringAsFixed(2)}',
+        amount: '₹${amount.toStringAsFixed(0)}',
       );
 
       if (isVerified) {
@@ -175,7 +175,7 @@ extension StoreOrderExtension on RazorpayService {
     return {
       'id': 'order_store_${DateTime.now().millisecondsSinceEpoch}',
       'amount': (amount * 100).toInt(),
-      'currency': 'USD',
+      'currency': 'INR',
       'status': 'created',
     };
   }

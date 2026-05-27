@@ -49,7 +49,6 @@ func (b *PollBot) registerCommands() {
 			{Name: "question", Description: "Poll question", Type: 3, Required: false},
 			{Name: "options", Description: "Options separated by | (e.g. Yes|No|Maybe)", Type: 3, Required: false},
 			{Name: "duration", Description: "Duration (e.g. 1h, 1d)", Type: 3, Required: false},
-			{Name: "anonymous", Description: "Anonymous voting", Type: 5, Required: false},
 			{Name: "multi_vote", Description: "Allow multiple votes", Type: 5, Required: false},
 		},
 	}, b.handlePoll)
@@ -83,10 +82,15 @@ func (b *PollBot) handlePoll(ctx commands.CommandContext) (*commands.CommandResp
 }
 
 func (b *PollBot) createPoll(ctx commands.CommandContext) (*commands.CommandResponse, error) {
+	if ctx.Ctx == nil {
+		ctx.Ctx = context.Background()
+	}
+	reqCtx, cancel := context.WithTimeout(ctx.Ctx, 15*time.Second)
+	defer cancel()
+
 	question, _ := ctx.Options["question"].(string)
 	optionsStr, _ := ctx.Options["options"].(string)
 	durationStr, _ := ctx.Options["duration"].(string)
-	anonymous, _ := ctx.Options["anonymous"].(bool)
 	multiVote, _ := ctx.Options["multi_vote"].(bool)
 
 	if question == "" {
@@ -97,7 +101,6 @@ func (b *PollBot) createPoll(ctx commands.CommandContext) (*commands.CommandResp
 	for i := range options {
 		options[i] = strings.TrimSpace(options[i])
 	}
-	// Remove empty options
 	var cleanOptions []string
 	for _, o := range options {
 		if o != "" {
@@ -111,46 +114,73 @@ func (b *PollBot) createPoll(ctx commands.CommandContext) (*commands.CommandResp
 		return &commands.CommandResponse{Content: "❌ Maximum 10 options.", Ephemeral: true}, nil
 	}
 
-	var expiresAt *time.Time
+	var (
+		expiresAt     *time.Time
+		durationHours *int
+	)
 	if durationStr != "" {
-		if d, err := parseDuration(durationStr); err == nil {
+		if d, err := ParseDuration(durationStr); err == nil {
 			t := time.Now().Add(d)
 			expiresAt = &t
+			h := int(d.Hours())
+			if h < 1 {
+				h = 1
+			}
+			durationHours = &h
 		}
 	}
 
-	// Create poll
+	// CRIT-4: the canonical polls schema (supabase/migrations/040_polls.sql)
+	// requires message_id NOT NULL. We insert a placeholder system message
+	// in the channel first, then attach the poll to it.
+	systemID, _ := EnsureSystemUser(reqCtx, b.ctx)
+	var msgID string
+	if systemID != "" {
+		_ = b.ctx.DB.QueryRow(reqCtx,
+			`INSERT INTO messages (channel_id, author_id, content, type, created_at)
+			 VALUES ($1, $2, $3, 'system', NOW())
+			 RETURNING id`,
+			ctx.ChannelID, systemID, "📊 "+question).Scan(&msgID)
+	} else {
+		_ = b.ctx.DB.QueryRow(reqCtx,
+			`INSERT INTO messages (channel_id, author_id, content, type, created_at)
+			 VALUES ($1, NULL, $2, 'system', NOW())
+			 RETURNING id`,
+			ctx.ChannelID, "📊 "+question).Scan(&msgID)
+	}
+
+	if msgID == "" {
+		return &commands.CommandResponse{
+			Content:   "❌ Could not anchor poll to a message. Try again.",
+			Ephemeral: true,
+		}, nil
+	}
+
 	var pollID string
-	err := b.ctx.DB.QueryRow(context.Background(),
-		`INSERT INTO polls (server_id, channel_id, creator_id, question, anonymous, multi_vote, expires_at, status, created_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, 'active', NOW())
+	err := b.ctx.DB.QueryRow(reqCtx,
+		`INSERT INTO polls (message_id, channel_id, creator_id, question, allow_multiselect, duration_hours, expires_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7)
 		 RETURNING id`,
-		ctx.ServerID, ctx.ChannelID, ctx.UserID, question, anonymous, multiVote, expiresAt).Scan(&pollID)
+		msgID, ctx.ChannelID, ctx.UserID, question, multiVote, durationHours, expiresAt).Scan(&pollID)
 	if err != nil {
 		return nil, fmt.Errorf("create poll failed: %w", err)
 	}
 
-	// Create options
 	numberEmojis := []string{"1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"}
 	var optionLines []string
 	for i, opt := range cleanOptions {
 		emoji := numberEmojis[i]
-		_, err := b.ctx.DB.Exec(context.Background(),
+		if _, err := b.ctx.DB.Exec(reqCtx,
 			`INSERT INTO poll_options (poll_id, label, emoji, position)
 			 VALUES ($1, $2, $3, $4)`,
-			pollID, opt, emoji, i)
-		if err != nil {
+			pollID, opt, emoji, i); err != nil {
 			b.logger.Error("poll option insert failed", zap.Error(err))
 		}
 		optionLines = append(optionLines, fmt.Sprintf("%s %s", emoji, opt))
 	}
 
-	// Build response
 	desc := strings.Join(optionLines, "\n")
 	footer := fmt.Sprintf("Poll ID: %s", pollID[:8])
-	if anonymous {
-		footer += " • Anonymous"
-	}
 	if multiVote {
 		footer += " • Multi-vote"
 	}
@@ -169,25 +199,50 @@ func (b *PollBot) createPoll(ctx commands.CommandContext) (*commands.CommandResp
 }
 
 func (b *PollBot) handleQuickPoll(ctx commands.CommandContext) (*commands.CommandResponse, error) {
+	if ctx.Ctx == nil {
+		ctx.Ctx = context.Background()
+	}
+	reqCtx, cancel := context.WithTimeout(ctx.Ctx, 15*time.Second)
+	defer cancel()
+
 	question, _ := ctx.Options["question"].(string)
 	if question == "" {
 		return &commands.CommandResponse{Content: "❌ Provide a question.", Ephemeral: true}, nil
 	}
 
-	// Create a simple yes/no poll
+	systemID, _ := EnsureSystemUser(reqCtx, b.ctx)
+	var msgID string
+	if systemID != "" {
+		_ = b.ctx.DB.QueryRow(reqCtx,
+			`INSERT INTO messages (channel_id, author_id, content, type, created_at)
+			 VALUES ($1, $2, $3, 'system', NOW())
+			 RETURNING id`,
+			ctx.ChannelID, systemID, "📊 "+question).Scan(&msgID)
+	} else {
+		_ = b.ctx.DB.QueryRow(reqCtx,
+			`INSERT INTO messages (channel_id, author_id, content, type, created_at)
+			 VALUES ($1, NULL, $2, 'system', NOW())
+			 RETURNING id`,
+			ctx.ChannelID, "📊 "+question).Scan(&msgID)
+	}
+	if msgID == "" {
+		return &commands.CommandResponse{
+			Content:   "❌ Could not anchor poll to a message. Try again.",
+			Ephemeral: true,
+		}, nil
+	}
+
 	var pollID string
-	err := b.ctx.DB.QueryRow(context.Background(),
-		`INSERT INTO polls (server_id, channel_id, creator_id, question, status, created_at)
-		 VALUES ($1, $2, $3, $4, 'active', NOW())
+	if err := b.ctx.DB.QueryRow(reqCtx,
+		`INSERT INTO polls (message_id, channel_id, creator_id, question, allow_multiselect)
+		 VALUES ($1, $2, $3, $4, false)
 		 RETURNING id`,
-		ctx.ServerID, ctx.ChannelID, ctx.UserID, question).Scan(&pollID)
-	if err != nil {
+		msgID, ctx.ChannelID, ctx.UserID, question).Scan(&pollID); err != nil {
 		return nil, err
 	}
 
-	// Add Yes/No options
 	for i, opt := range []struct{ label, emoji string }{{"Yes", "👍"}, {"No", "👎"}} {
-		b.ctx.DB.Exec(context.Background(),
+		_, _ = b.ctx.DB.Exec(reqCtx,
 			`INSERT INTO poll_options (poll_id, label, emoji, position) VALUES ($1, $2, $3, $4)`,
 			pollID, opt.label, opt.emoji, i)
 	}
@@ -203,14 +258,27 @@ func (b *PollBot) handleQuickPoll(ctx commands.CommandContext) (*commands.Comman
 }
 
 func (b *PollBot) closePoll(ctx commands.CommandContext) (*commands.CommandResponse, error) {
-	// Close the most recent active poll in this channel
+	if ctx.Ctx == nil {
+		ctx.Ctx = context.Background()
+	}
+	reqCtx, cancel := context.WithTimeout(ctx.Ctx, 15*time.Second)
+	defer cancel()
+
+	// "Close" in this schema means stamping ended_at. Owner check is server
+	// owner OR the original creator.
 	var pollID, question string
-	err := b.ctx.DB.QueryRow(context.Background(),
-		`UPDATE polls SET status = 'closed'
-		 WHERE server_id = $1 AND channel_id = $2 AND status = 'active'
-		   AND (creator_id = $3 OR EXISTS(SELECT 1 FROM servers WHERE id = $1 AND owner_id = $3))
+	err := b.ctx.DB.QueryRow(reqCtx,
+		`UPDATE polls
+		 SET ended_at = NOW()
+		 WHERE channel_id = $1
+		   AND ended_at IS NULL
+		   AND (creator_id = $2 OR EXISTS(
+		       SELECT 1 FROM channels c
+		       JOIN servers s ON s.id = c.server_id
+		       WHERE c.id = $1 AND s.owner_id = $2
+		   ))
 		 RETURNING id, question`,
-		ctx.ServerID, ctx.ChannelID, ctx.UserID).Scan(&pollID, &question)
+		ctx.ChannelID, ctx.UserID).Scan(&pollID, &question)
 	if err != nil {
 		return &commands.CommandResponse{Content: "❌ No active poll found that you can close.", Ephemeral: true}, nil
 	}
@@ -219,12 +287,18 @@ func (b *PollBot) closePoll(ctx commands.CommandContext) (*commands.CommandRespo
 }
 
 func (b *PollBot) pollResults(ctx commands.CommandContext) (*commands.CommandResponse, error) {
+	if ctx.Ctx == nil {
+		ctx.Ctx = context.Background()
+	}
+	reqCtx, cancel := context.WithTimeout(ctx.Ctx, 15*time.Second)
+	defer cancel()
+
 	var pollID, question string
-	err := b.ctx.DB.QueryRow(context.Background(),
+	err := b.ctx.DB.QueryRow(reqCtx,
 		`SELECT id, question FROM polls
-		 WHERE server_id = $1 AND channel_id = $2
+		 WHERE channel_id = $1
 		 ORDER BY created_at DESC LIMIT 1`,
-		ctx.ServerID, ctx.ChannelID).Scan(&pollID, &question)
+		ctx.ChannelID).Scan(&pollID, &question)
 	if err != nil {
 		return &commands.CommandResponse{Content: "❌ No poll found in this channel.", Ephemeral: true}, nil
 	}
@@ -297,31 +371,36 @@ func (b *PollBot) onButtonClick(evt events.Event) error {
 
 	optionID := strings.TrimPrefix(customID, "poll_vote_")
 
-	// Check if poll is active
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Active = not yet ended (ended_at IS NULL) AND not past expires_at.
 	var pollID string
-	var multiVote bool
-	err := b.ctx.DB.QueryRow(context.Background(),
-		`SELECT p.id, p.multi_vote FROM polls p
+	var allowMulti bool
+	err := b.ctx.DB.QueryRow(ctx,
+		`SELECT p.id, p.allow_multiselect FROM polls p
 		 JOIN poll_options po ON po.poll_id = p.id
-		 WHERE po.id = $1 AND p.status = 'active'`, optionID).Scan(&pollID, &multiVote)
+		 WHERE po.id = $1
+		   AND p.ended_at IS NULL
+		   AND (p.expires_at IS NULL OR p.expires_at > NOW())`,
+		optionID).Scan(&pollID, &allowMulti)
 	if err != nil {
 		return nil // poll not active or option not found
 	}
 
-	if !multiVote {
+	if !allowMulti {
 		// Remove existing vote
-		b.ctx.DB.Exec(context.Background(),
+		_, _ = b.ctx.DB.Exec(ctx,
 			`DELETE FROM poll_votes WHERE user_id = $1
 			 AND option_id IN (SELECT id FROM poll_options WHERE poll_id = $2)`,
 			evt.UserID, pollID)
 	}
 
 	// Cast vote
-	_, err = b.ctx.DB.Exec(context.Background(),
+	if _, err := b.ctx.DB.Exec(ctx,
 		`INSERT INTO poll_votes (poll_id, option_id, user_id) VALUES ($1, $2, $3)
 		 ON CONFLICT DO NOTHING`,
-		pollID, optionID, evt.UserID)
-	if err != nil {
+		pollID, optionID, evt.UserID); err != nil {
 		b.logger.Error("vote insert failed", zap.Error(err))
 	}
 

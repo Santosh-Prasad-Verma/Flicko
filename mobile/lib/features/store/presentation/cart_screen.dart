@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -48,18 +49,68 @@ IconData iconForType(String type) {
 class CartScreen extends ConsumerWidget {
   const CartScreen({super.key});
 
+  Widget _buildLiquidGlassBackground({required Widget child}) {
+    return Stack(
+      children: [
+        // Pure black base
+        Container(color: const Color(0xFF000000)),
+        // Ambient glow 1 (Emerald Green)
+        Positioned(
+          top: -100,
+          left: -80,
+          child: Container(
+            width: 320,
+            height: 320,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFF10B981).withValues(alpha: 0.18),
+            ),
+          ),
+        ),
+        // Ambient glow 2 (Deep Purple)
+        Positioned(
+          bottom: 200,
+          right: -100,
+          child: Container(
+            width: 380,
+            height: 380,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFF9B84EE).withValues(alpha: 0.15),
+            ),
+          ),
+        ),
+        // Backdrop blur overlay
+        Positioned.fill(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 70, sigmaY: 70),
+            child: Container(color: Colors.transparent),
+          ),
+        ),
+        child,
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cart = ref.watch(cartProvider);
     final total = ref.read(cartProvider.notifier).total;
 
     return Scaffold(
-      backgroundColor: _kBg,
+      backgroundColor: Colors.transparent,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: _kBg,
+        backgroundColor: Colors.transparent,
         elevation: 0,
-        shape: const Border(
-          bottom: BorderSide(color: _kNeon, width: 2.5),
+        scrolledUnderElevation: 0,
+        flexibleSpace: ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+            child: Container(
+              color: Colors.black.withValues(alpha: 0.25),
+            ),
+          ),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: _kWhite),
@@ -111,20 +162,25 @@ class CartScreen extends ConsumerWidget {
             ),
         ],
       ),
-      body: cart.isEmpty
-          ? _buildEmptyCart(context)
-          : Column(
-              children: [
-                Expanded(
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: cart.length,
-                    itemBuilder: (context, index) => _buildCartItem(context, ref, cart[index]),
-                  ),
+      body: _buildLiquidGlassBackground(
+        child: SafeArea(
+          bottom: false,
+          child: cart.isEmpty
+              ? _buildEmptyCart(context)
+              : Column(
+                  children: [
+                    Expanded(
+                      child: ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: cart.length,
+                        itemBuilder: (context, index) => _buildCartItem(context, ref, cart[index]),
+                      ),
+                    ),
+                    _buildCheckoutSection(context, ref, cart, total),
+                  ],
                 ),
-                _buildCheckoutSection(context, ref, cart, total),
-              ],
-            ),
+        ),
+      ),
     );
   }
 
@@ -191,21 +247,28 @@ class CartScreen extends ConsumerWidget {
   Widget _buildCartItem(BuildContext context, WidgetRef ref, CartItem item) {
     final rarityColor = getRarityColor(item.product.rarity);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20, right: 4),
-      decoration: BoxDecoration(
-        color: Colors.black,
-        border: Border.all(color: rarityColor, width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: rarityColor,
-            offset: const Offset(4, 4),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.25),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: rarityColor.withValues(alpha: 0.35), width: 1.2),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.white.withValues(alpha: 0.04),
+                  Colors.white.withValues(alpha: 0.01),
+                ],
+              ),
+            ),
+            child: Row(
           children: [
             // Product image/icon
             GestureDetector(
@@ -341,18 +404,21 @@ class CartScreen extends ConsumerWidget {
           ],
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 
   Widget _buildQuantityButton({required IconData icon, required VoidCallback onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 28,
-        height: 28,
+        width: 32,
+        height: 32,
         decoration: BoxDecoration(
-          color: Colors.black,
-          border: Border.all(color: _kNeon, width: 1.5),
+          color: Colors.white.withValues(alpha: 0.05),
+          shape: BoxShape.circle,
+          border: Border.all(color: _kNeon.withValues(alpha: 0.4), width: 1.0),
         ),
         child: Icon(icon, color: _kNeon, size: 16),
       ),
@@ -360,83 +426,89 @@ class CartScreen extends ConsumerWidget {
   }
 
   Widget _buildCheckoutSection(BuildContext context, WidgetRef ref, List<CartItem> cart, double total) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: const BoxDecoration(
-        color: Colors.black,
-        border: Border(top: BorderSide(color: _kNeon, width: 2.5)),
-      ),
-      child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.4),
+            border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.08), width: 1.0)),
+          ),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  'TOTAL',
-                  style: GoogleFonts.spaceGrotesk(
-                    color: _kMuted,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                Text(
-                  '₹${total.toStringAsFixed(0)}',
-                  style: GoogleFonts.epilogue(
-                    color: _kWhite,
-                    fontSize: 28,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            GestureDetector(
-              onTap: () => _showCheckoutDialog(context, ref, cart),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 18),
-                margin: const EdgeInsets.only(right: 4, bottom: 4),
-                decoration: BoxDecoration(
-                  color: _kNeon,
-                  border: Border.all(color: Colors.black, width: 2),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.white,
-                      offset: Offset(4, 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'TOTAL',
+                      style: GoogleFonts.spaceGrotesk(
+                        color: _kMuted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      '₹${total.toStringAsFixed(0)}',
+                      style: GoogleFonts.epilogue(
+                        color: _kWhite,
+                        fontSize: 28,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ],
                 ),
-                child: Center(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.lock, color: Colors.black, size: 18),
-                      const SizedBox(width: 8),
-                      Text(
-                        'CHECKOUT',
-                        style: GoogleFonts.spaceGrotesk(
-                          color: Colors.black,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 16,
+                const SizedBox(height: 16),
+                GestureDetector(
+                  onTap: () => _showCheckoutDialog(context, ref, cart),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    decoration: BoxDecoration(
+                      color: _kNeon,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: _kNeon.withValues(alpha: 0.3),
+                          blurRadius: 16,
+                          offset: const Offset(0, 4),
                         ),
+                      ],
+                    ),
+                    child: Center(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.lock, color: Colors.black, size: 18),
+                          const SizedBox(width: 8),
+                          Text(
+                            'SECURE CHECKOUT',
+                            style: GoogleFonts.spaceGrotesk(
+                              color: Colors.black,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 16,
+                              letterSpacing: 1.0,
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
+                const SizedBox(height: 8),
+                Text(
+                  'Secure checkout powered by Flicko Pay',
+                  style: GoogleFonts.spaceMono(
+                    color: _kMuted,
+                    fontSize: 9,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Secure checkout powered by Flicko Pay',
-              style: GoogleFonts.spaceMono(
-                color: _kMuted,
-                fontSize: 10,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -451,21 +523,29 @@ class CartScreen extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.black,
-      shape: const Border(
-        top: BorderSide(color: _kNeon, width: 3),
-      ),
+      backgroundColor: Colors.transparent,
+      elevation: 0,
       builder: (ctx) => DraggableScrollableSheet(
         initialChildSize: 0.9,
         minChildSize: 0.5,
         maxChildSize: 0.95,
         expand: false,
-        builder: (ctx, scrollController) => _CheckoutSheet(
-          cart: cart,
-          total: total,
-          paidItems: paidItems,
-          freeItems: freeItems,
-          scrollController: scrollController,
+        builder: (ctx, scrollController) => BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.85),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+            ),
+            child: _CheckoutSheet(
+              cart: cart,
+              total: total,
+              paidItems: paidItems,
+              freeItems: freeItems,
+              scrollController: scrollController,
+            ),
+          ),
         ),
       ),
     );

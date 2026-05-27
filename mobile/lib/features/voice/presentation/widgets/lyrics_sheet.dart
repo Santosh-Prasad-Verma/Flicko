@@ -1,22 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../domain/music_models.dart';
+import '../../application/sonic_drip_notifier.dart';
 import '../../data/lyrics_service.dart';
+import '../../domain/music_models.dart';
 
 /// Lyrics bottom sheet
 class LyricsSheet extends ConsumerWidget {
   final Track track;
-  final Duration position;
 
   const LyricsSheet({
     super.key,
     required this.track,
-    required this.position,
+    // Kept for backwards compatibility with callers that still pass an
+    // initial position; ignored in favour of the live state stream.
+    Duration position = Duration.zero,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Watch the live playback position so synced lyrics actually scroll.
+    final position = ref.watch(
+      sonicDripProvider.select((s) => s.playback.position),
+    );
+
     return Container(
       height: MediaQuery.of(context).size.height * 0.8,
       decoration: const BoxDecoration(
@@ -48,7 +55,14 @@ class LyricsSheet extends ConsumerWidget {
                     height: 48,
                     color: const Color(0xFF52B788).withValues(alpha: 0.2),
                     child: track.imageUrl != null
-                        ? Image.network(track.imageUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.music_note, color: Color(0xFF52B788)))
+                        ? Image.network(
+                            track.imageUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const Icon(
+                              Icons.music_note,
+                              color: Color(0xFF52B788),
+                            ),
+                          )
                         : const Icon(Icons.music_note, color: Color(0xFF52B788)),
                   ),
                 ),
@@ -70,7 +84,10 @@ class LyricsSheet extends ConsumerWidget {
                       ),
                       Text(
                         track.artistName,
-                        style: GoogleFonts.inter(color: const Color(0xFF71717A), fontSize: 12),
+                        style: GoogleFonts.inter(
+                          color: const Color(0xFF71717A),
+                          fontSize: 12,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -90,7 +107,12 @@ class LyricsSheet extends ConsumerWidget {
               track: track,
               position: position,
               onSeek: (pos) {
-                // Seek to position
+                final dur = ref.read(sonicDripProvider).playback.duration;
+                if (dur.inMilliseconds > 0) {
+                  ref
+                      .read(sonicDripProvider.notifier)
+                      .seekTo(pos.inMilliseconds / dur.inMilliseconds);
+                }
               },
             ),
           ),

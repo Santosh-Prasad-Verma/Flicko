@@ -951,9 +951,12 @@ mixin _$DMMessage {
   String get content;
   @JsonKey(name: 'created_at')
   DateTime get createdAt;
+  @JsonKey(name: 'edited_at')
+  DateTime? get editedAt;
   UserModel? get sender;
   UserModel? get recipient;
   List<DMAttachment>? get attachments;
+  List<FlickoReaction> get reactions;
 
   /// Create a copy of DMMessage
   /// with the given fields replaced by the non-null parameter values.
@@ -978,11 +981,14 @@ mixin _$DMMessage {
             (identical(other.content, content) || other.content == content) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
+            (identical(other.editedAt, editedAt) ||
+                other.editedAt == editedAt) &&
             (identical(other.sender, sender) || other.sender == sender) &&
             (identical(other.recipient, recipient) ||
                 other.recipient == recipient) &&
             const DeepCollectionEquality()
-                .equals(other.attachments, attachments));
+                .equals(other.attachments, attachments) &&
+            const DeepCollectionEquality().equals(other.reactions, reactions));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -994,13 +1000,15 @@ mixin _$DMMessage {
       recipientId,
       content,
       createdAt,
+      editedAt,
       sender,
       recipient,
-      const DeepCollectionEquality().hash(attachments));
+      const DeepCollectionEquality().hash(attachments),
+      const DeepCollectionEquality().hash(reactions));
 
   @override
   String toString() {
-    return 'DMMessage(id: $id, senderId: $senderId, recipientId: $recipientId, content: $content, createdAt: $createdAt, sender: $sender, recipient: $recipient, attachments: $attachments)';
+    return 'DMMessage(id: $id, senderId: $senderId, recipientId: $recipientId, content: $content, createdAt: $createdAt, editedAt: $editedAt, sender: $sender, recipient: $recipient, attachments: $attachments, reactions: $reactions)';
   }
 }
 
@@ -1015,9 +1023,11 @@ abstract mixin class $DMMessageCopyWith<$Res> {
       @JsonKey(name: 'recipient_id') String recipientId,
       String content,
       @JsonKey(name: 'created_at') DateTime createdAt,
+      @JsonKey(name: 'edited_at') DateTime? editedAt,
       UserModel? sender,
       UserModel? recipient,
-      List<DMAttachment>? attachments});
+      List<DMAttachment>? attachments,
+      List<FlickoReaction> reactions});
 
   $UserModelCopyWith<$Res>? get sender;
   $UserModelCopyWith<$Res>? get recipient;
@@ -1040,9 +1050,11 @@ class _$DMMessageCopyWithImpl<$Res> implements $DMMessageCopyWith<$Res> {
     Object? recipientId = null,
     Object? content = null,
     Object? createdAt = null,
+    Object? editedAt = freezed,
     Object? sender = freezed,
     Object? recipient = freezed,
     Object? attachments = freezed,
+    Object? reactions = null,
   }) {
     return _then(_self.copyWith(
       id: null == id
@@ -1065,6 +1077,10 @@ class _$DMMessageCopyWithImpl<$Res> implements $DMMessageCopyWith<$Res> {
           ? _self.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
               as DateTime,
+      editedAt: freezed == editedAt
+          ? _self.editedAt
+          : editedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
       sender: freezed == sender
           ? _self.sender
           : sender // ignore: cast_nullable_to_non_nullable
@@ -1077,6 +1093,10 @@ class _$DMMessageCopyWithImpl<$Res> implements $DMMessageCopyWith<$Res> {
           ? _self.attachments
           : attachments // ignore: cast_nullable_to_non_nullable
               as List<DMAttachment>?,
+      reactions: null == reactions
+          ? _self.reactions
+          : reactions // ignore: cast_nullable_to_non_nullable
+              as List<FlickoReaction>,
     ));
   }
 
@@ -1208,9 +1228,11 @@ extension DMMessagePatterns on DMMessage {
             @JsonKey(name: 'recipient_id') String recipientId,
             String content,
             @JsonKey(name: 'created_at') DateTime createdAt,
+            @JsonKey(name: 'edited_at') DateTime? editedAt,
             UserModel? sender,
             UserModel? recipient,
-            List<DMAttachment>? attachments)?
+            List<DMAttachment>? attachments,
+            List<FlickoReaction> reactions)?
         $default, {
     required TResult orElse(),
   }) {
@@ -1223,9 +1245,11 @@ extension DMMessagePatterns on DMMessage {
             _that.recipientId,
             _that.content,
             _that.createdAt,
+            _that.editedAt,
             _that.sender,
             _that.recipient,
-            _that.attachments);
+            _that.attachments,
+            _that.reactions);
       case _:
         return orElse();
     }
@@ -1252,9 +1276,11 @@ extension DMMessagePatterns on DMMessage {
             @JsonKey(name: 'recipient_id') String recipientId,
             String content,
             @JsonKey(name: 'created_at') DateTime createdAt,
+            @JsonKey(name: 'edited_at') DateTime? editedAt,
             UserModel? sender,
             UserModel? recipient,
-            List<DMAttachment>? attachments)
+            List<DMAttachment>? attachments,
+            List<FlickoReaction> reactions)
         $default,
   ) {
     final _that = this;
@@ -1266,9 +1292,11 @@ extension DMMessagePatterns on DMMessage {
             _that.recipientId,
             _that.content,
             _that.createdAt,
+            _that.editedAt,
             _that.sender,
             _that.recipient,
-            _that.attachments);
+            _that.attachments,
+            _that.reactions);
       case _:
         throw StateError('Unexpected subclass');
     }
@@ -1294,9 +1322,11 @@ extension DMMessagePatterns on DMMessage {
             @JsonKey(name: 'recipient_id') String recipientId,
             String content,
             @JsonKey(name: 'created_at') DateTime createdAt,
+            @JsonKey(name: 'edited_at') DateTime? editedAt,
             UserModel? sender,
             UserModel? recipient,
-            List<DMAttachment>? attachments)?
+            List<DMAttachment>? attachments,
+            List<FlickoReaction> reactions)?
         $default,
   ) {
     final _that = this;
@@ -1308,9 +1338,11 @@ extension DMMessagePatterns on DMMessage {
             _that.recipientId,
             _that.content,
             _that.createdAt,
+            _that.editedAt,
             _that.sender,
             _that.recipient,
-            _that.attachments);
+            _that.attachments,
+            _that.reactions);
       case _:
         return null;
     }
@@ -1326,10 +1358,13 @@ class _DMMessage implements DMMessage {
       @JsonKey(name: 'recipient_id') required this.recipientId,
       required this.content,
       @JsonKey(name: 'created_at') required this.createdAt,
+      @JsonKey(name: 'edited_at') this.editedAt,
       this.sender,
       this.recipient,
-      final List<DMAttachment>? attachments})
-      : _attachments = attachments;
+      final List<DMAttachment>? attachments,
+      final List<FlickoReaction> reactions = const []})
+      : _attachments = attachments,
+        _reactions = reactions;
   factory _DMMessage.fromJson(Map<String, dynamic> json) =>
       _$DMMessageFromJson(json);
 
@@ -1347,6 +1382,9 @@ class _DMMessage implements DMMessage {
   @JsonKey(name: 'created_at')
   final DateTime createdAt;
   @override
+  @JsonKey(name: 'edited_at')
+  final DateTime? editedAt;
+  @override
   final UserModel? sender;
   @override
   final UserModel? recipient;
@@ -1358,6 +1396,15 @@ class _DMMessage implements DMMessage {
     if (_attachments is EqualUnmodifiableListView) return _attachments;
     // ignore: implicit_dynamic_type
     return EqualUnmodifiableListView(value);
+  }
+
+  final List<FlickoReaction> _reactions;
+  @override
+  @JsonKey()
+  List<FlickoReaction> get reactions {
+    if (_reactions is EqualUnmodifiableListView) return _reactions;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_reactions);
   }
 
   /// Create a copy of DMMessage
@@ -1388,11 +1435,15 @@ class _DMMessage implements DMMessage {
             (identical(other.content, content) || other.content == content) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
+            (identical(other.editedAt, editedAt) ||
+                other.editedAt == editedAt) &&
             (identical(other.sender, sender) || other.sender == sender) &&
             (identical(other.recipient, recipient) ||
                 other.recipient == recipient) &&
             const DeepCollectionEquality()
-                .equals(other._attachments, _attachments));
+                .equals(other._attachments, _attachments) &&
+            const DeepCollectionEquality()
+                .equals(other._reactions, _reactions));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1404,13 +1455,15 @@ class _DMMessage implements DMMessage {
       recipientId,
       content,
       createdAt,
+      editedAt,
       sender,
       recipient,
-      const DeepCollectionEquality().hash(_attachments));
+      const DeepCollectionEquality().hash(_attachments),
+      const DeepCollectionEquality().hash(_reactions));
 
   @override
   String toString() {
-    return 'DMMessage(id: $id, senderId: $senderId, recipientId: $recipientId, content: $content, createdAt: $createdAt, sender: $sender, recipient: $recipient, attachments: $attachments)';
+    return 'DMMessage(id: $id, senderId: $senderId, recipientId: $recipientId, content: $content, createdAt: $createdAt, editedAt: $editedAt, sender: $sender, recipient: $recipient, attachments: $attachments, reactions: $reactions)';
   }
 }
 
@@ -1428,9 +1481,11 @@ abstract mixin class _$DMMessageCopyWith<$Res>
       @JsonKey(name: 'recipient_id') String recipientId,
       String content,
       @JsonKey(name: 'created_at') DateTime createdAt,
+      @JsonKey(name: 'edited_at') DateTime? editedAt,
       UserModel? sender,
       UserModel? recipient,
-      List<DMAttachment>? attachments});
+      List<DMAttachment>? attachments,
+      List<FlickoReaction> reactions});
 
   @override
   $UserModelCopyWith<$Res>? get sender;
@@ -1455,9 +1510,11 @@ class __$DMMessageCopyWithImpl<$Res> implements _$DMMessageCopyWith<$Res> {
     Object? recipientId = null,
     Object? content = null,
     Object? createdAt = null,
+    Object? editedAt = freezed,
     Object? sender = freezed,
     Object? recipient = freezed,
     Object? attachments = freezed,
+    Object? reactions = null,
   }) {
     return _then(_DMMessage(
       id: null == id
@@ -1480,6 +1537,10 @@ class __$DMMessageCopyWithImpl<$Res> implements _$DMMessageCopyWith<$Res> {
           ? _self.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
               as DateTime,
+      editedAt: freezed == editedAt
+          ? _self.editedAt
+          : editedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
       sender: freezed == sender
           ? _self.sender
           : sender // ignore: cast_nullable_to_non_nullable
@@ -1492,6 +1553,10 @@ class __$DMMessageCopyWithImpl<$Res> implements _$DMMessageCopyWith<$Res> {
           ? _self._attachments
           : attachments // ignore: cast_nullable_to_non_nullable
               as List<DMAttachment>?,
+      reactions: null == reactions
+          ? _self._reactions
+          : reactions // ignore: cast_nullable_to_non_nullable
+              as List<FlickoReaction>,
     ));
   }
 

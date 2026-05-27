@@ -34,11 +34,14 @@ func (b *ModerationBot) Register(bctx BotContext) error {
 	// Register slash commands
 	b.registerCommands()
 
-	// Subscribe to events
-	bctx.EventBus.Subscribe(events.CommandInvoke, "mod-commands", b.router.HandleEvent)
+	// Subscribe to ticker for punishment expiry. The ticker bus is the
+	// single source of truth for cluster-wide periodic work; per-bot
+	// in-process tickers risk N× execution under multi-pod deployment.
 	bctx.EventBus.Subscribe(events.TickerMinute, "mod-punishment-expiry", b.checkExpiredPunishments)
 
-	// Start background punishment expiry ticker
+	// Start an in-process backup expiry loop ONLY as a degraded fallback
+	// for single-pod / dev deployments. The TickerMinute event drives the
+	// canonical path; this loop is gated by loopOnce so it never duplicates.
 	b.loopOnce.Do(func() {
 		bgCtx, cancel := context.WithCancel(context.Background())
 		b.cancel = cancel
@@ -169,24 +172,27 @@ func (b *ModerationBot) registerCommands() {
 // ── Command Handlers ────────────────────────────────────────────────────────
 
 func (b *ModerationBot) handleKick(ctx commands.CommandContext) (*commands.CommandResponse, error) {
+	if ctx.Ctx == nil {
+		ctx.Ctx = context.Background()
+	}
 	reqCtx, cancel := context.WithTimeout(ctx.Ctx, 30*time.Second)
 	defer cancel()
-	
+
 	// Validate user parameter
 	targetID, ok := ctx.Options["user"].(string)
 	if !ok || targetID == "" {
 		return &commands.CommandResponse{
-			Content: "❌ Invalid user specified.",
+			Content:   "❌ Invalid user specified.",
 			Ephemeral: true,
 		}, nil
 	}
-	
+
 	reason, _ := ctx.Options["reason"].(string)
 	if reason == "" {
 		reason = "No reason provided"
 	}
 
-	if err := b.checkModPermission(reqCtx, ctx.ServerID, ctx.UserID); err != nil {
+	if !HasPermission(reqCtx, b.ctx, ctx.ServerID, ctx.UserID, PermKickMembers) {
 		return &commands.CommandResponse{Content: "❌ You don't have permission to kick members.", Ephemeral: true}, nil
 	}
 
@@ -198,8 +204,7 @@ func (b *ModerationBot) handleKick(ctx commands.CommandContext) (*commands.Comma
 		return nil, fmt.Errorf("kick failed: %w", err)
 	}
 
-	// Log to audit_logs
-	b.logAudit(reqCtx, ctx.ServerID, ctx.UserID, targetID, "kick", reason)
+	LogAudit(reqCtx, b.ctx, ctx.ServerID, ctx.UserID, "kick", "user", targetID, reason)
 
 	// Emit event
 	b.ctx.EventBus.Publish(events.Event{
@@ -209,51 +214,47 @@ func (b *ModerationBot) handleKick(ctx commands.CommandContext) (*commands.Comma
 		Data:     map[string]interface{}{"moderator_id": ctx.UserID, "reason": reason},
 	})
 
-	username := b.getUsername(reqCtx, targetID)
+	username := LookupUsername(b.ctx, targetID)
 	return &commands.CommandResponse{
 		Content: fmt.Sprintf("👢 **%s** has been kicked. Reason: %s", username, reason),
 	}, nil
 }
 
 func (b *ModerationBot) handleBan(ctx commands.CommandContext) (*commands.CommandResponse, error) {
+	if ctx.Ctx == nil {
+		ctx.Ctx = context.Background()
+	}
 	reqCtx, cancel := context.WithTimeout(ctx.Ctx, 30*time.Second)
 	defer cancel()
-	
-	// Validate user parameter
+
 	targetID, ok := ctx.Options["user"].(string)
 	if !ok || targetID == "" {
-		return &commands.CommandResponse{
-			Content: "❌ Invalid user specified.",
-			Ephemeral: true,
-		}, nil
+		return &commands.CommandResponse{Content: "❌ Invalid user specified.", Ephemeral: true}, nil
 	}
-	
+
 	reason, _ := ctx.Options["reason"].(string)
 	if reason == "" {
 		reason = "No reason provided"
 	}
 
-	if err := b.checkModPermission(reqCtx, ctx.ServerID, ctx.UserID); err != nil {
+	if !HasPermission(reqCtx, b.ctx, ctx.ServerID, ctx.UserID, PermBanMembers) {
 		return &commands.CommandResponse{Content: "❌ You don't have permission to ban members.", Ephemeral: true}, nil
 	}
 
-	// Insert into banned members and remove from server_members
 	_, err := b.ctx.DB.Exec(reqCtx,
 		`INSERT INTO server_bans (server_id, user_id, banned_by, reason) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING`,
 		ctx.ServerID, targetID, ctx.UserID, reason)
 	if err != nil {
-		// Table might not exist; create inline or use server_members approach
-		b.logger.Warn("server_bans insert failed, using direct approach", zap.Error(err))
+		b.logger.Warn("server_bans insert failed, continuing with member removal", zap.Error(err))
 	}
 
-	_, err = b.ctx.DB.Exec(reqCtx,
+	if _, err := b.ctx.DB.Exec(reqCtx,
 		`DELETE FROM server_members WHERE server_id = $1 AND user_id = $2`,
-		ctx.ServerID, targetID)
-	if err != nil {
+		ctx.ServerID, targetID); err != nil {
 		return nil, fmt.Errorf("ban failed: %w", err)
 	}
 
-	b.logAudit(reqCtx, ctx.ServerID, ctx.UserID, targetID, "ban", reason)
+	LogAudit(reqCtx, b.ctx, ctx.ServerID, ctx.UserID, "ban", "user", targetID, reason)
 
 	b.ctx.EventBus.Publish(events.Event{
 		Type:     events.MemberBan,
@@ -262,37 +263,35 @@ func (b *ModerationBot) handleBan(ctx commands.CommandContext) (*commands.Comman
 		Data:     map[string]interface{}{"moderator_id": ctx.UserID, "reason": reason},
 	})
 
-	username := b.getUsername(reqCtx, targetID)
+	username := LookupUsername(b.ctx, targetID)
 	return &commands.CommandResponse{
 		Content: fmt.Sprintf("🔨 **%s** has been banned. Reason: %s", username, reason),
 	}, nil
 }
 
 func (b *ModerationBot) handleUnban(ctx commands.CommandContext) (*commands.CommandResponse, error) {
+	if ctx.Ctx == nil {
+		ctx.Ctx = context.Background()
+	}
 	reqCtx, cancel := context.WithTimeout(ctx.Ctx, 30*time.Second)
 	defer cancel()
-	
-	// Validate user parameter
+
 	targetID, ok := ctx.Options["user"].(string)
 	if !ok || targetID == "" {
-		return &commands.CommandResponse{
-			Content: "❌ Invalid user specified.",
-			Ephemeral: true,
-		}, nil
+		return &commands.CommandResponse{Content: "❌ Invalid user specified.", Ephemeral: true}, nil
 	}
 
-	if err := b.checkModPermission(reqCtx, ctx.ServerID, ctx.UserID); err != nil {
+	if !HasPermission(reqCtx, b.ctx, ctx.ServerID, ctx.UserID, PermBanMembers) {
 		return &commands.CommandResponse{Content: "❌ You don't have permission to unban members.", Ephemeral: true}, nil
 	}
 
-	_, err := b.ctx.DB.Exec(reqCtx,
+	if _, err := b.ctx.DB.Exec(reqCtx,
 		`DELETE FROM server_bans WHERE server_id = $1 AND user_id = $2`,
-		ctx.ServerID, targetID)
-	if err != nil {
+		ctx.ServerID, targetID); err != nil {
 		b.logger.Warn("unban query failed", zap.Error(err))
 	}
 
-	b.logAudit(reqCtx, ctx.ServerID, ctx.UserID, targetID, "unban", "")
+	LogAudit(reqCtx, b.ctx, ctx.ServerID, ctx.UserID, "unban", "user", targetID, "")
 
 	b.ctx.EventBus.Publish(events.Event{
 		Type:     events.MemberUnban,
@@ -305,143 +304,132 @@ func (b *ModerationBot) handleUnban(ctx commands.CommandContext) (*commands.Comm
 }
 
 func (b *ModerationBot) handleMute(ctx commands.CommandContext) (*commands.CommandResponse, error) {
+	if ctx.Ctx == nil {
+		ctx.Ctx = context.Background()
+	}
 	reqCtx, cancel := context.WithTimeout(ctx.Ctx, 30*time.Second)
 	defer cancel()
-	
-	// Validate user parameter
+
 	targetID, ok := ctx.Options["user"].(string)
 	if !ok || targetID == "" {
-		return &commands.CommandResponse{
-			Content: "❌ Invalid user specified.",
-			Ephemeral: true,
-		}, nil
+		return &commands.CommandResponse{Content: "❌ Invalid user specified.", Ephemeral: true}, nil
 	}
-	
+
 	durationStr, _ := ctx.Options["duration"].(string)
 	reason, _ := ctx.Options["reason"].(string)
 	if reason == "" {
 		reason = "No reason provided"
 	}
 
-	if err := b.checkModPermission(reqCtx, ctx.ServerID, ctx.UserID); err != nil {
+	if !HasPermission(reqCtx, b.ctx, ctx.ServerID, ctx.UserID, PermModerateMembers) {
 		return &commands.CommandResponse{Content: "❌ You don't have permission to mute members.", Ephemeral: true}, nil
 	}
 
-	duration := 10 * time.Minute // default
+	duration := 10 * time.Minute
 	if durationStr != "" {
-		if d, err := parseDuration(durationStr); err == nil {
+		if d, err := ParseDuration(durationStr); err == nil {
 			duration = d
 		}
 	}
 	expiresAt := time.Now().Add(duration)
 
-	// Insert temp punishment
-	_, err := b.ctx.DB.Exec(reqCtx,
+	if _, err := b.ctx.DB.Exec(reqCtx,
 		`INSERT INTO temp_punishments (server_id, user_id, moderator_id, type, reason, expires_at)
 		 VALUES ($1, $2, $3, 'mute', $4, $5)`,
-		ctx.ServerID, targetID, ctx.UserID, reason, expiresAt)
-	if err != nil {
+		ctx.ServerID, targetID, ctx.UserID, reason, expiresAt); err != nil {
 		return nil, fmt.Errorf("mute failed: %w", err)
 	}
 
-	b.logAudit(reqCtx, ctx.ServerID, ctx.UserID, targetID, "mute", fmt.Sprintf("%s (%s)", reason, duration))
+	LogAudit(reqCtx, b.ctx, ctx.ServerID, ctx.UserID, "mute", "user", targetID,
+		fmt.Sprintf("%s (%s)", reason, duration))
 
-	username := b.getUsername(reqCtx, targetID)
+	username := LookupUsername(b.ctx, targetID)
 	return &commands.CommandResponse{
 		Content: fmt.Sprintf("🔇 **%s** has been muted for %s. Reason: %s", username, duration, reason),
 	}, nil
 }
 
 func (b *ModerationBot) handleUnmute(ctx commands.CommandContext) (*commands.CommandResponse, error) {
+	if ctx.Ctx == nil {
+		ctx.Ctx = context.Background()
+	}
 	reqCtx, cancel := context.WithTimeout(ctx.Ctx, 30*time.Second)
 	defer cancel()
-	
-	// Validate user parameter
+
 	targetID, ok := ctx.Options["user"].(string)
 	if !ok || targetID == "" {
-		return &commands.CommandResponse{
-			Content: "❌ Invalid user specified.",
-			Ephemeral: true,
-		}, nil
+		return &commands.CommandResponse{Content: "❌ Invalid user specified.", Ephemeral: true}, nil
 	}
 
-	if err := b.checkModPermission(reqCtx, ctx.ServerID, ctx.UserID); err != nil {
+	if !HasPermission(reqCtx, b.ctx, ctx.ServerID, ctx.UserID, PermModerateMembers) {
 		return &commands.CommandResponse{Content: "❌ You don't have permission to unmute members.", Ephemeral: true}, nil
 	}
 
-	_, err := b.ctx.DB.Exec(reqCtx,
+	if _, err := b.ctx.DB.Exec(reqCtx,
 		`UPDATE temp_punishments SET active = false WHERE server_id = $1 AND user_id = $2 AND type = 'mute' AND active = true`,
-		ctx.ServerID, targetID)
-	if err != nil {
+		ctx.ServerID, targetID); err != nil {
 		return nil, fmt.Errorf("unmute failed: %w", err)
 	}
 
-	b.logAudit(reqCtx, ctx.ServerID, ctx.UserID, targetID, "unmute", "")
+	LogAudit(reqCtx, b.ctx, ctx.ServerID, ctx.UserID, "unmute", "user", targetID, "")
 
-	username := b.getUsername(reqCtx, targetID)
+	username := LookupUsername(b.ctx, targetID)
 	return &commands.CommandResponse{
 		Content: fmt.Sprintf("🔊 **%s** has been unmuted.", username),
 	}, nil
 }
 
 func (b *ModerationBot) handleWarn(ctx commands.CommandContext) (*commands.CommandResponse, error) {
+	if ctx.Ctx == nil {
+		ctx.Ctx = context.Background()
+	}
 	reqCtx, cancel := context.WithTimeout(ctx.Ctx, 30*time.Second)
 	defer cancel()
-	
-	// Validate user parameter
+
 	targetID, ok := ctx.Options["user"].(string)
 	if !ok || targetID == "" {
-		return &commands.CommandResponse{
-			Content: "❌ Invalid user specified.",
-			Ephemeral: true,
-		}, nil
+		return &commands.CommandResponse{Content: "❌ Invalid user specified.", Ephemeral: true}, nil
 	}
-	
+
 	reason, _ := ctx.Options["reason"].(string)
 
-	if err := b.checkModPermission(reqCtx, ctx.ServerID, ctx.UserID); err != nil {
+	if !HasPermission(reqCtx, b.ctx, ctx.ServerID, ctx.UserID, PermModerateMembers) {
 		return &commands.CommandResponse{Content: "❌ You don't have permission to warn members.", Ephemeral: true}, nil
 	}
 
-	// Insert warning
-	_, err := b.ctx.DB.Exec(reqCtx,
+	if _, err := b.ctx.DB.Exec(reqCtx,
 		`INSERT INTO warnings (server_id, user_id, moderator_id, reason) VALUES ($1, $2, $3, $4)`,
-		ctx.ServerID, targetID, ctx.UserID, reason)
-	if err != nil {
+		ctx.ServerID, targetID, ctx.UserID, reason); err != nil {
 		return nil, fmt.Errorf("warn failed: %w", err)
 	}
 
-	// Count total warnings for escalation
 	var count int
-	err = b.ctx.DB.QueryRow(reqCtx,
+	if err := b.ctx.DB.QueryRow(reqCtx,
 		`SELECT COUNT(*) FROM warnings WHERE server_id = $1 AND user_id = $2`,
-		ctx.ServerID, targetID).Scan(&count)
-	if err != nil {
+		ctx.ServerID, targetID).Scan(&count); err != nil {
 		count = 1
 	}
 
-	b.logAudit(reqCtx, ctx.ServerID, ctx.UserID, targetID, "warn", reason)
+	LogAudit(reqCtx, b.ctx, ctx.ServerID, ctx.UserID, "warn", "user", targetID, reason)
 
-	// Check escalation thresholds from mod_settings
 	b.checkWarningEscalation(reqCtx, ctx.ServerID, targetID, ctx.UserID, count)
 
-	username := b.getUsername(reqCtx, targetID)
+	username := LookupUsername(b.ctx, targetID)
 	return &commands.CommandResponse{
 		Content: fmt.Sprintf("⚠️ **%s** has been warned. Reason: %s (Warning #%d)", username, reason, count),
 	}, nil
 }
 
 func (b *ModerationBot) handleWarnings(ctx commands.CommandContext) (*commands.CommandResponse, error) {
+	if ctx.Ctx == nil {
+		ctx.Ctx = context.Background()
+	}
 	reqCtx, cancel := context.WithTimeout(ctx.Ctx, 30*time.Second)
 	defer cancel()
-	
-	// Validate user parameter
+
 	targetID, ok := ctx.Options["user"].(string)
 	if !ok || targetID == "" {
-		return &commands.CommandResponse{
-			Content: "❌ Invalid user specified.",
-			Ephemeral: true,
-		}, nil
+		return &commands.CommandResponse{Content: "❌ Invalid user specified.", Ephemeral: true}, nil
 	}
 
 	rows, err := b.ctx.DB.Query(reqCtx,
@@ -456,14 +444,23 @@ func (b *ModerationBot) handleWarnings(ctx commands.CommandContext) (*commands.C
 
 	var fields []commands.EmbedField
 	for rows.Next() {
-		var id, reason, modID string
+		var id, reason string
+		var modID *string
 		var createdAt time.Time
 		if err := rows.Scan(&id, &reason, &modID, &createdAt); err != nil {
 			continue
 		}
+		modStr := "system"
+		if modID != nil && *modID != "" {
+			modStr = fmt.Sprintf("<@%s>", *modID)
+		}
+		shortID := id
+		if len(shortID) > 8 {
+			shortID = shortID[:8]
+		}
 		fields = append(fields, commands.EmbedField{
-			Name:  fmt.Sprintf("#%s — %s", id[:8], createdAt.Format("Jan 2, 2006")),
-			Value: fmt.Sprintf("Reason: %s\nBy: <@%s>", reason, modID),
+			Name:  fmt.Sprintf("#%s — %s", shortID, createdAt.Format("Jan 2, 2006")),
+			Value: fmt.Sprintf("Reason: %s\nBy: %s", reason, modStr),
 		})
 	}
 
@@ -471,7 +468,7 @@ func (b *ModerationBot) handleWarnings(ctx commands.CommandContext) (*commands.C
 		return &commands.CommandResponse{Content: "✅ This user has no warnings."}, nil
 	}
 
-	username := b.getUsername(reqCtx, targetID)
+	username := LookupUsername(b.ctx, targetID)
 	return &commands.CommandResponse{
 		Embed: &commands.Embed{
 			Title:  fmt.Sprintf("Warnings for %s", username),
@@ -482,9 +479,12 @@ func (b *ModerationBot) handleWarnings(ctx commands.CommandContext) (*commands.C
 }
 
 func (b *ModerationBot) handlePurge(ctx commands.CommandContext) (*commands.CommandResponse, error) {
+	if ctx.Ctx == nil {
+		ctx.Ctx = context.Background()
+	}
 	reqCtx, cancel := context.WithTimeout(ctx.Ctx, 30*time.Second)
 	defer cancel()
-	
+
 	countFloat, ok := ctx.Options["count"].(float64)
 	if !ok {
 		return &commands.CommandResponse{Content: "❌ Invalid count specified.", Ephemeral: true}, nil
@@ -494,32 +494,64 @@ func (b *ModerationBot) handlePurge(ctx commands.CommandContext) (*commands.Comm
 		return &commands.CommandResponse{Content: "❌ Count must be between 1 and 100.", Ephemeral: true}, nil
 	}
 
-	if err := b.checkModPermission(reqCtx, ctx.ServerID, ctx.UserID); err != nil {
+	if !HasPermission(reqCtx, b.ctx, ctx.ServerID, ctx.UserID, PermManageMessages) {
 		return &commands.CommandResponse{Content: "❌ You don't have permission to purge messages.", Ephemeral: true}, nil
 	}
 
 	targetID, _ := ctx.Options["user"].(string)
 
-	var query string
-	var args []interface{}
+	// Collect IDs first so we can publish a MESSAGE_DELETE_BULK event
+	// (HIGH-16) and so realtime clients can reconcile their local cache.
+	var (
+		query string
+		args  []interface{}
+	)
 	if targetID != "" {
-		query = `DELETE FROM messages WHERE id IN (
-			SELECT id FROM messages WHERE channel_id = $1 AND user_id = $2 ORDER BY created_at DESC LIMIT $3
-		)`
+		query = `SELECT id FROM messages WHERE channel_id = $1 AND author_id = $2 ORDER BY created_at DESC LIMIT $3`
 		args = []interface{}{ctx.ChannelID, targetID, count}
 	} else {
-		query = `DELETE FROM messages WHERE id IN (
-			SELECT id FROM messages WHERE channel_id = $1 ORDER BY created_at DESC LIMIT $2
-		)`
+		query = `SELECT id FROM messages WHERE channel_id = $1 ORDER BY created_at DESC LIMIT $2`
 		args = []interface{}{ctx.ChannelID, count}
 	}
 
-	tag, err := b.ctx.DB.Exec(reqCtx, query, args...)
+	rows, err := b.ctx.DB.Query(reqCtx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("purge query failed: %w", err)
+	}
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err == nil {
+			ids = append(ids, id)
+		}
+	}
+	rows.Close()
+
+	if len(ids) == 0 {
+		return &commands.CommandResponse{Content: "🗑️ Nothing to delete.", Ephemeral: true}, nil
+	}
+
+	tag, err := b.ctx.DB.Exec(reqCtx,
+		`DELETE FROM messages WHERE id = ANY($1::uuid[])`, ids)
 	if err != nil {
 		return nil, fmt.Errorf("purge failed: %w", err)
 	}
 
-	b.logAudit(reqCtx, ctx.ServerID, ctx.UserID, "", "purge", fmt.Sprintf("Purged %d messages in channel %s", tag.RowsAffected(), ctx.ChannelID))
+	LogAudit(reqCtx, b.ctx, ctx.ServerID, ctx.UserID, "purge", "channel", ctx.ChannelID,
+		fmt.Sprintf("Purged %d messages", tag.RowsAffected()))
+
+	// Best-effort realtime fan-out so clients can drop the deleted IDs.
+	b.ctx.EventBus.Publish(events.Event{
+		Type:      events.MessageDelete,
+		ServerID:  ctx.ServerID,
+		ChannelID: ctx.ChannelID,
+		Data: map[string]interface{}{
+			"message_ids": ids,
+			"bulk":        true,
+			"actor_id":    ctx.UserID,
+		},
+		Timestamp: time.Now(),
+	})
 
 	return &commands.CommandResponse{
 		Content:   fmt.Sprintf("🗑️ Deleted %d messages.", tag.RowsAffected()),
@@ -528,23 +560,25 @@ func (b *ModerationBot) handlePurge(ctx commands.CommandContext) (*commands.Comm
 }
 
 func (b *ModerationBot) handleSlowmode(ctx commands.CommandContext) (*commands.CommandResponse, error) {
+	if ctx.Ctx == nil {
+		ctx.Ctx = context.Background()
+	}
 	reqCtx, cancel := context.WithTimeout(ctx.Ctx, 30*time.Second)
 	defer cancel()
-	
+
 	secondsFloat, ok := ctx.Options["seconds"].(float64)
 	if !ok {
 		return &commands.CommandResponse{Content: "❌ Invalid seconds specified.", Ephemeral: true}, nil
 	}
 	seconds := int(secondsFloat)
 
-	if err := b.checkModPermission(reqCtx, ctx.ServerID, ctx.UserID); err != nil {
+	if !HasPermission(reqCtx, b.ctx, ctx.ServerID, ctx.UserID, PermManageMessages) {
 		return &commands.CommandResponse{Content: "❌ You don't have permission to set slowmode.", Ephemeral: true}, nil
 	}
 
-	_, err := b.ctx.DB.Exec(reqCtx,
+	if _, err := b.ctx.DB.Exec(reqCtx,
 		`UPDATE channels SET slowmode_seconds = $1 WHERE id = $2 AND server_id = $3`,
-		seconds, ctx.ChannelID, ctx.ServerID)
-	if err != nil {
+		seconds, ctx.ChannelID, ctx.ServerID); err != nil {
 		return nil, fmt.Errorf("slowmode update failed: %w", err)
 	}
 
@@ -557,8 +591,12 @@ func (b *ModerationBot) handleSlowmode(ctx commands.CommandContext) (*commands.C
 }
 
 func (b *ModerationBot) handleModlog(ctx commands.CommandContext) (*commands.CommandResponse, error) {
+	if ctx.Ctx == nil {
+		ctx.Ctx = context.Background()
+	}
 	reqCtx, cancel := context.WithTimeout(ctx.Ctx, 30*time.Second)
 	defer cancel()
+
 	targetID, _ := ctx.Options["user"].(string)
 	limitFloat, _ := ctx.Options["limit"].(float64)
 	limit := int(limitFloat)
@@ -566,13 +604,15 @@ func (b *ModerationBot) handleModlog(ctx commands.CommandContext) (*commands.Com
 		limit = 10
 	}
 
-	var query string
-	var args []interface{}
+	var (
+		query string
+		args  []interface{}
+	)
 	if targetID != "" {
-		query = `SELECT action, target_id, moderator_id, reason, created_at FROM audit_logs WHERE server_id = $1 AND target_id = $2 ORDER BY created_at DESC LIMIT $3`
+		query = `SELECT action_type, target_id, actor_id, reason, created_at FROM audit_logs WHERE server_id = $1 AND target_id = $2 ORDER BY created_at DESC LIMIT $3`
 		args = []interface{}{ctx.ServerID, targetID, limit}
 	} else {
-		query = `SELECT action, target_id, moderator_id, reason, created_at FROM audit_logs WHERE server_id = $1 ORDER BY created_at DESC LIMIT $2`
+		query = `SELECT action_type, target_id, actor_id, reason, created_at FROM audit_logs WHERE server_id = $1 ORDER BY created_at DESC LIMIT $2`
 		args = []interface{}{ctx.ServerID, limit}
 	}
 
@@ -584,14 +624,24 @@ func (b *ModerationBot) handleModlog(ctx commands.CommandContext) (*commands.Com
 
 	var fields []commands.EmbedField
 	for rows.Next() {
-		var action, target, mod, reason string
+		var action, reason string
+		var target, actor *string
 		var createdAt time.Time
-		if err := rows.Scan(&action, &target, &mod, &reason, &createdAt); err != nil {
+		if err := rows.Scan(&action, &target, &actor, &reason, &createdAt); err != nil {
 			continue
+		}
+
+		actorStr := "system"
+		if actor != nil && *actor != "" {
+			actorStr = fmt.Sprintf("<@%s>", *actor)
+		}
+		targetStr := "—"
+		if target != nil && *target != "" {
+			targetStr = fmt.Sprintf("<@%s>", *target)
 		}
 		fields = append(fields, commands.EmbedField{
 			Name:  fmt.Sprintf("%s — %s", strings.ToUpper(action), createdAt.Format("Jan 2 15:04")),
-			Value: fmt.Sprintf("Target: <@%s>\nMod: <@%s>\n%s", target, mod, reason),
+			Value: fmt.Sprintf("Target: %s\nActor: %s\n%s", targetStr, actorStr, reason),
 		})
 	}
 
@@ -610,85 +660,43 @@ func (b *ModerationBot) handleModlog(ctx commands.CommandContext) (*commands.Com
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-func (b *ModerationBot) checkModPermission(ctx context.Context, serverID, userID string) error {
-	// Check if user is server owner or has mod role
-	var isOwner bool
-	err := b.ctx.DB.QueryRow(ctx,
-		`SELECT EXISTS(SELECT 1 FROM servers WHERE id = $1 AND owner_id = $2)`,
-		serverID, userID).Scan(&isOwner)
-	if err != nil || !isOwner {
-		// Check for admin/mod roles
-		var hasRole bool
-		err = b.ctx.DB.QueryRow(ctx,
-			`SELECT EXISTS(
-				SELECT 1 FROM member_roles mr
-				JOIN roles r ON r.id = mr.role_id
-				WHERE mr.server_id = $1 AND mr.user_id = $2
-				AND (r.permissions & 8 = 8 OR r.permissions & 2 = 2)
-			)`, serverID, userID).Scan(&hasRole)
-		if err != nil || !hasRole {
-			return fmt.Errorf("insufficient permissions")
-		}
-	}
-	return nil
-}
-
-func (b *ModerationBot) logAudit(ctx context.Context, serverID, moderatorID, targetID, action, reason string) {
-	_, err := b.ctx.DB.Exec(ctx,
-		`INSERT INTO audit_logs (server_id, moderator_id, target_id, action, reason) VALUES ($1, $2, $3, $4, $5)`,
-		serverID, moderatorID, targetID, action, reason)
-	if err != nil {
-		b.logger.Error("audit log insert failed", zap.Error(err))
-	}
-}
-
-func (b *ModerationBot) getUsername(ctx context.Context, userID string) string {
-	var username string
-	err := b.ctx.DB.QueryRow(ctx,
-		`SELECT COALESCE(display_name, username) FROM users WHERE id = $1`, userID).Scan(&username)
-	if err != nil {
-		return userID[:8]
-	}
-	return username
-}
-
-func (b *ModerationBot) checkWarningEscalation(ctx context.Context, serverID, targetID, modID string, count int) {
+func (b *ModerationBot) checkWarningEscalation(parent context.Context, serverID, targetID, modID string, count int) {
 	var maxWarnings int
 	var maxAction string
-	err := b.ctx.DB.QueryRow(ctx,
+	if err := b.ctx.DB.QueryRow(parent,
 		`SELECT max_warnings, max_warning_action FROM mod_settings WHERE server_id = $1`,
-		serverID).Scan(&maxWarnings, &maxAction)
-	if err != nil {
+		serverID).Scan(&maxWarnings, &maxAction); err != nil {
 		return // no settings = no escalation
 	}
 
-	if count >= maxWarnings {
-		switch maxAction {
-		case "mute":
-			b.ctx.EventBus.Publish(events.Event{
-				Type:     events.CommandInvoke,
-				ServerID: serverID,
-				UserID:   modID,
-				Data: map[string]interface{}{
-					"command_name":   "mute",
-					"interaction_id": "",
-					"options": map[string]interface{}{
-						"user":     targetID,
-						"duration": "1h",
-						"reason":   fmt.Sprintf("Auto-escalation: reached %d warnings", count),
-					},
-				},
-			})
-		case "kick":
-			b.handleKick(commands.CommandContext{
-				ServerID: serverID, UserID: modID,
-				Options: map[string]interface{}{"user": targetID, "reason": fmt.Sprintf("Auto-escalation: reached %d warnings", count)},
-			})
-		case "ban":
-			b.handleBan(commands.CommandContext{
-				ServerID: serverID, UserID: modID,
-				Options: map[string]interface{}{"user": targetID, "reason": fmt.Sprintf("Auto-escalation: reached %d warnings", count)},
-			})
+	if count < maxWarnings {
+		return
+	}
+
+	// CRIT-12 fix: every escalation invocation MUST carry a non-nil context.
+	autoCtx := commands.CommandContext{
+		Ctx:      context.Background(),
+		ServerID: serverID,
+		UserID:   modID,
+		Options: map[string]interface{}{
+			"user":   targetID,
+			"reason": fmt.Sprintf("Auto-escalation: reached %d warnings", count),
+		},
+	}
+
+	switch maxAction {
+	case "mute":
+		autoCtx.Options["duration"] = "1h"
+		if _, err := b.handleMute(autoCtx); err != nil {
+			b.logger.Error("auto-mute escalation failed", zap.Error(err))
+		}
+	case "kick":
+		if _, err := b.handleKick(autoCtx); err != nil {
+			b.logger.Error("auto-kick escalation failed", zap.Error(err))
+		}
+	case "ban":
+		if _, err := b.handleBan(autoCtx); err != nil {
+			b.logger.Error("auto-ban escalation failed", zap.Error(err))
 		}
 	}
 }
@@ -737,30 +745,5 @@ func (b *ModerationBot) expirePunishments() error {
 	return nil
 }
 
-// parseDuration parses human-friendly durations like "10m", "1h", "7d".
-func parseDuration(s string) (time.Duration, error) {
-	s = strings.TrimSpace(strings.ToLower(s))
-        var duration time.Duration
-        var err error
-
-        if strings.HasSuffix(s, "d") {
-                s = strings.TrimSuffix(s, "d")
-                var days int
-                if _, err = fmt.Sscanf(s, "%d", &days); err != nil {
-                        return 0, err
-                }
-                duration = time.Duration(days) * 24 * time.Hour
-        } else {
-                duration, err = time.ParseDuration(s)
-                if err != nil {
-                        return 0, err
-                }
-        }
-
-        const maxDuration = 30 * 24 * time.Hour
-        if duration > maxDuration {
-                return 0, fmt.Errorf("duration too long (maximum is 30 days)")
-        }
-
-        return duration, nil
-}
+// parseDuration is removed — the canonical implementation lives in helpers.go
+// (ParseDuration). It rejects non-positive values and caps at 30 days.

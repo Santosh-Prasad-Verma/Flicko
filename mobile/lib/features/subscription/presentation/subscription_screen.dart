@@ -120,14 +120,14 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             Center(
               child: Column(
                 children: [
-                  Text(_isAnnual ? '\$4.99' : '\$5.99',
+                  Text(_isAnnual ? '₹329' : '₹399',
                       style: GoogleFonts.epilogue(
                           color: _white, fontSize: 48, fontWeight: FontWeight.w900)),
                   Text(_isAnnual ? '/month, billed annually' : '/month',
                       style: GoogleFonts.inter(color: _muted, fontSize: 14)),
                   if (_isAnnual) ...[
                     const SizedBox(height: 4),
-                    Text('Save \$11.88/year',
+                    Text('Save ₹840/year',
                         style: GoogleFonts.spaceGrotesk(
                             color: _neon, fontSize: 12, fontWeight: FontWeight.w700)),
                   ],

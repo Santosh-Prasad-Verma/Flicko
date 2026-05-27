@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -60,16 +61,78 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
     super.dispose();
   }
 
+  Widget _buildLiquidGlassBackground({required Widget child}) {
+    return Stack(
+      children: [
+        // Pure black base
+        Container(color: const Color(0xFF000000)),
+        // Ambient glow 1 (Emerald Green)
+        Positioned(
+          top: -100,
+          left: -80,
+          child: Container(
+            width: 320,
+            height: 320,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFF10B981).withValues(alpha: 0.18),
+            ),
+          ),
+        ),
+        // Ambient glow 2 (Deep Purple)
+        Positioned(
+          bottom: 200,
+          right: -100,
+          child: Container(
+            width: 380,
+            height: 380,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFF9B84EE).withValues(alpha: 0.15),
+            ),
+          ),
+        ),
+        // Ambient glow 3 (Cyan/Teal)
+        Positioned(
+          top: 300,
+          right: -50,
+          child: Container(
+            width: 250,
+            height: 250,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFF00E5FF).withValues(alpha: 0.12),
+            ),
+          ),
+        ),
+        // Backdrop blur overlay to smear the glow into a liquid backdrop
+        Positioned.fill(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 70, sigmaY: 70),
+            child: Container(color: Colors.transparent),
+          ),
+        ),
+        child,
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final cart = ref.watch(cartProvider);
     
     return Scaffold(
-      backgroundColor: _bg,
+      backgroundColor: Colors.transparent,
+      extendBodyBehindAppBar: true,
       appBar: _buildAppBar(cart),
-      body: TabBarView(
-        controller: _tabController,
-        children: [_buildDiscoverTab(), _buildMyItemsTab()],
+      body: _buildLiquidGlassBackground(
+        child: SafeArea(
+          bottom: false,
+          child: TabBarView(
+            controller: _tabController,
+            children: [_buildDiscoverTab(), _buildMyItemsTab()],
+          ),
+        ),
       ),
       floatingActionButton: cart.isNotEmpty
           ? _buildCartFAB(cart)
@@ -79,8 +142,17 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
 
   PreferredSizeWidget _buildAppBar(List<CartItem> cart) {
     return AppBar(
-      backgroundColor: Colors.black,
+      backgroundColor: Colors.transparent,
       elevation: 0,
+      scrolledUnderElevation: 0,
+      flexibleSpace: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          child: Container(
+            color: Colors.black.withValues(alpha: 0.25),
+          ),
+        ),
+      ),
       leading: IconButton(
         icon: const Icon(Icons.arrow_back, color: _white),
         onPressed: () => context.pop(),
@@ -140,18 +212,19 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(48),
         child: Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             border: Border(
-              bottom: BorderSide(color: Color(0xFF52B788), width: 3),
+              bottom: BorderSide(color: Colors.white.withValues(alpha: 0.08), width: 1),
             ),
           ),
           child: TabBar(
             controller: _tabController,
             indicatorColor: _neon,
-            indicatorWeight: 3,
+            indicatorWeight: 2,
+            indicatorSize: TabBarIndicatorSize.label,
             labelColor: _neon,
             unselectedLabelColor: _muted,
-            labelStyle: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 1.5),
+            labelStyle: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1.0),
             tabs: const [
               Tab(text: 'Discover'),
               Tab(text: 'My Collection'),
@@ -210,19 +283,27 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
           rank = 'LEGENDARY COSMIC DJ';
         }
 
-        return Container(
-          margin: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 8),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.black,
-            border: Border.all(color: _neon, width: 2),
-            boxShadow: const [
-              BoxShadow(
-                color: _neon,
-                offset: Offset(4, 4),
-              ),
-            ],
-          ),
+        return Padding(
+          padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 8),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.03),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1.0),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Colors.white.withValues(alpha: 0.04),
+                      Colors.white.withValues(alpha: 0.01),
+                    ],
+                  ),
+                ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -233,54 +314,82 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                     children: [
                       Container(
                         padding: const EdgeInsets.all(6),
-                        color: _neon,
-                        child: const Icon(Icons.stars_rounded, color: Colors.black, size: 16),
+                        decoration: BoxDecoration(
+                          color: _neon.withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.stars_rounded, color: _neon, size: 16),
                       ),
                       const SizedBox(width: 10),
                       Text(
                         'Collector Level $level',
                         style: GoogleFonts.spaceGrotesk(
                           color: Colors.white,
-                          fontWeight: FontWeight.w900,
+                          fontWeight: FontWeight.bold,
                           fontSize: 13,
-                          letterSpacing: 1,
+                          letterSpacing: 0.5,
                         ),
                       ),
                     ],
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      border: Border.all(color: _gold, width: 1.5),
+                      color: _gold.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: _gold.withValues(alpha: 0.3), width: 1),
                     ),
                     child: Text(
                       rank,
                       style: GoogleFonts.spaceMono(
                         color: _gold,
                         fontSize: 8,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
                       ),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 12),
-              ClipRRect(
-                child: Container(
-                  height: 10,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(0.2),
-                    border: Border.all(color: _neon, width: 1),
-                  ),
-                  child: FractionallySizedBox(
-                    alignment: Alignment.centerLeft,
-                    widthFactor: progress.clamp(0.01, 1.0),
-                    child: Container(
-                      color: _neon,
+              TweenAnimationBuilder<double>(
+                key: ValueKey('xp_progress_${level}_$progress'),
+                duration: const Duration(milliseconds: 1200),
+                curve: Curves.easeOutCubic,
+                tween: Tween<double>(begin: 0.0, end: progress),
+                builder: (context, animatedProgress, child) {
+                  return Container(
+                    height: 8,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                  ),
-                ),
+                    child: Stack(
+                      children: [
+                        FractionallySizedBox(
+                          alignment: Alignment.centerLeft,
+                          widthFactor: animatedProgress.clamp(0.01, 1.0),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [_neon, _neon.withValues(alpha: 0.7)],
+                              ),
+                              borderRadius: BorderRadius.circular(10),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: _neon.withValues(alpha: 0.3),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 6),
               Row(
@@ -298,7 +407,10 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
               ),
             ],
           ),
-        );
+        ),
+      ),
+    ),
+  );
       },
       orElse: () => const SizedBox.shrink(),
     );
@@ -378,7 +490,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                   childAspectRatio: 0.62,
                 ),
                 delegate: SliverChildBuilderDelegate(
-                  (context, index) => _buildProductCard(sorted[index], wishlist),
+                  (context, index) => _buildProductCard(sorted[index], wishlist, index, sorted.length),
                   childCount: sorted.length,
                 ),
               ),
@@ -664,71 +776,101 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
       margin: const EdgeInsets.all(16),
       height: 160,
       decoration: BoxDecoration(
-        color: Colors.black,
-        border: Border.all(color: _neon, width: 2.5),
-        boxShadow: const [
+        borderRadius: BorderRadius.circular(20),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF1B4D3E), // Sleek deep emerald
+            Color(0xFF0F1E1A), // Sleek obsidian
+          ],
+        ),
+        border: Border.all(color: _neon.withValues(alpha: 0.25), width: 1.5),
+        boxShadow: [
           BoxShadow(
-            color: _neon,
-            offset: Offset(4, 4),
-          )
-        ],
-      ),
-      child: Stack(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  color: _neon,
-                  child: Text(
-                    'FEATURED_DROP',
-                    style: GoogleFonts.spaceMono(
-                      color: Colors.black,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 2,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'SONIC_DRIP_THEME',
-                  style: GoogleFonts.spaceGrotesk(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        border: Border.all(color: Colors.white),
-                      ),
-                      child: Text(
-                        '₹399',
-                        style: GoogleFonts.spaceGrotesk(
-                          color: Colors.black,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    const Icon(Icons.arrow_forward, color: _lime),
-                  ],
-                ),
-              ],
-            ),
+            color: _neon.withValues(alpha: 0.12),
+            blurRadius: 20,
+            spreadRadius: 2,
+            offset: const Offset(0, 8),
           ),
         ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Stack(
+          children: [
+            // Abstract decorative ambient glow circle in the corner
+            Positioned(
+              right: -30,
+              top: -30,
+              child: Container(
+                width: 140,
+                height: 140,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: _neon.withValues(alpha: 0.12),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: _neon.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      'FEATURED DROP',
+                      style: GoogleFonts.spaceMono(
+                        color: _neon,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Sonic Drip Theme',
+                    style: GoogleFonts.spaceGrotesk(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '₹399',
+                          style: GoogleFonts.spaceGrotesk(
+                            color: Colors.black,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Icon(Icons.arrow_forward, color: _lime, size: 20),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -740,48 +882,59 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: _categories.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
           final selected = _selectedCategory == index;
           return GestureDetector(
-            onTap: () => setState(() => _selectedCategory = index),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-              decoration: BoxDecoration(
-                color: selected ? _lime : Colors.black,
-                border: Border.all(
-                  color: _lime,
-                  width: 2,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: selected ? Colors.black : _lime,
-                    offset: const Offset(3, 3),
+            onTap: () {
+              FlickoHaptics.selection();
+              setState(() => _selectedCategory = index);
+            },
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                child: AnimatedContainer(
+                  key: ValueKey('store_category_chip_${_categories[index]}'),
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeInOut,
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: selected ? _lime : Colors.white.withValues(alpha: 0.03),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: selected ? _lime : Colors.white.withValues(alpha: 0.08),
+                      width: 1,
+                    ),
                   ),
-                ],
-              ),
-              child: Text(
-                _categories[index]
-                    .replaceAll('_', ' ')
-                    .toLowerCase()
-                    .split(' ')
-                    .map((s) => s.isNotEmpty ? s[0].toUpperCase() + s.substring(1) : '')
-                    .join(' '),
-                style: GoogleFonts.spaceGrotesk(
-                  color: selected ? Colors.black : Colors.white,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 12,
-                  letterSpacing: 1.5,
+              child: AnimatedScale(
+                duration: const Duration(milliseconds: 250),
+                scale: selected ? 1.05 : 1.0,
+                child: Text(
+                  _categories[index]
+                      .replaceAll('_', ' ')
+                      .toLowerCase()
+                      .split(' ')
+                      .map((s) => s.isNotEmpty ? s[0].toUpperCase() + s.substring(1) : '')
+                      .join(' '),
+                  style: GoogleFonts.spaceGrotesk(
+                    color: selected ? Colors.black : Colors.white.withValues(alpha: 0.7),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                    letterSpacing: 0.5,
+                  ),
                 ),
               ),
             ),
-          );
+          ),
+        ),
+      );
         },
       ),
     );
   }
 
-  Widget _buildProductCard(StoreProduct product, List<String> wishlist) {
+  Widget _buildProductCard(StoreProduct product, List<String> wishlist, int index, int totalCount) {
     final isCrate = product.id == 'mystery-crate';
     final rarityColor = isCrate ? const Color(0xFFFF007F) : _getRarityColor(product.rarity);
     final isFree = product.price == 0;
@@ -789,7 +942,27 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
     final inCart = cart.any((item) => item.product.id == product.id);
     final inWishlist = wishlist.contains(product.id);
 
-    return SizedBox(
+    final cardWidget = ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.25),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: rarityColor.withValues(alpha: 0.25),
+              width: 1.2,
+            ),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.white.withValues(alpha: 0.04),
+                Colors.white.withValues(alpha: 0.01),
+              ],
+            ),
+          ),
       child: Stack(
         children: [
           // 1. Clickable Card Body
@@ -812,17 +985,8 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                   context.push('/store/product/${product.id}');
                 }
               },
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.black,
-                  border: Border.all(color: rarityColor, width: 2),
-                  boxShadow: [
-                    BoxShadow(
-                      color: rarityColor,
-                      offset: const Offset(3, 3),
-                    ),
-                  ],
-                ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -831,8 +995,13 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                       child: Container(
                         width: double.infinity,
                         decoration: BoxDecoration(
-                          color: rarityColor.withValues(alpha: 0.15),
-                          border: Border(bottom: BorderSide(color: rarityColor, width: 2)),
+                          color: rarityColor.withValues(alpha: 0.05),
+                          border: Border(
+                            bottom: BorderSide(
+                              color: rarityColor.withValues(alpha: 0.15),
+                              width: 1,
+                            ),
+                          ),
                         ),
                         child: Center(
                           child: product.type.toUpperCase() == 'AVATAR_DECORATION'
@@ -889,8 +1058,8 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                             product.name.toUpperCase(),
                             style: GoogleFonts.spaceGrotesk(
                               color: Colors.white,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
                               letterSpacing: 0.5,
                             ),
                             maxLines: 1,
@@ -898,7 +1067,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            product.type.toUpperCase(),
+                            product.type.toUpperCase().replaceAll('_', ' '),
                             style: GoogleFonts.spaceMono(
                               color: _muted,
                               fontSize: 9,
@@ -912,7 +1081,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                                 isFree ? 'FREE' : '₹${product.price.toStringAsFixed(0)}',
                                 style: GoogleFonts.robotoMono(
                                   color: isFree ? _lime : Colors.white,
-                                  fontWeight: FontWeight.w900,
+                                  fontWeight: FontWeight.bold,
                                   fontSize: 14,
                                 ),
                               ),
@@ -933,16 +1102,17 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
               top: 10,
               left: 10,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                decoration: const BoxDecoration(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
                   color: Colors.red,
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
                   'HOT',
                   style: GoogleFonts.spaceMono(
                     color: _white,
                     fontSize: 8,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
@@ -951,16 +1121,21 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
           // 3. Rarity Tag
           Positioned(
             top: 10,
-            left: product.isHot ? 45 : 10,
+            left: product.isHot ? 48 : 10,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: rarityColor,
+                color: rarityColor.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: rarityColor.withValues(alpha: 0.4),
+                  width: 1,
+                ),
               ),
               child: Text(
                 product.rarity.toUpperCase(),
                 style: GoogleFonts.spaceMono(
-                  color: Colors.black,
+                  color: rarityColor,
                   fontSize: 8,
                   fontWeight: FontWeight.w900,
                 ),
@@ -974,6 +1149,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
             right: 10,
             child: GestureDetector(
               onTap: () async {
+                FlickoHaptics.light();
                 await ref.read(wishlistProvider.notifier).toggle(product.id);
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -985,16 +1161,21 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                   );
                 }
               },
-              child: Container(
-                padding: const EdgeInsets.all(5),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: Colors.black,
-                  border: Border.all(color: Colors.white, width: 1.5),
+                  color: Colors.black.withValues(alpha: 0.6),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: inWishlist ? Colors.red.withValues(alpha: 0.5) : Colors.white.withValues(alpha: 0.2),
+                    width: 1,
+                  ),
                 ),
                 child: Icon(
                   inWishlist ? Icons.favorite : Icons.favorite_border,
                   color: inWishlist ? Colors.red : Colors.white,
-                  size: 16,
+                  size: 14,
                 ),
               ),
             ),
@@ -1024,23 +1205,31 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                   ),
                 );
               },
-              child: Container(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: (product.id == 'mystery-crate' || inCart) ? _lime : Colors.black,
-                  border: Border.all(color: (product.id == 'mystery-crate' || inCart) ? Colors.black : _lime, width: 2),
-                  boxShadow: [
-                    BoxShadow(
-                      color: (product.id == 'mystery-crate' || inCart) ? Colors.black : _lime,
-                      offset: const Offset(2, 2),
-                    ),
-                  ],
+                  color: (product.id == 'mystery-crate' || inCart) ? _lime : Colors.black.withValues(alpha: 0.6),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: (product.id == 'mystery-crate' || inCart) ? _lime : Colors.white.withValues(alpha: 0.2),
+                    width: 1,
+                  ),
+                  boxShadow: (product.id == 'mystery-crate' || inCart)
+                      ? [
+                          BoxShadow(
+                            color: _lime.withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : [],
                 ),
                 child: Icon(
                   product.id == 'mystery-crate'
                       ? Icons.play_arrow_rounded
                       : (inCart ? Icons.check : Icons.add_shopping_cart),
-                  color: (product.id == 'mystery-crate' || inCart) ? Colors.black : _lime,
+                  color: (product.id == 'mystery-crate' || inCart) ? Colors.black : Colors.white,
                   size: 16,
                 ),
               ),
@@ -1048,6 +1237,26 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
           ),
         ],
       ),
+    ),
+  ),
+);
+
+    // Apply cascading entrance transition
+    return TweenAnimationBuilder<double>(
+      key: ValueKey('store_card_anim_${product.id}'),
+      duration: Duration(milliseconds: 400 + (index * 60).clamp(0, 450)),
+      curve: Curves.easeOutCubic,
+      tween: Tween<double>(begin: 0.0, end: 1.0),
+      builder: (context, value, child) {
+        return Transform.translate(
+          offset: Offset(0, 30 * (1.0 - value)),
+          child: Opacity(
+            opacity: value,
+            child: child,
+          ),
+        );
+      },
+      child: cardWidget,
     );
   }
 
@@ -1162,12 +1371,14 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.black,
-          border: Border.all(color: _neon, width: 2.5),
-          boxShadow: const [
+          color: _surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: _neon.withValues(alpha: 0.2), width: 1.5),
+          boxShadow: [
             BoxShadow(
-              color: _neon,
-              offset: Offset(4, 4),
+              color: _neon.withValues(alpha: 0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
@@ -1186,9 +1397,9 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                           'Cosmic Fusion Chamber',
                           style: GoogleFonts.spaceGrotesk(
                             color: _white,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 13,
-                            letterSpacing: 1.5,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            letterSpacing: 0.5,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -1211,12 +1422,12 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
             ),
             const SizedBox(width: 12),
             Container(
-              padding: const EdgeInsets.all(6),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: _neon,
-                border: Border.all(color: Colors.black, width: 1.5),
+                color: _neon.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.bolt, color: Colors.black, size: 16),
+              child: const Icon(Icons.bolt, color: _neon, size: 18),
             ),
           ],
         ),
@@ -1234,12 +1445,14 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.black,
-          border: Border.all(color: magenta, width: 2.5),
-          boxShadow: const [
+          color: _surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: magenta.withValues(alpha: 0.2), width: 1.5),
+          boxShadow: [
             BoxShadow(
-              color: magenta,
-              offset: Offset(4, 4),
+              color: magenta.withValues(alpha: 0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
@@ -1258,9 +1471,9 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                           'Mystery Vinyl Deck',
                           style: GoogleFonts.spaceGrotesk(
                             color: _white,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 13,
-                            letterSpacing: 1.5,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            letterSpacing: 0.5,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -1268,8 +1481,11 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                       ),
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        color: magenta.withValues(alpha: 0.15),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: magenta.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                         child: Text(
                           '$ownedCount Unopened',
                           style: GoogleFonts.spaceMono(
@@ -1296,12 +1512,12 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
             ),
             const SizedBox(width: 12),
             Container(
-              padding: const EdgeInsets.all(6),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: magenta,
-                border: Border.all(color: Colors.black, width: 1.5),
+                color: magenta.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.play_arrow, color: Colors.black, size: 16),
+              child: const Icon(Icons.play_arrow, color: magenta, size: 18),
             ),
           ],
         ),
@@ -1319,12 +1535,14 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.black,
-          border: Border.all(color: gold, width: 2.5),
-          boxShadow: const [
+          color: _surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: gold.withValues(alpha: 0.2), width: 1.5),
+          boxShadow: [
             BoxShadow(
-              color: gold,
-              offset: Offset(4, 4),
+              color: gold.withValues(alpha: 0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
@@ -1343,9 +1561,9 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                           'Alchemical Crucible',
                           style: GoogleFonts.spaceGrotesk(
                             color: _white,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 13,
-                            letterSpacing: 1.5,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            letterSpacing: 0.5,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -1353,8 +1571,11 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                       ),
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        color: gold.withValues(alpha: 0.15),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: gold.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                         child: Text(
                           'Active',
                           style: GoogleFonts.spaceMono(
@@ -1381,12 +1602,12 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
             ),
             const SizedBox(width: 12),
             Container(
-              padding: const EdgeInsets.all(6),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: gold,
-                border: Border.all(color: Colors.black, width: 1.5),
+                color: gold.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.flash_on, color: Colors.black, size: 16),
+              child: const Icon(Icons.flash_on, color: gold, size: 18),
             ),
           ],
         ),
@@ -1438,8 +1659,9 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
             decoration: BoxDecoration(
-              color: Colors.black,
-              border: Border.all(color: _muted.withValues(alpha: 0.3), width: 1.5),
+              color: _surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
             ),
             child: Column(
               children: [
@@ -1447,25 +1669,26 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                   'No items owned in this category',
                   style: GoogleFonts.spaceMono(color: _muted, fontSize: 10, fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 GestureDetector(
                   onTap: () {
                     _tabController.animateTo(0);
                     setState(() => _selectedCategory = categoryIndex);
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                     decoration: BoxDecoration(
-                      color: Colors.black,
-                      border: Border.all(color: _lime, width: 1.5),
+                      color: _lime.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: _lime, width: 1.2),
                     ),
                     child: Text(
                       'Browse Store',
                       style: GoogleFonts.spaceGrotesk(
                         color: _lime,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.bold,
                         fontSize: 11,
-                        letterSpacing: 1,
+                        letterSpacing: 0.5,
                       ),
                     ),
                   ),
@@ -1533,14 +1756,21 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.black,
+        color: _surface,
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: isEquipped ? _lime : Colors.white.withValues(alpha: 0.15),
-          width: isEquipped ? 2.5 : 1.5,
+          color: isEquipped ? _lime : Colors.white.withValues(alpha: 0.08),
+          width: isEquipped ? 2.0 : 1.0,
         ),
         boxShadow: isEquipped
-            ? const [BoxShadow(color: _lime, offset: Offset(2, 2))]
-            : null,
+            ? [
+                BoxShadow(
+                  color: _lime.withValues(alpha: 0.15),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                )
+              ]
+            : [],
       ),
       child: Row(
         children: [
@@ -1548,10 +1778,11 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: isEquipped ? _lime.withValues(alpha: 0.15) : Colors.black,
+              color: isEquipped ? _lime.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: isEquipped ? _lime : Colors.white.withValues(alpha: 0.15),
-                width: 1.5,
+                color: isEquipped ? _lime.withValues(alpha: 0.4) : Colors.white.withValues(alpha: 0.08),
+                width: 1,
               ),
             ),
             child: Icon(
@@ -1572,7 +1803,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                         purchase.productName.toUpperCase(),
                         style: GoogleFonts.spaceGrotesk(
                           color: _white,
-                          fontWeight: FontWeight.w900,
+                          fontWeight: FontWeight.bold,
                           fontSize: 13,
                           letterSpacing: 0.5,
                         ),
@@ -1583,13 +1814,17 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                     if (isEquipped) ...[
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        color: _lime,
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: _lime.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: _lime.withValues(alpha: 0.4), width: 1),
+                        ),
                         child: Text(
                           'Equipped',
                           style: GoogleFonts.spaceGrotesk(
-                            color: Colors.black,
-                            fontWeight: FontWeight.w900,
+                            color: _lime,
+                            fontWeight: FontWeight.bold,
                             fontSize: 9,
                             letterSpacing: 0.5,
                           ),

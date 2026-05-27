@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:audio_session/audio_session.dart';
 import 'package:flutter/foundation.dart';
@@ -327,6 +328,28 @@ class WebRtcCallService extends ChangeNotifier {
   }
 
   Future<void> _startPhoneAudioSession() async {
+    if (Platform.isAndroid) {
+      // flutter_webrtc on Android does not switch to MODE_IN_COMMUNICATION on
+      // its own. Without this, AudioRecord initializes against the wrong
+      // stream and both ends capture silence. This must be set before
+      // getUserMedia and cannot be changed mid-session.
+      try {
+        await Helper.setAndroidAudioConfiguration(
+          AndroidAudioConfiguration.communication,
+        );
+        debugPrint('[FlickoRTC] android communication audio mode set');
+      } catch (error) {
+        debugPrint('[FlickoRTC] android audio config failed: $error');
+      }
+      _callAudioSessionActive = true;
+      return;
+    }
+
+    if (!Platform.isIOS) {
+      _callAudioSessionActive = true;
+      return;
+    }
+
     _audioSession ??= await AudioSession.instance;
     await _audioSession!.configure(AudioSessionConfiguration(
       avAudioSessionCategory: AVAudioSessionCategory.playAndRecord,
@@ -334,13 +357,6 @@ class WebRtcCallService extends ChangeNotifier {
           AVAudioSessionCategoryOptions.allowBluetooth |
               AVAudioSessionCategoryOptions.defaultToSpeaker,
       avAudioSessionMode: AVAudioSessionMode.voiceChat,
-      androidAudioAttributes: AndroidAudioAttributes(
-        contentType: AndroidAudioContentType.speech,
-        flags: AndroidAudioFlags.none,
-        usage: AndroidAudioUsage.voiceCommunication,
-      ),
-      androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
-      androidWillPauseWhenDucked: false,
     ));
 
     final activated = await _audioSession!.setActive(true);
@@ -354,6 +370,21 @@ class WebRtcCallService extends ChangeNotifier {
 
   Future<void> _stopPhoneAudioSession() async {
     if (!_callAudioSessionActive && _audioSession == null) return;
+
+    if (Platform.isAndroid) {
+      try {
+        await Helper.clearAndroidCommunicationDevice();
+      } catch (error) {
+        debugPrint('[FlickoRTC] clear android comm device ignored: $error');
+      }
+      _callAudioSessionActive = false;
+      return;
+    }
+
+    if (!Platform.isIOS) {
+      _callAudioSessionActive = false;
+      return;
+    }
 
     try {
       await _audioSession?.setActive(false);

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -87,37 +88,61 @@ class ProductDetailScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildLiquidGlassBackground({required Widget child, required Color rarityColor}) {
+    return Stack(
+      children: [
+        Container(color: const Color(0xFF000000)),
+        // Rarity ambient glow
+        Positioned(
+          top: -80,
+          left: -80,
+          child: Container(
+            width: 360,
+            height: 360,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: rarityColor.withValues(alpha: 0.22),
+            ),
+          ),
+        ),
+        // Secondary ambient glow
+        Positioned(
+          bottom: 120,
+          right: -80,
+          child: Container(
+            width: 320,
+            height: 320,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFF9B84EE).withValues(alpha: 0.12),
+            ),
+          ),
+        ),
+        Positioned.fill(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 75, sigmaY: 75),
+            child: Container(color: Colors.transparent),
+          ),
+        ),
+        child,
+      ],
+    );
+  }
+
   Widget _buildProductDetail(BuildContext context, WidgetRef ref, StoreProduct product) {
     final rarityColor = _getRarityColor(product.rarity);
     final isFree = product.price == 0;
     final cart = ref.watch(cartProvider);
     final inCart = cart.any((item) => item.product.id == product.id);
 
-    return Stack(
-      children: [
-        // Background gradient
-        Positioned(
-          top: 0,
-          left: 0,
-          right: 0,
-          height: 400,
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  rarityColor.withValues(alpha: 0.3),
-                  _bg,
-                ],
-              ),
-            ),
-          ),
-        ),
-        // Content
-        SingleChildScrollView(
-          padding: const EdgeInsets.only(bottom: 120),
-          child: Column(
+    return _buildLiquidGlassBackground(
+      rarityColor: rarityColor,
+      child: Stack(
+        children: [
+          // Content
+          SingleChildScrollView(
+            padding: const EdgeInsets.only(bottom: 120),
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 100),
@@ -239,7 +264,7 @@ class ProductDetailScreen extends ConsumerWidget {
           child: _buildBottomBar(context, ref, product, isFree, inCart),
         ),
       ],
-    );
+    ));
   }
 
   Widget _buildProductPreview(BuildContext context, WidgetRef ref, StoreProduct product, Color rarityColor) {
@@ -641,153 +666,161 @@ class ProductDetailScreen extends ConsumerWidget {
     final wishlist = ref.watch(wishlistProvider);
     final isInWishlist = wishlist.contains(product.id);
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: const BoxDecoration(
-        color: Colors.black,
-        border: Border(top: BorderSide(color: _neon, width: 2.5)),
-      ),
-      child: SafeArea(
-        child: Row(
-          children: [
-            // Wishlist button
-            GestureDetector(
-              onTap: () async {
-                await ref.read(wishlistProvider.notifier).toggle(product.id);
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(isInWishlist ? 'Removed from wishlist' : 'Added to wishlist'),
-                      backgroundColor: isInWishlist ? Colors.red : _lime,
-                      duration: const Duration(seconds: 1),
-                    ),
-                  );
-                }
-              },
-              child: Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: Colors.black,
-                  border: Border.all(
-                    color: isInWishlist ? Colors.red : _white,
-                    width: 2,
-                  ),
-                ),
-                child: Icon(
-                  isInWishlist ? Icons.favorite : Icons.favorite_border,
-                  color: isInWishlist ? Colors.red : _white.withValues(alpha: 0.7),
-                  size: 24,
-                ),
-              ),
-            ),
-            // Gift button
-            GestureDetector(
-              onTap: () => _showGiftFriendSelector(context, ref, product),
-              child: Container(
-                width: 52,
-                height: 52,
-                margin: const EdgeInsets.only(left: 8),
-                decoration: BoxDecoration(
-                  color: Colors.black,
-                  border: Border.all(
-                    color: _neon,
-                    width: 2,
-                  ),
-                ),
-                child: const Icon(
-                  Icons.card_giftcard,
-                  color: _neon,
-                  size: 24,
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'PRICE',
-                    style: GoogleFonts.spaceGrotesk(
-                      color: _muted,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  Text(
-                    isFree ? 'FREE' : '₹${product.price.toStringAsFixed(0)}',
-                    style: GoogleFonts.epilogue(
-                      color: isFree ? _lime : _white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              flex: 2,
-              child: GestureDetector(
-                onTap: () {
-                  if (inCart) {
-                    context.push('/store/cart');
-                    return;
-                  }
-
-                  ref.read(cartProvider.notifier).add(product);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('${product.name} added to cart'),
-                      backgroundColor: _lime,
-                      action: SnackBarAction(
-                        label: 'VIEW CART',
-                        textColor: Colors.black,
-                        onPressed: () => context.push('/store/cart'),
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.45),
+            border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.08), width: 1.0)),
+          ),
+          child: SafeArea(
+            child: Row(
+              children: [
+                // Wishlist button
+                GestureDetector(
+                  onTap: () async {
+                    await ref.read(wishlistProvider.notifier).toggle(product.id);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(isInWishlist ? 'Removed from wishlist' : 'Added to wishlist'),
+                          backgroundColor: isInWishlist ? Colors.red : _lime,
+                          duration: const Duration(seconds: 1),
+                        ),
+                      );
+                    }
+                  },
+                  child: Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.05),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isInWishlist ? Colors.red : Colors.white.withValues(alpha: 0.2),
+                        width: 1,
                       ),
                     ),
-                  );
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  margin: const EdgeInsets.only(right: 4, bottom: 4),
-                  decoration: BoxDecoration(
-                    color: inCart ? _lime : _neon,
-                    border: Border.all(color: Colors.black, width: 2),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Colors.white,
-                        offset: Offset(4, 4),
+                    child: Icon(
+                      isInWishlist ? Icons.favorite : Icons.favorite_border,
+                      color: isInWishlist ? Colors.red : _white.withValues(alpha: 0.7),
+                      size: 22,
+                    ),
+                  ),
+                ),
+                // Gift button
+                GestureDetector(
+                  onTap: () => _showGiftFriendSelector(context, ref, product),
+                  child: Container(
+                    width: 52,
+                    height: 52,
+                    margin: const EdgeInsets.only(left: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.05),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: _neon.withValues(alpha: 0.4),
+                        width: 1,
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.card_giftcard,
+                      color: _neon,
+                      size: 22,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'PRICE',
+                        style: GoogleFonts.spaceGrotesk(
+                          color: _muted,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        isFree ? 'FREE' : '₹${product.price.toStringAsFixed(0)}',
+                        style: GoogleFonts.epilogue(
+                          color: isFree ? _lime : _white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ],
                   ),
-                  child: Center(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          inCart ? Icons.shopping_bag : Icons.add_shopping_cart,
-                          color: Colors.black,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          inCart ? 'IN CART' : (isFree ? 'GET FREE' : 'ADD'),
-                          style: GoogleFonts.spaceGrotesk(
-                            color: Colors.black,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 14,
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  flex: 2,
+                  child: GestureDetector(
+                    onTap: () {
+                      if (inCart) {
+                        context.push('/store/cart');
+                        return;
+                      }
+
+                      ref.read(cartProvider.notifier).add(product);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('${product.name} added to cart'),
+                          backgroundColor: _lime,
+                          action: SnackBarAction(
+                            label: 'VIEW CART',
+                            textColor: Colors.black,
+                            onPressed: () => context.push('/store/cart'),
                           ),
                         ),
-                      ],
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      decoration: BoxDecoration(
+                        color: inCart ? _lime : _neon,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: (inCart ? _lime : _neon).withValues(alpha: 0.3),
+                            blurRadius: 16,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              inCart ? Icons.shopping_bag : Icons.add_shopping_cart,
+                              color: Colors.black,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              inCart ? 'VIEW CART' : 'ADD TO CART',
+                              style: GoogleFonts.spaceGrotesk(
+                                color: Colors.black,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 13,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

@@ -17,6 +17,7 @@ import (
 	"github.com/flicko-org/flicko-backend/internal/services/ratelimit"
 	"github.com/flicko-org/flicko-backend/internal/services/rng"
 	"github.com/gorilla/mux"
+	"github.com/hibiken/asynq"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
@@ -32,6 +33,12 @@ type Hub struct {
 	ludoEngine     gameSvc.LudoEngine
 	stockfishPool  chess.StockfishPool
 	botCoordinator bots.BotCoordinator
+	asynqCoord     *bots.AsynqBotCoordinator // CRIT-9: exposed for main.go worker registration
+}
+
+// BotCoordinatorAsynq returns the AsynqBotCoordinator if available (may be nil).
+func (h *Hub) BotCoordinatorAsynq() *bots.AsynqBotCoordinator {
+	return h.asynqCoord
 }
 
 // hubGameAccessValidator implements centrifugo.GameAccessValidator
@@ -59,6 +66,15 @@ func (v *hubGameAccessValidator) GetGameStatusAndPlayers(ctx context.Context, ga
 type hubGameService struct {
 	stateService   gameSvc.StateService
 	chessValidator *gameSvc.ChessValidator
+}
+
+// hubStateReader adapts gameSvc.StateService to bots.StateReader.
+type hubStateReader struct {
+	stateService gameSvc.StateService
+}
+
+func (r *hubStateReader) GetGameState(ctx context.Context, gameID string) (json.RawMessage, int, error) {
+	return r.stateService.GetGameState(ctx, gameID)
 }
 
 func (s *hubGameService) ProcessMove(ctx context.Context, gameID, playerID, move string) error {
@@ -122,8 +138,22 @@ func Initialize(ctx context.Context, logger *zap.Logger, db *pgxpool.Pool, rc *r
 	if err != nil {
 		return nil, err
 	}
-	
-	botCoordinator := bots.NewBotCoordinator(stockfishPool, &hubGameService{stateService: stateService, chessValidator: chessValidator}, lockService, logger)
+
+	gameSvcAdapter := &hubGameService{stateService: stateService, chessValidator: chessValidator}
+	botCoordinator := bots.NewBotCoordinator(stockfishPool, gameSvcAdapter, lockService, logger)
+
+	// 5b. Asynq-backed coordinator (HIGH-15 + CRIT-9 wiring).
+	// Survives pod restart since tasks live in Redis.
+	asynqClient := asynq.NewClient(asynq.RedisClientOpt{Addr: rc.Options().Addr})
+	asynqCoord := bots.NewAsynqBotCoordinator(
+		asynqClient,
+		stockfishPool,
+		gameSvcAdapter,
+		lockService,
+		&hubStateReader{stateService: stateService},
+		ludoEngine,
+		logger,
+	)
 
 	// 6. Edge Handlers (API & Proxy)
 	proxyHandler := centrifugo.NewCentrifugoProxyHandler(logger, &hubGameAccessValidator{stateService: stateService})
@@ -158,6 +188,7 @@ func Initialize(ctx context.Context, logger *zap.Logger, db *pgxpool.Pool, rc *r
 		ludoEngine:     ludoEngine,
 		stockfishPool:  stockfishPool,
 		botCoordinator: botCoordinator,
+		asynqCoord:     asynqCoord,
 	}, nil
 }
 

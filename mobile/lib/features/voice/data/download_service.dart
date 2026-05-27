@@ -228,6 +228,8 @@ class DownloadServiceImpl implements DownloadService {
     return dir;
   }
 
+  String _filenameFor(Track track) => '${track.id}.m4a';
+
   @override
   Future<void> download(Track track, String streamUrl) async {
     final cancelToken = CancelToken();
@@ -235,7 +237,7 @@ class DownloadServiceImpl implements DownloadService {
 
     try {
       final dir = await _getDownloadsDir();
-      final fileName = '${track.id}_${DateTime.now().millisecondsSinceEpoch}.m4a';
+      final fileName = _filenameFor(track);
       final localPath = '${dir.path}/$fileName';
 
       await _dio.download(
@@ -273,9 +275,56 @@ class DownloadServiceImpl implements DownloadService {
 
   @override
   Future<void> resume(String trackId) async {
-    // For resume, we'd need to implement range requests
-    // For simplicity, restart download
-    dev.log('Resume not implemented, would restart download', name: 'download');
+    final task = _ref.read(downloadsProvider).tasks[trackId];
+    if (task == null) {
+      dev.log('Resume requested but no task for $trackId', name: 'download');
+      return;
+    }
+    final dir = await _getDownloadsDir();
+    final localPath = '${dir.path}/${_filenameFor(task.track)}';
+    final file = File(localPath);
+    int existingBytes = 0;
+    if (await file.exists()) {
+      existingBytes = await file.length();
+    }
+
+    final cancelToken = CancelToken();
+    _cancelTokens[trackId] = cancelToken;
+
+    final streamUrl = task.track.previewUrl;
+    if (streamUrl == null || streamUrl.isEmpty) {
+      _ref.read(downloadsProvider.notifier).fail(trackId, 'no source URL to resume');
+      return;
+    }
+
+    try {
+      _ref.read(downloadsProvider.notifier).updateProgress(trackId, task.progress);
+      await _dio.download(
+        streamUrl,
+        localPath,
+        cancelToken: cancelToken,
+        deleteOnError: false,
+        options: Options(headers: {
+          if (existingBytes > 0) 'Range': 'bytes=$existingBytes-',
+        }),
+        onReceiveProgress: (received, total) {
+          if (total > 0) {
+            final progress = (existingBytes + received) / (existingBytes + total);
+            _ref.read(downloadsProvider.notifier).updateProgress(trackId, progress.clamp(0.0, 1.0));
+          }
+        },
+      );
+      await _saveTrackMetadata(task.track, localPath);
+      _ref.read(downloadsProvider.notifier).complete(trackId, localPath);
+      _cancelTokens.remove(trackId);
+    } catch (e) {
+      if (e is DioException && e.type == DioExceptionType.cancel) {
+        dev.log('Resume paused: ${task.track.name}', name: 'download');
+      } else {
+        dev.log('Resume error: $e', name: 'download');
+        _ref.read(downloadsProvider.notifier).fail(trackId, e.toString());
+      }
+    }
   }
 
   @override
@@ -296,13 +345,15 @@ class DownloadServiceImpl implements DownloadService {
   @override
   Future<void> delete(String trackId) async {
     await cancel(trackId);
-    
-    // Delete local file
+
+    // Delete local file by exact name match (avoids prefix collisions where
+    // trackId "12345" would also match "123456.m4a").
     final dir = await _getDownloadsDir();
+    final exactName = '$trackId.m4a';
     final files = await dir.list().toList();
-    for (final file in files) {
-      if (file.path.contains(trackId)) {
-        await file.delete();
+    for (final entity in files) {
+      if (entity is File && entity.uri.pathSegments.last == exactName) {
+        await entity.delete();
       }
     }
 
@@ -315,12 +366,9 @@ class DownloadServiceImpl implements DownloadService {
   @override
   Future<String?> getLocalPath(String trackId) async {
     final dir = await _getDownloadsDir();
-    final files = await dir.list().toList();
-    for (final file in files) {
-      if (file.path.contains(trackId) && file is File) {
-        return file.path;
-      }
-    }
+    final exactName = '$trackId.m4a';
+    final file = File('${dir.path}/$exactName');
+    if (await file.exists()) return file.path;
     return null;
   }
 
@@ -380,19 +428,31 @@ class DownloadServiceImpl implements DownloadService {
   Future<void> _saveTrackMetadata(Track track, String localPath) async {
     final prefs = await SharedPreferences.getInstance();
     final metaKey = 'download_meta_${track.id}';
-    await prefs.setString(metaKey, _trackToJson(track));
+    await prefs.setString(metaKey, jsonEncode(_trackToMap(track, localPath)));
   }
 
-  String _trackToJson(Track track) => 
-    '{"id":"${track.id}","name":"${track.name}","artistName":"${track.artistName}","albumName":"${track.albumName ?? ""}","durationMs":${track.durationMs ?? 0},"imageUrl":"${track.imageUrl ?? ""}","source":"${track.source}"}';
+  Map<String, dynamic> _trackToMap(Track track, String? localPath) => {
+        'id': track.id,
+        'name': track.name,
+        'artistName': track.artistName,
+        'albumName': track.albumName,
+        'durationMs': track.durationMs,
+        'imageUrl': track.imageUrl,
+        'previewUrl': track.previewUrl,
+        'externalUrl': track.externalUrl,
+        'source': track.source,
+        if (localPath != null) 'localPath': localPath,
+      };
 
   Track _trackFromJson(Map<String, dynamic> json) => Track(
-    id: json['id'] as String,
-    name: json['name'] as String,
-    artistName: json['artistName'] as String,
-    albumName: json['albumName'] as String?,
-    durationMs: json['durationMs'] as int?,
-    imageUrl: json['imageUrl'] as String?,
-    source: json['source'] as String? ?? 'saavn',
-  );
+        id: json['id'] as String,
+        name: json['name'] as String? ?? 'Unknown',
+        artistName: json['artistName'] as String? ?? 'Unknown Artist',
+        albumName: json['albumName'] as String?,
+        durationMs: json['durationMs'] as int?,
+        imageUrl: json['imageUrl'] as String?,
+        previewUrl: json['previewUrl'] as String?,
+        externalUrl: json['externalUrl'] as String?,
+        source: json['source'] as String? ?? 'saavn',
+      );
 }

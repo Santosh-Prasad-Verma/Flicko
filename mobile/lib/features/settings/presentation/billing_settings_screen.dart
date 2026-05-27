@@ -5,6 +5,9 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
+import 'dart:ui' show ImageFilter;
+import 'dart:math' show pi;
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class BillingSettingsScreen extends ConsumerStatefulWidget {
   const BillingSettingsScreen({super.key});
@@ -691,7 +694,7 @@ class _BillingSettingsScreenState extends ConsumerState<BillingSettingsScreen> {
               child: _buildActionCard(
                 icon: Icons.receipt_long,
                 title: 'Invoices',
-                onTap: () => context.push('/profile/settings/billing/invoices'),
+                onTap: () => context.push('/profile/settings/billing/history'),
               ),
             ),
             const SizedBox(width: 12),
@@ -925,38 +928,625 @@ class _BillingSettingsScreenState extends ConsumerState<BillingSettingsScreen> {
   }
 
   void _showRedeemDialog() {
-    final controller = TextEditingController();
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: grey,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Redeem Code', style: GoogleFonts.spaceGrotesk(color: white, fontWeight: FontWeight.w900)),
-        content: TextField(
-          controller: controller,
-          style: GoogleFonts.spaceGrotesk(color: white),
-          decoration: InputDecoration(
-            hintText: 'Enter code',
-            hintStyle: GoogleFonts.spaceGrotesk(color: white.withValues(alpha: 0.3)),
-            filled: true,
-            fillColor: black,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+      barrierColor: Colors.black.withValues(alpha: 0.65),
+      builder: (ctx) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+        child: GlassRedeemDialog(
+          onSuccess: () {
+            ref.invalidate(subscriptionProvider);
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class GlassRedeemDialog extends StatefulWidget {
+  final VoidCallback onSuccess;
+
+  const GlassRedeemDialog({super.key, required this.onSuccess});
+
+  @override
+  State<GlassRedeemDialog> createState() => _GlassRedeemDialogState();
+}
+
+class _GlassRedeemDialogState extends State<GlassRedeemDialog> with SingleTickerProviderStateMixin {
+  final _controller = TextEditingController();
+  final _focusNode = FocusNode();
+  bool _isLoading = false;
+  bool _isSuccess = false;
+  String? _errorMessage;
+  bool _hasText = false;
+  String _unlockedPlan = '';
+  int _durationDays = 0;
+  DateTime? _expiryDate;
+
+  late AnimationController _animController;
+  late Animation<double> _spinAnimation;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _fadeAnimation;
+
+  static const Color lime = Color(0xFF52B788);
+  static const Color black = Color(0xFF000000);
+  static const Color white = Color(0xFFFFFFFF);
+  static const Color grey = Color(0xFF1A1A1A);
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(_onTextChanged);
+    
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2200),
+    );
+
+    _spinAnimation = Tween<double>(begin: 0.0, end: 4 * pi).animate(
+      CurvedAnimation(
+        parent: _animController,
+        curve: const Interval(0.0, 0.85, curve: Curves.easeInOutCubic),
+      ),
+    );
+
+    _scaleAnimation = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween<double>(begin: 0.2, end: 1.15).chain(CurveTween(curve: Curves.easeOutBack)), weight: 60),
+      TweenSequenceItem(tween: Tween<double>(begin: 1.15, end: 1.0).chain(CurveTween(curve: Curves.easeInOut)), weight: 40),
+    ]).animate(
+      CurvedAnimation(
+        parent: _animController,
+        curve: const Interval(0.0, 0.9, curve: Curves.easeOutCubic),
+      ),
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animController,
+        curve: const Interval(0.1, 0.6, curve: Curves.easeIn),
+      ),
+    );
+  }
+
+  void _onTextChanged() {
+    setState(() {
+      _hasText = _controller.text.isNotEmpty;
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_onTextChanged);
+    _controller.dispose();
+    _focusNode.dispose();
+    _animController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _redeemCode() async {
+    final code = _controller.text.trim();
+    if (code.isEmpty) return;
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final client = Supabase.instance.client;
+      final user = client.auth.currentUser;
+      if (user == null) {
+        throw Exception("Authentication required. Please sign in again.");
+      }
+
+      final response = await client.rpc('redeem_gift_code', params: {
+        'p_code': code,
+        'p_user_id': user.id,
+      });
+
+      if (response != null && response['success'] == true) {
+        final plan = response['plan'] as String;
+        final durationDays = response['duration_days'] as int;
+
+        setState(() {
+          _unlockedPlan = plan;
+          _durationDays = durationDays;
+          _expiryDate = DateTime.now().add(Duration(days: durationDays));
+          _isSuccess = true;
+          _isLoading = false;
+        });
+
+        await _showSuccessNotification(plan, durationDays);
+        _animController.forward();
+        widget.onSuccess();
+      } else {
+        setState(() {
+          _errorMessage = response?['error'] ?? "Voucher is invalid or already claimed.";
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString().replaceAll("Exception: ", "");
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _showSuccessNotification(String plan, int duration) async {
+    try {
+      final plugin = FlutterLocalNotificationsPlugin();
+      
+      const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+      const darwinSettings = DarwinInitializationSettings(
+        requestAlertPermission: true,
+        requestBadgePermission: true,
+        requestSoundPermission: true,
+      );
+      const settings = InitializationSettings(
+        android: androidSettings,
+        iOS: darwinSettings,
+        macOS: darwinSettings,
+      );
+      await plugin.initialize(settings: settings);
+
+      const androidDetails = AndroidNotificationDetails(
+        'flicko_claims_channel',
+        'Claims',
+        channelDescription: 'Flicko gift redemption success notifications',
+        importance: Importance.high,
+        priority: Priority.high,
+        showWhen: true,
+        icon: '@mipmap/ic_launcher',
+      );
+      
+      const darwinDetails = DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      );
+      
+      const details = NotificationDetails(
+        android: androidDetails,
+        iOS: darwinDetails,
+        macOS: darwinDetails,
+      );
+      
+      final planName = plan == 'nitro_full' ? 'FLICKO PRO' : 'FLICKO PLUS';
+      
+      await plugin.show(
+        id: 9999,
+        title: 'Redemption Successful! 🎉',
+        body: 'You have unlocked $planName for $duration days. Enjoy your premium benefits!',
+        notificationDetails: details,
+      );
+    } catch (e) {
+      debugPrint('[NOTIFICATION_ERROR] Failed to show system notification: $e');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Center(
+        child: SingleChildScrollView(
+          child: AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            child: Container(
+              width: 380,
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.45),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.12),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: lime.withValues(alpha: 0.08),
+                    blurRadius: 24,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: Padding(
+                  padding: const EdgeInsets.all(28.0),
+                  child: _isSuccess ? _buildSuccessState() : _buildInputState(),
+                ),
+              ),
+            ),
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel', style: GoogleFonts.spaceGrotesk(color: white.withValues(alpha: 0.5))),
+      ),
+    );
+  }
+
+  Widget _buildInputState() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: lime.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.vpn_key_outlined, color: lime, size: 24),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'REDEEM CODE',
+              style: GoogleFonts.spaceGrotesk(
+                color: white,
+                fontWeight: FontWeight.w900,
+                fontSize: 20,
+                letterSpacing: 1.5,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'Enter your premium voucher code to instantly unlock exclusive subscription tiers and enjoy high-fidelity streaming.',
+          style: GoogleFonts.spaceGrotesk(
+            color: white.withValues(alpha: 0.65),
+            fontSize: 14,
+            height: 1.4,
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Code redeemed successfully!'), backgroundColor: lime),
-              );
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: lime),
-            child: Text('Redeem', style: GoogleFonts.spaceGrotesk(color: black, fontWeight: FontWeight.w700)),
+        ),
+        const SizedBox(height: 24),
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.04),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: _hasText ? Colors.transparent : Colors.white.withValues(alpha: 0.12),
+              width: 1.5,
+            ),
+            boxShadow: _hasText
+                ? [
+                    BoxShadow(
+                      color: lime.withValues(alpha: 0.15),
+                      blurRadius: 10,
+                      spreadRadius: 1,
+                    )
+                  ]
+                : [],
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: TextField(
+            controller: _controller,
+            focusNode: _focusNode,
+            autofocus: true,
+            style: GoogleFonts.spaceGrotesk(
+              color: white,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1.5,
+            ),
+            textCapitalization: TextCapitalization.characters,
+            decoration: InputDecoration(
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              hintText: 'e.g. FLICKO-PRO-30DAYS',
+              hintStyle: GoogleFonts.spaceGrotesk(
+                color: Colors.white.withValues(alpha: 0.25),
+                letterSpacing: 1.0,
+              ),
+            ),
+          ),
+        ),
+        if (_errorMessage != null) ...[
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.red.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.red.withValues(alpha: 0.25)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.red, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _errorMessage!,
+                    style: GoogleFonts.spaceGrotesk(color: Colors.redAccent, fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+        const SizedBox(height: 28),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            TextButton(
+              onPressed: _isLoading ? null : () => Navigator.pop(context),
+              child: Text(
+                'Cancel',
+                style: GoogleFonts.spaceGrotesk(
+                  color: white.withValues(alpha: 0.5),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            ElevatedButton(
+              onPressed: _isLoading ? null : _redeemCode,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: lime,
+                disabledBackgroundColor: lime.withValues(alpha: 0.5),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                elevation: 4,
+                shadowColor: lime.withValues(alpha: 0.2),
+              ),
+              child: _isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(black),
+                      ),
+                    )
+                  : Text(
+                      'Redeem',
+                      style: GoogleFonts.spaceGrotesk(
+                        color: black,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                      ),
+                    ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSuccessState() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const SizedBox(height: 8),
+        AnimatedBuilder(
+          animation: _animController,
+          builder: (context, child) {
+            final transform = Matrix4.identity()
+              ..setEntry(3, 2, 0.0015)
+              ..rotateY(_spinAnimation.value)
+              ..scale(_scaleAnimation.value, _scaleAnimation.value, 1.0);
+
+            return Transform(
+              transform: transform,
+              alignment: Alignment.center,
+              child: Opacity(
+                opacity: _fadeAnimation.value,
+                child: _buildMembershipCard(),
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: 28),
+        Text(
+          'MEMBERSHIP ACTIVATED!',
+          style: GoogleFonts.spaceGrotesk(
+            color: lime,
+            fontWeight: FontWeight.w900,
+            fontSize: 20,
+            letterSpacing: 2.0,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 12),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+          child: Text(
+            'Your premium pass has been successfully claim-locked. Enjoy unlimited high-fidelity features!',
+            style: GoogleFonts.spaceGrotesk(
+              color: white.withValues(alpha: 0.7),
+              fontSize: 13,
+              height: 1.4,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ),
+        const SizedBox(height: 24),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: () => Navigator.pop(context),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+            child: Text(
+              'Get Started',
+              style: GoogleFonts.spaceGrotesk(
+                color: black,
+                fontWeight: FontWeight.w800,
+                fontSize: 15,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMembershipCard() {
+    final isPro = _unlockedPlan == 'nitro_full';
+    final planTitle = isPro ? 'FLICKO PRO' : 'FLICKO PLUS';
+    final cardId = Supabase.instance.client.auth.currentUser?.id.substring(0, 8).toUpperCase() ?? '00000000';
+    final formattedDate = _expiryDate != null ? DateFormat('MM/yy').format(_expiryDate!) : '--/--';
+
+    return Container(
+      width: 320,
+      height: 190,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isPro
+              ? [
+                  const Color(0xFF1E3A1A).withValues(alpha: 0.9),
+                  const Color(0xFF0F1A0D).withValues(alpha: 0.9),
+                ]
+              : [
+                  const Color(0xFF1A1F38).withValues(alpha: 0.9),
+                  const Color(0xFF0D101D).withValues(alpha: 0.9),
+                ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: white.withValues(alpha: 0.16),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: lime.withValues(alpha: 0.35),
+            blurRadius: 28,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            right: -20,
+            bottom: -20,
+            child: Icon(
+              Icons.stars,
+              size: 150,
+              color: white.withValues(alpha: 0.03),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'FLICKO',
+                      style: GoogleFonts.spaceGrotesk(
+                        color: lime,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 18,
+                        letterSpacing: 3.5,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: white.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: white.withValues(alpha: 0.1), width: 0.5),
+                      ),
+                      child: Text(
+                        'VIP',
+                        style: GoogleFonts.spaceGrotesk(
+                          color: white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFE5C158), Color(0xFFF5E4B7), Color(0xFFC09B30)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: Colors.amber.shade700.withValues(alpha: 0.5), width: 0.5),
+                      ),
+                      child: CustomPaint(painter: _ChipPainter()),
+                    ),
+                    const SizedBox(width: 12),
+                    const Icon(
+                      Icons.contactless_outlined,
+                      color: Colors.white24,
+                      size: 22,
+                    ),
+                  ],
+                ),
+                const Spacer(),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      planTitle,
+                      style: GoogleFonts.spaceGrotesk(
+                        color: white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 22,
+                        letterSpacing: 2.0,
+                        shadows: [
+                          Shadow(
+                            color: Colors.black45,
+                            offset: const Offset(1, 1),
+                            blurRadius: 4,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'MEMBER: #$cardId',
+                          style: GoogleFonts.spaceGrotesk(
+                            color: white.withValues(alpha: 0.5),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 1.0,
+                          ),
+                        ),
+                        Text(
+                          'EXP: $formattedDate',
+                          style: GoogleFonts.spaceGrotesk(
+                            color: white.withValues(alpha: 0.5),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 1.0,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ],
       ),

@@ -57,6 +57,9 @@ _DMMessage _$DMMessageFromJson(Map<String, dynamic> json) => _DMMessage(
       recipientId: json['recipient_id'] as String,
       content: json['content'] as String,
       createdAt: DateTime.parse(json['created_at'] as String),
+      editedAt: json['edited_at'] == null
+          ? null
+          : DateTime.parse(json['edited_at'] as String),
       sender: json['sender'] == null
           ? null
           : UserModel.fromJson(json['sender'] as Map<String, dynamic>),
@@ -66,6 +69,10 @@ _DMMessage _$DMMessageFromJson(Map<String, dynamic> json) => _DMMessage(
       attachments: (json['attachments'] as List<dynamic>?)
           ?.map((e) => DMAttachment.fromJson(e as Map<String, dynamic>))
           .toList(),
+      reactions: (json['reactions'] as List<dynamic>?)
+              ?.map((e) => FlickoReaction.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
     );
 
 Map<String, dynamic> _$DMMessageToJson(_DMMessage instance) =>
@@ -75,7 +82,9 @@ Map<String, dynamic> _$DMMessageToJson(_DMMessage instance) =>
       'recipient_id': instance.recipientId,
       'content': instance.content,
       'created_at': instance.createdAt.toIso8601String(),
+      'edited_at': instance.editedAt?.toIso8601String(),
       'sender': instance.sender,
       'recipient': instance.recipient,
       'attachments': instance.attachments,
+      'reactions': instance.reactions,
     };

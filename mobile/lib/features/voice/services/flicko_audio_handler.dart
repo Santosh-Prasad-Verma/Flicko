@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:audio_service/audio_service.dart';
+import 'package:audio_session/audio_session.dart';
 import 'package:just_audio/just_audio.dart';
 
 /// Routes [just_audio] playback through `audio_service` so the system
@@ -21,16 +24,26 @@ import 'package:just_audio/just_audio.dart';
 class FlickoAudioHandler extends BaseAudioHandler with SeekHandler {
   final AudioPlayer _player = AudioPlayer();
 
+  /// External callbacks wired by [SonicDripNotifier] so the notification's
+  /// Next/Previous buttons can drive the queue.
+  Future<void> Function()? onSkipNext;
+  Future<void> Function()? onSkipPrevious;
+
   FlickoAudioHandler() {
+    _configureSession();
     _player.playbackEventStream.listen(_broadcastState);
-    _player.processingStateStream.listen((s) {
-      if (s == ProcessingState.completed) {
-        // Auto-advance hooks can plug in here.
-      }
-    });
   }
 
   AudioPlayer get player => _player;
+
+  Future<void> _configureSession() async {
+    try {
+      final session = await AudioSession.instance;
+      await session.configure(const AudioSessionConfiguration.music());
+    } catch (_) {
+      // configure() can throw on some emulators; non-fatal
+    }
+  }
 
   /// Loads a track and announces it to the system media session.
   Future<void> playTrack({
@@ -74,13 +87,16 @@ class FlickoAudioHandler extends BaseAudioHandler with SeekHandler {
 
   @override
   Future<void> skipToNext() async {
-    // Wire to your queue notifier; left intentionally empty so consumers
-    // can override or call from outside.
+    if (onSkipNext != null) {
+      await onSkipNext!();
+    }
   }
 
   @override
   Future<void> skipToPrevious() async {
-    // Same as skipToNext — wire to your queue notifier.
+    if (onSkipPrevious != null) {
+      await onSkipPrevious!();
+    }
   }
 
   void _broadcastState(PlaybackEvent event) {

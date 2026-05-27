@@ -26,13 +26,34 @@ func NewBridge(db database.DatabaseClient, bus *EventBus, logger *zap.Logger) *B
 
 // Start registers the bridge as a subscriber to the event bus.
 func (b *Bridge) Start() {
-	// Subscribe to events that should be broadcast to clients via Realtime
+	// HIGH-8 fix: subscribe to ALL event types that should be broadcast to
+	// clients via Realtime, not just the original 5.
 	clientEvents := []EventType{
 		MusicUpdate,
 		VoiceJoin,
 		VoiceLeave,
 		VideoToggle,
 		ScreenShareToggle,
+		// Member events
+		MemberJoin,
+		MemberLeave,
+		MemberBan,
+		MemberUnban,
+		MemberKick,
+		// Message events
+		MessageCreate,
+		MessageUpdate,
+		MessageDelete,
+		// Channel events
+		ChannelCreate,
+		ChannelUpdate,
+		ChannelDelete,
+		// Role events
+		RoleCreate,
+		RoleUpdate,
+		RoleDelete,
+		// Command responses (for realtime slash-command UX)
+		CommandInvoke,
 	}
 
 	b.bus.SubscribeMany(clientEvents, "bridge.supabase", b.handleClientEvent)

@@ -111,8 +111,7 @@ class DMChatController extends Notifier<DMChatState> {
     if (_myId.isEmpty) return;
 
     _subscription =
-        _repository.subscribeToConversation(_myId, _otherUserId, (newMessage) {
-      // Fetching messages guarantees the full profile is loaded via join
+        _repository.subscribeToConversation(_myId, _otherUserId, () {
       fetchMessages();
     });
   }
@@ -165,6 +164,33 @@ class DMChatController extends Notifier<DMChatState> {
       fetchMessages();
     } catch (e) {
       state = state.copyWith(isSending: false, error: e.toString());
+    }
+  }
+
+  Future<void> editMessage(String messageId, String content) async {
+    try {
+      await _repository.editMessage(messageId, _otherUserId, content);
+      fetchMessages();
+    } catch (e) {
+      state = state.copyWith(error: e.toString());
+    }
+  }
+
+  Future<void> deleteMessage(String messageId) async {
+    try {
+      await _repository.deleteMessage(messageId);
+      fetchMessages();
+    } catch (e) {
+      state = state.copyWith(error: e.toString());
+    }
+  }
+
+  Future<void> toggleReaction(String messageId, String emoji) async {
+    try {
+      await _repository.toggleReaction(messageId, emoji);
+      fetchMessages();
+    } catch (e) {
+      state = state.copyWith(error: e.toString());
     }
   }
 }
