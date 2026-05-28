@@ -41,20 +41,10 @@ class ServersScreen extends ConsumerWidget {
       );
     }
 
-    if (normalServers.isEmpty) {
-      normalServers.add(
-        ServerModel(
-          id: 'sole-syndicate',
-          name: 'Sole Syndicate',
-          ownerId: 'system',
-          createdAt: DateTime.now(),
-        ),
-      );
-    }
-
     final servers = [...normalServers];
 
-    final selectedServerId = serversState.selectedServerId ?? servers.first.id;
+    final hasNoServers = servers.isEmpty;
+    final selectedServerId = serversState.selectedServerId ?? (hasNoServers ? 'empty' : servers.first.id);
 
     final selectedServer = selectedServerId == 'gaming'
         ? ServerModel(
@@ -63,10 +53,19 @@ class ServersScreen extends ConsumerWidget {
             ownerId: 'system',
             createdAt: DateTime.now(),
           )
-        : servers.firstWhere(
-            (s) => s.id == selectedServerId,
-            orElse: () => servers.first,
-          );
+        : (hasNoServers
+            ? ServerModel(
+                id: 'empty',
+                name: 'No Server',
+                ownerId: 'system',
+                createdAt: DateTime.now(),
+              )
+            : servers.firstWhere(
+                (s) => s.id == selectedServerId,
+                orElse: () => servers.first,
+              ));
+
+    final showEmptyState = hasNoServers && selectedServerId != 'gaming';
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -296,16 +295,18 @@ class ServersScreen extends ConsumerWidget {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(28),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Visual Server Banner & Icon overlapping
-                      SizedBox(
-                        height: 156,
-                        child: Stack(
+                  child: showEmptyState
+                      ? _buildEmptyState(context)
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(
-                              height: 120,
+                            // Visual Server Banner & Icon overlapping
+                            SizedBox(
+                              height: 130,
+                              child: Stack(
+                                children: [
+                                  Container(
+                                    height: 100,
                               width: double.infinity,
                               decoration: BoxDecoration(
                                 color: const Color(0xFFC0EB10),
@@ -863,6 +864,125 @@ class ServersScreen extends ConsumerWidget {
             ),
           ],
         ),
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Spacer(),
+          // Futuristic Constellation / Compass Icon
+          Container(
+            width: 76,
+            height: 76,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFF111111),
+              border: Border.all(
+                color: const Color(0xFF10B981).withValues(alpha: 0.3),
+                width: 2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF10B981).withValues(alpha: 0.08),
+                  blurRadius: 20,
+                  spreadRadius: 4,
+                ),
+              ],
+            ),
+            child: const Icon(
+              Icons.explore_outlined,
+              size: 36,
+              color: Color(0xFF10B981),
+            ),
+          ),
+          const SizedBox(height: 20),
+          // Heading
+          Text(
+            'WELCOME TO FLICKO',
+            style: GoogleFonts.outfit(
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+              color: Colors.white,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 10),
+          // Subheading
+          Text(
+            'Flicko is better with servers. Join public spaces to meet new creators, or launch your own space to invite friends.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.outfit(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF9CA3AF),
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 28),
+          // Primary Action: Explore
+          GestureDetector(
+            onTap: () => context.push('/discover'),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE4F98E),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.black, width: 2),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.white,
+                    offset: Offset(4, 4),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Text(
+                  'EXPLORE PUBLIC SPACES',
+                  style: GoogleFonts.outfit(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 13,
+                    color: Colors.black,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          // Secondary Action: Create
+          GestureDetector(
+            onTap: () => context.push('/server/create'),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              decoration: BoxDecoration(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: const Color(0xFF10B981).withValues(alpha: 0.4),
+                  width: 1.5,
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  'CREATE A SPACE',
+                  style: GoogleFonts.outfit(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: const Color(0xFF10B981),
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const Spacer(),
+        ],
       ),
     );
   }
