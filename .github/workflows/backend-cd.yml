@@ -7,7 +7,10 @@ on:
     paths:
       - 'backend/**'
       - 'services/**'
+      - 'mail-gateway/**'
+      - 'nginx/**'
       - 'docker-compose.prod.yml'
+
   workflow_dispatch:
 
 env:

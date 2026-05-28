@@ -8,7 +8,10 @@ on:
     paths:
       - 'backend/**'
       - 'services/**'
+      - 'mail-gateway/**'
+      - 'nginx/**'
       - 'docker-compose.prod.yml'
+
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
