@@ -81,7 +81,7 @@ class _CosmeticFusionScreenState extends ConsumerState<CosmeticFusionScreen> wit
         ),
         title: Text(
           'FUSION_REACTOR',
-          style: GoogleFonts.spaceGrotesk(
+          style: GoogleFonts.inter(
             color: _white,
             fontWeight: FontWeight.w900,
             fontSize: 18,
@@ -159,7 +159,7 @@ class _CosmeticFusionScreenState extends ConsumerState<CosmeticFusionScreen> wit
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Text(
         text,
-        style: GoogleFonts.spaceMono(
+        style: GoogleFonts.inter(
           color: Colors.black,
           fontWeight: FontWeight.w900,
           fontSize: 10,
@@ -176,11 +176,10 @@ class _CosmeticFusionScreenState extends ConsumerState<CosmeticFusionScreen> wit
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.black,
-        border: Border.all(color: _lime, width: 2.5),
-        boxShadow: const [
-          BoxShadow(
-            color: _lime,
-            offset: Offset(4, 4),
+        border: Border.all(color: _lime, width: 1),
+        boxShadow:  [
+          BoxShadow(color: _lime.withValues(alpha: 0.25),
+            blurRadius: 14, offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -233,9 +232,8 @@ class _CosmeticFusionScreenState extends ConsumerState<CosmeticFusionScreen> wit
           color: Colors.black,
           border: Border.all(color: _lime, width: 2),
           boxShadow: [
-            BoxShadow(
-              color: _lime.withValues(alpha: 0.3),
-              offset: const Offset(3, 3),
+            BoxShadow(color: _lime.withValues(alpha: 0.3),
+              blurRadius: 14, offset: const Offset(0, 4),
             ),
           ],
         ),
@@ -248,7 +246,7 @@ class _CosmeticFusionScreenState extends ConsumerState<CosmeticFusionScreen> wit
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: Text(
                 item.productName.toUpperCase(),
-                style: GoogleFonts.spaceMono(
+                style: GoogleFonts.inter(
                   color: _white,
                   fontWeight: FontWeight.w900,
                   fontSize: 7,
@@ -283,7 +281,7 @@ class _CosmeticFusionScreenState extends ConsumerState<CosmeticFusionScreen> wit
           const SizedBox(height: 6),
           Text(
             'SLOT_0$slotIndex',
-            style: GoogleFonts.spaceMono(
+            style: GoogleFonts.inter(
               color: _muted.withValues(alpha: 0.5),
               fontWeight: FontWeight.bold,
               fontSize: 8,
@@ -310,12 +308,11 @@ class _CosmeticFusionScreenState extends ConsumerState<CosmeticFusionScreen> wit
           padding: const EdgeInsets.symmetric(vertical: 16),
           decoration: BoxDecoration(
             color: active ? _orange : Colors.black,
-            border: Border.all(color: active ? Colors.black : _muted, width: 2.5),
+            border: Border.all(color: active ? Colors.black : _muted, width: 1),
             boxShadow: active
-                ? const [
-                    BoxShadow(
-                      color: _orange,
-                      offset: Offset(4, 4),
+                ? [
+                    BoxShadow(color: _orange.withValues(alpha: 0.25),
+                      blurRadius: 14, offset: const Offset(0, 4),
                     ),
                   ]
                 : null,
@@ -323,7 +320,7 @@ class _CosmeticFusionScreenState extends ConsumerState<CosmeticFusionScreen> wit
           child: Center(
             child: Text(
               state.status == 'fusing' ? 'SYNTHESIZING_CORE...' : 'ACTIVATE_FUSION_CORE',
-              style: GoogleFonts.spaceMono(
+              style: GoogleFonts.inter(
                 color: active ? Colors.black : _muted,
                 fontWeight: FontWeight.w900,
                 fontSize: 13,
@@ -348,7 +345,7 @@ class _CosmeticFusionScreenState extends ConsumerState<CosmeticFusionScreen> wit
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Text(
             'AVAILABLE_INVENTORY',
-            style: GoogleFonts.spaceGrotesk(
+            style: GoogleFonts.inter(
               color: _white,
               fontWeight: FontWeight.w900,
               fontSize: 11,
@@ -370,7 +367,7 @@ class _CosmeticFusionScreenState extends ConsumerState<CosmeticFusionScreen> wit
                 return Center(
                   child: Text(
                     'INVENTORY_EMPTY',
-                    style: GoogleFonts.spaceMono(color: _muted, fontSize: 10),
+                    style: GoogleFonts.inter(color: _muted, fontSize: 10),
                   ),
                 );
               }
@@ -410,7 +407,7 @@ class _CosmeticFusionScreenState extends ConsumerState<CosmeticFusionScreen> wit
                             padding: const EdgeInsets.symmetric(horizontal: 4),
                             child: Text(
                               item.productName.toUpperCase(),
-                              style: GoogleFonts.spaceMono(
+                              style: GoogleFonts.inter(
                                 color: isLoaded ? _lime : _white,
                                 fontSize: 8,
                                 fontWeight: FontWeight.bold,
@@ -423,7 +420,7 @@ class _CosmeticFusionScreenState extends ConsumerState<CosmeticFusionScreen> wit
                           const SizedBox(height: 2),
                           Text(
                             item.productType.toUpperCase(),
-                            style: GoogleFonts.spaceMono(
+                            style: GoogleFonts.inter(
                               color: _muted,
                               fontSize: 6,
                             ),
@@ -450,13 +447,13 @@ class _CosmeticFusionScreenState extends ConsumerState<CosmeticFusionScreen> wit
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.black,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.zero,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
         ),
         contentPadding: EdgeInsets.zero,
         content: Container(
           decoration: BoxDecoration(
-            border: Border.all(color: borderCol, width: 3),
+            border: Border.all(color: borderCol, width: 1),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -468,7 +465,7 @@ class _CosmeticFusionScreenState extends ConsumerState<CosmeticFusionScreen> wit
                 width: double.infinity,
                 child: Text(
                   'FUSION_SUCCESSFUL',
-                  style: GoogleFonts.spaceGrotesk(
+                  style: GoogleFonts.inter(
                     color: Colors.black,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 2,
@@ -488,11 +485,10 @@ class _CosmeticFusionScreenState extends ConsumerState<CosmeticFusionScreen> wit
                       width: 120,
                       decoration: BoxDecoration(
                         color: Colors.black,
-                        border: Border.all(color: borderCol, width: 2.5),
+                        border: Border.all(color: borderCol, width: 1),
                         boxShadow: [
-                          BoxShadow(
-                            color: borderCol,
-                            offset: const Offset(4, 4),
+                          BoxShadow(color: borderCol,
+                            blurRadius: 14, offset: const Offset(0, 4),
                           ),
                         ],
                       ),
@@ -503,7 +499,7 @@ class _CosmeticFusionScreenState extends ConsumerState<CosmeticFusionScreen> wit
                           const SizedBox(height: 8),
                           Text(
                             reward.rarity.toUpperCase(),
-                            style: GoogleFonts.spaceMono(
+                            style: GoogleFonts.inter(
                               color: borderCol,
                               fontWeight: FontWeight.w900,
                               fontSize: 9,
@@ -517,7 +513,7 @@ class _CosmeticFusionScreenState extends ConsumerState<CosmeticFusionScreen> wit
 
                     Text(
                       reward.name.toUpperCase(),
-                      style: GoogleFonts.spaceGrotesk(
+                      style: GoogleFonts.inter(
                         color: _white,
                         fontWeight: FontWeight.w900,
                         fontSize: 16,
@@ -527,7 +523,7 @@ class _CosmeticFusionScreenState extends ConsumerState<CosmeticFusionScreen> wit
 
                     Text(
                       reward.description ?? 'A highly synthesized elite store collectible.',
-                      style: GoogleFonts.spaceMono(
+                      style: GoogleFonts.inter(
                         color: _muted,
                         fontSize: 10,
                         height: 1.4,
@@ -546,7 +542,7 @@ class _CosmeticFusionScreenState extends ConsumerState<CosmeticFusionScreen> wit
                           },
                           child: Text(
                             'DISMISS',
-                            style: GoogleFonts.spaceMono(
+                            style: GoogleFonts.inter(
                               color: _muted,
                               fontWeight: FontWeight.bold,
                               fontSize: 12,
@@ -573,14 +569,14 @@ class _CosmeticFusionScreenState extends ConsumerState<CosmeticFusionScreen> wit
                           style: ElevatedButton.styleFrom(
                             backgroundColor: borderCol,
                             foregroundColor: Colors.black,
-                            shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.zero,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
                             ),
                             elevation: 0,
                           ),
                           child: Text(
                             'EQUIP_NOW',
-                            style: GoogleFonts.spaceMono(
+                            style: GoogleFonts.inter(
                               fontWeight: FontWeight.w900,
                               fontSize: 12,
                             ),

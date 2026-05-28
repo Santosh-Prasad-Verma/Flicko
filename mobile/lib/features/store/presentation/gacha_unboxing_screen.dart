@@ -176,7 +176,7 @@ class _GachaUnboxingScreenState extends ConsumerState<GachaUnboxingScreen> with 
         ),
         title: Text(
           'MYSTERY_DECK',
-          style: GoogleFonts.spaceGrotesk(
+          style: GoogleFonts.inter(
             color: _white,
             fontWeight: FontWeight.w900,
             fontSize: 18,
@@ -195,7 +195,7 @@ class _GachaUnboxingScreenState extends ConsumerState<GachaUnboxingScreen> with 
                 ),
                 child: Text(
                   '${gachaState.ownedCrates.length} CRATES',
-                  style: GoogleFonts.spaceMono(
+                  style: GoogleFonts.inter(
                     color: _lime,
                     fontWeight: FontWeight.w900,
                     fontSize: 11,
@@ -266,7 +266,7 @@ class _GachaUnboxingScreenState extends ConsumerState<GachaUnboxingScreen> with 
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Text(
         text,
-        style: GoogleFonts.spaceMono(
+        style: GoogleFonts.inter(
           color: Colors.black,
           fontWeight: FontWeight.w900,
           fontSize: 10,
@@ -283,11 +283,10 @@ class _GachaUnboxingScreenState extends ConsumerState<GachaUnboxingScreen> with 
       height: 280,
       decoration: BoxDecoration(
         color: const Color(0xFF0C0C0E),
-        border: Border.all(color: _magenta, width: 2.5),
-        boxShadow: const [
-          BoxShadow(
-            color: _magenta,
-            offset: Offset(5, 5),
+        border: Border.all(color: _magenta, width: 1),
+        boxShadow:  [
+          BoxShadow(color: _magenta.withValues(alpha: 0.25),
+            blurRadius: 14, offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -408,7 +407,7 @@ class _GachaUnboxingScreenState extends ConsumerState<GachaUnboxingScreen> with 
             child: Center(
               child: Text(
                 'SONIC\nDRIP',
-                style: GoogleFonts.spaceMono(
+                style: GoogleFonts.inter(
                   color: Colors.black,
                   fontSize: 8,
                   fontWeight: FontWeight.w900,
@@ -515,7 +514,7 @@ class _GachaUnboxingScreenState extends ConsumerState<GachaUnboxingScreen> with 
             top: 0,
             bottom: 0,
             child: Container(
-              width: 3.5,
+              width: 1.5,
               color: _magenta,
               child: Stack(
                 clipBehavior: Clip.none,
@@ -577,7 +576,7 @@ class _GachaUnboxingScreenState extends ConsumerState<GachaUnboxingScreen> with 
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: Text(
               item.name.toUpperCase(),
-              style: GoogleFonts.spaceMono(
+              style: GoogleFonts.inter(
                 color: _white,
                 fontWeight: FontWeight.w900,
                 fontSize: 8,
@@ -593,7 +592,7 @@ class _GachaUnboxingScreenState extends ConsumerState<GachaUnboxingScreen> with 
             color: rarityCol.withValues(alpha: 0.15),
             child: Text(
               item.rarity.toUpperCase(),
-              style: GoogleFonts.spaceMono(
+              style: GoogleFonts.inter(
                 color: rarityCol,
                 fontWeight: FontWeight.bold,
                 fontSize: 6,
@@ -622,13 +621,12 @@ class _GachaUnboxingScreenState extends ConsumerState<GachaUnboxingScreen> with 
                 color: (hasCrates && !isUnboxing) ? _magenta : Colors.black,
                 border: Border.all(
                   color: (hasCrates && !isUnboxing) ? Colors.black : _muted,
-                  width: 2.5,
+                  width: 1,
                 ),
                 boxShadow: (hasCrates && !isUnboxing)
-                    ? const [
-                        BoxShadow(
-                          color: _magenta,
-                          offset: Offset(4, 4),
+                    ? [
+                        BoxShadow(color: _magenta.withValues(alpha: 0.25),
+                          blurRadius: 14, offset: const Offset(0, 4),
                         ),
                       ]
                     : null,
@@ -636,7 +634,7 @@ class _GachaUnboxingScreenState extends ConsumerState<GachaUnboxingScreen> with 
               child: Center(
                 child: Text(
                   isUnboxing ? 'NEEDLE_ENGAGED_SPINNING...' : 'DROP_THE_NEEDLE',
-                  style: GoogleFonts.spaceMono(
+                  style: GoogleFonts.inter(
                     color: (hasCrates && !isUnboxing) ? Colors.black : _muted,
                     fontWeight: FontWeight.w900,
                     fontSize: 13,
@@ -659,17 +657,16 @@ class _GachaUnboxingScreenState extends ConsumerState<GachaUnboxingScreen> with 
                 decoration: BoxDecoration(
                   color: Colors.black,
                   border: Border.all(color: _lime, width: 2),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: _lime,
-                      offset: Offset(3, 3),
+                  boxShadow:  [
+                    BoxShadow(color: _lime.withValues(alpha: 0.25),
+                      blurRadius: 14, offset: const Offset(0, 4),
                     ),
                   ],
                 ),
                 child: Center(
                   child: Text(
                     'BUY_MORE_CRATES',
-                    style: GoogleFonts.spaceMono(
+                    style: GoogleFonts.inter(
                       color: _lime,
                       fontWeight: FontWeight.w900,
                       fontSize: 11,
@@ -692,11 +689,11 @@ class _GachaUnboxingScreenState extends ConsumerState<GachaUnboxingScreen> with 
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.black,
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         contentPadding: EdgeInsets.zero,
         content: Container(
           decoration: BoxDecoration(
-            border: Border.all(color: isDuplicate ? _orange : borderCol, width: 3),
+            border: Border.all(color: isDuplicate ? _orange : borderCol, width: 1),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -708,7 +705,7 @@ class _GachaUnboxingScreenState extends ConsumerState<GachaUnboxingScreen> with 
                 width: double.infinity,
                 child: Text(
                   isDuplicate ? 'DUPLICATE_COSMETIC_UNLOCKED' : 'NEW_COSMETIC_UNLOCKED',
-                  style: GoogleFonts.spaceGrotesk(
+                  style: GoogleFonts.inter(
                     color: Colors.black,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 2,
@@ -728,11 +725,10 @@ class _GachaUnboxingScreenState extends ConsumerState<GachaUnboxingScreen> with 
                       width: 130,
                       decoration: BoxDecoration(
                         color: Colors.black,
-                        border: Border.all(color: borderCol, width: 2.5),
+                        border: Border.all(color: borderCol, width: 1),
                         boxShadow: [
-                          BoxShadow(
-                            color: borderCol,
-                            offset: const Offset(5, 5),
+                          BoxShadow(color: borderCol,
+                            blurRadius: 14, offset: const Offset(0, 4),
                           ),
                         ],
                       ),
@@ -743,7 +739,7 @@ class _GachaUnboxingScreenState extends ConsumerState<GachaUnboxingScreen> with 
                           const SizedBox(height: 8),
                           Text(
                             reward.rarity.toUpperCase(),
-                            style: GoogleFonts.spaceMono(
+                            style: GoogleFonts.inter(
                               color: borderCol,
                               fontWeight: FontWeight.w900,
                               fontSize: 9,
@@ -757,7 +753,7 @@ class _GachaUnboxingScreenState extends ConsumerState<GachaUnboxingScreen> with 
 
                     Text(
                       reward.name.toUpperCase(),
-                      style: GoogleFonts.spaceGrotesk(
+                      style: GoogleFonts.inter(
                         color: _white,
                         fontWeight: FontWeight.w900,
                         fontSize: 18,
@@ -767,7 +763,7 @@ class _GachaUnboxingScreenState extends ConsumerState<GachaUnboxingScreen> with 
 
                     Text(
                       reward.description ?? 'A high-fidelity premium vinyl gacha roll reward.',
-                      style: GoogleFonts.spaceMono(
+                      style: GoogleFonts.inter(
                         color: _muted,
                         fontSize: 10,
                         height: 1.45,
@@ -791,7 +787,7 @@ class _GachaUnboxingScreenState extends ConsumerState<GachaUnboxingScreen> with 
                             Flexible(
                               child: Text(
                                 'ALREADY_OWNED: RECYCLE IN FUSION CORE!',
-                                style: GoogleFonts.spaceMono(
+                                style: GoogleFonts.inter(
                                   color: _orange,
                                   fontWeight: FontWeight.w900,
                                   fontSize: 8,
@@ -818,12 +814,12 @@ class _GachaUnboxingScreenState extends ConsumerState<GachaUnboxingScreen> with 
                                 },
                                 style: OutlinedButton.styleFrom(
                                   side: const BorderSide(color: _muted, width: 2),
-                                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                                   padding: const EdgeInsets.symmetric(vertical: 12),
                                 ),
                                 child: Text(
                                   'DISMISS',
-                                  style: GoogleFonts.spaceMono(
+                                  style: GoogleFonts.inter(
                                     color: _muted,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 11,
@@ -853,13 +849,13 @@ class _GachaUnboxingScreenState extends ConsumerState<GachaUnboxingScreen> with 
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: borderCol,
                                   foregroundColor: Colors.black,
-                                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                                   elevation: 0,
                                   padding: const EdgeInsets.symmetric(vertical: 12),
                                 ),
                                 child: Text(
                                   'EQUIP_NOW',
-                                  style: GoogleFonts.spaceMono(
+                                  style: GoogleFonts.inter(
                                     fontWeight: FontWeight.w900,
                                     fontSize: 11,
                                   ),
@@ -887,7 +883,7 @@ class _GachaUnboxingScreenState extends ConsumerState<GachaUnboxingScreen> with 
                               child: Center(
                                 child: Text(
                                   'OPEN_FUSION_CHAMBER',
-                                  style: GoogleFonts.spaceMono(
+                                  style: GoogleFonts.inter(
                                     color: Colors.black,
                                     fontWeight: FontWeight.w900,
                                     fontSize: 11,

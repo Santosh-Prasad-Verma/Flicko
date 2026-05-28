@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -219,26 +220,29 @@ class _DMChatInputState extends State<DMChatInput> {
       return _buildRecordingUI();
     }
 
-    return Container(
-      decoration: BoxDecoration(
-        color: _surfaceContainer,
-        border: Border(
-          top: BorderSide(
-            color: _textWhite.withValues(alpha: 0.05),
-            width: 1,
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+        child: Container(
+          decoration: BoxDecoration(
+            color: _surfaceContainer.withValues(alpha: 0.55),
+            border: Border(
+              top: BorderSide(
+                color: _textWhite.withValues(alpha: 0.06),
+                width: 1,
+              ),
+            ),
           ),
-        ),
-      ),
-      child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (_selectedFiles.isNotEmpty)
-              SizedBox(
-                height: 80,
-                child: ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                  scrollDirection: Axis.horizontal,
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_selectedFiles.isNotEmpty)
+                  SizedBox(
+                    height: 80,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                      scrollDirection: Axis.horizontal,
                   itemCount: _selectedFiles.length,
                   itemBuilder: (context, index) {
                     return Padding(
@@ -292,17 +296,21 @@ class _DMChatInputState extends State<DMChatInput> {
 
             if (_showExtras)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 decoration: BoxDecoration(
                   color: _bgBlack,
-                  border: Border(bottom: BorderSide(color: _textWhite.withValues(alpha: 0.05))),
+                  border: Border(
+                    bottom: BorderSide(
+                      color: _textWhite.withValues(alpha: 0.04),
+                    ),
+                  ),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     _ExtraButton(
                       icon: Icons.emoji_emotions_rounded,
-                      label: 'EMOJI',
+                      label: 'Emoji',
                       onTap: _showEmojiPicker,
                     ),
                     _ExtraButton(
@@ -312,22 +320,22 @@ class _DMChatInputState extends State<DMChatInput> {
                     ),
                     _ExtraButton(
                       icon: Icons.sticky_note_2_rounded,
-                      label: 'STICKER',
+                      label: 'Sticker',
                       onTap: _showStickerPicker,
                     ),
                     _ExtraButton(
                       icon: Icons.camera_alt_rounded,
-                      label: 'CAMERA',
+                      label: 'Camera',
                       onTap: _handlePickCamera,
                     ),
                     _ExtraButton(
                       icon: Icons.photo_library_rounded,
-                      label: 'GALLERY',
+                      label: 'Gallery',
                       onTap: _handlePickImage,
                     ),
                     _ExtraButton(
                       icon: Icons.mic_rounded,
-                      label: 'VOICE',
+                      label: 'Voice',
                       onTap: _startRecording,
                     ),
                   ],
@@ -335,110 +343,148 @@ class _DMChatInputState extends State<DMChatInput> {
               ),
 
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  GestureDetector(
-                    onTap: () => setState(() => _showExtras = !_showExtras),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: _showExtras
-                            ? _neonGreen.withValues(alpha: 0.2)
-                            : _bgBlack,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: _showExtras
-                              ? _neonGreen
-                              : _textWhite.withValues(alpha: 0.1),
-                          width: 1,
-                        ),
-                      ),
-                      child: AnimatedRotation(
-                        turns: _showExtras ? 0.125 : 0,
-                        duration: const Duration(milliseconds: 200),
-                        child: Icon(
-                          Icons.add_rounded,
-                          size: 22,
-                          color: _showExtras
-                              ? _neonGreen
-                              : _textWhite,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
                         color: _bgBlack,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(24),
                         border: Border.all(
-                          color: _textWhite.withValues(alpha: 0.1),
+                          color: _textWhite.withValues(alpha: 0.08),
                           width: 1,
                         ),
                       ),
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                      child: TextField(
-                        controller: _controller,
-                        maxLines: 4,
-                        minLines: 1,
-                        style: GoogleFonts.inter(
-                          color: _textWhite,
-                          fontSize: 15,
-                        ),
-                        decoration: InputDecoration(
-                          hintText: 'Type a message...',
-                          hintStyle: GoogleFonts.spaceMono(
-                            color: _textMuted,
-                            fontSize: 13,
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          // Plus / extras toggle
+                          IconButton(
+                            onPressed: () =>
+                                setState(() => _showExtras = !_showExtras),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                              minWidth: 40,
+                              minHeight: 40,
+                            ),
+                            icon: AnimatedRotation(
+                              turns: _showExtras ? 0.125 : 0,
+                              duration: const Duration(milliseconds: 200),
+                              child: Icon(
+                                Icons.add_rounded,
+                                size: 24,
+                                color: _showExtras ? _neonGreen : _textMuted,
+                              ),
+                            ),
                           ),
-                          border: InputBorder.none,
-                          enabledBorder: InputBorder.none,
-                          focusedBorder: InputBorder.none,
-                          contentPadding:
-                              const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                        onSubmitted: (_) => _handleSend(),
+                          Expanded(
+                            child: TextField(
+                              controller: _controller,
+                              maxLines: 5,
+                              minLines: 1,
+                              style: GoogleFonts.inter(
+                                color: _textWhite,
+                                fontSize: 15,
+                                height: 1.35,
+                              ),
+                              decoration: InputDecoration(
+                                hintText: 'Message',
+                                hintStyle: GoogleFonts.inter(
+                                  color: _textMuted,
+                                  fontSize: 15,
+                                ),
+                                border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                isDense: true,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                              ),
+                              textInputAction: TextInputAction.newline,
+                              onSubmitted: (_) => _handleSend(),
+                            ),
+                          ),
+                          // Inline emoji shortcut
+                          IconButton(
+                            onPressed: _showEmojiPicker,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                              minWidth: 40,
+                              minHeight: 40,
+                            ),
+                            icon: Icon(
+                              Icons.emoji_emotions_outlined,
+                              size: 22,
+                              color: _textMuted,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                   const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: _handleSend,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: _isEmpty ? _bgBlack : _neonGreen,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: _isEmpty ? _textWhite.withValues(alpha: 0.1) : _neonGreen,
-                          width: 1,
-                        ),
-                        boxShadow: _isEmpty ? null : [
-                          BoxShadow(
-                            color: _neonGreen.withValues(alpha: 0.3),
-                            blurRadius: 10,
-                            spreadRadius: 1,
+                  // Send / mic toggle
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 180),
+                    transitionBuilder: (child, anim) =>
+                        ScaleTransition(scale: anim, child: child),
+                    child: _isEmpty
+                        ? GestureDetector(
+                            key: const ValueKey('mic'),
+                            onTap: _startRecording,
+                            child: Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: _bgBlack,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: _textWhite.withValues(alpha: 0.08),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Icon(
+                                Icons.mic_rounded,
+                                size: 22,
+                                color: _textMuted,
+                              ),
+                            ),
+                          )
+                        : GestureDetector(
+                            key: const ValueKey('send'),
+                            onTap: _handleSend,
+                            child: Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: _neonGreen,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: _neonGreen.withValues(alpha: 0.35),
+                                    blurRadius: 14,
+                                    spreadRadius: 1,
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.send_rounded,
+                                size: 20,
+                                color: Colors.black,
+                              ),
+                            ),
                           ),
-                        ],
-                      ),
-                      child: Icon(
-                        Icons.send_rounded,
-                        size: 20, 
-                        color: _isEmpty ? _textMuted : Colors.black,
-                      ),
-                    ),
                   ),
                 ],
               ),
             ),
           ],
+        ),
+      ),
         ),
       ),
     );
@@ -481,7 +527,7 @@ class _DMChatInputState extends State<DMChatInput> {
             // Recording duration
             Text(
               _formatDuration(_recordingSeconds),
-              style: GoogleFonts.spaceMono(
+              style: GoogleFonts.inter(
                 color: _textWhite,
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
@@ -587,11 +633,11 @@ class _ExtraButton extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             label,
-            style: GoogleFonts.spaceMono(
+            style: GoogleFonts.inter(
               color: _textMuted,
-              fontSize: 9,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.0,
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              letterSpacing: 0.1,
             ),
           ),
         ],

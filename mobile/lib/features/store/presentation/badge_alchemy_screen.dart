@@ -83,7 +83,7 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Ti
         ),
         title: Text(
           'BADGE_ALCHEMY',
-          style: GoogleFonts.spaceGrotesk(
+          style: GoogleFonts.inter(
             color: _white,
             fontWeight: FontWeight.w900,
             fontSize: 18,
@@ -96,7 +96,7 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Ti
           unselectedLabelColor: _muted,
           indicatorColor: _gold,
           dividerColor: const Color(0xFF141416),
-          labelStyle: GoogleFonts.spaceMono(fontWeight: FontWeight.bold, fontSize: 12),
+          labelStyle: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 12),
           tabs: const [
             Tab(text: 'ALCHEMICAL_CRUCIBLE'),
             Tab(text: 'ACHIEVEMENTS_LOG'),
@@ -129,7 +129,7 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Ti
                       const SizedBox(height: 24),
                       Text(
                         '[AVAILABLE_BADGES]',
-                        style: GoogleFonts.spaceMono(
+                        style: GoogleFonts.inter(
                           color: _lime,
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
@@ -160,7 +160,7 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Ti
                     children: [
                       Text(
                         '[ACHIEVEMENTS_CHECKLIST]',
-                        style: GoogleFonts.spaceMono(
+                        style: GoogleFonts.inter(
                           color: _gold,
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
@@ -204,7 +204,7 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Ti
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Text(
         text,
-        style: GoogleFonts.spaceMono(
+        style: GoogleFonts.inter(
           color: Colors.black,
           fontWeight: FontWeight.w900,
           fontSize: 10,
@@ -237,7 +237,7 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Ti
               children: [
                 Text(
                   'ACTIVE_EQUIPPED_DECK',
-                  style: GoogleFonts.spaceMono(
+                  style: GoogleFonts.inter(
                     color: _lime,
                     fontSize: 9,
                     fontWeight: FontWeight.bold,
@@ -247,7 +247,7 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Ti
                 const SizedBox(height: 4),
                 Text(
                   equippedBadge != null ? equippedBadge.name.toUpperCase() : 'NO BADGE EQUIPPED',
-                  style: GoogleFonts.spaceGrotesk(
+                  style: GoogleFonts.inter(
                     color: _white,
                     fontWeight: FontWeight.w900,
                     fontSize: 16,
@@ -258,7 +258,7 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Ti
                   equippedBadge != null
                       ? 'GLOW & ANIMATIONS ACTIVE FOR "${equippedBadge.slug.toUpperCase()}"'
                       : 'TAP ANY OWNED BADGE TO EQUIP IT DIRECTLY.',
-                  style: GoogleFonts.spaceMono(
+                  style: GoogleFonts.inter(
                     color: _muted,
                     fontSize: 8,
                     fontWeight: FontWeight.bold,
@@ -348,9 +348,8 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Ti
                   ),
                   boxShadow: purchase != null
                       ? [
-                          BoxShadow(
-                            color: (badgeDef?.primaryColor ?? _lime).withValues(alpha: 0.4),
-                            offset: const Offset(3, 3),
+                          BoxShadow(color: (badgeDef?.primaryColor ?? _lime).withValues(alpha: 0.4),
+                            blurRadius: 14, offset: const Offset(0, 4),
                           ),
                         ]
                       : null,
@@ -364,7 +363,7 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Ti
                         )
                       : Text(
                           '${idx + 1}',
-                          style: GoogleFonts.spaceMono(
+                          style: GoogleFonts.inter(
                             color: _muted.withValues(alpha: 0.5),
                             fontWeight: FontWeight.bold,
                             fontSize: 18,
@@ -377,7 +376,7 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Ti
                 width: 80,
                 child: Text(
                   purchase != null ? purchase.productName.toUpperCase() : 'EMPTY',
-                  style: GoogleFonts.spaceMono(
+                  style: GoogleFonts.inter(
                     color: purchase != null ? _white : _muted,
                     fontSize: 8,
                     fontWeight: FontWeight.bold,
@@ -418,13 +417,12 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Ti
                       color: (canFuse && !isSynthesizing) ? _gold : Colors.black,
                       border: Border.all(
                         color: (canFuse && !isSynthesizing) ? Colors.black : _muted,
-                        width: 2.5,
+                        width: 1,
                       ),
                       boxShadow: (canFuse && !isSynthesizing)
-                          ? const [
-                              BoxShadow(
-                                color: _gold,
-                                offset: Offset(4, 4),
+                          ? [
+                              BoxShadow(color: _gold.withValues(alpha: 0.25),
+                                blurRadius: 14, offset: const Offset(0, 4),
                               ),
                             ]
                           : null,
@@ -432,7 +430,7 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Ti
                     child: Center(
                       child: Text(
                         isSynthesizing ? 'TRANSMUTING_CORE...' : 'ACTIVATE_ALCHEMY',
-                        style: GoogleFonts.spaceMono(
+                        style: GoogleFonts.inter(
                           color: (canFuse && !isSynthesizing) ? Colors.black : _muted,
                           fontWeight: FontWeight.w900,
                           fontSize: 12,
@@ -454,7 +452,7 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Ti
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: Colors.black,
-                      border: Border.all(color: _muted, width: 2.5),
+                      border: Border.all(color: _muted, width: 1),
                     ),
                     child: const Icon(Icons.refresh, color: _white, size: 20),
                   ),
@@ -481,12 +479,12 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Ti
               const SizedBox(height: 16),
               Text(
                 'NO BADGES OWNED',
-                style: GoogleFonts.spaceMono(color: _white, fontWeight: FontWeight.bold, fontSize: 13),
+                style: GoogleFonts.inter(color: _white, fontWeight: FontWeight.bold, fontSize: 13),
               ),
               const SizedBox(height: 8),
               Text(
                 'CLAIM MILESTONES OR TRANSMUTE COSMETICS TO OBTAIN BASE BADGES.',
-                style: GoogleFonts.spaceMono(color: _muted, fontSize: 9, fontWeight: FontWeight.bold),
+                style: GoogleFonts.inter(color: _muted, fontSize: 9, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -529,9 +527,8 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Ti
               ),
               boxShadow: isSelected || isEquipped
                   ? [
-                      BoxShadow(
-                        color: isSelected ? _gold.withValues(alpha: 0.4) : _lime.withValues(alpha: 0.4),
-                        offset: const Offset(3, 3),
+                      BoxShadow(color: isSelected ? _gold.withValues(alpha: 0.4) : _lime.withValues(alpha: 0.4),
+                        blurRadius: 14, offset: const Offset(0, 4),
                       )
                     ]
                   : null,
@@ -553,7 +550,7 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Ti
                       padding: const EdgeInsets.symmetric(horizontal: 4),
                       child: Text(
                         badge.productName.toUpperCase(),
-                        style: GoogleFonts.spaceMono(
+                        style: GoogleFonts.inter(
                           color: _white,
                           fontSize: 8,
                           fontWeight: FontWeight.bold,
@@ -566,7 +563,7 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Ti
                     const SizedBox(height: 3),
                     Text(
                       badgeDef?.slug.toUpperCase() ?? 'BADGE',
-                      style: GoogleFonts.spaceMono(
+                      style: GoogleFonts.inter(
                         color: _muted,
                         fontSize: 6,
                         fontWeight: FontWeight.bold,
@@ -583,7 +580,7 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Ti
                       color: _lime,
                       child: Text(
                         'EQUIPPED',
-                        style: GoogleFonts.spaceMono(
+                        style: GoogleFonts.inter(
                           color: Colors.black,
                           fontSize: 6,
                           fontWeight: FontWeight.bold,
@@ -617,7 +614,7 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Ti
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.black,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       builder: (ctx) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -628,7 +625,7 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Ti
               const SizedBox(height: 20),
               Text(
                 badge.productName.toUpperCase(),
-                style: GoogleFonts.spaceGrotesk(
+                style: GoogleFonts.inter(
                   color: _white,
                   fontWeight: FontWeight.w900,
                   fontSize: 18,
@@ -638,7 +635,7 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Ti
               const SizedBox(height: 8),
               Text(
                 badgeDef?.slug.toUpperCase() ?? 'BADGE',
-                style: GoogleFonts.spaceMono(
+                style: GoogleFonts.inter(
                   color: badgeDef?.primaryColor ?? _muted,
                   fontWeight: FontWeight.bold,
                   fontSize: 10,
@@ -656,11 +653,11 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Ti
                 ),
                 title: Text(
                   isEquipped ? 'UNEQUIP_BADGE' : 'EQUIP_BADGE',
-                  style: GoogleFonts.spaceMono(color: _white, fontWeight: FontWeight.bold),
+                  style: GoogleFonts.inter(color: _white, fontWeight: FontWeight.bold),
                 ),
                 subtitle: Text(
                   isEquipped ? 'Currently displayed on your profile' : 'Set as your active showcase badge',
-                  style: GoogleFonts.spaceMono(color: _muted, fontSize: 9),
+                  style: GoogleFonts.inter(color: _muted, fontSize: 9),
                 ),
                 onTap: () async {
                   Navigator.pop(ctx);
@@ -686,11 +683,11 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Ti
                 ),
                 title: Text(
                   isSelected ? 'REMOVE_FROM_CRUCIBLE' : 'LOAD_INTO_CRUCIBLE',
-                  style: GoogleFonts.spaceMono(color: _white, fontWeight: FontWeight.bold),
+                  style: GoogleFonts.inter(color: _white, fontWeight: FontWeight.bold),
                 ),
                 subtitle: Text(
                   isSelected ? 'Remove slot allocation' : 'Queue badge for alchemical fusion synthesis',
-                  style: GoogleFonts.spaceMono(color: _muted, fontSize: 9),
+                  style: GoogleFonts.inter(color: _muted, fontSize: 9),
                 ),
                 onTap: () {
                   Navigator.pop(ctx);
@@ -744,7 +741,7 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Ti
           width: isCompleted && !isClaimed ? 2.5 : 1.5,
         ),
         boxShadow: isCompleted && !isClaimed
-            ? const [BoxShadow(color: _lime, offset: Offset(3, 3))]
+            ? [BoxShadow(color: _lime.withValues(alpha: 0.4), blurRadius: 16, spreadRadius: 1)]
             : null,
       ),
       child: Column(
@@ -759,7 +756,7 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Ti
                   children: [
                     Text(
                       achievement.title.toUpperCase(),
-                      style: GoogleFonts.spaceGrotesk(
+                      style: GoogleFonts.inter(
                         color: isClaimed ? _muted : _white,
                         fontWeight: FontWeight.w900,
                         fontSize: 14,
@@ -769,7 +766,7 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Ti
                     const SizedBox(height: 4),
                     Text(
                       achievement.description.toUpperCase(),
-                      style: GoogleFonts.spaceMono(
+                      style: GoogleFonts.inter(
                         color: _muted,
                         fontSize: 9,
                         fontWeight: FontWeight.bold,
@@ -802,7 +799,7 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Ti
             children: [
               Expanded(
                 child: ClipRRect(
-                  borderRadius: BorderRadius.zero,
+                  borderRadius: BorderRadius.circular(16),
                   child: LinearProgressIndicator(
                     value: (currentCount / achievement.targetCount).clamp(0.0, 1.0),
                     backgroundColor: const Color(0xFF141416),
@@ -820,7 +817,7 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Ti
               const SizedBox(width: 12),
               Text(
                 '$currentCount/${achievement.targetCount}',
-                style: GoogleFonts.spaceMono(
+                style: GoogleFonts.inter(
                   color: isCompleted ? _lime : _gold,
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
@@ -837,7 +834,7 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Ti
               child: Center(
                 child: Text(
                   'REWARD_CLAIMED',
-                  style: GoogleFonts.spaceMono(
+                  style: GoogleFonts.inter(
                     color: _muted,
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
@@ -857,7 +854,7 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Ti
                     SnackBar(
                       content: Text(
                         'REWARD_UNLOCKED: ${achievement.title.toUpperCase()} BADGE ADDED TO INVENTORY!',
-                        style: GoogleFonts.spaceMono(fontWeight: FontWeight.bold),
+                        style: GoogleFonts.inter(fontWeight: FontWeight.bold),
                       ),
                       backgroundColor: _lime,
                     ),
@@ -870,12 +867,12 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Ti
                 decoration: BoxDecoration(
                   color: _lime,
                   border: Border.all(color: Colors.black, width: 1.5),
-                  boxShadow: const [BoxShadow(color: Colors.black, offset: Offset(2, 2))],
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.4), blurRadius: 12, offset: const Offset(0, 4))],
                 ),
                 child: Center(
                   child: Text(
                     'CLAIM_ACHIEVEMENT_REWARD',
-                    style: GoogleFonts.spaceMono(
+                    style: GoogleFonts.inter(
                       color: Colors.black,
                       fontSize: 10,
                       fontWeight: FontWeight.w900,
@@ -896,7 +893,7 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Ti
               child: Center(
                 child: Text(
                   'IN_PROGRESS',
-                  style: GoogleFonts.spaceMono(
+                  style: GoogleFonts.inter(
                     color: _muted,
                     fontSize: 9,
                     fontWeight: FontWeight.bold,
@@ -915,11 +912,11 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Ti
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.black,
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         contentPadding: EdgeInsets.zero,
         content: Container(
           decoration: BoxDecoration(
-            border: Border.all(color: _gold, width: 3),
+            border: Border.all(color: _gold, width: 1),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -930,7 +927,7 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Ti
                 width: double.infinity,
                 child: Text(
                   'TRANSMUTATION_SUCCESS',
-                  style: GoogleFonts.spaceGrotesk(
+                  style: GoogleFonts.inter(
                     color: Colors.black,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 2,
@@ -951,7 +948,7 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Ti
                           colors: [reward.primaryColor, reward.secondaryColor],
                         ),
                         shape: BoxShape.circle,
-                        border: Border.all(color: _white, width: 3),
+                        border: Border.all(color: _white, width: 1),
                         boxShadow: [
                           BoxShadow(
                             color: reward.primaryColor.withValues(alpha: 0.6),
@@ -965,7 +962,7 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Ti
                     const SizedBox(height: 24),
                     Text(
                       reward.name.toUpperCase(),
-                      style: GoogleFonts.spaceGrotesk(
+                      style: GoogleFonts.inter(
                         color: _white,
                         fontWeight: FontWeight.w900,
                         fontSize: 20,
@@ -975,7 +972,7 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Ti
                     const SizedBox(height: 8),
                     Text(
                       'A HIGH-FIDELITY COSMETIC FORGED BY ALCHEMICAL SYNTHESIS.',
-                      style: GoogleFonts.spaceMono(
+                      style: GoogleFonts.inter(
                         color: _muted,
                         fontSize: 9,
                         fontWeight: FontWeight.bold,
@@ -1000,7 +997,7 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Ti
                         child: Center(
                           child: Text(
                             'CONFIRM_TRANSMUTATION',
-                            style: GoogleFonts.spaceMono(
+                            style: GoogleFonts.inter(
                               color: Colors.black,
                               fontSize: 11,
                               fontWeight: FontWeight.w900,

@@ -136,7 +136,7 @@ class _SoundboardCreatorStudioState extends ConsumerState<SoundboardCreatorStudi
         ),
         title: Text(
           'SOUND_STUDIO',
-          style: GoogleFonts.spaceGrotesk(
+          style: GoogleFonts.inter(
             color: _white,
             fontWeight: FontWeight.w900,
             letterSpacing: 2,
@@ -151,7 +151,7 @@ class _SoundboardCreatorStudioState extends ConsumerState<SoundboardCreatorStudi
             // Studio Deck Header
             Text(
               'CUSTOM SOUNDBOARD RECORDER',
-              style: GoogleFonts.spaceMono(color: _muted, fontSize: 10, fontWeight: FontWeight.bold),
+              style: GoogleFonts.inter(color: _muted, fontSize: 10, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 24),
 
@@ -195,7 +195,7 @@ class _SoundboardCreatorStudioState extends ConsumerState<SoundboardCreatorStudi
                           const SizedBox(width: 8),
                           Text(
                             'REC  ${_recordingDuration.toStringAsFixed(1)}s / 10.0s',
-                            style: GoogleFonts.spaceMono(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 11),
+                            style: GoogleFonts.inter(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 11),
                           ),
                         ],
                       ),
@@ -241,7 +241,7 @@ class _SoundboardCreatorStudioState extends ConsumerState<SoundboardCreatorStudi
                     const SizedBox(height: 12),
                     Text(
                       _isRecording ? 'TAP TO STOP RECORDING' : 'TAP TO RECORD AUDIO',
-                      style: GoogleFonts.spaceMono(color: _muted, fontSize: 10, fontWeight: FontWeight.bold),
+                      style: GoogleFonts.inter(color: _muted, fontSize: 10, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -251,12 +251,12 @@ class _SoundboardCreatorStudioState extends ConsumerState<SoundboardCreatorStudi
             if (_hasRecorded) ...[
               Text(
                 'TRIM AUDIO GROOVE',
-                style: GoogleFonts.spaceGrotesk(color: _white, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1),
+                style: GoogleFonts.inter(color: _white, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1),
               ),
               const SizedBox(height: 8),
               Row(
                 children: [
-                  Text('Start: ${(_startTrim * 100).toInt()}%', style: GoogleFonts.spaceMono(color: _muted, fontSize: 10)),
+                  Text('Start: ${(_startTrim * 100).toInt()}%', style: GoogleFonts.inter(color: _muted, fontSize: 10)),
                   Expanded(
                     child: RangeSlider(
                       values: RangeValues(_startTrim, _endTrim),
@@ -270,7 +270,7 @@ class _SoundboardCreatorStudioState extends ConsumerState<SoundboardCreatorStudi
                       inactiveColor: _muted.withOpacity(0.3),
                     ),
                   ),
-                  Text('End: ${(_endTrim * 100).toInt()}%', style: GoogleFonts.spaceMono(color: _muted, fontSize: 10)),
+                  Text('End: ${(_endTrim * 100).toInt()}%', style: GoogleFonts.inter(color: _muted, fontSize: 10)),
                 ],
               ),
               const SizedBox(height: 24),
@@ -278,19 +278,19 @@ class _SoundboardCreatorStudioState extends ConsumerState<SoundboardCreatorStudi
               // Form fields
               Text(
                 'SOUND DETAILS',
-                style: GoogleFonts.spaceGrotesk(color: _white, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1),
+                style: GoogleFonts.inter(color: _white, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _nameController,
                 maxLength: 20,
-                style: GoogleFonts.spaceGrotesk(color: _white),
+                style: GoogleFonts.inter(color: _white),
                 decoration: InputDecoration(
                   labelText: 'SOUND NAME',
-                  labelStyle: GoogleFonts.spaceMono(color: _muted, fontSize: 10, fontWeight: FontWeight.bold),
+                  labelStyle: GoogleFonts.inter(color: _muted, fontSize: 10, fontWeight: FontWeight.bold),
                   enabledBorder: const OutlineInputBorder(borderSide: BorderSide(color: _muted, width: 1.5)),
                   focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: _neon, width: 2.0)),
-                  counterStyle: GoogleFonts.spaceMono(color: _muted),
+                  counterStyle: GoogleFonts.inter(color: _muted),
                 ),
               ),
               const SizedBox(height: 16),
@@ -298,7 +298,7 @@ class _SoundboardCreatorStudioState extends ConsumerState<SoundboardCreatorStudi
               // Emoji grid
               Text(
                 'SELECT SOUNDBOARD EMOJI',
-                style: GoogleFonts.spaceGrotesk(color: _white, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1),
+                style: GoogleFonts.inter(color: _white, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1),
               ),
               const SizedBox(height: 12),
               Wrap(
@@ -329,19 +329,18 @@ class _SoundboardCreatorStudioState extends ConsumerState<SoundboardCreatorStudi
                       onTap: _saveSoundboard,
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        decoration: const BoxDecoration(
+                        decoration: BoxDecoration(
                           color: _lime,
                           boxShadow: [
-                            BoxShadow(
-                              color: Colors.white,
-                              offset: Offset(4, 4),
+                            BoxShadow(color: Colors.white.withValues(alpha: 0.25),
+                              blurRadius: 14, offset: const Offset(0, 4),
                             ),
                           ],
                         ),
                         child: Center(
                           child: Text(
                             'CREATE SOUNDBOARD',
-                            style: GoogleFonts.spaceGrotesk(color: Colors.black, fontWeight: FontWeight.w900, letterSpacing: 1),
+                            style: GoogleFonts.inter(color: Colors.black, fontWeight: FontWeight.w900, letterSpacing: 1),
                           ),
                         ),
                       ),
@@ -365,7 +364,7 @@ class _SoundboardCreatorStudioState extends ConsumerState<SoundboardCreatorStudi
                         child: Center(
                           child: Text(
                             'RESET',
-                            style: GoogleFonts.spaceGrotesk(color: _white, fontWeight: FontWeight.w900, letterSpacing: 1),
+                            style: GoogleFonts.inter(color: _white, fontWeight: FontWeight.w900, letterSpacing: 1),
                           ),
                         ),
                       ),

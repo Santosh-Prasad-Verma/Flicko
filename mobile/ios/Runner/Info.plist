@@ -35,6 +35,8 @@
 	</array>
 
 	<!-- Permissions -->
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Flicko needs access to your photos to save profile QR cards.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Flicko needs access to your microphone for voice channels and calls.</string>
 	<key>NSCameraUsageDescription</key>

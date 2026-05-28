@@ -165,7 +165,7 @@ class ProductDetailScreen extends ConsumerWidget {
                           ),
                           child: Text(
                             product.rarity.toUpperCase(),
-                            style: GoogleFonts.spaceMono(
+                            style: GoogleFonts.inter(
                               color: rarityColor,
                               fontSize: 10,
                               fontWeight: FontWeight.w900,
@@ -186,7 +186,7 @@ class ProductDetailScreen extends ConsumerWidget {
                                 const SizedBox(width: 4),
                                 Text(
                                   'HOT',
-                                  style: GoogleFonts.spaceMono(
+                                  style: GoogleFonts.inter(
                                     color: Colors.red,
                                     fontSize: 10,
                                     fontWeight: FontWeight.w900,
@@ -214,7 +214,7 @@ class ProductDetailScreen extends ConsumerWidget {
                         const SizedBox(width: 8),
                         Text(
                           product.type.toUpperCase(),
-                          style: GoogleFonts.spaceGrotesk(
+                          style: GoogleFonts.inter(
                             color: _muted,
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
@@ -227,7 +227,7 @@ class ProductDetailScreen extends ConsumerWidget {
                     if (product.description != null) ...[
                       Text(
                         'DESCRIPTION',
-                        style: GoogleFonts.spaceGrotesk(
+                        style: GoogleFonts.inter(
                           color: _muted,
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
@@ -237,7 +237,7 @@ class ProductDetailScreen extends ConsumerWidget {
                       const SizedBox(height: 8),
                       Text(
                         product.description!,
-                        style: GoogleFonts.spaceGrotesk(
+                        style: GoogleFonts.inter(
                           color: _white.withValues(alpha: 0.8),
                           fontSize: 14,
                           height: 1.6,
@@ -286,11 +286,10 @@ class ProductDetailScreen extends ConsumerWidget {
       margin: const EdgeInsets.symmetric(horizontal: 20),
       decoration: BoxDecoration(
         color: theme.backgroundColor,
-        border: Border.all(color: theme.primaryColor, width: 2.5),
+        border: Border.all(color: theme.primaryColor, width: 1),
         boxShadow: [
-          BoxShadow(
-            color: theme.primaryColor,
-            offset: const Offset(4, 4),
+          BoxShadow(color: theme.primaryColor,
+            blurRadius: 14, offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -313,7 +312,7 @@ class ProductDetailScreen extends ConsumerWidget {
                 const SizedBox(width: 8),
                 Text(
                   'general-chat',
-                  style: GoogleFonts.spaceGrotesk(
+                  style: GoogleFonts.inter(
                     color: theme.textPrimary,
                     fontWeight: FontWeight.w900,
                     fontSize: 12,
@@ -362,7 +361,7 @@ class ProductDetailScreen extends ConsumerWidget {
                     ),
                     child: Text(
                       'Message #general-chat',
-                      style: GoogleFonts.spaceGrotesk(color: theme.textSecondary, fontSize: 11),
+                      style: GoogleFonts.inter(color: theme.textSecondary, fontSize: 11),
                     ),
                   ),
                 ),
@@ -398,7 +397,7 @@ class ProductDetailScreen extends ConsumerWidget {
             children: [
               Text(
                 sender,
-                style: GoogleFonts.spaceGrotesk(
+                style: GoogleFonts.inter(
                   color: avatarColor,
                   fontWeight: FontWeight.w900,
                   fontSize: 11,
@@ -413,7 +412,7 @@ class ProductDetailScreen extends ConsumerWidget {
                 ),
                 child: Text(
                   message,
-                  style: GoogleFonts.spaceGrotesk(color: theme.textPrimary, fontSize: 11),
+                  style: GoogleFonts.inter(color: theme.textPrimary, fontSize: 11),
                 ),
               ),
             ],
@@ -429,11 +428,10 @@ class ProductDetailScreen extends ConsumerWidget {
       margin: const EdgeInsets.symmetric(horizontal: 20),
       decoration: BoxDecoration(
         color: Colors.black,
-        border: Border.all(color: rarityColor, width: 2.5),
+        border: Border.all(color: rarityColor, width: 1),
         boxShadow: [
-          BoxShadow(
-            color: rarityColor,
-            offset: const Offset(4, 4),
+          BoxShadow(color: rarityColor,
+            blurRadius: 14, offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -463,7 +461,7 @@ class ProductDetailScreen extends ConsumerWidget {
                   decoration: BoxDecoration(
                     color: rarityColor,
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.black, width: 3),
+                    border: Border.all(color: Colors.black, width: 1),
                   ),
                   child: Center(
                     child: Container(
@@ -526,7 +524,7 @@ class ProductDetailScreen extends ConsumerWidget {
             bottom: 12,
             child: Text(
               isPlaying ? 'NOW PREVIEWING...' : 'TAP TO PREVIEW AUDIO',
-              style: GoogleFonts.spaceMono(
+              style: GoogleFonts.inter(
                 color: isPlaying ? rarityColor : _white.withValues(alpha: 0.5),
                 fontSize: 10,
                 fontWeight: FontWeight.w900,
@@ -546,7 +544,7 @@ class ProductDetailScreen extends ConsumerWidget {
       children: [
         Text(
           'INCLUDES',
-          style: GoogleFonts.spaceGrotesk(
+          style: GoogleFonts.inter(
             color: _muted,
             fontSize: 11,
             fontWeight: FontWeight.w700,
@@ -563,7 +561,7 @@ class ProductDetailScreen extends ConsumerWidget {
               Expanded(
                 child: Text(
                   feature,
-                  style: GoogleFonts.spaceGrotesk(
+                  style: GoogleFonts.inter(
                     color: _white.withValues(alpha: 0.8),
                     fontSize: 13,
                   ),
@@ -585,7 +583,7 @@ class ProductDetailScreen extends ConsumerWidget {
           children: [
             Text(
               'REVIEWS',
-              style: GoogleFonts.spaceGrotesk(
+              style: GoogleFonts.inter(
                 color: _muted,
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
@@ -598,7 +596,7 @@ class ProductDetailScreen extends ConsumerWidget {
                 const SizedBox(width: 8),
                 Text(
                   '4.9 (128 reviews)',
-                  style: GoogleFonts.spaceGrotesk(
+                  style: GoogleFonts.inter(
                     color: _white.withValues(alpha: 0.7),
                     fontSize: 12,
                   ),
@@ -634,7 +632,7 @@ class ProductDetailScreen extends ConsumerWidget {
                     children: [
                       Text(
                         'Alex_Gamer',
-                        style: GoogleFonts.spaceGrotesk(
+                        style: GoogleFonts.inter(
                           color: _white,
                           fontWeight: FontWeight.w700,
                           fontSize: 13,
@@ -650,7 +648,7 @@ class ProductDetailScreen extends ConsumerWidget {
               const SizedBox(height: 12),
               Text(
                 'Amazing product! The quality is fantastic and it looks even better in person.',
-                style: GoogleFonts.spaceGrotesk(
+                style: GoogleFonts.inter(
                   color: _white.withValues(alpha: 0.7),
                   fontSize: 13,
                 ),
@@ -740,7 +738,7 @@ class ProductDetailScreen extends ConsumerWidget {
                     children: [
                       Text(
                         'PRICE',
-                        style: GoogleFonts.spaceGrotesk(
+                        style: GoogleFonts.inter(
                           color: _muted,
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
@@ -805,7 +803,7 @@ class ProductDetailScreen extends ConsumerWidget {
                             const SizedBox(width: 8),
                             Text(
                               inCart ? 'VIEW CART' : 'ADD TO CART',
-                              style: GoogleFonts.spaceGrotesk(
+                              style: GoogleFonts.inter(
                                 color: Colors.black,
                                 fontWeight: FontWeight.w900,
                                 fontSize: 13,
@@ -838,8 +836,8 @@ class ProductDetailScreen extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.black,
-      shape: const Border(
-        top: BorderSide(color: _neon, width: 3),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) => SafeArea(
         child: Container(
@@ -850,7 +848,7 @@ class ProductDetailScreen extends ConsumerWidget {
             children: [
               Text(
                 'GIFT TO A FRIEND',
-                style: GoogleFonts.spaceGrotesk(
+                style: GoogleFonts.inter(
                   color: _white,
                   fontWeight: FontWeight.w900,
                   fontSize: 18,
@@ -859,7 +857,7 @@ class ProductDetailScreen extends ConsumerWidget {
               const SizedBox(height: 8),
               Text(
                 'Select a friend to gift "${product.name}" to:',
-                style: GoogleFonts.spaceGrotesk(color: _muted, fontSize: 13),
+                style: GoogleFonts.inter(color: _muted, fontSize: 13),
               ),
               const SizedBox(height: 16),
               Expanded(
@@ -883,11 +881,11 @@ class ProductDetailScreen extends ConsumerWidget {
                         ),
                         title: Text(
                           friend['displayName']!,
-                          style: GoogleFonts.spaceGrotesk(color: _white, fontWeight: FontWeight.bold),
+                          style: GoogleFonts.inter(color: _white, fontWeight: FontWeight.bold),
                         ),
                         subtitle: Text(
                           '@${friend['username']!}',
-                          style: GoogleFonts.spaceMono(color: _muted, fontSize: 11),
+                          style: GoogleFonts.inter(color: _muted, fontSize: 11),
                         ),
                         trailing: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -895,13 +893,13 @@ class ProductDetailScreen extends ConsumerWidget {
                           decoration: BoxDecoration(
                             color: _neon,
                             border: Border.all(color: Colors.black, width: 1.5),
-                            boxShadow: const [
-                              BoxShadow(color: Colors.white, offset: Offset(2, 2)),
+                            boxShadow:  [
+                              BoxShadow(color: Colors.white.withValues(alpha: 0.15), blurRadius: 12, offset: const Offset(0, 2)),
                             ],
                           ),
                           child: Text(
                             'GIFT',
-                            style: GoogleFonts.spaceGrotesk(
+                            style: GoogleFonts.inter(
                               color: Colors.black,
                               fontWeight: FontWeight.w900,
                               fontSize: 11,

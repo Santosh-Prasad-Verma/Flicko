@@ -84,7 +84,7 @@ class _AvatarDecorationStoreScreenState extends ConsumerState<AvatarDecorationSt
         ),
         title: Text(
           'DECORATION_DECK',
-          style: GoogleFonts.spaceGrotesk(
+          style: GoogleFonts.inter(
             color: _white,
             fontWeight: FontWeight.w900,
             fontSize: 18,
@@ -131,7 +131,7 @@ class _AvatarDecorationStoreScreenState extends ConsumerState<AvatarDecorationSt
                             // 3. Selection Slider Header
                             Text(
                               'AVAILABLE_BORDERS',
-                              style: GoogleFonts.spaceGrotesk(
+                              style: GoogleFonts.inter(
                                 color: _white,
                                 fontWeight: FontWeight.w900,
                                 fontSize: 11,
@@ -175,7 +175,7 @@ class _AvatarDecorationStoreScreenState extends ConsumerState<AvatarDecorationSt
           height: 170,
           decoration: BoxDecoration(
             color: Colors.black,
-            border: Border.all(color: dec.primaryColor, width: 2.5),
+            border: Border.all(color: dec.primaryColor, width: 1),
             boxShadow: [
               BoxShadow(
                 color: dec.primaryColor.withValues(alpha: 0.35),
@@ -228,9 +228,8 @@ class _AvatarDecorationStoreScreenState extends ConsumerState<AvatarDecorationSt
         color: Colors.black,
         border: Border.all(color: borderCol, width: 2),
         boxShadow: [
-          BoxShadow(
-            color: borderCol,
-            offset: const Offset(3, 3),
+          BoxShadow(color: borderCol,
+            blurRadius: 14, offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -242,7 +241,7 @@ class _AvatarDecorationStoreScreenState extends ConsumerState<AvatarDecorationSt
             children: [
               Text(
                 product.name.toUpperCase(),
-                style: GoogleFonts.spaceGrotesk(
+                style: GoogleFonts.inter(
                   color: _white,
                   fontWeight: FontWeight.w900,
                   fontSize: 16,
@@ -253,7 +252,7 @@ class _AvatarDecorationStoreScreenState extends ConsumerState<AvatarDecorationSt
                 color: borderCol,
                 child: Text(
                   product.rarity.toUpperCase(),
-                  style: GoogleFonts.spaceMono(
+                  style: GoogleFonts.inter(
                     color: Colors.black,
                     fontWeight: FontWeight.w900,
                     fontSize: 8,
@@ -265,7 +264,7 @@ class _AvatarDecorationStoreScreenState extends ConsumerState<AvatarDecorationSt
           const SizedBox(height: 8),
           Text(
             product.description ?? 'A high-fidelity premium procedural kinetic profile frame.',
-            style: GoogleFonts.spaceMono(
+            style: GoogleFonts.inter(
               color: _muted,
               fontSize: 10,
               height: 1.45,
@@ -297,7 +296,7 @@ class _AvatarDecorationStoreScreenState extends ConsumerState<AvatarDecorationSt
       ),
       child: Text(
         text,
-        style: GoogleFonts.spaceMono(
+        style: GoogleFonts.inter(
           color: color,
           fontWeight: FontWeight.w900,
           fontSize: 8,
@@ -346,7 +345,7 @@ class _AvatarDecorationStoreScreenState extends ConsumerState<AvatarDecorationSt
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   child: Text(
                     dec.name.replaceFirst(' Frame', '').toUpperCase(),
-                    style: GoogleFonts.spaceMono(
+                    style: GoogleFonts.inter(
                       color: isSelected ? dec.primaryColor : _white,
                       fontSize: 7.5,
                       fontWeight: FontWeight.bold,
@@ -360,7 +359,7 @@ class _AvatarDecorationStoreScreenState extends ConsumerState<AvatarDecorationSt
                   const SizedBox(height: 3),
                   Text(
                     'EQUIPPED',
-                    style: GoogleFonts.spaceMono(
+                    style: GoogleFonts.inter(
                       color: _orange,
                       fontSize: 6,
                       fontWeight: FontWeight.w900,
@@ -410,21 +409,20 @@ class _AvatarDecorationStoreScreenState extends ConsumerState<AvatarDecorationSt
                           color: isEquipped ? Colors.black : _orange,
                           border: Border.all(
                             color: isEquipped ? _muted : Colors.black,
-                            width: 2.5,
+                            width: 1,
                           ),
                           boxShadow: isEquipped
                               ? null
-                              : const [
-                                  BoxShadow(
-                                    color: _orange,
-                                    offset: Offset(3, 3),
+                              : [
+                                  BoxShadow(color: _orange.withValues(alpha: 0.25),
+                                    blurRadius: 14, offset: const Offset(0, 4),
                                   ),
                                 ],
                         ),
                         child: Center(
                           child: Text(
                             isEquipped ? 'UNEQUIP_BORDER_DECORATION' : 'EQUIP_BORDER_DECORATION',
-                            style: GoogleFonts.spaceMono(
+                            style: GoogleFonts.inter(
                               color: isEquipped ? _muted : Colors.black,
                               fontWeight: FontWeight.w900,
                               fontSize: 12,
@@ -446,7 +444,7 @@ class _AvatarDecorationStoreScreenState extends ConsumerState<AvatarDecorationSt
                       children: [
                         Text(
                           'PRICE',
-                          style: GoogleFonts.spaceGrotesk(
+                          style: GoogleFonts.inter(
                             color: _muted,
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
@@ -490,18 +488,17 @@ class _AvatarDecorationStoreScreenState extends ConsumerState<AvatarDecorationSt
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         decoration: BoxDecoration(
                           color: inCart ? _lime : borderCol,
-                          border: Border.all(color: Colors.black, width: 2.5),
+                          border: Border.all(color: Colors.black, width: 1),
                           boxShadow: [
-                            BoxShadow(
-                              color: inCart ? _lime : borderCol,
-                              offset: const Offset(3, 3),
+                            BoxShadow(color: inCart ? _lime : borderCol,
+                              blurRadius: 14, offset: const Offset(0, 4),
                             ),
                           ],
                         ),
                         child: Center(
                           child: Text(
                             inCart ? 'IN_CART' : 'ADD_TO_CART',
-                            style: GoogleFonts.spaceMono(
+                            style: GoogleFonts.inter(
                               color: Colors.black,
                               fontWeight: FontWeight.w900,
                               fontSize: 12,

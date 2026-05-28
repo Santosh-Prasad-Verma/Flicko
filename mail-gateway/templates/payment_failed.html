@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="color-scheme" content="dark only" />
   <meta name="supported-color-schemes" content="dark only" />
-  <title>Reset your password</title>
+  <title>Payment failed</title>
 </head>
 <body style="margin:0;padding:0;background-color:#000000;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Open Sans','Helvetica Neue',sans-serif;color:#FFFFFF;-webkit-font-smoothing:antialiased;">
   <div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;">
-    Reset your {{if .AppName}}{{.AppName}}{{else}}Flicko{{end}} password.
+    Your last payment to {{if .AppName}}{{.AppName}}{{else}}Flicko{{end}} failed.
   </div>
 
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;background-color:#000000;background-image:radial-gradient(circle at 1px 1px,#141414 1px,transparent 0);background-size:24px 24px;">
@@ -17,12 +17,28 @@
       <td align="center" style="padding:32px 16px;">
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:520px;background-color:#000000;border:1px solid #161616;">
 
+          <!-- ALERT BAR -->
+          <tr>
+            <td style="padding:0 16px 24px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#1a0d0d;border:2px solid #ff5252;">
+                <tr>
+                  <td style="padding:10px;text-align:center;">
+                    <p style="margin:0;font-size:11px;font-weight:900;color:#ff8a8a;text-transform:uppercase;letter-spacing:2px;">
+                      ✕ PAYMENT_FAILED &nbsp;//&nbsp; ACTION REQUIRED
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
           {{template "header" .}}
-          {{template "title" "PASSWORD<br/>RESET"}}
-          {{template "subtitle" "WE RECEIVED A REQUEST TO RESET YOUR PASSWORD."}}
+          {{template "title" "PAYMENT<br/>FAILED"}}
+          {{template "subtitle" "YOUR LAST CHARGE COULDN'T GO THROUGH."}}
           {{template "greeting" .}}
-          {{template "paragraph" "If you made this request, use the code below or tap the button to choose a new password. If you didn't, you can safely ignore this message — your account is still secure."}}
-          {{template "token_block" .}}
+          {{template "paragraph" "We couldn't process your payment. Don't worry, your account is still active for now. Update your payment method to keep your subscription running."}}
+
+          {{template "receipt_block" .}}
 
           {{if .ActionURL}}
           <tr>
@@ -31,8 +47,8 @@
                 <tr><td style="background-color:#FFFFFF;padding:0;">
                   <table role="presentation" cellspacing="0" cellpadding="0">
                     <tr><td style="background-color:#000000;padding:0;transform:translate(-6px,-6px);">
-                      <a href="{{.ActionURL}}" style="display:inline-block;background-color:#52B788;color:#000000 !important;text-decoration:none;font-weight:900;font-size:16px;padding:18px 40px;text-transform:uppercase;letter-spacing:1.5px;border:3px solid #000000;">
-                        RESET PASSWORD
+                      <a href="{{.ActionURL}}" style="display:inline-block;background-color:#ff5252;color:#000000 !important;text-decoration:none;font-weight:900;font-size:16px;padding:18px 40px;text-transform:uppercase;letter-spacing:1.5px;border:3px solid #000000;">
+                        UPDATE PAYMENT
                       </a>
                     </td></tr>
                   </table>
@@ -42,23 +58,15 @@
           </tr>
           {{end}}
 
-          <!-- SECURITY TIP -->
           <tr>
-            <td style="padding:0 24px 40px;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#0a0a0a;border-left:3px solid #52B788;">
-                <tr>
-                  <td style="padding:14px 18px;">
-                    <p style="margin:0;font-size:11px;color:#52B788;font-weight:900;letter-spacing:2px;text-transform:uppercase;">// SECURITY TIP</p>
-                    <p style="margin:6px 0 0;font-size:12px;color:#888888;line-height:1.6;">
-                      We will never ask for your password, code, or seed phrase by email. If something feels off, contact support.
-                    </p>
-                  </td>
-                </tr>
-              </table>
+            <td align="center" style="padding-bottom:48px;">
+              <p style="margin:0;font-size:12px;color:#666666;font-weight:700;line-height:1.6;">
+                Need help? Reach support and we'll sort it out.
+              </p>
             </td>
           </tr>
 
-          {{template "divider" "SECURE_LINK"}}
+          {{template "divider" "BILLING_ALERT"}}
           {{template "footer" .}}
         </table>
       </td>

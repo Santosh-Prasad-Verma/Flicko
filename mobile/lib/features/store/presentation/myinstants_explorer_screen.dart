@@ -181,7 +181,7 @@ class _MyInstantsExplorerScreenState extends ConsumerState<MyInstantsExplorerScr
                     Expanded(
                       child: Text(
                         'ADDED "${sound.name.toUpperCase()}" TO SOUNDBOARD!',
-                        style: GoogleFonts.spaceMono(
+                        style: GoogleFonts.inter(
                           color: _neonGreen,
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
@@ -238,7 +238,7 @@ class _MyInstantsExplorerScreenState extends ConsumerState<MyInstantsExplorerScr
         ),
         title: Text(
           'SOUNDBOARD_EXPLORER',
-          style: GoogleFonts.spaceGrotesk(
+          style: GoogleFonts.inter(
             color: Colors.white,
             fontWeight: FontWeight.w900,
             letterSpacing: 2,
@@ -255,20 +255,19 @@ class _MyInstantsExplorerScreenState extends ConsumerState<MyInstantsExplorerScr
               decoration: BoxDecoration(
                 color: Colors.black,
                 border: Border.all(color: _neonGreen, width: 2),
-                boxShadow: const [
-                  BoxShadow(
-                    color: _neonGreen,
-                    offset: Offset(4, 4),
+                boxShadow:  [
+                  BoxShadow(color: _neonGreen.withValues(alpha: 0.25),
+                    blurRadius: 14, offset: const Offset(0, 4),
                   ),
                 ],
               ),
               child: TextField(
                 controller: _searchController,
-                style: GoogleFonts.spaceMono(color: Colors.white),
+                style: GoogleFonts.inter(color: Colors.white),
                 onChanged: (val) => setState(() {}),
                 decoration: InputDecoration(
                   hintText: 'SEARCH MYINSTANTS CLIPS...',
-                  hintStyle: GoogleFonts.spaceMono(color: _muted, fontSize: 13),
+                  hintStyle: GoogleFonts.inter(color: _muted, fontSize: 13),
                   prefixIcon: IconButton(
                     icon: const Icon(Icons.search, color: _neonGreen),
                     onPressed: () => _onSearch(_searchController.text),
@@ -305,7 +304,7 @@ class _MyInstantsExplorerScreenState extends ConsumerState<MyInstantsExplorerScr
                 const SizedBox(width: 8),
                 Text(
                   _searchQuery.isEmpty ? 'TRENDING SOUNDS' : 'SEARCH RESULTS FOR "${_searchQuery.toUpperCase()}"',
-                  style: GoogleFonts.spaceMono(
+                  style: GoogleFonts.inter(
                     color: _neonPink,
                     fontWeight: FontWeight.bold,
                     fontSize: 11,
@@ -362,7 +361,7 @@ class _MyInstantsExplorerScreenState extends ConsumerState<MyInstantsExplorerScr
           const SizedBox(height: 16),
           Text(
             'NO SOUNDS FOUND',
-            style: GoogleFonts.spaceGrotesk(
+            style: GoogleFonts.inter(
               color: Colors.white,
               fontWeight: FontWeight.w900,
               letterSpacing: 1.5,
@@ -371,7 +370,7 @@ class _MyInstantsExplorerScreenState extends ConsumerState<MyInstantsExplorerScr
           const SizedBox(height: 8),
           Text(
             'TRY SEARCHING FOR SOMETHING ELSE',
-            style: GoogleFonts.spaceMono(color: _muted, fontSize: 11),
+            style: GoogleFonts.inter(color: _muted, fontSize: 11),
           ),
         ],
       ),
@@ -407,9 +406,8 @@ class _MyInstantsExplorerScreenState extends ConsumerState<MyInstantsExplorerScr
               ),
               boxShadow: isPlaying
                   ? [
-                      const BoxShadow(
-                        color: _neonPink,
-                        offset: Offset(3, 3),
+                      BoxShadow(color: _neonPink.withValues(alpha: 0.25),
+                        blurRadius: 14, offset: const Offset(0, 4),
                       ),
                     ]
                   : null,
@@ -451,7 +449,7 @@ class _MyInstantsExplorerScreenState extends ConsumerState<MyInstantsExplorerScr
                               sound.name.toUpperCase(),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.spaceGrotesk(
+                              style: GoogleFonts.inter(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 11,

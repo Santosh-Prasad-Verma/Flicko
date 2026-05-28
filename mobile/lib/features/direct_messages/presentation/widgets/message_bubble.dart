@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile/features/direct_messages/domain/dm_models.dart';
@@ -129,12 +131,6 @@ class _MessageBubbleState extends ConsumerState<MessageBubble> {
     final timeStr = DateFormat('h:mm a').format(message.createdAt);
     final currentUserId = Supabase.instance.client.auth.currentUser?.id;
     final isMine = message.senderId == currentUserId;
-    final bubbleColor = isMine
-        ? const Color(FlickoColors.bgSecondary)
-        : const Color(FlickoColors.bgTertiary);
-    final borderColor = isMine
-        ? const Color(FlickoColors.emeraldGreen)
-        : const Color(FlickoColors.border);
 
     return GestureDetector(
       onLongPress: _showMessageActions,
@@ -172,41 +168,59 @@ class _MessageBubbleState extends ConsumerState<MessageBubble> {
                       onTap: widget.onTapProfile,
                       behavior: HitTestBehavior.opaque,
                       child: Padding(
-                        padding: const EdgeInsets.only(bottom: 6),
+                        padding: const EdgeInsets.only(bottom: 6, left: 4),
                         child: KineticNameplateText(
-                          text: senderName.toUpperCase(),
+                          text: senderName,
                           userId: message.senderId,
                           style: const TextStyle(
                             color: Color(FlickoColors.emeraldGreen),
-                            fontWeight: FontWeight.w800,
-                            fontSize: 12,
-                            letterSpacing: 0.5,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                            letterSpacing: 0,
                           ),
                         ),
                       ),
                     ),
                   MessageDripCard(
                     authorId: message.senderId,
-                    child: Container(
-                      constraints: const BoxConstraints(maxWidth: 300),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: FlickoSpacing.md,
-                        vertical: 14,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.only(
+                        topLeft: const Radius.circular(18),
+                        topRight: const Radius.circular(18),
+                        bottomLeft: Radius.circular(isMine ? 18 : 4),
+                        bottomRight: Radius.circular(isMine ? 4 : 18),
                       ),
-                      decoration: BoxDecoration(
-                        color: bubbleColor,
-                        border: Border.all(color: borderColor, width: 1.5),
-                        boxShadow: isMine
-                            ? const [
-                                BoxShadow(
-                                  color: Color(FlickoColors.emeraldGreen),
-                                  blurRadius: 0,
-                                  offset: Offset(4, 4),
-                                )
-                              ]
-                            : null,
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                        child: Container(
+                          constraints: const BoxConstraints(maxWidth: 300),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: FlickoSpacing.md,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isMine
+                                ? const Color(FlickoColors.emeraldGreen)
+                                    .withValues(alpha: 0.18)
+                                : Colors.white.withValues(alpha: 0.06),
+                            borderRadius: BorderRadius.only(
+                              topLeft: const Radius.circular(18),
+                              topRight: const Radius.circular(18),
+                              bottomLeft: Radius.circular(isMine ? 18 : 4),
+                              bottomRight: Radius.circular(isMine ? 4 : 18),
+                            ),
+                            border: Border.all(
+                              color: isMine
+                                  ? const Color(FlickoColors.emeraldGreen)
+                                      .withValues(alpha: 0.35)
+                                  : Colors.white.withValues(alpha: 0.10),
+                              width: 1,
+                            ),
+                          ),
+                          child:
+                              _isEditing ? _buildEditField() : _buildContent(),
+                        ),
                       ),
-                      child: _isEditing ? _buildEditField() : _buildContent(),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -341,8 +355,11 @@ class _MessageBubbleState extends ConsumerState<MessageBubble> {
       padding: const EdgeInsets.all(FlickoSpacing.sm),
       decoration: BoxDecoration(
         color: const Color(FlickoColors.bgPrimary),
-        border:
-            Border.all(color: const Color(FlickoColors.emeraldGreen), width: 1.2),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: const Color(FlickoColors.border).withValues(alpha: 0.5),
+          width: 1,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

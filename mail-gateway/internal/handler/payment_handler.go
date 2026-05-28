@@ -78,7 +78,11 @@ func (h *PaymentHandler) HandleCreateOrder(w http.ResponseWriter, r *http.Reques
 	}
 
 	var result map[string]interface{}
-	json.NewDecoder(resp.Body).Decode(&result)
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		slog.Error("failed to decode Razorpay order response", "error", err)
+		h.respondError(w, "razorpay returned invalid response", http.StatusBadGateway)
+		return
+	}
 
 	h.respondJSON(w, result, http.StatusOK)
 }
@@ -121,7 +125,7 @@ func (h *PaymentHandler) HandleVerifyPayment(w http.ResponseWriter, r *http.Requ
 
 	// Trigger Receipt & Welcome Email
 	if body.Email != "" {
-		h.emailQueue.Enqueue(models.EmailJob{
+		err := h.emailQueue.Enqueue(models.EmailJob{
 			To:           body.Email,
 			Subject:      "Welcome to Flicko Plus! ✨",
 			TemplateName: "flicko_plus",
@@ -137,6 +141,13 @@ func (h *PaymentHandler) HandleVerifyPayment(w http.ResponseWriter, r *http.Requ
 			},
 			CreatedAt: time.Now(),
 		})
+		if err != nil {
+			slog.Error("failed to enqueue Flicko Plus receipt email",
+				"error", err,
+				"email", body.Email,
+				"payment_id", body.RazorpayPaymentID,
+			)
+		}
 	}
 
 	h.respondJSON(w, map[string]string{"status": "success"}, http.StatusOK)

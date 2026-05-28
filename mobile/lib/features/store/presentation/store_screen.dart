@@ -161,7 +161,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
           ? _buildSearchField()
           : Text(
               'Flicko Store',
-              style: GoogleFonts.spaceGrotesk(
+              style: GoogleFonts.inter(
                 color: _white,
                 fontWeight: FontWeight.w900,
                 fontSize: 22,
@@ -198,7 +198,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                   ),
                   child: Text(
                     '${cart.length}',
-                    style: GoogleFonts.spaceGrotesk(
+                    style: GoogleFonts.inter(
                       color: Colors.black,
                       fontSize: 10,
                       fontWeight: FontWeight.w900,
@@ -224,7 +224,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
             indicatorSize: TabBarIndicatorSize.label,
             labelColor: _neon,
             unselectedLabelColor: _muted,
-            labelStyle: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1.0),
+            labelStyle: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1.0),
             tabs: const [
               Tab(text: 'Discover'),
               Tab(text: 'My Collection'),
@@ -238,10 +238,10 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
   Widget _buildSearchField() {
     return TextField(
       controller: _searchController,
-      style: GoogleFonts.spaceGrotesk(color: _white),
+      style: GoogleFonts.inter(color: _white),
       decoration: InputDecoration(
         hintText: 'Search products...',
-        hintStyle: GoogleFonts.spaceGrotesk(color: _muted),
+        hintStyle: GoogleFonts.inter(color: _muted),
         filled: true,
         fillColor: _bg,
         border: OutlineInputBorder(
@@ -323,7 +323,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                       const SizedBox(width: 10),
                       Text(
                         'Collector Level $level',
-                        style: GoogleFonts.spaceGrotesk(
+                        style: GoogleFonts.inter(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
@@ -341,7 +341,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                     ),
                     child: Text(
                       rank,
-                      style: GoogleFonts.spaceMono(
+                      style: GoogleFonts.inter(
                         color: _gold,
                         fontSize: 8,
                         fontWeight: FontWeight.bold,
@@ -397,11 +397,11 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                 children: [
                   Text(
                     '$currentLevelXp / 500 XP',
-                    style: GoogleFonts.spaceMono(color: _muted, fontSize: 8, fontWeight: FontWeight.bold),
+                    style: GoogleFonts.inter(color: _muted, fontSize: 8, fontWeight: FontWeight.bold),
                   ),
                   Text(
                     '${ownedCount} Items Collected',
-                    style: GoogleFonts.spaceMono(color: _muted, fontSize: 8, fontWeight: FontWeight.bold),
+                    style: GoogleFonts.inter(color: _muted, fontSize: 8, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
@@ -471,7 +471,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                         const SizedBox(height: 16),
                         Text(
                           'No products found',
-                          style: GoogleFonts.spaceGrotesk(color: _white, fontWeight: FontWeight.w700),
+                          style: GoogleFonts.inter(color: _white, fontWeight: FontWeight.w700),
                         ),
                       ],
                     ),
@@ -530,7 +530,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                     const SizedBox(width: 8),
                     Text(
                       'Sort: ${_getSortLabel()}',
-                      style: GoogleFonts.spaceGrotesk(color: _white, fontSize: 12),
+                      style: GoogleFonts.inter(color: _white, fontSize: 12),
                     ),
                     const Spacer(),
                     Icon(Icons.arrow_drop_down, color: _muted, size: 16),
@@ -556,7 +556,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                   const SizedBox(width: 6),
                   Text(
                     '${ref.watch(wishlistProvider).length}',
-                    style: GoogleFonts.spaceGrotesk(color: _white, fontSize: 12),
+                    style: GoogleFonts.inter(color: _white, fontSize: 12),
                   ),
                 ],
               ),
@@ -595,7 +595,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
               padding: const EdgeInsets.all(16),
               child: Text(
                 'Sort Products',
-                style: GoogleFonts.spaceGrotesk(color: _white, fontWeight: FontWeight.w700, fontSize: 16),
+                style: GoogleFonts.inter(color: _white, fontWeight: FontWeight.w700, fontSize: 16),
               ),
             ),
             ...[
@@ -608,7 +608,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                 _sortBy == item.$1 ? Icons.radio_button_checked : Icons.radio_button_off,
                 color: _sortBy == item.$1 ? _neon : _muted,
               ),
-              title: Text(item.$2, style: GoogleFonts.spaceGrotesk(color: _white)),
+              title: Text(item.$2, style: GoogleFonts.inter(color: _white)),
               onTap: () {
                 setState(() => _sortBy = item.$1);
                 Navigator.pop(ctx);
@@ -624,53 +624,71 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
   void _showWishlistSheet() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.black,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.zero,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (ctx) => DraggableScrollableSheet(
-        initialChildSize: 0.6,
-        minChildSize: 0.4,
-        maxChildSize: 0.9,
-        expand: false,
-        builder: (ctx, scrollController) => Consumer(
-          builder: (context, ref, child) {
-            final wishlistProducts = ref.watch(wishlistProductsProvider);
-            final wishlist = ref.watch(wishlistProvider);
+      builder: (ctx) => ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+          child: DraggableScrollableSheet(
+            initialChildSize: 0.6,
+            minChildSize: 0.4,
+            maxChildSize: 0.9,
+            expand: false,
+            builder: (ctx, scrollController) => Consumer(
+              builder: (context, ref, child) {
+                final wishlistProducts = ref.watch(wishlistProductsProvider);
+                final wishlist = ref.watch(wishlistProvider);
 
-            return Container(
-              color: Colors.black,
-              child: Column(
-                children: [
-                  Container(
-                    height: 4,
-                    width: double.infinity,
-                    color: _neon,
+                return Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.55),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                    border: Border(
+                      top: BorderSide(
+                        color: Colors.white.withValues(alpha: 0.1),
+                        width: 1,
+                      ),
+                    ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'MY_WISHLIST',
-                          style: GoogleFonts.spaceGrotesk(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 18,
-                            letterSpacing: 2,
-                          ),
+                  child: Column(
+                    children: [
+                      Container(
+                        margin: const EdgeInsets.only(top: 10),
+                        height: 4,
+                        width: 40,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(4),
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            border: Border.all(color: Colors.black, width: 1.5),
-                          ),
-                          child: Text(
-                            '${wishlist.length}',
-                            style: GoogleFonts.spaceMono(
-                              color: Colors.white,
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'My wishlist',
+                              style: GoogleFonts.inter(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 20,
+                                letterSpacing: 0,
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.redAccent.withValues(alpha: 0.85),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Text(
+                                '${wishlist.length}',
+                                style: GoogleFonts.inter(
+                                  color: Colors.white,
                               fontWeight: FontWeight.w900,
                             ),
                           ),
@@ -690,7 +708,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                                 const SizedBox(height: 12),
                                 Text(
                                   'YOUR_WISHLIST_IS_EMPTY',
-                                  style: GoogleFonts.spaceMono(
+                                  style: GoogleFonts.inter(
                                     color: _muted,
                                     fontWeight: FontWeight.w900,
                                     fontSize: 12,
@@ -715,6 +733,8 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
               ),
             );
           },
+        ),
+      ),
         ),
       ),
     );
@@ -747,7 +767,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
               children: [
                 Text(
                   product.name.toUpperCase(),
-                  style: GoogleFonts.spaceGrotesk(
+                  style: GoogleFonts.inter(
                     color: Colors.white,
                     fontWeight: FontWeight.w900,
                     fontSize: 13,
@@ -757,7 +777,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                 const SizedBox(height: 2),
                 Text(
                   product.price == 0 ? 'FREE' : '₹${product.price.toStringAsFixed(0)}',
-                  style: GoogleFonts.spaceGrotesk(color: _lime, fontWeight: FontWeight.w900),
+                  style: GoogleFonts.inter(color: _lime, fontWeight: FontWeight.w900),
                 ),
               ],
             ),
@@ -826,7 +846,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                     ),
                     child: Text(
                       'FEATURED DROP',
-                      style: GoogleFonts.spaceMono(
+                      style: GoogleFonts.inter(
                         color: _neon,
                         fontSize: 9,
                         fontWeight: FontWeight.w900,
@@ -837,7 +857,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                   const SizedBox(height: 10),
                   Text(
                     'Sonic Drip Theme',
-                    style: GoogleFonts.spaceGrotesk(
+                    style: GoogleFonts.inter(
                       color: Colors.white,
                       fontSize: 24,
                       fontWeight: FontWeight.w900,
@@ -855,7 +875,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                         ),
                         child: Text(
                           '₹399',
-                          style: GoogleFonts.spaceGrotesk(
+                          style: GoogleFonts.inter(
                             color: Colors.black,
                             fontWeight: FontWeight.w900,
                             fontSize: 12,
@@ -917,7 +937,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                       .split(' ')
                       .map((s) => s.isNotEmpty ? s[0].toUpperCase() + s.substring(1) : '')
                       .join(' '),
-                  style: GoogleFonts.spaceGrotesk(
+                  style: GoogleFonts.inter(
                     color: selected ? Colors.black : Colors.white.withValues(alpha: 0.7),
                     fontWeight: FontWeight.bold,
                     fontSize: 12,
@@ -1011,7 +1031,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                                       child: KineticNameplateText(
                                         text: 'DRIP_TAG',
                                         decorationId: product.id,
-                                        style: GoogleFonts.spaceGrotesk(
+                                        style: GoogleFonts.inter(
                                           fontWeight: FontWeight.w900,
                                           fontSize: 16,
                                         ),
@@ -1056,7 +1076,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                         children: [
                           Text(
                             product.name.toUpperCase(),
-                            style: GoogleFonts.spaceGrotesk(
+                            style: GoogleFonts.inter(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
                               fontSize: 13,
@@ -1068,7 +1088,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                           const SizedBox(height: 2),
                           Text(
                             product.type.toUpperCase().replaceAll('_', ' '),
-                            style: GoogleFonts.spaceMono(
+                            style: GoogleFonts.inter(
                               color: _muted,
                               fontSize: 9,
                               fontWeight: FontWeight.bold,
@@ -1109,7 +1129,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                 ),
                 child: Text(
                   'HOT',
-                  style: GoogleFonts.spaceMono(
+                  style: GoogleFonts.inter(
                     color: _white,
                     fontSize: 8,
                     fontWeight: FontWeight.bold,
@@ -1134,7 +1154,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
               ),
               child: Text(
                 product.rarity.toUpperCase(),
-                style: GoogleFonts.spaceMono(
+                style: GoogleFonts.inter(
                   color: rarityColor,
                   fontSize: 8,
                   fontWeight: FontWeight.w900,
@@ -1395,7 +1415,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                       Flexible(
                         child: Text(
                           'Cosmic Fusion Chamber',
-                          style: GoogleFonts.spaceGrotesk(
+                          style: GoogleFonts.inter(
                             color: _white,
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
@@ -1410,7 +1430,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                   const SizedBox(height: 6),
                   Text(
                     'Fuse duplicate or unwanted items to synthesize high-rarity premium cosmetics!',
-                    style: GoogleFonts.spaceMono(
+                    style: GoogleFonts.inter(
                       color: _muted,
                       fontSize: 8,
                       fontWeight: FontWeight.bold,
@@ -1469,7 +1489,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                       Flexible(
                         child: Text(
                           'Mystery Vinyl Deck',
-                          style: GoogleFonts.spaceGrotesk(
+                          style: GoogleFonts.inter(
                             color: _white,
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
@@ -1488,7 +1508,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                         ),
                         child: Text(
                           '$ownedCount Unopened',
-                          style: GoogleFonts.spaceMono(
+                          style: GoogleFonts.inter(
                             color: magenta,
                             fontWeight: FontWeight.bold,
                             fontSize: 8,
@@ -1500,7 +1520,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                   const SizedBox(height: 6),
                   Text(
                     'Spin the vinyl record for a chance to unlock legendary cosmetics!',
-                    style: GoogleFonts.spaceMono(
+                    style: GoogleFonts.inter(
                       color: _muted,
                       fontSize: 8,
                       fontWeight: FontWeight.bold,
@@ -1559,7 +1579,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                       Flexible(
                         child: Text(
                           'Alchemical Crucible',
-                          style: GoogleFonts.spaceGrotesk(
+                          style: GoogleFonts.inter(
                             color: _white,
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
@@ -1578,7 +1598,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                         ),
                         child: Text(
                           'Active',
-                          style: GoogleFonts.spaceMono(
+                          style: GoogleFonts.inter(
                             color: gold,
                             fontWeight: FontWeight.bold,
                             fontSize: 8,
@@ -1590,7 +1610,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                   const SizedBox(height: 6),
                   Text(
                     'Fuse lower-tier badges to claim high-tier badge rewards!',
-                    style: GoogleFonts.spaceMono(
+                    style: GoogleFonts.inter(
                       color: _muted,
                       fontSize: 8,
                       fontWeight: FontWeight.bold,
@@ -1632,7 +1652,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
             Expanded(
               child: Text(
                 formattedTitle,
-                style: GoogleFonts.spaceGrotesk(
+                style: GoogleFonts.inter(
                   color: _lime,
                   fontWeight: FontWeight.w900,
                   fontSize: 14,
@@ -1645,7 +1665,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
             const SizedBox(width: 8),
             Text(
               '${items.length} Owned',
-              style: GoogleFonts.spaceMono(
+              style: GoogleFonts.inter(
                 color: _muted,
                 fontWeight: FontWeight.bold,
                 fontSize: 10,
@@ -1667,7 +1687,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
               children: [
                 Text(
                   'No items owned in this category',
-                  style: GoogleFonts.spaceMono(color: _muted, fontSize: 10, fontWeight: FontWeight.bold),
+                  style: GoogleFonts.inter(color: _muted, fontSize: 10, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 12),
                 GestureDetector(
@@ -1684,7 +1704,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                     ),
                     child: Text(
                       'Browse Store',
-                      style: GoogleFonts.spaceGrotesk(
+                      style: GoogleFonts.inter(
                         color: _lime,
                         fontWeight: FontWeight.bold,
                         fontSize: 11,
@@ -1736,7 +1756,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
               ),
               child: Text(
                 'Browse Store',
-                style: GoogleFonts.spaceGrotesk(
+                style: GoogleFonts.inter(
                   color: Colors.black,
                   fontWeight: FontWeight.w900,
                 ),
@@ -1801,7 +1821,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                     Expanded(
                       child: Text(
                         purchase.productName.toUpperCase(),
-                        style: GoogleFonts.spaceGrotesk(
+                        style: GoogleFonts.inter(
                           color: _white,
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
@@ -1822,7 +1842,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                         ),
                         child: Text(
                           'Equipped',
-                          style: GoogleFonts.spaceGrotesk(
+                          style: GoogleFonts.inter(
                             color: _lime,
                             fontWeight: FontWeight.bold,
                             fontSize: 9,
@@ -1836,7 +1856,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                 const SizedBox(height: 2),
                 Text(
                   purchase.productType.toUpperCase(),
-                  style: GoogleFonts.spaceMono(
+                  style: GoogleFonts.inter(
                     color: _muted,
                     fontSize: 9,
                     fontWeight: FontWeight.bold,
@@ -1857,15 +1877,14 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                   color: const Color(0xFFFF007F), // Magenta
                   border: Border.all(color: Colors.black, width: 1.5),
                   boxShadow: const [
-                    BoxShadow(
-                      color: Color(0xFFFF007F),
-                      offset: Offset(2, 2),
+                    BoxShadow(color: Color(0xFFFF007F),
+                      blurRadius: 14, offset: const Offset(0, 4),
                     ),
                   ],
                 ),
                 child: Text(
                   'Open Crate',
-                  style: GoogleFonts.spaceMono(
+                  style: GoogleFonts.inter(
                     color: Colors.black,
                     fontWeight: FontWeight.w900,
                     fontSize: 9,
@@ -1886,25 +1905,44 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
   void _showDirectItemOptions(UserPurchase item, bool isEquipped) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.black,
+      backgroundColor: Colors.transparent,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.zero,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                height: 4,
-                width: double.infinity,
-                color: _lime,
+      builder: (ctx) => ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.55),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(24)),
+              border: Border(
+                top: BorderSide(
+                  color: Colors.white.withValues(alpha: 0.1),
+                  width: 1,
+                ),
               ),
-              const SizedBox(height: 20),
+            ),
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      height: 4,
+                      width: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
               Text(
                 item.productName.toUpperCase(),
-                style: GoogleFonts.spaceGrotesk(
+                style: GoogleFonts.inter(
                   color: _white,
                   fontWeight: FontWeight.w900,
                   fontSize: 18,
@@ -1921,11 +1959,11 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                   ),
                   title: Text(
                     'Equip Item',
-                    style: GoogleFonts.spaceGrotesk(color: _white, fontWeight: FontWeight.w900, letterSpacing: 1),
+                    style: GoogleFonts.inter(color: _white, fontWeight: FontWeight.w900, letterSpacing: 1),
                   ),
                   subtitle: Text(
                     'Activate this ${item.productType.toLowerCase()}',
-                    style: GoogleFonts.spaceGrotesk(color: _muted),
+                    style: GoogleFonts.inter(color: _muted),
                   ),
                   onTap: () async {
                     Navigator.pop(ctx);
@@ -1941,11 +1979,11 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                   ),
                   title: Text(
                     'Unequip Item',
-                    style: GoogleFonts.spaceGrotesk(color: Colors.red, fontWeight: FontWeight.w900, letterSpacing: 1),
+                    style: GoogleFonts.inter(color: Colors.red, fontWeight: FontWeight.w900, letterSpacing: 1),
                   ),
                   subtitle: Text(
                     'Stop using this ${item.productType.toLowerCase()}',
-                    style: GoogleFonts.spaceGrotesk(color: _muted),
+                    style: GoogleFonts.inter(color: _muted),
                   ),
                   onTap: () async {
                     Navigator.pop(ctx);
@@ -1960,9 +1998,9 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                 ),
                 title: Text(
                   'Gift to a Friend',
-                  style: GoogleFonts.spaceGrotesk(color: _white, fontWeight: FontWeight.w900, letterSpacing: 1),
+                  style: GoogleFonts.inter(color: _white, fontWeight: FontWeight.w900, letterSpacing: 1),
                 ),
-                subtitle: Text('Send to another user', style: GoogleFonts.spaceGrotesk(color: _muted)),
+                subtitle: Text('Send to another user', style: GoogleFonts.inter(color: _muted)),
                 onTap: () {
                   Navigator.pop(ctx);
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -1975,6 +2013,9 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
           ),
         ),
       ),
+            ),
+          ),
+        ),
     );
   }
 
@@ -2068,7 +2109,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
             const SizedBox(width: 8),
             Text(
               '${cart.length} item${cart.length == 1 ? '' : 's'} • ₹${ref.read(cartProvider.notifier).total.toStringAsFixed(0)}',
-              style: GoogleFonts.spaceGrotesk(
+              style: GoogleFonts.inter(
                 color: Colors.black,
                 fontWeight: FontWeight.w900,
               ),
@@ -2351,45 +2392,51 @@ class _GachaSpinDialogState extends State<GachaSpinDialog> with TickerProviderSt
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: _bg,
-          border: Border.all(color: _neon, width: 3),
-          boxShadow: const [
-            BoxShadow(
-              color: _neon,
-              offset: Offset(6, 6),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
+          child: Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: _bg.withValues(alpha: 0.55),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.12), width: 1),
+              boxShadow: [
+                BoxShadow(
+                  color: _neon.withValues(alpha: 0.18),
+                  blurRadius: 32,
+                  spreadRadius: 1,
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Stack(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Title
-                  Text(
-                    'TURNTABLE_GACHA',
-                    style: GoogleFonts.spaceGrotesk(
-                      color: _white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 2,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'SPIN THE PLATTER TO DROP A PREVENT REWARD',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.spaceMono(
-                      color: _muted,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+            child: Stack(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Title
+                      Text(
+                        'Turntable Gacha',
+                        style: GoogleFonts.inter(
+                          color: _white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Spin the platter to drop a reward.',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.inter(
+                          color: _muted,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                   const SizedBox(height: 24),
 
                   // The Turntable Deck Area
@@ -2427,25 +2474,26 @@ class _GachaSpinDialogState extends State<GachaSpinDialog> with TickerProviderSt
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         decoration: BoxDecoration(
-                          color: _isSpinning ? Colors.black : _neon,
-                          border: Border.all(color: _isSpinning ? _muted : Colors.black, width: 2.5),
+                          color: _isSpinning ? const Color(0xFF1A1A1A) : _neon,
+                          borderRadius: BorderRadius.circular(14),
                           boxShadow: _isSpinning
                               ? null
-                              : const [
+                              : [
                                   BoxShadow(
-                                    color: Colors.black,
-                                    offset: Offset(4, 4),
+                                    color: _neon.withValues(alpha: 0.35),
+                                    blurRadius: 18,
+                                    spreadRadius: 1,
                                   ),
                                 ],
                         ),
                         child: Center(
                           child: Text(
-                            _isSpinning ? 'SPINNING RECORD...' : 'DROP NEEDLE (SPIN)',
-                            style: GoogleFonts.spaceGrotesk(
+                            _isSpinning ? 'Spinning record…' : 'Drop needle to spin',
+                            style: GoogleFonts.inter(
                               color: _isSpinning ? _muted : Colors.black,
-                              fontWeight: FontWeight.w900,
+                              fontWeight: FontWeight.w700,
                               fontSize: 14,
-                              letterSpacing: 1,
+                              letterSpacing: 0.2,
                             ),
                           ),
                         ),
@@ -2462,16 +2510,16 @@ class _GachaSpinDialogState extends State<GachaSpinDialog> with TickerProviderSt
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(vertical: 12),
                                   decoration: BoxDecoration(
-                                    color: _isEquipped ? Colors.black : _neon,
-                                    border: Border.all(color: Colors.white, width: 2),
+                                    color: _isEquipped ? const Color(0xFF1A1A1A) : _neon,
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Center(
                                     child: Text(
-                                      _isEquipped ? 'EQUIPPED!' : 'EQUIP NOW',
-                                      style: GoogleFonts.spaceGrotesk(
+                                      _isEquipped ? 'Equipped' : 'Equip now',
+                                      style: GoogleFonts.inter(
                                         color: _isEquipped ? _neon : Colors.black,
-                                        fontWeight: FontWeight.w900,
-                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 13,
                                       ),
                                     ),
                                   ),
@@ -2485,16 +2533,17 @@ class _GachaSpinDialogState extends State<GachaSpinDialog> with TickerProviderSt
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(vertical: 12),
                                   decoration: BoxDecoration(
-                                    color: Colors.black,
-                                    border: Border.all(color: _white, width: 2),
+                                    color: Colors.transparent,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: _white.withValues(alpha: 0.2), width: 1),
                                   ),
                                   child: Center(
                                     child: Text(
-                                      'CLOSE',
-                                      style: GoogleFonts.spaceGrotesk(
+                                      'Close',
+                                      style: GoogleFonts.inter(
                                         color: _white,
-                                        fontWeight: FontWeight.w900,
-                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 13,
                                       ),
                                     ),
                                   ),
@@ -2522,6 +2571,8 @@ class _GachaSpinDialogState extends State<GachaSpinDialog> with TickerProviderSt
               ),
           ],
         ),
+          ),
+        ),
       ),
     );
   }
@@ -2532,26 +2583,33 @@ class _GachaSpinDialogState extends State<GachaSpinDialog> with TickerProviderSt
       width: 280,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.black,
-        border: Border.all(color: rarityColor, width: 3),
+        color: const Color(0xFF0A0A0A),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: rarityColor.withValues(alpha: 0.5), width: 1),
         boxShadow: [
           BoxShadow(
-            color: rarityColor,
-            offset: const Offset(4, 4),
+            color: rarityColor.withValues(alpha: 0.25),
+            blurRadius: 24,
+            spreadRadius: 1,
           ),
         ],
       ),
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            color: rarityColor,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+            decoration: BoxDecoration(
+              color: rarityColor.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: rarityColor.withValues(alpha: 0.5), width: 1),
+            ),
             child: Text(
-              reward.rarity.toUpperCase(),
-              style: GoogleFonts.spaceMono(
-                color: Colors.black,
-                fontSize: 10,
-                fontWeight: FontWeight.w900,
+              _capitalize(reward.rarity),
+              style: GoogleFonts.inter(
+                color: rarityColor,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.3,
               ),
             ),
           ),
@@ -2563,37 +2621,41 @@ class _GachaSpinDialogState extends State<GachaSpinDialog> with TickerProviderSt
           ),
           const SizedBox(height: 20),
           Text(
-            reward.name.toUpperCase(),
+            reward.name,
             textAlign: TextAlign.center,
-            style: GoogleFonts.spaceGrotesk(
+            style: GoogleFonts.inter(
               color: Colors.white,
               fontSize: 18,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
-            reward.type.toUpperCase(),
-            style: GoogleFonts.spaceMono(
+            _capitalize(reward.type.replaceAll('_', ' ')),
+            style: GoogleFonts.inter(
               color: _muted,
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
             ),
           ),
           const SizedBox(height: 12),
           Text(
             reward.description ?? 'A high-fidelity cosmetic unlocked via Gacha Spin.',
             textAlign: TextAlign.center,
-            style: GoogleFonts.spaceGrotesk(
+            style: GoogleFonts.inter(
               color: _white.withValues(alpha: 0.7),
-              fontSize: 12,
+              fontSize: 13,
+              height: 1.4,
             ),
           ),
         ],
       ),
     );
   }
+
+  String _capitalize(String s) =>
+      s.isEmpty ? s : s[0].toUpperCase() + s.substring(1).toLowerCase();
 }
 
 class TurntablePainter extends CustomPainter {

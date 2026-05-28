@@ -125,7 +125,7 @@ class _VoiceSkinStoreScreenState extends ConsumerState<VoiceSkinStoreScreen>
         ),
         title: Text(
           'VOICE_SKIN_DECK',
-          style: GoogleFonts.spaceGrotesk(
+          style: GoogleFonts.inter(
             color: _white,
             fontWeight: FontWeight.w900,
             fontSize: 18,
@@ -173,7 +173,7 @@ class _VoiceSkinStoreScreenState extends ConsumerState<VoiceSkinStoreScreen>
                             // 3. Selection Slider Header
                             Text(
                               'AVAILABLE_VOICE_SKINS',
-                              style: GoogleFonts.spaceGrotesk(
+                              style: GoogleFonts.inter(
                                 color: _white,
                                 fontWeight: FontWeight.w900,
                                 fontSize: 11,
@@ -219,7 +219,7 @@ class _VoiceSkinStoreScreenState extends ConsumerState<VoiceSkinStoreScreen>
             height: 160,
             decoration: BoxDecoration(
               color: Colors.black,
-              border: Border.all(color: spec.filter.isEnabled ? spec.primaryColor : _muted, width: 2.5),
+              border: Border.all(color: spec.filter.isEnabled ? spec.primaryColor : _muted, width: 1),
               boxShadow: [
                 if (spec.filter.isEnabled)
                   BoxShadow(
@@ -256,7 +256,7 @@ class _VoiceSkinStoreScreenState extends ConsumerState<VoiceSkinStoreScreen>
                   left: 15,
                   child: Text(
                     'FLICKO_TAPE_T-90',
-                    style: GoogleFonts.spaceMono(color: _muted, fontSize: 8, fontWeight: FontWeight.bold),
+                    style: GoogleFonts.inter(color: _muted, fontSize: 8, fontWeight: FontWeight.bold),
                   ),
                 ),
                 Positioned(
@@ -264,7 +264,7 @@ class _VoiceSkinStoreScreenState extends ConsumerState<VoiceSkinStoreScreen>
                   right: 15,
                   child: Text(
                     spec.filter.activePresetName.toUpperCase(),
-                    style: GoogleFonts.spaceMono(color: spec.primaryColor, fontSize: 8, fontWeight: FontWeight.w900),
+                    style: GoogleFonts.inter(color: spec.primaryColor, fontSize: 8, fontWeight: FontWeight.w900),
                   ),
                 ),
                 
@@ -329,7 +329,7 @@ class _VoiceSkinStoreScreenState extends ConsumerState<VoiceSkinStoreScreen>
                     border: Border.all(color: _isRecording ? Colors.black : _magenta, width: 2),
                     boxShadow: _isRecording
                         ? null
-                        : const [BoxShadow(color: _magenta, offset: Offset(2, 2))],
+                        : [BoxShadow(color: _magenta.withValues(alpha: 0.3), blurRadius: 14, spreadRadius: 1)],
                   ),
                   child: Row(
                     children: [
@@ -344,7 +344,7 @@ class _VoiceSkinStoreScreenState extends ConsumerState<VoiceSkinStoreScreen>
                       const SizedBox(width: 8),
                       Text(
                         _isRecording ? 'STOP' : 'RECORD TEST',
-                        style: GoogleFonts.spaceMono(
+                        style: GoogleFonts.inter(
                           color: _isRecording ? Colors.black : _white,
                           fontSize: 9,
                           fontWeight: FontWeight.w900,
@@ -372,7 +372,7 @@ class _VoiceSkinStoreScreenState extends ConsumerState<VoiceSkinStoreScreen>
                       border: Border.all(color: _isPlaying ? Colors.black : _cyberBlue, width: 2),
                       boxShadow: _isPlaying
                           ? null
-                          : const [BoxShadow(color: _cyberBlue, offset: Offset(2, 2))],
+                          : [BoxShadow(color: _cyberBlue.withValues(alpha: 0.3), blurRadius: 14, spreadRadius: 1)],
                     ),
                     child: Row(
                       children: [
@@ -384,7 +384,7 @@ class _VoiceSkinStoreScreenState extends ConsumerState<VoiceSkinStoreScreen>
                         const SizedBox(width: 6),
                         Text(
                           _isPlaying ? 'STOP' : 'PLAY LOOP',
-                          style: GoogleFonts.spaceMono(
+                          style: GoogleFonts.inter(
                             color: _isPlaying ? Colors.black : _white,
                             fontSize: 9,
                             fontWeight: FontWeight.w900,
@@ -411,9 +411,8 @@ class _VoiceSkinStoreScreenState extends ConsumerState<VoiceSkinStoreScreen>
         color: Colors.black,
         border: Border.all(color: borderCol, width: 2),
         boxShadow: [
-          BoxShadow(
-            color: borderCol,
-            offset: const Offset(3, 3),
+          BoxShadow(color: borderCol,
+            blurRadius: 14, offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -425,7 +424,7 @@ class _VoiceSkinStoreScreenState extends ConsumerState<VoiceSkinStoreScreen>
             children: [
               Text(
                 product.name.toUpperCase(),
-                style: GoogleFonts.spaceGrotesk(
+                style: GoogleFonts.inter(
                   color: _white,
                   fontWeight: FontWeight.w900,
                   fontSize: 16,
@@ -436,7 +435,7 @@ class _VoiceSkinStoreScreenState extends ConsumerState<VoiceSkinStoreScreen>
                 color: borderCol,
                 child: Text(
                   product.rarity.toUpperCase(),
-                  style: GoogleFonts.spaceMono(
+                  style: GoogleFonts.inter(
                     color: Colors.black,
                     fontWeight: FontWeight.w900,
                     fontSize: 8,
@@ -448,7 +447,7 @@ class _VoiceSkinStoreScreenState extends ConsumerState<VoiceSkinStoreScreen>
           const SizedBox(height: 8),
           Text(
             product.description ?? 'A high-fidelity premium voice skin with audio effects.',
-            style: GoogleFonts.spaceMono(
+            style: GoogleFonts.inter(
               color: _muted,
               fontSize: 10,
               height: 1.45,
@@ -480,7 +479,7 @@ class _VoiceSkinStoreScreenState extends ConsumerState<VoiceSkinStoreScreen>
       ),
       child: Text(
         text,
-        style: GoogleFonts.spaceMono(
+        style: GoogleFonts.inter(
           color: color,
           fontWeight: FontWeight.w900,
           fontSize: 8,
@@ -538,7 +537,7 @@ class _VoiceSkinStoreScreenState extends ConsumerState<VoiceSkinStoreScreen>
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   child: Text(
                     skin.name.toUpperCase(),
-                    style: GoogleFonts.spaceMono(
+                    style: GoogleFonts.inter(
                       color: isSelected ? skin.primaryColor : _white,
                       fontSize: 8.5,
                       fontWeight: FontWeight.bold,
@@ -552,7 +551,7 @@ class _VoiceSkinStoreScreenState extends ConsumerState<VoiceSkinStoreScreen>
                   const SizedBox(height: 2),
                   Text(
                     'EQUIPPED',
-                    style: GoogleFonts.spaceMono(
+                    style: GoogleFonts.inter(
                       color: _orange,
                       fontSize: 6.5,
                       fontWeight: FontWeight.w900,
@@ -602,21 +601,20 @@ class _VoiceSkinStoreScreenState extends ConsumerState<VoiceSkinStoreScreen>
                           color: isEquipped ? Colors.black : _orange,
                           border: Border.all(
                             color: isEquipped ? _muted : Colors.black,
-                            width: 2.5,
+                            width: 1,
                           ),
                           boxShadow: isEquipped
                               ? null
-                              : const [
-                                  BoxShadow(
-                                    color: _orange,
-                                    offset: Offset(3, 3),
+                              : [
+                                  BoxShadow(color: _orange.withValues(alpha: 0.25),
+                                    blurRadius: 14, offset: const Offset(0, 4),
                                   ),
                                 ],
                         ),
                         child: Center(
                           child: Text(
                             isEquipped ? 'UNEQUIP_VOICE_SKIN' : 'EQUIP_VOICE_SKIN',
-                            style: GoogleFonts.spaceMono(
+                            style: GoogleFonts.inter(
                               color: isEquipped ? _muted : Colors.black,
                               fontWeight: FontWeight.w900,
                               fontSize: 12,
@@ -638,7 +636,7 @@ class _VoiceSkinStoreScreenState extends ConsumerState<VoiceSkinStoreScreen>
                       children: [
                         Text(
                           'PRICE',
-                          style: GoogleFonts.spaceGrotesk(
+                          style: GoogleFonts.inter(
                             color: _muted,
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
@@ -682,18 +680,17 @@ class _VoiceSkinStoreScreenState extends ConsumerState<VoiceSkinStoreScreen>
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         decoration: BoxDecoration(
                           color: inCart ? _lime : borderCol,
-                          border: Border.all(color: Colors.black, width: 2.5),
+                          border: Border.all(color: Colors.black, width: 1),
                           boxShadow: [
-                            BoxShadow(
-                              color: inCart ? _lime : borderCol,
-                              offset: const Offset(3, 3),
+                            BoxShadow(color: inCart ? _lime : borderCol,
+                              blurRadius: 14, offset: const Offset(0, 4),
                             ),
                           ],
                         ),
                         child: Center(
                           child: Text(
                             inCart ? 'IN_CART' : 'ADD_TO_CART',
-                            style: GoogleFonts.spaceMono(
+                            style: GoogleFonts.inter(
                               color: Colors.black,
                               fontWeight: FontWeight.w900,
                               fontSize: 12,

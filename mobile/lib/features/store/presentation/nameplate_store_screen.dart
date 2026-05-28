@@ -43,7 +43,7 @@ class _NameplateStoreScreenState extends ConsumerState<NameplateStoreScreen> {
         ),
         title: Text(
           'NAMEPLATE_DECK',
-          style: GoogleFonts.spaceGrotesk(
+          style: GoogleFonts.inter(
             color: _white,
             fontWeight: FontWeight.w900,
             fontSize: 18,
@@ -91,7 +91,7 @@ class _NameplateStoreScreenState extends ConsumerState<NameplateStoreScreen> {
                             // 3. Selection Slider Header
                             Text(
                               'AVAILABLE_NAMEPLATES',
-                              style: GoogleFonts.spaceGrotesk(
+                              style: GoogleFonts.inter(
                                 color: _white,
                                 fontWeight: FontWeight.w900,
                                 fontSize: 11,
@@ -135,7 +135,7 @@ class _NameplateStoreScreenState extends ConsumerState<NameplateStoreScreen> {
           height: 100,
           decoration: BoxDecoration(
             color: Colors.black,
-            border: Border.all(color: spec.primaryColor, width: 2.5),
+            border: Border.all(color: spec.primaryColor, width: 1),
             boxShadow: [
               BoxShadow(
                 color: spec.primaryColor.withValues(alpha: 0.35),
@@ -171,7 +171,7 @@ class _NameplateStoreScreenState extends ConsumerState<NameplateStoreScreen> {
               KineticNameplateText(
                 text: 'SONIC_DRIPPER',
                 decorationId: spec.id,
-                style: GoogleFonts.spaceGrotesk(
+                style: GoogleFonts.inter(
                   color: Colors.white,
                   fontWeight: FontWeight.w900,
                   fontSize: 22,
@@ -194,9 +194,8 @@ class _NameplateStoreScreenState extends ConsumerState<NameplateStoreScreen> {
         color: Colors.black,
         border: Border.all(color: borderCol, width: 2),
         boxShadow: [
-          BoxShadow(
-            color: borderCol,
-            offset: const Offset(3, 3),
+          BoxShadow(color: borderCol,
+            blurRadius: 14, offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -208,7 +207,7 @@ class _NameplateStoreScreenState extends ConsumerState<NameplateStoreScreen> {
             children: [
               Text(
                 product.name.toUpperCase(),
-                style: GoogleFonts.spaceGrotesk(
+                style: GoogleFonts.inter(
                   color: _white,
                   fontWeight: FontWeight.w900,
                   fontSize: 16,
@@ -219,7 +218,7 @@ class _NameplateStoreScreenState extends ConsumerState<NameplateStoreScreen> {
                 color: borderCol,
                 child: Text(
                   product.rarity.toUpperCase(),
-                  style: GoogleFonts.spaceMono(
+                  style: GoogleFonts.inter(
                     color: Colors.black,
                     fontWeight: FontWeight.w900,
                     fontSize: 8,
@@ -231,7 +230,7 @@ class _NameplateStoreScreenState extends ConsumerState<NameplateStoreScreen> {
           const SizedBox(height: 8),
           Text(
             product.description ?? 'A high-fidelity premium procedural kinetic text drip effect.',
-            style: GoogleFonts.spaceMono(
+            style: GoogleFonts.inter(
               color: _muted,
               fontSize: 10,
               height: 1.45,
@@ -263,7 +262,7 @@ class _NameplateStoreScreenState extends ConsumerState<NameplateStoreScreen> {
       ),
       child: Text(
         text,
-        style: GoogleFonts.spaceMono(
+        style: GoogleFonts.inter(
           color: color,
           fontWeight: FontWeight.w900,
           fontSize: 8,
@@ -310,7 +309,7 @@ class _NameplateStoreScreenState extends ConsumerState<NameplateStoreScreen> {
                 KineticNameplateText(
                   text: 'DRIP_TAG',
                   decorationId: spec.id,
-                  style: GoogleFonts.spaceGrotesk(
+                  style: GoogleFonts.inter(
                     color: Colors.white,
                     fontWeight: FontWeight.w900,
                     fontSize: 14,
@@ -321,7 +320,7 @@ class _NameplateStoreScreenState extends ConsumerState<NameplateStoreScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   child: Text(
                     spec.name.toUpperCase(),
-                    style: GoogleFonts.spaceMono(
+                    style: GoogleFonts.inter(
                       color: isSelected ? spec.primaryColor : _muted,
                       fontSize: 8,
                       fontWeight: FontWeight.bold,
@@ -335,7 +334,7 @@ class _NameplateStoreScreenState extends ConsumerState<NameplateStoreScreen> {
                   const SizedBox(height: 2),
                   Text(
                     'EQUIPPED',
-                    style: GoogleFonts.spaceMono(
+                    style: GoogleFonts.inter(
                       color: _orange,
                       fontSize: 6.5,
                       fontWeight: FontWeight.w900,
@@ -384,21 +383,20 @@ class _NameplateStoreScreenState extends ConsumerState<NameplateStoreScreen> {
                           color: isEquipped ? Colors.black : _orange,
                           border: Border.all(
                             color: isEquipped ? _muted : Colors.black,
-                            width: 2.5,
+                            width: 1,
                           ),
                           boxShadow: isEquipped
                               ? null
-                              : const [
-                                  BoxShadow(
-                                    color: _orange,
-                                    offset: Offset(3, 3),
+                              : [
+                                  BoxShadow(color: _orange.withValues(alpha: 0.25),
+                                    blurRadius: 14, offset: const Offset(0, 4),
                                   ),
                                 ],
                         ),
                         child: Center(
                           child: Text(
                             isEquipped ? 'UNEQUIP_NAMEPLATE' : 'EQUIP_NAMEPLATE',
-                            style: GoogleFonts.spaceMono(
+                            style: GoogleFonts.inter(
                               color: isEquipped ? _muted : Colors.black,
                               fontWeight: FontWeight.w900,
                               fontSize: 12,
@@ -420,7 +418,7 @@ class _NameplateStoreScreenState extends ConsumerState<NameplateStoreScreen> {
                       children: [
                         Text(
                           'PRICE',
-                          style: GoogleFonts.spaceGrotesk(
+                          style: GoogleFonts.inter(
                             color: _muted,
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
@@ -464,18 +462,17 @@ class _NameplateStoreScreenState extends ConsumerState<NameplateStoreScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         decoration: BoxDecoration(
                           color: inCart ? _lime : borderCol,
-                          border: Border.all(color: Colors.black, width: 2.5),
+                          border: Border.all(color: Colors.black, width: 1),
                           boxShadow: [
-                            BoxShadow(
-                              color: inCart ? _lime : borderCol,
-                              offset: const Offset(3, 3),
+                            BoxShadow(color: inCart ? _lime : borderCol,
+                              blurRadius: 14, offset: const Offset(0, 4),
                             ),
                           ],
                         ),
                         child: Center(
                           child: Text(
                             inCart ? 'IN_CART' : 'ADD_TO_CART',
-                            style: GoogleFonts.spaceMono(
+                            style: GoogleFonts.inter(
                               color: Colors.black,
                               fontWeight: FontWeight.w900,
                               fontSize: 12,

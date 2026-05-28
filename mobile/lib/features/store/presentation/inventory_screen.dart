@@ -72,7 +72,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
               ),
               child: Text(
                 '${inventoryAsync.value?.length ?? 0}',
-                style: GoogleFonts.spaceGrotesk(
+                style: GoogleFonts.inter(
                   color: _neon,
                   fontWeight: FontWeight.w700,
                   fontSize: 12,
@@ -99,7 +99,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
           indicatorWeight: 2,
           labelColor: _white,
           unselectedLabelColor: _muted,
-          labelStyle: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.w700, fontSize: 12),
+          labelStyle: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 12),
           tabs: _tabs.map((t) => Tab(text: t)).toList(),
         ),
       ),
@@ -164,7 +164,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
           const SizedBox(height: 8),
           Text(
             'Visit the store to get some!',
-            style: GoogleFonts.spaceGrotesk(color: _muted),
+            style: GoogleFonts.inter(color: _muted),
           ),
           const SizedBox(height: 24),
           GestureDetector(
@@ -177,7 +177,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
               ),
               child: Text(
                 'VISIT STORE',
-                style: GoogleFonts.spaceGrotesk(
+                style: GoogleFonts.inter(
                   color: Colors.black,
                   fontWeight: FontWeight.w900,
                 ),
@@ -241,7 +241,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
                           Expanded(
                             child: Text(
                               item.productName,
-                              style: GoogleFonts.spaceGrotesk(
+                              style: GoogleFonts.inter(
                                 color: _white,
                                 fontWeight: FontWeight.w700,
                                 fontSize: 15,
@@ -265,7 +265,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
                                   const SizedBox(width: 4),
                                   Text(
                                     'EQUIPPED',
-                                    style: GoogleFonts.spaceGrotesk(
+                                    style: GoogleFonts.inter(
                                       color: Colors.black,
                                       fontWeight: FontWeight.w900,
                                       fontSize: 10,
@@ -280,7 +280,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
                       const SizedBox(height: 4),
                       Text(
                         item.productType.toUpperCase(),
-                        style: GoogleFonts.spaceMono(
+                        style: GoogleFonts.inter(
                           color: _muted,
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
@@ -289,7 +289,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
                       const SizedBox(height: 4),
                       Text(
                         'Purchased ${_formatDate(item.purchasedAt)}',
-                        style: GoogleFonts.spaceGrotesk(
+                        style: GoogleFonts.inter(
                           color: _muted.withValues(alpha: 0.7),
                           fontSize: 11,
                         ),
@@ -359,8 +359,8 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
                     ),
                     child: const Icon(Icons.check_circle, color: _lime),
                   ),
-                  title: Text('Equip', style: GoogleFonts.spaceGrotesk(color: _white, fontWeight: FontWeight.w600)),
-                  subtitle: Text('Use this ${item.productType.toLowerCase()}', style: GoogleFonts.spaceGrotesk(color: _muted)),
+                  title: Text('Equip', style: GoogleFonts.inter(color: _white, fontWeight: FontWeight.w600)),
+                  subtitle: Text('Use this ${item.productType.toLowerCase()}', style: GoogleFonts.inter(color: _muted)),
                   onTap: () async {
                     Navigator.pop(ctx);
                     await _equipItem(item);
@@ -376,8 +376,8 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
                     ),
                     child: const Icon(Icons.remove_circle_outline, color: Colors.red),
                   ),
-                  title: Text('Unequip', style: GoogleFonts.spaceGrotesk(color: Colors.red, fontWeight: FontWeight.w600)),
-                  subtitle: Text('Stop using this ${item.productType.toLowerCase()}', style: GoogleFonts.spaceGrotesk(color: _muted)),
+                  title: Text('Unequip', style: GoogleFonts.inter(color: Colors.red, fontWeight: FontWeight.w600)),
+                  subtitle: Text('Stop using this ${item.productType.toLowerCase()}', style: GoogleFonts.inter(color: _muted)),
                   onTap: () async {
                     Navigator.pop(ctx);
                     await _unequipItem(item);
@@ -392,7 +392,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
                   ),
                   child: const Icon(Icons.card_giftcard, color: _neon),
                 ),
-                title: Text('Gift to Friend', style: GoogleFonts.spaceGrotesk(color: _white, fontWeight: FontWeight.w600)),
+                title: Text('Gift to Friend', style: GoogleFonts.inter(color: _white, fontWeight: FontWeight.w600)),
                 subtitle: const Text('Coming soon', style: TextStyle(color: _muted)),
                 onTap: () {
                   Navigator.pop(ctx);

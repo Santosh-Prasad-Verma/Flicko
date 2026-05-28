@@ -45,7 +45,7 @@ Copy the output and add to `.env` as `WEBHOOK_SECRET`
 ### 4. Deploy Mail Gateway
 
 ```bash
-cd /home/tarun/Videos/Flicko
+cd /home/tarun/Pictures/Flicko
 
 # Build and start mail-gateway
 docker compose -f docker-compose.prod.yml up -d --build mail-gateway

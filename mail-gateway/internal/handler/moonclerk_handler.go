@@ -113,7 +113,7 @@ func (h *MoonclerkHandler) handlePaymentCreated(payload models.MoonclerkWebhookP
 	}
 
 	// Enqueue a "Flicko Plus" welcome/receipt email
-	h.emailQueue.Enqueue(models.EmailJob{
+	if err := h.emailQueue.Enqueue(models.EmailJob{
 		To:           payload.Data.CustomerEmail,
 		Subject:      "Welcome to Flicko Plus! ✨",
 		TemplateName: "flicko_plus",
@@ -128,7 +128,14 @@ func (h *MoonclerkHandler) handlePaymentCreated(payload models.MoonclerkWebhookP
 			Year:          time.Now().Year(),
 		},
 		CreatedAt: time.Now(),
-	})
+	}); err != nil {
+		slog.Error("failed to enqueue Moonclerk receipt email",
+			"error", err,
+			"email", payload.Data.CustomerEmail,
+			"tx_id", payload.Data.ID,
+		)
+		return
+	}
 
 	slog.Info("Moonclerk payment handled: welcome email queued",
 		"email", payload.Data.CustomerEmail,

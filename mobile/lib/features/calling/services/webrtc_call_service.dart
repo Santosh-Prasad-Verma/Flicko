@@ -420,7 +420,18 @@ class WebRtcCallService extends ChangeNotifier {
       },
     );
 
-    for (final track in _localStream?.getTracks() ?? <MediaStreamTrack>[]) {
+    final tracks = _localStream?.getTracks() ?? <MediaStreamTrack>[];
+    if (tracks.isEmpty) {
+      throw StateError('local stream has no tracks to add to peer');
+    }
+    for (final track in tracks) {
+      // Defensive: track.id can be null if the underlying native track was
+      // released between getUserMedia and addTrack (race after a prior call's
+      // endCall). Skip rather than crashing the whole start.
+      if (track.id == null || track.id!.isEmpty) {
+        debugPrint('[FlickoRTC] skipping track with null id (kind=${track.kind})');
+        continue;
+      }
       await _peer!.addTrack(track, _localStream!);
     }
 

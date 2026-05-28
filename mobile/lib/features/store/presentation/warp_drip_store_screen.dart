@@ -84,7 +84,7 @@ class _WarpDripStoreScreenState extends ConsumerState<WarpDripStoreScreen> with 
         ),
         title: Text(
           'WARP_DRIPS_DECK',
-          style: GoogleFonts.spaceGrotesk(
+          style: GoogleFonts.inter(
             color: _white,
             fontWeight: FontWeight.w900,
             fontSize: 18,
@@ -136,7 +136,7 @@ class _WarpDripStoreScreenState extends ConsumerState<WarpDripStoreScreen> with 
                                 // Categories Divider
                                 Text(
                                   'ENTRANCE_WARP_TRANSITIONS',
-                                  style: GoogleFonts.spaceGrotesk(
+                                  style: GoogleFonts.inter(
                                     color: _white,
                                     fontWeight: FontWeight.w900,
                                     fontSize: 11,
@@ -150,7 +150,7 @@ class _WarpDripStoreScreenState extends ConsumerState<WarpDripStoreScreen> with 
 
                                 Text(
                                   'PREMIUM_MESSAGE_DRIP_CARDS',
-                                  style: GoogleFonts.spaceGrotesk(
+                                  style: GoogleFonts.inter(
                                     color: _white,
                                     fontWeight: FontWeight.w900,
                                     fontSize: 11,
@@ -246,7 +246,7 @@ class _WarpDripStoreScreenState extends ConsumerState<WarpDripStoreScreen> with 
             const SizedBox(width: 8),
             Text(
               'ENTRANCE_PORTAL_MOCK',
-              style: GoogleFonts.spaceMono(
+              style: GoogleFonts.inter(
                 color: _lime,
                 fontWeight: FontWeight.w900,
                 fontSize: 10,
@@ -312,17 +312,16 @@ class _WarpDripStoreScreenState extends ConsumerState<WarpDripStoreScreen> with 
             decoration: BoxDecoration(
               color: _getRarityColor(product.rarity),
               border: Border.all(color: Colors.black, width: 2.0),
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.white24,
-                  offset: Offset(2, 2),
+              boxShadow:  [
+                BoxShadow(color: Colors.white24.withValues(alpha: 0.25),
+                  blurRadius: 14, offset: const Offset(0, 4),
                 ),
               ],
             ),
             child: Center(
               child: Text(
                 'TEST TRANSITION',
-                style: GoogleFonts.spaceMono(
+                style: GoogleFonts.inter(
                   color: Colors.black,
                   fontWeight: FontWeight.w900,
                   fontSize: 11,
@@ -353,7 +352,7 @@ class _WarpDripStoreScreenState extends ConsumerState<WarpDripStoreScreen> with 
               child: Center(
                 child: Text(
                   'F',
-                  style: GoogleFonts.spaceGrotesk(
+                  style: GoogleFonts.inter(
                     color: Colors.black,
                     fontSize: 11,
                     fontWeight: FontWeight.w900,
@@ -364,7 +363,7 @@ class _WarpDripStoreScreenState extends ConsumerState<WarpDripStoreScreen> with 
             const SizedBox(width: 8),
             Text(
               'FLICKO_MEMBER',
-              style: GoogleFonts.spaceMono(
+              style: GoogleFonts.inter(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
                 fontSize: 10,
@@ -373,7 +372,7 @@ class _WarpDripStoreScreenState extends ConsumerState<WarpDripStoreScreen> with 
             const Spacer(),
             Text(
               '15:40',
-              style: GoogleFonts.spaceMono(
+              style: GoogleFonts.inter(
                 color: _muted,
                 fontSize: 8,
               ),
@@ -386,7 +385,7 @@ class _WarpDripStoreScreenState extends ConsumerState<WarpDripStoreScreen> with 
           forcePreview: true,
           child: Text(
             'YO FLICKO! THIS CARD BORDER IS DRIPPING NEON GLINT! 🔥🚀',
-            style: GoogleFonts.spaceGrotesk(
+            style: GoogleFonts.inter(
               color: Colors.white,
               fontSize: 11,
               fontWeight: FontWeight.w500,
@@ -420,7 +419,7 @@ class _WarpDripStoreScreenState extends ConsumerState<WarpDripStoreScreen> with 
                 ),
                 child: Text(
                   product.rarity.toUpperCase(),
-                  style: GoogleFonts.spaceMono(
+                  style: GoogleFonts.inter(
                     color: borderCol,
                     fontSize: 8,
                     fontWeight: FontWeight.w900,
@@ -437,7 +436,7 @@ class _WarpDripStoreScreenState extends ConsumerState<WarpDripStoreScreen> with 
                 ),
                 child: Text(
                   product.type.replaceAll('_', ' '),
-                  style: GoogleFonts.spaceMono(
+                  style: GoogleFonts.inter(
                     color: _white,
                     fontSize: 8,
                     fontWeight: FontWeight.w900,
@@ -450,7 +449,7 @@ class _WarpDripStoreScreenState extends ConsumerState<WarpDripStoreScreen> with 
           const SizedBox(height: 12),
           Text(
             product.name,
-            style: GoogleFonts.spaceGrotesk(
+            style: GoogleFonts.inter(
               color: _white,
               fontWeight: FontWeight.w900,
               fontSize: 20,
@@ -459,7 +458,7 @@ class _WarpDripStoreScreenState extends ConsumerState<WarpDripStoreScreen> with 
           const SizedBox(height: 8),
           Text(
             product.description ?? '',
-            style: GoogleFonts.spaceMono(
+            style: GoogleFonts.inter(
               color: _muted,
               fontSize: 11,
               height: 1.5,
@@ -522,7 +521,7 @@ class _WarpDripStoreScreenState extends ConsumerState<WarpDripStoreScreen> with 
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   child: Text(
                     product.name.replaceAll(' Warp', '').replaceAll(' Card', '').toUpperCase(),
-                    style: GoogleFonts.spaceMono(
+                    style: GoogleFonts.inter(
                       color: isSelected ? borderCol : _white,
                       fontSize: 8,
                       fontWeight: FontWeight.bold,
@@ -536,7 +535,7 @@ class _WarpDripStoreScreenState extends ConsumerState<WarpDripStoreScreen> with 
                   const SizedBox(height: 4),
                   Text(
                     'EQUIPPED',
-                    style: GoogleFonts.spaceMono(
+                    style: GoogleFonts.inter(
                       color: _orange,
                       fontSize: 6.5,
                       fontWeight: FontWeight.w900,
@@ -587,14 +586,13 @@ class _WarpDripStoreScreenState extends ConsumerState<WarpDripStoreScreen> with 
                           color: isEquipped ? Colors.black : _orange,
                           border: Border.all(
                             color: isEquipped ? _muted : Colors.black,
-                            width: 2.5,
+                            width: 1,
                           ),
                           boxShadow: isEquipped
                               ? null
-                              : const [
-                                  BoxShadow(
-                                    color: _orange,
-                                    offset: Offset(3, 3),
+                              : [
+                                  BoxShadow(color: _orange.withValues(alpha: 0.25),
+                                    blurRadius: 14, offset: const Offset(0, 4),
                                   ),
                                 ],
                         ),
@@ -603,7 +601,7 @@ class _WarpDripStoreScreenState extends ConsumerState<WarpDripStoreScreen> with 
                             isEquipped
                                 ? (product.type == 'ENTRANCE_WARP' ? 'UNEQUIP_WARP' : 'UNEQUIP_CARD')
                                 : (product.type == 'ENTRANCE_WARP' ? 'EQUIP_WARP' : 'EQUIP_CARD'),
-                            style: GoogleFonts.spaceMono(
+                            style: GoogleFonts.inter(
                               color: isEquipped ? _muted : Colors.black,
                               fontWeight: FontWeight.w900,
                               fontSize: 12,
@@ -625,7 +623,7 @@ class _WarpDripStoreScreenState extends ConsumerState<WarpDripStoreScreen> with 
                       children: [
                         Text(
                           'PRICE',
-                          style: GoogleFonts.spaceGrotesk(
+                          style: GoogleFonts.inter(
                             color: _muted,
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
@@ -660,21 +658,20 @@ class _WarpDripStoreScreenState extends ConsumerState<WarpDripStoreScreen> with 
                           color: inCart ? Colors.black : _lime,
                           border: Border.all(
                             color: inCart ? _lime : Colors.black,
-                            width: 2.5,
+                            width: 1,
                           ),
                           boxShadow: inCart
                               ? null
-                              : const [
-                                  BoxShadow(
-                                    color: _lime,
-                                    offset: Offset(3, 3),
+                              : [
+                                  BoxShadow(color: _lime.withValues(alpha: 0.25),
+                                    blurRadius: 14, offset: const Offset(0, 4),
                                   ),
                                 ],
                         ),
                         child: Center(
                           child: Text(
                             inCart ? 'VIEW_CART' : 'ADD_TO_CART',
-                            style: GoogleFonts.spaceMono(
+                            style: GoogleFonts.inter(
                               color: inCart ? _lime : Colors.black,
                               fontWeight: FontWeight.w900,
                               fontSize: 12,

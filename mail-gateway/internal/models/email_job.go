@@ -66,9 +66,31 @@ type EmailData struct {
 	// TotalAmount is the formatted price paid (e.g. "$9.99")
 	TotalAmount string
 
+	// BillingCycle is the formatted billing cycle (e.g. "MONTHLY", "ANNUAL")
+	BillingCycle string
+
 	// Token is the verification code (e.g. "816327")
 	Token string
 
 	// Year is the current year for copyright notices
 	Year int
+
+	// --- Optional fields used by security & notification templates ---
+
+	// Device describes the user-agent / device that triggered the event
+	// (e.g. "iPhone 15 · iOS 17.4 · Safari")
+	Device string
+
+	// Location is a coarse geo location for security alerts (e.g. "Bengaluru, IN")
+	Location string
+
+	// IPAddress is the IP that triggered the event (e.g. "203.0.113.42")
+	IPAddress string
+
+	// Timestamp is a human-readable timestamp for the event
+	// (e.g. "May 28, 2026 · 14:32 IST")
+	Timestamp string
+
+	// Message is free-form body content for the generic notification template
+	Message string
 }

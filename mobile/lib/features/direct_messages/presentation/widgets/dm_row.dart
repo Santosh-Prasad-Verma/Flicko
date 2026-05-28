@@ -20,22 +20,21 @@ class DMRow extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(24),
+      borderRadius: BorderRadius.circular(18),
       child: Container(
         margin: const EdgeInsets.symmetric(
           horizontal: FlickoSpacing.md,
-          vertical: 8,
+          vertical: 4,
         ),
-        padding: const EdgeInsets.all(FlickoSpacing.md),
+        padding: const EdgeInsets.symmetric(
+          horizontal: FlickoSpacing.md,
+          vertical: 12,
+        ),
         decoration: BoxDecoration(
-          color: const Color(FlickoColors.bgSecondary),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: conversation.unreadCount > 0
-                ? const Color(FlickoColors.emeraldGreen)
-                : const Color(FlickoColors.border),
-            width: 1.4,
-          ),
+          color: conversation.unreadCount > 0
+              ? const Color(FlickoColors.bgSecondary)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(18),
         ),
         child: Row(
           children: [
@@ -43,28 +42,28 @@ class DMRow extends StatelessWidget {
               clipBehavior: Clip.none,
               children: [
                 CircleAvatar(
-                  radius: 28,
+                  radius: 24,
                   backgroundColor: const Color(FlickoColors.bgTertiary),
                   backgroundImage: user.avatarUrl != null
                       ? CachedNetworkImageProvider(user.avatarUrl!)
                       : null,
                   child: user.avatarUrl == null
                       ? const Icon(Icons.person,
-                          size: 20, color: Color(FlickoColors.textMuted))
+                          size: 18, color: Color(FlickoColors.textMuted))
                       : null,
                 ),
                 Positioned(
-                  right: -1,
-                  bottom: -1,
+                  right: 0,
+                  bottom: 0,
                   child: Container(
-                    width: 15,
-                    height: 15,
+                    width: 13,
+                    height: 13,
                     decoration: BoxDecoration(
                       color: _getStatusColor(user.onlineStatus),
                       shape: BoxShape.circle,
                       border: Border.all(
                         color: const Color(FlickoColors.bgPrimary),
-                        width: 2,
+                        width: 2.5,
                       ),
                     ),
                   ),
@@ -79,34 +78,40 @@ class DMRow extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        user.displayName ?? user.username,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          color: const Color(FlickoColors.textPrimary),
-                          fontWeight: FontWeight.w800,
-                          fontSize: 18,
+                      Flexible(
+                        child: Text(
+                          user.displayName ?? user.username,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            color: const Color(FlickoColors.textPrimary),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
+                      const SizedBox(width: 8),
                       Text(
                         _formatTimestamp(conversation.lastMessageAt),
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: const Color(FlickoColors.textMuted),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
                   Text(
                     conversation.lastMessage,
                     style: theme.textTheme.bodyMedium?.copyWith(
+                      fontSize: 13,
                       color: conversation.unreadCount > 0
                           ? const Color(FlickoColors.textPrimary)
                           : const Color(FlickoColors.textSecondary),
                       fontWeight: conversation.unreadCount > 0
-                          ? FontWeight.w600
-                          : FontWeight.normal,
+                          ? FontWeight.w500
+                          : FontWeight.w400,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -118,19 +123,22 @@ class DMRow extends StatelessWidget {
               Container(
                 margin: const EdgeInsets.only(left: 8),
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: const Color(FlickoColors.emeraldGreen),
                   borderRadius: BorderRadius.circular(999),
                 ),
-                child: Text(
-                  conversation.unreadCount > 99
-                      ? '99+'
-                      : conversation.unreadCount.toString(),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w900,
+                constraints: const BoxConstraints(minWidth: 22, minHeight: 22),
+                child: Center(
+                  child: Text(
+                    conversation.unreadCount > 99
+                        ? '99+'
+                        : conversation.unreadCount.toString(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ),

@@ -28,11 +28,19 @@ func TestRenderAllTemplates(t *testing.T) {
 	}
 
 	templateNames := []string{
+		"account_deleted",
 		"confirm_email_change",
+		"flicko_plus",
 		"invite",
 		"magic_link",
+		"notification",
+		"password_changed",
+		"payment_failed",
 		"reauthentication",
 		"reset",
+		"security_alert",
+		"subscription_canceled",
+		"upgrade",
 		"verify",
 		"welcome",
 	}

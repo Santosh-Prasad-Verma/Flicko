@@ -38,9 +38,9 @@ type HealthResponse struct {
 
 // QueueHealth contains queue-specific health metrics.
 type QueueHealth struct {
-	Size    int  `json:"size"`
-	Pending int  `json:"pending"`
-	Closed  bool `json:"closed"`
+	Capacity int  `json:"capacity"`
+	Pending  int  `json:"pending"`
+	Closed   bool `json:"closed"`
 }
 
 // HandleHealth returns the current system health as JSON.
@@ -52,9 +52,9 @@ func (h *HealthHandler) HandleHealth(w http.ResponseWriter, r *http.Request) {
 		Status:  "ok",
 		Version: h.version,
 		Queue: QueueHealth{
-			Size:    h.queue.Capacity(),
-			Pending: h.queue.Pending(),
-			Closed:  h.queue.IsClosed(),
+			Capacity: h.queue.Capacity(),
+			Pending:  h.queue.Pending(),
+			Closed:   h.queue.IsClosed(),
 		},
 		Workers: h.workers,
 		Uptime:  uptime.String(),

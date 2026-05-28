@@ -23,6 +23,8 @@ import 'dart:io';
 
 import 'package:audio_service/audio_service.dart';
 import 'package:audio_session/audio_session.dart';
+import 'package:get_it/get_it.dart';
+import 'package:mobile/features/voice/services/flicko_audio_handler.dart';
 import 'package:mobile/features/sonic_music/APIs/api.dart';
 import 'package:mobile/features/sonic_music/Helpers/mediaitem_converter.dart';
 import 'package:mobile/features/sonic_music/Helpers/playlist.dart';
@@ -139,7 +141,19 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
     _init();
   }
 
+  void _activateDelegate() {
+    try {
+      if (GetIt.I.isRegistered<FlickoAudioHandler>()) {
+        final handler = GetIt.I<FlickoAudioHandler>();
+        if (handler.delegate != this) {
+          handler.setDelegate(this);
+        }
+      }
+    } catch (_) {}
+  }
+
   Future<void> _init() async {
+    _activateDelegate();
     Logger.root.info('starting audio service');
     if (Hive.isBoxOpen('settings')) {
       preferredCompactNotificationButtons = Hive.box('settings').get(
@@ -740,6 +754,7 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
 
   Future<void> skipToMediaItem(String? id, int? idx) async {
     if (idx == null && id == null) return;
+    _activateDelegate();
     final index = idx ?? queue.value.indexWhere((item) => item.id == id);
     if (index != -1) {
       _player!.seek(
@@ -864,7 +879,10 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
   }
 
   @override
-  Future<void> skipToNext() => _player!.seekToNext();
+  Future<void> skipToNext() {
+    _activateDelegate();
+    return _player!.seekToNext();
+  }
 
   /// This is called when the user presses the "like" button.
   @override
@@ -885,6 +903,7 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
 
   @override
   Future<void> skipToPrevious() async {
+    _activateDelegate();
     resetOnSkip =
         Hive.box('settings').get('resetOnSkip', defaultValue: false) as bool;
     if (resetOnSkip) {
@@ -901,6 +920,7 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
   @override
   Future<void> skipToQueueItem(int index) async {
     if (index < 0 || index >= _playlist.children.length) return;
+    _activateDelegate();
 
     _player!.seek(
       Duration.zero,
@@ -910,7 +930,10 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
   }
 
   @override
-  Future<void> play() => _player!.play();
+  Future<void> play() {
+    _activateDelegate();
+    return _player!.play();
+  }
 
   @override
   Future<void> pause() async {
@@ -921,7 +944,10 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
   }
 
   @override
-  Future<void> seek(Duration position) => _player!.seek(position);
+  Future<void> seek(Duration position) {
+    _activateDelegate();
+    return _player!.seek(position);
+  }
 
   @override
   Future<void> stop() async {
@@ -1330,6 +1356,11 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
   /// Broadcasts the current state to all clients.
   void _broadcastState(PlaybackEvent event) {
     final playing = _player!.playing;
+    if (playing ||
+        _player!.processingState == ProcessingState.buffering ||
+        _player!.processingState == ProcessingState.loading) {
+      _activateDelegate();
+    }
     bool liked = false;
     if (mediaItem.value != null) {
       liked = checkPlaylist('Favorite Songs', mediaItem.value!.id);

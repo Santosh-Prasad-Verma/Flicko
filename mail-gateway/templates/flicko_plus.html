@@ -3,210 +3,90 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>UPGRADE SUCCESS</title>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-    body {
-      margin: 0;
-      padding: 0;
-      background-color: #000000;
-      font-family: 'Inter', system-ui, -apple-system, sans-serif;
-      color: #FFFFFF;
-      -webkit-font-smoothing: antialiased;
-    }
-  </style>
+  <meta name="color-scheme" content="dark only" />
+  <meta name="supported-color-schemes" content="dark only" />
+  <title>Flicko Plus is live</title>
 </head>
-<body style="margin:0;padding:0;background-color:#000000;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Open Sans','Helvetica Neue',sans-serif;color:#FFFFFF;">
+<body style="margin:0;padding:0;background-color:#000000;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Open Sans','Helvetica Neue',sans-serif;color:#FFFFFF;-webkit-font-smoothing:antialiased;">
   <div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;">
-    Your upgrade to Flicko Plus is confirmed.
+    Welcome to {{if .AppName}}{{.AppName}}{{else}}Flicko{{end}} Plus.
   </div>
 
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;background-color:#000000; background-image: radial-gradient(circle at 1px 1px, #1a1a1a 1px, transparent 0); background-size: 24px 24px;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;background-color:#000000;background-image:radial-gradient(circle at 1px 1px,#141414 1px,transparent 0);background-size:24px 24px;">
     <tr>
-      <td align="center" style="padding:40px 16px;">
-        
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:500px;background-color:#000000;">
-          
+      <td align="center" style="padding:32px 16px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:520px;background-color:#000000;border:1px solid #161616;">
+
           <!-- TICKER BAR -->
           <tr>
-            <td style="padding-bottom:40px;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#52B788; border:3px solid #FFFFFF;">
+            <td style="padding:0 16px 24px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#52B788;border:3px solid #FFFFFF;">
                 <tr>
-                  <td style="padding:10px; text-align:center;">
-                    <p style="margin:0; font-size:11px; font-weight:900; color:#000000; text-transform:uppercase; letter-spacing:2px;">
-                      ✦ PAYMENT_CONFIRMED &nbsp;&nbsp;//&nbsp;&nbsp; PLUS_ACTIVE &nbsp;&nbsp;//&nbsp;&nbsp; THANK_YOU &nbsp;&nbsp;//&nbsp;&nbsp; ✦
+                  <td style="padding:10px;text-align:center;">
+                    <p style="margin:0;font-size:11px;font-weight:900;color:#000000;text-transform:uppercase;letter-spacing:2px;">
+                      ✦ PAYMENT_CONFIRMED &nbsp;//&nbsp; PLUS_ACTIVE &nbsp;//&nbsp; THANK_YOU &nbsp;✦
                     </p>
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
-        
-          
-          <!-- LOGO -->
-          <tr>
-            <td align="center" style="padding-bottom:40px;">
-              {{if .LogoURL}}
-                <img src="{{.LogoURL}}" alt="Flicko Logo" width="60" style="display:block;" />
-              {{else}}
-                
-                <svg width="60" height="60" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">
-                  <path d="M18 12H46V24H34V34H46V46H18V12Z" fill="#52B788"/>
-                  <path d="M24 18H40V24H24V18Z" fill="white"/>
-                  <path d="M24 34H40V40H24V34Z" fill="white"/>
-                </svg>
 
-              {{end}}
-            </td>
-          </tr>
+          {{template "header" .}}
+          {{template "title" "PLUS<br/>UNLOCKED"}}
+          {{template "subtitle" "YOUR FLICKO PLUS STATUS IS NOW LIVE."}}
+          {{template "greeting" .}}
+          {{template "paragraph" "Your upgrade to Flicko Plus is confirmed. Enjoy ad-free everything, priority access to new features, and exclusive perks across the platform."}}
 
-          <!-- HEADING -->
-          <tr>
-            <td align="center" style="padding-bottom:12px;">
-              <h1 style="margin:0;font-size:48px;font-weight:900;line-height:1;letter-spacing:-2px;text-transform:uppercase;color:#FFFFFF;">
-                UPGRADE<br/>SUCCESS
-              </h1>
-            </td>
-          </tr>
-
-          <!-- SUBHEADING -->
-          <tr>
-            <td align="center" style="padding-bottom:48px;">
-              <p style="margin:0;font-size:15px;font-weight:700;color:#888888;letter-spacing:1px;text-transform:uppercase;">
-                YOUR FLICKO PLUS STATUS IS NOW LIVE.
-              </p>
-            </td>
-          </tr>
-
-          <!-- CONTENT -->
-          
-          <!-- USER GREETING -->
-          <tr>
-            <td align="center" style="padding-bottom:32px;">
-              <p style="margin:0;font-size:16px;color:#FFFFFF;font-weight:700;">
-                HEY {{if .Username}}{{.Username}}{{else}}THERE{{end}},
-              </p>
-              <p style="margin:12px 0 0;font-size:14px;color:#888888;line-height:1.6;font-weight:500;">
-                Your upgrade to <strong style="color:#FFFFFF;">{{.AppName}} PLUS</strong> is confirmed. Unleash the full potential.
-              </p>
-            </td>
-          </tr>
-          
           <!-- FEATURE GRID -->
           <tr>
-            <td style="padding-bottom:48px;">
+            <td style="padding:0 24px 32px;">
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
                 <tr>
-                  <td width="31%" style="vertical-align:top; padding-right:10px;">
-                    <div style="border:2px solid #FFFFFF; padding:15px; background-color:#0d0d0d; box-shadow:4px 4px 0px #52B788; text-align:center;">
-                      <p style="margin:0 0 8px; font-size:18px;">🚫</p>
-                      <p style="margin:0; font-size:10px; font-weight:900; color:#FFFFFF; text-transform:uppercase; letter-spacing:1px;">NO_ADS</p>
+                  <td width="33%" style="vertical-align:top;padding-right:6px;">
+                    <div style="border:2px solid #FFFFFF;padding:14px 8px;background-color:#0a0a0a;text-align:center;box-shadow:4px 4px 0 #52B788;">
+                      <p style="margin:0 0 6px;font-size:18px;">🚫</p>
+                      <p style="margin:0;font-size:9px;font-weight:900;color:#FFFFFF;text-transform:uppercase;letter-spacing:1px;">NO_ADS</p>
                     </div>
                   </td>
-                  <td width="31%" style="vertical-align:top; padding:0 5px;">
-                    <div style="border:2px solid #FFFFFF; padding:15px; background-color:#0d0d0d; box-shadow:4px 4px 0px #52B788; text-align:center;">
-                      <p style="margin:0 0 8px; font-size:18px;">⚡</p>
-                      <p style="margin:0; font-size:10px; font-weight:900; color:#FFFFFF; text-transform:uppercase; letter-spacing:1px;">PRIORITY</p>
+                  <td width="33%" style="vertical-align:top;padding:0 3px;">
+                    <div style="border:2px solid #FFFFFF;padding:14px 8px;background-color:#0a0a0a;text-align:center;box-shadow:4px 4px 0 #52B788;">
+                      <p style="margin:0 0 6px;font-size:18px;">⚡</p>
+                      <p style="margin:0;font-size:9px;font-weight:900;color:#FFFFFF;text-transform:uppercase;letter-spacing:1px;">PRIORITY</p>
                     </div>
                   </td>
-                  <td width="31%" style="vertical-align:top; padding-left:10px;">
-                    <div style="border:2px solid #FFFFFF; padding:15px; background-color:#0d0d0d; box-shadow:4px 4px 0px #52B788; text-align:center;">
-                      <p style="margin:0 0 8px; font-size:18px;">👑</p>
-                      <p style="margin:0; font-size:10px; font-weight:900; color:#FFFFFF; text-transform:uppercase; letter-spacing:1px;">EXCLUSIVE</p>
+                  <td width="33%" style="vertical-align:top;padding-left:6px;">
+                    <div style="border:2px solid #FFFFFF;padding:14px 8px;background-color:#0a0a0a;text-align:center;box-shadow:4px 4px 0 #52B788;">
+                      <p style="margin:0 0 6px;font-size:18px;">👑</p>
+                      <p style="margin:0;font-size:9px;font-weight:900;color:#FFFFFF;text-transform:uppercase;letter-spacing:1px;">EXCLUSIVE</p>
                     </div>
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
-    
-          
-          <!-- RECEIPT BLOCK -->
+
+          {{template "receipt_block" .}}
+
           <tr>
             <td align="center" style="padding-bottom:48px;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#0d0d0d; border:1px solid #333333; text-align:left;">
-                <tr>
-                  <td style="padding:24px;">
-                    <p style="margin:0 0 20px;font-size:12px;color:#52B788;font-weight:900;letter-spacing:2px;text-transform:uppercase;">// RECEIPT_DATA</p>
-                    
-                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-family:monospace;">
-                      <tr>
-                        <td style="padding-bottom:12px; color:#666666; font-size:11px; text-transform:uppercase; letter-spacing:1px;">TRANSACTION_ID</td>
-                        <td style="padding-bottom:12px; text-align:right; color:#FFFFFF; font-size:12px;">{{if .TransactionID}}{{.TransactionID}}{{else}}N/A{{end}}</td>
-                      </tr>
-                      <tr>
-                        <td style="padding-bottom:12px; color:#666666; font-size:11px; text-transform:uppercase; letter-spacing:1px;">BILLING_CYCLE</td>
-                        <td style="padding-bottom:12px; text-align:right; color:#FFFFFF; font-size:12px;">{{if .BillingCycle}}{{.BillingCycle}}{{else}}MONTHLY{{end}}</td>
-                      </tr>
-                      <tr>
-                        <td style="padding-bottom:12px; color:#666666; font-size:11px; text-transform:uppercase; letter-spacing:1px;">AMOUNT</td>
-                        <td style="padding-bottom:12px; text-align:right; color:#FFFFFF; font-size:12px;">{{if .TotalAmount}}{{.TotalAmount}}{{else}}N/A{{end}}</td>
-                      </tr>
-                      <tr>
-                        <td style="padding-top:12px; border-top:1px dashed #333333; color:#666666; font-size:11px; text-transform:uppercase; letter-spacing:1px;">STATUS</td>
-                        <td style="padding-top:12px; border-top:1px dashed #333333; text-align:right; color:#52B788; font-size:12px; font-weight:900;">✓ VERIFIED</td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-    
-          
-          <!-- BUTTON WITH OFFSET -->
-          <tr>
-            <td align="center" style="padding-bottom:60px;">
-              <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 0 auto;">
-                <tr>
-                  <td style="background-color: #FFFFFF; padding: 0;">
-                    <table role="presentation" cellspacing="0" cellpadding="0">
-                      <tr>
-                        <td style="background-color: #000000; padding: 0; transform: translate(-8px, -8px);">
-                          <a href="{{.AppURL}}" style="display:inline-block; background-color:#52B788; color:#000000 !important; text-decoration:none; font-weight:900; font-size:20px; padding:20px 45px; text-transform:uppercase; letter-spacing:1.5px; border:3px solid #000000;">
-                            GO TO FLICKO
-                          </a>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-    
-        
-
-          <!-- FOOTER LINE -->
-          <tr>
-            <td>
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
-                <tr>
-                  <td style="border-top:1px solid #333333; width:35%;"></td>
-                  <td align="center" style="padding:0 10px; font-size:12px; color:#444444; letter-spacing:3px; font-weight:900;">
-                    PLUS_ACTIVE
-                  </td>
-                  <td style="border-top:1px solid #333333; width:35%;"></td>
-                </tr>
+              <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 auto;">
+                <tr><td style="background-color:#FFFFFF;padding:0;">
+                  <table role="presentation" cellspacing="0" cellpadding="0">
+                    <tr><td style="background-color:#000000;padding:0;transform:translate(-6px,-6px);">
+                      <a href="{{if .AppURL}}{{.AppURL}}{{else}}https://flicko.app{{end}}" style="display:inline-block;background-color:#52B788;color:#000000 !important;text-decoration:none;font-weight:900;font-size:16px;padding:18px 40px;text-transform:uppercase;letter-spacing:1.5px;border:3px solid #000000;">
+                        OPEN FLICKO
+                      </a>
+                    </td></tr>
+                  </table>
+                </td></tr>
               </table>
             </td>
           </tr>
 
-          <!-- LEGAL -->
-          <tr>
-            <td align="center" style="padding-top:40px;">
-              <p style="margin:0;font-size:11px;color:#444444;line-height:1.6;font-weight:700;letter-spacing:1px;text-transform:uppercase;">
-                ALL NETWORK DATA IS SUBJECT TO COMMUNITY<br/>
-                GUIDELINES. SYSTEM_V4.1.3_STABLE
-              </p>
-              <p style="margin:16px 0 0;font-size:10px;color:#222222;">
-                © {{if .Year}}{{.Year}}{{else}}2024{{end}} {{if .AppName}}{{.AppName}}{{else}}Flicko{{end}} · ALL RIGHTS RESERVED
-              </p>
-            </td>
-          </tr>
-
+          {{template "divider" "PLUS_ACTIVE"}}
+          {{template "footer" .}}
         </table>
-
       </td>
     </tr>
   </table>

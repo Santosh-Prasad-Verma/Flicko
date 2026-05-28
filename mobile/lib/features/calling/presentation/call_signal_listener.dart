@@ -21,6 +21,11 @@ class _CallSignalListenerState extends ConsumerState<CallSignalListener> {
   CallSignalingService? _signalingService;
   String? _myUserId;
 
+  // Tracks the room name of the currently active or pending call so that
+  // duplicate ring/accept signals for the same room (Supabase Realtime can
+  // redeliver) don't tear down a live peer connection or stack overlays.
+  String? _activeRoomName;
+
   @override
   void initState() {
     super.initState();
@@ -98,21 +103,44 @@ class _CallSignalListenerState extends ConsumerState<CallSignalListener> {
 
     switch (signal.signal) {
       case CallSignal.ring:
+        if (_activeRoomName != null) {
+          debugPrint(
+            '[CallSignal] ignoring ring from ${signal.callerId} '
+            '(already in call: $_activeRoomName, new room: ${signal.roomName})',
+          );
+          return;
+        }
+        _activeRoomName = signal.roomName;
         _showIncoming(signal);
         break;
       case CallSignal.accept:
+        if (_activeRoomName != null && _activeRoomName != signal.roomName) {
+          debugPrint(
+            '[CallSignal] ignoring accept for ${signal.roomName} '
+            '(active room is $_activeRoomName)',
+          );
+          return;
+        }
+        if (_activeRoomName == signal.roomName) {
+          debugPrint('[CallSignal] ignoring duplicate accept for ${signal.roomName}');
+          return;
+        }
+        _activeRoomName = signal.roomName;
         _showAcceptedAsCaller(signal);
         break;
       case CallSignal.decline:
+        _activeRoomName = null;
         _dismissTopRoute();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('${signal.callerName} declined the call')),
         );
         break;
       case CallSignal.cancel:
+        _activeRoomName = null;
         _dismissTopRoute();
         break;
       case CallSignal.end:
+        _activeRoomName = null;
         unawaited(
           ref.read(webRtcCallServiceProvider).endCall(notifyPeer: false),
         );

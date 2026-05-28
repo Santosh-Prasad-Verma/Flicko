@@ -269,6 +269,12 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
 
   // ── Playback ────────────────────────────────────────────────────────────────
 
+  void _resetDelegate() {
+    if (_handler != null && _handler!.delegate != null) {
+      _handler!.setDelegate(null);
+    }
+  }
+
   void play(Track track) {
     final queue = state.queue.contains(track)
         ? state.queue
@@ -278,6 +284,7 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
 
   void togglePlayPause() {
     if (state.playback.currentTrack == null) return;
+    _resetDelegate();
     if (state.isPlaying) {
       _player.pause();
       state = state.copyWith(
@@ -337,6 +344,7 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
     final queue = state.queue;
     if (queue.isEmpty) return;
     if (state.playback.position.inSeconds > 3) {
+      _resetDelegate();
       _player.seek(Duration.zero);
       return;
     }
@@ -356,6 +364,7 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
     final position = Duration(
       milliseconds: (duration.inMilliseconds * p).round(),
     );
+    _resetDelegate();
     _player.seek(position);
     state = state.copyWith(
       playback: state.playback.copyWith(position: position),
@@ -370,8 +379,8 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
     );
     // Persist (fire-and-forget).
     SharedPreferences.getInstance()
-        .then((p) => p.setDouble(_volumeKey, clamped))
-        .catchError((_) {});
+      .then((p) => p.setDouble(_volumeKey, clamped))
+      .catchError((_) {});
   }
 
   void toggleShuffle() {
@@ -404,6 +413,7 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
   }
 
   void stop() {
+    _resetDelegate();
     _player.stop();
     state = state.copyWith(
       playback: PlaybackState(

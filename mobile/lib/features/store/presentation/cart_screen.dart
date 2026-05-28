@@ -137,7 +137,7 @@ class CartScreen extends ConsumerWidget {
                 ),
                 child: Text(
                   '${cart.length}',
-                  style: GoogleFonts.spaceGrotesk(
+                  style: GoogleFonts.inter(
                     color: Colors.black,
                     fontWeight: FontWeight.w900,
                     fontSize: 12,
@@ -153,7 +153,7 @@ class CartScreen extends ConsumerWidget {
               onPressed: () => ref.read(cartProvider.notifier).clear(),
               child: Text(
                 'CLEAR ALL',
-                style: GoogleFonts.spaceGrotesk(
+                style: GoogleFonts.inter(
                   color: Colors.red,
                   fontWeight: FontWeight.w700,
                   fontSize: 12,
@@ -222,16 +222,15 @@ class CartScreen extends ConsumerWidget {
               decoration: BoxDecoration(
                 color: _kNeon,
                 border: Border.all(color: Colors.black, width: 2),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Colors.white,
-                    offset: Offset(4, 4),
+                boxShadow:  [
+                  BoxShadow(color: Colors.white.withValues(alpha: 0.25),
+                    blurRadius: 14, offset: const Offset(0, 4),
                   ),
                 ],
               ),
               child: Text(
                 'BROWSE STORE',
-                style: GoogleFonts.spaceGrotesk(
+                style: GoogleFonts.inter(
                   color: Colors.black,
                   fontWeight: FontWeight.w900,
                   fontSize: 14,
@@ -300,7 +299,7 @@ class CartScreen extends ConsumerWidget {
                       Expanded(
                         child: Text(
                           item.product.name,
-                          style: GoogleFonts.spaceGrotesk(
+                          style: GoogleFonts.inter(
                             color: _kWhite,
                             fontWeight: FontWeight.w700,
                             fontSize: 15,
@@ -318,7 +317,7 @@ class CartScreen extends ConsumerWidget {
                         ),
                         child: Text(
                           item.product.rarity.toUpperCase(),
-                          style: GoogleFonts.spaceMono(
+                          style: GoogleFonts.inter(
                             color: rarityColor,
                             fontSize: 8,
                             fontWeight: FontWeight.w900,
@@ -330,7 +329,7 @@ class CartScreen extends ConsumerWidget {
                   const SizedBox(height: 4),
                   Text(
                     item.product.type.toUpperCase(),
-                    style: GoogleFonts.spaceMono(
+                    style: GoogleFonts.inter(
                       color: _kMuted,
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
@@ -354,7 +353,7 @@ class CartScreen extends ConsumerWidget {
                         child: Center(
                           child: Text(
                             '${item.quantity}',
-                            style: GoogleFonts.spaceGrotesk(
+                            style: GoogleFonts.inter(
                               color: _kWhite,
                               fontWeight: FontWeight.w900,
                               fontSize: 16,
@@ -444,7 +443,7 @@ class CartScreen extends ConsumerWidget {
                   children: [
                     Text(
                       'TOTAL',
-                      style: GoogleFonts.spaceGrotesk(
+                      style: GoogleFonts.inter(
                         color: _kMuted,
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
@@ -485,7 +484,7 @@ class CartScreen extends ConsumerWidget {
                           const SizedBox(width: 8),
                           Text(
                             'SECURE CHECKOUT',
-                            style: GoogleFonts.spaceGrotesk(
+                            style: GoogleFonts.inter(
                               color: Colors.black,
                               fontWeight: FontWeight.w900,
                               fontSize: 16,
@@ -500,7 +499,7 @@ class CartScreen extends ConsumerWidget {
                 const SizedBox(height: 8),
                 Text(
                   'Secure checkout powered by Flicko Pay',
-                  style: GoogleFonts.spaceMono(
+                  style: GoogleFonts.inter(
                     color: _kMuted,
                     fontSize: 9,
                   ),
@@ -635,7 +634,7 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
                   children: [
                     Text(
                       'SECURE CHECKOUT',
-                      style: GoogleFonts.spaceGrotesk(
+                      style: GoogleFonts.inter(
                         color: _kWhite,
                         fontWeight: FontWeight.w900,
                         fontSize: 20,
@@ -643,7 +642,7 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
                     ),
                     Text(
                       '256-bit encrypted payment',
-                      style: GoogleFonts.spaceGrotesk(
+                      style: GoogleFonts.inter(
                         color: _kMuted,
                         fontSize: 12,
                       ),
@@ -664,7 +663,7 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
           if (widget.paidItems.isNotEmpty) ...[
             Text(
               'PAYMENT METHOD',
-              style: GoogleFonts.spaceGrotesk(
+              style: GoogleFonts.inter(
                 color: _kMuted,
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
@@ -697,10 +696,9 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
       decoration: BoxDecoration(
         color: Colors.black,
         border: Border.all(color: _kNeon, width: 2),
-        boxShadow: const [
-          BoxShadow(
-            color: _kNeon,
-            offset: Offset(4, 4),
+        boxShadow:  [
+          BoxShadow(color: _kNeon.withValues(alpha: 0.25),
+            blurRadius: 14, offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -711,14 +709,14 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
             children: [
               Text(
                 'Items (${widget.cart.length})',
-                style: GoogleFonts.spaceGrotesk(
+                style: GoogleFonts.inter(
                   color: _kWhite,
                   fontWeight: FontWeight.w700,
                 ),
               ),
               Text(
                 '₹${total.toStringAsFixed(0)}',
-                style: GoogleFonts.spaceGrotesk(
+                style: GoogleFonts.inter(
                   color: _kWhite,
                   fontWeight: FontWeight.w900,
                 ),
@@ -732,14 +730,14 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
               children: [
                 Text(
                   'DISCOUNT (${activeCoupon.code})',
-                  style: GoogleFonts.spaceGrotesk(
+                  style: GoogleFonts.inter(
                     color: _kLime,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 Text(
                   '-₹${discount.toStringAsFixed(0)}',
-                  style: GoogleFonts.spaceGrotesk(
+                  style: GoogleFonts.inter(
                     color: _kLime,
                     fontWeight: FontWeight.w900,
                   ),
@@ -755,7 +753,7 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
             children: [
               Text(
                 'TOTAL',
-                style: GoogleFonts.spaceGrotesk(
+                style: GoogleFonts.inter(
                   color: _kNeon,
                   fontWeight: FontWeight.w900,
                   fontSize: 14,
@@ -785,10 +783,9 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
       decoration: BoxDecoration(
         color: Colors.black,
         border: Border.all(color: _kNeon, width: 2),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.white,
-            offset: Offset(4, 4),
+        boxShadow:  [
+          BoxShadow(color: Colors.white.withValues(alpha: 0.25),
+            blurRadius: 14, offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -797,7 +794,7 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
         children: [
           Text(
             'PROMO CODE',
-            style: GoogleFonts.spaceGrotesk(
+            style: GoogleFonts.inter(
               color: _kWhite,
               fontWeight: FontWeight.w900,
               fontSize: 11,
@@ -822,7 +819,7 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
                         Expanded(
                           child: Text(
                             '${activeCoupon.code} APPLIED (${activeCoupon.discountPercent.toInt()}% OFF)',
-                            style: GoogleFonts.spaceMono(
+                            style: GoogleFonts.inter(
                               color: _kNeon,
                               fontWeight: FontWeight.w900,
                               fontSize: 11,
@@ -861,10 +858,10 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
                     ),
                     child: TextField(
                       controller: _couponController,
-                      style: GoogleFonts.spaceMono(color: _kWhite, fontSize: 13),
+                      style: GoogleFonts.inter(color: _kWhite, fontSize: 13),
                       decoration: InputDecoration(
                         hintText: 'ENTER CODE',
-                        hintStyle: GoogleFonts.spaceMono(color: _kMuted, fontSize: 12),
+                        hintStyle: GoogleFonts.inter(color: _kMuted, fontSize: 12),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         border: InputBorder.none,
                         enabledBorder: InputBorder.none,
@@ -886,7 +883,7 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
                     child: Center(
                       child: Text(
                         'APPLY',
-                        style: GoogleFonts.spaceGrotesk(
+                        style: GoogleFonts.inter(
                           color: Colors.black,
                           fontWeight: FontWeight.w900,
                           fontSize: 12,
@@ -901,7 +898,7 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
               const SizedBox(height: 8),
               Text(
                 _couponError!,
-                style: GoogleFonts.spaceMono(color: Colors.red, fontSize: 10),
+                style: GoogleFonts.inter(color: Colors.red, fontSize: 10),
               ),
             ],
           ],
@@ -1001,10 +998,9 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
             width: isSelected ? 2.5 : 1.5,
           ),
           boxShadow: isSelected
-              ? const [
-                  BoxShadow(
-                    color: _kNeon,
-                    offset: Offset(3, 3),
+              ? [
+                  BoxShadow(color: _kNeon.withValues(alpha: 0.25),
+                    blurRadius: 14, offset: const Offset(0, 4),
                   ),
                 ]
               : null,
@@ -1027,7 +1023,7 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
                 children: [
                   Text(
                     title,
-                    style: GoogleFonts.spaceGrotesk(
+                    style: GoogleFonts.inter(
                       color: _kWhite,
                       fontWeight: FontWeight.w900,
                       fontSize: 14,
@@ -1035,7 +1031,7 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
                   ),
                   Text(
                     subtitle,
-                    style: GoogleFonts.spaceGrotesk(
+                    style: GoogleFonts.inter(
                       color: _kMuted,
                       fontSize: 11,
                     ),
@@ -1071,10 +1067,9 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
             decoration: BoxDecoration(
               color: isFree ? _kLime : _kNeon,
               border: Border.all(color: Colors.black, width: 2),
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.white,
-                  offset: Offset(4, 4),
+              boxShadow:  [
+                BoxShadow(color: Colors.white.withValues(alpha: 0.25),
+                  blurRadius: 14, offset: const Offset(0, 4),
                 ),
               ],
             ),
@@ -1096,7 +1091,7 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
                         const SizedBox(width: 8),
                         Text(
                           isFree ? 'CLAIM FREE ITEMS' : 'PAY ₹${finalTotal.toStringAsFixed(0)}',
-                          style: GoogleFonts.spaceGrotesk(
+                          style: GoogleFonts.inter(
                             color: Colors.black,
                             fontWeight: FontWeight.w900,
                             fontSize: 16,
@@ -1115,7 +1110,7 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
             const SizedBox(width: 6),
             Text(
               'Protected by Flicko Secure Pay',
-              style: GoogleFonts.spaceMono(
+              style: GoogleFonts.inter(
                 color: _kMuted,
                 fontSize: 10,
               ),
@@ -1234,14 +1229,14 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
               height: 80,
               decoration: BoxDecoration(
                 color: Colors.black,
-                border: Border.all(color: _kLime, width: 2.5),
+                border: Border.all(color: _kLime, width: 1),
               ),
               child: const Icon(Icons.check_circle, color: _kLime, size: 48),
             ),
             const SizedBox(height: 20),
             Text(
               'PURCHASE SUCCESSFUL!',
-              style: GoogleFonts.spaceGrotesk(
+              style: GoogleFonts.inter(
                 color: _kWhite,
                 fontWeight: FontWeight.w900,
                 fontSize: 20,
@@ -1250,7 +1245,7 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
             const SizedBox(height: 8),
             Text(
               'Your items are now available in My Items.',
-              style: GoogleFonts.spaceGrotesk(color: _kMuted),
+              style: GoogleFonts.inter(color: _kMuted),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -1266,17 +1261,16 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
                 decoration: BoxDecoration(
                   color: _kLime,
                   border: Border.all(color: Colors.black, width: 2),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.white,
-                      offset: Offset(4, 4),
+                  boxShadow:  [
+                    BoxShadow(color: Colors.white.withValues(alpha: 0.25),
+                      blurRadius: 14, offset: const Offset(0, 4),
                     ),
                   ],
                 ),
                 child: Center(
                   child: Text(
                     'VIEW MY ITEMS',
-                    style: GoogleFonts.spaceGrotesk(
+                    style: GoogleFonts.inter(
                       color: Colors.black,
                       fontWeight: FontWeight.w900,
                     ),

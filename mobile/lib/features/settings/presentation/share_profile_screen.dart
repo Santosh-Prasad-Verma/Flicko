@@ -11,6 +11,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
+import 'package:gal/gal.dart';
 
 // ─── QR Theme Presets (Redesigned with Premium Frosted Gradients & Glowing Accents) ─────
 class _QrTheme {
@@ -44,7 +45,7 @@ const _themes = <_QrTheme>[
     qrColor: Color(0xFF52B788),
     accent: Color(0xFF52B788),
     textColor: Color(0xFFFBF9FA),
-    cardGradients: [Color(0xFF0E1A12), Color(0xFF050B07)],
+    cardGradients: [Color(0xFF0E1C13), Color(0xFF040A07)],
   ),
   _QrTheme(
     id: 'cyber',
@@ -54,7 +55,7 @@ const _themes = <_QrTheme>[
     qrColor: Color(0xFFFF007F),
     accent: Color(0xFFFF007F),
     textColor: Color(0xFFFFF5FB),
-    cardGradients: [Color(0xFF1E0C16), Color(0xFF0C0308)],
+    cardGradients: [Color(0xFF220C1A), Color(0xFF0A0307)],
   ),
   _QrTheme(
     id: 'midnight',
@@ -64,7 +65,7 @@ const _themes = <_QrTheme>[
     qrColor: Color(0xFF00E5FF),
     accent: Color(0xFF00E5FF),
     textColor: Color(0xFFE0F7FA),
-    cardGradients: [Color(0xFF0A1820), Color(0xFF03080A)],
+    cardGradients: [Color(0xFF0B1B24), Color(0xFF030A0E)],
   ),
   _QrTheme(
     id: 'gold',
@@ -74,7 +75,7 @@ const _themes = <_QrTheme>[
     qrColor: Color(0xFFFFD700),
     accent: Color(0xFFFFD700),
     textColor: Color(0xFFFFF8DC),
-    cardGradients: [Color(0xFF1F1A0A), Color(0xFF0B0A05)],
+    cardGradients: [Color(0xFF241D0D), Color(0xFF0B0904)],
   ),
 ];
 
@@ -190,6 +191,12 @@ class _ShareQrSheetState extends State<_ShareQrSheet> with TickerProviderStateMi
   Future<void> _saveToGallery() async {
     setState(() => _isSaving = true);
     try {
+      final hasAccess = await Gal.hasAccess(toAlbum: true);
+      if (!hasAccess) {
+        final granted = await Gal.requestAccess(toAlbum: true);
+        if (!granted) throw Exception('Gallery access permission denied');
+      }
+
       final bytes = await _captureQrCard();
       if (bytes == null) throw Exception('Capture failed');
 
@@ -197,11 +204,13 @@ class _ShareQrSheetState extends State<_ShareQrSheet> with TickerProviderStateMi
       final file = File('${dir.path}/flicko_qr_${widget.username}.png');
       await file.writeAsBytes(bytes);
 
+      await Gal.putImage(file.path);
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'QR CARD SECURED IN FILE SYSTEM!',
+              'QR CARD SECURED IN GALLERY!',
               style: GoogleFonts.spaceMono(
                 fontSize: 10,
                 color: Colors.black,
@@ -258,16 +267,15 @@ class _ShareQrSheetState extends State<_ShareQrSheet> with TickerProviderStateMi
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // Background Gradient matching active theme
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 800),
+          // Background Gradient - Constant deep premium dark mode layout
+          Container(
             width: double.infinity,
             height: double.infinity,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [_theme.bgStart, _theme.bgEnd],
+                colors: [Color(0xFF0A0B10), Color(0xFF030305)],
               ),
             ),
           ),
@@ -281,7 +289,7 @@ class _ShareQrSheetState extends State<_ShareQrSheet> with TickerProviderStateMi
                   painter: _SpaceParticlesPainter(
                     stars: _stars,
                     progress: _particlesCtrl.value,
-                    color: _theme.accent.withValues(alpha: 0.35),
+                    color: const Color(0xFF52B788).withValues(alpha: 0.15), // Constant subtle emerald star glow
                   ),
                 );
               },
@@ -297,16 +305,16 @@ class _ShareQrSheetState extends State<_ShareQrSheet> with TickerProviderStateMi
                 top: MediaQuery.of(context).size.height * 0.18,
                 left: MediaQuery.of(context).size.width * 0.1,
                 child: Opacity(
-                  opacity: 0.18 + 0.08 * _pulseCtrl.value,
+                  opacity: 0.12 + 0.05 * _pulseCtrl.value,
                   child: Container(
                     width: 320 * scale,
                     height: 320 * scale,
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: RadialGradient(
                         colors: [
-                          _theme.accent,
-                          _theme.accent.withValues(alpha: 0.0),
+                          Color(0xFF52B788), // Constant premium Flicko brand green aura
+                          Colors.transparent,
                         ],
                       ),
                     ),
@@ -392,7 +400,7 @@ class _ShareQrSheetState extends State<_ShareQrSheet> with TickerProviderStateMi
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: _theme.accent.withValues(alpha: 0.08)),
+          bottom: BorderSide(color: Colors.white.withValues(alpha: 0.04)),
         ),
       ),
       child: Row(
@@ -402,8 +410,8 @@ class _ShareQrSheetState extends State<_ShareQrSheet> with TickerProviderStateMi
             child: Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: _theme.accent.withValues(alpha: 0.03),
-                border: Border.all(color: _theme.accent.withValues(alpha: 0.15), width: 1.5),
+                color: Colors.white.withValues(alpha: 0.02),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 1.5),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Image.asset('assets/images/back.png', width: 20, height: 20, fit: BoxFit.contain),
@@ -417,7 +425,7 @@ class _ShareQrSheetState extends State<_ShareQrSheet> with TickerProviderStateMi
                 Text(
                   'SHARE PROFILE',
                   style: GoogleFonts.spaceGrotesk(
-                    color: _theme.textColor,
+                    color: Colors.white,
                     fontSize: 14,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 3.0,
@@ -427,7 +435,7 @@ class _ShareQrSheetState extends State<_ShareQrSheet> with TickerProviderStateMi
                 Text(
                   'CYBERNETIC IDENTITY BEACON',
                   style: GoogleFonts.spaceMono(
-                    color: _theme.accent.withValues(alpha: 0.4),
+                    color: Colors.white.withValues(alpha: 0.3),
                     fontSize: 8,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 1.5,
@@ -448,12 +456,16 @@ class _ShareQrSheetState extends State<_ShareQrSheet> with TickerProviderStateMi
       child: Container(
         width: double.infinity,
         decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.4),
-          border: Border.all(color: _theme.accent.withValues(alpha: 0.2), width: 1.5),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: _theme.cardGradients,
+          ),
+          border: Border.all(color: _theme.accent.withValues(alpha: 0.25), width: 1.5),
           borderRadius: BorderRadius.circular(36),
           boxShadow: [
             BoxShadow(
-              color: _theme.accent.withValues(alpha: 0.08),
+              color: _theme.accent.withValues(alpha: 0.12),
               blurRadius: 36,
               spreadRadius: 4,
             ),
@@ -466,7 +478,7 @@ class _ShareQrSheetState extends State<_ShareQrSheet> with TickerProviderStateMi
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(36),
                 child: CustomPaint(
-                  painter: _GridTexturePainter(_theme.accent.withValues(alpha: 0.02)),
+                  painter: _GridTexturePainter(_theme.accent.withValues(alpha: 0.03)),
                 ),
               ),
             ),
@@ -475,7 +487,7 @@ class _ShareQrSheetState extends State<_ShareQrSheet> with TickerProviderStateMi
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
               child: Column(
                 children: [
-                  // Heading Details (Big, Beautiful Green Outfit font like the vision board reference)
+                  // Heading Details (Big, Beautiful Accent font like the vision board reference)
                   Text(
                     widget.displayName,
                     style: GoogleFonts.outfit(
@@ -493,7 +505,7 @@ class _ShareQrSheetState extends State<_ShareQrSheet> with TickerProviderStateMi
                   Text(
                     'FLICKO SYSTEM PROFILE',
                     style: GoogleFonts.spaceMono(
-                      color: _theme.textColor.withValues(alpha: 0.4),
+                      color: _theme.textColor.withValues(alpha: 0.45),
                       fontSize: 9,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 1.5,
@@ -508,7 +520,7 @@ class _ShareQrSheetState extends State<_ShareQrSheet> with TickerProviderStateMi
                       Container(
                         padding: const EdgeInsets.all(22),
                         decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.55),
+                          color: Colors.black.withValues(alpha: 0.65),
                           border: Border.all(color: Colors.white.withValues(alpha: 0.04), width: 1),
                           borderRadius: BorderRadius.circular(28),
                         ),

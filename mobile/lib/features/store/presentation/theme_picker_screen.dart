@@ -42,7 +42,7 @@ class _ThemePickerScreenState extends ConsumerState<ThemePickerScreen> {
         ),
         title: Text(
           'THEMES_CATALOG',
-          style: GoogleFonts.spaceGrotesk(
+          style: GoogleFonts.inter(
             color: _white,
             fontWeight: FontWeight.w900,
             fontSize: 18,
@@ -61,7 +61,7 @@ class _ThemePickerScreenState extends ConsumerState<ThemePickerScreen> {
             onPressed: () => context.push('/store'),
             child: Text(
               'GET MORE',
-              style: GoogleFonts.spaceGrotesk(
+              style: GoogleFonts.inter(
                 color: _lime,
                 fontWeight: FontWeight.w900,
                 fontSize: 12,
@@ -100,12 +100,11 @@ class _ThemePickerScreenState extends ConsumerState<ThemePickerScreen> {
         color: _surface,
         border: Border.all(
           color: primaryCol,
-          width: 2.5,
+          width: 1,
         ),
         boxShadow: [
-          BoxShadow(
-            color: secondaryCol,
-            offset: const Offset(5, 5),
+          BoxShadow(color: secondaryCol,
+            blurRadius: 14, offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -181,7 +180,7 @@ class _ThemePickerScreenState extends ConsumerState<ThemePickerScreen> {
                   Expanded(
                     child: Text(
                       'PREVIEW_STREAM_TEXT_BOX_OK',
-                      style: GoogleFonts.spaceMono(
+                      style: GoogleFonts.inter(
                         color: primaryCol.withValues(alpha: 0.6),
                         fontSize: 9,
                         fontWeight: FontWeight.bold,
@@ -206,7 +205,7 @@ class _ThemePickerScreenState extends ConsumerState<ThemePickerScreen> {
               ),
               child: Text(
                 (previewTheme?.name ?? 'DEFAULT').toUpperCase(),
-                style: GoogleFonts.spaceMono(
+                style: GoogleFonts.inter(
                   color: Colors.black,
                   fontWeight: FontWeight.w900,
                   fontSize: 10,
@@ -266,9 +265,8 @@ class _ThemePickerScreenState extends ConsumerState<ThemePickerScreen> {
             width: isActive ? 3 : 2,
           ),
           boxShadow: [
-            BoxShadow(
-              color: isActive ? _lime : theme.secondaryColor,
-              offset: const Offset(4, 4),
+            BoxShadow(color: isActive ? _lime : theme.secondaryColor,
+              blurRadius: 14, offset: const Offset(0, 4),
             ),
           ],
         ),
@@ -302,7 +300,7 @@ class _ThemePickerScreenState extends ConsumerState<ThemePickerScreen> {
                           ),
                           child: Text(
                             theme.name.toUpperCase(),
-                            style: GoogleFonts.spaceGrotesk(
+                            style: GoogleFonts.inter(
                               color: Colors.white,
                               fontWeight: FontWeight.w900,
                               fontSize: 10,
@@ -353,7 +351,7 @@ class _ThemePickerScreenState extends ConsumerState<ThemePickerScreen> {
                           const SizedBox(width: 4),
                           Text(
                             'OWN_TO_USE',
-                            style: GoogleFonts.spaceMono(
+                            style: GoogleFonts.inter(
                               color: Colors.white,
                               fontSize: 8,
                               fontWeight: FontWeight.w900,
@@ -402,13 +400,13 @@ class _ThemePickerScreenState extends ConsumerState<ThemePickerScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.black,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.zero,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
         ),
         contentPadding: EdgeInsets.zero,
         content: Container(
           decoration: BoxDecoration(
-            border: Border.all(color: theme.primaryColor, width: 3),
+            border: Border.all(color: theme.primaryColor, width: 1),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -419,7 +417,7 @@ class _ThemePickerScreenState extends ConsumerState<ThemePickerScreen> {
                 width: double.infinity,
                 child: Text(
                   'ACCESS_LOCKED',
-                  style: GoogleFonts.spaceGrotesk(
+                  style: GoogleFonts.inter(
                     color: Colors.black,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 2,
@@ -433,7 +431,7 @@ class _ThemePickerScreenState extends ConsumerState<ThemePickerScreen> {
                   children: [
                     Text(
                       'You do not own the ${theme.name} theme yet. Purchase it from the Flicko Store catalog to customize your interface.',
-                      style: GoogleFonts.spaceGrotesk(
+                      style: GoogleFonts.inter(
                         color: Colors.white,
                         fontSize: 13,
                         height: 1.4,
@@ -447,7 +445,7 @@ class _ThemePickerScreenState extends ConsumerState<ThemePickerScreen> {
                           onPressed: () => Navigator.pop(ctx),
                           child: Text(
                             'CANCEL',
-                            style: GoogleFonts.spaceMono(
+                            style: GoogleFonts.inter(
                               color: _muted,
                               fontWeight: FontWeight.bold,
                               fontSize: 12,
@@ -463,14 +461,14 @@ class _ThemePickerScreenState extends ConsumerState<ThemePickerScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: _lime,
                             foregroundColor: Colors.black,
-                            shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.zero,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
                             ),
                             elevation: 0,
                           ),
                           child: Text(
                             'GO_TO_STORE',
-                            style: GoogleFonts.spaceMono(
+                            style: GoogleFonts.inter(
                               fontWeight: FontWeight.w900,
                               fontSize: 12,
                             ),
