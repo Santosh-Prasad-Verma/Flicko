@@ -176,12 +176,8 @@ func (h *HookHandler) verifySignature(r *http.Request, body []byte) bool {
 	if webhookSignature != "" && webhookID != "" && webhookTimestamp != "" {
 		// Clean secret prefix if copied incorrectly
 		secretStr := h.cfg.WebhookSecret
-		if strings.HasPrefix(secretStr, "v1,") {
-			secretStr = secretStr[3:]
-		}
-		if strings.HasPrefix(secretStr, "whsec_") {
-			secretStr = secretStr[6:]
-		}
+		secretStr = strings.TrimPrefix(secretStr, "v1,")
+		secretStr = strings.TrimPrefix(secretStr, "whsec_")
 
 		// Decode the base64 secret (standard for Svix/Supabase)
 		var secretBytes []byte
@@ -201,10 +197,7 @@ func (h *HookHandler) verifySignature(r *http.Request, body []byte) bool {
 		// Supabase Webhook-Signature is v1,base64_sig or multiple sigs separated by spaces
 		sigs := strings.Split(webhookSignature, " ")
 		for _, sig := range sigs {
-			cleanSig := sig
-			if strings.HasPrefix(sig, "v1,") {
-				cleanSig = sig[3:]
-			}
+			cleanSig := strings.TrimPrefix(sig, "v1,")
 
 			sigBytes, err := base64.StdEncoding.DecodeString(cleanSig)
 			if err != nil {
@@ -235,18 +228,11 @@ func (h *HookHandler) verifySignature(r *http.Request, body []byte) bool {
 	}
 
 	// The signature header format is "v1,SIGNATURE"
-	rawSignature := signature
-	if len(signature) > 3 && signature[:3] == "v1," {
-		rawSignature = signature[3:]
-	}
+	rawSignature := strings.TrimPrefix(signature, "v1,")
 
 	secretStr := h.cfg.WebhookSecret
-	if len(secretStr) > 3 && secretStr[:3] == "v1," {
-		secretStr = secretStr[3:]
-	}
-	if len(secretStr) > 6 && secretStr[:6] == "whsec_" {
-		secretStr = secretStr[6:]
-	}
+	secretStr = strings.TrimPrefix(secretStr, "v1,")
+	secretStr = strings.TrimPrefix(secretStr, "whsec_")
 
 	// Compute expected HMAC-SHA256
 	mac := hmac.New(sha256.New, []byte(secretStr))
