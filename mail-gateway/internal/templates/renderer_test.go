@@ -52,6 +52,10 @@ func TestRenderAllTemplates(t *testing.T) {
 				t.Fatalf("Render(%q) error = %v", templateName, err)
 			}
 
+			if strings.Contains(rendered, "&lt;br") || strings.Contains(rendered, "&lt;br/&gt;") {
+				t.Errorf("rendered template %q contains escaped br tag: %s", templateName, rendered)
+			}
+
 			if !strings.Contains(rendered, data.AppName) {
 				t.Fatalf("rendered template %q did not contain app name", templateName)
 			}

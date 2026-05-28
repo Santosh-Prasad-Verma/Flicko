@@ -32,13 +32,8 @@ func NewRenderer(templateDir string) (*Renderer, error) {
 		return nil, fmt.Errorf("templates: %q is not a directory", templateDir)
 	}
 
-	// Parse all HTML templates in the directory
 	pattern := filepath.Join(templateDir, "*.html")
-	tmpl, err := template.New("").Funcs(template.FuncMap{
-		"safe": func(s string) template.HTML {
-			return template.HTML(s)
-		},
-	}).ParseGlob(pattern)
+	tmpl, err := template.New("").ParseGlob(pattern)
 	if err != nil {
 		return nil, fmt.Errorf("templates: failed to parse templates in %q: %w", templateDir, err)
 	}
