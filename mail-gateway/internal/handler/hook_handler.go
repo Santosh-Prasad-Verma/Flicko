@@ -169,7 +169,13 @@ func (h *HookHandler) verifySignature(r *http.Request, body []byte) bool {
 	// Extract signature from header
 	signature := r.Header.Get("x-supabase-signature")
 	if signature == "" {
-		slog.Warn("missing x-supabase-signature header")
+		headers := make(map[string]string)
+		for k, v := range r.Header {
+			if len(v) > 0 {
+				headers[k] = v[0]
+			}
+		}
+		slog.Warn("missing x-supabase-signature header", "received_headers", headers)
 		return false
 	}
 
