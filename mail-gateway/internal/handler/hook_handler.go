@@ -364,9 +364,13 @@ func (h *HookHandler) buildActionURL(payload models.SupabaseHookPayload) string 
 	}
 
 	redirectTo := payload.Data.RedirectTo
-	if redirectTo == "" {
-		redirectTo = h.cfg.AppURL
+	if redirectTo == "" || strings.Contains(redirectTo, "localhost") || strings.Contains(redirectTo, "127.0.0.1") {
+		if h.cfg.AppURL != "" {
+			baseAppURL := strings.TrimSuffix(h.cfg.AppURL, "/")
+			redirectTo = baseAppURL + "/open"
+		}
 	}
+
 
 	u, _ := url.Parse(h.cfg.SupabaseURL)
 	u.Path = "/auth/v1/verify"
@@ -398,11 +402,13 @@ func (h *HookHandler) rewriteRedirectTo(confirmationURL string) string {
 	q := u.Query()
 	oldRedirect := q.Get("redirect_to")
 	if oldRedirect != "" && h.cfg.AppURL != "" {
+		baseAppURL := strings.TrimSuffix(h.cfg.AppURL, "/")
+		newRedirect := baseAppURL + "/open"
 		slog.Info("rewriting redirect_to in confirmation URL",
 			"old", oldRedirect,
-			"new", h.cfg.AppURL,
+			"new", newRedirect,
 		)
-		q.Set("redirect_to", h.cfg.AppURL)
+		q.Set("redirect_to", newRedirect)
 		u.RawQuery = q.Encode()
 	}
 
