@@ -83,6 +83,7 @@ class ProfileScreen extends ConsumerWidget {
         : [accentColor, accentColor.withValues(alpha: 0.6)];
 
     return SliverAppBar(
+      automaticallyImplyLeading: false,
       expandedHeight: 160,
       pinned: true,
       backgroundColor: const Color(FlickoColors.bgPrimary),

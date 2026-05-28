@@ -39,6 +39,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   bool _showResend = false;
   bool _resendLoading = false;
   String? _oauthLoading;
+  bool _isVerificationEmailSent = false;
   
   Timer? _usernameCheckTimer;
 
@@ -268,6 +269,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         
         setState(() {
           _showResend = true;
+          _isVerificationEmailSent = true;
           _successMessage = 'Account created! A confirmation link has been sent to your email. Check your spam folder too.';
         });
         return;
@@ -282,6 +284,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       } else {
         setState(() {
           _showResend = true;
+          _isVerificationEmailSent = true;
           _successMessage = 'Account created! A confirmation link has been sent to your email. Check your spam folder too.';
         });
       }
@@ -290,6 +293,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       if (isEmailDeliveryError) {
         setState(() {
           _showResend = true;
+          _isVerificationEmailSent = true;
           _successMessage = 'Account created! A confirmation link has been sent to your email. Check your spam folder too.';
         });
       } else {
@@ -370,41 +374,45 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               
               const SizedBox(height: 40),
               
-              // Header
-              _buildHeader(),
-              
-              const SizedBox(height: 48),
-              
-              // Form
-              _buildForm(),
-              
-              const SizedBox(height: 40),
-              
-              // Footer
-              Center(
-                child: GestureDetector(
-                  onTap: _navigateToLogin,
-                  child: RichText(
-                    text: TextSpan(
-                      style: GoogleFonts.inter(
-                        color: const Color(FlickoColors.textMuted),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.5,
-                      ),
-                      children: [
-                        const TextSpan(text: 'ALREADY HAVE AN ACCOUNT? '),
-                        TextSpan(
-                          text: 'LOG IN',
-                          style: TextStyle(
-                            color: const Color(FlickoColors.brandLime),
-                          ),
+              if (_isVerificationEmailSent)
+                _buildCheckEmailView()
+              else ...[
+                // Header
+                _buildHeader(),
+                
+                const SizedBox(height: 48),
+                
+                // Form
+                _buildForm(),
+                
+                const SizedBox(height: 40),
+                
+                // Footer
+                Center(
+                  child: GestureDetector(
+                    onTap: _navigateToLogin,
+                    child: RichText(
+                      text: TextSpan(
+                        style: GoogleFonts.inter(
+                          color: const Color(FlickoColors.textMuted),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.5,
                         ),
-                      ],
+                        children: [
+                          const TextSpan(text: 'ALREADY HAVE AN ACCOUNT? '),
+                          TextSpan(
+                            text: 'LOG IN',
+                            style: TextStyle(
+                              color: const Color(FlickoColors.brandLime),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
+              ],
             ],
           ),
         ),
@@ -872,6 +880,224 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           child: Container(
             height: 1,
             color: Colors.white.withValues(alpha: 0.1),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCheckEmailView() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        const SizedBox(height: 40),
+        
+        // Mail icon
+        Container(
+          width: 100,
+          height: 100,
+          decoration: BoxDecoration(
+            color: const Color(FlickoColors.brandLime).withValues(alpha: 0.08),
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: const Color(FlickoColors.brandLime).withValues(alpha: 0.2),
+              width: 2,
+            ),
+          ),
+          child: const Icon(
+            Icons.mark_email_read_rounded,
+            color: Color(FlickoColors.brandLime),
+            size: 48,
+          ),
+        ),
+        
+        const SizedBox(height: 32),
+        
+        // Title
+        Text(
+          'CHECK YOUR\nEMAIL.',
+          textAlign: TextAlign.center,
+          style: GoogleFonts.inter(
+            color: const Color(FlickoColors.textPrimary),
+            fontSize: 42,
+            fontWeight: FontWeight.w900,
+            height: 0.9,
+            letterSpacing: -1.5,
+          ),
+        ),
+        
+        const SizedBox(height: 20),
+        
+        // Subtitle
+        Text(
+          "WE'VE SENT A VERIFICATION LINK",
+          textAlign: TextAlign.center,
+          style: GoogleFonts.inter(
+            color: const Color(FlickoColors.textMuted),
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.2,
+          ),
+        ),
+        
+        const SizedBox(height: 32),
+        
+        // Email address display
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0F0F0F),
+            border: Border.all(
+              color: const Color(FlickoColors.brandLime).withValues(alpha: 0.15),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.email_outlined,
+                color: const Color(FlickoColors.brandLime),
+                size: 18,
+              ),
+              const SizedBox(width: 10),
+              Flexible(
+                child: Text(
+                  _emailController.text.trim().toLowerCase(),
+                  style: GoogleFonts.inter(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+        
+        const SizedBox(height: 32),
+        
+        // Instructions
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0A0A0A),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.06),
+              width: 1,
+            ),
+          ),
+          child: Column(
+            children: [
+              _buildStepItem(1, 'Open your email inbox (check spam too)'),
+              const SizedBox(height: 14),
+              _buildStepItem(2, 'Click the verification link in the email'),
+              const SizedBox(height: 14),
+              _buildStepItem(3, 'Come back and log in with your credentials'),
+            ],
+          ),
+        ),
+        
+        const SizedBox(height: 32),
+        
+        // Resend section
+        if (_successMessage != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Text(
+              _successMessage!,
+              style: GoogleFonts.inter(
+                color: const Color(FlickoColors.success),
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        
+        if (_generalError != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Text(
+              _generalError!,
+              style: GoogleFonts.inter(
+                color: const Color(FlickoColors.danger),
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        
+        // Resend button
+        GestureDetector(
+          onTap: _resendLoading ? null : _handleResend,
+          child: Text(
+            _resendLoading ? 'SENDING...' : "DIDN'T RECEIVE IT? RESEND",
+            style: GoogleFonts.inter(
+              color: const Color(FlickoColors.brandLime),
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.5,
+              decoration: TextDecoration.underline,
+              decorationColor: const Color(FlickoColors.brandLime),
+            ),
+          ),
+        ),
+        
+        const SizedBox(height: 32),
+        
+        // Go to Login button
+        _buildStyledButton(
+          label: 'GO TO LOGIN',
+          onPressed: () => context.pop(),
+          color: const Color(FlickoColors.brandLime),
+          textColor: Colors.black,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStepItem(int step, String text) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            color: const Color(FlickoColors.brandLime).withValues(alpha: 0.1),
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: const Color(FlickoColors.brandLime).withValues(alpha: 0.25),
+              width: 1,
+            ),
+          ),
+          child: Center(
+            child: Text(
+              '$step',
+              style: GoogleFonts.inter(
+                color: const Color(FlickoColors.brandLime),
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              text,
+              style: GoogleFonts.inter(
+                color: const Color(FlickoColors.textSecondary),
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                height: 1.4,
+              ),
+            ),
           ),
         ),
       ],

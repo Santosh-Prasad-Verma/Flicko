@@ -1,75 +1,58 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="color-scheme" content="dark only" />
-  <meta name="supported-color-schemes" content="dark only" />
-  <title>{{if .Subject}}{{.Subject}}{{else}}Notification{{end}}</title>
-</head>
-<body style="margin:0;padding:0;background-color:#000000;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Open Sans','Helvetica Neue',sans-serif;color:#FFFFFF;-webkit-font-smoothing:antialiased;">
+{{template "shell_open" .}}
+
   <div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;">
     {{if .Subject}}{{.Subject}}{{else}}Notification from Flicko{{end}}
   </div>
 
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;background-color:#000000;background-image:radial-gradient(circle at 1px 1px,#141414 1px,transparent 0);background-size:24px 24px;">
-    <tr>
-      <td align="center" style="padding:32px 16px;">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:520px;background-color:#000000;border:1px solid #161616;">
+  {{template "header" .}}
 
-          {{template "header" .}}
+  <tr>
+    <td align="center" style="padding-bottom:12px;">
+      <h1 style="margin:0;font-size:36px;font-weight:900;line-height:1.1;letter-spacing:-1px;text-transform:uppercase;color:#FFFFFF;">
+        {{if .Subject}}{{.Subject}}{{else}}NEW UPDATE{{end}}
+      </h1>
+    </td>
+  </tr>
 
-          <tr>
-            <td align="center" style="padding-bottom:12px;">
-              <h1 style="margin:0;font-size:36px;font-weight:900;line-height:1.1;letter-spacing:-1px;text-transform:uppercase;color:#FFFFFF;">
-                {{if .Subject}}{{.Subject}}{{else}}NEW UPDATE{{end}}
-              </h1>
-            </td>
-          </tr>
+  <tr>
+    <td align="center" style="padding-bottom:40px;">
+      <p style="margin:0;font-size:13px;font-weight:700;color:#52B788;letter-spacing:2px;text-transform:uppercase;">
+        // FROM {{if .AppName}}{{.AppName}}{{else}}FLICKO{{end}}
+      </p>
+    </td>
+  </tr>
 
-          <tr>
-            <td align="center" style="padding-bottom:40px;">
-              <p style="margin:0;font-size:13px;font-weight:700;color:#52B788;letter-spacing:2px;text-transform:uppercase;">
-                // FROM {{if .AppName}}{{.AppName}}{{else}}FLICKO{{end}}
-              </p>
-            </td>
-          </tr>
+  {{template "greeting" .}}
 
-          {{template "greeting" .}}
+  {{if .Message}}
+  <tr>
+    <td align="center" style="padding:0 24px 32px;">
+      <p style="margin:0;font-size:14px;color:#CCCCCC;line-height:1.8;font-weight:500;text-align:left;">
+        {{.Message}}
+      </p>
+    </td>
+  </tr>
+  {{end}}
 
-          {{if .Message}}
-          <tr>
-            <td align="center" style="padding:0 24px 32px;">
-              <p style="margin:0;font-size:14px;color:#CCCCCC;line-height:1.8;font-weight:500;text-align:left;">
-                {{.Message}}
-              </p>
-            </td>
-          </tr>
-          {{end}}
+  {{if .ActionURL}}
+  <tr>
+    <td align="center" style="padding-bottom:48px;">
+      <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 auto;">
+        <tr><td style="background-color:#FFFFFF;padding:0;">
+          <table role="presentation" cellspacing="0" cellpadding="0">
+            <tr><td style="background-color:#000000;padding:0;transform:translate(-6px,-6px);">
+              <a href="{{.ActionURL}}" style="display:inline-block;background-color:#52B788;color:#000000 !important;text-decoration:none;font-weight:900;font-size:16px;padding:18px 40px;text-transform:uppercase;letter-spacing:1.5px;border:3px solid #000000;">
+                OPEN FLICKO
+              </a>
+            </td></tr>
+          </table>
+        </td></tr>
+      </table>
+    </td>
+  </tr>
+  {{end}}
 
-          {{if .ActionURL}}
-          <tr>
-            <td align="center" style="padding-bottom:48px;">
-              <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 auto;">
-                <tr><td style="background-color:#FFFFFF;padding:0;">
-                  <table role="presentation" cellspacing="0" cellpadding="0">
-                    <tr><td style="background-color:#000000;padding:0;transform:translate(-6px,-6px);">
-                      <a href="{{.ActionURL}}" style="display:inline-block;background-color:#52B788;color:#000000 !important;text-decoration:none;font-weight:900;font-size:16px;padding:18px 40px;text-transform:uppercase;letter-spacing:1.5px;border:3px solid #000000;">
-                        OPEN FLICKO
-                      </a>
-                    </td></tr>
-                  </table>
-                </td></tr>
-              </table>
-            </td>
-          </tr>
-          {{end}}
+  {{template "divider" "NOTIFICATION"}}
+  {{template "footer" .}}
 
-          {{template "divider" "NOTIFICATION"}}
-          {{template "footer" .}}
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>
+{{template "shell_close"}}

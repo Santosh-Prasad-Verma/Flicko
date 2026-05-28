@@ -6,11 +6,11 @@
 
 {{define "brand_mark"}}
 <img
-  src="data:image/png;base64,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"
+  src="https://lh3.googleusercontent.com/d/17W_qYNNaiP5wGtduKRtuFQvdxqqhn4T0"
   alt="{{if .AppName}}{{.AppName}}{{else}}Flicko{{end}}"
-  width="60"
-  height="60"
-  style="display:block;width:60px;height:60px;border:0;outline:none;text-decoration:none;"
+  width="140"
+  height="auto"
+  style="display:block;width:140px;height:auto;border:0;outline:none;text-decoration:none;"
 />
 {{end}}
 
@@ -18,7 +18,7 @@
 <tr>
   <td align="center" style="padding:24px 16px 32px;">
     {{if .LogoURL}}
-      <img src="{{.LogoURL}}" alt="{{if .AppName}}{{.AppName}}{{else}}Flicko{{end}}" width="60" height="60" style="display:block;width:60px;height:60px;border:0;outline:none;" />
+      <img src="{{.LogoURL}}" alt="{{if .AppName}}{{.AppName}}{{else}}Flicko{{end}}" width="140" height="auto" style="display:block;width:140px;height:auto;border:0;outline:none;" />
     {{else}}
       {{template "brand_mark" .}}
     {{end}}
@@ -145,7 +145,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="color-scheme" content="dark only" />
   <meta name="supported-color-schemes" content="dark only" />
-  <title>{{.AppName}}</title>
+  <title>{{if .Subject}}{{.Subject}}{{else}}{{.AppName}}{{end}}</title>
 </head>
 <body style="margin:0;padding:0;background-color:#000000;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Open Sans','Helvetica Neue',sans-serif;color:#FFFFFF;-webkit-font-smoothing:antialiased;">
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;background-color:#000000;background-image:radial-gradient(circle at 1px 1px,#141414 1px,transparent 0);background-size:24px 24px;">
