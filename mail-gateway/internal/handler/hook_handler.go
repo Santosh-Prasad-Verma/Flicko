@@ -4,6 +4,7 @@ package handler
 import (
 	"crypto/hmac"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/flicko-org/mail-gateway/internal/config"
@@ -166,7 +168,60 @@ func (h *HookHandler) verifySignature(r *http.Request, body []byte) bool {
 		return false
 	}
 
-	// Extract signature from header
+	// 1. Try modern Standard Webhook (Svix) format: Webhook-Signature, Webhook-Id, Webhook-Timestamp
+	webhookSignature := r.Header.Get("Webhook-Signature")
+	webhookID := r.Header.Get("Webhook-Id")
+	webhookTimestamp := r.Header.Get("Webhook-Timestamp")
+
+	if webhookSignature != "" && webhookID != "" && webhookTimestamp != "" {
+		// Clean secret prefix if copied incorrectly
+		secretStr := h.cfg.WebhookSecret
+		if strings.HasPrefix(secretStr, "v1,") {
+			secretStr = secretStr[3:]
+		}
+		if strings.HasPrefix(secretStr, "whsec_") {
+			secretStr = secretStr[6:]
+		}
+
+		// Decode the base64 secret (standard for Svix/Supabase)
+		var secretBytes []byte
+		var err error
+		if secretBytes, err = base64.StdEncoding.DecodeString(secretStr); err != nil {
+			secretBytes = []byte(secretStr)
+		}
+
+		// Construct signed content: msg_id + "." + timestamp + "." + raw_payload
+		signedContent := fmt.Sprintf("%s.%s.%s", webhookID, webhookTimestamp, string(body))
+
+		// Calculate HMAC-SHA256
+		mac := hmac.New(sha256.New, secretBytes)
+		mac.Write([]byte(signedContent))
+		computed := mac.Sum(nil)
+
+		// Supabase Webhook-Signature is v1,base64_sig or multiple sigs separated by spaces
+		sigs := strings.Split(webhookSignature, " ")
+		for _, sig := range sigs {
+			cleanSig := sig
+			if strings.HasPrefix(sig, "v1,") {
+				cleanSig = sig[3:]
+			}
+
+			sigBytes, err := base64.StdEncoding.DecodeString(cleanSig)
+			if err != nil {
+				continue
+			}
+
+			// Constant-time comparison
+			if hmac.Equal(computed, sigBytes) {
+				return true
+			}
+		}
+
+		slog.Warn("webhook standard signature verification failed", "signature_header", webhookSignature)
+		return false
+	}
+
+	// 2. Fallback to old format: x-supabase-signature
 	signature := r.Header.Get("x-supabase-signature")
 	if signature == "" {
 		headers := make(map[string]string)
@@ -175,7 +230,7 @@ func (h *HookHandler) verifySignature(r *http.Request, body []byte) bool {
 				headers[k] = v[0]
 			}
 		}
-		slog.Warn("missing x-supabase-signature header", "received_headers", headers)
+		slog.Warn("missing standard Webhook-Signature and legacy x-supabase-signature", "received_headers", headers)
 		return false
 	}
 
@@ -185,22 +240,20 @@ func (h *HookHandler) verifySignature(r *http.Request, body []byte) bool {
 		rawSignature = signature[3:]
 	}
 
-	// The secret might also have prefixes if copied incorrectly
-	// (e.g. "v1," or "whsec_")
-	secret := h.cfg.WebhookSecret
-	if len(secret) > 3 && secret[:3] == "v1," {
-		secret = secret[3:]
+	secretStr := h.cfg.WebhookSecret
+	if len(secretStr) > 3 && secretStr[:3] == "v1," {
+		secretStr = secretStr[3:]
 	}
-	if len(secret) > 6 && secret[:6] == "whsec_" {
-		secret = secret[6:]
+	if len(secretStr) > 6 && secretStr[:6] == "whsec_" {
+		secretStr = secretStr[6:]
 	}
 
 	// Compute expected HMAC-SHA256
-	mac := hmac.New(sha256.New, []byte(secret))
+	mac := hmac.New(sha256.New, []byte(secretStr))
 	mac.Write(body)
 	expectedMAC := hex.EncodeToString(mac.Sum(nil))
 
-	// Constant-time comparison to prevent timing attacks
+	// Constant-time comparison
 	return hmac.Equal([]byte(rawSignature), []byte(expectedMAC))
 }
 
