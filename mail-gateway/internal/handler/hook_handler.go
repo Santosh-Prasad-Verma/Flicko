@@ -150,10 +150,10 @@ func (h *HookHandler) HandleEmail(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(`{}`))
 }
 
-// verifySignature checks the HMAC-SHA256 signature from the x-supabase-signature header.
-// Supports both formats:
-//   - Plain hex: "abcdef1234..." (Database Webhooks)
-//   - Versioned: "v1,abcdef1234..." (Auth Hooks)
+// verifySignature checks the HMAC-SHA256 signature.
+// Supports two formats:
+//   1. Modern Standard Webhooks (Svix spec): parses Webhook-Signature, Webhook-Id, Webhook-Timestamp
+//   2. Legacy x-supabase-signature format (v1,signature)
 //
 // Uses hmac.Equal for constant-time comparison (timing-attack safe).
 // In development mode, skips verification if WEBHOOK_SECRET is empty.
