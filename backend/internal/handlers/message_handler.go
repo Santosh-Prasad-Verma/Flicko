@@ -7,14 +7,16 @@ import (
 	"time"
 
 	"github.com/flicko-org/flicko-backend/internal/middleware"
+	"github.com/flicko-org/flicko-backend/internal/services/ai/moderation"
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 )
 
 type MessageHandler struct {
-	db     *pgxpool.Pool
-	logger *zap.Logger
+	db         *pgxpool.Pool
+	logger     *zap.Logger
+	moderation moderation.Service // optional; nil disables AI mod
 }
 
 func NewMessageHandler(db *pgxpool.Pool, logger *zap.Logger) *MessageHandler {
@@ -22,6 +24,13 @@ func NewMessageHandler(db *pgxpool.Pool, logger *zap.Logger) *MessageHandler {
 		db:     db,
 		logger: logger.Named("handler.message"),
 	}
+}
+
+// WithModeration wires an AI moderation service into the message pipeline.
+// Returns the receiver for chaining at construction time.
+func (h *MessageHandler) WithModeration(svc moderation.Service) *MessageHandler {
+	h.moderation = svc
+	return h
 }
 
 type CreateMessagePayload struct {
@@ -109,7 +118,37 @@ func (h *MessageHandler) CreateMessage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// 4. Insert Message with is_silent flag
+	// 4. AI moderation pre-send. Block + 403 on `blocked`; on `review`
+	// we still publish but enqueue for human moderator decision (the
+	// existing audit trail is what users see). Failures fail-open via
+	// the service itself.
+	var modSignalID string
+	if h.moderation != nil {
+		modRes, err := h.moderation.Check(ctx, moderation.CheckInput{
+			UserID:    userID,
+			ServerID:  serverID,
+			ChannelID: channelID,
+			Text:      payload.Content,
+		})
+		if err == nil {
+			modSignalID = modRes.SignalID
+			switch modRes.Decision {
+			case moderation.DecisionBlocked:
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusForbidden)
+				_ = json.NewEncoder(w).Encode(map[string]any{
+					"error":     "blocked_by_automod",
+					"category":  modRes.TopCat,
+					"signal_id": modRes.SignalID,
+				})
+				return
+			case moderation.DecisionReview:
+				// Defer enqueue until after we have the message id.
+			}
+		}
+	}
+
+	// 5. Insert Message with is_silent flag
 	var newID string
 	err = h.db.QueryRow(ctx, `
 		INSERT INTO messages (channel_id, author_id, content, type, reply_to_id, is_silent)
@@ -120,6 +159,14 @@ func (h *MessageHandler) CreateMessage(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error("failed to insert message", zap.Error(err))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
+	}
+
+	// 6. If the AI scored "review", enqueue with the (now persisted)
+	// message id so moderators can find it. Best-effort.
+	if h.moderation != nil && modSignalID != "" {
+		if err := h.moderation.EnqueueReview(ctx, modSignalID, serverID, payload.Content); err != nil {
+			h.logger.Warn("ai mod enqueue review", zap.Error(err))
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")

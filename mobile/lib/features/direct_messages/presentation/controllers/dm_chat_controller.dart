@@ -8,12 +8,15 @@ import 'package:mobile/features/direct_messages/data/dm_repository.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/data/services/media_processor_service.dart';
 
+import 'package:mobile/data/models/user_model.dart';
+
 class DMChatState {
   final List<DMMessage> messages;
   final bool isLoading;
   final bool isSending;
   final bool hasMore;
   final String? error;
+  final UserModel? participant;
 
   DMChatState({
     this.messages = const [],
@@ -21,6 +24,7 @@ class DMChatState {
     this.isSending = false,
     this.hasMore = true,
     this.error,
+    this.participant,
   });
 
   DMChatState copyWith({
@@ -29,6 +33,7 @@ class DMChatState {
     bool? isSending,
     bool? hasMore,
     String? error,
+    UserModel? participant,
   }) {
     return DMChatState(
       messages: messages ?? this.messages,
@@ -36,6 +41,7 @@ class DMChatState {
       isSending: isSending ?? this.isSending,
       hasMore: hasMore ?? this.hasMore,
       error: error,
+      participant: participant ?? this.participant,
     );
   }
 }
@@ -75,7 +81,18 @@ class DMChatController extends Notifier<DMChatState> {
 
   void _initChat() {
     fetchMessages();
+    _loadParticipant();
     _setupSubscription();
+  }
+
+  Future<void> _loadParticipant() async {
+    if (_otherUserId.isEmpty) return;
+    try {
+      final userProfile = await _repository.fetchUserProfile(_otherUserId);
+      state = state.copyWith(participant: userProfile);
+    } catch (e) {
+      // Ignore or log error
+    }
   }
 
   Future<void> fetchMessages({bool loadMore = false}) async {

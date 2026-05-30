@@ -75,6 +75,7 @@ dependencies:
   # Chat & Rich Content
   flutter_markdown: ^0.7.3+1
   cached_network_image: ^3.4.1
+  flutter_cache_manager: ^3.4.1
   url_launcher: ^6.3.0
   markdown: ^7.2.2
   mime: ^2.0.0
@@ -97,6 +98,10 @@ dependencies:
   gal: ^2.3.2
   speech_to_text: ^7.4.0
   flutter_tts: ^4.2.5
+
+  # Ludo (animations + sfx)
+  lottie: ^3.1.2
+  audioplayers: ^6.1.0
   
   # BlackHole Dependencies
   app_links: ^3.5.0
@@ -161,6 +166,12 @@ flutter:
     - assets/animations/
     - assets/translations/
     - assets/fonts/
+    - assets/images/gaming/
+    - assets/ludo/animations/
+    - assets/ludo/images/
+    - assets/ludo/images/dice/
+    - assets/ludo/images/piles/
+    - assets/ludo/sfx/
 
   fonts:
     - family: GGSans

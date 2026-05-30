@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Universal Links: pairs with the apple-app-site-association file at
+	     https://flicko.app/.well-known/apple-app-site-association.
+	     Until that file is published, https://flicko.app/ludo URLs still
+	     open in Safari (custom scheme flicko://ludo continues to work). -->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:flicko.app</string>
+	</array>
+</dict>
+</plist>

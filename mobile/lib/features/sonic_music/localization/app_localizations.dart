@@ -2328,6 +2328,228 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Higher quality uses more data'**
   String get ytStreamQualitySub;
+
+  /// No description provided for @summaryCatchMeUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Catch me up'**
+  String get summaryCatchMeUp;
+
+  /// No description provided for @summaryCatchingYouUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Catching you up…'**
+  String get summaryCatchingYouUp;
+
+  /// No description provided for @summaryHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Catch-up'**
+  String get summaryHeading;
+
+  /// No description provided for @summaryDismiss.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get summaryDismiss;
+
+  /// No description provided for @summaryCachedChip.
+  ///
+  /// In en, this message translates to:
+  /// **'cached'**
+  String get summaryCachedChip;
+
+  /// No description provided for @summaryFeedbackPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Was this helpful?'**
+  String get summaryFeedbackPrompt;
+
+  /// No description provided for @summaryFeedbackHelpful.
+  ///
+  /// In en, this message translates to:
+  /// **'Helpful'**
+  String get summaryFeedbackHelpful;
+
+  /// No description provided for @summaryFeedbackNotHelpful.
+  ///
+  /// In en, this message translates to:
+  /// **'Not helpful'**
+  String get summaryFeedbackNotHelpful;
+
+  /// No description provided for @summaryRefusedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough to summarise'**
+  String get summaryRefusedTitle;
+
+  /// No description provided for @summaryRefusedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'There aren\'t enough recent messages here to make a useful summary yet.'**
+  String get summaryRefusedBody;
+
+  /// No description provided for @summaryNoAccessTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have access here'**
+  String get summaryNoAccessTitle;
+
+  /// No description provided for @summaryNoAccessBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask a moderator to grant you read permission first.'**
+  String get summaryNoAccessBody;
+
+  /// No description provided for @summaryRateLimitedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily limit reached'**
+  String get summaryRateLimitedTitle;
+
+  /// No description provided for @summaryRateLimitedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You can summarise up to 50 channels per day. Come back tomorrow or upgrade to Plus.'**
+  String get summaryRateLimitedBody;
+
+  /// No description provided for @summaryErrorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t summarise this channel'**
+  String get summaryErrorTitle;
+
+  /// No description provided for @summaryErrorRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again in a moment.'**
+  String get summaryErrorRetry;
+
+  /// No description provided for @summaryCitedHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Cited messages'**
+  String get summaryCitedHeader;
+
+  /// No description provided for @summaryCitedMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Message unavailable'**
+  String get summaryCitedMissing;
+
+  /// No description provided for @summaryCitedMissingBody.
+  ///
+  /// In en, this message translates to:
+  /// **'It may have been deleted.'**
+  String get summaryCitedMissingBody;
+
+  /// No description provided for @summarySemanticPill.
+  ///
+  /// In en, this message translates to:
+  /// **'Catch me up on missed messages'**
+  String get summarySemanticPill;
+
+  /// No description provided for @translateAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Translate'**
+  String get translateAction;
+
+  /// No description provided for @translateInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Translating…'**
+  String get translateInProgress;
+
+  /// No description provided for @translateErrorBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t translate. Tap retry from the menu.'**
+  String get translateErrorBody;
+
+  /// No description provided for @translateHide.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide'**
+  String get translateHide;
+
+  /// No description provided for @translateCachedSuffix.
+  ///
+  /// In en, this message translates to:
+  /// **'· cached'**
+  String get translateCachedSuffix;
+
+  /// No description provided for @translateSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-translate'**
+  String get translateSettingsTitle;
+
+  /// No description provided for @translateSettingsTargetLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Translate into'**
+  String get translateSettingsTargetLabel;
+
+  /// No description provided for @translateSettingsBehaviorLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'When you receive a message in another language'**
+  String get translateSettingsBehaviorLabel;
+
+  /// No description provided for @translateBehaviorAlways.
+  ///
+  /// In en, this message translates to:
+  /// **'Always translate'**
+  String get translateBehaviorAlways;
+
+  /// No description provided for @translateBehaviorAsk.
+  ///
+  /// In en, this message translates to:
+  /// **'Show a Translate option'**
+  String get translateBehaviorAsk;
+
+  /// No description provided for @translateBehaviorNever.
+  ///
+  /// In en, this message translates to:
+  /// **'Never translate'**
+  String get translateBehaviorNever;
+
+  /// No description provided for @translateSettingsFluentLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Languages you understand'**
+  String get translateSettingsFluentLabel;
+
+  /// No description provided for @translateSettingsFluentHint.
+  ///
+  /// In en, this message translates to:
+  /// **'We won\'t offer to translate messages already in these languages.'**
+  String get translateSettingsFluentHint;
+
+  /// No description provided for @translateSettingsShowProvider.
+  ///
+  /// In en, this message translates to:
+  /// **'Show translation provider'**
+  String get translateSettingsShowProvider;
+
+  /// No description provided for @translateSettingsSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get translateSettingsSaved;
+
+  /// No description provided for @translateSettingsTileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-translate'**
+  String get translateSettingsTileTitle;
+
+  /// No description provided for @translateSettingsTileSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AI per-message translation'**
+  String get translateSettingsTileSubtitle;
 }
 
 class _AppLocalizationsDelegate

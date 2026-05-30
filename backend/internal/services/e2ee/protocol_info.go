@@ -12,6 +12,7 @@ const (
 	InfoRatchetMsg   = "flicko-ratchet-msg-v2"
 	InfoSealedSender = "flicko-sealed-sender-v2"
 	InfoBackup       = "flicko-backup-v1"
+	InfoSenderKey    = "flicko-sender-key-sig-v2"
 )
 
 // AllInfos enumerates every protocol-info string used by the v2 stack.
@@ -24,4 +25,5 @@ var AllInfos = []string{
 	InfoRatchetMsg,
 	InfoSealedSender,
 	InfoBackup,
+	InfoSenderKey,
 }

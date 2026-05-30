@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -31,13 +32,13 @@ class _AuraChatScreenState extends ConsumerState<AuraChatScreen> {
   // Track which message is currently simulating TTS speaking
   String? _speakingMessageId;
 
-  static const Color _bgBlack = Color(0xFF050505);
-  static const Color _cardGrey = Color(0xFF141418);
-  static const Color _borderGrey = Color(0xFF24242A);
-  static const Color _accentPink = Color(0xFFFF007F);
-  static const Color _accentPurple = Color(0xFF8B00FF);
-  static const Color _textWhite = Color(0xFFFBF9FA);
-  static const Color _textMuted = Color(0xFF8E8E93);
+  static const Color _bgBlack = Color(0xFF06060E);
+  static const Color _cardGrey = Color(0xFF0D0D1A);
+  static const Color _borderGrey = Color(0xFF1C1C24);
+  static const Color _accentPink = Color(0xFFFF00F5);
+  static const Color _accentPurple = Color(0xFF7B4FFF);
+  static const Color _textWhite = Color(0xFFFFFFFF);
+  static const Color _textMuted = Color(0xFF8E8E9F);
 
   @override
   void initState() {
@@ -138,29 +139,38 @@ class _AuraChatScreenState extends ConsumerState<AuraChatScreen> {
     return Scaffold(
       backgroundColor: _bgBlack,
       appBar: _buildAppBar(context, activeSession?.title ?? 'New Conversation', accent),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: messages.isEmpty
-                  ? _buildEmptyState(accent)
-                  : ListView.builder(
-                      controller: _scrollController,
-                      physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-                      itemCount: messages.length + (_isTyping ? 1 : 0),
-                      itemBuilder: (context, index) {
-                        if (index == messages.length) {
-                          return _buildTypingIndicator(accent);
-                        }
-                        final msg = messages[index];
-                        return _buildMessageRow(msg, accent);
-                      },
-                    ),
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: CustomPaint(
+              painter: DeepSpaceBackgroundPainter(animationValue: 0.0),
             ),
-            _buildInputBar(accent),
-          ],
-        ),
+          ),
+          SafeArea(
+            child: Column(
+              children: [
+                Expanded(
+                  child: messages.isEmpty
+                      ? _buildEmptyState(accent)
+                      : ListView.builder(
+                          controller: _scrollController,
+                          physics: const BouncingScrollPhysics(),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                          itemCount: messages.length + (_isTyping ? 1 : 0),
+                          itemBuilder: (context, index) {
+                            if (index == messages.length) {
+                              return _buildTypingIndicator(accent);
+                            }
+                            final msg = messages[index];
+                            return _buildMessageRow(msg, accent);
+                          },
+                        ),
+                ),
+                _buildInputBar(accent),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -169,9 +179,27 @@ class _AuraChatScreenState extends ConsumerState<AuraChatScreen> {
     return AppBar(
       backgroundColor: _bgBlack,
       elevation: 0,
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: _textWhite),
-        onPressed: () => context.pop(),
+      leadingWidth: 56,
+      leading: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: GestureDetector(
+          onTap: () => context.pop(),
+          child: Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withOpacity(0.03),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.07),
+                width: 1.2,
+              ),
+            ),
+            child: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: Colors.white,
+              size: 14,
+            ),
+          ),
+        ),
       ),
       centerTitle: true,
       title: Column(
@@ -185,15 +213,22 @@ class _AuraChatScreenState extends ConsumerState<AuraChatScreen> {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: accent,
+                  boxShadow: [
+                    BoxShadow(
+                      color: accent.withOpacity(0.5),
+                      blurRadius: 8,
+                      spreadRadius: 1,
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(width: 6),
               Text(
                 widget.category.toUpperCase(),
-                style: GoogleFonts.spaceGrotesk(
+                style: GoogleFonts.inter(
                   color: accent,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w900,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
                   letterSpacing: 1.5,
                 ),
               ),
@@ -202,23 +237,17 @@ class _AuraChatScreenState extends ConsumerState<AuraChatScreen> {
           const SizedBox(height: 2),
           Text(
             title,
-            style: GoogleFonts.spaceMono(
-              color: _textWhite.withValues(alpha: 0.6),
+            style: GoogleFonts.inter(
+              color: _textWhite.withOpacity(0.6),
               fontSize: 9,
+              fontWeight: FontWeight.w500,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.more_vert, color: _textWhite),
-          onPressed: () {
-            // Optional actions
-          },
-        ),
-      ],
+      actions: const [],
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(1),
         child: Container(color: _borderGrey, height: 1),
@@ -254,20 +283,21 @@ class _AuraChatScreenState extends ConsumerState<AuraChatScreen> {
             Text(
               'How can I help you today?',
               textAlign: TextAlign.center,
-              style: GoogleFonts.epilogue(
+              style: GoogleFonts.inter(
                 color: _textWhite,
                 fontSize: 24,
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w900,
               ),
             ),
             const SizedBox(height: 12),
             Text(
               'Start chatting with Aura to generate texts, create code blocks, or visualize concepts.',
               textAlign: TextAlign.center,
-              style: GoogleFonts.spaceMono(
+              style: GoogleFonts.inter(
                 color: _textMuted,
                 fontSize: 12,
                 height: 1.5,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],
@@ -315,18 +345,20 @@ class _AuraChatScreenState extends ConsumerState<AuraChatScreen> {
       height: 32,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: LinearGradient(
-          colors: [accent, accent.withValues(alpha: 0.5)],
+        color: Colors.white.withOpacity(0.03),
+        border: Border.all(
+          color: accent.withOpacity(0.4),
+          width: 1.2,
         ),
         boxShadow: [
           BoxShadow(
-            color: accent.withValues(alpha: 0.3),
+            color: accent.withOpacity(0.2),
             blurRadius: 8,
           ),
         ],
       ),
-      child: const Center(
-        child: Icon(Icons.blur_on_rounded, color: Colors.white, size: 18),
+      child: Center(
+        child: Icon(Icons.blur_on_rounded, color: accent, size: 18),
       ),
     );
   }
@@ -335,9 +367,13 @@ class _AuraChatScreenState extends ConsumerState<AuraChatScreen> {
     return Container(
       width: 32,
       height: 32,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: Color(0xFF2C2C35),
+        color: Colors.white.withOpacity(0.04),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.07),
+          width: 1.2,
+        ),
       ),
       child: const Center(
         child: Icon(Icons.person, color: Colors.white, size: 18),
@@ -355,15 +391,18 @@ class _AuraChatScreenState extends ConsumerState<AuraChatScreen> {
             topRight: Radius.circular(16),
             bottomLeft: Radius.circular(16),
           ),
-          gradient: LinearGradient(
-            colors: [_accentPink, _accentPurple.withValues(alpha: 0.8)],
+          gradient: const LinearGradient(
+            colors: [
+              Color(0xFF7B4FFF),
+              Color(0xFF5931CC),
+            ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
         ),
         child: Text(
           msg.text,
-          style: GoogleFonts.spaceGrotesk(
+          style: GoogleFonts.inter(
             color: Colors.white,
             fontSize: 14.5,
             fontWeight: FontWeight.w600,
@@ -374,8 +413,8 @@ class _AuraChatScreenState extends ConsumerState<AuraChatScreen> {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: _cardGrey,
-          border: Border.all(color: _borderGrey),
+          color: Colors.white.withOpacity(0.03),
+          border: Border.all(color: Colors.white.withOpacity(0.07)),
           borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(16),
             topRight: Radius.circular(16),
@@ -412,7 +451,7 @@ class _AuraChatScreenState extends ConsumerState<AuraChatScreen> {
             ],
             Text(
               msg.text,
-              style: GoogleFonts.spaceGrotesk(
+              style: GoogleFonts.inter(
                 color: _textWhite,
                 fontSize: 14.5,
                 height: 1.45,
@@ -604,10 +643,7 @@ class _AuraChatScreenState extends ConsumerState<AuraChatScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: const BoxDecoration(
-        color: _bgBlack,
-        border: Border(
-          top: BorderSide(color: _borderGrey, width: 1),
-        ),
+        color: Colors.transparent,
       ),
       child: Row(
         children: [
@@ -616,10 +652,11 @@ class _AuraChatScreenState extends ConsumerState<AuraChatScreen> {
               // Plus icon action (e.g. image picker placeholder)
             },
             child: Container(
-              padding: const EdgeInsets.all(10),
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
-                color: _cardGrey,
-                border: Border.all(color: _borderGrey),
+                color: Colors.white.withOpacity(0.03),
+                border: Border.all(color: Colors.white.withOpacity(0.07)),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.add, color: _textWhite, size: 18),
@@ -628,26 +665,27 @@ class _AuraChatScreenState extends ConsumerState<AuraChatScreen> {
           const SizedBox(width: 12),
           Expanded(
             child: Container(
-              height: 46,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              height: 48,
+              padding: const EdgeInsets.symmetric(horizontal: 18),
               decoration: BoxDecoration(
-                color: _cardGrey,
-                border: Border.all(color: _borderGrey),
-                borderRadius: BorderRadius.circular(24),
+                color: Colors.white.withOpacity(0.03),
+                border: Border.all(color: Colors.white.withOpacity(0.07)),
+                borderRadius: BorderRadius.circular(26),
               ),
               child: TextField(
                 controller: _messageController,
-                style: GoogleFonts.spaceGrotesk(color: _textWhite, fontSize: 14),
+                style: GoogleFonts.inter(color: _textWhite, fontSize: 14),
                 decoration: InputDecoration(
                   hintText: 'Send message...',
-                  hintStyle: GoogleFonts.spaceGrotesk(
-                    color: _textMuted.withValues(alpha: 0.6),
+                  hintStyle: GoogleFonts.inter(
+                    color: _textMuted.withOpacity(0.6),
                     fontSize: 14,
+                    fontWeight: FontWeight.w500,
                   ),
                   border: InputBorder.none,
                   enabledBorder: InputBorder.none,
                   focusedBorder: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 11),
                 ),
                 onSubmitted: (_) => _sendMessage(),
               ),
@@ -657,10 +695,16 @@ class _AuraChatScreenState extends ConsumerState<AuraChatScreen> {
           GestureDetector(
             onTap: _sendMessage,
             child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
+              width: 44,
+              height: 44,
+              decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [_accentPink, _accentPurple],
+                  colors: [
+                    Color(0xFF7B4FFF),
+                    Color(0xFF5931CC),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
                 shape: BoxShape.circle,
               ),
@@ -671,4 +715,35 @@ class _AuraChatScreenState extends ConsumerState<AuraChatScreen> {
       ),
     );
   }
+}
+
+class DeepSpaceBackgroundPainter extends CustomPainter {
+  final double animationValue;
+
+  DeepSpaceBackgroundPainter({required this.animationValue});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Overlapping radial gradients (Nebulas)
+    final paint1 = Paint()
+      ..shader = RadialGradient(
+        colors: [
+          const Color(0xFF7B4FFF).withOpacity(0.20),
+          Colors.transparent,
+        ],
+      ).createShader(Rect.fromCircle(center: Offset(size.width * 0.2, size.height * 0.3), radius: size.width * 0.8));
+    canvas.drawCircle(Offset(size.width * 0.2, size.height * 0.3), size.width * 0.8, paint1);
+
+    final paint2 = Paint()
+      ..shader = RadialGradient(
+        colors: [
+          const Color(0xFF00F0FF).withOpacity(0.12),
+          Colors.transparent,
+        ],
+      ).createShader(Rect.fromCircle(center: Offset(size.width * 0.8, size.height * 0.7), radius: size.width * 0.7));
+    canvas.drawCircle(Offset(size.width * 0.8, size.height * 0.7), size.width * 0.7, paint2);
+  }
+
+  @override
+  bool shouldRepaint(covariant DeepSpaceBackgroundPainter oldDelegate) => false;
 }

@@ -28,6 +28,13 @@ class SecureKeystore {
   static const _kOtkPrivPrefix = '$_ns.otk.priv.'; // + keyId
   static const _kNextOtkId = '$_ns.otk.next_id';
   static const _kNextSignedPrekeyId = '$_ns.signed_prekey.next_id';
+  // Per-peer pinned fingerprint (TOFU baseline for change detection).
+  static const _kPeerFpPrefix = '$_ns.peer_fp.'; // + userId
+  // Per-peer pinned Ed25519 signing pub (used to verify attestations).
+  static const _kPeerSigningPubPrefix = '$_ns.peer_signing.'; // + userId
+  // Group sender keys.
+  static const _kOwnSenderKeyPrefix = '$_ns.group.own_sk.';   // + groupId
+  static const _kPeerSenderKeyPrefix = '$_ns.group.peer_sk.'; // + groupId|userId|deviceId
 
   final FlutterSecureStorage _storage;
 
@@ -159,6 +166,34 @@ class SecureKeystore {
         type: KeyPairType.x25519);
   }
 
+  // ── Group sender keys ────────────────────────────────────────────────────
+  //
+  // Two flavours:
+  //   - "own"  : the chain THIS device uses to send to a group. Persisted so
+  //             we don't generate a fresh chain on every app start (which
+  //             would force a re-distribution to every member).
+  //   - "peer" : a chain a remote device shared with us. Indexed by the full
+  //             tuple (groupId, peerUserId, peerDeviceId).
+
+  String _ownSenderKeyKey(String groupId) => '$_kOwnSenderKeyPrefix$groupId';
+  String _peerSenderKeyKey(String groupId, String peerUserId, String peerDeviceId) =>
+      '$_kPeerSenderKeyPrefix$groupId|$peerUserId|$peerDeviceId';
+
+  Future<String?> readOwnSenderKey(String groupId) =>
+      _storage.read(key: _ownSenderKeyKey(groupId));
+
+  Future<void> writeOwnSenderKey(String groupId, String json) =>
+      _storage.write(key: _ownSenderKeyKey(groupId), value: json);
+
+  Future<String?> readPeerSenderKey(
+          String groupId, String peerUserId, String peerDeviceId) =>
+      _storage.read(key: _peerSenderKeyKey(groupId, peerUserId, peerDeviceId));
+
+  Future<void> writePeerSenderKey(
+          String groupId, String peerUserId, String peerDeviceId, String json) =>
+      _storage.write(
+          key: _peerSenderKeyKey(groupId, peerUserId, peerDeviceId), value: json);
+
   // ── Wipe (logout / panic button) ─────────────────────────────────────────
 
   /// Deletes all E2EE material. Use on logout or when the user explicitly
@@ -168,6 +203,45 @@ class SecureKeystore {
     for (final k in all.keys.where((k) => k.startsWith(_ns))) {
       await _storage.delete(key: k);
     }
+  }
+
+  // ── Peer fingerprint pinning (identity-change detection) ─────────────────
+
+  /// Returns the last-seen fingerprint we pinned for [peerUserId], or null
+  /// if we've never recorded one. Used as the baseline for change detection.
+  Future<String?> getLastSeenPeerFingerprint(String peerUserId) async {
+    return _storage.read(key: '$_kPeerFpPrefix$peerUserId');
+  }
+
+  /// Pin [fingerprint] as the trusted fingerprint for [peerUserId]. Called
+  /// on first contact (TOFU) and after a user explicitly acknowledges a
+  /// rotation alert.
+  ///
+  /// When [signingPub] is provided, it is stored alongside the fingerprint
+  /// so a later rotation can verify an attestation under the OLD signing
+  /// key the user trusted.
+  Future<void> setLastSeenPeerFingerprint(
+      String peerUserId, String fingerprint, {String? signingPub}) async {
+    await _storage.write(
+        key: '$_kPeerFpPrefix$peerUserId', value: fingerprint);
+    if (signingPub != null) {
+      await _storage.write(
+          key: '$_kPeerSigningPubPrefix$peerUserId', value: signingPub);
+    }
+  }
+
+  /// Returns the signing public key we stored alongside the most recent
+  /// pin for [peerUserId], or null if we never recorded one. Used to
+  /// verify rotation attestations under the OLD key.
+  Future<String?> getLastSeenPeerSigningPub(String peerUserId) async {
+    return _storage.read(key: '$_kPeerSigningPubPrefix$peerUserId');
+  }
+
+  /// Forget the pinned fingerprint for [peerUserId]. Used when a session is
+  /// reset; the next check re-pins via TOFU.
+  Future<void> clearLastSeenPeerFingerprint(String peerUserId) async {
+    await _storage.delete(key: '$_kPeerFpPrefix$peerUserId');
+    await _storage.delete(key: '$_kPeerSigningPubPrefix$peerUserId');
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────

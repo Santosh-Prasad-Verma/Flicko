@@ -2,20 +2,41 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
+import 'package:mobile/features/settings/application/user_settings_notifier.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
+import 'package:mobile/features/sonic_music/localization/app_localizations.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
-class DevModeNotifier extends Notifier<bool> {
+class DevModeNotifier extends AsyncNotifier<bool> {
+  static const _key = 'developer_mode';
+
   @override
-  bool build() => false;
-  
-  void toggle() => state = !state;
-  void set(bool value) => state = value;
+  Future<bool> build() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_key) ?? false;
+  }
+
+  Future<void> toggle() async {
+    final current = state.asData?.value ?? false;
+    await _setValue(!current);
+  }
+
+  Future<void> setValue(bool value) async {
+    await _setValue(value);
+  }
+
+  Future<void> _setValue(bool value) async {
+    state = AsyncData(value);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_key, value);
+    ref.read(userSettingsNotifierProvider.notifier).setBool('system_developer_mode', value);
+  }
 }
 
-final devModeProvider = NotifierProvider<DevModeNotifier, bool>(DevModeNotifier.new);
+final devModeProvider = AsyncNotifierProvider<DevModeNotifier, bool>(DevModeNotifier.new);
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -186,6 +207,13 @@ class SettingsScreen extends ConsumerWidget {
               () => context.push('/profile/settings/language'),
               subtitle: 'English (US)',
             ),
+            _buildSettingsRow(
+              context,
+              Icons.translate_rounded,
+              AppLocalizations.of(context)?.translateSettingsTileTitle ?? 'Auto-translate',
+              () => context.push('/profile/settings/translate'),
+              subtitle: AppLocalizations.of(context)?.translateSettingsTileSubtitle ?? 'AI per-message translation',
+            ),
             _buildSettingsRow(context, Icons.data_usage_rounded, 'Data & Storage',
                 () => context.push('/profile/settings/storage')),
             const SizedBox(height: 24),
@@ -203,27 +231,27 @@ class SettingsScreen extends ConsumerWidget {
             const SizedBox(height: 32),
             _buildSectionHeader('SYSTEM CONTROLS'),
             _buildSettingsRow(
-              context, 
-              Icons.developer_mode_rounded, 
+              context,
+              Icons.developer_mode_rounded,
               'Developer Mode',
               () {
-                final current = ref.read(devModeProvider);
+                final current = ref.read(devModeProvider).asData?.value ?? false;
                 ref.read(devModeProvider.notifier).toggle();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(!current ? 'Developer Mode enables experimental features. Restart app to apply.' : 'Developer Mode disabled.'),
+                    content: Text(!current ? 'Developer Mode enabled. Restart app to apply.' : 'Developer Mode disabled.'),
                     backgroundColor: !current ? _neonGreen : Colors.red,
                     behavior: SnackBarBehavior.floating,
                   ),
                 );
-              }, 
+              },
               isSwitch: true,
-              switchValue: ref.watch(devModeProvider),
+              switchValue: ref.watch(devModeProvider).asData?.value ?? false,
               onSwitchChanged: (val) {
-                ref.read(devModeProvider.notifier).set(val);
+                ref.read(devModeProvider.notifier).setValue(val);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(val ? 'Developer Mode enables experimental features. Restart app to apply.' : 'Developer Mode disabled.'),
+                    content: Text(val ? 'Developer Mode enabled. Restart app to apply.' : 'Developer Mode disabled.'),
                     backgroundColor: val ? _neonGreen : Colors.red,
                     behavior: SnackBarBehavior.floating,
                   ),

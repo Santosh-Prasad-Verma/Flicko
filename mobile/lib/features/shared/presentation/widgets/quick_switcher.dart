@@ -156,7 +156,7 @@ class _QuickSwitcherState extends ConsumerState<QuickSwitcher> {
         context.go('/server/${item.id}');
         break;
       case 'dm':
-        context.go('/dm/${item.id}');
+        context.go('/dms/${item.id}');
         break;
     }
   }

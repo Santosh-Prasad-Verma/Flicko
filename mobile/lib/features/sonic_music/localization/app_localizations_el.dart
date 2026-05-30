@@ -1120,4 +1120,121 @@ class AppLocalizationsEl extends AppLocalizations {
 
   @override
   String get ytStreamQualitySub => 'Higher quality uses more data';
+
+  @override
+  String get summaryCatchMeUp => 'Catch me up';
+
+  @override
+  String get summaryCatchingYouUp => 'Catching you up…';
+
+  @override
+  String get summaryHeading => 'Catch-up';
+
+  @override
+  String get summaryDismiss => 'Dismiss';
+
+  @override
+  String get summaryCachedChip => 'cached';
+
+  @override
+  String get summaryFeedbackPrompt => 'Was this helpful?';
+
+  @override
+  String get summaryFeedbackHelpful => 'Helpful';
+
+  @override
+  String get summaryFeedbackNotHelpful => 'Not helpful';
+
+  @override
+  String get summaryRefusedTitle => 'Not enough to summarise';
+
+  @override
+  String get summaryRefusedBody =>
+      'There aren\'t enough recent messages here to make a useful summary yet.';
+
+  @override
+  String get summaryNoAccessTitle => 'You don\'t have access here';
+
+  @override
+  String get summaryNoAccessBody =>
+      'Ask a moderator to grant you read permission first.';
+
+  @override
+  String get summaryRateLimitedTitle => 'Daily limit reached';
+
+  @override
+  String get summaryRateLimitedBody =>
+      'You can summarise up to 50 channels per day. Come back tomorrow or upgrade to Plus.';
+
+  @override
+  String get summaryErrorTitle => 'Couldn\'t summarise this channel';
+
+  @override
+  String get summaryErrorRetry => 'Try again in a moment.';
+
+  @override
+  String get summaryCitedHeader => 'Cited messages';
+
+  @override
+  String get summaryCitedMissing => 'Message unavailable';
+
+  @override
+  String get summaryCitedMissingBody => 'It may have been deleted.';
+
+  @override
+  String get summarySemanticPill => 'Catch me up on missed messages';
+
+  @override
+  String get translateAction => 'Translate';
+
+  @override
+  String get translateInProgress => 'Translating…';
+
+  @override
+  String get translateErrorBody =>
+      'Couldn\'t translate. Tap retry from the menu.';
+
+  @override
+  String get translateHide => 'Hide';
+
+  @override
+  String get translateCachedSuffix => '· cached';
+
+  @override
+  String get translateSettingsTitle => 'Auto-translate';
+
+  @override
+  String get translateSettingsTargetLabel => 'Translate into';
+
+  @override
+  String get translateSettingsBehaviorLabel =>
+      'When you receive a message in another language';
+
+  @override
+  String get translateBehaviorAlways => 'Always translate';
+
+  @override
+  String get translateBehaviorAsk => 'Show a Translate option';
+
+  @override
+  String get translateBehaviorNever => 'Never translate';
+
+  @override
+  String get translateSettingsFluentLabel => 'Languages you understand';
+
+  @override
+  String get translateSettingsFluentHint =>
+      'We won\'t offer to translate messages already in these languages.';
+
+  @override
+  String get translateSettingsShowProvider => 'Show translation provider';
+
+  @override
+  String get translateSettingsSaved => 'Saved';
+
+  @override
+  String get translateSettingsTileTitle => 'Auto-translate';
+
+  @override
+  String get translateSettingsTileSubtitle => 'AI per-message translation';
 }

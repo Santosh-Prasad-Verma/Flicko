@@ -5,8 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/data/models/flicko_message.dart';
+import 'package:mobile/features/ai_assistant/summary/presentation/catch_me_up_pill.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/server_channels/chat/application/chat_notifier.dart';
+import 'package:mobile/features/server_channels/chat/application/scroll_to_message.dart';
 import 'package:mobile/features/server_channels/chat/presentation/widgets/enhanced_message_item.dart';
 import 'package:mobile/features/server_channels/chat/presentation/widgets/message_actions.dart';
 import 'package:mobile/features/server_channels/chat/presentation/widgets/enhanced_message_input.dart';
@@ -49,6 +51,35 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
       ref.read(chatNotifierProvider(widget.channelId).notifier).fetchMore();
     }
+  }
+
+  /// Best-effort scroll to a cited message. The list is `reverse: true` so
+  /// the newest item lives at offset 0; we estimate height (96 px) per row
+  /// and animate. If the message hasn't been paged in yet we surface a
+  /// transient snackbar — paging-on-demand is a follow-up.
+  void _jumpToMessage(String messageId) {
+    final state = ref.read(chatNotifierProvider(widget.channelId));
+    final idx = state.messages.indexWhere((m) => m.id == messageId);
+    if (idx < 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Message not loaded yet — keep scrolling up.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+    if (!_scrollController.hasClients) return;
+    const estimatedRowHeight = 96.0;
+    final target = (idx * estimatedRowHeight).clamp(
+      0.0,
+      _scrollController.position.maxScrollExtent,
+    );
+    _scrollController.animateTo(
+      target,
+      duration: const Duration(milliseconds: 320),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   void _showComingSoon(String feature) {
@@ -98,6 +129,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // React to scroll-to-message requests issued by the AI summary citation
+    // peek. The chat screen owns the ScrollController, so it has to do the
+    // actual scroll. We consume the intent so we don't loop on rebuilds.
+    ref.listen<ScrollToMessageIntent?>(scrollToMessageProvider, (prev, next) {
+      if (next == null) return;
+      if (next.channelId != widget.channelId) return;
+      _jumpToMessage(next.messageId);
+      ref.read(scrollToMessageProvider.notifier).consume();
+    });
     final chatState = ref.watch(chatNotifierProvider(widget.channelId));
     final equippedWarp = ref.watch(equippedWarpProvider).value;
 
@@ -161,6 +201,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             controller: _particleController,
             child: Column(
               children: [
+                CatchMeUpPill(
+                  channelId: widget.channelId,
+                  serverId: widget.serverId,
+                ),
                 Expanded(
                   child: chatState.isLoading
                       ? const Center(child: CircularProgressIndicator())

@@ -57,11 +57,37 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   bool _isLoading = true;
   String? _errorMessage;
   String? _currentUserId;
+  RealtimeChannel? _notificationsSubscription;
 
   @override
   void initState() {
     super.initState();
     _loadNotifications();
+  }
+
+  void _setupRealtimeSubscription(String userId) {
+    _notificationsSubscription = Supabase.instance.client
+        .channel('public:notifications:user_id=eq.$userId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'notifications',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'user_id',
+            value: userId,
+          ),
+          callback: (payload) {
+            _loadNotifications();
+          },
+        )
+        ..subscribe();
+  }
+
+  @override
+  void dispose() {
+    _notificationsSubscription?.unsubscribe();
+    super.dispose();
   }
 
   Future<void> _loadNotifications() async {
@@ -77,6 +103,9 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       }
 
       _currentUserId = user.id;
+      if (_notificationsSubscription == null) {
+        _setupRealtimeSubscription(user.id);
+      }
 
       final response = await Supabase.instance.client
           .from('notifications')
@@ -568,6 +597,11 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           .update({'status': 'accepted'})
           .eq('sender_id', senderId)
           .eq('receiver_id', currentUserId);
+
+      await Supabase.instance.client.from('friends').insert([
+        {'user_id': currentUserId, 'friend_id': senderId, 'status': 'accepted'},
+        {'user_id': senderId, 'friend_id': currentUserId, 'status': 'accepted'},
+      ]);
 
       await Supabase.instance.client.from('friendships').insert([
         {'user_id': currentUserId, 'friend_id': senderId},

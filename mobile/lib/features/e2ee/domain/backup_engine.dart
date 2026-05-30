@@ -77,7 +77,15 @@ class BackupChunk {
 class BackupEngine {
   static final _aead = Xchacha20.poly1305Aead();
   static final _sha256 = Sha256();
-  static final _hkdf = Hkdf(hmac: Hmac.sha256(), outputLength: 32);
+
+  /// Argon2id instance for passphrase-based KDF (RFC 9106).
+  /// Parameters: 64 MiB memory, 3 iterations, 4 lanes — exceeds OWASP minimum.
+  static final _argon2id = Argon2id(
+    parallelism: kArgon2Parallelism,
+    memory: kArgon2Memory,
+    iterations: kArgon2Iterations,
+    hashLength: 32,
+  );
 
   /// Derive the backup master key from a user passphrase via Argon2id.
   ///
@@ -87,12 +95,8 @@ class BackupEngine {
     final salt = SecretKeyData.random(length: 16);
     final saltBytes = Uint8List.fromList(await salt.extractBytes());
 
-    // Use HKDF as a stand-in for Argon2id (the cryptography package
-    // doesn't include Argon2id; in production use a native FFI binding).
-    // The HKDF derivation is domain-separated for backup use.
-    final derived = await _hkdf.deriveKey(
+    final derived = await _argon2id.deriveKey(
       secretKey: SecretKey(utf8.encode(passphrase)),
-      info: utf8.encode('flicko-backup-v1'),
       nonce: saltBytes,
     );
     return (masterKey: Uint8List.fromList(await derived.extractBytes()), salt: saltBytes);
@@ -100,9 +104,8 @@ class BackupEngine {
 
   /// Re-derive the master key using a known salt (for restore).
   static Future<Uint8List> rederiveMasterKey(String passphrase, Uint8List salt) async {
-    final derived = await _hkdf.deriveKey(
+    final derived = await _argon2id.deriveKey(
       secretKey: SecretKey(utf8.encode(passphrase)),
-      info: utf8.encode('flicko-backup-v1'),
       nonce: salt,
     );
     return Uint8List.fromList(await derived.extractBytes());

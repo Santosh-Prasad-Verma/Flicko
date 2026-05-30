@@ -13,7 +13,9 @@ import 'core/config/app_config.dart';
 import 'core/router/app_router.dart';
 import 'core/services/push_notification_service.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/theme_provider.dart';
 import 'core/services/translation_service.dart';
+import 'features/ludo/services/ludo_deep_links.dart';
 import 'package:mobile/features/sonic_music/localization/app_localizations.dart';
 import 'package:mobile/features/voice/services/flicko_audio_handler.dart';
 
@@ -171,22 +173,47 @@ Future<void> openHiveBox(String boxName, {bool limit = false}) async {
   }
 }
 
-class FlickoApp extends ConsumerWidget {
+class FlickoApp extends ConsumerStatefulWidget {
   const FlickoApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // Get the GoRouter instance from our provider
+  ConsumerState<FlickoApp> createState() => _FlickoAppState();
+}
+
+class _FlickoAppState extends ConsumerState<FlickoApp> {
+  LudoDeepLinks? _deepLinks;
+
+  @override
+  void initState() {
+    super.initState();
+    // Wire deep links after first frame so the router is fully built.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final router = ref.read(appRouterProvider);
+      _deepLinks = LudoDeepLinks(router)..start();
+    });
+  }
+
+  @override
+  void dispose() {
+    _deepLinks?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final router = ref.watch(appRouterProvider);
+    final activeTheme = ref.watch(themeDataProvider);
+    final locale = ref.watch(appLocaleProvider);
 
     return MaterialApp.router(
       title: 'Flicko',
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode:
-          ThemeMode.dark, // Default to dark mode based on Discord-like request
+      theme: activeTheme,
+      // themeMode.light forces Flutter to always use theme: above,
+      // so our themeDataProvider (dark/light/amoled) is always applied.
+      themeMode: ThemeMode.light,
       routerConfig: router,
       debugShowCheckedModeBanner: false,
+      locale: locale,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
     );

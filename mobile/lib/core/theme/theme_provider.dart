@@ -55,18 +55,41 @@ class ThemeNotifier extends Notifier<String> {
   }
 }
 
-/// Provider that returns the active theme, prioritizing store themes
-/// If a store theme is equipped, it overrides the base theme
+/// Provider that returns the active theme, prioritizing store themes.
+/// Watched by MaterialApp so any theme change rebuilds the whole app.
 final themeDataProvider = Provider<ThemeData>((ref) {
-  // Watch both providers
   ref.watch(themeProvider);
   final storeTheme = ref.watch(activeStoreThemeProvider);
-  
-  // If a store theme is active, use it
+
   if (storeTheme != null) {
     return ref.read(storeThemeDataProvider) ?? ref.read(themeProvider.notifier).currentTheme;
   }
-  
-  // Fall back to base theme
+
   return ref.read(themeProvider.notifier).currentTheme;
 });
+
+/// Locale provider — persists selected language and drives MaterialApp.locale.
+final appLocaleProvider = NotifierProvider<AppLocaleNotifier, Locale>(AppLocaleNotifier.new);
+
+class AppLocaleNotifier extends Notifier<Locale> {
+  static const _key = 'language';
+
+  @override
+  Locale build() {
+    _load();
+    return const Locale('en');
+  }
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final code = prefs.getString(_key) ?? 'en';
+    state = Locale(code);
+  }
+
+  Future<void> setLocale(String languageCode) async {
+    state = Locale(languageCode);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_key, languageCode);
+  }
+}
+

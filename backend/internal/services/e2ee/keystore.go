@@ -170,6 +170,36 @@ func (s *KeyStore) GetIdentity(ctx context.Context, userID, deviceID string) (*I
 	return &out, nil
 }
 
+// ListIdentities returns ALL device identities for a user, ordered by
+// most-recently-rotated first. Used by senders to fan-out a message to
+// every device the recipient owns.
+//
+// Returns an empty slice (not error) when the user has no devices.
+// Time: O(devices) — typically 1-3 rows.
+func (s *KeyStore) ListIdentities(ctx context.Context, userID string) ([]IdentityKey, error) {
+	rows, err := s.db.Query(ctx, `
+		SELECT user_id, device_id, identity_pub, signing_pub, fingerprint, created_at, rotated_at
+		FROM e2ee_identity_keys
+		WHERE user_id = $1
+		ORDER BY COALESCE(rotated_at, created_at) DESC
+	`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []IdentityKey
+	for rows.Next() {
+		var k IdentityKey
+		if err := rows.Scan(&k.UserID, &k.DeviceID, &k.IdentityPub, &k.SigningPub,
+			&k.Fingerprint, &k.CreatedAt, &k.RotatedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, k)
+	}
+	return out, rows.Err()
+}
+
 // ── Signed Prekey ───────────────────────────────────────────────────────────
 
 // UpsertSignedPrekey replaces the active signed prekey for the device.

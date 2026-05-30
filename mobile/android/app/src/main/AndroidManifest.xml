@@ -83,6 +83,27 @@
                 <data android:scheme="io.flicko.app"
                       android:host="login-callback" />
             </intent-filter>
+
+            <!-- Ludo deep-link: custom scheme (always works without DNS setup) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="flicko" android:host="ludo" />
+            </intent-filter>
+
+            <!-- Ludo deep-link: Android App Links over https.
+                 autoVerify requires .well-known/assetlinks.json hosted at
+                 https://flicko.app/.well-known/assetlinks.json. Until that is
+                 published, links still open via the system chooser. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https"
+                      android:host="flicko.app"
+                      android:pathPrefix="/ludo" />
+            </intent-filter>
         </activity>
         
 

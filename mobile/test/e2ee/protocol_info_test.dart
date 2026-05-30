@@ -44,6 +44,7 @@ void main() {
           ProtocolInfo.ratchetMsg,
           ProtocolInfo.sealedSender,
           ProtocolInfo.backup,
+          ProtocolInfo.senderKey,
         ]),
       );
     });

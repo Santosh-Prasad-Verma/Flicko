@@ -394,7 +394,7 @@ class NotificationData {
         return null;
       case NotificationType.dm:
         if (senderId != null) {
-          return '/dm/$senderId';
+          return '/dms/$senderId';
         }
         return null;
       case NotificationType.friendRequest:

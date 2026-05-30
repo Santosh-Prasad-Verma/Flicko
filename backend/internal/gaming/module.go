@@ -10,6 +10,7 @@ import (
 	"github.com/flicko-org/flicko-backend/internal/handlers/centrifugo"
 	"github.com/flicko-org/flicko-backend/internal/handlers/game"
 	"github.com/flicko-org/flicko-backend/internal/repo"
+	centrifugoSvc "github.com/flicko-org/flicko-backend/internal/services/centrifugo"
 	"github.com/flicko-org/flicko-backend/internal/services/elo"
 	gameSvc "github.com/flicko-org/flicko-backend/internal/services/game"
 	"github.com/flicko-org/flicko-backend/internal/services/lock"
@@ -108,8 +109,23 @@ func (s *hubGameService) ProcessMove(ctx context.Context, gameID, playerID, move
 
 // Initialize bootstraps all gaming hub components, orchestrates dependency injection,
 // and mounts the necessary API routes to the router.
-func Initialize(ctx context.Context, logger *zap.Logger, db *pgxpool.Pool, rc *redis.Client, r *mux.Router) (*Hub, error) {
+//
+// [publisher] is used to broadcast authoritative game events (dice rolls,
+// moves, winners) on Centrifugo channels. Pass `centrifugoSvc.NopPublisher{}`
+// in tests or environments without Centrifugo.
+func Initialize(
+	ctx context.Context,
+	logger *zap.Logger,
+	db *pgxpool.Pool,
+	rc *redis.Client,
+	r *mux.Router,
+	publisher centrifugoSvc.Publisher,
+) (*Hub, error) {
 	logger.Info("initializing gaming hub module")
+
+	if publisher == nil {
+		publisher = centrifugoSvc.NopPublisher{}
+	}
 
 	// 1. Data Layer & Persistence
 	// Buffer size 10,000; flushes every 100 records or 200ms using pgx.CopyFrom
@@ -130,7 +146,7 @@ func Initialize(ctx context.Context, logger *zap.Logger, db *pgxpool.Pool, rc *r
 	// 4. Game Logic Validators
 	chessValidator := gameSvc.NewChessValidator(lockService)
 	ludoValidator := gameSvc.NewLudoValidator(rngSvc)
-	ludoEngine := gameSvc.NewLudoEngine(stateService, ludoValidator, lockService, rngSvc)
+	ludoEngine := gameSvc.NewLudoEngineWithPublisher(stateService, ludoValidator, lockService, rngSvc, publisher)
 
 	// 5. Bot Intelligence
 	// Creates a bounded pool of 10 persistent stockfish engines
@@ -159,6 +175,8 @@ func Initialize(ctx context.Context, logger *zap.Logger, db *pgxpool.Pool, rc *r
 	proxyHandler := centrifugo.NewCentrifugoProxyHandler(logger, &hubGameAccessValidator{stateService: stateService})
 	rejoinHandler := game.NewRejoinHandler(logger, stateService)
 	ludoHandler := game.NewLudoHandler(logger, ludoEngine)
+	statsHandler := game.NewStatsHandler(db, logger)
+	ludoScoreHandler := game.NewLudoScoreHandler(db, logger)
 
 	// 7. Route Mounting
 	api := r.PathPrefix("/api/v1/gaming").Subrouter()
@@ -171,6 +189,10 @@ func Initialize(ctx context.Context, logger *zap.Logger, db *pgxpool.Pool, rc *r
 	api.HandleFunc("/rejoin", rejoinHandler.HandleRejoin).Methods("POST")
 	api.HandleFunc("/ludo/roll", ludoHandler.HandleRoll).Methods("POST")
 	api.HandleFunc("/ludo/move", ludoHandler.HandleMove).Methods("POST")
+	api.HandleFunc("/ludo/state/{gameId}", ludoHandler.HandleGetState).Methods("GET")
+	api.HandleFunc("/ludo/score", ludoScoreHandler.HandleSubmitScore).Methods("POST")
+	api.HandleFunc("/ludo/leaderboard", ludoScoreHandler.HandleLeaderboard).Methods("GET")
+	api.HandleFunc("/stats", statsHandler.HandleGetStats).Methods("GET")
 	
 	// Centrifugo proxy hook endpoints
 	centriRouter := r.PathPrefix("/centrifugo").Subrouter()

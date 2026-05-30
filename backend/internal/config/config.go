@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"time"
 )
 
 type Config struct {
@@ -29,9 +30,29 @@ type Config struct {
 	RazorpayKeySecret  string
 	MailGatewayURL     string
 	InternalToken      string
+	CentrifugoAPIURL   string // e.g. http://centrifugo:8000/api
+	CentrifugoAPIKey   string
 	// E2EE v2 rollout (Task 3 / R16)
 	E2EEV2Enabled        bool
 	E2EEV2RolloutPercent int // 0..100; clients with hash(user_id)%100 < this opt in
+
+	// AI / LLM (used by message-summary, chat-assistant, etc.)
+	GroqAPIKey      string // optional; if empty, only Ollama is used
+	GroqBaseURL     string // default https://api.groq.com/openai/v1
+	GroqModel       string // default llama-3.3-70b-versatile
+	OllamaBaseURL   string // default http://ollama:11434
+	OllamaModel     string // default llama3.1:8b
+	AIRequestTimeout time.Duration // default 12s
+
+	// Feature flags
+	AIMessageSummaryEnabled bool
+	AIAutoTranslateEnabled  bool
+	AIModerationEnabled     bool
+
+	// Auto-translate
+	LibreTranslateBaseURL string // default http://libretranslate:5000
+	LibreTranslateAPIKey  string // optional
+	DeepLAPIKey           string // optional fallback
 }
 
 func Load() (*Config, error) {
@@ -134,9 +155,31 @@ func Load() (*Config, error) {
 		RazorpayKeySecret:  os.Getenv("RAZORPAY_KEY_SECRET"),
 		MailGatewayURL:     os.Getenv("MAIL_GATEWAY_URL"),
 		InternalToken:      os.Getenv("INTERNAL_TOKEN"),
+		CentrifugoAPIURL:   os.Getenv("CENTRIFUGO_API_URL"),
+		CentrifugoAPIKey:   os.Getenv("CENTRIFUGO_API_KEY"),
 		E2EEV2Enabled:      parseBoolEnv("E2EE_V2_ENABLED", false),
 		E2EEV2RolloutPercent: parseIntEnv("E2EE_V2_ROLLOUT_PERCENT", 0, 0, 100),
+
+		GroqAPIKey:              os.Getenv("GROQ_API_KEY"),
+		GroqBaseURL:             envOr("GROQ_BASE_URL", "https://api.groq.com/openai/v1"),
+		GroqModel:               envOr("GROQ_MODEL", "llama-3.3-70b-versatile"),
+		OllamaBaseURL:           envOr("OLLAMA_BASE_URL", "http://ollama:11434"),
+		OllamaModel:             envOr("OLLAMA_MODEL", "llama3.1:8b"),
+		AIRequestTimeout:        time.Duration(parseIntEnv("AI_REQUEST_TIMEOUT_SECONDS", 12, 1, 120)) * time.Second,
+		AIMessageSummaryEnabled: parseBoolEnv("FEATURE_AI_MESSAGE_SUMMARY", false),
+		AIAutoTranslateEnabled:  parseBoolEnv("FEATURE_AI_AUTO_TRANSLATE", false),
+		AIModerationEnabled:     parseBoolEnv("FEATURE_AI_MODERATION", false),
+		LibreTranslateBaseURL:   envOr("LIBRETRANSLATE_BASE_URL", "http://libretranslate:5000"),
+		LibreTranslateAPIKey:    os.Getenv("LIBRETRANSLATE_API_KEY"),
+		DeepLAPIKey:             os.Getenv("DEEPL_API_KEY"),
 	}, nil
+}
+
+func envOr(key, def string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return def
 }
 
 // parseBoolEnv returns def when the env var is unset; otherwise returns

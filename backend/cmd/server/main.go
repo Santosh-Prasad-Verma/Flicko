@@ -19,7 +19,13 @@ import (
 	"github.com/flicko-org/flicko-backend/internal/gaming"
 	"github.com/flicko-org/flicko-backend/internal/handlers"
 	"github.com/flicko-org/flicko-backend/internal/middleware"
+	"github.com/flicko-org/flicko-backend/internal/repo"
 	"github.com/flicko-org/flicko-backend/internal/services"
+	"github.com/flicko-org/flicko-backend/internal/services/ai/llm"
+	"github.com/flicko-org/flicko-backend/internal/services/ai/message_summary"
+	"github.com/flicko-org/flicko-backend/internal/services/ai/moderation"
+	"github.com/flicko-org/flicko-backend/internal/services/ai/translate"
+	centrifugoSvc "github.com/flicko-org/flicko-backend/internal/services/centrifugo"
 	"github.com/flicko-org/flicko-backend/internal/telemetry"
 	"github.com/gorilla/mux"
 	"github.com/hibiken/asynq"
@@ -321,6 +327,51 @@ func main() {
 	appDirectoryHandler := handlers.NewAppDirectoryHandler(db.Pool(), logger)
 	forumHandler := handlers.NewForumHandler(db.Pool(), logger)
 	insightsHandler := handlers.NewInsightsHandler(db.Pool(), logger)
+
+	// AI Catch-Me-Up summary
+	llmClient := llm.New(llm.Config{
+		GroqAPIKey:    cfg.GroqAPIKey,
+		GroqBaseURL:   cfg.GroqBaseURL,
+		GroqModel:     cfg.GroqModel,
+		OllamaBaseURL: cfg.OllamaBaseURL,
+		OllamaModel:   cfg.OllamaModel,
+		HTTPTimeout:   cfg.AIRequestTimeout,
+	}, logger)
+	summaryRepo := repo.NewAISummaryRepo(db)
+	summaryCache := message_summary.NewCacheStore(redisCache)
+	summaryRL := message_summary.NewRateLimit(redisCache)
+	summaryCfg := message_summary.DefaultConfig()
+	if cfg.GroqAPIKey != "" {
+		summaryCfg.ModelName = "groq:" + cfg.GroqModel
+	} else {
+		summaryCfg.ModelName = "ollama:" + cfg.OllamaModel
+	}
+	summarySvc := message_summary.New(db, summaryRepo, summaryCache, summaryRL, llmClient, summaryCfg, logger)
+	aiSummaryHandler := handlers.NewAISummaryHandler(summarySvc, logger)
+	if cfg.AIMessageSummaryEnabled {
+		aiSummaryHandler.RegisterRoutes(protected)
+	}
+
+	// AI Auto-Translate
+	translator := translate.New(translate.Config{
+		LibreBaseURL: cfg.LibreTranslateBaseURL,
+		LibreAPIKey:  cfg.LibreTranslateAPIKey,
+		DeepLAPIKey:  cfg.DeepLAPIKey,
+		HTTPTimeout:  cfg.AIRequestTimeout,
+	}, logger)
+	translateSvc := translate.NewService(translator, redisCache, db, logger)
+	translateHandler := handlers.NewAITranslateHandler(translateSvc, logger)
+	if cfg.AIAutoTranslateEnabled {
+		translateHandler.RegisterRoutes(protected)
+	}
+
+	// AI Moderation (Llama-Guard via Groq + Ollama fallback). Reuses the
+	// shared LLM client since it speaks OpenAI-compatible chat completions.
+	moderationSvc := moderation.New(db, redisCache, llmClient, moderation.DefaultConfig(), logger)
+	moderationHandler := handlers.NewAIModerationHandler(moderationSvc, logger)
+	if cfg.AIModerationEnabled {
+		moderationHandler.RegisterRoutes(protected)
+	}
 	protected.HandleFunc("/activities/catalog", activityHandler.GetCatalog).Methods("GET")
 	protected.HandleFunc("/activities/catalog/{id}/validate", activityHandler.ValidateCatalogActivity).Methods("POST")
 	protected.HandleFunc("/activities/providers/register", activityHandler.RegisterProvider).Methods("POST")
@@ -402,7 +453,8 @@ func main() {
 	internalRouter.HandleFunc("/parity/status", parityHandler.GetParityStatus).Methods("GET")
 
 	// ── Gaming Hub Initialization ───────────────────────────────────────────
-	hub, err := gaming.Initialize(context.Background(), logger, db.Pool(), redisCache.GetRedisClient().(*redis.Client), r)
+	gamingPublisher := centrifugoSvc.NewHTTPPublisher(cfg.CentrifugoAPIURL, cfg.CentrifugoAPIKey, logger)
+	hub, err := gaming.Initialize(context.Background(), logger, db.Pool(), redisCache.GetRedisClient().(*redis.Client), r, gamingPublisher)
 	if err != nil {
 		logger.Fatal("failed to initialize gaming hub", zap.Error(err))
 	}
@@ -440,6 +492,11 @@ func main() {
 
 	// Message creation (for timeouts, silent, mentions)
 	msgHandler := handlers.NewMessageHandler(db.Pool(), logger)
+	// Inject AI moderation so every send runs Llama-Guard before insert.
+	// Gated by the same flag — when off the handler skips the classifier.
+	if cfg.AIModerationEnabled {
+		msgHandler.WithModeration(moderationSvc)
+	}
 	protected.HandleFunc("/channels/{channelId}/messages", msgHandler.CreateMessage).Methods("POST")
 
 	// Member join notification (triggers welcome bot)
@@ -509,6 +566,9 @@ func main() {
 	e2eeHandler := handlers.NewE2EEHandler(db.Pool(), logger)
 	protected.HandleFunc("/e2ee/identity", e2eeHandler.UpsertIdentity).Methods("PUT")
 	protected.HandleFunc("/e2ee/identity/{userId}", e2eeHandler.GetIdentity).Methods("GET")
+	protected.HandleFunc("/e2ee/identity/attestation", e2eeHandler.PutIdentityAttestation).Methods("POST")
+	protected.HandleFunc("/e2ee/identity/attestation/{userId}", e2eeHandler.GetIdentityAttestation).Methods("GET")
+	protected.HandleFunc("/e2ee/devices/{userId}", e2eeHandler.ListDevices).Methods("GET")
 	protected.HandleFunc("/e2ee/signed-prekey", e2eeHandler.UpsertSignedPrekey).Methods("PUT")
 	protected.HandleFunc("/e2ee/one-time-prekeys", e2eeHandler.PutOneTimePrekeys).Methods("PUT")
 	protected.HandleFunc("/e2ee/one-time-prekeys/count", e2eeHandler.CountOneTimePrekeys).Methods("GET")

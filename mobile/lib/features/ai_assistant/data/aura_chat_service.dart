@@ -11,6 +11,7 @@ import 'package:mobile/core/config/app_config.dart';
 import 'package:mobile/features/direct_messages/data/dm_repository.dart';
 import 'package:mobile/features/home/application/servers_notifier.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 class AuraMessage {
   final String id;
@@ -358,8 +359,8 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
     }).toList();
     await _saveSessions();
 
-    // Trigger thinking delay and then respond
-    await Future.delayed(const Duration(milliseconds: 1500));
+    // Trigger thinking delay
+    await Future.delayed(const Duration(milliseconds: 800));
 
     final activeSession = state.firstWhere((s) => s.id == sessionId);
     final String category = activeSession.category;
@@ -367,10 +368,9 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
     String responseText = '';
     String? imageUrl;
 
-    final apiKey = await getApiKey();
     bool liveSuccess = false;
 
-    // 1. Try local command parsing first for quick execution and mock fallback
+    // 1. Try local command parsing first for quick execution
     String? localCommandResponse;
     final lowerText = text.trim().toLowerCase();
 
@@ -415,113 +415,70 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
       liveSuccess = true;
     }
 
-    // 2. Perform live Gemini API Call if local parser didn't match
-    if (!liveSuccess && apiKey != null && apiKey.isNotEmpty) {
+    // 2. Call Aura Edge Function (xAI Grok API, key stays server-side)
+    if (!liveSuccess) {
       try {
+        final supabaseUrl = AppConfig.supabaseUrl;
         final dio = Dio();
+
+        // Get the current Supabase auth token
+        final accessToken = supabase.Supabase.instance.client.auth.currentSession?.accessToken;
+
+        // Build conversation history for context
+        final conversationMessages = <Map<String, String>>[];
+        for (final msg in activeSession.messages) {
+          conversationMessages.add({
+            'role': msg.sender == 'user' ? 'user' : 'assistant',
+            'content': msg.text,
+          });
+        }
+
         final response = await dio.post(
-          'https://generativelanguage.googleapis.com/v1beta/models/${AppConfig.geminiTextModel}:generateContent?key=$apiKey',
+          '$supabaseUrl/functions/v1/aura-chat',
+          options: Options(
+            headers: {
+              'Content-Type': 'application/json',
+              if (accessToken != null)
+                'Authorization': 'Bearer $accessToken',
+              'apikey': AppConfig.supabaseAnonKey,
+            },
+          ),
           data: {
-            'contents': [
-              {
-                'parts': [
-                  {'text': '${_buildSystemPrompt(category)}\n\nUser: $text'},
-                ],
-              },
-            ],
-            'tools': [
-              {
-                'functionDeclarations': [
-                  {
-                    'name': 'play_song',
-                    'description':
-                        'Play a specific song or search and play music on Sonic Drip.',
-                    'parameters': {
-                      'type': 'OBJECT',
-                      'properties': {
-                        'query': {
-                          'type': 'STRING',
-                          'description': 'The song title or search query.',
-                        },
-                      },
-                      'required': ['query'],
-                    },
-                  },
-                  {
-                    'name': 'send_dm',
-                    'description':
-                        'Send a direct message to a user/friend by name.',
-                    'parameters': {
-                      'type': 'OBJECT',
-                      'properties': {
-                        'recipientUsername': {
-                          'type': 'STRING',
-                          'description':
-                              'The username or display name of the friend.',
-                        },
-                        'message': {
-                          'type': 'STRING',
-                          'description': 'The text message content to send.',
-                        },
-                      },
-                      'required': ['recipientUsername', 'message'],
-                    },
-                  },
-                  {
-                    'name': 'list_servers',
-                    'description':
-                        'List the servers the user is currently joined to.',
-                    'parameters': {'type': 'OBJECT', 'properties': {}},
-                  },
-                ],
-              },
-            ],
+            'messages': conversationMessages,
+            'category': category,
           },
         );
 
         if (response.statusCode == 200 && response.data != null) {
-          final candidates = response.data['candidates'] as List?;
-          if (candidates != null && candidates.isNotEmpty) {
-            final content = candidates[0]['content'];
-            if (content != null) {
-              final parts = content['parts'] as List?;
-              if (parts != null && parts.isNotEmpty) {
-                final firstPart = parts[0];
-                if (firstPart is Map && firstPart.containsKey('functionCall')) {
-                  final functionCall = firstPart['functionCall'] as Map;
-                  final name = functionCall['name'] as String;
-                  final args = Map<String, dynamic>.from(
-                    functionCall['args'] ?? {},
-                  );
-                  responseText = await _executeTool(name, args);
-                  liveSuccess = true;
-                } else if (firstPart is Map && firstPart.containsKey('text')) {
-                  responseText = firstPart['text'] ?? '';
-                  liveSuccess = true;
-                }
-              }
-            }
+          final data = response.data;
+
+          // Check for function call from Grok
+          if (data['functionCall'] != null) {
+            final fc = data['functionCall'];
+            final name = fc['name'] as String;
+            final args = Map<String, dynamic>.from(fc['args'] ?? {});
+            responseText = await _executeTool(name, args);
+            liveSuccess = true;
+          } else if (data['text'] != null &&
+              (data['text'] as String).isNotEmpty) {
+            responseText = data['text'];
+            liveSuccess = true;
           }
         }
-      } catch (_) {}
+      } catch (e) {
+        // Edge function call failed, fall through to mock
+      }
     }
 
+    // 3. Fallback to simulated response if live API failed
     if (!liveSuccess) {
-      String fallbackText = '';
-      if (category == 'Text Writer') {
-        fallbackText = generateTextResponse(text);
-      } else if (category == 'Image Generator') {
-        fallbackText = 'Generated an image representing "$text".';
+      if (category == 'Image Generator') {
+        responseText = 'Generated an image representing "$text".';
         imageUrl = _generateImageMockUrl(text);
       } else if (category == 'Code Tutor') {
-        fallbackText = _generateCodeResponse(text);
-      }
-
-      if (apiKey != null && apiKey.isNotEmpty) {
-        responseText =
-            '*(Live API Call failed; falling back to simulated response)*\n\n$fallbackText';
+        responseText = _generateCodeResponse(text);
       } else {
-        responseText = fallbackText;
+        responseText = generateTextResponse(text);
       }
     }
 
@@ -805,17 +762,6 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
     }
     // Default placeholder abstract aesthetic
     return 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=800';
-  }
-
-  String _buildSystemPrompt(String category) {
-    if (category == 'Text Writer') {
-      return "You are Aura, a helpful creative text writing assistant. Keep your responses engaging, beautifully formatted with markdown list points, and focused on helping the user write texts.";
-    } else if (category == 'Code Tutor') {
-      return "You are Aura, an elite software engineering tutor. Reply with structured programming advice, code explanations, and complete syntactically correct code blocks wrapped in markdown. Do not be overly verbose.";
-    } else if (category == 'Image Generator') {
-      return "You are Aura, an AI image generation model assistant. Describe the scene the user wants to generate, confirm that you have generated it, and provide a textual prompt detail. Keep it short.";
-    }
-    return "You are Aura, an AI companion.";
   }
 }
 

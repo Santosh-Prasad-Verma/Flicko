@@ -1,0 +1,86 @@
+name: E2EE Tests
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'mobile/lib/features/e2ee/**'
+      - 'mobile/test/e2ee/**'
+      - 'mobile/pubspec.yaml'
+      - 'mobile/pubspec.lock'
+      - 'backend/internal/services/e2ee/**'
+      - 'backend/internal/handlers/e2ee_handler*.go'
+      - 'backend/migrations/*e2ee*'
+      - '.github/workflows/e2ee-tests.yml'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'mobile/lib/features/e2ee/**'
+      - 'mobile/test/e2ee/**'
+      - 'mobile/pubspec.yaml'
+      - 'mobile/pubspec.lock'
+      - 'backend/internal/services/e2ee/**'
+      - 'backend/internal/handlers/e2ee_handler*.go'
+      - 'backend/migrations/*e2ee*'
+      - '.github/workflows/e2ee-tests.yml'
+
+jobs:
+  mobile-e2ee:
+    name: Mobile E2EE (Dart)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Verify Flutter version
+        run: flutter --version
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Analyze E2EE feature
+        # Fail on errors only — info/warning lints are allowed for now and
+        # tracked separately. Crypto code must be error-free.
+        run: |
+          flutter analyze lib/features/e2ee/ --no-pub --no-fatal-infos --no-fatal-warnings
+
+      - name: Run E2EE test suite
+        # The whole point of this workflow: every change to the crypto
+        # surface MUST keep this suite green.
+        run: flutter test test/e2ee/
+
+  backend-e2ee:
+    name: Backend E2EE (Go)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: backend/go.sum
+
+      - name: Build E2EE package
+        run: go build ./internal/services/e2ee/...
+
+      - name: Test E2EE package
+        run: go test -v -race ./internal/services/e2ee/...
+
+      - name: Verify protocol-info constants stay in sync (cross-language)
+        # The Dart and Go protocol-info lists MUST match. The mobile job
+        # tests the Dart side; here we belt-and-braces by re-running the
+        # uniqueness/coverage tests so a drift can never land silently.
+        run: |
+          go test -run 'TestAllInfos' ./internal/services/e2ee/ -v

@@ -305,8 +305,8 @@ class _NotificationsSettingsScreenState
           title: 'CALL SOUND',
           subtitle: 'Play sound for incoming calls.',
           badge: 'RING',
-          toggleWidget: _buildHardwareToggle(ref.watch(userSettingsNotifierProvider).soundOnNotification, (val) {
-            _setBool('notif_sound', val);
+          toggleWidget: _buildHardwareToggle(ref.watch(userSettingsNotifierProvider).callSound, (val) {
+            _setBool('notif_call_sound', val);
           }),
         ),
         const SizedBox(height: 14),
@@ -322,7 +322,45 @@ class _NotificationsSettingsScreenState
     );
   }
 
+  Future<void> _pickTime({required bool isStart}) async {
+    final settings = ref.read(userSettingsNotifierProvider);
+    final currentStr = isStart ? settings.quietHoursStart : settings.quietHoursEnd;
+    final parts = currentStr.split(':');
+    final initial = TimeOfDay(
+      hour: int.tryParse(parts[0]) ?? (isStart ? 22 : 8),
+      minute: int.tryParse(parts.length > 1 ? parts[1] : '0') ?? 0,
+    );
+
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: initial,
+      builder: (ctx, child) => Theme(
+        data: ThemeData.dark().copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: _neonGreen,
+            onPrimary: Colors.black,
+            surface: Color(0xFF1A1A1A),
+            onSurface: Colors.white,
+          ),
+          timePickerTheme: const TimePickerThemeData(
+            backgroundColor: Color(0xFF0C0C0E),
+          ),
+        ),
+        child: child!,
+      ),
+    );
+
+    if (picked == null) return;
+    final formatted =
+        '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+    ref.read(userSettingsNotifierProvider.notifier).setString(
+          isStart ? 'notif_quiet_start' : 'notif_quiet_end',
+          formatted,
+        );
+  }
+
   Widget _buildQuietSection() {
+    final settings = ref.watch(userSettingsNotifierProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -345,25 +383,134 @@ class _NotificationsSettingsScreenState
           title: 'ENABLE QUIET HOURS',
           subtitle: 'Disable notifications during set hours.',
           badge: 'SCHEDULE',
-          toggleWidget: _buildHardwareToggle(ref.watch(userSettingsNotifierProvider).suppressEveryone, (val) {
-            _setBool('notif_suppress_everyone', val);
+          toggleWidget: _buildHardwareToggle(settings.quietHoursEnabled, (val) {
+            _setBool('notif_quiet_hours', val);
           }),
         ),
-        const SizedBox(height: 14),
-        _buildAccessCard(
-          title: 'SCHEDULE',
-          subtitle: 'Configure quiet hours time range.',
-          badge: 'CONFIG',
-          usePrimaryBadge: true,
-          toggleWidget: Container(
-            width: 40,
-            height: 40,
+        if (settings.quietHoursEnabled) ...[
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              border: Border.all(color: _textWhite.withValues(alpha: 0.1)),
+              color: _surfaceContainer,
+              border: Border.all(
+                color: _neonGreen.withValues(alpha: 0.4),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: _neonGreen.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  spreadRadius: 2,
+                ),
+              ],
             ),
-            child: const Icon(Icons.schedule, color: _textMuted, size: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'TIME RANGE',
+                  style: GoogleFonts.epilogue(
+                    color: _textWhite,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    fontStyle: FontStyle.italic,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Notifications are silenced between these hours.',
+                  style: GoogleFonts.inter(
+                    color: _textMuted,
+                    fontSize: 12,
+                    height: 1.3,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => _pickTime(isStart: true),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 14, horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: _bgBlack,
+                            border: Border.all(
+                                color: _textWhite.withValues(alpha: 0.1)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'FROM',
+                                style: GoogleFonts.spaceMono(
+                                  color: _textMuted,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 1.0,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                settings.quietHoursStart,
+                                style: GoogleFonts.spaceGrotesk(
+                                  color: _neonGreen,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => _pickTime(isStart: false),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 14, horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: _bgBlack,
+                            border: Border.all(
+                                color: _textWhite.withValues(alpha: 0.1)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'TO',
+                                style: GoogleFonts.spaceMono(
+                                  color: _textMuted,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 1.0,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                settings.quietHoursEnd,
+                                style: GoogleFonts.spaceGrotesk(
+                                  color: _neonGreen,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ),
+        ],
       ],
     );
   }

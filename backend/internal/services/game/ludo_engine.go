@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/flicko-org/flicko-backend/internal/services/centrifugo"
 	"github.com/flicko-org/flicko-backend/internal/services/lock"
 	"github.com/flicko-org/flicko-backend/internal/services/rng"
 )
@@ -34,6 +35,7 @@ type ludoEngine struct {
 	ludoValidator *LudoValidator
 	lockService   lock.LockService
 	rngService    rng.RNGService
+	publisher     centrifugo.Publisher
 }
 
 func NewLudoEngine(stateSvc StateService, ludoVal *LudoValidator, lockSvc lock.LockService, rngSvc rng.RNGService) LudoEngine {
@@ -42,8 +44,36 @@ func NewLudoEngine(stateSvc StateService, ludoVal *LudoValidator, lockSvc lock.L
 		ludoValidator: ludoVal,
 		lockService:   lockSvc,
 		rngService:    rngSvc,
+		publisher:     centrifugo.NopPublisher{},
 	}
 }
+
+// NewLudoEngineWithPublisher wires a Centrifugo publisher so authoritative
+// dice rolls / moves / winner notifications get broadcast on the
+// `game:<gameID>` channel that mobile clients subscribe to.
+func NewLudoEngineWithPublisher(
+	stateSvc StateService,
+	ludoVal *LudoValidator,
+	lockSvc lock.LockService,
+	rngSvc rng.RNGService,
+	publisher centrifugo.Publisher,
+) LudoEngine {
+	if publisher == nil {
+		publisher = centrifugo.NopPublisher{}
+	}
+	return &ludoEngine{
+		stateService:  stateSvc,
+		ludoValidator: ludoVal,
+		lockService:   lockSvc,
+		rngService:    rngSvc,
+		publisher:     publisher,
+	}
+}
+
+// channelForGame returns the Centrifugo channel name. The chess proxy
+// already authorises subscriptions on `game:<id>`; we keep the same shape
+// so the same proxy + subscribe hook serves both games.
+func channelForGame(gameID string) string { return "game:" + gameID }
 
 func (e *ludoEngine) GetGameState(ctx context.Context, gameID string) (*LudoGameState, error) {
 	stateRaw, moveNum, err := e.stateService.GetGameState(ctx, gameID)
@@ -201,6 +231,17 @@ func (e *ludoEngine) RollDice(ctx context.Context, gameID string, playerID strin
 	}
 
 	state.MoveNum++
+
+	// Authoritative dice broadcast. Best-effort; never fails the action.
+	_ = e.publisher.Publish(ctx, channelForGame(gameID), map[string]any{
+		"type":               "dice",
+		"moveNum":            state.MoveNum,
+		"playerIndex":        playerIndexOf(state, playerID),
+		"value":              roll,
+		"hasLegalMoves":      hasLegalMoves,
+		"nextActivePlayerIndex": state.ActivePlayerIndex,
+	})
+
 	return state, nil
 }
 
@@ -246,31 +287,41 @@ func (e *ludoEngine) MoveToken(ctx context.Context, gameID string, playerID stri
 		return nil, errors.New("this token belongs to another player")
 	}
 
-	// Capture track
+	// Capture-track: opponent positions before validation.
 	opponentStatesBefore := make(map[int]int)
 	for _, tok := range state.Tokens {
 		if tok.PlayerID != playerID {
 			opponentStatesBefore[tok.ID] = tok.ProgressionIndex
 		}
 	}
+	// Active piece's pre-move position (for the broadcast diff).
+	fromIndex := activeToken.ProgressionIndex
+	diceValue := state.Turn.DiceValue
 
-	// Validate move
+	// Validate move (mutates `activeToken` and possibly opponent tokens).
 	err = e.ludoValidator.ValidateMove(activeToken, state.Turn, state.Tokens)
 	if err != nil {
 		return nil, err
 	}
 
-	// Capture checking
-	captureOccurred := false
+	// Capture checking — build full list of captured opponents (not just a bool).
+	type capturedRef struct {
+		PlayerIndex int `json:"playerIndex"`
+		TokenID     int `json:"tokenId"`
+	}
+	captured := []capturedRef{}
 	for _, tok := range state.Tokens {
 		if tok.PlayerID != playerID {
 			beforeIndex, exists := opponentStatesBefore[tok.ID]
 			if exists && beforeIndex >= 0 && tok.ProgressionIndex == -1 {
-				captureOccurred = true
-				break
+				captured = append(captured, capturedRef{
+					PlayerIndex: playerIndexOf(state, tok.PlayerID),
+					TokenID:     tok.ID,
+				})
 			}
 		}
 	}
+	captureOccurred := len(captured) > 0
 
 	// Game completion check
 	playerFinished := true
@@ -309,5 +360,41 @@ func (e *ludoEngine) MoveToken(ctx context.Context, gameID string, playerID stri
 	}
 
 	state.MoveNum++
+
+	// Authoritative move broadcast. The Flutter port translates engine
+	// (playerIndex, tokenId, progressionIndex) into its own (playerNo,
+	// pieceId, absolute pos) vocabulary on receive.
+	channel := channelForGame(gameID)
+	_ = e.publisher.Publish(ctx, channel, map[string]any{
+		"type":                  "move",
+		"moveNum":               state.MoveNum,
+		"playerIndex":           playerIndexOf(state, playerID),
+		"tokenId":               tokenID,
+		"from":                  fromIndex,
+		"to":                    activeToken.ProgressionIndex,
+		"diceValue":             diceValue,
+		"captured":              captured,
+		"captureOccurred":       captureOccurred,
+		"nextActivePlayerIndex": state.ActivePlayerIndex,
+	})
+
+	if state.Status == "completed" {
+		_ = e.publisher.Publish(ctx, channel, map[string]any{
+			"type":        "winner",
+			"moveNum":     state.MoveNum,
+			"playerIndex": playerIndexOf(state, playerID),
+		})
+	}
+
 	return state, nil
+}
+
+// playerIndexOf returns the 0-based seat for [playerID], or -1 if unknown.
+func playerIndexOf(state *LudoGameState, playerID string) int {
+	for i, p := range state.Players {
+		if p == playerID {
+			return i
+		}
+	}
+	return -1
 }

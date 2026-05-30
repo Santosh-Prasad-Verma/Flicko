@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 	"time"
@@ -37,6 +38,10 @@ func (h *E2EEHandler) PushEnvelope(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.envelopes.Push(r.Context(), env); err != nil {
+		if errors.Is(err, e2ee.ErrEnvelopeReplay) {
+			writeError(w, http.StatusConflict, "envelope replay rejected")
+			return
+		}
 		h.logger.Error("push envelope failed", zap.Error(err))
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return

@@ -251,11 +251,23 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
     setState(() => _isActionLoading = true);
 
     try {
-      await _client.from('friend_requests').insert({
-        'sender_id': currentUser.id,
-        'receiver_id': widget.userId,
-        'status': 'pending',
-      });
+      try {
+        await _client.from('friend_requests').insert({
+          'sender_id': currentUser.id,
+          'receiver_id': widget.userId,
+          'status': 'pending',
+        });
+      } on PostgrestException catch (e) {
+        if (e.message.contains('duplicate key value') || e.code == '23505') {
+          await _client
+              .from('friend_requests')
+              .update({'status': 'pending'})
+              .eq('sender_id', currentUser.id)
+              .eq('receiver_id', widget.userId);
+        } else {
+          rethrow;
+        }
+      }
 
       setState(() => _friendStatus = 'pending_sent');
 
@@ -293,6 +305,11 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
           .eq('receiver_id', currentUser.id);
 
       await _client.from('friends').insert([
+        {'user_id': currentUser.id, 'friend_id': widget.userId, 'status': 'accepted'},
+        {'user_id': widget.userId, 'friend_id': currentUser.id, 'status': 'accepted'},
+      ]);
+
+      await _client.from('friendships').insert([
         {'user_id': currentUser.id, 'friend_id': widget.userId},
         {'user_id': widget.userId, 'friend_id': currentUser.id},
       ]);
@@ -372,6 +389,12 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
     try {
       await _client
           .from('friends')
+          .delete()
+          .or('user_id.eq.${currentUser.id},user_id.eq.${widget.userId}')
+          .or('friend_id.eq.${currentUser.id},friend_id.eq.${widget.userId}');
+
+      await _client
+          .from('friendships')
           .delete()
           .or('user_id.eq.${currentUser.id},user_id.eq.${widget.userId}')
           .or('friend_id.eq.${currentUser.id},friend_id.eq.${widget.userId}');
@@ -1093,7 +1116,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
           icon: Icons.chat_bubble,
           label: 'Message',
           color: const Color(0xFF4E5058),
-          onPressed: () => context.push('/dms/${widget.userId}'),
+          onPressed: () => context.go('/dms/${widget.userId}'),
         ),
       ],
     );

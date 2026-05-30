@@ -349,7 +349,7 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
 
   Widget _buildFriendTile(Friend friend) {
     return InkWell(
-      onTap: () => context.push('/dm/${friend.id}'),
+      onTap: () => context.go('/dms/${friend.id}'),
       borderRadius: BorderRadius.circular(8),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -411,7 +411,7 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
                     Icons.message,
                     color: Color(FlickoColors.textMuted),
                   ),
-                  onPressed: () => context.push('/dm/${friend.id}'),
+                  onPressed: () => context.go('/dms/${friend.id}'),
                 ),
                 IconButton(
                   icon: const Icon(
@@ -553,7 +553,7 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
               ),
               onTap: () {
                 Navigator.pop(context);
-                context.push('/dm/${friend.id}');
+                context.go('/dms/${friend.id}');
               },
             ),
             ListTile(

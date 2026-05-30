@@ -157,7 +157,8 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
       final friendship = await _client
           .from('friends')
           .select('id')
-          .or('and(user_id.eq.$currentUserId,friend_id.eq.$profileId),and(user_id.eq.$profileId,friend_id.eq.$currentUserId)')
+          .eq('user_id', currentUserId)
+          .eq('friend_id', profileId)
           .maybeSingle();
 
       if (friendship != null) {
@@ -203,8 +204,8 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
       String currentUserId, String profileId) async {
     try {
       final response = await _client.rpc('get_mutual_servers', params: {
-        'user_id_1': currentUserId,
-        'user_id_2': profileId,
+        'user_a': currentUserId,
+        'user_b': profileId,
       });
 
       if (response != null && mounted) {
@@ -290,11 +291,23 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
       if (currentUser == null) return;
 
       if (_friendStatus == 'none') {
-        await _client.from('friend_requests').insert({
-          'sender_id': currentUser.id,
-          'receiver_id': widget.userId,
-          'status': 'pending',
-        });
+        try {
+          await _client.from('friend_requests').insert({
+            'sender_id': currentUser.id,
+            'receiver_id': widget.userId,
+            'status': 'pending',
+          });
+        } on PostgrestException catch (e) {
+          if (e.message.contains('duplicate key value') || e.code == '23505') {
+            await _client
+                .from('friend_requests')
+                .update({'status': 'pending'})
+                .eq('sender_id', currentUser.id)
+                .eq('receiver_id', widget.userId);
+          } else {
+            rethrow;
+          }
+        }
         setState(() => _friendStatus = 'pending_sent');
       } else if (_friendStatus == 'pending_received') {
         await _client
@@ -304,6 +317,11 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
             .eq('receiver_id', currentUser.id);
 
         await _client.from('friends').insert([
+          {'user_id': currentUser.id, 'friend_id': widget.userId, 'status': 'accepted'},
+          {'user_id': widget.userId, 'friend_id': currentUser.id, 'status': 'accepted'},
+        ]);
+
+        await _client.from('friendships').insert([
           {'user_id': currentUser.id, 'friend_id': widget.userId},
           {'user_id': widget.userId, 'friend_id': currentUser.id},
         ]);
@@ -317,6 +335,8 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
 
         if (confirmed) {
           await _client.from('friends').delete().or(
+              'and(user_id.eq.${currentUser.id},friend_id.eq.${widget.userId}),and(user_id.eq.${widget.userId},friend_id.eq.${currentUser.id})');
+          await _client.from('friendships').delete().or(
               'and(user_id.eq.${currentUser.id},friend_id.eq.${widget.userId}),and(user_id.eq.${widget.userId},friend_id.eq.${currentUser.id})');
           setState(() => _friendStatus = 'none');
         }
@@ -1033,8 +1053,7 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
           child: _buildBtn(
             'Message',
             Icons.chat_bubble_outline_rounded,
-            () => ScaffoldMessenger.of(context)
-                .showSnackBar(const SnackBar(content: Text('Coming Soon'))),
+            () => context.go('/dms/${widget.userId}'),
             primary: false,
           ),
         ),

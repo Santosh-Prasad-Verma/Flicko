@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	gameSvc "github.com/flicko-org/flicko-backend/internal/services/game"
+	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 )
 
@@ -75,6 +76,24 @@ func (h *LudoHandler) HandleMove(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(state)
+}
+
+// HandleGetState returns the authoritative game state for [gameID]. Clients
+// fall back to this when they detect a `moveNum` gap in their Centrifugo
+// event stream — see ludo_online_sync.dart.
+func (h *LudoHandler) HandleGetState(w http.ResponseWriter, r *http.Request) {
+	gameID := mux.Vars(r)["gameId"]
+	if gameID == "" {
+		http.Error(w, "gameId is required", http.StatusBadRequest)
+		return
+	}
+	state, err := h.engine.GetGameState(r.Context(), gameID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(state)
 }

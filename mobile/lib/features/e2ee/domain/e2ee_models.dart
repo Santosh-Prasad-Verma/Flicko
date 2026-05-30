@@ -110,14 +110,26 @@ class PrekeyBundle {
 }
 
 /// An encrypted-on-wire DM payload.
+///
+/// `protocolVersion` selects the crypto path:
+///   - 'v1' (legacy): single-shot 3-DH; uses [senderEphemeralPub] + (signed)prekey ids.
+///   - 'v2' (Double Ratchet): per-message ratchet header in [ratchetHeader].
+///     Initial X3DH messages additionally carry [isInitial]=true plus
+///     [senderIdentityPub], [senderEphemeralPub], and the consumed prekey ids
+///     so the recipient can recompute the shared root key.
 class EncryptedEnvelope {
-  /// XChaCha20-Poly1305 ciphertext (base64).
+  /// Protocol version: 'v1' (legacy 3-DH) or 'v2' (X3DH + Double Ratchet).
+  final String protocolVersion;
+
+  /// XChaCha20-Poly1305 ciphertext (base64). For v2 this includes the
+  /// 24-byte nonce prepended and 16-byte AEAD tag appended.
   final String ciphertext;
 
-  /// 24-byte XChaCha20 nonce (base64).
+  /// 24-byte XChaCha20 nonce (base64). v1 only — v2 packs it into [ciphertext].
   final String nonce;
 
   /// Sender's ephemeral X25519 public key for ECDH (base64).
+  /// v1: per-message ephemeral. v2: only set on initial X3DH message.
   final String senderEphemeralPub;
 
   /// Sender's stable device id.
@@ -132,6 +144,18 @@ class EncryptedEnvelope {
   /// Signed prekey id used.
   final int? signedPrekeyId;
 
+  // ── v2 fields ────────────────────────────────────────────────────────────
+
+  /// Double Ratchet header (40 bytes: dhPub || pn || n), base64. v2 only.
+  final String? ratchetHeader;
+
+  /// True when this envelope is the first message of a v2 session — recipient
+  /// must run X3DH using [senderIdentityPub] + [senderEphemeralPub].
+  final bool isInitial;
+
+  /// Sender's identity X25519 public key (base64). v2 initial only.
+  final String? senderIdentityPub;
+
   const EncryptedEnvelope({
     required this.ciphertext,
     required this.nonce,
@@ -140,9 +164,14 @@ class EncryptedEnvelope {
     required this.recipientDeviceId,
     this.prekeyId,
     this.signedPrekeyId,
+    this.protocolVersion = 'v1',
+    this.ratchetHeader,
+    this.isInitial = false,
+    this.senderIdentityPub,
   });
 
   Map<String, dynamic> toJson() => {
+        'protocol_version': protocolVersion,
         'ciphertext': ciphertext,
         'nonce': nonce,
         'sender_ephemeral_pub': senderEphemeralPub,
@@ -150,9 +179,13 @@ class EncryptedEnvelope {
         'recipient_device_id': recipientDeviceId,
         if (prekeyId != null) 'prekey_id': prekeyId,
         if (signedPrekeyId != null) 'signed_prekey_id': signedPrekeyId,
+        if (ratchetHeader != null) 'ratchet_header': ratchetHeader,
+        if (isInitial) 'is_initial': true,
+        if (senderIdentityPub != null) 'sender_identity_pub': senderIdentityPub,
       };
 
   factory EncryptedEnvelope.fromDmRow(Map<String, dynamic> row) => EncryptedEnvelope(
+        protocolVersion: row['protocol_version'] as String? ?? 'v1',
         ciphertext: row['ciphertext'] as String? ?? '',
         nonce: row['nonce'] as String? ?? '',
         senderEphemeralPub: row['sender_ephemeral_pub'] as String? ?? '',
@@ -160,5 +193,42 @@ class EncryptedEnvelope {
         recipientDeviceId: row['recipient_device_id'] as String? ?? '',
         prekeyId: (row['prekey_id'] as num?)?.toInt(),
         signedPrekeyId: (row['signed_prekey_id'] as num?)?.toInt(),
+        ratchetHeader: row['ratchet_header'] as String?,
+        isInitial: row['is_initial'] == true,
+        senderIdentityPub: row['sender_identity_pub'] as String?,
+      );
+}
+
+/// Wire shape returned by `GET /e2ee/identity/attestation/{userId}`.
+///
+/// All fields are base64. The client verifies [signature] over the
+/// canonical attestation message
+///
+///     "rotate:<oldIdentityPub>:<newIdentityPub>"
+///
+/// against the OLD signing public key that the peer already trusts.
+class RemoteIdentityAttestation {
+  final String userId;
+  final String oldIdentityPub;
+  final String newIdentityPub;
+  final String signature;
+  final DateTime attestedAt;
+
+  const RemoteIdentityAttestation({
+    required this.userId,
+    required this.oldIdentityPub,
+    required this.newIdentityPub,
+    required this.signature,
+    required this.attestedAt,
+  });
+
+  factory RemoteIdentityAttestation.fromJson(Map<String, dynamic> json) =>
+      RemoteIdentityAttestation(
+        userId: json['user_id'] as String? ?? '',
+        oldIdentityPub: json['old_identity_pub'] as String? ?? '',
+        newIdentityPub: json['new_identity_pub'] as String? ?? '',
+        signature: json['signature'] as String? ?? '',
+        attestedAt: DateTime.parse(
+            json['attested_at'] as String? ?? '1970-01-01T00:00:00Z'),
       );
 }

@@ -183,6 +183,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
   }
 
   Widget _buildDisplaySection() {
+    final settings = ref.watch(userSettingsNotifierProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -205,8 +206,8 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
           title: 'EMOJI REACTIONS',
           subtitle: 'Display emoji reactions on messages.',
           badge: 'UI',
-          toggleWidget: _buildHardwareToggle(ref.watch(userSettingsNotifierProvider).showEmbeds, (val) {
-            _setBool('chat_show_embeds', val);
+          toggleWidget: _buildHardwareToggle(settings.emojiReactions, (val) {
+            _setBool('chat_emoji_reactions', val);
           }),
         ),
         const SizedBox(height: 14),
@@ -214,8 +215,8 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
           title: 'STICKERS',
           subtitle: 'Show stickers in chat conversations.',
           badge: 'MEDIA',
-          toggleWidget: _buildHardwareToggle(ref.watch(userSettingsNotifierProvider).autoPlayGifs, (val) {
-            _setBool('chat_autoplay_gifs', val);
+          toggleWidget: _buildHardwareToggle(settings.showStickers, (val) {
+            _setBool('chat_show_stickers', val);
           }),
         ),
         const SizedBox(height: 14),
@@ -223,8 +224,8 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
           title: 'GIF PREVIEWS',
           subtitle: 'Preview GIFs before sending them.',
           badge: 'MEDIA',
-          toggleWidget: _buildHardwareToggle(ref.watch(userSettingsNotifierProvider).showLinkPreview, (val) {
-            _setBool('chat_link_preview', val);
+          toggleWidget: _buildHardwareToggle(settings.gifPreviews, (val) {
+            _setBool('chat_gif_previews', val);
           }),
         ),
         const SizedBox(height: 14),
@@ -233,7 +234,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
           subtitle: 'Reduce spacing between messages for density.',
           badge: 'LAYOUT',
           usePrimaryBadge: true,
-          toggleWidget: _buildHardwareToggle(ref.watch(userSettingsNotifierProvider).compactMessages, (val) {
+          toggleWidget: _buildHardwareToggle(settings.compactMessages, (val) {
             _setBool('chat_compact', val);
           }),
         ),
@@ -242,6 +243,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
   }
 
   Widget _buildInputSection() {
+    final settings = ref.watch(userSettingsNotifierProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -264,7 +266,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
           title: 'ENTER TO SEND',
           subtitle: 'Press Enter to send messages.',
           badge: 'KEY',
-          toggleWidget: _buildHardwareToggle(ref.watch(userSettingsNotifierProvider).sendOnEnter, (val) {
+          toggleWidget: _buildHardwareToggle(settings.sendOnEnter, (val) {
             _setBool('chat_send_on_enter', val);
           }),
         ),
@@ -273,8 +275,8 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
           title: 'QUICK REACTIONS',
           subtitle: 'Double-tap to add quick reactions.',
           badge: 'GESTURE',
-          toggleWidget: _buildHardwareToggle(ref.watch(userSettingsNotifierProvider).convertEmoticons, (val) {
-            _setBool('chat_convert_emoticons', val);
+          toggleWidget: _buildHardwareToggle(settings.quickReactions, (val) {
+            _setBool('chat_quick_reactions', val);
           }),
         ),
         const SizedBox(height: 14),
@@ -282,8 +284,8 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
           title: 'SEND WITH SOUND',
           subtitle: 'Play sound when sending messages.',
           badge: 'AUDIO',
-          toggleWidget: _buildHardwareToggle(false, (val) {
-            // Send with sound not yet in UserSettings model
+          toggleWidget: _buildHardwareToggle(settings.sendWithSound, (val) {
+            _setBool('chat_send_with_sound', val);
           }),
         ),
       ],

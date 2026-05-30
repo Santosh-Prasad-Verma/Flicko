@@ -369,6 +369,29 @@ class MessageRepository {
 
     return messageId;
   }
+
+  /// Fetch a single message by id. Used by the Catch-Me-Up citation peek and
+  /// other "jump to message" UIs. Returns null if the row is missing or the
+  /// caller is not allowed to read it.
+  Future<FlickoMessage?> getById(String messageId) async {
+    try {
+      final response = await _client.from('messages').select('''
+          *,
+          author:profiles!author_id(id, username, display_name, avatar_url:avatar),
+          reactions(emoji, user_id),
+          attachments(id, url, content_type:mime_type, filename, size, width, height)
+        ''').eq('id', messageId).maybeSingle();
+      if (response == null) return null;
+      final msg = Map<String, dynamic>.from(response as Map);
+      msg['type'] = 'channel';
+      if (msg['author'] != null && msg['author']['avatar_url'] != null) {
+        msg['author']['avatar'] = msg['author']['avatar_url'];
+      }
+      return FlickoMessage.fromJson(msg);
+    } catch (_) {
+      return null;
+    }
+  }
 }
 
 /// Provider for [MessageRepository].

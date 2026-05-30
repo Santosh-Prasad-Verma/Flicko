@@ -218,7 +218,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
           // Messages / DMs button
           _buildRailButton(
             isActive: false,
-            onTap: () => context.push('/dm'),
+            onTap: () => context.go('/dms'),
             child: Container(
               width: _serverIconSize,
               height: _serverIconSize,

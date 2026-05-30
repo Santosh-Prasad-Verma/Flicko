@@ -19,7 +19,21 @@ class _AppearanceSettingsScreenState
   double _fontScale = 1.0;
   bool _isLoading = true;
   String _tempThemeId = 'dark';
+  Color _tempAccentColor = const Color(0xFF52B788);
   final Color _limeColor = const Color(0xFF52B788);
+
+  static Color _hexToColor(String hex) {
+    final cleaned = hex.replaceAll('#', '');
+    final value = int.tryParse(
+      cleaned.length == 6 ? 'FF$cleaned' : cleaned,
+      radix: 16,
+    );
+    return value != null ? Color(value) : const Color(0xFF52B788);
+  }
+
+  static String _colorToHex(Color color) {
+    return '#${color.toARGB32().toRadixString(16).substring(2).toUpperCase()}';
+  }
 
   @override
   void initState() {
@@ -33,12 +47,9 @@ class _AppearanceSettingsScreenState
     setState(() {
       _fontScale = prefs.getDouble('fontScale') ?? settings.fontScale;
       _tempThemeId = ref.read(themeProvider);
+      _tempAccentColor = _hexToColor(settings.accentColor);
       _isLoading = false;
     });
-  }
-
-  void _setBool(String key, bool value) {
-    ref.read(userSettingsNotifierProvider.notifier).setBool(key, value);
   }
 
   @override
@@ -392,11 +403,9 @@ class _AppearanceSettingsScreenState
       spacing: 16,
       runSpacing: 16,
       children: accents.map((color) {
-        final isSelected = color.toARGB32() == _limeColor.toARGB32();
+        final isSelected = color.toARGB32() == _tempAccentColor.toARGB32();
         return GestureDetector(
-          onTap: () {
-            // Future implementation for dynamic accent colors
-          },
+          onTap: () => setState(() => _tempAccentColor = color),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 250),
             width: 60,
@@ -463,7 +472,8 @@ class _AppearanceSettingsScreenState
               ref.read(themeProvider.notifier).setTheme(_tempThemeId);
               ref.read(userSettingsNotifierProvider.notifier)
                 ..setDouble('appearance_font_scale', _fontScale)
-                ..setString('appearance_theme', _tempThemeId);
+                ..setString('appearance_theme', _tempThemeId)
+                ..setString('appearance_accent_color', _colorToHex(_tempAccentColor));
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(

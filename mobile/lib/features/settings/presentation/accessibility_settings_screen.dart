@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile/features/settings/application/user_settings_notifier.dart';
 
 /// Accessibility Settings Screen (Sleek Brutalist Black/Neon Theme)
@@ -21,6 +22,29 @@ class _AccessibilitySettingsScreenState
   static const Color _surfaceContainer = Color(0xFF0C0C0E);
   static const Color _textWhite = Color(0xFFFBF9FA);
   static const Color _textMuted = Color(0xFF71717A);
+
+  double _fontScale = 1.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFontScale();
+  }
+
+  Future<void> _loadFontScale() async {
+    final prefs = await SharedPreferences.getInstance();
+    final settings = ref.read(userSettingsNotifierProvider);
+    setState(() {
+      _fontScale = prefs.getDouble('fontScale') ?? settings.fontScale;
+    });
+  }
+
+  Future<void> _saveFontScale(double value) async {
+    setState(() => _fontScale = value);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('fontScale', value);
+    ref.read(userSettingsNotifierProvider.notifier).setDouble('appearance_font_scale', value);
+  }
 
   void _setBool(String key, bool value) {
     ref.read(userSettingsNotifierProvider.notifier).setBool(key, value);
@@ -228,13 +252,81 @@ class _AccessibilitySettingsScreenState
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              border: Border.all(color: _textWhite.withValues(alpha: 0.1)),
+              color: _neonGreen.withValues(alpha: 0.1),
+              border: Border.all(color: _neonGreen.withValues(alpha: 0.3)),
             ),
-            child: const Icon(
-              Icons.settings_ethernet,
-              color: _textMuted,
-              size: 20,
+            child: Center(
+              child: Text(
+                '${(_fontScale * 100).round()}%',
+                style: GoogleFonts.spaceMono(
+                  color: _neonGreen,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
             ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: _surfaceContainer,
+            border: Border.all(color: _textWhite.withValues(alpha: 0.05)),
+          ),
+          child: Column(
+            children: [
+              SliderTheme(
+                data: SliderThemeData(
+                  activeTrackColor: _neonGreen,
+                  inactiveTrackColor: _textWhite.withValues(alpha: 0.05),
+                  thumbColor: Colors.white,
+                  overlayColor: _neonGreen.withValues(alpha: 0.1),
+                  trackHeight: 6,
+                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
+                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
+                ),
+                child: Slider(
+                  value: _fontScale,
+                  min: 0.8,
+                  max: 1.4,
+                  divisions: 6,
+                  onChanged: _saveFontScale,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('SMALL',
+                        style: GoogleFonts.spaceMono(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w900,
+                            color: _fontScale <= 0.9
+                                ? _neonGreen
+                                : _textWhite.withValues(alpha: 0.2),
+                            letterSpacing: 1.0)),
+                    Text('DEFAULT',
+                        style: GoogleFonts.spaceMono(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w900,
+                            color: _fontScale == 1.0
+                                ? _neonGreen
+                                : _textWhite.withValues(alpha: 0.2),
+                            letterSpacing: 1.0)),
+                    Text('LARGE',
+                        style: GoogleFonts.spaceMono(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w900,
+                            color: _fontScale >= 1.2
+                                ? _neonGreen
+                                : _textWhite.withValues(alpha: 0.2),
+                            letterSpacing: 1.0)),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ],

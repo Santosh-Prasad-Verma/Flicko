@@ -33,6 +33,12 @@ class ProtocolInfo {
   /// Encrypted-backup chunk key derivation.
   static const String backup = 'flicko-backup-v1';
 
+  /// Domain tag for the per-envelope Ed25519 signature in group sender-key
+  /// messages. Distinct from the chain/message-key derivation strings used
+  /// inside [MultiDeviceManager] so a signature on a group envelope cannot
+  /// be replayed as a chain-key derivation.
+  static const String senderKey = 'flicko-sender-key-sig-v2';
+
   /// All info strings, exposed for the uniqueness property test.
   static const List<String> all = [
     x3dh,
@@ -42,5 +48,6 @@ class ProtocolInfo {
     ratchetMsg,
     sealedSender,
     backup,
+    senderKey,
   ];
 }

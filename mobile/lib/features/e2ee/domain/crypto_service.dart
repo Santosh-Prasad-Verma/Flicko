@@ -12,15 +12,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 ///  - HKDF-SHA-256            for key derivation from shared secrets
 ///  - XChaCha20-Poly1305      for symmetric authenticated encryption
 ///
-/// The shared secret derivation is intentionally simple in v1 (one ECDH per
-/// message between sender's ephemeral key and recipient's identity key,
-/// plus the recipient's signed prekey if present). This gives us forward
-/// secrecy for the *sender* (the ephemeral key never leaves the device).
-/// Full Double Ratchet (forward secrecy in both directions plus
-/// post-compromise security) is a v2 upgrade.
+/// **Status: PARTIAL — keypair generation, signing, fingerprints are production-grade.**
 ///
-/// All public APIs operate on bytes; base64 conversion happens at the
-/// repository boundary.
+/// **DEPRECATED for message encryption.** [encrypt]/[decrypt] perform a single
+/// stateless 3-DH agreement per message — there is no Double Ratchet, so:
+///   - No per-message forward secrecy on the receiver side
+///   - No post-compromise security
+///   - Recipient's signed prekey + identity key are reused across messages
+///
+/// New code MUST route message-payload crypto through [DoubleRatchet] (see
+/// `ratchet.dart`) initialised via [X3DHEngine] (see `x3dh.dart`). The wiring
+/// from [E2EESession] to those engines is the remaining work item.
 class CryptoService {
   static final _x25519 = Cryptography.instance.x25519();
   static final _ed25519 = Cryptography.instance.ed25519();
@@ -63,12 +65,16 @@ class CryptoService {
 
   // ── Encryption / Decryption ──────────────────────────────────────────────
 
+  /// **DEPRECATED** — single-shot 3-DH only, no Double Ratchet.
+  /// Use the [DoubleRatchet] engine for per-message forward secrecy.
+  ///
   /// Encrypts [plaintext] for a single recipient using:
   ///   shared = HKDF( X25519(ephemeralPriv, recipientIdentityPub) ||
   ///                  X25519(ephemeralPriv, recipientSignedPrekeyPub) ||
   ///                  X25519(ephemeralPriv, recipientOneTimePrekeyPub?) )
   ///
   /// Returns (ciphertext, nonce, ephemeralPub).
+  @Deprecated('Use DoubleRatchet via E2EESession once v2 wiring lands. This path lacks PFS on receiver side and post-compromise security.')
   static Future<EncryptResult> encrypt({
     required Uint8List plaintext,
     required Uint8List recipientIdentityPub,
@@ -108,8 +114,11 @@ class CryptoService {
     );
   }
 
+  /// **DEPRECATED** — paired with [encrypt]; no Double Ratchet.
+  ///
   /// Decrypts an envelope. Caller supplies the recipient's matching
   /// private keys for whichever prekeys the sender consumed.
+  @Deprecated('Use DoubleRatchet via E2EESession once v2 wiring lands.')
   static Future<Uint8List> decrypt({
     required Uint8List ciphertextWithMac,
     required Uint8List nonce,

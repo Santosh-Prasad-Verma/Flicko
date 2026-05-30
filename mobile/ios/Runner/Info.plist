@@ -48,6 +48,21 @@
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Flicko needs speech recognition to transcribe voice messages into text for Aura AI.</string>
 
+	<!-- Custom URL scheme for Ludo invite links: flicko://ludo/play?gameId=X -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>app.flicko.deeplinks</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>flicko</string>
+			</array>
+		</dict>
+	</array>
+
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

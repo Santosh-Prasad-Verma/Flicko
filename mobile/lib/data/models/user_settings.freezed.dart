@@ -14,39 +14,54 @@ T _$identity<T>(T value) => value;
 
 /// @nodoc
 mixin _$UserSettings {
+// ── Voice & Video ──
   bool get noiseSuppression;
   bool get echoCancellation;
   bool get autoGainControl;
   bool get attenuation;
   bool get answerOnJoin;
   bool get videoOnJoin;
-  bool get callNotifications;
+  bool get callNotifications; // ── Privacy ──
   bool get allowDirectMessages;
   bool get allowFriendRequests;
   bool get allowServerInvites;
   bool get showOnlineStatus;
   bool get shareActivityStatus;
   bool get dataCollectionConsent;
+  bool get readReceipts;
+  bool get typingIndicator; // ── Chat ──
   bool get compactMessages;
+  bool get emojiReactions;
+  bool get showStickers;
+  bool get gifPreviews;
+  bool get quickReactions;
+  bool get sendOnEnter;
+  bool
+      get sendWithSound; // Legacy fields kept for backward-compat with any existing stored data
   bool get autoPlayGifs;
   bool get showEmbeds;
   bool get showLinkPreview;
-  bool get convertEmoticons;
-  bool get sendOnEnter;
+  bool get convertEmoticons; // ── Notifications ──
   bool get pushNotifications;
   bool get soundOnNotification;
+  bool get callSound;
   bool get vibrateOnNotification;
   bool get messageNotifications;
   bool get friendRequestNotifications;
   bool get serverNotifications;
   bool get dmNotifications;
-  bool get suppressEveryone;
+  bool get quietHoursEnabled;
+  String get quietHoursStart;
+  String get quietHoursEnd; // ── Accessibility ──
   bool get reduceMotion;
   bool get highContrast;
   bool get largeText;
+  bool get hapticFeedback; // ── Appearance ──
   double get fontScale;
   String get themeMode;
   String get messageDisplay;
+  String get accentColor; // ── System ──
+  bool get developerMode;
 
   /// Create a copy of UserSettings
   /// with the given fields replaced by the non-null parameter values.
@@ -90,8 +105,24 @@ mixin _$UserSettings {
                 other.shareActivityStatus == shareActivityStatus) &&
             (identical(other.dataCollectionConsent, dataCollectionConsent) ||
                 other.dataCollectionConsent == dataCollectionConsent) &&
+            (identical(other.readReceipts, readReceipts) ||
+                other.readReceipts == readReceipts) &&
+            (identical(other.typingIndicator, typingIndicator) ||
+                other.typingIndicator == typingIndicator) &&
             (identical(other.compactMessages, compactMessages) ||
                 other.compactMessages == compactMessages) &&
+            (identical(other.emojiReactions, emojiReactions) ||
+                other.emojiReactions == emojiReactions) &&
+            (identical(other.showStickers, showStickers) ||
+                other.showStickers == showStickers) &&
+            (identical(other.gifPreviews, gifPreviews) ||
+                other.gifPreviews == gifPreviews) &&
+            (identical(other.quickReactions, quickReactions) ||
+                other.quickReactions == quickReactions) &&
+            (identical(other.sendOnEnter, sendOnEnter) ||
+                other.sendOnEnter == sendOnEnter) &&
+            (identical(other.sendWithSound, sendWithSound) ||
+                other.sendWithSound == sendWithSound) &&
             (identical(other.autoPlayGifs, autoPlayGifs) ||
                 other.autoPlayGifs == autoPlayGifs) &&
             (identical(other.showEmbeds, showEmbeds) ||
@@ -100,38 +131,43 @@ mixin _$UserSettings {
                 other.showLinkPreview == showLinkPreview) &&
             (identical(other.convertEmoticons, convertEmoticons) ||
                 other.convertEmoticons == convertEmoticons) &&
-            (identical(other.sendOnEnter, sendOnEnter) ||
-                other.sendOnEnter == sendOnEnter) &&
             (identical(other.pushNotifications, pushNotifications) ||
                 other.pushNotifications == pushNotifications) &&
             (identical(other.soundOnNotification, soundOnNotification) ||
                 other.soundOnNotification == soundOnNotification) &&
+            (identical(other.callSound, callSound) ||
+                other.callSound == callSound) &&
             (identical(other.vibrateOnNotification, vibrateOnNotification) ||
                 other.vibrateOnNotification == vibrateOnNotification) &&
             (identical(other.messageNotifications, messageNotifications) ||
                 other.messageNotifications == messageNotifications) &&
-            (identical(other.friendRequestNotifications,
-                    friendRequestNotifications) ||
+            (identical(other.friendRequestNotifications, friendRequestNotifications) ||
                 other.friendRequestNotifications ==
                     friendRequestNotifications) &&
             (identical(other.serverNotifications, serverNotifications) ||
                 other.serverNotifications == serverNotifications) &&
             (identical(other.dmNotifications, dmNotifications) ||
                 other.dmNotifications == dmNotifications) &&
-            (identical(other.suppressEveryone, suppressEveryone) ||
-                other.suppressEveryone == suppressEveryone) &&
+            (identical(other.quietHoursEnabled, quietHoursEnabled) ||
+                other.quietHoursEnabled == quietHoursEnabled) &&
+            (identical(other.quietHoursStart, quietHoursStart) ||
+                other.quietHoursStart == quietHoursStart) &&
+            (identical(other.quietHoursEnd, quietHoursEnd) ||
+                other.quietHoursEnd == quietHoursEnd) &&
             (identical(other.reduceMotion, reduceMotion) ||
                 other.reduceMotion == reduceMotion) &&
             (identical(other.highContrast, highContrast) ||
                 other.highContrast == highContrast) &&
             (identical(other.largeText, largeText) ||
                 other.largeText == largeText) &&
+            (identical(other.hapticFeedback, hapticFeedback) ||
+                other.hapticFeedback == hapticFeedback) &&
             (identical(other.fontScale, fontScale) ||
                 other.fontScale == fontScale) &&
-            (identical(other.themeMode, themeMode) ||
-                other.themeMode == themeMode) &&
-            (identical(other.messageDisplay, messageDisplay) ||
-                other.messageDisplay == messageDisplay));
+            (identical(other.themeMode, themeMode) || other.themeMode == themeMode) &&
+            (identical(other.messageDisplay, messageDisplay) || other.messageDisplay == messageDisplay) &&
+            (identical(other.accentColor, accentColor) || other.accentColor == accentColor) &&
+            (identical(other.developerMode, developerMode) || other.developerMode == developerMode));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -151,31 +187,44 @@ mixin _$UserSettings {
         showOnlineStatus,
         shareActivityStatus,
         dataCollectionConsent,
+        readReceipts,
+        typingIndicator,
         compactMessages,
+        emojiReactions,
+        showStickers,
+        gifPreviews,
+        quickReactions,
+        sendOnEnter,
+        sendWithSound,
         autoPlayGifs,
         showEmbeds,
         showLinkPreview,
         convertEmoticons,
-        sendOnEnter,
         pushNotifications,
         soundOnNotification,
+        callSound,
         vibrateOnNotification,
         messageNotifications,
         friendRequestNotifications,
         serverNotifications,
         dmNotifications,
-        suppressEveryone,
+        quietHoursEnabled,
+        quietHoursStart,
+        quietHoursEnd,
         reduceMotion,
         highContrast,
         largeText,
+        hapticFeedback,
         fontScale,
         themeMode,
-        messageDisplay
+        messageDisplay,
+        accentColor,
+        developerMode
       ]);
 
   @override
   String toString() {
-    return 'UserSettings(noiseSuppression: $noiseSuppression, echoCancellation: $echoCancellation, autoGainControl: $autoGainControl, attenuation: $attenuation, answerOnJoin: $answerOnJoin, videoOnJoin: $videoOnJoin, callNotifications: $callNotifications, allowDirectMessages: $allowDirectMessages, allowFriendRequests: $allowFriendRequests, allowServerInvites: $allowServerInvites, showOnlineStatus: $showOnlineStatus, shareActivityStatus: $shareActivityStatus, dataCollectionConsent: $dataCollectionConsent, compactMessages: $compactMessages, autoPlayGifs: $autoPlayGifs, showEmbeds: $showEmbeds, showLinkPreview: $showLinkPreview, convertEmoticons: $convertEmoticons, sendOnEnter: $sendOnEnter, pushNotifications: $pushNotifications, soundOnNotification: $soundOnNotification, vibrateOnNotification: $vibrateOnNotification, messageNotifications: $messageNotifications, friendRequestNotifications: $friendRequestNotifications, serverNotifications: $serverNotifications, dmNotifications: $dmNotifications, suppressEveryone: $suppressEveryone, reduceMotion: $reduceMotion, highContrast: $highContrast, largeText: $largeText, fontScale: $fontScale, themeMode: $themeMode, messageDisplay: $messageDisplay)';
+    return 'UserSettings(noiseSuppression: $noiseSuppression, echoCancellation: $echoCancellation, autoGainControl: $autoGainControl, attenuation: $attenuation, answerOnJoin: $answerOnJoin, videoOnJoin: $videoOnJoin, callNotifications: $callNotifications, allowDirectMessages: $allowDirectMessages, allowFriendRequests: $allowFriendRequests, allowServerInvites: $allowServerInvites, showOnlineStatus: $showOnlineStatus, shareActivityStatus: $shareActivityStatus, dataCollectionConsent: $dataCollectionConsent, readReceipts: $readReceipts, typingIndicator: $typingIndicator, compactMessages: $compactMessages, emojiReactions: $emojiReactions, showStickers: $showStickers, gifPreviews: $gifPreviews, quickReactions: $quickReactions, sendOnEnter: $sendOnEnter, sendWithSound: $sendWithSound, autoPlayGifs: $autoPlayGifs, showEmbeds: $showEmbeds, showLinkPreview: $showLinkPreview, convertEmoticons: $convertEmoticons, pushNotifications: $pushNotifications, soundOnNotification: $soundOnNotification, callSound: $callSound, vibrateOnNotification: $vibrateOnNotification, messageNotifications: $messageNotifications, friendRequestNotifications: $friendRequestNotifications, serverNotifications: $serverNotifications, dmNotifications: $dmNotifications, quietHoursEnabled: $quietHoursEnabled, quietHoursStart: $quietHoursStart, quietHoursEnd: $quietHoursEnd, reduceMotion: $reduceMotion, highContrast: $highContrast, largeText: $largeText, hapticFeedback: $hapticFeedback, fontScale: $fontScale, themeMode: $themeMode, messageDisplay: $messageDisplay, accentColor: $accentColor, developerMode: $developerMode)';
   }
 }
 
@@ -199,26 +248,39 @@ abstract mixin class $UserSettingsCopyWith<$Res> {
       bool showOnlineStatus,
       bool shareActivityStatus,
       bool dataCollectionConsent,
+      bool readReceipts,
+      bool typingIndicator,
       bool compactMessages,
+      bool emojiReactions,
+      bool showStickers,
+      bool gifPreviews,
+      bool quickReactions,
+      bool sendOnEnter,
+      bool sendWithSound,
       bool autoPlayGifs,
       bool showEmbeds,
       bool showLinkPreview,
       bool convertEmoticons,
-      bool sendOnEnter,
       bool pushNotifications,
       bool soundOnNotification,
+      bool callSound,
       bool vibrateOnNotification,
       bool messageNotifications,
       bool friendRequestNotifications,
       bool serverNotifications,
       bool dmNotifications,
-      bool suppressEveryone,
+      bool quietHoursEnabled,
+      String quietHoursStart,
+      String quietHoursEnd,
       bool reduceMotion,
       bool highContrast,
       bool largeText,
+      bool hapticFeedback,
       double fontScale,
       String themeMode,
-      String messageDisplay});
+      String messageDisplay,
+      String accentColor,
+      bool developerMode});
 }
 
 /// @nodoc
@@ -246,26 +308,39 @@ class _$UserSettingsCopyWithImpl<$Res> implements $UserSettingsCopyWith<$Res> {
     Object? showOnlineStatus = null,
     Object? shareActivityStatus = null,
     Object? dataCollectionConsent = null,
+    Object? readReceipts = null,
+    Object? typingIndicator = null,
     Object? compactMessages = null,
+    Object? emojiReactions = null,
+    Object? showStickers = null,
+    Object? gifPreviews = null,
+    Object? quickReactions = null,
+    Object? sendOnEnter = null,
+    Object? sendWithSound = null,
     Object? autoPlayGifs = null,
     Object? showEmbeds = null,
     Object? showLinkPreview = null,
     Object? convertEmoticons = null,
-    Object? sendOnEnter = null,
     Object? pushNotifications = null,
     Object? soundOnNotification = null,
+    Object? callSound = null,
     Object? vibrateOnNotification = null,
     Object? messageNotifications = null,
     Object? friendRequestNotifications = null,
     Object? serverNotifications = null,
     Object? dmNotifications = null,
-    Object? suppressEveryone = null,
+    Object? quietHoursEnabled = null,
+    Object? quietHoursStart = null,
+    Object? quietHoursEnd = null,
     Object? reduceMotion = null,
     Object? highContrast = null,
     Object? largeText = null,
+    Object? hapticFeedback = null,
     Object? fontScale = null,
     Object? themeMode = null,
     Object? messageDisplay = null,
+    Object? accentColor = null,
+    Object? developerMode = null,
   }) {
     return _then(_self.copyWith(
       noiseSuppression: null == noiseSuppression
@@ -320,9 +395,41 @@ class _$UserSettingsCopyWithImpl<$Res> implements $UserSettingsCopyWith<$Res> {
           ? _self.dataCollectionConsent
           : dataCollectionConsent // ignore: cast_nullable_to_non_nullable
               as bool,
+      readReceipts: null == readReceipts
+          ? _self.readReceipts
+          : readReceipts // ignore: cast_nullable_to_non_nullable
+              as bool,
+      typingIndicator: null == typingIndicator
+          ? _self.typingIndicator
+          : typingIndicator // ignore: cast_nullable_to_non_nullable
+              as bool,
       compactMessages: null == compactMessages
           ? _self.compactMessages
           : compactMessages // ignore: cast_nullable_to_non_nullable
+              as bool,
+      emojiReactions: null == emojiReactions
+          ? _self.emojiReactions
+          : emojiReactions // ignore: cast_nullable_to_non_nullable
+              as bool,
+      showStickers: null == showStickers
+          ? _self.showStickers
+          : showStickers // ignore: cast_nullable_to_non_nullable
+              as bool,
+      gifPreviews: null == gifPreviews
+          ? _self.gifPreviews
+          : gifPreviews // ignore: cast_nullable_to_non_nullable
+              as bool,
+      quickReactions: null == quickReactions
+          ? _self.quickReactions
+          : quickReactions // ignore: cast_nullable_to_non_nullable
+              as bool,
+      sendOnEnter: null == sendOnEnter
+          ? _self.sendOnEnter
+          : sendOnEnter // ignore: cast_nullable_to_non_nullable
+              as bool,
+      sendWithSound: null == sendWithSound
+          ? _self.sendWithSound
+          : sendWithSound // ignore: cast_nullable_to_non_nullable
               as bool,
       autoPlayGifs: null == autoPlayGifs
           ? _self.autoPlayGifs
@@ -340,10 +447,6 @@ class _$UserSettingsCopyWithImpl<$Res> implements $UserSettingsCopyWith<$Res> {
           ? _self.convertEmoticons
           : convertEmoticons // ignore: cast_nullable_to_non_nullable
               as bool,
-      sendOnEnter: null == sendOnEnter
-          ? _self.sendOnEnter
-          : sendOnEnter // ignore: cast_nullable_to_non_nullable
-              as bool,
       pushNotifications: null == pushNotifications
           ? _self.pushNotifications
           : pushNotifications // ignore: cast_nullable_to_non_nullable
@@ -351,6 +454,10 @@ class _$UserSettingsCopyWithImpl<$Res> implements $UserSettingsCopyWith<$Res> {
       soundOnNotification: null == soundOnNotification
           ? _self.soundOnNotification
           : soundOnNotification // ignore: cast_nullable_to_non_nullable
+              as bool,
+      callSound: null == callSound
+          ? _self.callSound
+          : callSound // ignore: cast_nullable_to_non_nullable
               as bool,
       vibrateOnNotification: null == vibrateOnNotification
           ? _self.vibrateOnNotification
@@ -372,10 +479,18 @@ class _$UserSettingsCopyWithImpl<$Res> implements $UserSettingsCopyWith<$Res> {
           ? _self.dmNotifications
           : dmNotifications // ignore: cast_nullable_to_non_nullable
               as bool,
-      suppressEveryone: null == suppressEveryone
-          ? _self.suppressEveryone
-          : suppressEveryone // ignore: cast_nullable_to_non_nullable
+      quietHoursEnabled: null == quietHoursEnabled
+          ? _self.quietHoursEnabled
+          : quietHoursEnabled // ignore: cast_nullable_to_non_nullable
               as bool,
+      quietHoursStart: null == quietHoursStart
+          ? _self.quietHoursStart
+          : quietHoursStart // ignore: cast_nullable_to_non_nullable
+              as String,
+      quietHoursEnd: null == quietHoursEnd
+          ? _self.quietHoursEnd
+          : quietHoursEnd // ignore: cast_nullable_to_non_nullable
+              as String,
       reduceMotion: null == reduceMotion
           ? _self.reduceMotion
           : reduceMotion // ignore: cast_nullable_to_non_nullable
@@ -387,6 +502,10 @@ class _$UserSettingsCopyWithImpl<$Res> implements $UserSettingsCopyWith<$Res> {
       largeText: null == largeText
           ? _self.largeText
           : largeText // ignore: cast_nullable_to_non_nullable
+              as bool,
+      hapticFeedback: null == hapticFeedback
+          ? _self.hapticFeedback
+          : hapticFeedback // ignore: cast_nullable_to_non_nullable
               as bool,
       fontScale: null == fontScale
           ? _self.fontScale
@@ -400,6 +519,14 @@ class _$UserSettingsCopyWithImpl<$Res> implements $UserSettingsCopyWith<$Res> {
           ? _self.messageDisplay
           : messageDisplay // ignore: cast_nullable_to_non_nullable
               as String,
+      accentColor: null == accentColor
+          ? _self.accentColor
+          : accentColor // ignore: cast_nullable_to_non_nullable
+              as String,
+      developerMode: null == developerMode
+          ? _self.developerMode
+          : developerMode // ignore: cast_nullable_to_non_nullable
+              as bool,
     ));
   }
 }
@@ -511,26 +638,39 @@ extension UserSettingsPatterns on UserSettings {
             bool showOnlineStatus,
             bool shareActivityStatus,
             bool dataCollectionConsent,
+            bool readReceipts,
+            bool typingIndicator,
             bool compactMessages,
+            bool emojiReactions,
+            bool showStickers,
+            bool gifPreviews,
+            bool quickReactions,
+            bool sendOnEnter,
+            bool sendWithSound,
             bool autoPlayGifs,
             bool showEmbeds,
             bool showLinkPreview,
             bool convertEmoticons,
-            bool sendOnEnter,
             bool pushNotifications,
             bool soundOnNotification,
+            bool callSound,
             bool vibrateOnNotification,
             bool messageNotifications,
             bool friendRequestNotifications,
             bool serverNotifications,
             bool dmNotifications,
-            bool suppressEveryone,
+            bool quietHoursEnabled,
+            String quietHoursStart,
+            String quietHoursEnd,
             bool reduceMotion,
             bool highContrast,
             bool largeText,
+            bool hapticFeedback,
             double fontScale,
             String themeMode,
-            String messageDisplay)?
+            String messageDisplay,
+            String accentColor,
+            bool developerMode)?
         $default, {
     required TResult orElse(),
   }) {
@@ -551,26 +691,39 @@ extension UserSettingsPatterns on UserSettings {
             _that.showOnlineStatus,
             _that.shareActivityStatus,
             _that.dataCollectionConsent,
+            _that.readReceipts,
+            _that.typingIndicator,
             _that.compactMessages,
+            _that.emojiReactions,
+            _that.showStickers,
+            _that.gifPreviews,
+            _that.quickReactions,
+            _that.sendOnEnter,
+            _that.sendWithSound,
             _that.autoPlayGifs,
             _that.showEmbeds,
             _that.showLinkPreview,
             _that.convertEmoticons,
-            _that.sendOnEnter,
             _that.pushNotifications,
             _that.soundOnNotification,
+            _that.callSound,
             _that.vibrateOnNotification,
             _that.messageNotifications,
             _that.friendRequestNotifications,
             _that.serverNotifications,
             _that.dmNotifications,
-            _that.suppressEveryone,
+            _that.quietHoursEnabled,
+            _that.quietHoursStart,
+            _that.quietHoursEnd,
             _that.reduceMotion,
             _that.highContrast,
             _that.largeText,
+            _that.hapticFeedback,
             _that.fontScale,
             _that.themeMode,
-            _that.messageDisplay);
+            _that.messageDisplay,
+            _that.accentColor,
+            _that.developerMode);
       case _:
         return orElse();
     }
@@ -605,26 +758,39 @@ extension UserSettingsPatterns on UserSettings {
             bool showOnlineStatus,
             bool shareActivityStatus,
             bool dataCollectionConsent,
+            bool readReceipts,
+            bool typingIndicator,
             bool compactMessages,
+            bool emojiReactions,
+            bool showStickers,
+            bool gifPreviews,
+            bool quickReactions,
+            bool sendOnEnter,
+            bool sendWithSound,
             bool autoPlayGifs,
             bool showEmbeds,
             bool showLinkPreview,
             bool convertEmoticons,
-            bool sendOnEnter,
             bool pushNotifications,
             bool soundOnNotification,
+            bool callSound,
             bool vibrateOnNotification,
             bool messageNotifications,
             bool friendRequestNotifications,
             bool serverNotifications,
             bool dmNotifications,
-            bool suppressEveryone,
+            bool quietHoursEnabled,
+            String quietHoursStart,
+            String quietHoursEnd,
             bool reduceMotion,
             bool highContrast,
             bool largeText,
+            bool hapticFeedback,
             double fontScale,
             String themeMode,
-            String messageDisplay)
+            String messageDisplay,
+            String accentColor,
+            bool developerMode)
         $default,
   ) {
     final _that = this;
@@ -644,26 +810,39 @@ extension UserSettingsPatterns on UserSettings {
             _that.showOnlineStatus,
             _that.shareActivityStatus,
             _that.dataCollectionConsent,
+            _that.readReceipts,
+            _that.typingIndicator,
             _that.compactMessages,
+            _that.emojiReactions,
+            _that.showStickers,
+            _that.gifPreviews,
+            _that.quickReactions,
+            _that.sendOnEnter,
+            _that.sendWithSound,
             _that.autoPlayGifs,
             _that.showEmbeds,
             _that.showLinkPreview,
             _that.convertEmoticons,
-            _that.sendOnEnter,
             _that.pushNotifications,
             _that.soundOnNotification,
+            _that.callSound,
             _that.vibrateOnNotification,
             _that.messageNotifications,
             _that.friendRequestNotifications,
             _that.serverNotifications,
             _that.dmNotifications,
-            _that.suppressEveryone,
+            _that.quietHoursEnabled,
+            _that.quietHoursStart,
+            _that.quietHoursEnd,
             _that.reduceMotion,
             _that.highContrast,
             _that.largeText,
+            _that.hapticFeedback,
             _that.fontScale,
             _that.themeMode,
-            _that.messageDisplay);
+            _that.messageDisplay,
+            _that.accentColor,
+            _that.developerMode);
       case _:
         throw StateError('Unexpected subclass');
     }
@@ -697,26 +876,39 @@ extension UserSettingsPatterns on UserSettings {
             bool showOnlineStatus,
             bool shareActivityStatus,
             bool dataCollectionConsent,
+            bool readReceipts,
+            bool typingIndicator,
             bool compactMessages,
+            bool emojiReactions,
+            bool showStickers,
+            bool gifPreviews,
+            bool quickReactions,
+            bool sendOnEnter,
+            bool sendWithSound,
             bool autoPlayGifs,
             bool showEmbeds,
             bool showLinkPreview,
             bool convertEmoticons,
-            bool sendOnEnter,
             bool pushNotifications,
             bool soundOnNotification,
+            bool callSound,
             bool vibrateOnNotification,
             bool messageNotifications,
             bool friendRequestNotifications,
             bool serverNotifications,
             bool dmNotifications,
-            bool suppressEveryone,
+            bool quietHoursEnabled,
+            String quietHoursStart,
+            String quietHoursEnd,
             bool reduceMotion,
             bool highContrast,
             bool largeText,
+            bool hapticFeedback,
             double fontScale,
             String themeMode,
-            String messageDisplay)?
+            String messageDisplay,
+            String accentColor,
+            bool developerMode)?
         $default,
   ) {
     final _that = this;
@@ -736,26 +928,39 @@ extension UserSettingsPatterns on UserSettings {
             _that.showOnlineStatus,
             _that.shareActivityStatus,
             _that.dataCollectionConsent,
+            _that.readReceipts,
+            _that.typingIndicator,
             _that.compactMessages,
+            _that.emojiReactions,
+            _that.showStickers,
+            _that.gifPreviews,
+            _that.quickReactions,
+            _that.sendOnEnter,
+            _that.sendWithSound,
             _that.autoPlayGifs,
             _that.showEmbeds,
             _that.showLinkPreview,
             _that.convertEmoticons,
-            _that.sendOnEnter,
             _that.pushNotifications,
             _that.soundOnNotification,
+            _that.callSound,
             _that.vibrateOnNotification,
             _that.messageNotifications,
             _that.friendRequestNotifications,
             _that.serverNotifications,
             _that.dmNotifications,
-            _that.suppressEveryone,
+            _that.quietHoursEnabled,
+            _that.quietHoursStart,
+            _that.quietHoursEnd,
             _that.reduceMotion,
             _that.highContrast,
             _that.largeText,
+            _that.hapticFeedback,
             _that.fontScale,
             _that.themeMode,
-            _that.messageDisplay);
+            _that.messageDisplay,
+            _that.accentColor,
+            _that.developerMode);
       case _:
         return null;
     }
@@ -772,37 +977,51 @@ class _UserSettings extends UserSettings {
       this.attenuation = false,
       this.answerOnJoin = false,
       this.videoOnJoin = false,
-      this.callNotifications = false,
+      this.callNotifications = true,
       this.allowDirectMessages = true,
       this.allowFriendRequests = true,
       this.allowServerInvites = true,
-      this.showOnlineStatus = false,
+      this.showOnlineStatus = true,
       this.shareActivityStatus = false,
       this.dataCollectionConsent = false,
+      this.readReceipts = true,
+      this.typingIndicator = true,
       this.compactMessages = false,
+      this.emojiReactions = true,
+      this.showStickers = true,
+      this.gifPreviews = true,
+      this.quickReactions = true,
+      this.sendOnEnter = false,
+      this.sendWithSound = false,
       this.autoPlayGifs = false,
       this.showEmbeds = true,
       this.showLinkPreview = true,
       this.convertEmoticons = false,
-      this.sendOnEnter = false,
       this.pushNotifications = true,
       this.soundOnNotification = true,
+      this.callSound = true,
       this.vibrateOnNotification = true,
       this.messageNotifications = true,
       this.friendRequestNotifications = true,
       this.serverNotifications = true,
       this.dmNotifications = true,
-      this.suppressEveryone = false,
+      this.quietHoursEnabled = false,
+      this.quietHoursStart = '22:00',
+      this.quietHoursEnd = '08:00',
       this.reduceMotion = false,
       this.highContrast = false,
       this.largeText = false,
+      this.hapticFeedback = true,
       this.fontScale = 1.0,
       this.themeMode = 'dark',
-      this.messageDisplay = 'default'})
+      this.messageDisplay = 'default',
+      this.accentColor = '#52B788',
+      this.developerMode = false})
       : super._();
   factory _UserSettings.fromJson(Map<String, dynamic> json) =>
       _$UserSettingsFromJson(json);
 
+// ── Voice & Video ──
   @override
   @JsonKey()
   final bool noiseSuppression;
@@ -824,6 +1043,7 @@ class _UserSettings extends UserSettings {
   @override
   @JsonKey()
   final bool callNotifications;
+// ── Privacy ──
   @override
   @JsonKey()
   final bool allowDirectMessages;
@@ -844,7 +1064,33 @@ class _UserSettings extends UserSettings {
   final bool dataCollectionConsent;
   @override
   @JsonKey()
+  final bool readReceipts;
+  @override
+  @JsonKey()
+  final bool typingIndicator;
+// ── Chat ──
+  @override
+  @JsonKey()
   final bool compactMessages;
+  @override
+  @JsonKey()
+  final bool emojiReactions;
+  @override
+  @JsonKey()
+  final bool showStickers;
+  @override
+  @JsonKey()
+  final bool gifPreviews;
+  @override
+  @JsonKey()
+  final bool quickReactions;
+  @override
+  @JsonKey()
+  final bool sendOnEnter;
+  @override
+  @JsonKey()
+  final bool sendWithSound;
+// Legacy fields kept for backward-compat with any existing stored data
   @override
   @JsonKey()
   final bool autoPlayGifs;
@@ -857,15 +1103,16 @@ class _UserSettings extends UserSettings {
   @override
   @JsonKey()
   final bool convertEmoticons;
-  @override
-  @JsonKey()
-  final bool sendOnEnter;
+// ── Notifications ──
   @override
   @JsonKey()
   final bool pushNotifications;
   @override
   @JsonKey()
   final bool soundOnNotification;
+  @override
+  @JsonKey()
+  final bool callSound;
   @override
   @JsonKey()
   final bool vibrateOnNotification;
@@ -883,7 +1130,14 @@ class _UserSettings extends UserSettings {
   final bool dmNotifications;
   @override
   @JsonKey()
-  final bool suppressEveryone;
+  final bool quietHoursEnabled;
+  @override
+  @JsonKey()
+  final String quietHoursStart;
+  @override
+  @JsonKey()
+  final String quietHoursEnd;
+// ── Accessibility ──
   @override
   @JsonKey()
   final bool reduceMotion;
@@ -895,6 +1149,10 @@ class _UserSettings extends UserSettings {
   final bool largeText;
   @override
   @JsonKey()
+  final bool hapticFeedback;
+// ── Appearance ──
+  @override
+  @JsonKey()
   final double fontScale;
   @override
   @JsonKey()
@@ -902,6 +1160,13 @@ class _UserSettings extends UserSettings {
   @override
   @JsonKey()
   final String messageDisplay;
+  @override
+  @JsonKey()
+  final String accentColor;
+// ── System ──
+  @override
+  @JsonKey()
+  final bool developerMode;
 
   /// Create a copy of UserSettings
   /// with the given fields replaced by the non-null parameter values.
@@ -949,8 +1214,24 @@ class _UserSettings extends UserSettings {
                 other.shareActivityStatus == shareActivityStatus) &&
             (identical(other.dataCollectionConsent, dataCollectionConsent) ||
                 other.dataCollectionConsent == dataCollectionConsent) &&
+            (identical(other.readReceipts, readReceipts) ||
+                other.readReceipts == readReceipts) &&
+            (identical(other.typingIndicator, typingIndicator) ||
+                other.typingIndicator == typingIndicator) &&
             (identical(other.compactMessages, compactMessages) ||
                 other.compactMessages == compactMessages) &&
+            (identical(other.emojiReactions, emojiReactions) ||
+                other.emojiReactions == emojiReactions) &&
+            (identical(other.showStickers, showStickers) ||
+                other.showStickers == showStickers) &&
+            (identical(other.gifPreviews, gifPreviews) ||
+                other.gifPreviews == gifPreviews) &&
+            (identical(other.quickReactions, quickReactions) ||
+                other.quickReactions == quickReactions) &&
+            (identical(other.sendOnEnter, sendOnEnter) ||
+                other.sendOnEnter == sendOnEnter) &&
+            (identical(other.sendWithSound, sendWithSound) ||
+                other.sendWithSound == sendWithSound) &&
             (identical(other.autoPlayGifs, autoPlayGifs) ||
                 other.autoPlayGifs == autoPlayGifs) &&
             (identical(other.showEmbeds, showEmbeds) ||
@@ -959,38 +1240,43 @@ class _UserSettings extends UserSettings {
                 other.showLinkPreview == showLinkPreview) &&
             (identical(other.convertEmoticons, convertEmoticons) ||
                 other.convertEmoticons == convertEmoticons) &&
-            (identical(other.sendOnEnter, sendOnEnter) ||
-                other.sendOnEnter == sendOnEnter) &&
             (identical(other.pushNotifications, pushNotifications) ||
                 other.pushNotifications == pushNotifications) &&
             (identical(other.soundOnNotification, soundOnNotification) ||
                 other.soundOnNotification == soundOnNotification) &&
+            (identical(other.callSound, callSound) ||
+                other.callSound == callSound) &&
             (identical(other.vibrateOnNotification, vibrateOnNotification) ||
                 other.vibrateOnNotification == vibrateOnNotification) &&
             (identical(other.messageNotifications, messageNotifications) ||
                 other.messageNotifications == messageNotifications) &&
-            (identical(other.friendRequestNotifications,
-                    friendRequestNotifications) ||
+            (identical(other.friendRequestNotifications, friendRequestNotifications) ||
                 other.friendRequestNotifications ==
                     friendRequestNotifications) &&
             (identical(other.serverNotifications, serverNotifications) ||
                 other.serverNotifications == serverNotifications) &&
             (identical(other.dmNotifications, dmNotifications) ||
                 other.dmNotifications == dmNotifications) &&
-            (identical(other.suppressEveryone, suppressEveryone) ||
-                other.suppressEveryone == suppressEveryone) &&
+            (identical(other.quietHoursEnabled, quietHoursEnabled) ||
+                other.quietHoursEnabled == quietHoursEnabled) &&
+            (identical(other.quietHoursStart, quietHoursStart) ||
+                other.quietHoursStart == quietHoursStart) &&
+            (identical(other.quietHoursEnd, quietHoursEnd) ||
+                other.quietHoursEnd == quietHoursEnd) &&
             (identical(other.reduceMotion, reduceMotion) ||
                 other.reduceMotion == reduceMotion) &&
             (identical(other.highContrast, highContrast) ||
                 other.highContrast == highContrast) &&
             (identical(other.largeText, largeText) ||
                 other.largeText == largeText) &&
+            (identical(other.hapticFeedback, hapticFeedback) ||
+                other.hapticFeedback == hapticFeedback) &&
             (identical(other.fontScale, fontScale) ||
                 other.fontScale == fontScale) &&
-            (identical(other.themeMode, themeMode) ||
-                other.themeMode == themeMode) &&
-            (identical(other.messageDisplay, messageDisplay) ||
-                other.messageDisplay == messageDisplay));
+            (identical(other.themeMode, themeMode) || other.themeMode == themeMode) &&
+            (identical(other.messageDisplay, messageDisplay) || other.messageDisplay == messageDisplay) &&
+            (identical(other.accentColor, accentColor) || other.accentColor == accentColor) &&
+            (identical(other.developerMode, developerMode) || other.developerMode == developerMode));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1010,31 +1296,44 @@ class _UserSettings extends UserSettings {
         showOnlineStatus,
         shareActivityStatus,
         dataCollectionConsent,
+        readReceipts,
+        typingIndicator,
         compactMessages,
+        emojiReactions,
+        showStickers,
+        gifPreviews,
+        quickReactions,
+        sendOnEnter,
+        sendWithSound,
         autoPlayGifs,
         showEmbeds,
         showLinkPreview,
         convertEmoticons,
-        sendOnEnter,
         pushNotifications,
         soundOnNotification,
+        callSound,
         vibrateOnNotification,
         messageNotifications,
         friendRequestNotifications,
         serverNotifications,
         dmNotifications,
-        suppressEveryone,
+        quietHoursEnabled,
+        quietHoursStart,
+        quietHoursEnd,
         reduceMotion,
         highContrast,
         largeText,
+        hapticFeedback,
         fontScale,
         themeMode,
-        messageDisplay
+        messageDisplay,
+        accentColor,
+        developerMode
       ]);
 
   @override
   String toString() {
-    return 'UserSettings(noiseSuppression: $noiseSuppression, echoCancellation: $echoCancellation, autoGainControl: $autoGainControl, attenuation: $attenuation, answerOnJoin: $answerOnJoin, videoOnJoin: $videoOnJoin, callNotifications: $callNotifications, allowDirectMessages: $allowDirectMessages, allowFriendRequests: $allowFriendRequests, allowServerInvites: $allowServerInvites, showOnlineStatus: $showOnlineStatus, shareActivityStatus: $shareActivityStatus, dataCollectionConsent: $dataCollectionConsent, compactMessages: $compactMessages, autoPlayGifs: $autoPlayGifs, showEmbeds: $showEmbeds, showLinkPreview: $showLinkPreview, convertEmoticons: $convertEmoticons, sendOnEnter: $sendOnEnter, pushNotifications: $pushNotifications, soundOnNotification: $soundOnNotification, vibrateOnNotification: $vibrateOnNotification, messageNotifications: $messageNotifications, friendRequestNotifications: $friendRequestNotifications, serverNotifications: $serverNotifications, dmNotifications: $dmNotifications, suppressEveryone: $suppressEveryone, reduceMotion: $reduceMotion, highContrast: $highContrast, largeText: $largeText, fontScale: $fontScale, themeMode: $themeMode, messageDisplay: $messageDisplay)';
+    return 'UserSettings(noiseSuppression: $noiseSuppression, echoCancellation: $echoCancellation, autoGainControl: $autoGainControl, attenuation: $attenuation, answerOnJoin: $answerOnJoin, videoOnJoin: $videoOnJoin, callNotifications: $callNotifications, allowDirectMessages: $allowDirectMessages, allowFriendRequests: $allowFriendRequests, allowServerInvites: $allowServerInvites, showOnlineStatus: $showOnlineStatus, shareActivityStatus: $shareActivityStatus, dataCollectionConsent: $dataCollectionConsent, readReceipts: $readReceipts, typingIndicator: $typingIndicator, compactMessages: $compactMessages, emojiReactions: $emojiReactions, showStickers: $showStickers, gifPreviews: $gifPreviews, quickReactions: $quickReactions, sendOnEnter: $sendOnEnter, sendWithSound: $sendWithSound, autoPlayGifs: $autoPlayGifs, showEmbeds: $showEmbeds, showLinkPreview: $showLinkPreview, convertEmoticons: $convertEmoticons, pushNotifications: $pushNotifications, soundOnNotification: $soundOnNotification, callSound: $callSound, vibrateOnNotification: $vibrateOnNotification, messageNotifications: $messageNotifications, friendRequestNotifications: $friendRequestNotifications, serverNotifications: $serverNotifications, dmNotifications: $dmNotifications, quietHoursEnabled: $quietHoursEnabled, quietHoursStart: $quietHoursStart, quietHoursEnd: $quietHoursEnd, reduceMotion: $reduceMotion, highContrast: $highContrast, largeText: $largeText, hapticFeedback: $hapticFeedback, fontScale: $fontScale, themeMode: $themeMode, messageDisplay: $messageDisplay, accentColor: $accentColor, developerMode: $developerMode)';
   }
 }
 
@@ -1060,26 +1359,39 @@ abstract mixin class _$UserSettingsCopyWith<$Res>
       bool showOnlineStatus,
       bool shareActivityStatus,
       bool dataCollectionConsent,
+      bool readReceipts,
+      bool typingIndicator,
       bool compactMessages,
+      bool emojiReactions,
+      bool showStickers,
+      bool gifPreviews,
+      bool quickReactions,
+      bool sendOnEnter,
+      bool sendWithSound,
       bool autoPlayGifs,
       bool showEmbeds,
       bool showLinkPreview,
       bool convertEmoticons,
-      bool sendOnEnter,
       bool pushNotifications,
       bool soundOnNotification,
+      bool callSound,
       bool vibrateOnNotification,
       bool messageNotifications,
       bool friendRequestNotifications,
       bool serverNotifications,
       bool dmNotifications,
-      bool suppressEveryone,
+      bool quietHoursEnabled,
+      String quietHoursStart,
+      String quietHoursEnd,
       bool reduceMotion,
       bool highContrast,
       bool largeText,
+      bool hapticFeedback,
       double fontScale,
       String themeMode,
-      String messageDisplay});
+      String messageDisplay,
+      String accentColor,
+      bool developerMode});
 }
 
 /// @nodoc
@@ -1108,26 +1420,39 @@ class __$UserSettingsCopyWithImpl<$Res>
     Object? showOnlineStatus = null,
     Object? shareActivityStatus = null,
     Object? dataCollectionConsent = null,
+    Object? readReceipts = null,
+    Object? typingIndicator = null,
     Object? compactMessages = null,
+    Object? emojiReactions = null,
+    Object? showStickers = null,
+    Object? gifPreviews = null,
+    Object? quickReactions = null,
+    Object? sendOnEnter = null,
+    Object? sendWithSound = null,
     Object? autoPlayGifs = null,
     Object? showEmbeds = null,
     Object? showLinkPreview = null,
     Object? convertEmoticons = null,
-    Object? sendOnEnter = null,
     Object? pushNotifications = null,
     Object? soundOnNotification = null,
+    Object? callSound = null,
     Object? vibrateOnNotification = null,
     Object? messageNotifications = null,
     Object? friendRequestNotifications = null,
     Object? serverNotifications = null,
     Object? dmNotifications = null,
-    Object? suppressEveryone = null,
+    Object? quietHoursEnabled = null,
+    Object? quietHoursStart = null,
+    Object? quietHoursEnd = null,
     Object? reduceMotion = null,
     Object? highContrast = null,
     Object? largeText = null,
+    Object? hapticFeedback = null,
     Object? fontScale = null,
     Object? themeMode = null,
     Object? messageDisplay = null,
+    Object? accentColor = null,
+    Object? developerMode = null,
   }) {
     return _then(_UserSettings(
       noiseSuppression: null == noiseSuppression
@@ -1182,9 +1507,41 @@ class __$UserSettingsCopyWithImpl<$Res>
           ? _self.dataCollectionConsent
           : dataCollectionConsent // ignore: cast_nullable_to_non_nullable
               as bool,
+      readReceipts: null == readReceipts
+          ? _self.readReceipts
+          : readReceipts // ignore: cast_nullable_to_non_nullable
+              as bool,
+      typingIndicator: null == typingIndicator
+          ? _self.typingIndicator
+          : typingIndicator // ignore: cast_nullable_to_non_nullable
+              as bool,
       compactMessages: null == compactMessages
           ? _self.compactMessages
           : compactMessages // ignore: cast_nullable_to_non_nullable
+              as bool,
+      emojiReactions: null == emojiReactions
+          ? _self.emojiReactions
+          : emojiReactions // ignore: cast_nullable_to_non_nullable
+              as bool,
+      showStickers: null == showStickers
+          ? _self.showStickers
+          : showStickers // ignore: cast_nullable_to_non_nullable
+              as bool,
+      gifPreviews: null == gifPreviews
+          ? _self.gifPreviews
+          : gifPreviews // ignore: cast_nullable_to_non_nullable
+              as bool,
+      quickReactions: null == quickReactions
+          ? _self.quickReactions
+          : quickReactions // ignore: cast_nullable_to_non_nullable
+              as bool,
+      sendOnEnter: null == sendOnEnter
+          ? _self.sendOnEnter
+          : sendOnEnter // ignore: cast_nullable_to_non_nullable
+              as bool,
+      sendWithSound: null == sendWithSound
+          ? _self.sendWithSound
+          : sendWithSound // ignore: cast_nullable_to_non_nullable
               as bool,
       autoPlayGifs: null == autoPlayGifs
           ? _self.autoPlayGifs
@@ -1202,10 +1559,6 @@ class __$UserSettingsCopyWithImpl<$Res>
           ? _self.convertEmoticons
           : convertEmoticons // ignore: cast_nullable_to_non_nullable
               as bool,
-      sendOnEnter: null == sendOnEnter
-          ? _self.sendOnEnter
-          : sendOnEnter // ignore: cast_nullable_to_non_nullable
-              as bool,
       pushNotifications: null == pushNotifications
           ? _self.pushNotifications
           : pushNotifications // ignore: cast_nullable_to_non_nullable
@@ -1213,6 +1566,10 @@ class __$UserSettingsCopyWithImpl<$Res>
       soundOnNotification: null == soundOnNotification
           ? _self.soundOnNotification
           : soundOnNotification // ignore: cast_nullable_to_non_nullable
+              as bool,
+      callSound: null == callSound
+          ? _self.callSound
+          : callSound // ignore: cast_nullable_to_non_nullable
               as bool,
       vibrateOnNotification: null == vibrateOnNotification
           ? _self.vibrateOnNotification
@@ -1234,10 +1591,18 @@ class __$UserSettingsCopyWithImpl<$Res>
           ? _self.dmNotifications
           : dmNotifications // ignore: cast_nullable_to_non_nullable
               as bool,
-      suppressEveryone: null == suppressEveryone
-          ? _self.suppressEveryone
-          : suppressEveryone // ignore: cast_nullable_to_non_nullable
+      quietHoursEnabled: null == quietHoursEnabled
+          ? _self.quietHoursEnabled
+          : quietHoursEnabled // ignore: cast_nullable_to_non_nullable
               as bool,
+      quietHoursStart: null == quietHoursStart
+          ? _self.quietHoursStart
+          : quietHoursStart // ignore: cast_nullable_to_non_nullable
+              as String,
+      quietHoursEnd: null == quietHoursEnd
+          ? _self.quietHoursEnd
+          : quietHoursEnd // ignore: cast_nullable_to_non_nullable
+              as String,
       reduceMotion: null == reduceMotion
           ? _self.reduceMotion
           : reduceMotion // ignore: cast_nullable_to_non_nullable
@@ -1249,6 +1614,10 @@ class __$UserSettingsCopyWithImpl<$Res>
       largeText: null == largeText
           ? _self.largeText
           : largeText // ignore: cast_nullable_to_non_nullable
+              as bool,
+      hapticFeedback: null == hapticFeedback
+          ? _self.hapticFeedback
+          : hapticFeedback // ignore: cast_nullable_to_non_nullable
               as bool,
       fontScale: null == fontScale
           ? _self.fontScale
@@ -1262,6 +1631,14 @@ class __$UserSettingsCopyWithImpl<$Res>
           ? _self.messageDisplay
           : messageDisplay // ignore: cast_nullable_to_non_nullable
               as String,
+      accentColor: null == accentColor
+          ? _self.accentColor
+          : accentColor // ignore: cast_nullable_to_non_nullable
+              as String,
+      developerMode: null == developerMode
+          ? _self.developerMode
+          : developerMode // ignore: cast_nullable_to_non_nullable
+              as bool,
     ));
   }
 }

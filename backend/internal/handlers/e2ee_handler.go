@@ -16,24 +16,26 @@ import (
 )
 
 type E2EEHandler struct {
-	keys      *e2ee.KeyStore
-	envelopes e2ee.EnvelopeStore
-	backups   e2ee.BackupStore
-	escrow    e2ee.EscrowStore
-	audit     e2ee.AuditStore
-	handoff   e2ee.HandoffStore
-	logger    *zap.Logger
+	keys         *e2ee.KeyStore
+	envelopes    e2ee.EnvelopeStore
+	backups      e2ee.BackupStore
+	escrow       e2ee.EscrowStore
+	audit        e2ee.AuditStore
+	handoff      e2ee.HandoffStore
+	attestations e2ee.AttestationStore
+	logger       *zap.Logger
 }
 
 func NewE2EEHandler(db *pgxpool.Pool, logger *zap.Logger) *E2EEHandler {
 	return &E2EEHandler{
-		keys:      e2ee.NewKeyStore(db, logger),
-		envelopes: e2ee.NewEnvelopeStore(db, logger),
-		backups:   e2ee.NewBackupStore(db, logger),
-		escrow:    e2ee.NewEscrowStore(db, logger),
-		audit:     e2ee.NewAuditStore(db, logger),
-		handoff:   e2ee.NewHandoffStore(db, logger),
-		logger:    logger.Named("handler.e2ee"),
+		keys:         e2ee.NewKeyStore(db, logger),
+		envelopes:    e2ee.NewEnvelopeStore(db, logger),
+		backups:      e2ee.NewBackupStore(db, logger),
+		escrow:       e2ee.NewEscrowStore(db, logger),
+		audit:        e2ee.NewAuditStore(db, logger),
+		handoff:      e2ee.NewHandoffStore(db, logger),
+		attestations: e2ee.NewAttestationStore(db, logger),
+		logger:       logger.Named("handler.e2ee"),
 	}
 }
 
@@ -89,6 +91,80 @@ func (h *E2EEHandler) GetIdentity(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, id)
+}
+
+// GET /e2ee/devices/{userId}
+// Returns ALL devices for a user — used by senders to fan-out a message.
+func (h *E2EEHandler) ListDevices(w http.ResponseWriter, r *http.Request) {
+	target := mux.Vars(r)["userId"]
+	if target == "" {
+		writeError(w, http.StatusBadRequest, "userId required")
+		return
+	}
+	ids, err := h.keys.ListIdentities(r.Context(), target)
+	if err != nil {
+		h.logger.Error("list identities failed", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if ids == nil {
+		ids = []e2ee.IdentityKey{}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"devices": ids})
+}
+
+// POST /e2ee/identity/attestation
+// Body: { old_identity_pub, new_identity_pub, signature }
+// Authenticated user attesting that their NEW key is the legitimate
+// successor of an OLD key. Server stores; verification is client-side
+// against the old signing key the peer already pinned.
+func (h *E2EEHandler) PutIdentityAttestation(w http.ResponseWriter, r *http.Request) {
+	uid := getUserID(r)
+	if uid == "" {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	var body struct {
+		OldIdentityPub string `json:"old_identity_pub"`
+		NewIdentityPub string `json:"new_identity_pub"`
+		Signature      string `json:"signature"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid body")
+		return
+	}
+	if body.OldIdentityPub == "" || body.NewIdentityPub == "" || body.Signature == "" {
+		writeError(w, http.StatusBadRequest, "old_identity_pub, new_identity_pub, signature required")
+		return
+	}
+	if err := h.attestations.Put(r.Context(), e2ee.IdentityAttestation{
+		UserID:         uid,
+		OldIdentityPub: body.OldIdentityPub,
+		NewIdentityPub: body.NewIdentityPub,
+		Signature:      body.Signature,
+	}); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+// GET /e2ee/identity/attestation/{userId}?new_pub=base64
+// Returns the most recent attestation for a (user, new_identity_pub) pair,
+// or 404 if none. Caller verifies the signature locally.
+func (h *E2EEHandler) GetIdentityAttestation(w http.ResponseWriter, r *http.Request) {
+	target := mux.Vars(r)["userId"]
+	newPub := r.URL.Query().Get("new_pub")
+	if target == "" || newPub == "" {
+		writeError(w, http.StatusBadRequest, "userId and new_pub required")
+		return
+	}
+	att, err := h.attestations.GetForNewKey(r.Context(), target, newPub)
+	if err != nil {
+		writeError(w, http.StatusNotFound, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, att)
 }
 
 // ── Signed Prekey ───────────────────────────────────────────────────────────

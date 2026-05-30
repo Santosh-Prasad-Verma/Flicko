@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 /// Data & Storage Settings Screen (Sleek Brutalist Black/Neon Theme)
 class StorageSettingsScreen extends ConsumerStatefulWidget {
@@ -99,7 +102,26 @@ class _StorageSettingsScreenState
       setState(() => _isClearingCache = true);
 
       try {
-        await Future.delayed(const Duration(seconds: 1));
+        // Clear cached network images
+        await DefaultCacheManager().emptyCache();
+
+        // Clear temporary files
+        final tempDir = await getTemporaryDirectory();
+        if (await tempDir.exists()) {
+          final tempFiles = tempDir.listSync(recursive: true);
+          for (final file in tempFiles) {
+            try {
+              if (file is File) {
+                await file.delete();
+              } else if (file is Directory) {
+                await file.delete(recursive: true);
+              }
+            } catch (_) {
+              // Ignore file locked or permissions issues for individual temp files
+            }
+          }
+        }
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(

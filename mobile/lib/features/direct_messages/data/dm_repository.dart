@@ -7,6 +7,7 @@ import 'package:mobile/features/direct_messages/domain/dm_models.dart';
 import 'package:mobile/core/services/appwrite_storage_service.dart';
 import 'package:mobile/features/e2ee/application/e2ee_session.dart';
 import 'package:mobile/features/e2ee/domain/e2ee_models.dart';
+import 'package:mobile/data/models/user_model.dart';
 
 final dmRepositoryProvider = Provider<DMRepository>((ref) {
   E2EESession? e2ee;
@@ -29,13 +30,23 @@ class DMRepository {
 
   DMRepository(this._client, this._appwriteStorage, this._e2ee);
 
+  /// Fetches a user profile by ID.
+  Future<UserModel> fetchUserProfile(String userId) async {
+    final response = await _client
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+    return UserModel.fromJson(response);
+  }
+
   /// Fetches recent DM messages for the user.
   /// Encrypted rows are decrypted in-place; failures fall back to a sentinel.
   Future<List<DMMessage>> fetchRecentMessages(String userId) async {
     try {
       final response = await _client
           .from('direct_messages')
-          .select('*, sender:profiles!sender_id(*), recipient:profiles!recipient_id(*), reactions:dm_reactions(emoji, user_id)')
+          .select('*, sender:profiles!sender_id(*), recipient:profiles!recipient_id(*), reactions:dm_reactions(emoji, user_id), dm_message_envelopes(*)')
           .or('sender_id.eq.$userId,recipient_id.eq.$userId')
           .order('created_at', ascending: false)
           .limit(500);
@@ -58,7 +69,7 @@ class DMRepository {
     try {
       var query = _client
           .from('direct_messages')
-          .select('*, sender:profiles!sender_id(*), recipient:profiles!recipient_id(*), reactions:dm_reactions(emoji, user_id)')
+          .select('*, sender:profiles!sender_id(*), recipient:profiles!recipient_id(*), reactions:dm_reactions(emoji, user_id), dm_message_envelopes(*)')
           .or('and(sender_id.eq.$myId,recipient_id.eq.$otherUserId),and(sender_id.eq.$otherUserId,recipient_id.eq.$myId)');
 
       if (before != null) {
@@ -76,6 +87,11 @@ class DMRepository {
   /// Sends a direct message.
   /// If E2EE is enabled for the conversation, the body is encrypted client-side
   /// before insert; the server only ever sees the ciphertext.
+  ///
+  /// For multi-device recipients we encrypt once per recipient device and
+  /// store each ciphertext in `dm_message_envelopes`. The DM row itself
+  /// carries metadata only when v2 fan-out is used (`is_encrypted=true` +
+  /// `protocol_version='v2'` + a sentinel content).
   Future<DMMessage> sendMessage({
     required String senderId,
     required String recipientId,
@@ -100,25 +116,21 @@ class DMRepository {
       }
     }
 
-    final encrypted = await _maybeEncryptOutgoing(recipientId, finalContent);
+    // Try the multi-device fan-out path first; fall back to plaintext if
+    // E2EE is disabled or unreachable for this conversation.
+    final fanout = await _maybeEncryptToAllDevices(recipientId, finalContent);
+
     final payload = <String, dynamic>{
       'sender_id': senderId,
       'recipient_id': recipientId,
       'attachments': attachments?.map((e) => e.toJson()).toList(),
     };
 
-    if (encrypted != null) {
+    if (fanout != null && fanout.envelopes.isNotEmpty) {
+      // v2 fan-out: DM row holds metadata only; ciphertexts live in the child table.
       payload['content'] = '[encrypted]';
       payload['is_encrypted'] = true;
-      payload['ciphertext'] = encrypted.ciphertext;
-      payload['nonce'] = encrypted.nonce;
-      payload['sender_ephemeral_pub'] = encrypted.senderEphemeralPub;
-      payload['sender_device_id'] = encrypted.senderDeviceId;
-      payload['recipient_device_id'] = encrypted.recipientDeviceId;
-      if (encrypted.prekeyId != null) payload['prekey_id'] = encrypted.prekeyId;
-      if (encrypted.signedPrekeyId != null) {
-        payload['signed_prekey_id'] = encrypted.signedPrekeyId;
-      }
+      payload['e2ee_protocol_version'] = 'v2';
     } else {
       payload['content'] = finalContent;
       payload['is_encrypted'] = false;
@@ -128,8 +140,17 @@ class DMRepository {
       final response = await _client
           .from('direct_messages')
           .insert(payload)
-          .select('*, sender:profiles!sender_id(*), recipient:profiles!recipient_id(*), reactions:dm_reactions(emoji, user_id)')
+          .select('*, sender:profiles!sender_id(*), recipient:profiles!recipient_id(*), reactions:dm_reactions(emoji, user_id), dm_message_envelopes(*)')
           .single();
+      final messageId = response['id'] as String;
+
+      // Persist per-device envelopes after the DM row exists (FK).
+      if (fanout != null && fanout.envelopes.isNotEmpty) {
+        final rows = fanout.envelopes
+            .map((env) => _envelopeToRow(messageId, env))
+            .toList();
+        await _client.from('dm_message_envelopes').insert(rows);
+      }
 
       return _decodeRow(response);
     } catch (e) {
@@ -142,23 +163,49 @@ class DMRepository {
     }
   }
 
-  /// Returns null when E2EE is not enabled for the conversation.
-  Future<EncryptedEnvelope?> _maybeEncryptOutgoing(
+  /// Converts an EncryptedEnvelope into a `dm_message_envelopes` insert row.
+  Map<String, dynamic> _envelopeToRow(String messageId, EncryptedEnvelope env) => {
+    'message_id': messageId,
+    'recipient_device_id': env.recipientDeviceId,
+    'sender_device_id': env.senderDeviceId,
+    'protocol_version': env.protocolVersion,
+    'ciphertext': env.ciphertext,
+    if (env.nonce.isNotEmpty) 'nonce': env.nonce,
+    if (env.ratchetHeader != null) 'ratchet_header': env.ratchetHeader,
+    if (env.senderEphemeralPub.isNotEmpty)
+      'sender_ephemeral_pub': env.senderEphemeralPub,
+    if (env.senderIdentityPub != null)
+      'sender_identity_pub': env.senderIdentityPub,
+    'is_initial': env.isInitial,
+    if (env.prekeyId != null) 'prekey_id': env.prekeyId,
+    if (env.signedPrekeyId != null) 'signed_prekey_id': env.signedPrekeyId,
+  };
+
+  /// v2 fan-out: encrypts once per recipient device. Returns null when E2EE
+  /// is not enabled, the recipient has no devices, or encryption fails.
+  Future<({List<EncryptedEnvelope> envelopes})?> _maybeEncryptToAllDevices(
       String recipientId, String content) async {
     if (_e2ee == null) return null;
     try {
       final enabled = await _e2ee.isConversationEnabled(recipientId);
       if (!enabled) return null;
-      return await _e2ee.encrypt(
-          recipientUserId: recipientId, plaintext: content);
+      final envs = await _e2ee.encryptV2ToAllDevices(
+        recipientUserId: recipientId,
+        plaintext: content,
+      );
+      if (envs.isEmpty) return null;
+      return (envelopes: envs);
     } catch (_) {
-      // If encryption itself failed, fall back to plaintext rather than data loss.
-      // The UI should warn the user; for now we degrade gracefully.
+      // Encryption itself failed — fall back to plaintext rather than data loss.
       return null;
     }
   }
 
   /// Decrypts encrypted rows; passes plaintext rows through unchanged.
+  ///
+  /// For v2 fan-out rows, the ciphertext lives in `dm_message_envelopes`.
+  /// We pick the envelope addressed to *this* device and ignore the rest
+  /// (each device only has the keys to open its own envelope).
   Future<DMMessage> _decodeRow(Map<String, dynamic> row) async {
     // Post-process reactions to aggregate by emoji (matching RN / channel logic)
     final List<dynamic> rawReactions = row['reactions'] ?? [];
@@ -168,7 +215,7 @@ class DMRepository {
     for (final r in rawReactions) {
       final emoji = r['emoji'] as String;
       final userId = r['user_id'] as String;
-      
+
       if (!reactionMap.containsKey(emoji)) {
         reactionMap[emoji] = {
           'emoji': emoji,
@@ -177,13 +224,13 @@ class DMRepository {
           'users': <String>[],
         };
       }
-      
+
       final entry = reactionMap[emoji]!;
       entry['count'] = (entry['count'] as int) + 1;
       (entry['users'] as List<String>).add(userId);
       if (userId == currentUserId) entry['me'] = true;
     }
-    
+
     final Map<String, dynamic> updatedRow = Map<String, dynamic>.from(row);
     updatedRow['reactions'] = reactionMap.values.toList();
 
@@ -193,9 +240,23 @@ class DMRepository {
     }
 
     try {
-      final env = EncryptedEnvelope.fromDmRow(row);
       if (_e2ee == null) throw Exception('E2EE unavailable');
-      final plain = await _e2ee.decrypt(env);
+      final senderId = row['sender_id'] as String?;
+      if (senderId == null) {
+        throw Exception('encrypted row missing sender_id');
+      }
+
+      // Pick the envelope addressed to this device, if the row uses v2 fan-out.
+      final perDevice = await _selectEnvelopeForThisDevice(row);
+      final env = perDevice ?? EncryptedEnvelope.fromDmRow(row);
+
+      final String plain;
+      if (env.protocolVersion == 'v2') {
+        plain = await _e2ee.decryptV2(env, senderUserId: senderId);
+      } else {
+        // ignore: deprecated_member_use
+        plain = await _e2ee.decrypt(env);
+      }
       return DMMessage.fromJson({...updatedRow, 'content': plain});
     } catch (_) {
       return DMMessage.fromJson({
@@ -203,6 +264,39 @@ class DMRepository {
         'content': '🔒 [unable to decrypt]',
       });
     }
+  }
+
+  /// Returns the envelope addressed to this device for a v2 fan-out row, or
+  /// null if the row uses inline (legacy) ciphertext.
+  Future<EncryptedEnvelope?> _selectEnvelopeForThisDevice(
+      Map<String, dynamic> row) async {
+    if (_e2ee == null) return null;
+    final embedded = row['dm_message_envelopes'];
+    if (embedded is! List || embedded.isEmpty) return null;
+
+    final myDeviceId = await _e2ee.getMyDeviceId();
+    Map<String, dynamic>? mine;
+    for (final e in embedded) {
+      if (e is Map && e['recipient_device_id'] == myDeviceId) {
+        mine = e.cast<String, dynamic>();
+        break;
+      }
+    }
+    if (mine == null) return null;
+
+    return EncryptedEnvelope(
+      protocolVersion: mine['protocol_version'] as String? ?? 'v2',
+      ciphertext: mine['ciphertext'] as String? ?? '',
+      nonce: mine['nonce'] as String? ?? '',
+      senderEphemeralPub: mine['sender_ephemeral_pub'] as String? ?? '',
+      senderDeviceId: mine['sender_device_id'] as String? ?? '',
+      recipientDeviceId: mine['recipient_device_id'] as String? ?? myDeviceId,
+      ratchetHeader: mine['ratchet_header'] as String?,
+      isInitial: mine['is_initial'] == true,
+      senderIdentityPub: mine['sender_identity_pub'] as String?,
+      prekeyId: (mine['prekey_id'] as num?)?.toInt(),
+      signedPrekeyId: (mine['signed_prekey_id'] as num?)?.toInt(),
+    );
   }
 
   /// Uploads an attachment to Appwrite Storage.
@@ -300,30 +394,38 @@ class DMRepository {
   }
 
   /// Updates an existing DM message content.
+  ///
+  /// For E2EE conversations, re-encrypts via per-device fan-out and replaces
+  /// the message's envelope rows. Each replacement advances the ratchet —
+  /// the old envelope's plaintext is no longer recoverable on either side.
   Future<void> editMessage(String messageId, String otherUserId, String content) async {
-    final encrypted = await _maybeEncryptOutgoing(otherUserId, content);
+    final fanout = await _maybeEncryptToAllDevices(otherUserId, content);
     final updatePayload = <String, dynamic>{
       'edited_at': DateTime.now().toIso8601String(),
     };
 
-    if (encrypted != null) {
+    if (fanout != null && fanout.envelopes.isNotEmpty) {
       updatePayload['content'] = '[encrypted]';
       updatePayload['is_encrypted'] = true;
-      updatePayload['ciphertext'] = encrypted.ciphertext;
-      updatePayload['nonce'] = encrypted.nonce;
-      updatePayload['sender_ephemeral_pub'] = encrypted.senderEphemeralPub;
-      updatePayload['sender_device_id'] = encrypted.senderDeviceId;
-      updatePayload['recipient_device_id'] = encrypted.recipientDeviceId;
-      if (encrypted.prekeyId != null) updatePayload['prekey_id'] = encrypted.prekeyId;
-      if (encrypted.signedPrekeyId != null) {
-        updatePayload['signed_prekey_id'] = encrypted.signedPrekeyId;
-      }
+      updatePayload['e2ee_protocol_version'] = 'v2';
     } else {
       updatePayload['content'] = content;
       updatePayload['is_encrypted'] = false;
     }
 
     await _client.from('direct_messages').update(updatePayload).eq('id', messageId);
+
+    if (fanout != null && fanout.envelopes.isNotEmpty) {
+      // Replace existing envelopes for this message with the freshly-encrypted ones.
+      await _client
+          .from('dm_message_envelopes')
+          .delete()
+          .eq('message_id', messageId);
+      final rows = fanout.envelopes
+          .map((env) => _envelopeToRow(messageId, env))
+          .toList();
+      await _client.from('dm_message_envelopes').insert(rows);
+    }
   }
 
   /// Deletes a direct message.

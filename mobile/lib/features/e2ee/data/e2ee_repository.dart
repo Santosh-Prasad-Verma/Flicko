@@ -37,6 +37,58 @@ class E2EERepository {
     }
   }
 
+  /// Fetch all devices owned by [userId]. Used by senders to fan-out a
+  /// message so every device the recipient owns can decrypt.
+  Future<List<IdentityKey>> fetchDevices(String userId) async {
+    try {
+      final res = await _dio.get('/e2ee/devices/$userId');
+      final list = ((res.data as Map)['devices'] as List? ?? []);
+      return list
+          .map((e) => IdentityKey.fromJson((e as Map).cast<String, dynamic>()))
+          .toList();
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) return const [];
+      rethrow;
+    }
+  }
+
+  // ── Identity attestations ───────────────────────────────────────────────
+
+  /// Fetch the most-recent rotation attestation for ([userId], [newPub]).
+  /// Returns null when none has been published. Caller verifies the
+  /// signature against the OLD signing key they already pinned.
+  Future<RemoteIdentityAttestation?> fetchAttestation({
+    required String userId,
+    required String newIdentityPub,
+  }) async {
+    try {
+      final res = await _dio.get(
+        '/e2ee/identity/attestation/$userId',
+        queryParameters: {'new_pub': newIdentityPub},
+      );
+      return RemoteIdentityAttestation.fromJson(
+          (res.data as Map).cast<String, dynamic>());
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) return null;
+      rethrow;
+    }
+  }
+
+  /// Publish an attestation that we (the authenticated user) are rotating
+  /// from [oldIdentityPub] to [newIdentityPub], signed by our old signing
+  /// private key.
+  Future<void> publishAttestation({
+    required String oldIdentityPub,
+    required String newIdentityPub,
+    required String signatureB64,
+  }) async {
+    await _dio.post('/e2ee/identity/attestation', data: {
+      'old_identity_pub': oldIdentityPub,
+      'new_identity_pub': newIdentityPub,
+      'signature': signatureB64,
+    });
+  }
+
   // ── Signed prekey ───────────────────────────────────────────────────────
 
   Future<void> uploadSignedPrekey({

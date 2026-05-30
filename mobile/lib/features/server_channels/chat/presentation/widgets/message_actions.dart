@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/data/models/flicko_message.dart';
+import 'package:mobile/features/ai_assistant/translate/application/translate_provider.dart';
+import 'package:mobile/features/ai_assistant/translate/application/translate_settings_provider.dart';
+import 'package:mobile/features/ai_assistant/translate/domain/translation.dart';
+import 'package:mobile/features/sonic_music/localization/app_localizations.dart';
 
 /// Message Actions Bottom Sheet
 ///
 /// Full-featured message actions menu with reply, edit, delete, reactions, copy, etc.
 /// Mirrors the React Native MessageActions component.
-class MessageActions extends StatelessWidget {
+class MessageActions extends ConsumerWidget {
   final FlickoMessage message;
   final String currentUserId;
   final Function(String emoji) onReaction;
@@ -43,7 +48,7 @@ class MessageActions extends StatelessWidget {
   bool get _canDelete => _isMyMessage;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       decoration: const BoxDecoration(
         color: Color(FlickoColors.bgSecondary),
@@ -101,6 +106,30 @@ class MessageActions extends StatelessWidget {
                 onCopy();
               },
             ),
+
+            // Show the Translate menu item only when the user's auto-translate
+            // behavior is `ask` or `always`. Hidden entirely on `never`.
+            if (() {
+              final s = ref.watch(translateUserSettingsProvider);
+              final v = s.hasValue ? s.value : null;
+              return v?.behavior != TranslateBehavior.never;
+            }())
+              _buildAction(
+                icon: Icons.translate,
+                label: AppLocalizations.of(context)?.translateAction ?? 'Translate',
+                color: const Color(FlickoColors.textPrimary),
+                onTap: () {
+                  Navigator.pop(context);
+                  final target = ref.read(translateTargetLangProvider);
+                  ref
+                      .read(translationProvider(TranslateKey(message.id)).notifier)
+                      .translate(
+                        text: message.content,
+                        target: target,
+                        channelId: message.channelId,
+                      );
+                },
+              ),
             
             if (_canEdit)
               _buildAction(

@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -26,90 +27,193 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   Widget build(BuildContext context) {
     final searchResults = ref.watch(userSearchResultsProvider);
 
-    return Scaffold(
-      backgroundColor: const Color(FlickoColors.bgPrimary),
-      appBar: AppBar(
-        backgroundColor: const Color(FlickoColors.bgSecondary),
-        elevation: 0,
-        titleSpacing: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),
-          onPressed: () => context.pop(),
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFF0A0A0A),
+            Color(0xFF0F0F12),
+            Color(0xFF060608),
+          ],
         ),
-        title: TextField(
-          controller: _searchController,
-          autofocus: true,
-          style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary), fontSize: 16),
-          onChanged: (value) {
-            ref.read(userSearchQueryProvider.notifier).state = value;
-          },
-          decoration: InputDecoration(
-            hintText: 'Search users...',
-            hintStyle: GoogleFonts.inter(color: const Color(FlickoColors.textMuted), fontSize: 16),
-            border: InputBorder.none,
-            enabledBorder: InputBorder.none,
-            focusedBorder: InputBorder.none,
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          titleSpacing: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFFE4E4E7)),
+            onPressed: () => context.pop(),
+          ),
+          flexibleSpace: ClipRRect(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
+              child: Container(color: Colors.black.withValues(alpha: 0.4)),
+            ),
+          ),
+          title: Container(
+            height: 42,
+            margin: const EdgeInsets.only(right: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(21),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.search_rounded,
+                  color: const Color(0xFF52B788).withValues(alpha: 0.7),
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    autofocus: true,
+                    style: GoogleFonts.inter(
+                      color: const Color(0xFFE4E4E7),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w400,
+                    ),
+                    onChanged: (value) {
+                      ref.read(userSearchQueryProvider.notifier).state = value;
+                      setState(() {});
+                    },
+                    decoration: InputDecoration(
+                      hintText: 'Search users...',
+                      hintStyle: GoogleFonts.inter(
+                        color: Colors.white.withValues(alpha: 0.25),
+                        fontSize: 15,
+                      ),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      isDense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                ),
+                if (_searchController.text.isNotEmpty)
+                  GestureDetector(
+                    onTap: () {
+                      _searchController.clear();
+                      ref.read(userSearchQueryProvider.notifier).state = '';
+                      setState(() {});
+                    },
+                    child: Container(
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.08),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.close_rounded,
+                        color: Color(0xFF71717A),
+                        size: 14,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
-        actions: [
-          if (_searchController.text.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.close, color: Color(FlickoColors.textMuted)),
-              onPressed: () {
-                _searchController.clear();
-                ref.read(userSearchQueryProvider.notifier).state = '';
-              },
-            ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: searchResults.when(
-        data: (users) {
-          if (users.isEmpty && _searchController.text.isNotEmpty) {
-            return _buildEmptyState('No users found');
-          }
-          if (_searchController.text.isEmpty) {
-            return _buildEmptyState('Type to search for users');
-          }
+        body: searchResults.when(
+          data: (users) {
+            if (users.isEmpty && _searchController.text.isNotEmpty) {
+              return _buildEmptyState('No users found');
+            }
+            if (_searchController.text.isEmpty) {
+              return _buildEmptyState('Type to search for users');
+            }
 
-          return ListView.builder(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            itemCount: users.length,
-            itemBuilder: (context, index) {
-              final user = users[index];
-              return ListTile(
-                leading: UserAvatar(
-                  imageUrl: user.avatarUrl,
-                  name: user.displayName ?? user.username,
-                  size: 40,
-                  status: user.onlineStatus,
-                  showStatus: true,
-                ),
-                title: Text(
-                  user.displayName ?? user.username,
-                  style: GoogleFonts.inter(
-                    color: const Color(FlickoColors.textPrimary),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+            return ListView.builder(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              itemCount: users.length,
+              itemBuilder: (context, index) {
+                final user = users[index];
+                return Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.03),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.04),
+                      width: 0.5,
+                    ),
                   ),
-                ),
-                subtitle: Text(
-                  '@${user.username}',
-                  style: GoogleFonts.inter(
-                    color: const Color(FlickoColors.textMuted),
-                    fontSize: 14,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                        leading: UserAvatar(
+                          imageUrl: user.avatarUrl,
+                          name: user.displayName ?? user.username,
+                          size: 44,
+                          status: user.onlineStatus,
+                          showStatus: true,
+                        ),
+                        title: Text(
+                          user.displayName ?? user.username,
+                          style: GoogleFonts.inter(
+                            color: const Color(0xFFE4E4E7),
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        subtitle: Text(
+                          '@${user.username}',
+                          style: GoogleFonts.inter(
+                            color: Colors.white.withValues(alpha: 0.35),
+                            fontSize: 13,
+                          ),
+                        ),
+                        trailing: Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF52B788).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.chevron_right_rounded,
+                            color: Color(0xFF52B788),
+                            size: 18,
+                          ),
+                        ),
+                        onTap: () {
+                          context.push('/profile/${user.id}');
+                        },
+                      ),
+                    ),
                   ),
-                ),
-                onTap: () {
-                  context.push('/u/profile/${user.id}');
-                },
-              );
-            },
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator(color: Color(FlickoColors.blurple))),
-        error: (error, _) => Center(
-          child: Text('Error: $error', style: const TextStyle(color: Colors.red)),
+                );
+              },
+            );
+          },
+          loading: () => Center(
+            child: CircularProgressIndicator(
+              color: const Color(0xFF52B788).withValues(alpha: 0.7),
+              strokeWidth: 2,
+            ),
+          ),
+          error: (error, _) => Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Text(
+                'Error: $error',
+                style: GoogleFonts.inter(color: const Color(FlickoColors.danger), fontSize: 14),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -120,13 +224,30 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.search, size: 64, color: Color(FlickoColors.textMuted)),
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withValues(alpha: 0.03),
+              border: Border.all(
+                color: const Color(0xFF52B788).withValues(alpha: 0.15),
+                width: 1,
+              ),
+            ),
+            child: Icon(
+              Icons.search_rounded,
+              size: 32,
+              color: const Color(0xFF52B788).withValues(alpha: 0.4),
+            ),
+          ),
           const SizedBox(height: 16),
           Text(
             message,
             style: GoogleFonts.inter(
-              color: const Color(FlickoColors.textMuted),
-              fontSize: 16,
+              color: Colors.white.withValues(alpha: 0.3),
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],

@@ -17,8 +17,10 @@ import 'package:just_audio/just_audio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:mobile/core/config/app_config.dart';
 import 'package:mobile/core/services/foreground_service.dart';
+import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/ai_assistant/data/aura_chat_service.dart';
 import 'package:mobile/features/ai_assistant/data/aura_live_audio_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 enum AuraVoiceState { idle, connecting, listening, thinking, speaking }
 
@@ -64,9 +66,9 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
   double _currentAmplitude = 0.0;
   bool _isContinuousActive = false;
 
-  static const Color _bgBlack = Color(0xFF020104);
-  static const Color _accentLime = Color(0xFFC0EC54);
-  static const Color _textMuted = Color(0xFF8E8E93);
+  static const Color _bgBlack = Color(0xFF06060E);
+  static const Color _accentLime = Color(0xFF7B4FFF);
+  static const Color _textMuted = Color(0xFF8E8E9F);
 
   @override
   void initState() {
@@ -484,76 +486,106 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
     bool audioSuccess = false;
     bool textFallbackSuccess = false;
 
-    final notifier = ref.read(auraSessionsProvider.notifier);
-    final apiKey = await notifier.getApiKey();
+    // 1. Try to call aura-chat Edge Function (secure server-side Grok API)
+    try {
+      final supabaseUrl = AppConfig.supabaseUrl;
+      final dio = Dio();
+      final accessToken = supabase.Supabase.instance.client.auth.currentSession?.accessToken;
 
-    if (apiKey != null && apiKey.isNotEmpty) {
-      final textModel = AppConfig.geminiTextModel.isNotEmpty
-          ? AppConfig.geminiTextModel
-          : 'gemini-2.5-flash';
-      final modelsToTry = [
-        textModel,
-        if (textModel != 'gemini-2.5-flash') 'gemini-2.5-flash',
-        if (textModel != 'gemini-2.0-flash') 'gemini-2.0-flash',
-        'gemini-1.5-flash',
-      ];
-
-      // Gemini native audio is handled by the Live WebSocket path above.
-      // This REST path is only a fallback so users still get an answer.
-      if (!audioSuccess) {
-        for (final model in modelsToTry) {
-          if (textFallbackSuccess) break;
-          try {
-            final dio = Dio();
-            final response = await dio.post(
-              'https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey',
-              data: {
-                'contents': [
-                  {
-                    'parts': [
-                      {
-                        'text':
-                            "You are Aura, a voice companion. Keep your response extremely brief, conversational, and direct (max 2 sentences).\n\nUser: $spokenText",
-                      },
-                    ],
-                  },
-                ],
-              },
-            );
-
-            if (response.statusCode == 200 && response.data != null) {
-              final candidates = response.data['candidates'] as List?;
-              if (candidates != null && candidates.isNotEmpty) {
-                responseText =
-                    candidates[0]['content']['parts'][0]['text'] ?? '';
-                textFallbackSuccess = true;
-                debugPrint(
-                  '[Aura] Text API fallback success using model: $model',
-                );
-              }
+      final response = await dio.post(
+        '$supabaseUrl/functions/v1/aura-chat',
+        options: Options(
+          headers: {
+            'Content-Type': 'application/json',
+            if (accessToken != null)
+              'Authorization': 'Bearer $accessToken',
+            'apikey': AppConfig.supabaseAnonKey,
+          },
+        ),
+        data: {
+          'messages': [
+            {
+              'role': 'user',
+              'content': "You are Aura, a premium conversational voice companion inside Flicko. Keep your response extremely brief, conversational, direct, and under 2 sentences. Do not use any markdown formatting symbols like asterisks.\n\nUser: $spokenText",
             }
-          } catch (e) {
-            debugPrint('[Aura] Text API fallback error with model $model: $e');
+          ],
+          'category': 'Text Writer',
+        },
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        final data = response.data;
+        if (data['text'] != null && (data['text'] as String).isNotEmpty) {
+          responseText = (data['text'] as String).replaceAll('*', '').replaceAll('•', '').trim();
+          textFallbackSuccess = true;
+          debugPrint('[Aura] Voice text response from aura-chat: $responseText');
+        }
+      }
+    } catch (e) {
+      debugPrint('[Aura] Server-side voice chat proxy failed: $e');
+    }
+
+    // 2. Try to synthesize high-quality speech via aura-tts Edge Function (secure server-side xAI TTS API)
+    if (textFallbackSuccess && responseText.isNotEmpty) {
+      try {
+        final supabaseUrl = AppConfig.supabaseUrl;
+        final dio = Dio();
+        final accessToken = supabase.Supabase.instance.client.auth.currentSession?.accessToken;
+
+        final ttsResponse = await dio.post(
+          '$supabaseUrl/functions/v1/aura-tts',
+          options: Options(
+            headers: {
+              'Content-Type': 'application/json',
+              if (accessToken != null)
+                'Authorization': 'Bearer $accessToken',
+              'apikey': AppConfig.supabaseAnonKey,
+            },
+            responseType: ResponseType.bytes, // Streaming binary bytes
+          ),
+          data: {
+            'text': responseText,
+            'voice_id': 'eve', // Standard beautiful voice tone
+            'language': 'en',
+          },
+        );
+
+        if (ttsResponse.statusCode == 200 && ttsResponse.data != null) {
+          final audioBytes = Uint8List.fromList(ttsResponse.data as List<int>);
+          if (audioBytes.isNotEmpty) {
+            final tempDir = await getTemporaryDirectory();
+            final tempFile = File('${tempDir.path}/aura_voice_${DateTime.now().millisecondsSinceEpoch}.mp3');
+            await tempFile.writeAsBytes(audioBytes, flush: true);
+
+            if (mounted) {
+              setState(() {
+                _currentState = AuraVoiceState.speaking;
+                _subtitleText = responseText;
+                _activeSpeechWord = '';
+              });
+
+              final duration = await _audioPlayer.setFilePath(tempFile.path);
+              final durationMs = duration?.inMilliseconds ?? 4000;
+
+              audioSuccess = true;
+              await _audioPlayer.play();
+              await _animateSpokenSubtitle(responseText, durationMs);
+            }
           }
         }
+      } catch (e) {
+        debugPrint('[Aura] High-quality server-side speech synthesis failed: $e');
       }
     }
 
     // --- STAGE 3: Local simulation fallback if all online attempts fail ---
-    if (!audioSuccess && !textFallbackSuccess) {
-      responseText = notifier.generateTextResponse(spokenText);
-      responseText =
-          responseText.replaceAll('*', '').replaceAll('•', '').trim();
-
-      // Clearly alert the user if their API key calls are failing
-      if (apiKey != null && apiKey.isNotEmpty) {
-        responseText =
-            "[Gemini Live/Text API unavailable. Using simulated Aura fallback]\n\n$responseText";
-      }
-    }
-
-    // If we didn't play audio natively, use standard Device TTS
     if (!audioSuccess) {
+      if (!textFallbackSuccess) {
+        final notifier = ref.read(auraSessionsProvider.notifier);
+        responseText = notifier.generateTextResponse(spokenText);
+        responseText = responseText.replaceAll('*', '').replaceAll('•', '').trim();
+      }
+
       if (!mounted) return;
       setState(() {
         _currentState = AuraVoiceState.speaking;
@@ -685,7 +717,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
                         const SizedBox(height: 24),
                         Text(
                           'Aura Configuration',
-                          style: GoogleFonts.spaceGrotesk(
+                          style: GoogleFonts.inter(
                             color: Colors.white,
                             fontSize: 22,
                             fontWeight: FontWeight.w800,
@@ -694,7 +726,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
                         const SizedBox(height: 8),
                         Text(
                           'Customize model engines and native audio voices',
-                          style: GoogleFonts.spaceGrotesk(
+                          style: GoogleFonts.inter(
                             color: _textMuted,
                             fontSize: 13,
                           ),
@@ -702,7 +734,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
                         const SizedBox(height: 28),
                         Text(
                           'Select Model Engine',
-                          style: GoogleFonts.spaceMono(
+                          style: GoogleFonts.inter(
                             color: _accentLime,
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
@@ -743,7 +775,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
                         const SizedBox(height: 28),
                         Text(
                           'Select Prebuilt Voice Tone',
-                          style: GoogleFonts.spaceMono(
+                          style: GoogleFonts.inter(
                             color: _accentLime,
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
@@ -788,7 +820,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
                           },
                           child: Text(
                             'Apply Changes',
-                            style: GoogleFonts.spaceGrotesk(
+                            style: GoogleFonts.inter(
                               fontSize: 15,
                               fontWeight: FontWeight.w800,
                             ),
@@ -829,7 +861,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
         ),
         child: Text(
           title,
-          style: GoogleFonts.spaceGrotesk(
+          style: GoogleFonts.inter(
             color: isSelected ? const Color(0xFF020104) : Colors.white,
             fontSize: 13,
             fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
@@ -845,6 +877,19 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
       backgroundColor: _bgBlack,
       body: Stack(
         children: [
+          // Deep space background with twinkling stars and nebulas
+          Positioned.fill(
+            child: AnimatedBuilder(
+              animation: _animationController,
+              builder: (context, child) {
+                return CustomPaint(
+                  painter: DeepSpaceBackgroundPainter(
+                    animationValue: _animationController.value,
+                  ),
+                );
+              },
+            ),
+          ),
           // Dynamic pulsing radial background glow
           AnimatedBuilder(
             animation: Listenable.merge([
@@ -876,12 +921,8 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
                       center: Alignment.center,
                       radius: 0.85,
                       colors: [
-                        const Color(
-                          0xFF381559,
-                        ).withOpacity(opacityFactor * 1.5),
-                        const Color(
-                          0xFF0F031D,
-                        ).withOpacity(opacityFactor * 0.4),
+                        const Color(0xFF381559).withOpacity(opacityFactor * 1.5),
+                        const Color(0xFF0F031D).withOpacity(opacityFactor * 0.4),
                         Colors.transparent,
                       ],
                     ),
@@ -892,38 +933,65 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
           ),
 
           SafeArea(
-            child: Column(
-              children: [
-                // Top Custom Header Row
-                _buildHeaderRow(),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                children: [
+                  // Top Custom Header Row
+                  _buildHeaderRow(),
+                  const SizedBox(height: 16),
 
-                // Fluid Central Orb Graphic
-                Expanded(
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildFluidOrbContainer(),
-                        const SizedBox(height: 16),
-                        _buildStateIndicator(),
-                      ],
+                  // Greeting Chip
+                  _buildGreetingChip(),
+                  const SizedBox(height: 16),
+
+                  // Voice Heading
+                  Text(
+                    'What can I\nhelp you with?',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.inter(
+                      color: Colors.white,
+                      fontSize: 32,
+                      fontWeight: FontWeight.w800,
+                      height: 1.15,
+                      letterSpacing: -0.5,
                     ),
                   ),
-                ),
+                  const SizedBox(height: 24),
 
-                // Floating suggestion chips for query triggers (only show when idle)
-                if (_currentState == AuraVoiceState.idle)
-                  _buildSuggestionsRow(),
-                const SizedBox(height: 24),
+                  // Pulse Listening Bar
+                  _buildListeningBar(),
+                  
+                  const Spacer(),
 
-                // Subtitles Overlay Panel
-                _buildSubtitleOverlay(),
-                const SizedBox(height: 40),
+                  // Waveform Canvas
+                  SizedBox(
+                    height: 120,
+                    width: double.infinity,
+                    child: AnimatedBuilder(
+                      animation: _animationController,
+                      builder: (context, child) {
+                        return CustomPaint(
+                          painter: EkgWaveformPainter(
+                            animationValue: _animationController.value,
+                            isListening: _currentState != AuraVoiceState.idle,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
 
-                // Voice Controls Action Bar
-                _buildVoiceControlBar(),
-                const SizedBox(height: 32),
-              ],
+                  const Spacer(),
+
+                  // Speech Output Bubble
+                  _buildSpeechOutputBubble(),
+                  const SizedBox(height: 24),
+
+                  // Voice Controls Footer
+                  _buildVoiceControlsFooter(),
+                  const SizedBox(height: 24),
+                ],
+              ),
             ),
           ),
         ],
@@ -933,7 +1001,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
 
   Widget _buildHeaderRow() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -946,9 +1014,9 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.04),
+                color: Colors.white.withOpacity(0.03),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.08),
+                  color: Colors.white.withOpacity(0.07),
                   width: 1.2,
                 ),
               ),
@@ -959,25 +1027,33 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
               ),
             ),
           ),
-          _buildTopBadge(),
+          Text(
+            'TaLK to AI',
+            style: GoogleFonts.inter(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.5,
+            ),
+          ),
           GestureDetector(
             onTap: () {
               HapticFeedback.mediumImpact();
-              _showVoiceSettingsSheet(context);
+              context.push('/profile/settings/aura/settings');
             },
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.04),
+                color: Colors.white.withOpacity(0.03),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.08),
+                  color: Colors.white.withOpacity(0.07),
                   width: 1.2,
                 ),
               ),
               child: const Icon(
-                Icons.tune_rounded,
-                color: _accentLime,
+                Icons.menu_rounded,
+                color: Colors.white,
                 size: 16,
               ),
             ),
@@ -987,18 +1063,293 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
     );
   }
 
+  Widget _buildGreetingChip() {
+    final authState = ref.watch(authNotifierProvider);
+    final displayName = authState.maybeWhen(
+      authenticated: (authUser, userProfile) {
+        if (userProfile != null &&
+            userProfile.displayName != null &&
+            userProfile.displayName!.isNotEmpty) {
+          return userProfile.displayName!;
+        }
+        if (userProfile != null) {
+          return userProfile.username;
+        }
+        return 'Susie';
+      },
+      orElse: () => 'Susie',
+    );
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFF7B4FFF).withOpacity(0.12),
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(
+          color: const Color(0xFF7B4FFF).withOpacity(0.35),
+          width: 1.0,
+        ),
+      ),
+      child: Text(
+        'Hey $displayName 👋',
+        style: GoogleFonts.inter(
+          color: const Color(0xFFCBBAFF),
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.5,
+        ),
+      ),
+    ).animate().fadeIn(duration: 500.ms);
+  }
+
+  Widget _buildListeningBar() {
+    String text = "Tap the mic to start";
+    if (_currentState == AuraVoiceState.listening) {
+      text = "I'm listening...";
+    } else if (_currentState == AuraVoiceState.connecting) {
+      text = "Connecting...";
+    } else if (_currentState == AuraVoiceState.thinking) {
+      text = "Thinking...";
+    } else if (_currentState == AuraVoiceState.speaking) {
+      text = "Speaking...";
+    }
+
+    return Container(
+      height: 52,
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.03),
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.07),
+          width: 1.0,
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            text,
+            style: GoogleFonts.inter(
+              color: const Color(0xFF8E8E9F),
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          if (_currentState != AuraVoiceState.idle)
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Color(0xFF00F0FF),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Color(0xFF00F0FF),
+                        blurRadius: 8,
+                      ),
+                    ],
+                  ),
+                ),
+                AnimatedBuilder(
+                  animation: _pulseController,
+                  builder: (context, child) {
+                    return Transform.scale(
+                      scale: 0.5 + 1.1 * _pulseController.value,
+                      child: Opacity(
+                        opacity: (1.0 - _pulseController.value).clamp(0.0, 1.0),
+                        child: Container(
+                          width: 18,
+                          height: 18,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: const Color(0xFF00F0FF),
+                              width: 2.0,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSpeechOutputBubble() {
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 280),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Text(
+        _subtitleText,
+        textAlign: TextAlign.center,
+        style: GoogleFonts.inter(
+          color: const Color(0xFF8E8E9F),
+          fontSize: 13,
+          height: 1.6,
+          fontStyle: FontStyle.italic,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVoiceControlsFooter() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        // Left: Refresh/Reset button
+        GestureDetector(
+          onTap: () {
+            HapticFeedback.lightImpact();
+            _resetFlow();
+            setState(() {
+              _subtitleText = "Tap the microphone to talk with Aura";
+            });
+          },
+          child: Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withOpacity(0.03),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.07),
+                width: 1.0,
+              ),
+            ),
+            child: const Center(
+              child: Icon(
+                Icons.refresh_rounded,
+                color: Color(0xFF8E8E9F),
+                size: 18,
+              ),
+            ),
+          ),
+        ),
+
+        // Center: Pulsing large Mic button
+        GestureDetector(
+          onTap: () {
+            if (_currentState == AuraVoiceState.idle) {
+              setState(() {
+                _isContinuousActive = true;
+              });
+              _triggerVoiceFlow();
+            } else {
+              setState(() {
+                _isContinuousActive = false;
+              });
+              _resetFlow();
+            }
+          },
+          child: AnimatedBuilder(
+            animation: _glowController,
+            builder: (context, child) {
+              double glowScale = 1.0;
+              if (_currentState == AuraVoiceState.listening) {
+                glowScale = 1.05 + 0.08 * _glowController.value;
+              } else if (_currentState == AuraVoiceState.thinking) {
+                glowScale = 1.02;
+              }
+
+              return Transform.scale(
+                scale: glowScale,
+                child: Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      colors: [
+                        Color(0xFF7B4FFF),
+                        Color(0xFF5931CC),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF7B4FFF).withOpacity(0.4),
+                        blurRadius: _currentState == AuraVoiceState.listening ? 24 : 12,
+                        spreadRadius: _currentState == AuraVoiceState.listening ? 6 : 2,
+                      ),
+                    ],
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.25),
+                      width: 2.0,
+                    ),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      _currentState == AuraVoiceState.listening
+                          ? Icons.graphic_eq_rounded
+                          : _currentState == AuraVoiceState.connecting
+                              ? Icons.wifi_tethering_rounded
+                              : _currentState == AuraVoiceState.speaking
+                                  ? Icons.volume_up_rounded
+                                  : _currentState == AuraVoiceState.thinking
+                                      ? Icons.hourglass_empty_rounded
+                                      : Icons.mic_none_rounded,
+                      color: Colors.white,
+                      size: 26,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+
+        // Right: Exit/Close button
+        GestureDetector(
+          onTap: () {
+            HapticFeedback.lightImpact();
+            context.pop();
+          },
+          child: Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withOpacity(0.03),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.07),
+                width: 1.0,
+              ),
+            ),
+            child: const Center(
+              child: Icon(
+                Icons.close_rounded,
+                color: Color(0xFF8E8E9F),
+                size: 18,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildTopBadge() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       decoration: BoxDecoration(
-        color: _accentLime.withOpacity(0.08),
+        color: _accentLime.withOpacity(0.15),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _accentLime, width: 1.2),
+        border: Border.all(color: _accentLime.withOpacity(0.3), width: 1.2),
       ),
       child: Text(
-        'AI Buddy',
-        style: GoogleFonts.spaceGrotesk(
-          color: _accentLime,
+        'TALK TO AI',
+        style: GoogleFonts.inter(
+          color: const Color(0xFFCBBAFF),
           fontSize: 12,
           fontWeight: FontWeight.w800,
           letterSpacing: 0.5,
@@ -1015,7 +1366,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
           padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 8),
           child: Text(
             "QUICK SUGGESTIONS",
-            style: GoogleFonts.spaceMono(
+            style: GoogleFonts.inter(
               color: Colors.white.withOpacity(0.35),
               fontSize: 9,
               fontWeight: FontWeight.bold,
@@ -1036,7 +1387,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
                 margin: const EdgeInsets.only(right: 10),
                 child: ActionChip(
                   label: Text(text),
-                  labelStyle: GoogleFonts.spaceGrotesk(
+                  labelStyle: GoogleFonts.inter(
                     color: Colors.white,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -1136,7 +1487,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
               const SizedBox(width: 6),
               Text(
                 label.toUpperCase(),
-                style: GoogleFonts.spaceMono(
+                style: GoogleFonts.inter(
                   color: color.withValues(alpha: pulseAlpha),
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
@@ -1169,7 +1520,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
                   _subtitleText,
                   key: ValueKey(_subtitleText),
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.spaceGrotesk(
+                  style: GoogleFonts.inter(
                     color: Colors.white,
                     fontSize: 19,
                     fontWeight: FontWeight.w700,
@@ -1193,7 +1544,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
               ),
               child: Text(
                 _activeSpeechWord.toUpperCase(),
-                style: GoogleFonts.spaceMono(
+                style: GoogleFonts.inter(
                   color: _accentLime,
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
@@ -1228,7 +1579,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
               }
             },
             size: 54,
-            backgroundColor: const Color(0xFF13101C),
+            backgroundColor: Colors.white.withOpacity(0.03),
             iconColor: Colors.white.withOpacity(0.9),
           ),
 
@@ -1264,10 +1615,17 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
                     height: 82,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: _accentLime,
+                      gradient: const LinearGradient(
+                        colors: [
+                          Color(0xFF7B4FFF),
+                          Color(0xFF5931CC),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
                       boxShadow: [
                         BoxShadow(
-                          color: _accentLime.withOpacity(0.35),
+                          color: const Color(0xFF7B4FFF).withOpacity(0.35),
                           blurRadius: _currentState == AuraVoiceState.listening
                               ? 24
                               : 12,
@@ -1287,7 +1645,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
                                     : _currentState == AuraVoiceState.thinking
                                         ? Icons.hourglass_empty_rounded
                                         : Icons.mic_none_rounded,
-                        color: const Color(0xFF020104),
+                        color: Colors.white,
                         size: 32,
                       ),
                     ),
@@ -1314,7 +1672,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
               }
             },
             size: 54,
-            backgroundColor: const Color(0xFF13101C),
+            backgroundColor: Colors.white.withOpacity(0.03),
             iconColor: Colors.white.withOpacity(0.9),
           ),
         ],
@@ -1337,7 +1695,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
         decoration: BoxDecoration(
           color: backgroundColor,
           shape: BoxShape.circle,
-          border: Border.all(color: Colors.white.withOpacity(0.06), width: 1.2),
+          border: Border.all(color: Colors.white.withOpacity(0.07), width: 1.2),
         ),
         child: Center(child: Icon(icon, color: iconColor, size: 22)),
       ),
@@ -1438,7 +1796,7 @@ class AuraFluidOrbPainter extends CustomPainter {
         ..style = PaintingStyle.fill
         ..color = Color.lerp(
           const Color(0xFFCBB6FC),
-          const Color(0xFFC0EC54),
+          const Color(0xFF00F0FF),
           (i / particleCount),
         )!
             .withValues(alpha: pa);
@@ -1453,7 +1811,7 @@ class AuraFluidOrbPainter extends CustomPainter {
       final ringPaint = Paint()
         ..style = PaintingStyle.stroke
         ..color =
-            (ring == 0 ? const Color(0xFFC0EC54) : const Color(0xFFCBB6FC))
+            (ring == 0 ? const Color(0xFF00F0FF) : const Color(0xFFCBB6FC))
                 .withValues(alpha: 0.06 + 0.04 * breathe)
         ..strokeWidth = 0.8;
       canvas.drawCircle(center, rr, ringPaint);
@@ -1464,7 +1822,7 @@ class AuraFluidOrbPainter extends CustomPainter {
         final double nx = cx + rr * math.cos(na);
         final double ny = cy + rr * math.sin(na);
         final nodeColor =
-            ring == 0 ? const Color(0xFFC0EC54) : const Color(0xFFCBB6FC);
+            ring == 0 ? const Color(0xFF00F0FF) : const Color(0xFFCBB6FC);
         // Glow halo
         canvas.drawCircle(
           Offset(nx, ny),
@@ -1527,7 +1885,7 @@ class AuraFluidOrbPainter extends CustomPainter {
 
       final barColor = Color.lerp(
         const Color(0xFFCBB6FC),
-        const Color(0xFFC0EC54),
+        const Color(0xFF00F0FF),
         t,
       )!;
       final barAlpha = state == AuraVoiceState.idle
@@ -1591,7 +1949,7 @@ class AuraFluidOrbPainter extends CustomPainter {
       [const Color(0xFFCBB6FC), const Color(0xFFBFF6EB)], // lavender → mint
       [const Color(0xFF00D4FF), const Color(0xFF8B00FF)], // cyan → violet
       [const Color(0xFFFFD1B3), const Color(0xFFFF007F)], // peach → magenta
-      [const Color(0xFFBFF6EB), const Color(0xFFC0EC54)], // mint → lime
+      [const Color(0xFFBFF6EB), const Color(0xFF7B4FFF)], // mint → purple
     ];
     final List<double> layerAlphas = [0.88, 0.55, 0.40, 0.30];
 
@@ -1679,4 +2037,113 @@ class AuraFluidOrbPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
+
+class DeepSpaceBackgroundPainter extends CustomPainter {
+  final double animationValue;
+
+  DeepSpaceBackgroundPainter({required this.animationValue});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Overlapping radial gradients (Nebulas)
+    final paint1 = Paint()
+      ..shader = RadialGradient(
+        colors: [
+          const Color(0xFF7B4FFF).withOpacity(0.25),
+          Colors.transparent,
+        ],
+      ).createShader(Rect.fromCircle(center: Offset(size.width * 0.2, size.height * 0.3), radius: size.width * 0.8));
+    canvas.drawCircle(Offset(size.width * 0.2, size.height * 0.3), size.width * 0.8, paint1);
+
+    final paint2 = Paint()
+      ..shader = RadialGradient(
+        colors: [
+          const Color(0xFF00F0FF).withOpacity(0.18),
+          Colors.transparent,
+        ],
+      ).createShader(Rect.fromCircle(center: Offset(size.width * 0.8, size.height * 0.7), radius: size.width * 0.7));
+    canvas.drawCircle(Offset(size.width * 0.8, size.height * 0.7), size.width * 0.7, paint2);
+  }
+
+  @override
+  bool shouldRepaint(covariant DeepSpaceBackgroundPainter oldDelegate) =>
+      oldDelegate.animationValue != animationValue;
+}
+
+class EkgWaveformPainter extends CustomPainter {
+  final double animationValue;
+  final bool isListening;
+
+  EkgWaveformPainter({
+    required this.animationValue,
+    required this.isListening,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double middleY = size.height / 2;
+    final double width = size.width;
+
+    // Audio wave configurations
+    final waves = [
+      _WaveConfig(amplitude: 35, frequency: 0.015, speed: 0.15, color: const Color(0xB300F0FF)),  // Cyan primary
+      _WaveConfig(amplitude: 20, frequency: 0.025, speed: -0.1, color: const Color(0x807B4FFF)), // Purple overlay
+      _WaveConfig(amplitude: 10, frequency: 0.04, speed: 0.22, color: const Color(0x4DFF00F5))    // Pink background highlight
+    ];
+
+    final double offset = animationValue * 20 * math.pi;
+
+    for (int idx = 0; idx < waves.length; idx++) {
+      final wave = waves[idx];
+      final paint = Paint()
+        ..color = wave.color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = idx == 0 ? 3.5 : 2.0
+        ..strokeCap = StrokeCap.round;
+
+      final path = Path();
+      bool isFirst = true;
+
+      for (double x = 0; x < width; x++) {
+        // Multiplier to create a pinch effect at the left and right edges (envelope)
+        final double envelope = math.sin((x / width) * math.pi);
+        
+        // Modulate amplitude based on state (pulsing if listening, flat idle if paused)
+        final double currentAmp = isListening 
+          ? wave.amplitude * (1 + 0.3 * math.sin(offset * 0.05 + idx)) * envelope
+          : 3.0 * envelope; // Soft idle wave
+
+        final double y = middleY + math.sin(x * wave.frequency + offset * wave.speed) * currentAmp;
+        
+        if (isFirst) {
+          path.moveTo(x, y);
+          isFirst = false;
+        } else {
+          path.lineTo(x, y);
+        }
+      }
+      canvas.drawPath(path, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant EkgWaveformPainter oldDelegate) {
+    return oldDelegate.animationValue != animationValue ||
+        oldDelegate.isListening != isListening;
+  }
+}
+
+class _WaveConfig {
+  final double amplitude;
+  final double frequency;
+  final double speed;
+  final Color color;
+
+  _WaveConfig({
+    required this.amplitude,
+    required this.frequency,
+    required this.speed,
+    required this.color,
+  });
 }

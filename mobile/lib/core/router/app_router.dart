@@ -27,6 +27,7 @@ import 'package:mobile/features/settings/presentation/edit_profile_screen.dart';
 import 'package:mobile/features/settings/presentation/appearance_settings_screen.dart';
 import 'package:mobile/features/settings/presentation/privacy_settings_screen.dart';
 import 'package:mobile/features/settings/presentation/chat_settings_screen.dart';
+import 'package:mobile/features/ai_assistant/translate/presentation/translate_settings_screen.dart';
 import 'package:mobile/features/settings/presentation/notifications_settings_screen.dart';
 import 'package:mobile/features/settings/presentation/accessibility_settings_screen.dart';
 import 'package:mobile/features/settings/presentation/voice_settings_screen.dart';
@@ -114,7 +115,6 @@ import 'package:mobile/features/server_settings/presentation/bot_marketplace_scr
 // Voice
 import 'package:mobile/features/server_channels/voice/presentation/screens/voice_activities_screen.dart';
 import 'package:mobile/features/server_channels/voice/presentation/screens/voice_channel_screen.dart';
-import 'package:mobile/features/voice/presentation/sonic_drip_screen.dart';
 import 'package:mobile/features/sonic_music/Screens/Home/home.dart' as sonic_music;
 import 'package:mobile/features/sonic_music/theme/app_theme.dart' as sonic_theme;
 
@@ -123,6 +123,15 @@ import 'package:mobile/features/gaming/presentation/screens/gaming_hub_screen.da
 import 'package:mobile/features/gaming/presentation/screens/matchmaking_screen.dart';
 import 'package:mobile/features/gaming/presentation/screens/chess_game_screen.dart';
 import 'package:mobile/features/gaming/presentation/screens/ludo_game_screen.dart';
+import 'package:mobile/features/gaming/presentation/screens/game_launch_screen.dart';
+import 'package:mobile/features/gaming/presentation/screens/gaming_stats_screen.dart';
+
+// Ludo (full feature)
+import 'package:mobile/features/ludo/domain/ludo_state.dart' as ludo_dom;
+import 'package:mobile/features/ludo/presentation/screens/ludo_home_screen.dart';
+import 'package:mobile/features/ludo/presentation/screens/ludo_board_screen.dart';
+import 'package:mobile/features/ludo/presentation/screens/ludo_matchmaking_screen.dart';
+import 'package:mobile/features/ludo/presentation/screens/ludo_leaderboard_screen.dart';
 
 // Forum
 import 'package:mobile/features/server_channels/forum/presentation/screens/forum_channel_screen.dart' hide ThreadViewScreen;
@@ -134,12 +143,11 @@ import 'package:mobile/features/server_channels/stage/presentation/screens/stage
 import 'package:mobile/features/server_channels/thread/presentation/screens/thread_view_screen.dart';
 
 // Aura AI Assistant
+import 'package:mobile/features/ai_assistant/presentation/aura_onboarding_screen.dart';
 import 'package:mobile/features/ai_assistant/presentation/aura_dashboard_screen.dart';
+import 'package:mobile/features/ai_assistant/presentation/aura_settings_screen.dart';
 import 'package:mobile/features/ai_assistant/presentation/aura_chat_screen.dart';
 import 'package:mobile/features/ai_assistant/presentation/aura_voice_screen.dart';
-
-/// The global navigation key for the root navigator.
-final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
 /// A [Listenable] that triggers when the Riverpod provider changes.
 /// This allows [GoRouter] to rebuild/redirect without recreating the router provider itself,
@@ -148,17 +156,37 @@ class RiverpodRefreshListenable extends ChangeNotifier {
   RiverpodRefreshListenable(Ref ref) {
     ref.listen<AuthState>(
       authNotifierProvider,
-      (previous, next) => notifyListeners(),
+      (previous, next) {
+        final wasAuthenticated = previous?.maybeWhen(
+          authenticated: (_, __) => true,
+          orElse: () => false,
+        ) ?? false;
+
+        final isAuthenticated = next.maybeWhen(
+          authenticated: (_, __) => true,
+          orElse: () => false,
+        );
+
+        if (wasAuthenticated != isAuthenticated) {
+          notifyListeners();
+        }
+      },
     );
   }
 }
+
+final rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
+final serversNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'servers');
+final dmsNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'dms');
+final notificationsNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'notifications');
+final profileNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'profile');
 
 /// Provides the [GoRouter] instance to the entire app via Riverpod.
 final appRouterProvider = Provider<GoRouter>((ref) {
   final listenable = RiverpodRefreshListenable(ref);
 
   return GoRouter(
-    navigatorKey: _rootNavigatorKey,
+    navigatorKey: rootNavigatorKey,
     initialLocation: '/',
     refreshListenable: listenable,
     redirect: (context, state) {
@@ -201,10 +229,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         branches: [
           // Tab 0 — Servers (Home)
           StatefulShellBranch(
+            navigatorKey: serversNavigatorKey,
             routes: [
               GoRoute(
                 path: '/',
                 pageBuilder: (context, state) => const NoTransitionPage(
+                  key: ValueKey('shell-servers'),
                   child: ServersScreen(),
                 ),
                 routes: [
@@ -273,10 +303,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
           // Tab 1 — Messages
           StatefulShellBranch(
+            navigatorKey: dmsNavigatorKey,
             routes: [
               GoRoute(
                 path: '/dms',
                 pageBuilder: (context, state) => const NoTransitionPage(
+                  key: ValueKey('shell-dms'),
                   child: DMListScreen(),
                 ),
                 routes: [
@@ -296,10 +328,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           // Tab 2 — Notifications
           StatefulShellBranch(
+            navigatorKey: notificationsNavigatorKey,
             routes: [
               GoRoute(
                 path: '/notifications',
                 pageBuilder: (context, state) => const NoTransitionPage(
+                  key: ValueKey('shell-notifications'),
                   child: NotificationsScreen(),
                 ),
               ),
@@ -307,10 +341,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           // Tab 3 — You (Profile)
           StatefulShellBranch(
+            navigatorKey: profileNavigatorKey,
             routes: [
               GoRoute(
                 path: '/profile',
                 pageBuilder: (context, state) => const NoTransitionPage(
+                  key: ValueKey('shell-profile'),
                   child: _CurrentUserProfileScreen(),
                 ),
                 routes: [
@@ -324,6 +360,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                       GoRoute(path: 'appearance', builder: (context, state) => const AppearanceSettingsScreen()),
                       GoRoute(path: 'privacy', builder: (context, state) => const PrivacySettingsScreen()),
                       GoRoute(path: 'chat', builder: (context, state) => const ChatSettingsScreen()),
+                      GoRoute(path: 'translate', builder: (context, state) => const TranslateSettingsScreen()),
                       GoRoute(path: 'notifications', builder: (context, state) => const NotificationsSettingsScreen()),
                       GoRoute(path: 'voice', builder: (context, state) => const VoiceSettingsScreen()),
                       GoRoute(path: 'accessibility', builder: (context, state) => const AccessibilitySettingsScreen()),
@@ -362,8 +399,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                       GoRoute(path: 'about-developer', builder: (context, state) => const AboutDeveloperScreen()),
                       GoRoute(
                         path: 'aura',
-                        builder: (context, state) => const AuraDashboardScreen(),
+                        builder: (context, state) => const AuraOnboardingScreen(),
                         routes: [
+                          GoRoute(
+                            path: 'dashboard',
+                            builder: (context, state) => const AuraDashboardScreen(),
+                          ),
+                          GoRoute(
+                            path: 'settings',
+                            builder: (context, state) => const AuraSettingsScreen(),
+                          ),
                           GoRoute(
                             path: 'chat',
                             builder: (context, state) {
@@ -379,12 +424,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                         ],
                       ),
                     ],
-                  ),
-                  GoRoute(
-                    path: ':userId',
-                    builder: (context, state) => ProfileViewScreen(
-                      userId: state.pathParameters['userId']!,
-                    ),
                   ),
                 ],
               ),
@@ -464,36 +503,49 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
 
       // Search
-      GoRoute(path: '/search', builder: (context, state) => const SearchScreen()),
+      GoRoute(
+        path: '/search',
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => const SearchScreen(),
+      ),
       GoRoute(
         path: '/advanced-search',
+        parentNavigatorKey: rootNavigatorKey,
         builder: (context, state) => AdvancedSearchScreen(
           serverId: state.uri.queryParameters['serverId'],
           channelId: state.uri.queryParameters['channelId'],
         ),
       ),
 
-      // Profile
-      GoRoute(path: '/profile/:userId', builder: (context, state) => ProfileViewScreen(userId: state.pathParameters['userId']!)),
+      // Profile — pinned to root navigator to avoid collision with shell /profile branch
+      GoRoute(
+        path: '/profile/:userId',
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => ProfileViewScreen(userId: state.pathParameters['userId']!),
+      ),
 
       // Friends
       GoRoute(
         path: '/friends',
+        parentNavigatorKey: rootNavigatorKey,
         builder: (context, state) => const FriendsListScreen(),
         routes: [
           GoRoute(path: 'requests', builder: (context, state) => const FriendRequestsScreen()),
         ],
       ),
 
-      // Direct Messages
+      // Direct Messages - legacy /dm routes redirected to tab-based /dms
       GoRoute(
         path: '/dm',
-        builder: (context, state) => const DMListScreen(),
+        redirect: (context, state) => '/dms',
         routes: [
-          GoRoute(path: ':conversationId', builder: (context, state) => DMChatScreen(userId: state.pathParameters['conversationId']!)),
+          GoRoute(
+            path: ':conversationId',
+            redirect: (context, state) => '/dms/${state.pathParameters['conversationId']}',
+          ),
           GoRoute(
             path: 'groups',
-            builder: (context, state) => const GroupDMListScreen(),
+            redirect: (context, state) => '/dms/groups',
           ),
         ],
       ),
@@ -543,6 +595,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       // Gaming
       GoRoute(path: '/gaming', builder: (context, state) => const GamingHubScreen()),
+      GoRoute(path: '/gaming/launch', builder: (context, state) => const GameLaunchScreen()),
+      GoRoute(path: '/gaming/stats', builder: (context, state) => const GamingStatsScreen()),
       GoRoute(
         path: '/gaming/matchmaking',
         builder: (context, state) => MatchmakingScreen(
@@ -562,6 +616,40 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
 
+      // Ludo full feature (RN port)
+      GoRoute(path: '/ludo', builder: (context, state) => const LudoHomeScreen()),
+      GoRoute(
+        path: '/ludo/play',
+        builder: (context, state) {
+          final modeName = state.uri.queryParameters['mode'] ?? 'localPass';
+          final mode = ludo_dom.LudoMode.values.firstWhere(
+            (m) => m.name == modeName,
+            orElse: () => ludo_dom.LudoMode.localPass,
+          );
+          final seats = state.extra is List<ludo_dom.SeatConfig>
+              ? state.extra as List<ludo_dom.SeatConfig>
+              : null;
+          return LudoBoardScreen(
+            mode: mode,
+            seats: seats,
+            gameId: state.uri.queryParameters['gameId'],
+          );
+        },
+      ),
+      GoRoute(
+        path: '/ludo/matchmaking',
+        builder: (context, state) {
+          final players =
+              int.tryParse(state.uri.queryParameters['players'] ?? '2') ?? 2;
+          final team = state.uri.queryParameters['team'] == 'true';
+          return LudoMatchmakingScreen(players: players, team: team);
+        },
+      ),
+      GoRoute(
+        path: '/ludo/leaderboard',
+        builder: (context, state) => const LudoLeaderboardScreen(),
+      ),
+
       // ── Legacy /u/* alias routes — redirect to /profile/* ──
       // Some screens still link to /u/settings, /u/<userId>, etc. Keep them
       // working without duplicating the route tree.
@@ -579,12 +667,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             '/profile/settings/${state.pathParameters['section']}',
       ),
       GoRoute(
-        path: '/u/:userId',
+        path: '/u/profile/:userId',
         redirect: (context, state) =>
             '/profile/${state.pathParameters['userId']}',
       ),
       GoRoute(
-        path: '/u/profile/:userId',
+        path: '/u/:userId',
         redirect: (context, state) =>
             '/profile/${state.pathParameters['userId']}',
       ),

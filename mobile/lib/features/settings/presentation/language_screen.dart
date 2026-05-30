@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:mobile/core/theme/theme_provider.dart';
 
 class LanguageScreen extends ConsumerStatefulWidget {
   const LanguageScreen({super.key});
@@ -43,6 +45,35 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
     await prefs.setString('language', languageCode);
     setState(() => _selectedLanguage = languageCode);
 
+    // Update app locale immediately — no restart needed
+    ref.read(appLocaleProvider.notifier).setLocale(languageCode);
+
+    // Sync to Supabase so preference persists across reinstalls/devices
+    try {
+      final client = Supabase.instance.client;
+      final userId = client.auth.currentSession?.user.id;
+      if (userId != null) {
+        // Load current preferences first to avoid overwriting other settings
+        final response = await client
+            .from('profiles')
+            .select('preferences')
+            .eq('id', userId)
+            .maybeSingle();
+
+        final currentPrefs = Map<String, dynamic>.from(
+          (response?['preferences'] as Map<String, dynamic>?) ?? {},
+        );
+        currentPrefs['language'] = languageCode;
+
+        await client
+            .from('profiles')
+            .update({'preferences': currentPrefs})
+            .eq('id', userId);
+      }
+    } catch (_) {
+      // Local save succeeded; remote sync failure is non-fatal
+    }
+
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -57,12 +88,14 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
               const Icon(Icons.check_circle_rounded,
                   color: Colors.black, size: 20),
               const SizedBox(width: 12),
-              Text(
-                'Language updated to ${_languages.firstWhere((l) => l.code == languageCode).name}',
-                style: GoogleFonts.inter(
-                  color: Colors.black,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 13,
+              Expanded(
+                child: Text(
+                  'Language updated to ${_languages.firstWhere((l) => l.code == languageCode).name}',
+                  style: GoogleFonts.inter(
+                    color: Colors.black,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13,
+                  ),
                 ),
               ),
             ],

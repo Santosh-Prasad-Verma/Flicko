@@ -8,6 +8,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/data/models/flicko_message.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/features/ai_assistant/translate/presentation/translated_text_panel.dart';
 import 'package:mobile/features/shared/presentation/widgets/safe_network_media.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
 // Note: MessageDripCard removed in favor of glass theme
@@ -124,6 +125,15 @@ class _EnhancedMessageItemState extends ConsumerState<EnhancedMessageItem> {
 
                   // Message content or edit field
                    _isEditing ? _buildEditField() : _buildContent(),
+
+                  // Optional translation panel. Renders nothing in idle state;
+                  // auto-triggers when the user's behavior setting is `always`,
+                  // otherwise waits for an explicit Translate action.
+                  TranslatedTextPanel(
+                    messageId: widget.message.id,
+                    messageText: widget.message.content,
+                    channelId: widget.message.channelId,
+                  ),
 
                   // Attachments
                   if (widget.message.attachments.isNotEmpty) ...[

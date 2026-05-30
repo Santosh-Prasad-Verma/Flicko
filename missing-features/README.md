@@ -1,0 +1,43 @@
+# Flicko Missing Features — Build Plan
+
+This directory contains a per-feature build dossier for everything not yet implemented in Flicko, plus next-gen features that go beyond Discord. Each feature has 6 documents:
+
+| File | Purpose |
+|------|---------|
+| `PRD.md` | Product Requirements — problem, users, goals, scope, success metrics |
+| `TRD.md` | Technical Requirements — architecture, services, contracts, NFRs |
+| `UIUX.md` | UI/UX design — screens, states, components, copy, motion |
+| `APPFLOW.md` | App flow — sequence diagrams, user journeys, edge paths |
+| `SCHEMA.md` | Backend schema — Postgres tables, indexes, RLS, migrations |
+| `IMPL.md` | Implementation plan — phases, tasks, files, owners, risks |
+
+## Stack assumptions
+
+- **Backend:** Go (Chi/Fiber), Supabase Postgres, Centrifugo/NATS, Redis (Upstash), Meilisearch, Qdrant, LiveKit, Appwrite Storage, Doppler secrets, Clerk auth
+- **Mobile:** Flutter, Riverpod, Hive/Isar, Firebase FCM, Supabase Realtime, LiveKit client
+- **AI:** Ollama (self-hosted) + Groq (cloud free), Whisper, LibreTranslate, Stable Diffusion / Pollinations
+- **Search:** Meilisearch (lexical) + Qdrant (vector)
+- **All choices target $0 monthly cost during build**
+
+## Directory layout
+
+```
+missing-features/
+├── _template/                       # canonical 6-doc template
+├── 01-discord-parity-activities/    # Watch Together, Music Party, Karaoke...
+├── 02-discord-parity-customization/ # Accent colors, channel backgrounds...
+├── 03-ai/                           # 12 AI features
+├── 04-mobile-first/                 # Widgets, smartwatch, gestures...
+├── 05-gaming/                       # LFG, achievements, launcher...
+├── 06-productivity/                 # Calendar, tasks, docs, kanban...
+├── 07-economy/                      # Currency, marketplace, payments...
+├── 08-community-social/             # Feed, following, reviews...
+├── 09-customization/                # Themes, fonts, widget builder...
+├── 10-privacy-security/             # E2EE++, anonymous, disappearing...
+├── 11-streaming/                    # VOD, clips, donations, shorts...
+├── 12-platform-dev/                 # Plugins, public API, bot builder...
+├── 13-accessibility/                # Screen reader, dyslexia, captions...
+└── 14-localization/                 # 50 languages, RTL, multi-currency...
+```
+
+See `INDEX.md` for the full feature inventory.

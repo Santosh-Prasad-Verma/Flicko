@@ -7,11 +7,23 @@ package e2ee
 
 import (
 	"context"
+	"crypto/sha256"
+	"errors"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 )
+
+// EnvelopeDedupWindow is how long a message hash stays in the dedup table.
+// Matches SignedPrekeyValidity so stale envelopes cannot replay against a
+// rotated signed prekey.
+const EnvelopeDedupWindow = 7 * 24 * time.Hour
+
+// ErrEnvelopeReplay is returned by Push when an identical envelope (same
+// hash, same recipient device) was already seen inside the dedup window.
+var ErrEnvelopeReplay = errors.New("e2ee: envelope replay rejected by dedup window")
 
 // Envelope is the on-wire encrypted payload the server relays without
 // being able to decrypt. Either `SenderUserID` or `IsSealed` is set.
@@ -31,11 +43,17 @@ type Envelope struct {
 // EnvelopeStore is the contract the relay handler uses.
 type EnvelopeStore interface {
 	// Push uploads a new envelope to the recipient device's inbox.
+	// Returns ErrEnvelopeReplay if the same (header, ciphertext) was already
+	// pushed to this recipient device inside EnvelopeDedupWindow.
 	Push(ctx context.Context, env Envelope) error
 
 	// Pull returns up to `limit` envelopes for `(recipientUserID, recipientDeviceID)`
 	// where `id > afterCursor`. Pulled envelopes are deleted server-side.
 	Pull(ctx context.Context, recipientUserID, recipientDeviceID string, afterCursor int64, limit int) ([]Envelope, error)
+
+	// GCDedup deletes dedup rows older than EnvelopeDedupWindow. Intended to
+	// be called from a periodic job; returns the row count purged.
+	GCDedup(ctx context.Context) (int64, error)
 }
 
 type envelopeStore struct {
@@ -50,20 +68,70 @@ func NewEnvelopeStore(db *pgxpool.Pool, logger *zap.Logger) EnvelopeStore {
 	}
 }
 
+// envelopeHash returns sha256(header || ciphertext). Unique per ratchet
+// message because the message key rotates per send; equal only on replay.
+//
+// Exported for tests — the dedup window's correctness rides entirely on
+// this function being deterministic and on changing either field producing
+// a different digest. A regression here would silently break replay
+// rejection.
+func EnvelopeHash(header, ciphertext []byte) []byte {
+	h := sha256.New()
+	h.Write(header)
+	h.Write(ciphertext)
+	sum := h.Sum(nil)
+	return sum[:]
+}
+
+// envelopeHash is the unexported call-site name retained for backward
+// compatibility within this package.
+func envelopeHash(header, ciphertext []byte) []byte {
+	return EnvelopeHash(header, ciphertext)
+}
+
 func (s *envelopeStore) Push(ctx context.Context, env Envelope) error {
+	hash := envelopeHash(env.Header, env.Ciphertext)
+
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	// Reserve the dedup slot first. ON CONFLICT DO NOTHING + RowsAffected==0
+	// signals a replay inside the window.
+	tag, err := tx.Exec(ctx, `
+		INSERT INTO e2ee_envelope_dedup (recipient_user_id, recipient_device_id, message_hash)
+		VALUES ($1, $2, $3)
+		ON CONFLICT (recipient_user_id, recipient_device_id, message_hash) DO NOTHING
+	`, env.RecipientUserID, env.RecipientDeviceID, hash)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		s.logger.Warn("envelope replay rejected",
+			zap.String("recipient", env.RecipientUserID),
+			zap.String("device", env.RecipientDeviceID),
+		)
+		return ErrEnvelopeReplay
+	}
+
 	var senderUserID *string
 	if !env.IsSealed && env.SenderUserID != "" {
 		senderUserID = &env.SenderUserID
 	}
 
-	_, err := s.db.Exec(ctx, `
+	if _, err := tx.Exec(ctx, `
 		INSERT INTO e2ee_message_envelopes (
 			sender_user_id, sender_device_id, recipient_user_id, recipient_device_id,
 			is_sealed, header, ciphertext, delivery_token
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	`, senderUserID, env.SenderDeviceID, env.RecipientUserID, env.RecipientDeviceID,
-		env.IsSealed, env.Header, env.Ciphertext, env.DeliveryToken)
-	return err
+		env.IsSealed, env.Header, env.Ciphertext, env.DeliveryToken); err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
 }
 
 func (s *envelopeStore) Pull(ctx context.Context, recipientUserID, recipientDeviceID string, afterCursor int64, limit int) ([]Envelope, error) {
@@ -106,3 +174,19 @@ func (s *envelopeStore) Pull(ctx context.Context, recipientUserID, recipientDevi
 	}
 	return envs, rows.Err()
 }
+
+// GCDedup removes dedup entries older than EnvelopeDedupWindow.
+func (s *envelopeStore) GCDedup(ctx context.Context) (int64, error) {
+	tag, err := s.db.Exec(ctx, `
+		DELETE FROM e2ee_envelope_dedup
+		WHERE seen_at < NOW() - $1::interval
+	`, EnvelopeDedupWindow.String())
+	if err != nil {
+		return 0, err
+	}
+	return tag.RowsAffected(), nil
+}
+
+// Compile-time assertion that pgx.ErrNoRows is wired (silences unused import
+// when the file is later expanded). Keeps the import close to the code.
+var _ = pgx.ErrNoRows

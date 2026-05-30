@@ -300,7 +300,7 @@ class _BillingSettingsScreenState extends ConsumerState<BillingSettingsScreen> {
                 Row(
                   children: [
                     ElevatedButton(
-                      onPressed: () => context.push('/profile/settings/billing'),
+                      onPressed: () => context.push('/premium/nitro'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: white,
                         foregroundColor: black,
@@ -916,15 +916,54 @@ class _BillingSettingsScreenState extends ConsumerState<BillingSettingsScreen> {
             child: Text('Keep Plan', style: GoogleFonts.spaceGrotesk(color: lime, fontWeight: FontWeight.w700)),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(ctx);
-              // Implement cancellation
+              await _cancelSubscription();
             },
             child: Text('Cancel Anyway', style: GoogleFonts.spaceGrotesk(color: Colors.red, fontWeight: FontWeight.w700)),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _cancelSubscription() async {
+    try {
+      final client = Supabase.instance.client;
+      final user = client.auth.currentUser;
+      if (user == null) return;
+
+      await client
+          .from('subscriptions')
+          .update({'cancel_at_period_end': true})
+          .eq('user_id', user.id)
+          .eq('status', 'active');
+
+      ref.invalidate(subscriptionProvider);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Subscription will cancel at end of billing period.',
+              style: GoogleFonts.spaceGrotesk(color: black),
+            ),
+            backgroundColor: lime,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to cancel: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   void _showRedeemDialog() {

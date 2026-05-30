@@ -7,6 +7,8 @@ import 'package:mobile/features/direct_messages/domain/dm_models.dart';
 import 'package:mobile/features/direct_messages/presentation/widgets/message_bubble.dart';
 import 'package:mobile/features/direct_messages/presentation/widgets/dm_chat_input.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
+import 'package:mobile/features/e2ee/application/identity_change_alert_provider.dart';
+import 'package:mobile/features/e2ee/presentation/identity_change_banner.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
 import 'package:mobile/features/calling/presentation/incoming_call_overlay.dart';
 import 'package:mobile/features/calling/services/call_signaling_service.dart';
@@ -512,7 +514,7 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
               orElse: () => null,
             );
 
-    final participant = conversation?.participant;
+    final participant = state.participant ?? conversation?.participant;
     final participantName =
         participant?.displayName ?? participant?.username ?? 'Chat';
     final onlineStatus = participant?.onlineStatus ?? 'offline';
@@ -616,6 +618,30 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
                     ],
                   ),
                 ),
+              ),
+
+              // ── IDENTITY CHANGE BANNER ──
+              // Shown only when the peer's published fingerprint differs
+              // from the one we last pinned. First-contact is auto-ack'd
+              // by [identityChangeAlertProvider].
+              Consumer(
+                builder: (context, ref, _) {
+                  final alertAsync =
+                      ref.watch(identityChangeAlertProvider(widget.userId));
+                  return alertAsync.maybeWhen(
+                    data: (alert) {
+                      if (alert == null) return const SizedBox.shrink();
+                      return IdentityChangeBanner(
+                        alert: alert,
+                        onTrusted: () => ref.invalidate(
+                            identityChangeAlertProvider(widget.userId)),
+                        onDismiss: () => ref.invalidate(
+                            identityChangeAlertProvider(widget.userId)),
+                      );
+                    },
+                    orElse: () => const SizedBox.shrink(),
+                  );
+                },
               ),
 
               // ── MESSAGES ──

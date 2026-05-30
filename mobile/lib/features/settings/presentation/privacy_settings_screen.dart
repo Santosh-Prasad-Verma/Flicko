@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mobile/features/settings/application/user_settings_notifier.dart';
 
 /// Privacy & Safety Settings Screen (Sleek Brutalist Black/Neon Theme)
@@ -24,6 +25,182 @@ class _PrivacySettingsScreenState
 
   void _setBool(String key, bool value) {
     ref.read(userSettingsNotifierProvider.notifier).setBool(key, value);
+  }
+
+  void _show2FASheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: _surfaceContainer,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: _textWhite.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: _neonGreen.withValues(alpha: 0.1),
+                      border: Border.all(color: _neonGreen.withValues(alpha: 0.3)),
+                    ),
+                    child: const Icon(Icons.security_rounded, color: _neonGreen, size: 22),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'TWO-FACTOR AUTH',
+                          style: GoogleFonts.epilogue(
+                            color: _textWhite,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                        Text(
+                          'Coming soon',
+                          style: GoogleFonts.spaceMono(
+                            color: _neonGreen,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Two-factor authentication will add an extra layer of security to your account using an authenticator app or SMS verification.',
+                style: GoogleFonts.inter(
+                  color: _textMuted,
+                  fontSize: 13,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _neonGreen,
+                    foregroundColor: Colors.black,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: const RoundedRectangleBorder(),
+                  ),
+                  child: Text(
+                    'GOT IT',
+                    style: GoogleFonts.spaceGrotesk(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 13,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _requestDataExport() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: _surfaceContainer,
+        shape: const RoundedRectangleBorder(),
+        title: Text(
+          'EXPORT YOUR DATA',
+          style: GoogleFonts.epilogue(
+            color: _textWhite,
+            fontWeight: FontWeight.w900,
+            fontStyle: FontStyle.italic,
+          ),
+        ),
+        content: Text(
+          'We will prepare a copy of your personal data and send a download link to your registered email address. This may take up to 24 hours.',
+          style: GoogleFonts.inter(color: _textMuted, fontSize: 13, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Cancel',
+                style: GoogleFonts.spaceGrotesk(
+                    color: _textMuted, fontWeight: FontWeight.w700)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text('Request Export',
+                style: GoogleFonts.spaceGrotesk(
+                    color: _neonGreen, fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    try {
+      final client = Supabase.instance.client;
+      final user = client.auth.currentUser;
+      if (user == null) return;
+
+      // Insert a data export request record; a backend function/edge function
+      // processes it and emails the user a download link.
+      await client.from('data_export_requests').insert({
+        'user_id': user.id,
+        'email': user.email,
+        'status': 'pending',
+        'requested_at': DateTime.now().toUtc().toIso8601String(),
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Export requested. You will receive an email within 24 hours.',
+              style: GoogleFonts.spaceGrotesk(color: Colors.black),
+            ),
+            backgroundColor: _neonGreen,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to submit request: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -255,8 +432,8 @@ class _PrivacySettingsScreenState
           title: 'READ RECEIPTS',
           subtitle: 'Show when messages are read.',
           badge: 'SEEN',
-          toggleWidget: _buildHardwareToggle(false, (val) {
-            // Read receipts not yet in UserSettings model
+          toggleWidget: _buildHardwareToggle(ref.watch(userSettingsNotifierProvider).readReceipts, (val) {
+            _setBool('privacy_read_receipts', val);
           }),
         ),
         const SizedBox(height: 14),
@@ -264,8 +441,8 @@ class _PrivacySettingsScreenState
           title: 'TYPING INDICATOR',
           subtitle: 'Show when you are typing.',
           badge: 'LIVE',
-          toggleWidget: _buildHardwareToggle(false, (val) {
-            // Typing indicator not yet in UserSettings model
+          toggleWidget: _buildHardwareToggle(ref.watch(userSettingsNotifierProvider).typingIndicator, (val) {
+            _setBool('privacy_typing_indicator', val);
           }),
         ),
         const SizedBox(height: 14),
@@ -305,17 +482,11 @@ class _PrivacySettingsScreenState
           subtitle: 'Add extra security to your account.',
           badge: '2FA',
           usePrimaryBadge: true,
-          toggleWidget: _buildHardwareToggle(false, (val) {
-            // 2FA not yet wired to backend
-          }),
+          toggleWidget: _buildHardwareToggle(false, (_) => _show2FASheet()),
         ),
         const SizedBox(height: 14),
         GestureDetector(
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Data export request submitted.')),
-            );
-          },
+          onTap: _requestDataExport,
           child: Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(

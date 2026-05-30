@@ -1,0 +1,42 @@
+name: AI Summary Eval
+
+on:
+  schedule:
+    # Nightly at 03:00 UTC. Picks an off-minute to avoid clustering with
+    # other scheduled actions.
+    - cron: "13 3 * * *"
+  workflow_dispatch:
+    # Manual trigger for ad-hoc runs after prompt or model changes.
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache-dependency-path: backend/go.sum
+
+      - name: Build eval binary
+        working-directory: backend
+        run: go build -o /tmp/eval-summary ./cmd/eval-summary
+
+      - name: Run eval against Groq
+        working-directory: backend
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_MODEL: llama-3.3-70b-versatile
+          # Ollama fallback is unreachable in CI; the binary errors fast on
+          # provider failure, which is the desired gate behaviour.
+          OLLAMA_BASE_URL: http://127.0.0.1:11434
+        run: |
+          if [ -z "${GROQ_API_KEY}" ]; then
+            echo "::warning::GROQ_API_KEY is not set; skipping eval (set it in repo Secrets to enable)."
+            exit 0
+          fi
+          /tmp/eval-summary \
+            -golden internal/services/ai/message_summary/evals/golden.jsonl

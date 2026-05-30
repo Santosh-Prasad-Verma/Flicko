@@ -83,6 +83,14 @@ class SenderKey {
     chainKey: Uint8List.fromList(base64Decode(j['chain_key'] as String)),
     signingPub: Uint8List.fromList(base64Decode(j['signing_pub'] as String)),
   );
+
+  /// Serialize for distribution to peers (carried inside an [E2EESession]
+  /// per-pair ciphertext). Receivers reconstruct via [SenderKey.fromJson].
+  Uint8List toDistributionBytes() =>
+      Uint8List.fromList(utf8.encode(jsonEncode(toJson())));
+
+  static SenderKey fromDistributionBytes(Uint8List bytes) =>
+      SenderKey.fromJson(jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>);
 }
 
 /// Self-pairing request for new device onboarding (R7.4, R7.5).

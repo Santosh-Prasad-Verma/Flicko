@@ -21,9 +21,6 @@ class _ChessGameScreenState extends ConsumerState<ChessGameScreen> {
   List<String> _validMoves = [];
   bool _isFlipped = false;
 
-  // Standard chess starting position FEN
-  static const String _initialFEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
-
   @override
   Widget build(BuildContext context) {
     final gameStateAsync = ref.watch(chessGameProvider(widget.gameId));

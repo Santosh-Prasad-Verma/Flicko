@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
+import 'package:mobile/features/voice/presentation/controllers/voice_controller.dart';
 
 class StageParticipant {
   final String userId;
@@ -56,13 +57,59 @@ class _StageChannelScreenState extends ConsumerState<StageChannelScreen> {
   bool _isLoading = true;
   Map<String, dynamic>? _channel;
   List<StageParticipant> _participants = [];
-  bool _isConnected = false;
-  bool _isMuted = false;
+  RealtimeChannel? _voiceStatesSubscription;
+  RealtimeChannel? _queueSubscription;
 
   @override
   void initState() {
     super.initState();
     _loadData();
+    _setupRealtimeListeners();
+  }
+
+  void _setupRealtimeListeners() {
+    final client = Supabase.instance.client;
+
+    _voiceStatesSubscription = client
+        .channel('voice_states_stage:${widget.channelId}')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'voice_states',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'channel_id',
+            value: widget.channelId,
+          ),
+          callback: (payload) {
+            _loadParticipants();
+          },
+        )
+        ..subscribe();
+
+    _queueSubscription = client
+        .channel('stage_queue:${widget.channelId}')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'stage_speaker_queue',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'channel_id',
+            value: widget.channelId,
+          ),
+          callback: (payload) {
+            _loadParticipants();
+          },
+        )
+        ..subscribe();
+  }
+
+  @override
+  void dispose() {
+    _voiceStatesSubscription?.unsubscribe();
+    _queueSubscription?.unsubscribe();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -93,10 +140,33 @@ class _StageChannelScreenState extends ConsumerState<StageChannelScreen> {
           .from('voice_states')
           .select('*, user:profiles!user_id(id, username, display_name, avatar)')
           .eq('channel_id', widget.channelId);
-      
+
+      final queueResponse = await Supabase.instance.client
+          .from('stage_speaker_queue')
+          .select('user_id')
+          .eq('channel_id', widget.channelId)
+          .eq('status', 'waiting');
+
+      final waitingUserIds = (queueResponse as List)
+          .map((row) => row['user_id'] as String)
+          .toSet();
+
+      if (!mounted) return;
       setState(() {
         _participants = (response as List)
-            .map((p) => StageParticipant.fromJson(p as Map<String, dynamic>))
+            .map((p) {
+              final userId = p['user_id'] as String;
+              final user = p['user'] as Map<String, dynamic>?;
+              return StageParticipant(
+                userId: userId,
+                username: user?['username'] as String? ?? 'Unknown',
+                displayName: user?['display_name'] as String?,
+                avatarUrl: user?['avatar'] as String?,
+                isSpeaker: !(p['suppress'] as bool? ?? false),
+                handRaised: waitingUserIds.contains(userId),
+                selfMute: p['self_mute'] as bool? ?? false,
+              );
+            })
             .toList();
       });
     } catch (e) {
@@ -124,25 +194,69 @@ class _StageChannelScreenState extends ConsumerState<StageChannelScreen> {
   bool get _isSpeaker => _currentUserParticipant?.isSpeaker ?? false;
 
   void _handleJoin() {
-    // TODO: Implement voice connection
-    setState(() => _isConnected = true);
+    ref.read(voiceControllerProvider.notifier).joinChannel(widget.channelId, widget.serverId);
   }
 
   void _handleLeave() {
-    // TODO: Implement voice disconnection
-    setState(() => _isConnected = false);
+    ref.read(voiceControllerProvider.notifier).leaveChannel();
   }
 
   void _handleToggleMute() {
-    setState(() => _isMuted = !_isMuted);
-    // TODO: Implement actual mute toggle
+    ref.read(voiceControllerProvider.notifier).toggleMute();
   }
 
-  void _handleRaiseHand() {
-    // TODO: Implement raise hand mutation
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Hand raised')),
-    );
+  Future<void> _handleRaiseHand() async {
+    final myId = Supabase.instance.client.auth.currentUser?.id;
+    if (myId == null) return;
+    try {
+      final existing = await Supabase.instance.client
+          .from('stage_speaker_queue')
+          .select('id')
+          .eq('channel_id', widget.channelId)
+          .eq('user_id', myId)
+          .eq('status', 'waiting');
+
+      if ((existing as List).isEmpty) {
+        await Supabase.instance.client.from('stage_speaker_queue').insert({
+          'channel_id': widget.channelId,
+          'user_id': myId,
+          'status': 'waiting',
+        });
+      }
+      _loadParticipants();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Hand raised')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to raise hand')),
+      );
+    }
+  }
+
+  Future<void> _handleLowerHand() async {
+    final myId = Supabase.instance.client.auth.currentUser?.id;
+    if (myId == null) return;
+    try {
+      await Supabase.instance.client
+          .from('stage_speaker_queue')
+          .update({'status': 'cancelled'})
+          .eq('channel_id', widget.channelId)
+          .eq('user_id', myId)
+          .eq('status', 'waiting');
+      _loadParticipants();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Hand lowered')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to lower hand')),
+      );
+    }
   }
 
   void _handleParticipantPress(StageParticipant participant) {
@@ -204,8 +318,17 @@ class _StageChannelScreenState extends ConsumerState<StageChannelScreen> {
           .update({'suppress': false})
           .eq('channel_id', widget.channelId)
           .eq('user_id', userId);
+
+      await Supabase.instance.client
+          .from('stage_speaker_queue')
+          .update({'status': 'promoted'})
+          .eq('channel_id', widget.channelId)
+          .eq('user_id', userId)
+          .eq('status', 'waiting');
+
       await _loadParticipants();
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Failed to invite to speak')),
       );
@@ -219,16 +342,32 @@ class _StageChannelScreenState extends ConsumerState<StageChannelScreen> {
           .update({'suppress': true})
           .eq('channel_id', widget.channelId)
           .eq('user_id', userId);
+
+      await Supabase.instance.client
+          .from('stage_speaker_queue')
+          .update({'status': 'dismissed'})
+          .eq('channel_id', widget.channelId)
+          .eq('user_id', userId)
+          .eq('status', 'promoted');
+
       await _loadParticipants();
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Failed to move to audience')),
       );
     }
   }
 
+  bool get _handRaised => _currentUserParticipant?.handRaised ?? false;
+
   @override
   Widget build(BuildContext context) {
+    final voiceState = ref.watch(voiceControllerProvider);
+    final isConnected = voiceState.isConnected && voiceState.activeChannelId == widget.channelId;
+    final isMuted = voiceState.isMuted;
+    final handRaised = _handRaised;
+
     return Scaffold(
       backgroundColor: const Color(FlickoColors.bgPrimary),
       body: SafeArea(
@@ -244,7 +383,7 @@ class _StageChannelScreenState extends ConsumerState<StageChannelScreen> {
                     )
                   : _buildContent(),
             ),
-            _buildControls(),
+            _buildControls(isConnected, isMuted, handRaised),
           ],
         ),
       ),
@@ -394,6 +533,24 @@ class _StageChannelScreenState extends ConsumerState<StageChannelScreen> {
                     ),
                   ),
                 ),
+                if (participant.handRaised)
+                  Positioned(
+                    top: 0,
+                    right: 0,
+                    child: Container(
+                      width: 18,
+                      height: 18,
+                      decoration: const BoxDecoration(
+                        color: Color(FlickoColors.warning),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.back_hand,
+                        size: 10,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
                 if (participant.selfMute)
                   Positioned(
                     bottom: 0,
@@ -431,7 +588,7 @@ class _StageChannelScreenState extends ConsumerState<StageChannelScreen> {
     );
   }
 
-  Widget _buildControls() {
+  Widget _buildControls(bool isConnected, bool isMuted, bool handRaised) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       decoration: const BoxDecoration(
@@ -440,18 +597,18 @@ class _StageChannelScreenState extends ConsumerState<StageChannelScreen> {
           top: BorderSide(color: Color(FlickoColors.border), width: 1),
         ),
       ),
-      child: _isConnected ? _buildConnectedControls() : _buildJoinButton(),
+      child: isConnected ? _buildConnectedControls(isMuted, handRaised) : _buildJoinButton(),
     );
   }
 
-  Widget _buildConnectedControls() {
+  Widget _buildConnectedControls(bool isMuted, bool handRaised) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         _buildControlButton(
-          icon: _isMuted ? Icons.mic_off : Icons.mic,
+          icon: isMuted ? Icons.mic_off : Icons.mic,
           label: '',
-          backgroundColor: _isMuted
+          backgroundColor: isMuted
               ? const Color(FlickoColors.danger)
               : const Color(FlickoColors.bgTertiary),
           onTap: _handleToggleMute,
@@ -459,11 +616,13 @@ class _StageChannelScreenState extends ConsumerState<StageChannelScreen> {
         const SizedBox(width: 16),
         if (!_isSpeaker) ...[
           _buildControlButton(
-            icon: Icons.back_hand,
-            label: 'Raise Hand',
-            backgroundColor: const Color(FlickoColors.warning),
-            textColor: Colors.black,
-            onTap: _handleRaiseHand,
+            icon: handRaised ? Icons.back_hand : Icons.back_hand_outlined,
+            label: handRaised ? 'Lower Hand' : 'Raise Hand',
+            backgroundColor: handRaised
+                ? const Color(FlickoColors.bgTertiary)
+                : const Color(FlickoColors.warning),
+            textColor: handRaised ? Colors.white : Colors.black,
+            onTap: handRaised ? _handleLowerHand : _handleRaiseHand,
           ),
           const SizedBox(width: 16),
         ],
