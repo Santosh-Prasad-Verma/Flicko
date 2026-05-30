@@ -293,6 +293,7 @@ mobile/android/app/google-services.json
 mobile/ios/Runner/GoogleService-Info.plist
 .agents/
 .env.prod
+doppler.json
 doppler_secrets.json
 mobile/doppler.json
 clerk_search.txt
