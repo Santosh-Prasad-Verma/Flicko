@@ -1,6 +1,9 @@
 package moderation
 
-import "testing"
+import (
+	"context"
+	"testing"
+)
 
 func TestParseScoresHappyPath(t *testing.T) {
 	raw := `S1: 0.02
@@ -96,7 +99,7 @@ func TestSetThresholdsRejectsReviewAboveBlock(t *testing.T) {
 		Block:  map[string]float64{CategoryHate: 0.8},
 		Review: map[string]float64{CategoryHate: 0.9},
 	}
-	if err := s.SetThresholds(nil, "srv", t1); err == nil {
+	if err := s.SetThresholds(context.TODO(), "srv", t1); err == nil {
 		t.Fatal("expected validation error")
 	}
 }
