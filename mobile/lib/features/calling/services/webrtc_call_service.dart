@@ -42,7 +42,9 @@ class WebRtcCallService extends ChangeNotifier {
   MediaStream? _remoteStream;
   AudioSession? _audioSession;
   Timer? _offerRetryTimer;
+  Timer? _mediaWatchdogTimer;
   RTCSessionDescription? _lastLocalOffer;
+  final List<RTCIceCandidate> _localIceCandidates = [];
   final List<RTCIceCandidate> _pendingRemoteIceCandidates = [];
 
   bool _renderersReady = false;
@@ -54,6 +56,7 @@ class WebRtcCallService extends ChangeNotifier {
   bool _cameraEnabled = false;
   bool _speakerEnabled = true;
   bool _callAudioSessionActive = false;
+  bool _remoteAudioTrackSeen = false;
   String? _roomName;
   String? _myUserId;
   String? _peerUserId;
@@ -62,6 +65,7 @@ class WebRtcCallService extends ChangeNotifier {
   RTCPeerConnectionState? _peerConnectionState;
   RTCIceConnectionState? _iceConnectionState;
   static const Duration _roomSubscribeTimeout = Duration(seconds: 8);
+  static const Duration _remoteAudioTimeout = Duration(seconds: 20);
 
   bool get renderersReady => _renderersReady;
   bool get isStarted => _started;
@@ -118,7 +122,9 @@ class WebRtcCallService extends ChangeNotifier {
     _remoteReady = false;
     _answerReceived = false;
     _lastLocalOffer = null;
+    _localIceCandidates.clear();
     _pendingRemoteIceCandidates.clear();
+    _remoteAudioTrackSeen = false;
     _error = null;
     _setPhase(WebRtcCallPhase.preparing);
 
@@ -128,6 +134,7 @@ class WebRtcCallService extends ChangeNotifier {
       await _createPeerConnection();
       await _subscribeRoom();
       await _sendSignal(_RtcSignalType.ready);
+      _startRemoteAudioWatchdog();
       _setPhase(WebRtcCallPhase.signaling);
 
       if (_isCaller) {
@@ -206,6 +213,8 @@ class WebRtcCallService extends ChangeNotifier {
 
     _offerRetryTimer?.cancel();
     _offerRetryTimer = null;
+    _mediaWatchdogTimer?.cancel();
+    _mediaWatchdogTimer = null;
 
     try {
       await _peer?.close();
@@ -251,7 +260,9 @@ class WebRtcCallService extends ChangeNotifier {
     _remoteReady = false;
     _answerReceived = false;
     _lastLocalOffer = null;
+    _localIceCandidates.clear();
     _pendingRemoteIceCandidates.clear();
+    _remoteAudioTrackSeen = false;
     _roomName = null;
     _myUserId = null;
     _peerUserId = null;
@@ -351,13 +362,6 @@ class WebRtcCallService extends ChangeNotifier {
       } catch (error) {
         debugPrint('[FlickoRTC] android audio config failed: $error');
       }
-      _callAudioSessionActive = true;
-      return;
-    }
-
-    if (!Platform.isIOS) {
-      _callAudioSessionActive = true;
-      return;
     }
 
     _audioSession ??= await AudioSession.instance;
@@ -367,6 +371,14 @@ class WebRtcCallService extends ChangeNotifier {
           AVAudioSessionCategoryOptions.allowBluetooth |
               AVAudioSessionCategoryOptions.defaultToSpeaker,
       avAudioSessionMode: AVAudioSessionMode.voiceChat,
+      androidAudioAttributes: const AndroidAudioAttributes(
+        contentType: AndroidAudioContentType.speech,
+        flags: AndroidAudioFlags.none,
+        usage: AndroidAudioUsage.voiceCommunication,
+      ),
+      androidAudioFocusGainType:
+          AndroidAudioFocusGainType.gainTransientExclusive,
+      androidWillPauseWhenDucked: true,
     ));
 
     final activated = await _audioSession!.setActive(true);
@@ -387,13 +399,6 @@ class WebRtcCallService extends ChangeNotifier {
       } catch (error) {
         debugPrint('[FlickoRTC] clear android comm device ignored: $error');
       }
-      _callAudioSessionActive = false;
-      return;
-    }
-
-    if (!Platform.isIOS) {
-      _callAudioSessionActive = false;
-      return;
     }
 
     try {
@@ -429,7 +434,8 @@ class WebRtcCallService extends ChangeNotifier {
       // released between getUserMedia and addTrack (race after a prior call's
       // endCall). Skip rather than crashing the whole start.
       if (track.id == null || track.id!.isEmpty) {
-        debugPrint('[FlickoRTC] skipping track with null id (kind=${track.kind})');
+        debugPrint(
+            '[FlickoRTC] skipping track with null id (kind=${track.kind})');
         continue;
       }
       await _peer!.addTrack(track, _localStream!);
@@ -439,16 +445,8 @@ class WebRtcCallService extends ChangeNotifier {
       ..onIceCandidate = (candidate) {
         if (candidate.candidate == null || candidate.candidate!.isEmpty) return;
         debugPrint('[FlickoRTC] local ICE candidate generated');
-        unawaited(
-          _sendSignal(
-            _RtcSignalType.ice,
-            payload: {
-              'candidate': candidate.candidate,
-              'sdpMid': candidate.sdpMid,
-              'sdpMLineIndex': candidate.sdpMLineIndex,
-            },
-          ),
-        );
+        _rememberLocalIceCandidate(candidate);
+        unawaited(_sendIceCandidate(candidate));
       }
       ..onTrack = (event) {
         unawaited(_attachRemoteTrack(event));
@@ -465,9 +463,12 @@ class WebRtcCallService extends ChangeNotifier {
             break;
           case RTCPeerConnectionState.RTCPeerConnectionStateDisconnected:
             _setPhase(WebRtcCallPhase.reconnecting);
+            unawaited(_replayLocalIceCandidates('peer disconnected'));
             break;
           case RTCPeerConnectionState.RTCPeerConnectionStateFailed:
+            _error = _mediaRouteFailureMessage();
             _setPhase(WebRtcCallPhase.failed);
+            unawaited(_replayLocalIceCandidates('peer failed'));
             break;
           case RTCPeerConnectionState.RTCPeerConnectionStateClosed:
             _setPhase(WebRtcCallPhase.ended);
@@ -479,6 +480,13 @@ class WebRtcCallService extends ChangeNotifier {
       ..onIceConnectionState = (state) {
         _iceConnectionState = state;
         debugPrint('[FlickoRTC] ICE connection state: $state');
+        if (state == RTCIceConnectionState.RTCIceConnectionStateDisconnected) {
+          unawaited(_replayLocalIceCandidates('ice disconnected'));
+        } else if (state == RTCIceConnectionState.RTCIceConnectionStateFailed) {
+          _error = _mediaRouteFailureMessage();
+          _setPhase(WebRtcCallPhase.failed);
+          unawaited(_replayLocalIceCandidates('ice failed'));
+        }
         notifyListeners();
       };
   }
@@ -501,11 +509,21 @@ class WebRtcCallService extends ChangeNotifier {
     _remoteStream = stream;
     remoteRenderer.srcObject = stream;
     await _activateRemoteAudio();
+    if (event.track.kind == 'audio') {
+      _remoteAudioTrackSeen = true;
+      _mediaWatchdogTimer?.cancel();
+      _mediaWatchdogTimer = null;
+    }
     notifyListeners();
   }
 
   Future<void> _activateRemoteAudio() async {
     final audioTracks = _remoteStream?.getAudioTracks() ?? <MediaStreamTrack>[];
+    if (audioTracks.isNotEmpty) {
+      _remoteAudioTrackSeen = true;
+      _mediaWatchdogTimer?.cancel();
+      _mediaWatchdogTimer = null;
+    }
     for (final track in audioTracks) {
       track.enabled = true;
     }
@@ -590,6 +608,7 @@ class WebRtcCallService extends ChangeNotifier {
         _remoteReady = true;
         if (!_isCaller) {
           await _sendSignal(_RtcSignalType.ready);
+          await _replayLocalIceCandidates('peer ready');
         } else {
           await _createAndSendOffer();
         }
@@ -630,6 +649,7 @@ class WebRtcCallService extends ChangeNotifier {
       _RtcSignalType.offer,
       payload: {'sdp': offer.sdp, 'sdpType': offer.type},
     );
+    await _replayLocalIceCandidates('offer sent');
   }
 
   Future<void> _handleOffer(Map payload) async {
@@ -646,6 +666,7 @@ class WebRtcCallService extends ChangeNotifier {
           _RtcSignalType.answer,
           payload: {'sdp': existingLocal!.sdp, 'sdpType': existingLocal.type},
         );
+        await _replayLocalIceCandidates('duplicate offer answer resent');
       }
       return;
     }
@@ -661,6 +682,7 @@ class WebRtcCallService extends ChangeNotifier {
       _RtcSignalType.answer,
       payload: {'sdp': answer.sdp, 'sdpType': answer.type},
     );
+    await _replayLocalIceCandidates('answer sent');
   }
 
   Future<void> _handleAnswer(Map payload) async {
@@ -672,6 +694,7 @@ class WebRtcCallService extends ChangeNotifier {
     _offerRetryTimer?.cancel();
     _offerRetryTimer = null;
     await _flushPendingRemoteIceCandidates();
+    await _replayLocalIceCandidates('answer received');
   }
 
   Future<void> _handleIce(Map payload) async {
@@ -711,6 +734,43 @@ class WebRtcCallService extends ChangeNotifier {
       debugPrint('[FlickoRTC] remote ICE candidate added');
     } catch (error) {
       debugPrint('[FlickoRTC] add remote ICE failed: $error');
+    }
+  }
+
+  void _rememberLocalIceCandidate(RTCIceCandidate candidate) {
+    final rawCandidate = candidate.candidate;
+    if (rawCandidate == null || rawCandidate.isEmpty) return;
+
+    final key = _iceCandidateKey(candidate);
+    final alreadyStored =
+        _localIceCandidates.any((stored) => _iceCandidateKey(stored) == key);
+    if (!alreadyStored) {
+      _localIceCandidates.add(candidate);
+    }
+  }
+
+  String _iceCandidateKey(RTCIceCandidate candidate) {
+    return '${candidate.sdpMid}|${candidate.sdpMLineIndex}|${candidate.candidate}';
+  }
+
+  Future<void> _sendIceCandidate(RTCIceCandidate candidate) {
+    return _sendSignal(
+      _RtcSignalType.ice,
+      payload: {
+        'candidate': candidate.candidate,
+        'sdpMid': candidate.sdpMid,
+        'sdpMLineIndex': candidate.sdpMLineIndex,
+      },
+    );
+  }
+
+  Future<void> _replayLocalIceCandidates(String reason) async {
+    if (_localIceCandidates.isEmpty) return;
+    debugPrint(
+      '[FlickoRTC] replaying ${_localIceCandidates.length} ICE candidates ($reason)',
+    );
+    for (final candidate in List<RTCIceCandidate>.from(_localIceCandidates)) {
+      await _sendIceCandidate(candidate);
     }
   }
 
@@ -794,9 +854,31 @@ class WebRtcCallService extends ChangeNotifier {
     return servers;
   }
 
+  void _startRemoteAudioWatchdog() {
+    _mediaWatchdogTimer?.cancel();
+    _mediaWatchdogTimer = Timer(_remoteAudioTimeout, () {
+      if (!_started || _remoteAudioTrackSeen) return;
+      _error = _mediaRouteFailureMessage();
+      debugPrint('[FlickoRTC] $_error');
+      _setPhase(WebRtcCallPhase.failed);
+    });
+  }
+
+  String _mediaRouteFailureMessage() {
+    final hasTurn = AppConfig.rtcTurnUrl.trim().isNotEmpty;
+    if (hasTurn) {
+      return 'Call media route failed. Check TURN credentials and device network.';
+    }
+    return 'Call connected, but no remote audio route was established. Configure TURN for mobile/carrier NAT networks.';
+  }
+
   void _setPhase(WebRtcCallPhase next) {
     if (_phase == next && next != WebRtcCallPhase.connected) return;
     _phase = next;
+    if (next == WebRtcCallPhase.ended || next == WebRtcCallPhase.failed) {
+      _mediaWatchdogTimer?.cancel();
+      _mediaWatchdogTimer = null;
+    }
     notifyListeners();
   }
 

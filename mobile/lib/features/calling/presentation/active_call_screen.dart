@@ -39,7 +39,8 @@ class ActiveCallScreen extends ConsumerStatefulWidget {
   ConsumerState<ActiveCallScreen> createState() => _ActiveCallScreenState();
 }
 
-class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen> with TickerProviderStateMixin {
+class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen>
+    with TickerProviderStateMixin {
   // Animation Controllers
   late AnimationController _orbController;
   late AnimationController _waveController;
@@ -170,7 +171,6 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen> with Ticker
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final primaryColor = widget.isVideo ? _neonCyan : _neonGreen;
 
     return Scaffold(
       backgroundColor: _bgBlack,
@@ -183,8 +183,10 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen> with Ticker
                 animation: _orbController,
                 builder: (context, _) {
                   final val = _orbController.value;
-                  final orb1Align = Alignment(-0.6 + 0.3 * sin(val * pi * 2), -0.5 + 0.4 * cos(val * pi * 2));
-                  final orb2Align = Alignment(0.6 - 0.3 * cos(val * pi * 2), 0.5 - 0.4 * sin(val * pi * 2));
+                  final orb1Align = Alignment(-0.6 + 0.3 * sin(val * pi * 2),
+                      -0.5 + 0.4 * cos(val * pi * 2));
+                  final orb2Align = Alignment(0.6 - 0.3 * cos(val * pi * 2),
+                      0.5 - 0.4 * sin(val * pi * 2));
 
                   return Stack(
                     children: [
@@ -233,9 +235,12 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen> with Ticker
           // 3. Frosted Backdrop Blur overlay
           Positioned.fill(
             child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: widget.isVideo ? 5 : 45, sigmaY: widget.isVideo ? 5 : 45),
+              filter: ImageFilter.blur(
+                  sigmaX: widget.isVideo ? 5 : 45,
+                  sigmaY: widget.isVideo ? 5 : 45),
               child: Container(
-                color: Colors.black.withValues(alpha: widget.isVideo ? 0.35 : 0.45),
+                color: Colors.black
+                    .withValues(alpha: widget.isVideo ? 0.35 : 0.45),
               ),
             ),
           ),
@@ -243,7 +248,8 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen> with Ticker
           // 4. UI Content overlay
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -393,7 +399,8 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen> with Ticker
                             child: Text(
                               error,
                               textAlign: TextAlign.center,
-                              style: GoogleFonts.inter(color: Colors.white38, fontSize: 10),
+                              style: GoogleFonts.inter(
+                                  color: Colors.white38, fontSize: 10),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -461,12 +468,16 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen> with Ticker
           children: [
             Text(
               '${_bitrate.toStringAsFixed(1)} MBPS',
-              style: GoogleFonts.spaceMono(color: _neonGreen, fontSize: 10, fontWeight: FontWeight.bold),
+              style: GoogleFonts.spaceMono(
+                  color: _neonGreen, fontSize: 10, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 2),
             Text(
               'LOSS: $_packetLoss%  |  JITTER: ${_jitter}MS',
-              style: GoogleFonts.spaceMono(color: _white.withValues(alpha: 0.3), fontSize: 8.5, fontWeight: FontWeight.bold),
+              style: GoogleFonts.spaceMono(
+                  color: _white.withValues(alpha: 0.3),
+                  fontSize: 8.5,
+                  fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -507,7 +518,7 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen> with Ticker
               },
             );
           }),
-          
+
           // Organic waveform glow around avatar
           AnimatedBuilder(
             animation: _waveController,
@@ -522,7 +533,7 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen> with Ticker
               );
             },
           ),
-          
+
           // Core circular avatar
           Container(
             width: 110,
@@ -531,12 +542,15 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen> with Ticker
               shape: BoxShape.circle,
               color: Colors.white.withValues(alpha: 0.03),
               border: Border.all(
-                color: _isMuted ? Colors.white.withValues(alpha: 0.1) : primaryColor.withValues(alpha: 0.3),
+                color: _isMuted
+                    ? Colors.white.withValues(alpha: 0.1)
+                    : primaryColor.withValues(alpha: 0.3),
                 width: 2.5,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: (_isMuted ? Colors.transparent : primaryColor).withValues(alpha: 0.1),
+                  color: (_isMuted ? Colors.transparent : primaryColor)
+                      .withValues(alpha: 0.1),
                   blurRadius: 24,
                   spreadRadius: 2,
                 ),
@@ -552,7 +566,7 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen> with Ticker
                   )
                 : _avatarFallback(),
           ),
-          
+
           // Muted overlay
           if (_isMuted)
             Container(
@@ -616,7 +630,8 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen> with Ticker
           decoration: BoxDecoration(
             color: Colors.black.withValues(alpha: 0.45),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: _neonCyan.withValues(alpha: 0.35), width: 1.5),
+            border: Border.all(
+                color: _neonCyan.withValues(alpha: 0.35), width: 1.5),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.5),
@@ -628,12 +643,16 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen> with Ticker
             borderRadius: BorderRadius.circular(20),
             child: Stack(
               children: [
-                if (_rtc != null && _rtc!.renderersReady && _rtc!.hasLocalVideo && _isVideoOn)
+                if (_rtc != null &&
+                    _rtc!.renderersReady &&
+                    _rtc!.hasLocalVideo &&
+                    _isVideoOn)
                   Positioned.fill(
                     child: RTCVideoView(
                       _rtc!.localRenderer,
                       mirror: true,
-                      objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                      objectFit:
+                          RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
                     ),
                   )
                 else
@@ -663,7 +682,8 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen> with Ticker
                   top: 8,
                   left: 8,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.5),
                       borderRadius: BorderRadius.circular(6),
@@ -692,7 +712,8 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen> with Ticker
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05), width: 1),
+        border:
+            Border.all(color: Colors.white.withValues(alpha: 0.05), width: 1),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -711,7 +732,7 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen> with Ticker
               }
             },
           ),
-          
+
           // Camera On/Off
           _buildGlassActionBtn(
             icon: _isVideoOn ? Icons.videocam : Icons.videocam_off,
@@ -725,7 +746,7 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen> with Ticker
               }
             },
           ),
-          
+
           // Main hangup button (red glowing circle)
           GestureDetector(
             onTap: () => unawaited(_hangUp()),
@@ -747,7 +768,7 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen> with Ticker
               child: const Icon(Icons.call_end, color: Colors.black, size: 28),
             ),
           ),
-          
+
           // Speaker toggle
           _buildGlassActionBtn(
             icon: _isSpeaker ? Icons.volume_up : Icons.volume_down,
@@ -761,10 +782,12 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen> with Ticker
               }
             },
           ),
-          
+
           // Flip camera or hold
           _buildGlassActionBtn(
-            icon: widget.isVideo ? Icons.cameraswitch : (_isHolding ? Icons.play_arrow : Icons.pause),
+            icon: widget.isVideo
+                ? Icons.cameraswitch
+                : (_isHolding ? Icons.play_arrow : Icons.pause),
             label: widget.isVideo ? 'FLIP' : 'HOLD',
             isActive: widget.isVideo ? false : _isHolding,
             activeColor: _amber,
@@ -799,9 +822,13 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen> with Ticker
             height: 48,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: isActive ? activeColor.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.03),
+              color: isActive
+                  ? activeColor.withValues(alpha: 0.15)
+                  : Colors.white.withValues(alpha: 0.03),
               border: Border.all(
-                color: isActive ? activeColor.withValues(alpha: 0.4) : Colors.white.withValues(alpha: 0.05),
+                color: isActive
+                    ? activeColor.withValues(alpha: 0.4)
+                    : Colors.white.withValues(alpha: 0.05),
                 width: 1.5,
               ),
             ),
@@ -901,7 +928,8 @@ class _OrganicWaveformPainter extends CustomPainter {
     for (int i = 0; i <= segments; i++) {
       final angle = (i / segments) * 2 * pi;
       // Beautiful smooth organic waveform calculations
-      final wave = sin(angle * 6 + phase * 2 * pi) * (4 + 3 * sin(phase * pi + angle * 2));
+      final wave = sin(angle * 6 + phase * 2 * pi) *
+          (4 + 3 * sin(phase * pi + angle * 2));
       final r = baseRadius + wave;
       final x = center.dx + r * cos(angle);
       final y = center.dy + r * sin(angle);
