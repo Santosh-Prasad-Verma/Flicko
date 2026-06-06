@@ -160,7 +160,12 @@ func Initialize(
 
 	// 5b. Asynq-backed coordinator (HIGH-15 + CRIT-9 wiring).
 	// Survives pod restart since tasks live in Redis.
-	asynqClient := asynq.NewClient(asynq.RedisClientOpt{Addr: rc.Options().Addr})
+	asynqClient := asynq.NewClient(asynq.RedisClientOpt{
+		Addr:      rc.Options().Addr,
+		Password:  rc.Options().Password,
+		DB:        rc.Options().DB,
+		TLSConfig: rc.Options().TLSConfig,
+	})
 	asynqCoord := bots.NewAsynqBotCoordinator(
 		asynqClient,
 		stockfishPool,

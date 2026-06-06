@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:mime/mime.dart';
 import 'package:mobile/data/models/flicko_message.dart';
+import 'package:mobile/data/models/user_model.dart';
 import 'package:mobile/data/repositories/message_repository.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/data/services/media_processor_service.dart';
@@ -62,8 +63,48 @@ class ChatNotifier extends Notifier<ChatState> {
   }
 
   void _setupSubscription() {
-    _subscription = _repository.subscribeToChannel(_channelId, (eventType, payload) {
-      _refreshMessages();
+    _subscription = _repository.subscribeToChannel(_channelId, (eventType, payload) async {
+      if (eventType == PostgresChangeEvent.insert) {
+        try {
+          final messageId = payload['id'] as String;
+          // Check if already in list to avoid duplicates
+          if (state.messages.any((m) => m.id == messageId)) return;
+
+          final newMessage = await _repository.getById(messageId);
+          if (newMessage != null) {
+            if (!state.messages.any((m) => m.id == newMessage.id)) {
+              state = state.copyWith(
+                messages: [newMessage, ...state.messages],
+              );
+            }
+          }
+        } catch (_) {
+          _refreshMessages();
+        }
+      } else if (eventType == PostgresChangeEvent.delete) {
+        final messageId = payload['id'] as String?;
+        if (messageId != null) {
+          state = state.copyWith(
+            messages: state.messages.where((m) => m.id != messageId).toList(),
+          );
+        }
+      } else if (eventType == PostgresChangeEvent.update) {
+        try {
+          final messageId = payload['id'] as String?;
+          if (messageId != null) {
+            final updatedMessage = await _repository.getById(messageId);
+            if (updatedMessage != null) {
+              state = state.copyWith(
+                messages: state.messages.map((m) => m.id == messageId ? updatedMessage : m).toList(),
+              );
+            }
+          }
+        } catch (_) {
+          _refreshMessages();
+        }
+      } else {
+        _refreshMessages();
+      }
     });
 
     _repository.subscribeToTyping(_channelId, (userId, isTyping) {
@@ -110,7 +151,28 @@ class ChatNotifier extends Notifier<ChatState> {
   Future<void> sendMessage(String content, {String? replyToId, List<XFile>? localAttachments}) async {
     if (content.trim().isEmpty && (localAttachments == null || localAttachments.isEmpty)) return;
 
-    state = state.copyWith(isSending: true);
+    final tempMessageId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
+    final authState = ref.read(authNotifierProvider);
+    final UserModel? userProfile = authState.maybeWhen(
+      authenticated: (_, profile) => profile,
+      orElse: () => null,
+    );
+
+    final tempMessage = FlickoMessage(
+      id: tempMessageId,
+      channelId: _channelId,
+      authorId: _myId,
+      content: content,
+      type: replyToId != null ? 'reply' : 'default',
+      replyToId: replyToId,
+      createdAt: DateTime.now(),
+      author: userProfile,
+    );
+
+    state = state.copyWith(
+      messages: [tempMessage, ...state.messages],
+      isSending: true,
+    );
 
     try {
       final List<FlickoAttachment> uploadedAttachments = [];
@@ -138,17 +200,33 @@ class ChatNotifier extends Notifier<ChatState> {
         }
       }
 
-      await _repository.sendMessage(
+      final messageId = await _repository.sendMessage(
         channelId: _channelId,
         content: content,
         replyToId: replyToId,
         attachments: uploadedAttachments.isEmpty ? null : uploadedAttachments,
       );
+
+      final sentMessage = await _repository.getById(messageId);
       
-      state = state.copyWith(isSending: false);
-      _refreshMessages();
+      final updatedMessages = state.messages.map((m) {
+        if (m.id == tempMessageId) {
+          return sentMessage ?? m.copyWith(id: messageId);
+        }
+        return m;
+      }).toList();
+      
+      state = state.copyWith(
+        messages: updatedMessages,
+        isSending: false,
+      );
     } catch (e) {
-      state = state.copyWith(isSending: false, errorMessage: 'Failed to send message: $e');
+      final updatedMessages = state.messages.where((m) => m.id != tempMessageId).toList();
+      state = state.copyWith(
+        messages: updatedMessages,
+        isSending: false,
+        errorMessage: 'Failed to send message: $e',
+      );
     }
   }
 

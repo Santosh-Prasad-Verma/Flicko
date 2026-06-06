@@ -461,7 +461,13 @@ func main() {
 
 	// CRIT-9: Register Asynq worker server for bot:move and ludo_bot:move tasks.
 	if coord := hub.BotCoordinatorAsynq(); coord != nil {
-		asynqRedisOpt := asynq.RedisClientOpt{Addr: cfg.RedisURL}
+		rdb := redisCache.GetRedisClient().(*redis.Client)
+		asynqRedisOpt := asynq.RedisClientOpt{
+			Addr:      rdb.Options().Addr,
+			Password:  rdb.Options().Password,
+			DB:        rdb.Options().DB,
+			TLSConfig: rdb.Options().TLSConfig,
+		}
 		asynqSrv := asynq.NewServer(asynqRedisOpt, asynq.Config{
 			Concurrency: 8,
 			Queues:      map[string]int{"default": 1},
