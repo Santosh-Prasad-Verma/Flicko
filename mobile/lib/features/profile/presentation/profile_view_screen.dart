@@ -16,6 +16,7 @@ import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:share_plus/share_plus.dart';
 
 /// Unified Profile Screen — Flicko's Ultimate Profile Experience
 /// Handles both current user (Self) and other users (Public) with
@@ -294,7 +295,7 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
         try {
           await _client.from('friend_requests').insert({
             'sender_id': currentUser.id,
-            'receiver_id': widget.userId,
+            'receiver_id': _profile!.id,
             'status': 'pending',
           });
         } on PostgrestException catch (e) {
@@ -303,7 +304,7 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
                 .from('friend_requests')
                 .update({'status': 'pending'})
                 .eq('sender_id', currentUser.id)
-                .eq('receiver_id', widget.userId);
+                .eq('receiver_id', _profile!.id);
           } else {
             rethrow;
           }
@@ -313,17 +314,17 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
         await _client
             .from('friend_requests')
             .update({'status': 'accepted'})
-            .eq('sender_id', widget.userId)
+            .eq('sender_id', _profile!.id)
             .eq('receiver_id', currentUser.id);
 
         await _client.from('friends').insert([
-          {'user_id': currentUser.id, 'friend_id': widget.userId, 'status': 'accepted'},
-          {'user_id': widget.userId, 'friend_id': currentUser.id, 'status': 'accepted'},
+          {'user_id': currentUser.id, 'friend_id': _profile!.id, 'status': 'accepted'},
+          {'user_id': _profile!.id, 'friend_id': currentUser.id, 'status': 'accepted'},
         ]);
 
         await _client.from('friendships').insert([
-          {'user_id': currentUser.id, 'friend_id': widget.userId},
-          {'user_id': widget.userId, 'friend_id': currentUser.id},
+          {'user_id': currentUser.id, 'friend_id': _profile!.id},
+          {'user_id': _profile!.id, 'friend_id': currentUser.id},
         ]);
 
         setState(() => _friendStatus = 'friends');
@@ -335,9 +336,9 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
 
         if (confirmed) {
           await _client.from('friends').delete().or(
-              'and(user_id.eq.${currentUser.id},friend_id.eq.${widget.userId}),and(user_id.eq.${widget.userId},friend_id.eq.${currentUser.id})');
+              'and(user_id.eq.${currentUser.id},friend_id.eq.${_profile!.id}),and(user_id.eq.${_profile!.id},friend_id.eq.${currentUser.id})');
           await _client.from('friendships').delete().or(
-              'and(user_id.eq.${currentUser.id},friend_id.eq.${widget.userId}),and(user_id.eq.${widget.userId},friend_id.eq.${currentUser.id})');
+              'and(user_id.eq.${currentUser.id},friend_id.eq.${_profile!.id}),and(user_id.eq.${_profile!.id},friend_id.eq.${currentUser.id})');
           setState(() => _friendStatus = 'none');
         }
       }
@@ -401,7 +402,7 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
     ref.listen(authNotifierProvider, (previous, next) {
       next.maybeWhen(
         authenticated: (_, profile) {
-          if (profile != null && profile.id == widget.userId && !_isLoading) {
+          if (profile != null && profile.id == _profile?.id && !_isLoading) {
             setState(() => _profile = profile);
           }
         },
@@ -691,8 +692,41 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
                 }),
                 Row(
                   children: [
-                    _buildCircleBtn(Icons.share_outlined, () {
-                      context.push('/profile/settings/share-profile');
+                    _buildCircleBtn(Icons.share_outlined, () async {
+                      if (isOwnProfile) {
+                        context.push('/profile/settings/share-profile');
+                      } else {
+                        final link = 'https://flicko.app/@${profile.username}';
+                        await Clipboard.setData(ClipboardData(text: link));
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'PROFILE LINK COPIED!',
+                                style: GoogleFonts.spaceMono(
+                                  fontSize: 10,
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              backgroundColor: _accent,
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8)),
+                            ),
+                          );
+                        }
+                        try {
+                          await SharePlus.instance.share(
+                            ShareParams(
+                              text: 'Check out ${profile.displayName ?? profile.username} on Flicko: $link',
+                              subject: 'Flicko Profile',
+                            ),
+                          );
+                        } catch (e) {
+                          debugPrint('Error sharing profile: $e');
+                        }
+                      }
                     }),
                     const SizedBox(width: 10),
                     _buildCircleBtn(Icons.more_horiz_rounded, _showMoreOptions),
@@ -733,7 +767,7 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
                     status: profile.onlineStatus,
                     showStatus: true,
                     decoration: profile.avatarDecoration,
-                    userId: widget.userId,
+                    userId: profile.id,
                     showBadge: true,
                   ),
                 );
@@ -1053,7 +1087,7 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
           child: _buildBtn(
             'Message',
             Icons.chat_bubble_outline_rounded,
-            () => context.go('/dms/${widget.userId}'),
+            () => context.go('/dms/${_profile?.id ?? widget.userId}'),
             primary: false,
           ),
         ),
@@ -1487,7 +1521,7 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
                     }, color: const Color(FlickoColors.red)),
                   ],
                   _sheetItem(Icons.copy_rounded, 'Copy User ID', () {
-                    Clipboard.setData(ClipboardData(text: widget.userId));
+                    Clipboard.setData(ClipboardData(text: _profile?.id ?? widget.userId));
                     Navigator.pop(ctx);
                     ScaffoldMessenger.of(context)
                         .showSnackBar(const SnackBar(content: Text('ID copied!')));

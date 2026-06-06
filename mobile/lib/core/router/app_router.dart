@@ -349,83 +349,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   key: ValueKey('shell-profile'),
                   child: _CurrentUserProfileScreen(),
                 ),
-                routes: [
-                  GoRoute(
-                    path: 'settings',
-                    builder: (context, state) => const SettingsScreen(),
-                    routes: [
-                      GoRoute(path: 'account', builder: (context, state) => const AccountSettingsScreen()),
-                      GoRoute(path: 'edit-profile', builder: (context, state) => const EditProfileScreen()),
-                      GoRoute(path: 'share-profile', builder: (context, state) => const ShareProfileScreen()),
-                      GoRoute(path: 'appearance', builder: (context, state) => const AppearanceSettingsScreen()),
-                      GoRoute(path: 'privacy', builder: (context, state) => const PrivacySettingsScreen()),
-                      GoRoute(path: 'chat', builder: (context, state) => const ChatSettingsScreen()),
-                      GoRoute(path: 'translate', builder: (context, state) => const TranslateSettingsScreen()),
-                      GoRoute(path: 'notifications', builder: (context, state) => const NotificationsSettingsScreen()),
-                      GoRoute(path: 'voice', builder: (context, state) => const VoiceSettingsScreen()),
-                      GoRoute(path: 'accessibility', builder: (context, state) => const AccessibilitySettingsScreen()),
-                      GoRoute(
-                        path: 'help',
-                        builder: (context, state) => const HelpScreen(),
-                        routes: [
-                          GoRoute(path: 'faq', builder: (context, state) => const FAQScreen()),
-                          GoRoute(path: 'terms', builder: (context, state) => const TermsOfServiceScreen()),
-                          GoRoute(path: 'privacy-policy', builder: (context, state) => const PrivacyPolicyScreen()),
-                        ],
-                      ),
-                      GoRoute(path: 'language', builder: (context, state) => const LanguageScreen()),
-                      GoRoute(path: 'storage', builder: (context, state) => const StorageSettingsScreen()),
-                      GoRoute(path: 'status', builder: (context, state) => const StatusScreen()),
-                      GoRoute(path: 'server-profiles', builder: (context, state) => const ServerProfilesScreen()),
-                      GoRoute(path: 'change-email', builder: (context, state) => const ChangeEmailScreen()),
-                      GoRoute(path: 'change-username', builder: (context, state) => const ChangeUsernameScreen()),
-                      GoRoute(path: 'change-password', builder: (context, state) => const ChangePasswordScreen()),
-                      GoRoute(
-                        path: 'billing',
-                        builder: (context, state) => const BillingSettingsScreen(),
-                        routes: [
-                          GoRoute(path: 'history', builder: (context, state) => const BillingHistoryScreen()),
-                        ],
-                      ),
-                      GoRoute(
-                        path: 'sonic-drip',
-                        builder: (context, state) => Theme(
-                          data: sonic_theme.AppTheme.darkTheme(context: context),
-                          child: sonic_music.HomePage(),
-                        ),
-                      ),
-                      GoRoute(path: 'encryption', builder: (context, state) => const E2EESettingsScreen()),
-                      GoRoute(path: 'add-card', builder: (context, state) => const AddCardScreen()),
-                      GoRoute(path: 'about-developer', builder: (context, state) => const AboutDeveloperScreen()),
-                      GoRoute(
-                        path: 'aura',
-                        builder: (context, state) => const AuraOnboardingScreen(),
-                        routes: [
-                          GoRoute(
-                            path: 'dashboard',
-                            builder: (context, state) => const AuraDashboardScreen(),
-                          ),
-                          GoRoute(
-                            path: 'settings',
-                            builder: (context, state) => const AuraSettingsScreen(),
-                          ),
-                          GoRoute(
-                            path: 'chat',
-                            builder: (context, state) {
-                              final category = state.uri.queryParameters['category'] ?? 'Text Writer';
-                              final sessionId = state.uri.queryParameters['sessionId'];
-                              return AuraChatScreen(category: category, sessionId: sessionId);
-                            },
-                          ),
-                          GoRoute(
-                            path: 'voice',
-                            builder: (context, state) => const AuraVoiceScreen(),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ],
               ),
             ],
           ),
@@ -515,6 +438,84 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           serverId: state.uri.queryParameters['serverId'],
           channelId: state.uri.queryParameters['channelId'],
         ),
+      ),
+
+      // Profile Settings — pinned to root navigator to prevent duplicate navigator key conflicts
+      GoRoute(
+        path: '/profile/settings',
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => const SettingsScreen(),
+        routes: [
+          GoRoute(path: 'account', builder: (context, state) => const AccountSettingsScreen()),
+          GoRoute(path: 'edit-profile', builder: (context, state) => const EditProfileScreen()),
+          GoRoute(path: 'share-profile', builder: (context, state) => const ShareProfileScreen()),
+          GoRoute(path: 'appearance', builder: (context, state) => const AppearanceSettingsScreen()),
+          GoRoute(path: 'privacy', builder: (context, state) => const PrivacySettingsScreen()),
+          GoRoute(path: 'chat', builder: (context, state) => const ChatSettingsScreen()),
+          GoRoute(path: 'translate', builder: (context, state) => const TranslateSettingsScreen()),
+          GoRoute(path: 'notifications', builder: (context, state) => const NotificationsSettingsScreen()),
+          GoRoute(path: 'voice', builder: (context, state) => const VoiceSettingsScreen()),
+          GoRoute(path: 'accessibility', builder: (context, state) => const AccessibilitySettingsScreen()),
+          GoRoute(
+            path: 'help',
+            builder: (context, state) => const HelpScreen(),
+            routes: [
+              GoRoute(path: 'faq', builder: (context, state) => const FAQScreen()),
+              GoRoute(path: 'terms', builder: (context, state) => const TermsOfServiceScreen()),
+              GoRoute(path: 'privacy-policy', builder: (context, state) => const PrivacyPolicyScreen()),
+            ],
+          ),
+          GoRoute(path: 'language', builder: (context, state) => const LanguageScreen()),
+          GoRoute(path: 'storage', builder: (context, state) => const StorageSettingsScreen()),
+          GoRoute(path: 'status', builder: (context, state) => const StatusScreen()),
+          GoRoute(path: 'server-profiles', builder: (context, state) => const ServerProfilesScreen()),
+          GoRoute(path: 'change-email', builder: (context, state) => const ChangeEmailScreen()),
+          GoRoute(path: 'change-username', builder: (context, state) => const ChangeUsernameScreen()),
+          GoRoute(path: 'change-password', builder: (context, state) => const ChangePasswordScreen()),
+          GoRoute(
+            path: 'billing',
+            builder: (context, state) => const BillingSettingsScreen(),
+            routes: [
+              GoRoute(path: 'history', builder: (context, state) => const BillingHistoryScreen()),
+            ],
+          ),
+          GoRoute(
+            path: 'sonic-drip',
+            builder: (context, state) => Theme(
+              data: sonic_theme.AppTheme.darkTheme(context: context),
+              child: sonic_music.HomePage(),
+            ),
+          ),
+          GoRoute(path: 'encryption', builder: (context, state) => const E2EESettingsScreen()),
+          GoRoute(path: 'add-card', builder: (context, state) => const AddCardScreen()),
+          GoRoute(path: 'about-developer', builder: (context, state) => const AboutDeveloperScreen()),
+          GoRoute(
+            path: 'aura',
+            builder: (context, state) => const AuraOnboardingScreen(),
+            routes: [
+              GoRoute(
+                path: 'dashboard',
+                builder: (context, state) => const AuraDashboardScreen(),
+              ),
+              GoRoute(
+                path: 'settings',
+                builder: (context, state) => const AuraSettingsScreen(),
+              ),
+              GoRoute(
+                path: 'chat',
+                builder: (context, state) {
+                  final category = state.uri.queryParameters['category'] ?? 'Text Writer';
+                  final sessionId = state.uri.queryParameters['sessionId'];
+                  return AuraChatScreen(category: category, sessionId: sessionId);
+                },
+              ),
+              GoRoute(
+                path: 'voice',
+                builder: (context, state) => const AuraVoiceScreen(),
+              ),
+            ],
+          ),
+        ],
       ),
 
       // Profile — pinned to root navigator to avoid collision with shell /profile branch
