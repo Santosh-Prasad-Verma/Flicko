@@ -29,14 +29,14 @@ class MessageRepository {
     try {
       var query = _client.from('messages').select('''
           *,
-          author:profiles!author_id(id, username, display_name, avatar_url:avatar),
+          author:profiles!author_id(id, username, display_name, avatar_url:avatar, created_at),
           reactions(emoji, user_id),
           attachments(id, url, content_type:mime_type, filename, size, width, height),
           replyTo:messages!reply_to_id(
             id,
             content,
             type,
-            author:profiles!author_id(id, username, display_name, avatar_url:avatar)
+            author:profiles!author_id(id, username, display_name, avatar_url:avatar, created_at)
           )
         ''').eq('channel_id', channelId).isFilter('thread_id', null);
 
@@ -326,14 +326,14 @@ class MessageRepository {
   Future<List<FlickoMessage>> getThreadReplies(String threadId, {int limit = 50}) async {
     final response = await _client.from('messages').select('''
         *,
-        author:profiles!author_id(id, username, display_name, avatar_url:avatar),
+        author:profiles!author_id(id, username, display_name, avatar_url:avatar, created_at),
         reactions(emoji, user_id),
         attachments(id, url, content_type:mime_type, filename, size, width, height),
         replyTo:messages!reply_to_id(
           id,
           content,
           type,
-          author:profiles!author_id(id, username, display_name, avatar_url:avatar)
+          author:profiles!author_id(id, username, display_name, avatar_url:avatar, created_at)
         )
       ''').eq('thread_id', threadId)
       .order('created_at', ascending: true)
@@ -398,14 +398,14 @@ class MessageRepository {
     try {
       final response = await _client.from('messages').select('''
           *,
-          author:profiles!author_id(id, username, display_name, avatar_url:avatar),
+          author:profiles!author_id(id, username, display_name, avatar_url:avatar, created_at),
           reactions(emoji, user_id),
           attachments(id, url, content_type:mime_type, filename, size, width, height),
           replyTo:messages!reply_to_id(
             id,
             content,
             type,
-            author:profiles!author_id(id, username, display_name, avatar_url:avatar)
+            author:profiles!author_id(id, username, display_name, avatar_url:avatar, created_at)
           )
         ''').eq('id', messageId).maybeSingle();
       if (response == null) return null;
