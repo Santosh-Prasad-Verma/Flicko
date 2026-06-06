@@ -93,7 +93,6 @@ class _PollCreatorModalState extends State<_PollCreatorModal> {
 
       await client.from('messages').insert({
         'channel_id': widget.channelId,
-        'server_id': widget.serverId,
         'author_id': userId,
         'content': jsonEncode(pollData),
         'type': 'poll',

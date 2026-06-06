@@ -26,6 +26,8 @@ class EnhancedMessageItem extends ConsumerStatefulWidget {
   final VoidCallback onDelete;
   final VoidCallback onReply;
   final VoidCallback onCopy;
+  final bool isEditing;
+  final VoidCallback onEditCancel;
 
   const EnhancedMessageItem({
     super.key,
@@ -37,6 +39,8 @@ class EnhancedMessageItem extends ConsumerStatefulWidget {
     required this.onDelete,
     required this.onReply,
     required this.onCopy,
+    this.isEditing = false,
+    required this.onEditCancel,
   });
 
   @override
@@ -44,7 +48,6 @@ class EnhancedMessageItem extends ConsumerStatefulWidget {
 }
 
 class _EnhancedMessageItemState extends ConsumerState<EnhancedMessageItem> {
-  bool _isEditing = false;
   late TextEditingController _editController;
 
   @override
@@ -54,24 +57,31 @@ class _EnhancedMessageItemState extends ConsumerState<EnhancedMessageItem> {
   }
 
   @override
+  void didUpdateWidget(covariant EnhancedMessageItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.message.content != oldWidget.message.content || widget.isEditing != oldWidget.isEditing) {
+      _editController.text = widget.message.content;
+    }
+  }
+
+  @override
   void dispose() {
     _editController.dispose();
     super.dispose();
   }
 
   void _cancelEditing() {
-    setState(() {
-      _isEditing = false;
-      _editController.text = widget.message.content;
-    });
+    widget.onEditCancel();
+    _editController.text = widget.message.content;
   }
 
   void _saveEdit() {
     final newContent = _editController.text.trim();
     if (newContent.isNotEmpty && newContent != widget.message.content) {
       widget.onEdit(newContent);
+    } else {
+      widget.onEditCancel();
     }
-    setState(() => _isEditing = false);
   }
 
   @override
@@ -124,7 +134,7 @@ class _EnhancedMessageItemState extends ConsumerState<EnhancedMessageItem> {
                   const SizedBox(height: 4),
 
                   // Message content or edit field
-                   _isEditing ? _buildEditField() : _buildContent(),
+                  widget.isEditing ? _buildEditField() : _buildContent(),
 
                   // Optional translation panel. Renders nothing in idle state;
                   // auto-triggers when the user's behavior setting is `always`,
@@ -340,6 +350,34 @@ class _EnhancedMessageItemState extends ConsumerState<EnhancedMessageItem> {
       );
     }
 
+    if (_isGifUrl(trimmed) || _isImageUrl(trimmed)) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.1),
+              width: 1,
+            ),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: SafeNetworkImage(
+              imageUrl: trimmed,
+              contentType: _isGifUrl(trimmed) ? 'image/gif' : null,
+              fileName: _isGifUrl(trimmed) ? 'gif.gif' : 'image.png',
+              width: 280,
+              height: 200,
+              fit: BoxFit.contain,
+            ),
+          ),
+        ),
+      );
+    }
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
       child: BackdropFilter(
@@ -393,6 +431,26 @@ class _EnhancedMessageItemState extends ConsumerState<EnhancedMessageItem> {
         ),
       ),
     );
+  }
+
+  bool _isGifUrl(String content) {
+    final trimmed = content.trim();
+    if (!trimmed.startsWith('https://') && !trimmed.startsWith('http://')) return false;
+    return trimmed.contains('giphy.com') ||
+        trimmed.contains('tenor.com') ||
+        trimmed.contains('media.giphy.com') ||
+        Uri.tryParse(trimmed)?.path.endsWith('.gif') == true;
+  }
+
+  bool _isImageUrl(String content) {
+    final trimmed = content.trim();
+    if (!trimmed.startsWith('https://') && !trimmed.startsWith('http://')) return false;
+    final path = Uri.tryParse(trimmed)?.path.toLowerCase() ?? '';
+    return path.endsWith('.png') ||
+        path.endsWith('.jpg') ||
+        path.endsWith('.jpeg') ||
+        path.endsWith('.webp') ||
+        path.endsWith('.gif');
   }
 
   bool _isStickerUrl(String content) {

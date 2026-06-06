@@ -38,6 +38,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   final ScrollController _scrollController = ScrollController();
   final ParticleController _particleController = ParticleController();
   FlickoMessage? _replyTo;
+  String? _editingMessageId;
   int _lastMessageCount = 0;
   bool _showEntranceWarp = true;
 
@@ -106,9 +107,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           .read(chatNotifierProvider(widget.channelId).notifier)
           .toggleReaction(message.id, emoji),
       onReply: () => setState(() => _replyTo = message),
-      onEdit: () {
-        // Edit is handled inline by EnhancedMessageItem
-      },
+      onEdit: () => setState(() => _editingMessageId = message.id),
+      onPin: () => ref
+          .read(chatNotifierProvider(widget.channelId).notifier)
+          .togglePinMessage(message.id, !message.pinned),
       onDelete: () => ref
           .read(chatNotifierProvider(widget.channelId).notifier)
           .deleteMessage(message.id),
@@ -253,11 +255,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                   }
                                 }
 
-                                final currentUserId = ref.read(authNotifierProvider).maybeWhen(
-                                  authenticated: (user, _) => user.id,
-                                  orElse: () => '',
-                                );
-
                                 return EnhancedMessageItem(
                                   message: message,
                                   isContinuation: isContinuation,
@@ -265,9 +262,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                       .read(chatNotifierProvider(widget.channelId).notifier)
                                       .toggleReaction(message.id, emoji),
                                   onLongPress: () => _onMessageLongPress(message),
-                                  onEdit: (newContent) => ref
-                                      .read(chatNotifierProvider(widget.channelId).notifier)
-                                      .editMessage(message.id, newContent),
+                                  onEdit: (newContent) {
+                                    ref
+                                        .read(chatNotifierProvider(widget.channelId).notifier)
+                                        .editMessage(message.id, newContent);
+                                    setState(() => _editingMessageId = null);
+                                  },
+                                  onEditCancel: () => setState(() => _editingMessageId = null),
+                                  isEditing: _editingMessageId == message.id,
                                   onDelete: () => ref
                                       .read(chatNotifierProvider(widget.channelId).notifier)
                                       .deleteMessage(message.id),

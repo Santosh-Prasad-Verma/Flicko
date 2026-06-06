@@ -105,10 +105,10 @@ class _PollMessageCardState extends State<PollMessageCard> {
       final newPollData = Map<String, dynamic>.from(_pollData);
       newPollData['options'] = newOptions;
 
-      await Supabase.instance.client
-          .from('messages')
-          .update({'content': jsonEncode(newPollData)})
-          .eq('id', widget.message.id);
+      await Supabase.instance.client.rpc('vote_in_poll', params: {
+        'message_uuid': widget.message.id,
+        'new_content': jsonEncode(newPollData),
+      });
           
     } catch (e) {
       if (mounted) {

@@ -267,6 +267,18 @@ class ChatNotifier extends Notifier<ChatState> {
     }
   }
 
+  /// Toggles the pin status of a message.
+  Future<void> togglePinMessage(String messageId, bool pinned) async {
+    try {
+      await _repository.togglePinMessage(messageId, pinned);
+      state = state.copyWith(
+        messages: state.messages.map((m) => m.id == messageId ? m.copyWith(pinned: pinned) : m).toList(),
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to pin/unpin message: $e');
+    }
+  }
+
   /// Creates a thread from a message.
   Future<void> createThread(String messageId) async {
     try {

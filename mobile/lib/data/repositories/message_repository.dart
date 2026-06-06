@@ -31,7 +31,13 @@ class MessageRepository {
           *,
           author:profiles!author_id(id, username, display_name, avatar_url:avatar),
           reactions(emoji, user_id),
-          attachments(id, url, content_type:mime_type, filename, size, width, height)
+          attachments(id, url, content_type:mime_type, filename, size, width, height),
+          replyTo:messages!reply_to_id(
+            id,
+            content,
+            type,
+            author:profiles!author_id(id, username, display_name, avatar_url:avatar)
+          )
         ''').eq('channel_id', channelId).isFilter('thread_id', null);
 
       if (cursor != null) {
@@ -49,6 +55,10 @@ class MessageRepository {
         
         if (msg['author'] != null && msg['author']['avatar_url'] != null) {
           msg['author']['avatar'] = msg['author']['avatar_url'];
+        }
+
+        if (msg['replyTo'] != null && msg['replyTo']['author'] != null && msg['replyTo']['author']['avatar_url'] != null) {
+          msg['replyTo']['author']['avatar'] = msg['replyTo']['author']['avatar_url'];
         }
 
         // Post-process reactions to aggregate by emoji (matching RN logic)
@@ -319,7 +329,13 @@ class MessageRepository {
         *,
         author:profiles!author_id(id, username, display_name, avatar_url:avatar),
         reactions(emoji, user_id),
-        attachments(id, url, content_type:mime_type, filename, size, width, height)
+        attachments(id, url, content_type:mime_type, filename, size, width, height),
+        replyTo:messages!reply_to_id(
+          id,
+          content,
+          type,
+          author:profiles!author_id(id, username, display_name, avatar_url:avatar)
+        )
       ''').eq('thread_id', threadId)
       .order('created_at', ascending: true)
       .limit(limit);
@@ -327,6 +343,12 @@ class MessageRepository {
     final List<dynamic> rows = response;
     return rows.map((json) {
       final Map<String, dynamic> msg = Map<String, dynamic>.from(json);
+      if (msg['author'] != null && msg['author']['avatar_url'] != null) {
+        msg['author']['avatar'] = msg['author']['avatar_url'];
+      }
+      if (msg['replyTo'] != null && msg['replyTo']['author'] != null && msg['replyTo']['author']['avatar_url'] != null) {
+        msg['replyTo']['author']['avatar'] = msg['replyTo']['author']['avatar_url'];
+      }
       return FlickoMessage.fromJson(msg);
     }).toList();
   }
@@ -379,7 +401,13 @@ class MessageRepository {
           *,
           author:profiles!author_id(id, username, display_name, avatar_url:avatar),
           reactions(emoji, user_id),
-          attachments(id, url, content_type:mime_type, filename, size, width, height)
+          attachments(id, url, content_type:mime_type, filename, size, width, height),
+          replyTo:messages!reply_to_id(
+            id,
+            content,
+            type,
+            author:profiles!author_id(id, username, display_name, avatar_url:avatar)
+          )
         ''').eq('id', messageId).maybeSingle();
       if (response == null) return null;
       final msg = Map<String, dynamic>.from(response as Map);
@@ -387,10 +415,21 @@ class MessageRepository {
       if (msg['author'] != null && msg['author']['avatar_url'] != null) {
         msg['author']['avatar'] = msg['author']['avatar_url'];
       }
+      if (msg['replyTo'] != null && msg['replyTo']['author'] != null && msg['replyTo']['author']['avatar_url'] != null) {
+        msg['replyTo']['author']['avatar'] = msg['replyTo']['author']['avatar_url'];
+      }
       return FlickoMessage.fromJson(msg);
     } catch (_) {
       return null;
     }
+  }
+
+  /// Pins or unpins a message using the database RPC function.
+  Future<void> togglePinMessage(String messageId, bool pinned) async {
+    await _client.rpc('pin_message', params: {
+      'message_uuid': messageId,
+      'pin_status': pinned,
+    });
   }
 }
 
