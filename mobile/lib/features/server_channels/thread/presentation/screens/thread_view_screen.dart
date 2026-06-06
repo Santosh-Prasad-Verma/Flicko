@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
-import 'package:mobile/data/models/auth_state.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/server_channels/chat/presentation/widgets/enhanced_message_item.dart';
 import 'package:mobile/features/server_channels/chat/presentation/widgets/message_actions.dart';
@@ -33,6 +32,7 @@ class _ThreadViewScreenState extends ConsumerState<ThreadViewScreen> {
   List<FlickoMessage> _messages = [];
   final ScrollController _scrollController = ScrollController();
   FlickoMessage? _replyTo;
+  String? _editingMessageId;
   int _currentPage = 1;
   bool _hasNextPage = false;
 
@@ -160,6 +160,22 @@ class _ThreadViewScreenState extends ConsumerState<ThreadViewScreen> {
     }
   }
 
+  Future<void> _editMessage(String messageId, String newContent) async {
+    try {
+      await Supabase.instance.client
+          .from('messages')
+          .update({
+            'content': newContent,
+            'edited': true,
+            'edited_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', messageId);
+      await _loadMessages(reset: true);
+    } catch (e) {
+      // Handle error
+    }
+  }
+
   Future<void> _toggleReaction(String messageId, String emoji) async {
     final user = ref.read(authNotifierProvider).maybeWhen(
       authenticated: (user, _) => user,
@@ -207,8 +223,17 @@ class _ThreadViewScreenState extends ConsumerState<ThreadViewScreen> {
       currentUserId: currentUserId,
       onReaction: (emoji) => _toggleReaction(message.id, emoji),
       onReply: () => setState(() => _replyTo = message),
-      onEdit: () {
-        // Edit is handled inline by EnhancedMessageItem
+      onEdit: () => setState(() => _editingMessageId = message.id),
+      onPin: () async {
+        try {
+          await Supabase.instance.client.rpc('pin_message', params: {
+            'message_uuid': message.id,
+            'pin_status': !message.pinned,
+          });
+          await _loadMessages(reset: true);
+        } catch (e) {
+          // Handle error
+        }
       },
       onDelete: () => _deleteMessage(message.id),
       onCopy: () {
@@ -341,9 +366,12 @@ class _ThreadViewScreenState extends ConsumerState<ThreadViewScreen> {
             isContinuation: false,
             onReactionToggle: (emoji) => _toggleReaction(_messages[index].id, emoji),
             onReply: () => setState(() => _replyTo = _messages[index]),
-            onEdit: (_) {
-              // Edit is handled inline
+            onEdit: (newContent) {
+              _editMessage(_messages[index].id, newContent);
+              setState(() => _editingMessageId = null);
             },
+            onEditCancel: () => setState(() => _editingMessageId = null),
+            isEditing: _editingMessageId == _messages[index].id,
             onDelete: () => _deleteMessage(_messages[index].id),
             onLongPress: () => _onMessageLongPress(_messages[index]),
             onCopy: () {},
