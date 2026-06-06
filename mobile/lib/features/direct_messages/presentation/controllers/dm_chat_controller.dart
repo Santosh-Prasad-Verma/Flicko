@@ -128,8 +128,22 @@ class DMChatController extends Notifier<DMChatState> {
     if (_myId.isEmpty) return;
 
     _subscription =
-        _repository.subscribeToConversation(_myId, _otherUserId, () {
-      fetchMessages();
+        _repository.subscribeToConversation(_myId, _otherUserId, (event, payload) async {
+      if (event == PostgresChangeEvent.insert) {
+        try {
+          final newMessage = await _repository.decodeMessageRow(payload);
+          // Only add if not already present
+          if (!state.messages.any((m) => m.id == newMessage.id)) {
+            state = state.copyWith(
+              messages: [newMessage, ...state.messages],
+            );
+          }
+        } catch (_) {
+          fetchMessages();
+        }
+      } else {
+        fetchMessages();
+      }
     });
   }
 
@@ -140,7 +154,20 @@ class DMChatController extends Notifier<DMChatState> {
       return;
     }
 
-    state = state.copyWith(isSending: true);
+    final tempMessageId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
+    final tempMessage = DMMessage(
+      id: tempMessageId,
+      senderId: _myId,
+      recipientId: _otherUserId,
+      content: content,
+      createdAt: DateTime.now(),
+    );
+
+    // Optimistically add the message to state immediately
+    state = state.copyWith(
+      messages: [tempMessage, ...state.messages],
+      isSending: true,
+    );
 
     try {
       final List<DMAttachment> uploadedAttachments = [];
@@ -171,16 +198,30 @@ class DMChatController extends Notifier<DMChatState> {
         }
       }
 
-      await _repository.sendMessage(
+      final sentMessage = await _repository.sendMessage(
         senderId: _myId,
         recipientId: _otherUserId,
         content: content,
         attachments: uploadedAttachments.isEmpty ? null : uploadedAttachments,
       );
-      state = state.copyWith(isSending: false);
-      fetchMessages();
+      
+      // Replace the temp message with the actual sent message
+      final updatedMessages = state.messages.map((m) {
+        return m.id == tempMessageId ? sentMessage : m;
+      }).toList();
+
+      state = state.copyWith(
+        messages: updatedMessages,
+        isSending: false,
+      );
     } catch (e) {
-      state = state.copyWith(isSending: false, error: e.toString());
+      // Remove the temp message from the list on failure
+      final updatedMessages = state.messages.where((m) => m.id != tempMessageId).toList();
+      state = state.copyWith(
+        messages: updatedMessages,
+        isSending: false,
+        error: e.toString(),
+      );
     }
   }
 

@@ -361,8 +361,15 @@ class DMRepository {
         });
   }
 
+  /// Expose _decodeRow publicly for incremental realtime updates
+  Future<DMMessage> decodeMessageRow(Map<String, dynamic> row) => _decodeRow(row);
+
   /// Targeted subscription for a specific conversation
-  RealtimeChannel subscribeToConversation(String myId, String otherUserId, void Function() onUpdate) {
+  RealtimeChannel subscribeToConversation(
+    String myId,
+    String otherUserId,
+    void Function(PostgresChangeEvent event, Map<String, dynamic> payload) onUpdate,
+  ) {
     developer.log('[SupabaseRealtime] Subscribing to targeted DM conversation between $myId and $otherUserId');
     return _client
         .channel('dm_convo_${myId}_$otherUserId')
@@ -370,9 +377,34 @@ class DMRepository {
           event: PostgresChangeEvent.all,
           schema: 'public',
           table: 'direct_messages',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'recipient_id',
+            value: myId,
+          ),
           callback: (payload) async {
-            developer.log('[SupabaseRealtime] Received conversation DM Postgres change event: ${payload.eventType}');
-            onUpdate();
+            developer.log('[SupabaseRealtime] Received DM change (I am recipient): ${payload.eventType}');
+            final record = payload.eventType == PostgresChangeEvent.delete
+                ? payload.oldRecord
+                : payload.newRecord;
+            onUpdate(payload.eventType, record);
+          },
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'direct_messages',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'sender_id',
+            value: myId,
+          ),
+          callback: (payload) async {
+            developer.log('[SupabaseRealtime] Received DM change (I am sender): ${payload.eventType}');
+            final record = payload.eventType == PostgresChangeEvent.delete
+                ? payload.oldRecord
+                : payload.newRecord;
+            onUpdate(payload.eventType, record);
           },
         )
         .onPostgresChanges(
@@ -381,7 +413,10 @@ class DMRepository {
           table: 'dm_reactions',
           callback: (payload) {
             developer.log('[SupabaseRealtime] Received conversation DM reaction change event: ${payload.eventType}');
-            onUpdate();
+            final record = payload.eventType == PostgresChangeEvent.delete
+                ? payload.oldRecord
+                : payload.newRecord;
+            onUpdate(payload.eventType, record);
           },
         )
         .subscribe((status, error) {
