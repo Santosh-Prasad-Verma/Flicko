@@ -102,7 +102,7 @@ class _PollCreatorModalState extends State<_PollCreatorModal> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error creating poll: \$e')),
+          SnackBar(content: Text('Error creating poll: $e')),
         );
       }
     } finally {
