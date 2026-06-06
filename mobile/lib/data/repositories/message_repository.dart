@@ -50,7 +50,6 @@ class MessageRepository {
         final Map<String, dynamic> msg = Map<String, dynamic>.from(json);
         
         // Ensure proper mapping to FlickoMessage structure
-        msg['type'] = 'channel';
         // author_id is inherently present from DB SELECT *
         
         if (msg['author'] != null && msg['author']['avatar_url'] != null) {
@@ -411,7 +410,6 @@ class MessageRepository {
         ''').eq('id', messageId).maybeSingle();
       if (response == null) return null;
       final msg = Map<String, dynamic>.from(response as Map);
-      msg['type'] = 'channel';
       if (msg['author'] != null && msg['author']['avatar_url'] != null) {
         msg['author']['avatar'] = msg['author']['avatar_url'];
       }
