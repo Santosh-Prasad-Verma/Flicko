@@ -39,20 +39,16 @@ class DMController extends Notifier<DMState> {
   @override
   DMState build() {
     _repository = ref.watch(dmRepositoryProvider);
-    final authState = ref.watch(authNotifierProvider);
+    final userId = ref.watch(currentUserIdProvider);
 
     ref.onDispose(() {
       _subscription?.unsubscribe();
     });
 
     // Initialize when user is authenticated
-    authState.maybeWhen(
-      authenticated: (user, profile) {
-        // Use Future.microtask to avoid modifying state during build
-        Future.microtask(() => init(user.id));
-      },
-      orElse: () {},
-    );
+    if (userId != null) {
+      Future.microtask(() => init(userId));
+    }
 
     return DMState();
   }

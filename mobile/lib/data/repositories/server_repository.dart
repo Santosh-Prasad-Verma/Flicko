@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mobile/data/models/server_model.dart';
 import 'package:mobile/data/models/channel_model.dart';
+import 'package:mobile/data/models/user_model.dart';
 
 /// Repository for handling server and channel related data operations.
 /// 
@@ -138,6 +139,28 @@ class ServerRepository {
       return server;
     } catch (e) {
       rethrow;
+    }
+  }
+
+  /// Fetches all members of a server.
+  Future<List<UserModel>> getServerMembers(String serverId) async {
+    try {
+      final response = await _client
+          .from('server_members')
+          .select('profiles!user_id(*)')
+          .eq('server_id', serverId);
+      
+      final List<dynamic> data = response as List<dynamic>;
+      return data
+          .map((row) {
+            final profile = row['profiles'];
+            if (profile == null) return null;
+            return UserModel.fromJson(profile as Map<String, dynamic>);
+          })
+          .whereType<UserModel>()
+          .toList();
+    } catch (e) {
+      return [];
     }
   }
 }

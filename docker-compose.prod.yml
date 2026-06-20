@@ -105,6 +105,9 @@ volumes:
     driver: local              # Log index + chunks
   dead_letter_data:
     driver: local              # Failed message batches (JSONL files)
+  redis_data:
+    driver: local
+
 
 
 # =============================================================================
@@ -207,6 +210,9 @@ services:
           memory: 512M
     secrets:
       - jwt_public_key
+    depends_on:
+      redis:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO /dev/null http://localhost:8080/healthz || exit 1"]
       interval: 10s
@@ -262,6 +268,9 @@ services:
           memory: 256M
     secrets:
       - jwt_public_key
+    depends_on:
+      redis:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO /dev/null http://localhost:8081/healthz || exit 1"]
       interval: 10s
@@ -298,6 +307,9 @@ services:
           cpus: "1.0"
         reservations:
           memory: 256M
+    depends_on:
+      redis:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO /dev/null http://localhost:8080/api/v1/health || exit 1"]
       interval: 10s
@@ -347,10 +359,27 @@ services:
       start_period: 10s
 
   # ──────────────────────────────────────────────────────────────────────────
-  # REDIS — Now using Upstash (cloud). No local container needed.
-  # Set REDIS_URL in .env to your Upstash TLS URL (rediss://).
-  # Monitor via Upstash dashboard: https://console.upstash.com
+  # REDIS — Local Container
   # ──────────────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: flicko-redis
+    <<: [*restart-policy, *default-logging]
+    networks:
+      - flicko_internal
+    volumes:
+      - redis_data:/data
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 
   # ──────────────────────────────────────────────────────────────────────────
   # STORAGE — Using Cloudinary for media storage (cloud).

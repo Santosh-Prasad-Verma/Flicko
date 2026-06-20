@@ -304,6 +304,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   ),
                 ),
               EnhancedMessageInput(
+                serverId: widget.serverId,
                 replyToName: _replyTo?.author?.displayName ?? _replyTo?.author?.username,
                 onCancelReply: () => setState(() => _replyTo = null),
                 onPollRequested: () {

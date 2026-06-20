@@ -51,9 +51,7 @@ class _CreateServerDialogState extends ConsumerState<CreateServerDialog> {
     try {
       String? iconUrl;
       if (_selectedIcon != null) {
-        // In a real app, you would upload the icon to Supabase Storage here first
-        // and get a public URL. For now, we'll just pass null or a placeholder.
-        // iconUrl = await ref.read(serverRepositoryProvider).uploadIcon(_selectedIcon!);
+        // Future expansion: upload icon and get public URL
       }
 
       final server = await ref.read(serverRepositoryProvider).createServer(
@@ -86,52 +84,34 @@ class _CreateServerDialogState extends ConsumerState<CreateServerDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: const Color(FlickoColors.bgPrimary),
-      shape: const RoundedRectangleBorder(),
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
+      backgroundColor: const Color(FlickoColors.bgSecondary),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 400),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(FlickoColors.brandLime),
-                  border: Border.all(
-                      color: const Color(FlickoColors.black), width: 2),
-                ),
-                child: Text(
-                  'NEW SERVER',
-                  style: GoogleFonts.inter(
-                    color: const Color(FlickoColors.black),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.8,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 18),
             Text(
-              'Create Your Server',
+              'Create a Server',
               textAlign: TextAlign.center,
               style: GoogleFonts.inter(
                 color: const Color(FlickoColors.textPrimary),
-                fontSize: 30,
-                fontWeight: FontWeight.w900,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Give your new server a personality with a name and an icon. You can always change it later.',
+              'Your server is where you and your friends hang out. Customize it with a name and an icon.',
               textAlign: TextAlign.center,
               style: GoogleFonts.inter(
                 color: const Color(FlickoColors.textSecondary),
                 fontSize: 14,
-                height: 1.45,
+                height: 1.4,
               ),
             ),
             const SizedBox(height: 24),
@@ -141,12 +121,13 @@ class _CreateServerDialogState extends ConsumerState<CreateServerDialog> {
                 alignment: Alignment.bottomRight,
                 children: [
                   Container(
-                    width: 80,
-                    height: 80,
+                    width: 90,
+                    height: 90,
                     decoration: BoxDecoration(
-                      color: const Color(FlickoColors.bgSecondary),
+                      color: const Color(FlickoColors.bgTertiary),
+                      shape: BoxShape.circle,
                       border: Border.all(
-                        color: const Color(FlickoColors.brandLime),
+                        color: const Color(FlickoColors.blurple).withValues(alpha: 0.3),
                         width: 2,
                       ),
                       image: _selectedIcon != null
@@ -157,20 +138,25 @@ class _CreateServerDialogState extends ConsumerState<CreateServerDialog> {
                           : null,
                     ),
                     child: _selectedIcon == null
-                        ? const Icon(Icons.add_a_photo_outlined,
-                            size: 32, color: Color(FlickoColors.brandLime))
+                        ? const Icon(
+                            Icons.add_a_photo_rounded,
+                            size: 32,
+                            color: Color(FlickoColors.blurple),
+                          )
                         : null,
                   ),
                   if (_selectedIcon != null)
                     Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: const Color(FlickoColors.brandLime),
-                        border: Border.all(
-                            color: const Color(FlickoColors.black), width: 1.4),
+                      padding: const EdgeInsets.all(6),
+                      decoration: const BoxDecoration(
+                        color: Color(FlickoColors.blurple),
+                        shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.edit,
-                          size: 14, color: Color(FlickoColors.black)),
+                      child: const Icon(
+                        Icons.edit,
+                        size: 14,
+                        color: Colors.white,
+                      ),
                     ),
                 ],
               ),
@@ -179,37 +165,37 @@ class _CreateServerDialogState extends ConsumerState<CreateServerDialog> {
             TextField(
               controller: _nameController,
               style: GoogleFonts.inter(
-                  color: const Color(FlickoColors.textPrimary)),
+                color: const Color(FlickoColors.textPrimary),
+              ),
               decoration: InputDecoration(
                 labelText: 'SERVER NAME',
                 labelStyle: GoogleFonts.inter(
                   color: const Color(FlickoColors.textMuted),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 0.7,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
                 ),
                 filled: true,
-                fillColor: const Color(FlickoColors.bgSecondary),
+                fillColor: const Color(FlickoColors.bgTertiary),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.zero,
-                  borderSide: const BorderSide(
-                      color: Color(FlickoColors.brandLime), width: 2),
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
                 ),
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.zero,
-                  borderSide: const BorderSide(
-                      color: Color(FlickoColors.border), width: 2),
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.zero,
+                  borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(
-                      color: Color(FlickoColors.brandLime), width: 2),
+                    color: Color(FlickoColors.blurple),
+                    width: 1.5,
+                  ),
                 ),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 28),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
@@ -219,7 +205,7 @@ class _CreateServerDialogState extends ConsumerState<CreateServerDialog> {
                     'Cancel',
                     style: GoogleFonts.inter(
                       color: const Color(FlickoColors.textSecondary),
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
@@ -227,10 +213,12 @@ class _CreateServerDialogState extends ConsumerState<CreateServerDialog> {
                 ElevatedButton(
                   onPressed: _isLoading ? null : _handleCreate,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(FlickoColors.brandLime),
-                    foregroundColor: const Color(FlickoColors.black),
-                    minimumSize: const Size(120, 48),
-                    shape: const RoundedRectangleBorder(),
+                    backgroundColor: const Color(FlickoColors.blurple),
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(130, 48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     elevation: 0,
                   ),
                   child: _isLoading
@@ -238,12 +226,15 @@ class _CreateServerDialogState extends ConsumerState<CreateServerDialog> {
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Color(FlickoColors.black)),
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         )
                       : Text(
-                          'CREATE',
+                          'Create Server',
                           style: GoogleFonts.inter(
-                              fontWeight: FontWeight.w900, letterSpacing: 0.8),
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                 ),
               ],

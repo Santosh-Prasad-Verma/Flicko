@@ -391,6 +391,7 @@ class _ThreadViewScreenState extends ConsumerState<ThreadViewScreen> {
         ),
       ),
       child: EnhancedMessageInput(
+        serverId: widget.serverId,
         replyToName: _replyTo?.author?.displayName ?? _replyTo?.author?.username,
         onSend: (content, {attachments, gifUrl, stickerUrl}) {
           _sendMessage(content);

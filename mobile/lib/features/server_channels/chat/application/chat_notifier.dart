@@ -28,11 +28,7 @@ class ChatNotifier extends Notifier<ChatState> {
   @override
   ChatState build() {
     _repository = ref.watch(messageRepositoryProvider);
-    final authState = ref.watch(authNotifierProvider);
-    _myId = authState.maybeWhen(
-      authenticated: (user, _) => user.id,
-      orElse: () => '',
-    );
+    _myId = ref.watch(currentUserIdProvider) ?? '';
 
     ref.onDispose(() {
       _subscription?.unsubscribe();

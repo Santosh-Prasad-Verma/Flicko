@@ -15,9 +15,12 @@ import 'mention_autocomplete.dart';
 import 'sticker_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/features/store/data/badge_alchemy_service.dart';
+import 'package:mobile/data/repositories/server_repository.dart';
+import 'package:mobile/data/models/user_model.dart';
 
 /// Enhanced MessageInput with Emoji/GIF pickers and Voice Recorder
 class EnhancedMessageInput extends ConsumerStatefulWidget {
+  final String? serverId;
   final Function(String, {List<XFile>? attachments, String? gifUrl, String? stickerUrl}) onSend;
   final String? replyToName;
   final VoidCallback? onCancelReply;
@@ -27,6 +30,7 @@ class EnhancedMessageInput extends ConsumerStatefulWidget {
 
   const EnhancedMessageInput({
     super.key,
+    this.serverId,
     required this.onSend,
     this.replyToName,
     this.onCancelReply,
@@ -67,19 +71,38 @@ class _EnhancedMessageInputState extends ConsumerState<EnhancedMessageInput> {
   String _mentionQuery = '';
   int _mentionStartIndex = -1;
   
-  // Mock users for mention autocomplete (in production, fetch from server members)
-  final List<MentionUser> _availableUsers = [
-    MentionUser(id: '1', username: 'alice', displayName: 'Alice', avatarUrl: null, status: 'online'),
-    MentionUser(id: '2', username: 'bob', displayName: 'Bob', avatarUrl: null, status: 'idle'),
-    MentionUser(id: '3', username: 'charlie', displayName: 'Charlie', avatarUrl: null, status: 'offline'),
-    MentionUser(id: '4', username: 'dave', avatarUrl: null, status: 'online'),
-    MentionUser(id: '5', username: 'eve', displayName: 'Eve', avatarUrl: null, status: 'dnd'),
-  ];
+  // Users for mention autocomplete
+  final List<MentionUser> _availableUsers = [];
 
   @override
   void initState() {
     super.initState();
     _controller.addListener(_handleTextChanged);
+    _loadServerMembers();
+  }
+
+  Future<void> _loadServerMembers() async {
+    final serverId = widget.serverId;
+    if (serverId == null) return;
+
+    try {
+      final repository = ref.read(serverRepositoryProvider);
+      final members = await repository.getServerMembers(serverId);
+      if (mounted) {
+        setState(() {
+          _availableUsers.clear();
+          _availableUsers.addAll(members.map((m) => MentionUser(
+            id: m.id,
+            username: m.username,
+            displayName: m.displayName,
+            avatarUrl: m.avatarUrl,
+            status: m.onlineStatus,
+          )));
+        });
+      }
+    } catch (_) {
+      // Fail silently
+    }
   }
 
   @override

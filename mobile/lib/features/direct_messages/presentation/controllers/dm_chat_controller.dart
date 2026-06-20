@@ -62,11 +62,7 @@ class DMChatController extends Notifier<DMChatState> {
   @override
   DMChatState build() {
     _repository = ref.watch(dmRepositoryProvider);
-    final authState = ref.watch(authNotifierProvider);
-    _myId = authState.maybeWhen(
-      authenticated: (user, _) => user.id,
-      orElse: () => '',
-    );
+    _myId = ref.watch(currentUserIdProvider) ?? '';
 
     ref.onDispose(() {
       if (_subscription != null) {

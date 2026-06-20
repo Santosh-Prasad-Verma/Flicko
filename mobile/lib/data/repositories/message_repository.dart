@@ -56,6 +56,15 @@ class MessageRepository {
           msg['author']['avatar'] = msg['author']['avatar_url'];
         }
 
+        if (msg['replyTo'] is List) {
+          final replyList = msg['replyTo'] as List;
+          if (replyList.isEmpty) {
+            msg['replyTo'] = null;
+          } else {
+            msg['replyTo'] = Map<String, dynamic>.from(replyList.first as Map);
+          }
+        }
+
         if (msg['replyTo'] != null && msg['replyTo']['author'] != null && msg['replyTo']['author']['avatar_url'] != null) {
           msg['replyTo']['author']['avatar'] = msg['replyTo']['author']['avatar_url'];
         }
@@ -345,6 +354,14 @@ class MessageRepository {
       if (msg['author'] != null && msg['author']['avatar_url'] != null) {
         msg['author']['avatar'] = msg['author']['avatar_url'];
       }
+      if (msg['replyTo'] is List) {
+        final replyList = msg['replyTo'] as List;
+        if (replyList.isEmpty) {
+          msg['replyTo'] = null;
+        } else {
+          msg['replyTo'] = Map<String, dynamic>.from(replyList.first as Map);
+        }
+      }
       if (msg['replyTo'] != null && msg['replyTo']['author'] != null && msg['replyTo']['author']['avatar_url'] != null) {
         msg['replyTo']['author']['avatar'] = msg['replyTo']['author']['avatar_url'];
       }
@@ -412,6 +429,14 @@ class MessageRepository {
       final msg = Map<String, dynamic>.from(response as Map);
       if (msg['author'] != null && msg['author']['avatar_url'] != null) {
         msg['author']['avatar'] = msg['author']['avatar_url'];
+      }
+      if (msg['replyTo'] is List) {
+        final replyList = msg['replyTo'] as List;
+        if (replyList.isEmpty) {
+          msg['replyTo'] = null;
+        } else {
+          msg['replyTo'] = Map<String, dynamic>.from(replyList.first as Map);
+        }
       }
       if (msg['replyTo'] != null && msg['replyTo']['author'] != null && msg['replyTo']['author']['avatar_url'] != null) {
         msg['replyTo']['author']['avatar'] = msg['replyTo']['author']['avatar_url'];

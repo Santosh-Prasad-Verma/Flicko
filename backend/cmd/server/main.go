@@ -230,24 +230,20 @@ func main() {
 	protected.Use(apiLimiter.Limit)
 	protected.Use(middleware.Auth)
 
-	// General API routes (unprotected but limited)
-	generalUnprotected := api.PathPrefix("/").Subrouter()
-	generalUnprotected.Use(apiLimiter.Limit)
-
 	// MED-007 & HIGH-008: Enhanced health check with comprehensive dependency checks
 	healthChecker := handlers.NewHealthChecker(db, redisCache.GetRedisClient(), logger)
 
-	generalUnprotected.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+	api.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		healthChecker.Handler().ServeHTTP(w, r)
 	}).Methods("GET")
 
 	// Liveness probe (for Kubernetes)
-	generalUnprotected.HandleFunc("/healthz/live", func(w http.ResponseWriter, r *http.Request) {
+	api.HandleFunc("/healthz/live", func(w http.ResponseWriter, r *http.Request) {
 		healthChecker.LivenessProbe().ServeHTTP(w, r)
 	}).Methods("GET")
 
 	// Readiness probe (for Kubernetes)
-	generalUnprotected.HandleFunc("/healthz/ready", func(w http.ResponseWriter, r *http.Request) {
+	api.HandleFunc("/healthz/ready", func(w http.ResponseWriter, r *http.Request) {
 		healthChecker.ReadinessProbe().ServeHTTP(w, r)
 	}).Methods("GET")
 

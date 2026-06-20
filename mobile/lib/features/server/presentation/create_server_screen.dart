@@ -8,11 +8,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
-import 'package:mobile/features/shared/presentation/widgets/brutalist_widgets.dart';
 
 /// Create Server Screen
 ///
-/// Discord-style multi-step server creation flow:
+/// Multi-step server creation flow:
 /// Step 1: Choose template
 /// Step 2: Select purpose (friends vs community)
 /// Step 3: Customize (name, icon, banner, create)
@@ -35,18 +34,16 @@ class _CreateServerScreenState extends ConsumerState<CreateServerScreen> {
   final _nameController = TextEditingController();
   final _picker = ImagePicker();
 
-  // Template definitions matching React Native
   final List<_TemplateOption> _templates = const [
-    _TemplateOption(id: 'custom', label: 'Create My Own', icon: Icons.add_circle_outline, color: Color(FlickoColors.blurple)),
-    _TemplateOption(id: 'gaming', label: 'Gaming', icon: Icons.sports_esports, color: Color(FlickoColors.green)),
-    _TemplateOption(id: 'school', label: 'School Club', icon: Icons.school, color: Color(FlickoColors.yellow)),
-    _TemplateOption(id: 'study', label: 'Study Group', icon: Icons.book, color: Color(FlickoColors.pink)),
-    _TemplateOption(id: 'friends', label: 'Friends', icon: Icons.people, color: Color(FlickoColors.red)),
-    _TemplateOption(id: 'creators', label: 'Artists & Creators', icon: Icons.palette, color: Color(FlickoColors.blurple)),
-    _TemplateOption(id: 'community', label: 'Local Community', icon: Icons.public, color: Color(FlickoColors.green)),
+    _TemplateOption(id: 'custom', label: 'Create My Own', icon: Icons.add_circle_outline, color: Color(FlickoColors.brandLime)),
+    _TemplateOption(id: 'gaming', label: 'Gaming', icon: Icons.sports_esports, color: Color(FlickoColors.emeraldGreen)),
+    _TemplateOption(id: 'school', label: 'School Club', icon: Icons.school, color: Color(FlickoColors.warning)),
+    _TemplateOption(id: 'study', label: 'Study Group', icon: Icons.book, color: Color(FlickoColors.info)),
+    _TemplateOption(id: 'friends', label: 'Friends', icon: Icons.people, color: Color(FlickoColors.danger)),
+    _TemplateOption(id: 'creators', label: 'Artists & Creators', icon: Icons.palette, color: Color(FlickoColors.pink)),
+    _TemplateOption(id: 'community', label: 'Local Community', icon: Icons.public, color: Color(FlickoColors.gold)),
   ];
 
-  // Template channel presets
   final Map<String, List<Map<String, String>>> _templateChannels = {
     'custom': [
       {'name': 'general', 'type': 'text'},
@@ -102,11 +99,6 @@ class _CreateServerScreenState extends ConsumerState<CreateServerScreen> {
     ],
   };
 
-  static const Color lime = Color(0xFF52B788);
-  static const Color black = Color(0xFF000000);
-  static const Color white = Color(0xFFFFFFFF);
-
-
   @override
   void dispose() {
     _nameController.dispose();
@@ -128,8 +120,8 @@ class _CreateServerScreenState extends ConsumerState<CreateServerScreen> {
           }
         });
       }
-    } catch (e) {
-      // Image picker cancelled or error
+    } catch (_) {
+      // Fail silently
     }
   }
 
@@ -187,14 +179,12 @@ class _CreateServerScreenState extends ConsumerState<CreateServerScreen> {
     final client = Supabase.instance.client;
 
     try {
-      // Create server via RPC if available, otherwise direct insert
       String serverId;
 
       try {
         final result = await client.rpc('create_server_rpc', params: {'p_name': trimmedName});
         serverId = result['id'] as String;
       } catch (_) {
-        // Fallback: direct insert
         final response = await client.from('servers').insert({
           'name': trimmedName,
           'owner_id': currentUser.id,
@@ -202,14 +192,12 @@ class _CreateServerScreenState extends ConsumerState<CreateServerScreen> {
 
         serverId = response['id'] as String;
 
-        // Join owner
         await client.from('server_members').insert({
           'server_id': serverId,
           'user_id': currentUser.id,
           'role': 'owner',
         });
 
-        // Create general channel
         await client.from('channels').insert({
           'server_id': serverId,
           'name': 'general',
@@ -218,31 +206,24 @@ class _CreateServerScreenState extends ConsumerState<CreateServerScreen> {
         });
       }
 
-      // Upload icon if selected
       if (_iconFile != null) {
         try {
           final fileName = 'server_icons/${serverId}_${DateTime.now().millisecondsSinceEpoch}.png';
           await client.storage.from('server-assets').upload(fileName, _iconFile!);
           final iconUrl = client.storage.from('server-assets').getPublicUrl(fileName);
           await client.from('servers').update({'icon': iconUrl}).eq('id', serverId);
-        } catch (_) {
-          // Icon upload failed, continue
-        }
+        } catch (_) {}
       }
 
-      // Upload banner if selected
       if (_bannerFile != null) {
         try {
           final fileName = 'server_banners/${serverId}_${DateTime.now().millisecondsSinceEpoch}.png';
           await client.storage.from('server-assets').upload(fileName, _bannerFile!);
           final bannerUrl = client.storage.from('server-assets').getPublicUrl(fileName);
           await client.from('servers').update({'banner': bannerUrl}).eq('id', serverId);
-        } catch (_) {
-          // Banner upload failed, continue
-        }
+        } catch (_) {}
       }
 
-      // Create template channels (skip 'general' as it's created by trigger or above)
       final channels = (_templateChannels[_selectedTemplate] ?? [])
           .where((ch) => ch['name'] != 'general')
           .toList();
@@ -259,17 +240,16 @@ class _CreateServerScreenState extends ConsumerState<CreateServerScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('SERVER_INITIALIZED_SUCCESSFULLY'),
-            backgroundColor: lime,
+            content: Text('Server created successfully!'),
+            backgroundColor: Color(FlickoColors.brandLime),
           ),
         );
 
-        // Navigate to new server
         context.go('/server/$serverId');
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _error = e.toString().toUpperCase());
+        setState(() => _error = e.toString());
       }
     } finally {
       if (mounted) {
@@ -291,38 +271,46 @@ class _CreateServerScreenState extends ConsumerState<CreateServerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: black,
+      backgroundColor: const Color(FlickoColors.bgPrimary),
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(80),
+        preferredSize: const Size.fromHeight(64),
         child: Container(
-          padding: const EdgeInsets.only(top: 40, left: 20, right: 20),
+          padding: const EdgeInsets.only(top: 24, left: 16, right: 16),
           decoration: const BoxDecoration(
-            color: black,
-            border: Border(bottom: BorderSide(color: lime, width: 4)),
+            color: Color(FlickoColors.bgSecondary),
+            border: Border(
+              bottom: BorderSide(
+                color: Color(FlickoColors.border),
+                width: 1,
+              ),
+            ),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              BrutalistIconButton(
-                icon: _currentStep == 0 ? Icons.close : Icons.arrow_back_ios_new,
-                onTap: _goBack,
+              IconButton(
+                icon: Icon(
+                  _currentStep == 0 ? Icons.close : Icons.arrow_back_ios_new,
+                  size: 20,
+                  color: const Color(FlickoColors.textPrimary),
+                ),
+                onPressed: _goBack,
               ),
               Text(
-                'CORE.CREATE',
-                style: GoogleFonts.spaceGrotesk(
-                  color: white,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 20,
-                  letterSpacing: -0.5,
+                'Create a Server',
+                style: GoogleFonts.inter(
+                  color: const Color(FlickoColors.textPrimary),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
                 ),
               ),
-              const SizedBox(width: 45), // Spacer to center title
+              const SizedBox(width: 48),
             ],
           ),
         ),
       ),
       body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 300),
+        duration: const Duration(milliseconds: 200),
         child: _buildCurrentStep(),
       ),
     );
@@ -344,73 +332,61 @@ class _CreateServerScreenState extends ConsumerState<CreateServerScreen> {
   Widget _buildTemplateStep() {
     return SingleChildScrollView(
       key: const ValueKey('template'),
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Stack(
-            children: [
-              Text(
-                'INITIALIZE',
-                style: GoogleFonts.spaceGrotesk(
-                  fontSize: 52,
-                  fontWeight: FontWeight.w900,
-                  height: 0.9,
-                  letterSpacing: -2,
-                  color: lime,
-                ),
+          Text(
+            'Create your server',
+            style: GoogleFonts.inter(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              letterSpacing: -0.5,
+              color: const Color(FlickoColors.textPrimary),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            "Your server is where you and your friends hang out. Make yours and start talking.",
+            style: GoogleFonts.inter(
+              color: const Color(FlickoColors.textSecondary),
+              fontSize: 14,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 32),
+          ..._templates.map((tpl) => _buildTemplateRow(tpl)),
+          const SizedBox(height: 32),
+          Text(
+            'Have an invite already?',
+            style: GoogleFonts.inter(
+              color: const Color(FlickoColors.textPrimary),
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          GestureDetector(
+            onTap: () => context.push('/discover'),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              decoration: BoxDecoration(
+                color: const Color(FlickoColors.bgSecondary),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(FlickoColors.border), width: 1.5),
               ),
-              Padding(
-                padding: const EdgeInsets.only(top: 40),
+              child: Center(
                 child: Text(
-                  'SERVER',
-                  style: GoogleFonts.spaceGrotesk(
-                    fontSize: 52,
-                    fontWeight: FontWeight.w900,
-                    height: 0.9,
-                    letterSpacing: -2,
-                    foreground: Paint()
-                      ..style = PaintingStyle.stroke
-                      ..strokeWidth = 2
-                      ..color = white,
+                  'Join a Server',
+                  style: GoogleFonts.inter(
+                    color: const Color(FlickoColors.brandLime),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
                   ),
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Container(width: 60, height: 8, color: lime),
-          const SizedBox(height: 24),
-          Text(
-            "YOUR SERVER IS A NODE IN THE NETWORK. START THE INITIALIZATION PROCESS BY SELECTING A TEMPLATE PROTOCOL.",
-            style: GoogleFonts.robotoMono(
-              color: white.withValues(alpha: 0.7),
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              height: 1.5,
             ),
-          ),
-          const SizedBox(height: 48),
-          // Template list
-          ..._templates.map((tpl) => _buildTemplateRow(tpl)),
-          const SizedBox(height: 48),
-          const BrutalistLegalFooter(),
-          const SizedBox(height: 24),
-          Text(
-            'EXISTING_INVITE_DETECTED?',
-            style: GoogleFonts.robotoMono(
-              color: white,
-              fontSize: 14,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 16),
-          BrutalistButton(
-            text: 'JOIN_A_SERVER',
-            onTap: () => context.push('/discover'),
-            backgroundColor: black,
-            textColor: white,
-            shadowColor: lime,
           ),
         ],
       ),
@@ -419,42 +395,40 @@ class _CreateServerScreenState extends ConsumerState<CreateServerScreen> {
 
   Widget _buildTemplateRow(_TemplateOption tpl) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 20),
+      margin: const EdgeInsets.only(bottom: 16),
       child: InkWell(
         onTap: () => _selectTemplate(tpl.id),
+        borderRadius: BorderRadius.circular(12),
         child: Container(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: black,
-            border: Border.all(color: white, width: 3),
-            boxShadow: const [
-              BoxShadow(color: lime, offset: Offset(6, 6)),
-            ],
+            color: const Color(FlickoColors.bgSecondary),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(FlickoColors.border), width: 1),
           ),
           child: Row(
             children: [
               Container(
-                width: 48,
-                height: 48,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
-                  color: tpl.color,
-                  border: Border.all(color: black, width: 2),
+                  color: tpl.color.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
                 ),
-                child: Icon(tpl.icon, size: 24, color: black),
+                child: Icon(tpl.icon, size: 20, color: tpl.color),
               ),
-              const SizedBox(width: 20),
+              const SizedBox(width: 16),
               Expanded(
                 child: Text(
-                  tpl.label.toUpperCase(),
-                  style: GoogleFonts.spaceGrotesk(
-                    color: white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.5,
+                  tpl.label,
+                  style: GoogleFonts.inter(
+                    color: const Color(FlickoColors.textPrimary),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
-              const Icon(Icons.arrow_forward, color: lime, size: 20),
+              const Icon(Icons.chevron_right_rounded, color: Color(FlickoColors.textSecondary), size: 20),
             ],
           ),
         ),
@@ -465,58 +439,54 @@ class _CreateServerScreenState extends ConsumerState<CreateServerScreen> {
   Widget _buildPurposeStep() {
     return SingleChildScrollView(
       key: const ValueKey('purpose'),
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'SELECT_SCOPE',
-            style: GoogleFonts.spaceGrotesk(
-              fontSize: 48,
-              fontWeight: FontWeight.w900,
-              height: 0.9,
-              letterSpacing: -2,
-              color: white,
-            ),
-          ),
-          const SizedBox(height: 24),
-          Container(width: 60, height: 8, color: lime),
-          const SizedBox(height: 24),
-          Text(
-            'DEFINE THE TARGET AUDIENCE FOR THIS NODE. SYSTEM REQUIRES CLARIFICATION ON NETWORK SCALE.',
-            style: GoogleFonts.robotoMono(
-              color: white.withValues(alpha: 0.7),
-              fontSize: 12,
+            'Tell us a bit more',
+            style: GoogleFonts.inter(
+              fontSize: 28,
               fontWeight: FontWeight.bold,
-              height: 1.5,
+              letterSpacing: -0.5,
+              color: const Color(FlickoColors.textPrimary),
             ),
           ),
-          const SizedBox(height: 48),
+          const SizedBox(height: 8),
+          Text(
+            'In order to help you set up, is your new server for a few friends or a larger community?',
+            style: GoogleFonts.inter(
+              color: const Color(FlickoColors.textSecondary),
+              fontSize: 14,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 32),
           _buildPurposeCard(
-            icon: Icons.people,
-            iconColor: lime,
-            title: 'PRIVATE_NETWORK',
-            subtitle: 'SMALL SCALE / FRIENDS ONLY',
+            icon: Icons.people_outline_rounded,
+            iconColor: const Color(FlickoColors.brandLime),
+            title: 'For me and my friends',
+            subtitle: 'A private space for your inner circle.',
             onTap: () => _selectPurpose('friends'),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           _buildPurposeCard(
-            icon: Icons.public,
-            iconColor: white,
-            title: 'PUBLIC_NODE',
-            subtitle: 'LARGE SCALE / COMMUNITY HUB',
+            icon: Icons.public_rounded,
+            iconColor: const Color(FlickoColors.emeraldGreen),
+            title: 'For a club or community',
+            subtitle: 'A public space for anyone to join.',
             onTap: () => _selectPurpose('community'),
           ),
-          const SizedBox(height: 48),
+          const SizedBox(height: 32),
           Center(
             child: TextButton(
               onPressed: () => _selectPurpose('skip'),
               child: Text(
-                '>> SKIP_PROTOCOL_FOR_NOW',
-                style: GoogleFonts.robotoMono(
-                  color: white.withValues(alpha: 0.4),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w900,
+                'Skip this question',
+                style: GoogleFonts.inter(
+                  color: const Color(FlickoColors.textSecondary),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
@@ -535,52 +505,50 @@ class _CreateServerScreenState extends ConsumerState<CreateServerScreen> {
   }) {
     return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: black,
-          border: Border.all(color: white, width: 3),
-          boxShadow: [
-            BoxShadow(color: iconColor == lime ? white : lime, offset: const Offset(6, 6)),
-          ],
+          color: const Color(FlickoColors.bgSecondary),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(FlickoColors.border), width: 1),
         ),
         child: Row(
           children: [
             Container(
-              width: 56,
-              height: 56,
+              width: 48,
+              height: 48,
               decoration: BoxDecoration(
-                color: iconColor,
-                border: Border.all(color: black, width: 2),
+                color: iconColor.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
               ),
-              child: Icon(icon, size: 32, color: black),
+              child: Icon(icon, size: 24, color: iconColor),
             ),
-            const SizedBox(width: 20),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     title,
-                    style: GoogleFonts.spaceGrotesk(
-                      color: white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
+                    style: GoogleFonts.inter(
+                      color: const Color(FlickoColors.textPrimary),
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: GoogleFonts.robotoMono(
-                      color: white.withValues(alpha: 0.6),
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
+                    style: GoogleFonts.inter(
+                      color: const Color(FlickoColors.textSecondary),
+                      fontSize: 12,
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: white, size: 24),
+            const Icon(Icons.chevron_right_rounded, color: Color(FlickoColors.textSecondary), size: 24),
           ],
         ),
       ),
@@ -596,86 +564,65 @@ class _CreateServerScreenState extends ConsumerState<CreateServerScreen> {
 
     return SingleChildScrollView(
       key: const ValueKey('customize'),
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── BRUTALIST HEADER ──
           Text(
-            'CONFIGURE',
-            style: GoogleFonts.spaceGrotesk(
-              fontSize: 48,
-              fontWeight: FontWeight.w900,
-              height: 0.9,
-              letterSpacing: -2,
-              color: lime,
-            ),
-          ),
-          Text(
-            'NODE',
-            style: GoogleFonts.spaceGrotesk(
-              fontSize: 48,
-              fontWeight: FontWeight.w900,
-              height: 0.9,
-              letterSpacing: -2,
-              foreground: Paint()
-                ..style = PaintingStyle.stroke
-                ..strokeWidth = 2
-                ..color = white,
-            ),
-          ),
-          const SizedBox(height: 24),
-          Container(width: 60, height: 8, color: lime),
-          const SizedBox(height: 24),
-          Text(
-            'ASSIGN A CALLSIGN AND VISUAL IDENTITY TO YOUR NODE. ALL PARAMETERS ARE MUTABLE POST-DEPLOYMENT.',
-            style: GoogleFonts.robotoMono(
-              color: white.withValues(alpha: 0.7),
-              fontSize: 12,
+            'Customize your server',
+            style: GoogleFonts.inter(
+              fontSize: 28,
               fontWeight: FontWeight.bold,
-              height: 1.5,
+              letterSpacing: -0.5,
+              color: const Color(FlickoColors.textPrimary),
             ),
           ),
-          const SizedBox(height: 40),
-
-          // ── BANNER UPLOAD ──
-          _buildBannerUpload(),
-          const SizedBox(height: 24),
-
-          // ── ICON UPLOAD ──
-          _buildIconUpload(),
-          const SizedBox(height: 40),
-
-          // ── TEMPLATE SELECTOR ──
+          const SizedBox(height: 8),
           Text(
-            'NODE_PROTOCOL',
-            style: GoogleFonts.robotoMono(
-              color: lime,
-              fontSize: 12,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1,
+            'Give your server a personality with a name and image. You can always change this later.',
+            style: GoogleFonts.inter(
+              color: const Color(FlickoColors.textSecondary),
+              fontSize: 14,
+              height: 1.4,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 28),
+
+          _buildBannerUpload(),
+          const SizedBox(height: 20),
+
+          _buildIconUpload(),
+          const SizedBox(height: 28),
+
+          Text(
+            'Server Template',
+            style: GoogleFonts.inter(
+              color: const Color(FlickoColors.textSecondary),
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
           Container(
             decoration: BoxDecoration(
-              color: black,
-              border: Border.all(color: white, width: 3),
-              boxShadow: const [
-                BoxShadow(color: lime, offset: Offset(4, 4)),
-              ],
+              color: const Color(FlickoColors.bgSecondary),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(FlickoColors.border), width: 1),
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
                 value: _selectedTemplate,
-                dropdownColor: const Color(0xFF0A0A0A),
-                icon: const Icon(Icons.keyboard_arrow_down, color: lime),
+                dropdownColor: const Color(FlickoColors.bgSecondary),
+                icon: const Padding(
+                  padding: EdgeInsets.only(right: 12.0),
+                  child: Icon(Icons.keyboard_arrow_down, color: Color(FlickoColors.textSecondary)),
+                ),
                 isExpanded: true,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                style: GoogleFonts.robotoMono(
-                  color: white,
+                style: GoogleFonts.inter(
+                  color: const Color(FlickoColors.textPrimary),
                   fontSize: 14,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                 ),
                 items: _templates.map((tpl) {
                   return DropdownMenuItem<String>(
@@ -683,16 +630,16 @@ class _CreateServerScreenState extends ConsumerState<CreateServerScreen> {
                     child: Row(
                       children: [
                         Container(
-                          width: 28,
-                          height: 28,
+                          width: 24,
+                          height: 24,
                           decoration: BoxDecoration(
-                            color: tpl.color,
-                            border: Border.all(color: black, width: 1.5),
+                            color: tpl.color.withValues(alpha: 0.15),
+                            shape: BoxShape.circle,
                           ),
-                          child: Icon(tpl.icon, color: black, size: 16),
+                          child: Icon(tpl.icon, color: tpl.color, size: 14),
                         ),
-                        const SizedBox(width: 14),
-                        Text(tpl.label.toUpperCase()),
+                        const SizedBox(width: 12),
+                        Text(tpl.label),
                       ],
                     ),
                   );
@@ -707,36 +654,27 @@ class _CreateServerScreenState extends ConsumerState<CreateServerScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
 
-          // ── SERVER NAME ──
           Text(
-            'NODE_CALLSIGN',
-            style: GoogleFonts.robotoMono(
-              color: lime,
-              fontSize: 12,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1,
+            'Server Name',
+            style: GoogleFonts.inter(
+              color: const Color(FlickoColors.textSecondary),
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           Container(
             decoration: BoxDecoration(
-              color: black,
+              color: const Color(FlickoColors.bgSecondary),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: _error.isNotEmpty
-                    ? const Color(0xFFFF3333)
-                    : white,
-                width: 3,
+                    ? const Color(FlickoColors.danger)
+                    : const Color(FlickoColors.border),
+                width: 1.5,
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: _error.isNotEmpty
-                      ? const Color(0xFFFF3333)
-                      : lime,
-                  offset: const Offset(4, 4),
-                ),
-              ],
             ),
             child: TextField(
               controller: _nameController,
@@ -746,27 +684,22 @@ class _CreateServerScreenState extends ConsumerState<CreateServerScreen> {
                   if (_error.isNotEmpty) _error = '';
                 });
               },
-              style: GoogleFonts.spaceGrotesk(
-                color: white,
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
+              style: GoogleFonts.inter(
+                color: const Color(FlickoColors.textPrimary),
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
               ),
-              cursorColor: lime,
+              cursorColor: const Color(FlickoColors.brandLime),
               decoration: InputDecoration(
                 hintText: "$username's server",
-                hintStyle: GoogleFonts.spaceGrotesk(
-                  color: white.withValues(alpha: 0.25),
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
+                hintStyle: GoogleFonts.inter(
+                  color: const Color(FlickoColors.textMuted),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
                 ),
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 18),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 border: InputBorder.none,
-                counterStyle: GoogleFonts.robotoMono(
-                  color: white.withValues(alpha: 0.3),
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                ),
+                counterText: '',
               ),
               maxLength: 100,
               textInputAction: TextInputAction.done,
@@ -775,25 +708,19 @@ class _CreateServerScreenState extends ConsumerState<CreateServerScreen> {
           ),
           if (_error.isNotEmpty) ...[
             const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1A1A1A),
-                border: Border.all(
-                    color: const Color(0xFFFF3333).withValues(alpha: 0.5),
-                    width: 1),
-              ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
               child: Row(
                 children: [
-                  const Icon(Icons.error_outline, color: Color(0xFFFF3333), size: 14),
+                  const Icon(Icons.error_outline_rounded, color: Color(FlickoColors.danger), size: 16),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      _error,
-                      style: GoogleFonts.robotoMono(
-                        color: const Color(0xFFFF3333),
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
+                      _error == 'SERVER_NAME_REQUIRED' ? 'Server name is required.' : _error,
+                      style: GoogleFonts.inter(
+                        color: const Color(FlickoColors.danger),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
@@ -802,95 +729,51 @@ class _CreateServerScreenState extends ConsumerState<CreateServerScreen> {
             ),
           ],
 
-          // ── LEGAL ──
           const SizedBox(height: 32),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFF0A0A0A),
-              border: Border.all(color: white.withValues(alpha: 0.15), width: 1),
-            ),
-            child: Column(
-              children: [
-                Text(
-                  'BY DEPLOYING THIS NODE, YOU AGREE TO THE FLICKO NETWORK COMMUNITY PROTOCOL.',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.robotoMono(
-                    color: white.withValues(alpha: 0.4),
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                GestureDetector(
-                  onTap: () {
-                    // Open community guidelines
-                  },
-                  child: Text(
-                    '>> VIEW_COMMUNITY_GUIDELINES',
-                    style: GoogleFonts.robotoMono(
-                      color: lime,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-              ],
+          Center(
+            child: Text(
+              "By creating a server, you agree to Flicko's Community Guidelines.",
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(
+                color: const Color(FlickoColors.textMuted),
+                fontSize: 11,
+                height: 1.4,
+              ),
             ),
           ),
 
-          // ── DEPLOY BUTTON ──
-          const SizedBox(height: 32),
-          GestureDetector(
-            onTap: _serverName.trim().isEmpty || _isCreating
-                ? null
-                : _createServer,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 22),
-              decoration: BoxDecoration(
-                color: _serverName.trim().isEmpty
-                    ? const Color(0xFF1A1A1A)
-                    : lime,
-                border: Border.all(
-                  color: _serverName.trim().isEmpty
-                      ? white.withValues(alpha: 0.2)
-                      : black,
-                  width: 3,
-                ),
-                boxShadow: _serverName.trim().isEmpty
-                    ? []
-                    : const [
-                        BoxShadow(color: white, offset: Offset(6, 6)),
-                      ],
+          const SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: _serverName.trim().isEmpty || _isCreating ? null : _createServer,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(FlickoColors.brandLime),
+              foregroundColor: const Color(FlickoColors.black),
+              disabledBackgroundColor: const Color(FlickoColors.bgSecondary),
+              disabledForegroundColor: const Color(FlickoColors.textMuted),
+              minimumSize: const Size(double.infinity, 52),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
-              child: Center(
-                child: _isCreating
-                    ? const SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 3,
-                          color: black,
-                        ),
-                      )
-                    : Text(
-                        'DEPLOY_NODE',
-                        style: GoogleFonts.spaceGrotesk(
-                          color: _serverName.trim().isEmpty
-                              ? white.withValues(alpha: 0.3)
-                              : black,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 18,
-                          letterSpacing: 2,
-                        ),
-                      ),
-              ),
+              elevation: 0,
             ),
+            child: _isCreating
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.black,
+                    ),
+                  )
+                : Text(
+                    'Create Server',
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
         ],
       ),
     );
@@ -900,13 +783,11 @@ class _CreateServerScreenState extends ConsumerState<CreateServerScreen> {
     return GestureDetector(
       onTap: () => _pickImage(true),
       child: Container(
-        height: 160,
+        height: 140,
         decoration: BoxDecoration(
-          color: black,
-          border: Border.all(color: white, width: 3),
-          boxShadow: const [
-            BoxShadow(color: lime, offset: Offset(6, 6)),
-          ],
+          color: const Color(FlickoColors.bgSecondary),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(FlickoColors.border), width: 1.5),
         ),
         clipBehavior: Clip.antiAlias,
         child: _bannerFile != null
@@ -914,22 +795,20 @@ class _CreateServerScreenState extends ConsumerState<CreateServerScreen> {
                 fit: StackFit.expand,
                 children: [
                   Image.file(_bannerFile!, fit: BoxFit.cover),
-                  // Edit overlay
                   Positioned(
                     bottom: 0,
                     left: 0,
                     right: 0,
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 8),
-                      color: black.withValues(alpha: 0.7),
+                      color: Colors.black54,
                       child: Center(
                         child: Text(
-                          'TAP_TO_CHANGE',
-                          style: GoogleFonts.robotoMono(
-                            color: lime,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1,
+                          'Tap to change banner',
+                          style: GoogleFonts.inter(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
@@ -941,32 +820,22 @@ class _CreateServerScreenState extends ConsumerState<CreateServerScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        border: Border.all(color: white.withValues(alpha: 0.4), width: 2),
-                      ),
-                      child: Icon(Icons.panorama_outlined,
-                          size: 28, color: white.withValues(alpha: 0.6)),
-                    ),
-                    const SizedBox(height: 12),
+                    const Icon(Icons.panorama_outlined, size: 32, color: Color(FlickoColors.textSecondary)),
+                    const SizedBox(height: 8),
                     Text(
-                      'UPLOAD_BANNER_IMAGE',
-                      style: GoogleFonts.robotoMono(
-                        color: white.withValues(alpha: 0.6),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1,
+                      'Upload Server Banner',
+                      style: GoogleFonts.inter(
+                        color: const Color(FlickoColors.textPrimary),
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'RECOMMENDED: 960×540',
-                      style: GoogleFonts.robotoMono(
-                        color: white.withValues(alpha: 0.25),
-                        fontSize: 9,
-                        fontWeight: FontWeight.bold,
+                      'Recommended size: 960x540',
+                      style: GoogleFonts.inter(
+                        color: const Color(FlickoColors.textMuted),
+                        fontSize: 11,
                       ),
                     ),
                   ],
@@ -981,14 +850,12 @@ class _CreateServerScreenState extends ConsumerState<CreateServerScreen> {
       child: GestureDetector(
         onTap: () => _pickImage(false),
         child: Container(
-          width: 96,
-          height: 96,
+          width: 80,
+          height: 80,
           decoration: BoxDecoration(
-            color: black,
-            border: Border.all(color: white, width: 3),
-            boxShadow: const [
-              BoxShadow(color: lime, offset: Offset(4, 4)),
-            ],
+            color: const Color(FlickoColors.bgSecondary),
+            shape: BoxShape.circle,
+            border: Border.all(color: const Color(FlickoColors.border), width: 1.5),
           ),
           clipBehavior: Clip.antiAlias,
           child: _iconFile != null
@@ -1001,15 +868,15 @@ class _CreateServerScreenState extends ConsumerState<CreateServerScreen> {
                       left: 0,
                       right: 0,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 3),
-                        color: black.withValues(alpha: 0.7),
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        color: Colors.black54,
                         child: Center(
                           child: Text(
-                            'EDIT',
-                            style: GoogleFonts.robotoMono(
-                              color: lime,
-                              fontSize: 8,
-                              fontWeight: FontWeight.w900,
+                            'Edit',
+                            style: GoogleFonts.inter(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
@@ -1020,16 +887,14 @@ class _CreateServerScreenState extends ConsumerState<CreateServerScreen> {
               : Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.add_photo_alternate_outlined,
-                        size: 30, color: white.withValues(alpha: 0.5)),
-                    const SizedBox(height: 6),
+                    const Icon(Icons.add_a_photo_rounded, size: 24, color: Color(FlickoColors.textSecondary)),
+                    const SizedBox(height: 4),
                     Text(
                       'ICON',
-                      style: GoogleFonts.robotoMono(
-                        color: white.withValues(alpha: 0.5),
+                      style: GoogleFonts.inter(
+                        color: const Color(FlickoColors.textSecondary),
                         fontSize: 10,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ],
@@ -1040,7 +905,6 @@ class _CreateServerScreenState extends ConsumerState<CreateServerScreen> {
   }
 }
 
-/// Template option model
 class _TemplateOption {
   final String id;
   final String label;

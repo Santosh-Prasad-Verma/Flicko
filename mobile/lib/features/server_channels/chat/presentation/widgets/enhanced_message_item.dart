@@ -378,6 +378,11 @@ class _EnhancedMessageItemState extends ConsumerState<EnhancedMessageItem> {
       );
     }
 
+    final mentionRegex = RegExp(r'@([a-zA-Z0-9_.-]+)');
+    final processedContent = widget.message.content.replaceAllMapped(mentionRegex, (match) {
+      return '**${match.group(0)}**';
+    });
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
       child: BackdropFilter(
@@ -393,12 +398,17 @@ class _EnhancedMessageItemState extends ConsumerState<EnhancedMessageItem> {
             ),
           ),
           child: MarkdownBody(
-            data: widget.message.content,
+            data: processedContent,
             styleSheet: MarkdownStyleSheet(
               p: GoogleFonts.inter(
                 color: const Color(FlickoColors.textPrimary),
                 fontSize: 15,
                 height: 1.4,
+              ),
+              strong: GoogleFonts.inter(
+                color: const Color(FlickoColors.blurple),
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
               ),
               code: GoogleFonts.inter(
                 color: const Color(FlickoColors.textPrimary),

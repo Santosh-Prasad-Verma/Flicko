@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:mobile/features/shared/presentation/widgets/brutalist_widgets.dart';
+import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 
 class DiscoverServersScreen extends ConsumerStatefulWidget {
@@ -24,11 +24,6 @@ class _DiscoverServersScreenState extends ConsumerState<DiscoverServersScreen> {
   final _inviteController = TextEditingController();
   String _selectedTopic = 'ALL';
   final _client = Supabase.instance.client;
-
-  static const Color lime = Color(0xFF52B788);
-  static const Color black = Color(0xFF000000);
-  static const Color white = Color(0xFFFFFFFF);
-  static const Color grey = Color(0xFF1A1A1A);
 
   @override
   void initState() {
@@ -191,8 +186,8 @@ class _DiscoverServersScreenState extends ConsumerState<DiscoverServersScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('JOINED_SUCCESSFULLY'),
-            backgroundColor: lime,
+            content: Text('Joined server successfully!'),
+            backgroundColor: Color(FlickoColors.brandLime),
           ),
         );
       }
@@ -210,7 +205,7 @@ class _DiscoverServersScreenState extends ConsumerState<DiscoverServersScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: black,
+      backgroundColor: const Color(FlickoColors.bgPrimary),
       body: SafeArea(
         child: Column(
           children: [
@@ -218,25 +213,25 @@ class _DiscoverServersScreenState extends ConsumerState<DiscoverServersScreen> {
             Expanded(
               child: RefreshIndicator(
                 onRefresh: _loadServers,
-                color: lime,
-                backgroundColor: black,
+                color: const Color(FlickoColors.brandLime),
+                backgroundColor: const Color(FlickoColors.bgSecondary),
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
                   physics: const BouncingScrollPhysics(),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildHeroHeader().animate().fadeIn(duration: 600.ms).slideY(begin: 0.2, end: 0),
-                      const SizedBox(height: 48),
-                      _buildSearchBar().animate().fadeIn(delay: 200.ms).slideY(begin: 0.1, end: 0),
-                      const SizedBox(height: 48),
-                      _buildTopicSection().animate().fadeIn(delay: 400.ms),
-                      const SizedBox(height: 48),
+                      _buildHeroHeader().animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0),
+                      const SizedBox(height: 28),
+                      _buildSearchBar().animate().fadeIn(delay: 100.ms).slideY(begin: 0.05, end: 0),
+                      const SizedBox(height: 28),
+                      _buildTopicSection().animate().fadeIn(delay: 200.ms),
+                      const SizedBox(height: 32),
                       _buildTrendingSpacesSection(),
-                      const SizedBox(height: 48),
+                      const SizedBox(height: 32),
                       _buildTrendingMomentsSection(),
-                      const SizedBox(height: 48),
-                      const BrutalistLegalFooter(),
+                      const SizedBox(height: 32),
+                      _buildCleanFooter(),
                     ],
                   ),
                 ),
@@ -250,33 +245,35 @@ class _DiscoverServersScreenState extends ConsumerState<DiscoverServersScreen> {
 
   Widget _buildAppBar() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: const BoxDecoration(
-        color: black,
-        border: Border(bottom: BorderSide(color: lime, width: 4)),
+        color: Color(FlickoColors.bgSecondary),
+        border: Border(
+          bottom: BorderSide(
+            color: Color(FlickoColors.border),
+            width: 1,
+          ),
+        ),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          BrutalistIconButton(icon: Icons.arrow_back_ios_new, onTap: () => context.pop()),
-          const SizedBox(width: 12),
-          Expanded(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.center,
-              child: Text(
-                'DISCOVER.CORE',
-                style: GoogleFonts.spaceGrotesk(
-                  color: white,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 20,
-                  letterSpacing: -0.5,
-                ),
-              ),
+          IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: Color(FlickoColors.textPrimary)),
+            onPressed: () => context.pop(),
+          ),
+          Text(
+            'Discover',
+            style: GoogleFonts.inter(
+              color: const Color(FlickoColors.textPrimary),
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
             ),
           ),
-          const SizedBox(width: 12),
-          BrutalistIconButton(icon: Icons.add_box_outlined, onTap: () => context.push('/server/create')),
+          IconButton(
+            icon: const Icon(Icons.add_circle_outline_rounded, size: 24, color: Color(FlickoColors.brandLime)),
+            onPressed: () => context.push('/server/create'),
+          ),
         ],
       ),
     );
@@ -286,50 +283,22 @@ class _DiscoverServersScreenState extends ConsumerState<DiscoverServersScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          alignment: Alignment.centerLeft,
-          child: Stack(
-            children: [
-              Text(
-                'DISCOVER',
-                style: GoogleFonts.spaceGrotesk(
-                  fontSize: 64,
-                  fontWeight: FontWeight.w900,
-                  height: 0.9,
-                  letterSpacing: -2,
-                  color: lime,
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(top: 45),
-                child: Text(
-                  'SYSTEM',
-                  style: GoogleFonts.spaceGrotesk(
-                    fontSize: 64,
-                    fontWeight: FontWeight.w900,
-                    height: 0.9,
-                    letterSpacing: -2,
-                    foreground: Paint()
-                      ..style = PaintingStyle.stroke
-                      ..strokeWidth = 2
-                      ..color = white,
-                  ),
-                ),
-              ),
-            ],
+        Text(
+          'Find your community',
+          style: GoogleFonts.inter(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            letterSpacing: -0.5,
+            color: const Color(FlickoColors.textPrimary),
           ),
         ),
-        const SizedBox(height: 24),
-        Container(width: 60, height: 8, color: lime),
-        const SizedBox(height: 24),
+        const SizedBox(height: 8),
         Text(
-          'EXPLORE THE CORE COMMUNITIES AND NETWORK NODES. PROTOCOL: DISCOVERY_ACTIVE. SYSTEM STATUS: NOMINAL',
-          style: GoogleFonts.robotoMono(
-            color: white.withValues(alpha: 0.7),
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            height: 1.5,
+          'Explore servers and meet new people in gaming, music, art, technology, and more.',
+          style: GoogleFonts.inter(
+            color: const Color(FlickoColors.textSecondary),
+            fontSize: 14,
+            height: 1.4,
           ),
         ),
       ],
@@ -339,11 +308,9 @@ class _DiscoverServersScreenState extends ConsumerState<DiscoverServersScreen> {
   Widget _buildSearchBar() {
     return Container(
       decoration: BoxDecoration(
-        color: black,
-        border: Border.all(color: white, width: 3),
-        boxShadow: const [
-          BoxShadow(color: white, offset: Offset(6, 6)),
-        ],
+        color: const Color(FlickoColors.bgSecondary),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(FlickoColors.border), width: 1.5),
       ),
       child: TextField(
         controller: _searchController,
@@ -352,62 +319,59 @@ class _DiscoverServersScreenState extends ConsumerState<DiscoverServersScreen> {
           setState(() => _searchQuery = v);
           _loadServers();
         },
-        style: GoogleFonts.robotoMono(color: white, fontWeight: FontWeight.bold),
+        style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary)),
         decoration: InputDecoration(
-          hintText: '> SEARCH_NETWORK_NODES...',
-          hintStyle: GoogleFonts.robotoMono(color: white.withValues(alpha: 0.3)),
-          prefixIcon: const Icon(Icons.terminal, color: lime, size: 20),
+          hintText: 'Search for servers...',
+          hintStyle: GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
+          prefixIcon: const Icon(Icons.search_rounded, color: Color(FlickoColors.textSecondary), size: 22),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         ),
       ),
     );
   }
 
   Widget _buildTopicSection() {
-    final topics = ['ALL', 'GAMING', 'MUSIC', 'FASHION', 'ART', 'TECH', 'DESIGN'];
+    final topics = ['All', 'Gaming', 'Music', 'Fashion', 'Art', 'Tech', 'Design'];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            const Icon(Icons.label_important, color: lime, size: 18),
-            const SizedBox(width: 8),
-            Text(
-              'TOPIC_FILTER',
-              style: GoogleFonts.robotoMono(
-                color: white,
-                fontSize: 14,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ],
+        Text(
+          'Popular Topics',
+          style: GoogleFonts.inter(
+            color: const Color(FlickoColors.textPrimary),
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           physics: const BouncingScrollPhysics(),
           child: Row(
             children: topics.map((t) {
-              final isSelected = t == _selectedTopic;
+              final isSelected = t.toUpperCase() == _selectedTopic;
               return Padding(
-                padding: const EdgeInsets.only(right: 16),
+                padding: const EdgeInsets.only(right: 12),
                 child: GestureDetector(
-                  onTap: () => setState(() => _selectedTopic = t),
+                  onTap: () => setState(() => _selectedTopic = t.toUpperCase()),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     decoration: BoxDecoration(
-                      color: isSelected ? lime : black,
-                      border: Border.all(color: isSelected ? black : white, width: 3),
-                      boxShadow: isSelected ? null : [const BoxShadow(color: lime, offset: Offset(4, 4))],
+                      color: isSelected ? const Color(FlickoColors.brandLime) : const Color(FlickoColors.bgSecondary),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: isSelected ? const Color(FlickoColors.brandLime) : const Color(FlickoColors.border),
+                        width: 1,
+                      ),
                     ),
                     child: Text(
                       t,
-                      style: GoogleFonts.robotoMono(
-                        color: isSelected ? black : white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w900,
+                      style: GoogleFonts.inter(
+                        color: isSelected ? const Color(FlickoColors.black) : const Color(FlickoColors.textPrimary),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
@@ -424,26 +388,15 @@ class _DiscoverServersScreenState extends ConsumerState<DiscoverServersScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Text(
-                'TRENDING_SPACES',
-                style: GoogleFonts.spaceGrotesk(
-                  color: white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -1,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(width: 16),
-            _brutalistTextButton('VIEW_ALL', () {}),
-          ],
+        Text(
+          'Trending Servers',
+          style: GoogleFonts.inter(
+            color: const Color(FlickoColors.textPrimary),
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
         ),
-        const SizedBox(height: 32),
+        const SizedBox(height: 20),
         if (_isLoading)
           _buildLoadingState()
         else if (_filteredServers.isEmpty)
@@ -453,139 +406,140 @@ class _DiscoverServersScreenState extends ConsumerState<DiscoverServersScreen> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: _filteredServers.length > 5 ? 5 : _filteredServers.length,
-            itemBuilder: (context, index) => _buildBrutalistServerCard(_filteredServers[index], index == 0),
+            itemBuilder: (context, index) => _buildModernServerCard(_filteredServers[index]),
           ),
       ],
     );
   }
 
-  Widget _buildBrutalistServerCard(Map<String, dynamic> server, bool isPremium) {
-    final name = server['name'] ?? 'UNKNOWN_SPACE';
-    final desc = server['description'] ?? 'NO_DESCRIPTION_AVAILABLE';
+  Widget _buildModernServerCard(Map<String, dynamic> server) {
+    final name = server['name'] ?? 'Unnamed Server';
+    final desc = server['description'] ?? 'No description available.';
     final memberCount = server['member_count'] ?? 0;
     final isMember = server['is_member'] ?? false;
     final serverId = server['id'];
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 32),
+      margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
-        color: black,
-        border: Border.all(color: isPremium ? lime : white, width: 3),
-        boxShadow: [
-          BoxShadow(color: isPremium ? lime : white.withValues(alpha: 0.1), offset: const Offset(8, 8)),
-        ],
+        color: const Color(FlickoColors.bgSecondary),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(FlickoColors.border), width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (server['banner'] != null)
-            Stack(
-              children: [
-                Image.network(
-                  server['banner'],
-                  height: 140,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                ),
-                Container(
-                  height: 140,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [black.withValues(alpha: 0.4), Colors.transparent],
-                    ),
-                  ),
-                ),
-                if (isPremium)
-                  Positioned(
-                    top: 12,
-                    right: 12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: const BoxDecoration(color: lime),
-                      child: Text(
-                        'FEATURED',
-                        style: GoogleFonts.robotoMono(
-                          color: black,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              child: Image.network(
+                server['banner'],
+                height: 120,
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
             )
           else
             Container(
-              height: 100,
+              height: 80,
               width: double.infinity,
-              color: grey,
-              child: const Center(child: Icon(Icons.hub, color: white, size: 40)),
+              decoration: const BoxDecoration(
+                color: Color(FlickoColors.bgTertiary),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+              ),
+              child: const Center(
+                child: Icon(Icons.image_outlined, color: Color(FlickoColors.textMuted), size: 32),
+              ),
             ),
           Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
+            padding: const EdgeInsets.all(16),
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        name.toString().toUpperCase(),
-                        style: GoogleFonts.spaceGrotesk(
-                          color: white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -0.5,
+                CircleAvatar(
+                  radius: 24,
+                  backgroundColor: const Color(FlickoColors.bgTertiary),
+                  backgroundImage: server['icon'] != null ? NetworkImage(server['icon']) : null,
+                  child: server['icon'] == null
+                      ? Text(
+                          name.isNotEmpty ? name.substring(0, 1).toUpperCase() : 'S',
+                          style: GoogleFonts.inter(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        )
+                      : null,
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        style: GoogleFonts.inter(
+                          color: const Color(FlickoColors.textPrimary),
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
                         ),
-                        maxLines: 1,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${memberCount} members',
+                        style: GoogleFonts.inter(
+                          color: const Color(FlickoColors.textSecondary),
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        desc,
+                        style: GoogleFonts.inter(
+                          color: const Color(FlickoColors.textSecondary),
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Icon(Icons.people_outline, color: lime, size: 14),
-                    const SizedBox(width: 6),
-                    Text(
-                      '${memberCount} NODES_ACTIVE',
-                      style: GoogleFonts.robotoMono(
-                        color: white.withValues(alpha: 0.6),
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
+                      const SizedBox(height: 16),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            if (isMember) {
+                              context.push('/server/$serverId');
+                            } else {
+                              _joinServer(serverId);
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: isMember ? const Color(FlickoColors.bgTertiary) : const Color(FlickoColors.brandLime),
+                            foregroundColor: isMember ? const Color(FlickoColors.textPrimary) : const Color(FlickoColors.black),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                            elevation: 0,
+                          ),
+                          child: _joiningId == serverId
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                                )
+                              : Text(
+                                  isMember ? 'Go to Server' : 'Join Server',
+                                  style: GoogleFonts.inter(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  desc.toString().toUpperCase(),
-                  style: GoogleFonts.robotoMono(
-                    color: white.withValues(alpha: 0.8),
-                    fontSize: 12,
-                    height: 1.5,
-                    fontWeight: FontWeight.bold,
+                    ],
                   ),
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 32),
-                _brutalistButton(
-                  text: isMember ? 'ACCESS_DENIED_ENTRY' : 'INITIALIZE_JOIN_PROTOCOL',
-                  onTap: () {
-                    if (isMember) {
-                      context.push('/server/$serverId');
-                    } else {
-                      _joinServer(serverId);
-                    }
-                  },
-                  color: isMember ? white : lime,
-                  textColor: black,
-                  isLoading: _joiningId == serverId,
                 ),
               ],
             ),
@@ -599,28 +553,17 @@ class _DiscoverServersScreenState extends ConsumerState<DiscoverServersScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Text(
-                'NETWORK_MOMENTS',
-                style: GoogleFonts.spaceGrotesk(
-                  color: white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -1,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(width: 16),
-            _brutalistTextButton('VIEW_ALL', () {}),
-          ],
+        Text(
+          'Live Moments',
+          style: GoogleFonts.inter(
+            color: const Color(FlickoColors.textPrimary),
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
         ),
-        const SizedBox(height: 32),
+        const SizedBox(height: 20),
         SizedBox(
-          height: 220,
+          height: 180,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
@@ -634,38 +577,40 @@ class _DiscoverServersScreenState extends ConsumerState<DiscoverServersScreen> {
 
   Widget _buildMomentCard(int index) {
     return Container(
-      width: 160,
-      margin: const EdgeInsets.only(right: 24, bottom: 12),
+      width: 140,
+      margin: const EdgeInsets.only(right: 16, bottom: 8),
       decoration: BoxDecoration(
-        color: black,
-        border: Border.all(color: white, width: 3),
-        boxShadow: const [
-          BoxShadow(color: lime, offset: Offset(6, 6)),
-        ],
+        color: const Color(FlickoColors.bgSecondary),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(FlickoColors.border), width: 1),
       ),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
             child: Container(
               width: double.infinity,
-              color: grey,
+              color: const Color(FlickoColors.bgTertiary),
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  const Icon(Icons.play_circle_outline, color: white, size: 48),
+                  const Icon(Icons.play_circle_outline_rounded, color: Colors.white70, size: 36),
                   Positioned(
                     top: 8,
                     left: 8,
                     child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(color: Colors.red),
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(FlickoColors.danger),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
                       child: Text(
                         'LIVE',
-                        style: GoogleFonts.robotoMono(
-                          color: white,
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
                           fontSize: 8,
-                          fontWeight: FontWeight.w900,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
@@ -675,25 +620,24 @@ class _DiscoverServersScreenState extends ConsumerState<DiscoverServersScreen> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '@NODE_${index + 101}',
-                  style: GoogleFonts.robotoMono(
-                    color: lime,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w900,
+                  '@user_${index + 101}',
+                  style: GoogleFonts.inter(
+                    color: const Color(FlickoColors.brandLime),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
-                  'ACTIVE_STREAM',
-                  style: GoogleFonts.robotoMono(
-                    color: white.withValues(alpha: 0.4),
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold,
+                  'Live Stream',
+                  style: GoogleFonts.inter(
+                    color: const Color(FlickoColors.textSecondary),
+                    fontSize: 10,
                   ),
                 ),
               ],
@@ -704,85 +648,16 @@ class _DiscoverServersScreenState extends ConsumerState<DiscoverServersScreen> {
     );
   }
 
-  Widget _brutalistButton({
-    required String text,
-    required VoidCallback onTap,
-    required Color color,
-    required Color textColor,
-    bool isLoading = false,
-  }) {
-    return GestureDetector(
-      onTap: isLoading ? null : onTap,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        decoration: BoxDecoration(
-          color: color,
-          border: Border.all(color: black, width: 3),
-          boxShadow: [
-            BoxShadow(
-              color: color == lime ? white : lime,
-              offset: const Offset(4, 4),
-            ),
-          ],
-        ),
-        child: Center(
-          child: isLoading
-              ? SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(strokeWidth: 3, color: textColor),
-                )
-              : Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      text,
-                      style: GoogleFonts.spaceGrotesk(
-                        color: textColor,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 15,
-                        letterSpacing: 1.5,
-                      ),
-                    ),
-                  ),
-                ),
-        ),
-      ),
-    );
-  }
-
-  Widget _brutalistTextButton(String text, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          border: Border.all(color: white, width: 2),
-        ),
-        child: Text(
-          text,
-          style: GoogleFonts.robotoMono(
-            color: white,
-            fontSize: 11,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildLoadingState() {
     return Center(
       child: Column(
         children: [
           const SizedBox(height: 40),
-          const CircularProgressIndicator(color: lime, strokeWidth: 4),
-          const SizedBox(height: 24),
+          const CircularProgressIndicator(color: Color(FlickoColors.brandLime)),
+          const SizedBox(height: 16),
           Text(
-            'SCANNING_NETWORK_NODES...',
-            style: GoogleFonts.robotoMono(color: white, fontSize: 12, fontWeight: FontWeight.bold),
+            'Loading servers...',
+            style: GoogleFonts.inter(color: const Color(FlickoColors.textSecondary), fontSize: 13),
           ),
         ],
       ),
@@ -793,30 +668,45 @@ class _DiscoverServersScreenState extends ConsumerState<DiscoverServersScreen> {
     return Center(
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
         decoration: BoxDecoration(
-          border: Border.all(color: white.withValues(alpha: 0.1), width: 3),
-          color: grey,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(FlickoColors.border), width: 1),
+          color: const Color(FlickoColors.bgSecondary),
         ),
         child: Column(
           children: [
-            const Icon(Icons.search_off, color: lime, size: 48),
-            const SizedBox(height: 24),
+            const Icon(Icons.search_off_rounded, color: Color(FlickoColors.textMuted), size: 48),
+            const SizedBox(height: 16),
             Text(
-              'NO_RESULTS_FOUND',
-              style: GoogleFonts.spaceGrotesk(color: white, fontSize: 20, fontWeight: FontWeight.w900),
+              'No results found',
+              style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary), fontSize: 16, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             Text(
-              'TRY_REDEFINING_SEARCH_PARAMETERS_OR_FILTER_TOPICS',
+              'Try adjusting your search query or choosing another topic.',
               textAlign: TextAlign.center,
-              style: GoogleFonts.robotoMono(
-                color: white.withValues(alpha: 0.5),
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
+              style: GoogleFonts.inter(
+                color: const Color(FlickoColors.textSecondary),
+                fontSize: 12,
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCleanFooter() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24.0),
+        child: Text(
+          'Flicko Communities • Subject to Community Guidelines',
+          style: GoogleFonts.inter(
+            color: const Color(FlickoColors.textMuted),
+            fontSize: 12,
+          ),
         ),
       ),
     );

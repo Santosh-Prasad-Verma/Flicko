@@ -168,8 +168,13 @@ class MessageItem extends StatelessWidget {
       );
     }
 
+    final mentionRegex = RegExp(r'@([a-zA-Z0-9_.-]+)');
+    final processedContent = message.content.replaceAllMapped(mentionRegex, (match) {
+      return '**${match.group(0)}**';
+    });
+
     return MarkdownBody(
-      data: message.content,
+      data: processedContent,
       selectable: true,
       onTapLink: (text, href, title) async {
         if (href != null) {
@@ -184,6 +189,11 @@ class MessageItem extends StatelessWidget {
           color: const Color(FlickoColors.textPrimary),
           fontSize: 15,
           height: 1.4,
+        ),
+        strong: GoogleFonts.inter(
+          color: const Color(FlickoColors.blurple),
+          fontWeight: FontWeight.bold,
+          fontSize: 15,
         ),
         code: GoogleFonts.firaCode(
           backgroundColor: const Color(FlickoColors.bgTertiary),
