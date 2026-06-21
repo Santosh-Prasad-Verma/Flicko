@@ -45,7 +45,8 @@ class UserAvatar extends ConsumerWidget {
     final activeDecoration = decoration ?? (isCurrentUser ? decorationAsync?.value?.id : null);
     
     // Resolve dynamic online status from presence service if userId is provided
-    final dynamicStatus = userId != null ? ref.watch(userOnlineStatusProvider(userId)) : null;
+    final targetUserId = userId;
+    final dynamicStatus = targetUserId != null ? ref.watch(userOnlineStatusProvider(targetUserId)) : null;
     final resolvedStatus = dynamicStatus != null
         ? dynamicStatus.maybeWhen(
             data: (val) => val,
