@@ -45,7 +45,7 @@ class _PollMessageCardState extends State<PollMessageCard> {
   }
 
   bool _hasVoted(int index) {
-    final option = _options[index] as Map<String, dynamic>;
+    final option = Map<String, dynamic>.from(_options[index] as Map);
     final voters = option['voters'] as List<dynamic>? ?? [];
     final userId = Supabase.instance.client.auth.currentUser?.id;
     return voters.contains(userId);
@@ -130,7 +130,7 @@ class _PollMessageCardState extends State<PollMessageCard> {
     final question = _pollData['question'] as String? ?? 'Poll';
     
     // To calculate percentages accurately.
-    int totalOverallVotes = _options.fold(0, (sum, opt) => sum + ((opt as Map)['votes'] as int? ?? 0));
+    int totalOverallVotes = _options.fold(0, (sum, opt) => sum + (Map<String, dynamic>.from(opt as Map)['votes'] as int? ?? 0));
 
     // Check if ended
     bool hasEnded = false;
@@ -144,26 +144,37 @@ class _PollMessageCardState extends State<PollMessageCard> {
 
     return Container(
       margin: const EdgeInsets.only(top: 8, bottom: 4),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(FlickoColors.bgSecondary),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(FlickoColors.bgTertiary)),
+        color: const Color(0xFF0C0E0D).withOpacity(0.8),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(FlickoColors.brandLime).withOpacity(0.15),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(FlickoColors.brandLime).withOpacity(0.04),
+            blurRadius: 12,
+            spreadRadius: 2,
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.poll, color: Color(FlickoColors.blurple), size: 20),
-              const SizedBox(width: 8),
+              const Icon(Icons.poll_rounded, color: Color(FlickoColors.brandLime), size: 22),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   question,
                   style: GoogleFonts.inter(
                     color: const Color(FlickoColors.textPrimary),
-                    fontSize: 16,
+                    fontSize: 15,
                     fontWeight: FontWeight.bold,
+                    letterSpacing: 0.1,
                   ),
                 ),
               ),
@@ -172,7 +183,7 @@ class _PollMessageCardState extends State<PollMessageCard> {
           const SizedBox(height: 16),
           ..._options.asMap().entries.map((entry) {
             final idx = entry.key;
-            final opt = entry.value as Map<String, dynamic>;
+            final opt = Map<String, dynamic>.from(entry.value as Map);
             final text = opt['text'] as String?;
             final votes = opt['votes'] as int? ?? 0;
             final hasVoted = _hasVoted(idx);
@@ -181,15 +192,21 @@ class _PollMessageCardState extends State<PollMessageCard> {
             return GestureDetector(
               onTap: () => _handleVote(idx),
               child: Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                height: 40,
+                margin: const EdgeInsets.only(bottom: 10),
+                height: 44,
                 child: Stack(
                   children: [
                     // Background
                     Container(
                       decoration: BoxDecoration(
-                        color: const Color(FlickoColors.bgTertiary),
-                        borderRadius: BorderRadius.circular(8),
+                        color: const Color(0xFF161917),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: hasVoted
+                              ? const Color(FlickoColors.brandLime).withOpacity(0.4)
+                              : const Color(FlickoColors.border).withOpacity(0.3),
+                          width: 1.2,
+                        ),
                       ),
                     ),
                     // Progress
@@ -199,39 +216,51 @@ class _PollMessageCardState extends State<PollMessageCard> {
                         widthFactor: percentage,
                         child: Container(
                           decoration: BoxDecoration(
-                            color: hasVoted 
-                                ? const Color(FlickoColors.blurple).withValues(alpha: 0.4) 
-                                : const Color(FlickoColors.textMuted).withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(8),
+                            gradient: LinearGradient(
+                              colors: hasVoted
+                                  ? [
+                                      const Color(FlickoColors.brandLime).withOpacity(0.35),
+                                      const Color(FlickoColors.brandLime).withOpacity(0.12),
+                                    ]
+                                  : [
+                                      Colors.white.withOpacity(0.08),
+                                      Colors.white.withOpacity(0.04),
+                                    ],
+                            ),
+                            borderRadius: BorderRadius.circular(10),
                           ),
                         ),
                       ),
                     ),
                     // Content
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
                       child: Row(
                         children: [
                           if (hasVoted) ...[
-                            const Icon(Icons.check_circle, size: 16, color: Color(FlickoColors.textPrimary)),
+                            const Icon(Icons.check_circle_rounded, size: 16, color: Color(FlickoColors.brandLime)),
                             const SizedBox(width: 8),
                           ],
                           Expanded(
                             child: Text(
                               text ?? 'Option',
                               style: GoogleFonts.inter(
-                                color: const Color(FlickoColors.textPrimary),
-                                fontSize: 14,
-                                fontWeight: hasVoted ? FontWeight.bold : FontWeight.normal,
+                                color: hasVoted
+                                    ? const Color(FlickoColors.brandLime)
+                                    : const Color(FlickoColors.textPrimary),
+                                fontSize: 13.5,
+                                fontWeight: hasVoted ? FontWeight.w700 : FontWeight.w500,
                               ),
                             ),
                           ),
                           Text(
                             '${(percentage * 100).toStringAsFixed(0)}%',
                             style: GoogleFonts.inter(
-                              color: const Color(FlickoColors.textPrimary),
-                              fontSize: 14,
-                              fontWeight: hasVoted ? FontWeight.bold : FontWeight.normal,
+                              color: hasVoted
+                                  ? const Color(FlickoColors.brandLime)
+                                  : const Color(FlickoColors.textSecondary),
+                              fontSize: 13.5,
+                              fontWeight: hasVoted ? FontWeight.w700 : FontWeight.w600,
                             ),
                           ),
                         ],
@@ -245,27 +274,35 @@ class _PollMessageCardState extends State<PollMessageCard> {
           const SizedBox(height: 8),
           Row(
             children: [
-              Text(
-                '$totalOverallVotes votes',
-                style: GoogleFonts.inter(
-                  color: const Color(FlickoColors.textMuted),
-                  fontSize: 12,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(FlickoColors.brandLime).withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  '$totalOverallVotes votes',
+                  style: GoogleFonts.inter(
+                    color: const Color(FlickoColors.brandLime),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
               if (hasEnded) ...[
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: const Color(FlickoColors.bgTertiary),
-                    borderRadius: BorderRadius.circular(4),
+                    color: const Color(FlickoColors.danger).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
                     'Ended',
                     style: GoogleFonts.inter(
-                      fontSize: 10,
+                      fontSize: 11,
                       fontWeight: FontWeight.bold,
-                      color: const Color(FlickoColors.textMuted),
+                      color: const Color(FlickoColors.danger),
                     ),
                   ),
                 ),

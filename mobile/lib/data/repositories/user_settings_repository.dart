@@ -62,8 +62,10 @@ class UserSettingsRepository {
 
       if (response == null) return await loadSettings();
 
-      final remotePrefs =
-          (response['preferences'] as Map<String, dynamic>?) ?? {};
+      final rawPrefs = response['preferences'];
+      final remotePrefs = rawPrefs != null
+          ? Map<String, dynamic>.from(rawPrefs as Map)
+          : <String, dynamic>{};
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_prefsKey, jsonEncode(remotePrefs));

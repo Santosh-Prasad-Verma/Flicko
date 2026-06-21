@@ -18,7 +18,7 @@ mixin _$FlickoMessage {
   @JsonKey(name: 'channel_id')
   String? get channelId;
   @JsonKey(name: 'author_id')
-  String get authorId;
+  String? get authorId;
   String get content;
   String get type;
   @JsonKey(name: 'reply_to_id')
@@ -29,11 +29,11 @@ mixin _$FlickoMessage {
   List<FlickoReaction> get reactions;
   bool get pinned;
   bool get edited;
-  @JsonKey(name: 'edited_at')
+  @JsonKey(name: 'edited_at', fromJson: _parseNullableDateTime)
   DateTime? get editedAt;
-  @JsonKey(name: 'created_at')
+  @JsonKey(name: 'created_at', fromJson: _parseDateTime)
   DateTime get createdAt;
-  @JsonKey(name: 'updated_at')
+  @JsonKey(name: 'updated_at', fromJson: _parseNullableDateTime)
   DateTime? get updatedAt; // DM specific fields
   @JsonKey(name: 'recipient_id')
   String? get recipientId; // Joined data
@@ -121,7 +121,7 @@ abstract mixin class $FlickoMessageCopyWith<$Res> {
   $Res call(
       {String id,
       @JsonKey(name: 'channel_id') String? channelId,
-      @JsonKey(name: 'author_id') String authorId,
+      @JsonKey(name: 'author_id') String? authorId,
       String content,
       String type,
       @JsonKey(name: 'reply_to_id') String? replyToId,
@@ -130,9 +130,11 @@ abstract mixin class $FlickoMessageCopyWith<$Res> {
       List<FlickoReaction> reactions,
       bool pinned,
       bool edited,
-      @JsonKey(name: 'edited_at') DateTime? editedAt,
-      @JsonKey(name: 'created_at') DateTime createdAt,
-      @JsonKey(name: 'updated_at') DateTime? updatedAt,
+      @JsonKey(name: 'edited_at', fromJson: _parseNullableDateTime)
+      DateTime? editedAt,
+      @JsonKey(name: 'created_at', fromJson: _parseDateTime) DateTime createdAt,
+      @JsonKey(name: 'updated_at', fromJson: _parseNullableDateTime)
+      DateTime? updatedAt,
       @JsonKey(name: 'recipient_id') String? recipientId,
       UserModel? author,
       FlickoMessage? replyTo});
@@ -156,7 +158,7 @@ class _$FlickoMessageCopyWithImpl<$Res>
   $Res call({
     Object? id = null,
     Object? channelId = freezed,
-    Object? authorId = null,
+    Object? authorId = freezed,
     Object? content = null,
     Object? type = null,
     Object? replyToId = freezed,
@@ -181,10 +183,10 @@ class _$FlickoMessageCopyWithImpl<$Res>
           ? _self.channelId
           : channelId // ignore: cast_nullable_to_non_nullable
               as String?,
-      authorId: null == authorId
+      authorId: freezed == authorId
           ? _self.authorId
           : authorId // ignore: cast_nullable_to_non_nullable
-              as String,
+              as String?,
       content: null == content
           ? _self.content
           : content // ignore: cast_nullable_to_non_nullable
@@ -369,7 +371,7 @@ extension FlickoMessagePatterns on FlickoMessage {
     TResult Function(
             String id,
             @JsonKey(name: 'channel_id') String? channelId,
-            @JsonKey(name: 'author_id') String authorId,
+            @JsonKey(name: 'author_id') String? authorId,
             String content,
             String type,
             @JsonKey(name: 'reply_to_id') String? replyToId,
@@ -378,9 +380,12 @@ extension FlickoMessagePatterns on FlickoMessage {
             List<FlickoReaction> reactions,
             bool pinned,
             bool edited,
-            @JsonKey(name: 'edited_at') DateTime? editedAt,
-            @JsonKey(name: 'created_at') DateTime createdAt,
-            @JsonKey(name: 'updated_at') DateTime? updatedAt,
+            @JsonKey(name: 'edited_at', fromJson: _parseNullableDateTime)
+            DateTime? editedAt,
+            @JsonKey(name: 'created_at', fromJson: _parseDateTime)
+            DateTime createdAt,
+            @JsonKey(name: 'updated_at', fromJson: _parseNullableDateTime)
+            DateTime? updatedAt,
             @JsonKey(name: 'recipient_id') String? recipientId,
             UserModel? author,
             FlickoMessage? replyTo)?
@@ -431,7 +436,7 @@ extension FlickoMessagePatterns on FlickoMessage {
     TResult Function(
             String id,
             @JsonKey(name: 'channel_id') String? channelId,
-            @JsonKey(name: 'author_id') String authorId,
+            @JsonKey(name: 'author_id') String? authorId,
             String content,
             String type,
             @JsonKey(name: 'reply_to_id') String? replyToId,
@@ -440,9 +445,12 @@ extension FlickoMessagePatterns on FlickoMessage {
             List<FlickoReaction> reactions,
             bool pinned,
             bool edited,
-            @JsonKey(name: 'edited_at') DateTime? editedAt,
-            @JsonKey(name: 'created_at') DateTime createdAt,
-            @JsonKey(name: 'updated_at') DateTime? updatedAt,
+            @JsonKey(name: 'edited_at', fromJson: _parseNullableDateTime)
+            DateTime? editedAt,
+            @JsonKey(name: 'created_at', fromJson: _parseDateTime)
+            DateTime createdAt,
+            @JsonKey(name: 'updated_at', fromJson: _parseNullableDateTime)
+            DateTime? updatedAt,
             @JsonKey(name: 'recipient_id') String? recipientId,
             UserModel? author,
             FlickoMessage? replyTo)
@@ -491,7 +499,7 @@ extension FlickoMessagePatterns on FlickoMessage {
     TResult? Function(
             String id,
             @JsonKey(name: 'channel_id') String? channelId,
-            @JsonKey(name: 'author_id') String authorId,
+            @JsonKey(name: 'author_id') String? authorId,
             String content,
             String type,
             @JsonKey(name: 'reply_to_id') String? replyToId,
@@ -500,9 +508,12 @@ extension FlickoMessagePatterns on FlickoMessage {
             List<FlickoReaction> reactions,
             bool pinned,
             bool edited,
-            @JsonKey(name: 'edited_at') DateTime? editedAt,
-            @JsonKey(name: 'created_at') DateTime createdAt,
-            @JsonKey(name: 'updated_at') DateTime? updatedAt,
+            @JsonKey(name: 'edited_at', fromJson: _parseNullableDateTime)
+            DateTime? editedAt,
+            @JsonKey(name: 'created_at', fromJson: _parseDateTime)
+            DateTime createdAt,
+            @JsonKey(name: 'updated_at', fromJson: _parseNullableDateTime)
+            DateTime? updatedAt,
             @JsonKey(name: 'recipient_id') String? recipientId,
             UserModel? author,
             FlickoMessage? replyTo)?
@@ -541,7 +552,7 @@ class _FlickoMessage implements FlickoMessage {
   const _FlickoMessage(
       {required this.id,
       @JsonKey(name: 'channel_id') this.channelId,
-      @JsonKey(name: 'author_id') required this.authorId,
+      @JsonKey(name: 'author_id') this.authorId,
       required this.content,
       this.type = 'default',
       @JsonKey(name: 'reply_to_id') this.replyToId,
@@ -550,9 +561,12 @@ class _FlickoMessage implements FlickoMessage {
       final List<FlickoReaction> reactions = const [],
       this.pinned = false,
       this.edited = false,
-      @JsonKey(name: 'edited_at') this.editedAt,
-      @JsonKey(name: 'created_at') required this.createdAt,
-      @JsonKey(name: 'updated_at') this.updatedAt,
+      @JsonKey(name: 'edited_at', fromJson: _parseNullableDateTime)
+      this.editedAt,
+      @JsonKey(name: 'created_at', fromJson: _parseDateTime)
+      required this.createdAt,
+      @JsonKey(name: 'updated_at', fromJson: _parseNullableDateTime)
+      this.updatedAt,
       @JsonKey(name: 'recipient_id') this.recipientId,
       this.author,
       this.replyTo})
@@ -568,7 +582,7 @@ class _FlickoMessage implements FlickoMessage {
   final String? channelId;
   @override
   @JsonKey(name: 'author_id')
-  final String authorId;
+  final String? authorId;
   @override
   final String content;
   @override
@@ -605,13 +619,13 @@ class _FlickoMessage implements FlickoMessage {
   @JsonKey()
   final bool edited;
   @override
-  @JsonKey(name: 'edited_at')
+  @JsonKey(name: 'edited_at', fromJson: _parseNullableDateTime)
   final DateTime? editedAt;
   @override
-  @JsonKey(name: 'created_at')
+  @JsonKey(name: 'created_at', fromJson: _parseDateTime)
   final DateTime createdAt;
   @override
-  @JsonKey(name: 'updated_at')
+  @JsonKey(name: 'updated_at', fromJson: _parseNullableDateTime)
   final DateTime? updatedAt;
 // DM specific fields
   @override
@@ -711,7 +725,7 @@ abstract mixin class _$FlickoMessageCopyWith<$Res>
   $Res call(
       {String id,
       @JsonKey(name: 'channel_id') String? channelId,
-      @JsonKey(name: 'author_id') String authorId,
+      @JsonKey(name: 'author_id') String? authorId,
       String content,
       String type,
       @JsonKey(name: 'reply_to_id') String? replyToId,
@@ -720,9 +734,11 @@ abstract mixin class _$FlickoMessageCopyWith<$Res>
       List<FlickoReaction> reactions,
       bool pinned,
       bool edited,
-      @JsonKey(name: 'edited_at') DateTime? editedAt,
-      @JsonKey(name: 'created_at') DateTime createdAt,
-      @JsonKey(name: 'updated_at') DateTime? updatedAt,
+      @JsonKey(name: 'edited_at', fromJson: _parseNullableDateTime)
+      DateTime? editedAt,
+      @JsonKey(name: 'created_at', fromJson: _parseDateTime) DateTime createdAt,
+      @JsonKey(name: 'updated_at', fromJson: _parseNullableDateTime)
+      DateTime? updatedAt,
       @JsonKey(name: 'recipient_id') String? recipientId,
       UserModel? author,
       FlickoMessage? replyTo});
@@ -748,7 +764,7 @@ class __$FlickoMessageCopyWithImpl<$Res>
   $Res call({
     Object? id = null,
     Object? channelId = freezed,
-    Object? authorId = null,
+    Object? authorId = freezed,
     Object? content = null,
     Object? type = null,
     Object? replyToId = freezed,
@@ -773,10 +789,10 @@ class __$FlickoMessageCopyWithImpl<$Res>
           ? _self.channelId
           : channelId // ignore: cast_nullable_to_non_nullable
               as String?,
-      authorId: null == authorId
+      authorId: freezed == authorId
           ? _self.authorId
           : authorId // ignore: cast_nullable_to_non_nullable
-              as String,
+              as String?,
       content: null == content
           ? _self.content
           : content // ignore: cast_nullable_to_non_nullable

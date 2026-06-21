@@ -366,54 +366,59 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             left: 24,
             right: 24,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Logo
-              _buildLogo(),
-              
-              const SizedBox(height: 40),
-              
-              if (_isVerificationEmailSent)
-                _buildCheckEmailView()
-              else ...[
-                // Header
-                _buildHeader(),
-                
-                const SizedBox(height: 48),
-                
-                // Form
-                _buildForm(),
-                
-                const SizedBox(height: 40),
-                
-                // Footer
-                Center(
-                  child: GestureDetector(
-                    onTap: _navigateToLogin,
-                    child: RichText(
-                      text: TextSpan(
-                        style: GoogleFonts.inter(
-                          color: const Color(FlickoColors.textMuted),
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.5,
-                        ),
-                        children: [
-                          const TextSpan(text: 'ALREADY HAVE AN ACCOUNT? '),
-                          TextSpan(
-                            text: 'LOG IN',
-                            style: TextStyle(
-                              color: const Color(FlickoColors.brandLime),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 500),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Logo
+                  _buildLogo(),
+                  
+                  const SizedBox(height: 40),
+                  
+                  if (_isVerificationEmailSent)
+                    _buildCheckEmailView()
+                  else ...[
+                    // Header
+                    _buildHeader(),
+                    
+                    const SizedBox(height: 48),
+                    
+                    // Form
+                    _buildForm(),
+                    
+                    const SizedBox(height: 40),
+                    
+                    // Footer
+                    Center(
+                      child: GestureDetector(
+                        onTap: _navigateToLogin,
+                        child: RichText(
+                          text: TextSpan(
+                            style: GoogleFonts.inter(
+                              color: const Color(FlickoColors.textMuted),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.5,
                             ),
+                            children: [
+                              const TextSpan(text: 'ALREADY HAVE AN ACCOUNT? '),
+                              TextSpan(
+                                text: 'LOG IN',
+                                style: TextStyle(
+                                  color: const Color(FlickoColors.brandLime),
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
-                ),
-              ],
-            ],
+                  ],
+                ],
+              ),
+            ),
           ),
         ),
       ),

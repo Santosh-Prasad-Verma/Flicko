@@ -120,76 +120,81 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
             left: 24,
             right: 24,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Back Button
-              GestureDetector(
-                onTap: () => context.pop(),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.arrow_back_ios_new, color: Color(FlickoColors.textMuted), size: 14),
-                      const SizedBox(width: 8),
-                      Text(
-                        'BACK',
-                        style: GoogleFonts.inter(
-                          color: const Color(FlickoColors.textMuted),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1.0,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              
-              const SizedBox(height: 32),
-              
-              // Logo
-              _buildLogo(),
-              
-              const SizedBox(height: 24),
-              
-              // Header
-              _buildHeader(),
-              
-              const SizedBox(height: 48),
-              
-              // Form or Success
-              _emailSent ? _buildSuccessView() : _buildForm(),
-              
-              if (!_emailSent) ...[
-                const SizedBox(height: 40),
-                Center(
-                  child: GestureDetector(
-                    onTap: _navigateToLogin,
-                    child: RichText(
-                      text: TextSpan(
-                        style: GoogleFonts.inter(
-                          color: const Color(FlickoColors.textMuted),
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.5,
-                        ),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 500),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Back Button
+                  GestureDetector(
+                    onTap: () => context.pop(),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          const TextSpan(text: 'REMEMBERED IT? '),
-                          TextSpan(
-                            text: 'LOG IN',
-                            style: TextStyle(
-                              color: const Color(FlickoColors.brandLime),
+                          const Icon(Icons.arrow_back_ios_new, color: Color(FlickoColors.textMuted), size: 14),
+                          const SizedBox(width: 8),
+                          Text(
+                            'BACK',
+                            style: GoogleFonts.inter(
+                              color: const Color(FlickoColors.textMuted),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.0,
                             ),
                           ),
                         ],
                       ),
                     ),
                   ),
-                ),
-              ],
-            ],
+                  
+                  const SizedBox(height: 32),
+                  
+                  // Logo
+                  _buildLogo(),
+                  
+                  const SizedBox(height: 24),
+                  
+                  // Header
+                  _buildHeader(),
+                  
+                  const SizedBox(height: 48),
+                  
+                  // Form or Success
+                  _emailSent ? _buildSuccessView() : _buildForm(),
+                  
+                  if (!_emailSent) ...[
+                    const SizedBox(height: 40),
+                    Center(
+                      child: GestureDetector(
+                        onTap: _navigateToLogin,
+                        child: RichText(
+                          text: TextSpan(
+                            style: GoogleFonts.inter(
+                              color: const Color(FlickoColors.textMuted),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.5,
+                            ),
+                            children: [
+                              const TextSpan(text: 'REMEMBERED IT? '),
+                              TextSpan(
+                                text: 'LOG IN',
+                                style: TextStyle(
+                                  color: const Color(FlickoColors.brandLime),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ),
         ),
       ),

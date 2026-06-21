@@ -34,7 +34,7 @@ class ChatNotifier extends Notifier<ChatState> {
       _subscription?.unsubscribe();
     });
 
-    init();
+    Future.microtask(init);
     return const ChatState();
   }
 
@@ -43,6 +43,7 @@ class ChatNotifier extends Notifier<ChatState> {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
       final messages = await _repository.getMessages(_channelId);
+      print('[ChatNotifier] init successfully loaded channelId: $_channelId, fetched ${messages.length} messages');
       state = state.copyWith(
         messages: messages,
         isLoading: false,
@@ -51,6 +52,7 @@ class ChatNotifier extends Notifier<ChatState> {
 
       _setupSubscription();
     } catch (e) {
+      print('[ChatNotifier] init failed for channelId: $_channelId with error: $e');
       state = state.copyWith(
         isLoading: false,
         errorMessage: e.toString(),
@@ -62,7 +64,8 @@ class ChatNotifier extends Notifier<ChatState> {
     _subscription = _repository.subscribeToChannel(_channelId, (eventType, payload) async {
       if (eventType == PostgresChangeEvent.insert) {
         try {
-          final messageId = payload['id'] as String;
+          final messageId = payload['id'] as String?;
+          if (messageId == null) return;
           // Check if already in list to avoid duplicates
           if (state.messages.any((m) => m.id == messageId)) return;
 
@@ -205,12 +208,18 @@ class ChatNotifier extends Notifier<ChatState> {
 
       final sentMessage = await _repository.getById(messageId);
       
-      final updatedMessages = state.messages.map((m) {
-        if (m.id == tempMessageId) {
-          return sentMessage ?? m.copyWith(id: messageId);
-        }
-        return m;
-      }).toList();
+      final isAlreadyInserted = state.messages.any((m) => m.id == messageId);
+      final List<FlickoMessage> updatedMessages;
+      if (isAlreadyInserted) {
+        updatedMessages = state.messages.where((m) => m.id != tempMessageId).toList();
+      } else {
+        updatedMessages = state.messages.map((m) {
+          if (m.id == tempMessageId) {
+            return sentMessage ?? m.copyWith(id: messageId);
+          }
+          return m;
+        }).toList();
+      }
       
       state = state.copyWith(
         messages: updatedMessages,

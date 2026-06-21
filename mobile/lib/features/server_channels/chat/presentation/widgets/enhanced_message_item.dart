@@ -92,7 +92,7 @@ class _EnhancedMessageItemState extends ConsumerState<EnhancedMessageItem> {
     }
 
     // System messages
-    if (widget.message.type != 'default' && widget.message.type != 'poll') {
+    if (widget.message.type != 'default' && widget.message.type != 'poll' && widget.message.type != 'reply') {
       return _buildSystemMessage();
     }
 

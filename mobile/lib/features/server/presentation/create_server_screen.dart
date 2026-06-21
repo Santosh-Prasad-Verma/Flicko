@@ -191,19 +191,6 @@ class _CreateServerScreenState extends ConsumerState<CreateServerScreen> {
         }).select().single();
 
         serverId = response['id'] as String;
-
-        await client.from('server_members').insert({
-          'server_id': serverId,
-          'user_id': currentUser.id,
-          'role': 'owner',
-        });
-
-        await client.from('channels').insert({
-          'server_id': serverId,
-          'name': 'general',
-          'type': 'text',
-          'position': 0,
-        });
       }
 
       if (_iconFile != null) {

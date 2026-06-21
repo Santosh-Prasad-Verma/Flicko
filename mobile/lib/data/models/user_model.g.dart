@@ -47,7 +47,7 @@ _UserModel _$UserModelFromJson(Map<String, dynamic> json) => _UserModel(
       isStaff: json['is_staff'] as bool? ?? false,
       isPartner: json['is_partner'] as bool? ?? false,
       hasNitro: json['has_nitro'] as bool? ?? false,
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdAt: _parseDateTime(json['created_at']),
       updatedAt: json['updated_at'] == null
           ? null
           : DateTime.parse(json['updated_at'] as String),

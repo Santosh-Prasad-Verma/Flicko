@@ -111,22 +111,27 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
             left: 24,
             right: 24,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Logo
-              _buildLogo(),
-              
-              const SizedBox(height: 24),
-              
-              // Header
-              _buildHeader(),
-              
-              const SizedBox(height: 24),
-              
-              // Form or Success
-              _success ? _buildSuccessView() : _buildForm(),
-            ],
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 500),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Logo
+                  _buildLogo(),
+                  
+                  const SizedBox(height: 24),
+                  
+                  // Header
+                  _buildHeader(),
+                  
+                  const SizedBox(height: 24),
+                  
+                  // Form or Success
+                  _success ? _buildSuccessView() : _buildForm(),
+                ],
+              ),
+            ),
           ),
         ),
       ),

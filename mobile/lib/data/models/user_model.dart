@@ -39,9 +39,16 @@ abstract class UserModel with _$UserModel {
     @JsonKey(name: 'is_staff') @Default(false) bool isStaff,
     @JsonKey(name: 'is_partner') @Default(false) bool isPartner,
     @JsonKey(name: 'has_nitro') @Default(false) bool hasNitro,
-    @JsonKey(name: 'created_at') required DateTime createdAt,
+    @JsonKey(name: 'created_at', fromJson: _parseDateTime) required DateTime createdAt,
     @JsonKey(name: 'updated_at') DateTime? updatedAt,
   }) = _UserModel;
 
   factory UserModel.fromJson(Map<String, dynamic> json) => _$UserModelFromJson(json);
+}
+
+DateTime _parseDateTime(dynamic val) {
+  if (val == null) return DateTime.now();
+  if (val is String) return DateTime.parse(val);
+  if (val is DateTime) return val;
+  return DateTime.now();
 }

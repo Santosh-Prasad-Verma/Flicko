@@ -47,62 +47,8 @@ class MessageRepository {
       final List<dynamic> response = await query.order('created_at', ascending: false).limit(limit);
       
       return response.map((json) {
-        final Map<String, dynamic> msg = Map<String, dynamic>.from(json);
-        
-        // Ensure proper mapping to FlickoMessage structure
-        // author_id is inherently present from DB SELECT *
-        
-        if (msg['author'] != null && msg['author']['avatar_url'] != null) {
-          msg['author']['avatar'] = msg['author']['avatar_url'];
-        }
-
-        if (msg['replyTo'] is List) {
-          final replyList = msg['replyTo'] as List;
-          if (replyList.isEmpty) {
-            msg['replyTo'] = null;
-          } else {
-            msg['replyTo'] = Map<String, dynamic>.from(replyList.first as Map);
-          }
-        }
-
-        if (msg['replyTo'] != null && msg['replyTo']['author'] != null && msg['replyTo']['author']['avatar_url'] != null) {
-          msg['replyTo']['author']['avatar'] = msg['replyTo']['author']['avatar_url'];
-        }
-
-        // Post-process reactions to aggregate by emoji (matching RN logic)
-        final List<dynamic> rawReactions = msg['reactions'] ?? [];
-        final Map<String, Map<String, dynamic>> reactionMap = {};
-        final currentUserId = _client.auth.currentSession?.user.id;
-
-        for (final r in rawReactions) {
-          final emoji = r['emoji'] as String;
-          final userId = r['user_id'] as String;
-          
-          if (!reactionMap.containsKey(emoji)) {
-            reactionMap[emoji] = {
-              'emoji': emoji,
-              'count': 0,
-              'me': false,
-              'users': <String>[],
-            };
-          }
-          
-          final entry = reactionMap[emoji]!;
-          entry['count'] = (entry['count'] as int) + 1;
-          (entry['users'] as List<String>).add(userId);
-          if (userId == currentUserId) entry['me'] = true;
-        }
-        
-        msg['reactions'] = reactionMap.values.toList();
-        
-        // Map attachments
-        final List<dynamic> rawAttachments = msg['attachments'] ?? [];
-        msg['attachments'] = rawAttachments.map((a) => {
-          ...a,
-          'contentType': a['content_type'],
-        }).toList();
-
-        return FlickoMessage.fromJson(msg);
+        final Map<String, dynamic> msg = Map<String, dynamic>.from(json as Map);
+        return _parseMessageJson(msg);
       }).toList();
     } catch (e) {
       rethrow;
@@ -295,9 +241,9 @@ class MessageRepository {
             final record = payload.eventType == PostgresChangeEvent.delete
                 ? payload.oldRecord
                 : payload.newRecord;
-            if (record != null && record['channel_id'] == channelId) {
+            if (record != null && (record['channel_id'] == channelId || payload.eventType == PostgresChangeEvent.delete)) {
               developer.log('[SupabaseRealtime] Received messages change event: ${payload.eventType} in channel: $channelId, record: $record');
-              onChange(payload.eventType, record);
+              onChange(payload.eventType, Map<String, dynamic>.from(record));
             } else {
               developer.log('[SupabaseRealtime] Messages change event did not match channel filter (channelId: $channelId, record channel_id: ${record?['channel_id']})');
             }
@@ -309,7 +255,15 @@ class MessageRepository {
           table: 'reactions',
           callback: (payload) {
             developer.log('[SupabaseRealtime] Received reactions change event: ${payload.eventType} in channel: $channelId');
-            onChange(payload.eventType, payload.newRecord);
+            final record = payload.eventType == PostgresChangeEvent.delete
+                ? payload.oldRecord
+                : payload.newRecord;
+            if (record != null) {
+              final messageId = record['message_id'] as String?;
+              if (messageId != null) {
+                onChange(PostgresChangeEvent.update, {'id': messageId});
+              }
+            }
           },
         )
         .subscribe((status, error) {
@@ -350,22 +304,8 @@ class MessageRepository {
 
     final List<dynamic> rows = response;
     return rows.map((json) {
-      final Map<String, dynamic> msg = Map<String, dynamic>.from(json);
-      if (msg['author'] != null && msg['author']['avatar_url'] != null) {
-        msg['author']['avatar'] = msg['author']['avatar_url'];
-      }
-      if (msg['replyTo'] is List) {
-        final replyList = msg['replyTo'] as List;
-        if (replyList.isEmpty) {
-          msg['replyTo'] = null;
-        } else {
-          msg['replyTo'] = Map<String, dynamic>.from(replyList.first as Map);
-        }
-      }
-      if (msg['replyTo'] != null && msg['replyTo']['author'] != null && msg['replyTo']['author']['avatar_url'] != null) {
-        msg['replyTo']['author']['avatar'] = msg['replyTo']['author']['avatar_url'];
-      }
-      return FlickoMessage.fromJson(msg);
+      final Map<String, dynamic> msg = Map<String, dynamic>.from(json as Map);
+      return _parseMessageJson(msg);
     }).toList();
   }
 
@@ -427,21 +367,7 @@ class MessageRepository {
         ''').eq('id', messageId).maybeSingle();
       if (response == null) return null;
       final msg = Map<String, dynamic>.from(response as Map);
-      if (msg['author'] != null && msg['author']['avatar_url'] != null) {
-        msg['author']['avatar'] = msg['author']['avatar_url'];
-      }
-      if (msg['replyTo'] is List) {
-        final replyList = msg['replyTo'] as List;
-        if (replyList.isEmpty) {
-          msg['replyTo'] = null;
-        } else {
-          msg['replyTo'] = Map<String, dynamic>.from(replyList.first as Map);
-        }
-      }
-      if (msg['replyTo'] != null && msg['replyTo']['author'] != null && msg['replyTo']['author']['avatar_url'] != null) {
-        msg['replyTo']['author']['avatar'] = msg['replyTo']['author']['avatar_url'];
-      }
-      return FlickoMessage.fromJson(msg);
+      return _parseMessageJson(msg);
     } catch (_) {
       return null;
     }
@@ -453,6 +379,83 @@ class MessageRepository {
       'message_uuid': messageId,
       'pin_status': pinned,
     });
+  }
+
+  /// Parses raw message JSON map safely converting dynamic maps to Map<String, dynamic>.
+  FlickoMessage _parseMessageJson(Map<String, dynamic> msg) {
+    if (msg['author'] != null) {
+      final authorMap = Map<String, dynamic>.from(msg['author'] as Map);
+      if (authorMap['avatar_url'] != null) {
+        authorMap['avatar'] = authorMap['avatar_url'];
+      }
+      if (authorMap['badges'] != null) {
+        final badgesList = authorMap['badges'] as List;
+        authorMap['badges'] = badgesList.map((b) => Map<String, dynamic>.from(b as Map)).toList();
+      }
+      msg['author'] = authorMap;
+    }
+
+    if (msg['replyTo'] is List) {
+      final replyList = msg['replyTo'] as List;
+      if (replyList.isEmpty) {
+        msg['replyTo'] = null;
+      } else {
+        msg['replyTo'] = Map<String, dynamic>.from(replyList.first as Map);
+      }
+    }
+
+    if (msg['replyTo'] != null) {
+      final replyToMap = Map<String, dynamic>.from(msg['replyTo'] as Map);
+      if (replyToMap['author'] != null) {
+        final replyAuthorMap = Map<String, dynamic>.from(replyToMap['author'] as Map);
+        if (replyAuthorMap['avatar_url'] != null) {
+          replyAuthorMap['avatar'] = replyAuthorMap['avatar_url'];
+        }
+        if (replyAuthorMap['badges'] != null) {
+          final replyBadgesList = replyAuthorMap['badges'] as List;
+          replyAuthorMap['badges'] = replyBadgesList.map((b) => Map<String, dynamic>.from(b as Map)).toList();
+        }
+        replyToMap['author'] = replyAuthorMap;
+      }
+      msg['replyTo'] = replyToMap;
+    }
+
+    // Post-process reactions to aggregate by emoji (matching RN logic)
+    final List<dynamic> rawReactions = msg['reactions'] ?? [];
+    final Map<String, Map<String, dynamic>> reactionMap = {};
+    final currentUserId = _client.auth.currentSession?.user.id;
+
+    for (final r in rawReactions) {
+      final reaction = Map<String, dynamic>.from(r as Map);
+      final emoji = reaction['emoji'] as String;
+      final userId = reaction['user_id'] as String;
+      
+      if (!reactionMap.containsKey(emoji)) {
+        reactionMap[emoji] = {
+          'emoji': emoji,
+          'count': 0,
+          'me': false,
+          'users': <String>[],
+        };
+      }
+      
+      final entry = reactionMap[emoji]!;
+      entry['count'] = (entry['count'] as int) + 1;
+      (entry['users'] as List<String>).add(userId);
+      if (userId == currentUserId) entry['me'] = true;
+    }
+    
+    msg['reactions'] = reactionMap.values.toList();
+    
+    // Map attachments
+    final List<dynamic> rawAttachments = msg['attachments'] ?? [];
+    msg['attachments'] = rawAttachments.map((a) {
+      final map = Map<String, dynamic>.from(a as Map);
+      map['content_type'] = map['content_type'] ?? map['mime_type'];
+      return map;
+    }).toList();
+
+    return FlickoMessage.fromJson(msg);
   }
 }
 

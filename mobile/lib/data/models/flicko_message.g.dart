@@ -10,7 +10,7 @@ _FlickoMessage _$FlickoMessageFromJson(Map<String, dynamic> json) =>
     _FlickoMessage(
       id: json['id'] as String,
       channelId: json['channel_id'] as String?,
-      authorId: json['author_id'] as String,
+      authorId: json['author_id'] as String?,
       content: json['content'] as String,
       type: json['type'] as String? ?? 'default',
       replyToId: json['reply_to_id'] as String?,
@@ -25,13 +25,9 @@ _FlickoMessage _$FlickoMessageFromJson(Map<String, dynamic> json) =>
           const [],
       pinned: json['pinned'] as bool? ?? false,
       edited: json['edited'] as bool? ?? false,
-      editedAt: json['edited_at'] == null
-          ? null
-          : DateTime.parse(json['edited_at'] as String),
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: json['updated_at'] == null
-          ? null
-          : DateTime.parse(json['updated_at'] as String),
+      editedAt: _parseNullableDateTime(json['edited_at']),
+      createdAt: _parseDateTime(json['created_at']),
+      updatedAt: _parseNullableDateTime(json['updated_at']),
       recipientId: json['recipient_id'] as String?,
       author: json['author'] == null
           ? null

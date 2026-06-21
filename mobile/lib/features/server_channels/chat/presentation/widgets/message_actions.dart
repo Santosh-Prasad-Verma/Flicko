@@ -44,7 +44,7 @@ class MessageActions extends ConsumerWidget {
   });
 
   bool get _isMyMessage => message.authorId == currentUserId;
-  bool get _canEdit => _isMyMessage && message.type == 'default';
+  bool get _canEdit => _isMyMessage && (message.type == 'default' || message.type == 'reply');
   bool get _canDelete => _isMyMessage;
 
   @override

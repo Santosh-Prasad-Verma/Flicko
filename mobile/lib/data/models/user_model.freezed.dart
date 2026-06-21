@@ -395,7 +395,7 @@ mixin _$UserModel {
   bool get isPartner;
   @JsonKey(name: 'has_nitro')
   bool get hasNitro;
-  @JsonKey(name: 'created_at')
+  @JsonKey(name: 'created_at', fromJson: _parseDateTime)
   DateTime get createdAt;
   @JsonKey(name: 'updated_at')
   DateTime? get updatedAt;
@@ -520,7 +520,7 @@ abstract mixin class $UserModelCopyWith<$Res> {
       @JsonKey(name: 'is_staff') bool isStaff,
       @JsonKey(name: 'is_partner') bool isPartner,
       @JsonKey(name: 'has_nitro') bool hasNitro,
-      @JsonKey(name: 'created_at') DateTime createdAt,
+      @JsonKey(name: 'created_at', fromJson: _parseDateTime) DateTime createdAt,
       @JsonKey(name: 'updated_at') DateTime? updatedAt});
 }
 
@@ -772,7 +772,8 @@ extension UserModelPatterns on UserModel {
             @JsonKey(name: 'is_staff') bool isStaff,
             @JsonKey(name: 'is_partner') bool isPartner,
             @JsonKey(name: 'has_nitro') bool hasNitro,
-            @JsonKey(name: 'created_at') DateTime createdAt,
+            @JsonKey(name: 'created_at', fromJson: _parseDateTime)
+            DateTime createdAt,
             @JsonKey(name: 'updated_at') DateTime? updatedAt)?
         $default, {
     required TResult orElse(),
@@ -846,7 +847,8 @@ extension UserModelPatterns on UserModel {
             @JsonKey(name: 'is_staff') bool isStaff,
             @JsonKey(name: 'is_partner') bool isPartner,
             @JsonKey(name: 'has_nitro') bool hasNitro,
-            @JsonKey(name: 'created_at') DateTime createdAt,
+            @JsonKey(name: 'created_at', fromJson: _parseDateTime)
+            DateTime createdAt,
             @JsonKey(name: 'updated_at') DateTime? updatedAt)
         $default,
   ) {
@@ -918,7 +920,8 @@ extension UserModelPatterns on UserModel {
             @JsonKey(name: 'is_staff') bool isStaff,
             @JsonKey(name: 'is_partner') bool isPartner,
             @JsonKey(name: 'has_nitro') bool hasNitro,
-            @JsonKey(name: 'created_at') DateTime createdAt,
+            @JsonKey(name: 'created_at', fromJson: _parseDateTime)
+            DateTime createdAt,
             @JsonKey(name: 'updated_at') DateTime? updatedAt)?
         $default,
   ) {
@@ -980,7 +983,8 @@ class _UserModel implements UserModel {
       @JsonKey(name: 'is_staff') this.isStaff = false,
       @JsonKey(name: 'is_partner') this.isPartner = false,
       @JsonKey(name: 'has_nitro') this.hasNitro = false,
-      @JsonKey(name: 'created_at') required this.createdAt,
+      @JsonKey(name: 'created_at', fromJson: _parseDateTime)
+      required this.createdAt,
       @JsonKey(name: 'updated_at') this.updatedAt})
       : _bannerColors = bannerColors,
         _badges = badges;
@@ -1059,7 +1063,7 @@ class _UserModel implements UserModel {
   @JsonKey(name: 'has_nitro')
   final bool hasNitro;
   @override
-  @JsonKey(name: 'created_at')
+  @JsonKey(name: 'created_at', fromJson: _parseDateTime)
   final DateTime createdAt;
   @override
   @JsonKey(name: 'updated_at')
@@ -1193,7 +1197,7 @@ abstract mixin class _$UserModelCopyWith<$Res>
       @JsonKey(name: 'is_staff') bool isStaff,
       @JsonKey(name: 'is_partner') bool isPartner,
       @JsonKey(name: 'has_nitro') bool hasNitro,
-      @JsonKey(name: 'created_at') DateTime createdAt,
+      @JsonKey(name: 'created_at', fromJson: _parseDateTime) DateTime createdAt,
       @JsonKey(name: 'updated_at') DateTime? updatedAt});
 }
 

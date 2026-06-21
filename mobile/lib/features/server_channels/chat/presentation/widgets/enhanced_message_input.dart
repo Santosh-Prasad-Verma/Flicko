@@ -375,11 +375,11 @@ class _EnhancedMessageInputState extends ConsumerState<EnhancedMessageInput> {
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.2),
+            color: const Color(0xFF0D0F0E).withOpacity(0.7),
             border: Border(
               top: BorderSide(
-                color: Colors.white.withValues(alpha: 0.1),
-                width: 1,
+                color: const Color(FlickoColors.brandLime).withOpacity(0.15),
+                width: 1.5,
               ),
             ),
           ),
@@ -411,8 +411,8 @@ class _EnhancedMessageInputState extends ConsumerState<EnhancedMessageInput> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.2),
-                      border: Border(bottom: BorderSide(color: _textWhite.withValues(alpha: 0.05))),
+                      color: const Color(0xFF0D0F0E).withOpacity(0.7),
+                      border: Border(bottom: BorderSide(color: _textWhite.withOpacity(0.05))),
                     ),
                     child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
@@ -482,10 +482,10 @@ class _EnhancedMessageInputState extends ConsumerState<EnhancedMessageInput> {
                       width: 44,
                       height: 44,
                       decoration: BoxDecoration(
-                        color: _showExtras ? _neonGreen.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.05),
+                        color: _showExtras ? _neonGreen.withOpacity(0.2) : Colors.white.withOpacity(0.05),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: _showExtras ? _neonGreen : _textWhite.withValues(alpha: 0.1),
+                          color: _showExtras ? _neonGreen : _textWhite.withOpacity(0.1),
                           width: 1,
                         ),
                       ),
@@ -504,11 +504,11 @@ class _EnhancedMessageInputState extends ConsumerState<EnhancedMessageInput> {
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.05),
+                        color: Colors.white.withOpacity(0.05),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.15),
-                          width: 1,
+                          color: const Color(FlickoColors.brandLime).withOpacity(0.2),
+                          width: 1.2,
                         ),
                       ),
                       padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -543,15 +543,15 @@ class _EnhancedMessageInputState extends ConsumerState<EnhancedMessageInput> {
                       width: 44,
                       height: 44,
                       decoration: BoxDecoration(
-                        color: _isEmpty ? Colors.white.withValues(alpha: 0.05) : _neonGreen,
+                        color: _isEmpty ? Colors.white.withOpacity(0.05) : _neonGreen,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: _isEmpty ? _textWhite.withValues(alpha: 0.1) : _neonGreen,
+                          color: _isEmpty ? _textWhite.withOpacity(0.1) : _neonGreen,
                           width: 1,
                         ),
                         boxShadow: _isEmpty ? null : [
                           BoxShadow(
-                            color: _neonGreen.withValues(alpha: 0.3),
+                            color: _neonGreen.withOpacity(0.3),
                             blurRadius: 10,
                             spreadRadius: 1,
                           ),
@@ -580,11 +580,11 @@ class _EnhancedMessageInputState extends ConsumerState<EnhancedMessageInput> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.2),
+            color: const Color(0xFF0D0F0E).withOpacity(0.7),
             border: Border(
               top: BorderSide(
-                color: Colors.white.withValues(alpha: 0.1),
-                width: 1,
+                color: const Color(FlickoColors.brandLime).withOpacity(0.15),
+                width: 1.5,
               ),
             ),
           ),
@@ -627,9 +627,9 @@ class _EnhancedMessageInputState extends ConsumerState<EnhancedMessageInput> {
               child: Container(
                 height: 40,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.05),
+                  color: Colors.white.withOpacity(0.05),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: _textWhite.withValues(alpha: 0.1)),
+                  border: Border.all(color: _textMuted.withOpacity(0.2)),
                 ),
                 child: Center(
                   child: Row(
@@ -663,7 +663,7 @@ class _EnhancedMessageInputState extends ConsumerState<EnhancedMessageInput> {
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: _neonGreen.withValues(alpha: 0.3),
+                      color: _neonGreen.withOpacity(0.3),
                       blurRadius: 10,
                       spreadRadius: 1,
                     ),
@@ -696,7 +696,7 @@ class _EnhancedMessageInputState extends ConsumerState<EnhancedMessageInput> {
               children: [
                 Container(
                   decoration: BoxDecoration(
-                    border: Border.all(color: _neonGreen.withValues(alpha: 0.5)),
+                    border: Border.all(color: _neonGreen.withOpacity(0.5)),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: ClipRRect(
@@ -738,8 +738,8 @@ class _EnhancedMessageInputState extends ConsumerState<EnhancedMessageInput> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        border: Border(bottom: BorderSide(color: _textWhite.withValues(alpha: 0.05))),
+        color: Colors.white.withOpacity(0.05),
+        border: Border(bottom: BorderSide(color: _textWhite.withOpacity(0.05))),
       ),
       child: Row(
         children: [
@@ -764,7 +764,7 @@ class _EnhancedMessageInputState extends ConsumerState<EnhancedMessageInput> {
               decoration: BoxDecoration(
                 color: _surfaceContainer,
                 shape: BoxShape.circle,
-                border: Border.all(color: _textWhite.withValues(alpha: 0.1)),
+                border: Border.all(color: _textWhite.withOpacity(0.1)),
               ),
               child: Icon(Icons.close_rounded, size: 14, color: _textMuted),
             ),
@@ -804,7 +804,7 @@ class _ExtraButton extends StatelessWidget {
             decoration: BoxDecoration(
               color: _surfaceContainer,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: _textWhite.withValues(alpha: 0.05)),
+              border: Border.all(color: _textWhite.withOpacity(0.05)),
             ),
             child: Icon(icon, color: _neonGreen, size: 24),
           ),

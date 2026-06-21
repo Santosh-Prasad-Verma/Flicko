@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'dart:ui';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/data/models/flicko_message.dart';
 import 'package:mobile/features/ai_assistant/summary/presentation/catch_me_up_pill.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/server_channels/chat/application/chat_notifier.dart';
+import 'package:mobile/features/server_channels/chat/application/chat_state.dart';
 import 'package:mobile/features/server_channels/chat/application/scroll_to_message.dart';
 import 'package:mobile/features/server_channels/chat/presentation/widgets/enhanced_message_item.dart';
 import 'package:mobile/features/server_channels/chat/presentation/widgets/message_actions.dart';
@@ -140,6 +142,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       _jumpToMessage(next.messageId);
       ref.read(scrollToMessageProvider.notifier).consume();
     });
+    ref.listen<ChatState>(chatNotifierProvider(widget.channelId), (previous, next) {
+      if (next.errorMessage != null && next.errorMessage != previous?.errorMessage) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.errorMessage!),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    });
     final chatState = ref.watch(chatNotifierProvider(widget.channelId));
     final equippedWarp = ref.watch(equippedWarpProvider).value;
 
@@ -149,10 +161,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color(0xFF1E1E2C), // Deep premium purple/black
-            Color(0xFF2D2D44),
-            Color(0xFF1A1A24),
+            Color(0xFF030504), // Extremely dark near black with a lime tint
+            Color(0xFF090E0C), // Slightly lighter obsidian green
+            Color(0xFF020302), // Deep pitch black
           ],
+          stops: [0.0, 0.5, 1.0],
         ),
       ),
       child: Scaffold(
@@ -170,7 +183,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           titleSpacing: 0,
           title: Row(
             children: [
-              const Icon(Icons.tag, color: Color(FlickoColors.textMuted), size: 20),
+              const Icon(Icons.tag, color: Color(FlickoColors.brandLime), size: 20),
               const SizedBox(width: 8),
               Text(
                 widget.channelName ?? 'Channel',
@@ -184,16 +197,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           ),
           actions: [
             IconButton(
-              icon: const Icon(Icons.phone_in_talk_outlined, color: Color(FlickoColors.textMuted)),
-              onPressed: () => _showComingSoon('Voice channels'),
-            ),
-            IconButton(
-              icon: const Icon(Icons.videocam_outlined, color: Color(FlickoColors.textMuted)),
-              onPressed: () => _showComingSoon('Video channels'),
-            ),
-            IconButton(
-              icon: const Icon(Icons.people_outline, color: Color(FlickoColors.textMuted)),
-              onPressed: () {},
+              icon: const Icon(Icons.people_outline, color: Color(FlickoColors.brandLime)),
+              onPressed: () => context.push('/server/${widget.serverId}/members'),
             ),
           ],
         ),

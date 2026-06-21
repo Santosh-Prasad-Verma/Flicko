@@ -201,10 +201,16 @@ class DMChatController extends Notifier<DMChatState> {
         attachments: uploadedAttachments.isEmpty ? null : uploadedAttachments,
       );
       
-      // Replace the temp message with the actual sent message
-      final updatedMessages = state.messages.map((m) {
-        return m.id == tempMessageId ? sentMessage : m;
-      }).toList();
+      // Replace the temp message with the actual sent message, unless it was already inserted by realtime
+      final isAlreadyInserted = state.messages.any((m) => m.id == sentMessage.id);
+      final List<DMMessage> updatedMessages;
+      if (isAlreadyInserted) {
+        updatedMessages = state.messages.where((m) => m.id != tempMessageId).toList();
+      } else {
+        updatedMessages = state.messages.map((m) {
+          return m.id == tempMessageId ? sentMessage : m;
+        }).toList();
+      }
 
       state = state.copyWith(
         messages: updatedMessages,

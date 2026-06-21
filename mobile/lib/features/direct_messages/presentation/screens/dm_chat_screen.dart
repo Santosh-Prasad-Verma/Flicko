@@ -506,6 +506,16 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<DMChatState>(dmChatControllerProvider(widget.userId), (previous, next) {
+      if (next.error != null && next.error != previous?.error) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.error!),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    });
     final state = ref.watch(dmChatControllerProvider(widget.userId));
     final convoState = ref.watch(dmControllerProvider);
     final conversation =

@@ -387,7 +387,9 @@ class DMRepository {
             final record = payload.eventType == PostgresChangeEvent.delete
                 ? payload.oldRecord
                 : payload.newRecord;
-            onUpdate(payload.eventType, record);
+            if (record != null) {
+              onUpdate(payload.eventType, Map<String, dynamic>.from(record));
+            }
           },
         )
         .onPostgresChanges(
@@ -404,7 +406,9 @@ class DMRepository {
             final record = payload.eventType == PostgresChangeEvent.delete
                 ? payload.oldRecord
                 : payload.newRecord;
-            onUpdate(payload.eventType, record);
+            if (record != null) {
+              onUpdate(payload.eventType, Map<String, dynamic>.from(record));
+            }
           },
         )
         .onPostgresChanges(
@@ -416,7 +420,9 @@ class DMRepository {
             final record = payload.eventType == PostgresChangeEvent.delete
                 ? payload.oldRecord
                 : payload.newRecord;
-            onUpdate(payload.eventType, record);
+            if (record != null) {
+              onUpdate(payload.eventType, Map<String, dynamic>.from(record));
+            }
           },
         )
         .subscribe((status, error) {

@@ -30,10 +30,10 @@ class ServerRepository {
             
             // Handle if server comes back as a list (happens in some Supabase join query variations)
             if (serverData is List && serverData.isNotEmpty) {
-              return ServerModel.fromJson(serverData.first as Map<String, dynamic>);
+              return ServerModel.fromJson(Map<String, dynamic>.from(serverData.first as Map));
             }
             
-            return ServerModel.fromJson(serverData as Map<String, dynamic>);
+            return ServerModel.fromJson(Map<String, dynamic>.from(serverData as Map));
           })
           .whereType<ServerModel>()
           .toList();
@@ -54,7 +54,7 @@ class ServerRepository {
       final List<dynamic> data = response as List<dynamic>;
       
       return data
-          .map((json) => ChannelModel.fromJson(json as Map<String, dynamic>))
+          .map((json) => ChannelModel.fromJson(Map<String, dynamic>.from(json as Map)))
           .toList();
     } catch (e) {
       rethrow;
@@ -70,7 +70,7 @@ class ServerRepository {
           .eq('id', id)
           .single();
 
-      return ServerModel.fromJson(response as Map<String, dynamic>);
+      return ServerModel.fromJson(Map<String, dynamic>.from(response as Map));
     } catch (e) {
       return null;
     }
@@ -87,7 +87,7 @@ class ServerRepository {
           .limit(20);
 
       final List<dynamic> data = response as List<dynamic>;
-      return data.map((json) => ServerModel.fromJson(json as Map<String, dynamic>)).toList();
+      return data.map((json) => ServerModel.fromJson(Map<String, dynamic>.from(json as Map))).toList();
     } catch (e) {
       return [];
     }
@@ -113,30 +113,20 @@ class ServerRepository {
     String? iconUrl,
   }) async {
     try {
-      final response = await _client.from('servers').insert({
-        'name': name,
-        'owner_id': ownerId,
-        'icon': iconUrl,
-      }).select().single();
-
-      final server = ServerModel.fromJson(response as Map<String, dynamic>);
-
-      // Automatically join the owner to the server as 'owner'
-      await _client.from('server_members').insert({
-        'server_id': server.id,
-        'user_id': ownerId,
-        'role': 'owner',
-      });
-
-      // Create a default #general channel
-      await _client.from('channels').insert({
-        'server_id': server.id,
-        'name': 'general',
-        'type': 'text',
-        'position': 0,
-      });
-
-      return server;
+      try {
+        final response = await _client.rpc('create_server_rpc', params: {
+          'p_name': name,
+          'p_icon': iconUrl,
+        });
+        return ServerModel.fromJson(Map<String, dynamic>.from(response as Map));
+      } catch (_) {
+        final response = await _client.from('servers').insert({
+          'name': name,
+          'owner_id': ownerId,
+          'icon': iconUrl,
+        }).select().single();
+        return ServerModel.fromJson(Map<String, dynamic>.from(response as Map));
+      }
     } catch (e) {
       rethrow;
     }
@@ -155,7 +145,7 @@ class ServerRepository {
           .map((row) {
             final profile = row['profiles'];
             if (profile == null) return null;
-            return UserModel.fromJson(profile as Map<String, dynamic>);
+            return UserModel.fromJson(Map<String, dynamic>.from(profile as Map));
           })
           .whereType<UserModel>()
           .toList();
