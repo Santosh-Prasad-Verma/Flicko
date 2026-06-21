@@ -1,0 +1,51 @@
+name: Flutter CI
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/flutter-ci.yml'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/flutter-ci.yml'
+
+jobs:
+  flutter-checks:
+    name: Flutter Lint & Test
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        # Required for building Android components/runners if needed in widget testing
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+          cache-key: "flutter-:os:-:channel:-:version:-:arch:-:hash:"
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Static Analysis
+        # Verifies static compilation, syntax correctness, and import health
+        run: flutter analyze
+
+      - name: Run Tests
+        # Executes all unit and widget tests
+        run: flutter test
