@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/features/ai_assistant/data/aura_settings_provider.dart';
 import 'package:mobile/features/ai_assistant/presentation/aura_onboarding_screen.dart';
 
 class AuraSettingsScreen extends ConsumerStatefulWidget {
@@ -15,21 +16,15 @@ class AuraSettingsScreen extends ConsumerStatefulWidget {
 
 class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
     with SingleTickerProviderStateMixin {
-  bool _isLightMode = false;
-  Color _primaryAccent = const Color(0xFF7B4FFF);
-  String _currentTheme = "Neon Glow";
-  String _currentLanguage = "English";
-  double _temperature = 0.7;
-  bool _autoVoiceAutoplay = false;
-
   late AnimationController _waveController;
 
-  Color get _bgBlack => _isLightMode ? const Color(0xFFF5F5FA) : const Color(0xFF06060E);
-  Color get _cardBg => _isLightMode ? const Color(0xFFE8E8F3) : const Color(0xFF131326);
-  Color get _glassBorder => _isLightMode ? const Color(0x1F0D0D1A) : const Color(0x12FFFFFF);
-  Color get _textMuted => _isLightMode ? const Color(0xFF5D5D74) : const Color(0xFF8E8E9F);
-  Color get _textDimmed => _isLightMode ? const Color(0xFF7E7E95) : const Color(0xFF5D5D74);
-  Color get _textColor => _isLightMode ? const Color(0xFF0F0F1A) : Colors.white;
+  // Dark-mode-only palette (light mode removed per user request)
+  static const Color _bgBlack = Color(0xFF06060E);
+  static const Color _cardBg = Color(0xFF131326);
+  static const Color _glassBorder = Color(0x12FFFFFF);
+  static const Color _textMuted = Color(0xFF8E8E9F);
+  static const Color _textDimmed = Color(0xFF5D5D74);
+  static const Color _textColor = Colors.white;
 
   @override
   void initState() {
@@ -47,107 +42,141 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
   }
 
   Future<void> _showChatSettingsDialog(BuildContext context) async {
+    final settings = ref.read(auraSettingsProvider);
+    double tempTemp = settings.temperature;
+    bool tempAutoplay = settings.autoVoiceAutoplay;
+    final accent = settings.accentColor;
+
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              backgroundColor: _isLightMode ? Colors.white : const Color(0xFF0F0F1A),
+          builder: (dialogContext, setDialogState) {
+            return Dialog(
+              backgroundColor: const Color(0xFF0F0F1A),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-                side: BorderSide(color: _primaryAccent, width: 1.5),
+                borderRadius: BorderRadius.circular(24),
+                side: BorderSide(color: accent, width: 1.5),
               ),
-              title: Text(
-                'Default Chat Settings',
-                style: GoogleFonts.inter(
-                  color: _textColor,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Response Creativity (Temperature)',
-                    style: GoogleFonts.inter(
-                      color: _textColor, 
-                      fontSize: 13, 
-                      fontWeight: FontWeight.bold
+              child: Container(
+                width: 320,
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Default Chat Settings',
+                      style: GoogleFonts.inter(
+                        color: _textColor,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Slider(
-                    value: _temperature,
-                    min: 0.1,
-                    max: 1.0,
-                    divisions: 9,
-                    activeColor: _primaryAccent,
-                    inactiveColor: _textColor.withOpacity(0.1),
-                    label: _temperature == 0.1
-                        ? 'Precise (0.1)'
-                        : _temperature == 0.7
-                            ? 'Balanced (0.7)'
-                            : _temperature == 1.0
-                                ? 'Creative (1.0)'
-                                : _temperature.toStringAsFixed(1),
-                    onChanged: (val) {
-                      setDialogState(() {
-                        _temperature = val;
-                      });
-                      setState(() {});
-                    },
-                  ),
-                  Text(
-                    'Configure Grok\'s response balance: lower values are precise and deterministic; higher values are creative.',
-                    style: GoogleFonts.inter(color: _textMuted, fontSize: 10),
-                  ),
-                  const Divider(height: 24, color: Colors.white10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Voice Autoplay',
-                            style: GoogleFonts.inter(
-                              color: _textColor, 
-                              fontSize: 13, 
-                              fontWeight: FontWeight.bold
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Read responses aloud automatically',
-                            style: GoogleFonts.inter(color: _textMuted, fontSize: 10),
-                          ),
-                        ],
+                    const SizedBox(height: 20),
+                    Text(
+                      'Response Creativity (Temperature)',
+                      style: GoogleFonts.inter(
+                        color: _textColor,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
                       ),
-                      Switch(
-                        value: _autoVoiceAutoplay,
-                        activeColor: _primaryAccent,
-                        onChanged: (val) {
-                          setDialogState(() {
-                            _autoVoiceAutoplay = val;
-                          });
-                          setState(() {});
+                    ),
+                    const SizedBox(height: 8),
+                    Slider(
+                      value: tempTemp,
+                      min: 0.1,
+                      max: 1.0,
+                      divisions: 9,
+                      activeColor: accent,
+                      inactiveColor: _textColor.withOpacity(0.1),
+                      label: tempTemp == 0.1
+                          ? 'Precise (0.1)'
+                          : tempTemp == 0.7
+                              ? 'Balanced (0.7)'
+                              : tempTemp == 1.0
+                                  ? 'Creative (1.0)'
+                                  : tempTemp.toStringAsFixed(1),
+                      onChanged: (val) {
+                        setDialogState(() => tempTemp = val);
+                      },
+                    ),
+                    Text(
+                      'Lower values are precise and deterministic; higher values are creative.',
+                      style: GoogleFonts.inter(
+                        color: _textMuted,
+                        fontSize: 10,
+                      ),
+                    ),
+                    Divider(height: 24, color: Colors.white.withOpacity(0.05)),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Voice Autoplay',
+                                style: GoogleFonts.inter(
+                                  color: _textColor,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Read responses aloud',
+                                style: GoogleFonts.inter(
+                                  color: _textMuted,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Switch(
+                          value: tempAutoplay,
+                          activeColor: accent,
+                          onChanged: (val) {
+                            setDialogState(() => tempAutoplay = val);
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: accent,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 12,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        onPressed: () {
+                          // Save to provider on dismiss
+                          ref.read(auraSettingsProvider.notifier).setTemperature(tempTemp);
+                          ref.read(auraSettingsProvider.notifier).setAutoVoiceAutoplay(tempAutoplay);
+                          Navigator.of(dialogContext).pop();
                         },
+                        child: Text(
+                          'Done',
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
                       ),
-                    ],
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: Text(
-                    'Done',
-                    style: GoogleFonts.inter(color: _primaryAccent, fontWeight: FontWeight.bold),
-                  ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             );
           },
         );
@@ -156,69 +185,110 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
   }
 
   void _showWhatsNew() {
+    final accent = ref.read(auraSettingsProvider).accentColor;
     showModalBottomSheet(
       context: context,
-      backgroundColor: _isLightMode ? Colors.white : const Color(0xFF0F0F1A),
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF0F0F1A),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        return DraggableScrollableSheet(
+          initialChildSize: 0.65,
+          minChildSize: 0.4,
+          maxChildSize: 0.85,
+          expand: false,
+          builder: (context, scrollController) {
+            return Container(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    "What's New in Aura",
-                    style: GoogleFonts.inter(
-                      color: _textColor,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "What's New in Aura",
+                        style: GoogleFonts.inter(
+                          color: _textColor,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: const Icon(Icons.close_rounded, color: _textMuted),
+                      ),
+                    ],
                   ),
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Icon(Icons.close_rounded, color: _textMuted),
+                  const SizedBox(height: 24),
+                  Expanded(
+                    child: ListView(
+                      controller: scrollController,
+                      children: [
+                        _buildTimelineItem(
+                          accent: accent,
+                          version: "v3.2.0",
+                          date: "June 2026",
+                          title: "Web Search & Private Compute Integration",
+                          description:
+                              "Integrated DuckDuckGo web search to retrieve real-time facts, 0G Private Computer engine for secure offline processing, and voice fixes resolving Oppo recording issue.",
+                        ),
+                        _buildTimelineItem(
+                          accent: accent,
+                          version: "v3.0.0",
+                          date: "June 2026",
+                          title: "Multi-Model AI with Gemini Fallback",
+                          description:
+                              "Aura now routes through xAI Grok as the primary model with Google Gemini as an intelligent fallback. If the primary model fails, Gemini seamlessly takes over — zero downtime for you.",
+                        ),
+                        _buildTimelineItem(
+                          accent: accent,
+                          version: "v2.8.0",
+                          date: "June 2026",
+                          title: "Persistent Settings & Theme Engine",
+                          description:
+                              "All settings — theme, language, temperature — now persist across sessions. Choose from 6 stunning accent themes that apply globally across the entire Aura experience.",
+                        ),
+                        _buildTimelineItem(
+                          accent: accent,
+                          version: "v2.6.0",
+                          date: "May 2026",
+                          title: "Live Tool Execution",
+                          description:
+                              "Aura can now execute real actions: play music on Sonic Drip, send DMs to friends, and list your servers — all from natural language commands in chat.",
+                        ),
+                        _buildTimelineItem(
+                          accent: accent,
+                          version: "v2.4.0",
+                          date: "May 2026",
+                          title: "Server-Side AI Integration",
+                          description:
+                              "Migrated full backend logic to secure server-side Supabase Edge Functions. Direct frontend keys have been completely phased out for production-grade safety.",
+                        ),
+                        _buildTimelineItem(
+                          accent: accent,
+                          version: "v2.2.0",
+                          date: "April 2026",
+                          title: "Multimodal Domain Engines",
+                          description:
+                              "Specialized model routing launched: Text Writer, AI Image Generator, and Code Tutor — each optimized for its domain.",
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
-              Expanded(
-                child: ListView(
-                  children: [
-                    _buildTimelineItem(
-                      version: "v2.4.0",
-                      date: "May 2026",
-                      title: "xAI Grok-beta Server Integration",
-                      description: "Migrated full backend logic to secure server-side Supabase Edge Functions communicating with xAI. Direct frontend keys have been completely phased out for flawless safety.",
-                    ),
-                    _buildTimelineItem(
-                      version: "v2.3.0",
-                      date: "April 2026",
-                      title: "EKG Waveform & Speech Synthesis",
-                      description: "Added rich real-time EKG listening audio feedback with fluid vector orbits for interactive conversation.",
-                    ),
-                    _buildTimelineItem(
-                      version: "v2.2.0",
-                      date: "March 2026",
-                      title: "Multimodal Domain Engines",
-                      description: "Specialized model routing launched: Text Writer, AI Image Generator, and software engineering Code Tutor.",
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
   }
 
   Widget _buildTimelineItem({
+    required Color accent,
     required String version,
     required String date,
     required String title,
@@ -234,14 +304,14 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: _primaryAccent.withOpacity(0.15),
+                  color: accent.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: _primaryAccent.withOpacity(0.3), width: 1),
+                  border: Border.all(color: accent.withOpacity(0.3), width: 1),
                 ),
                 child: Text(
                   version,
                   style: GoogleFonts.inter(
-                    color: _primaryAccent,
+                    color: accent,
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
                   ),
@@ -261,12 +331,20 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
               children: [
                 Text(
                   title,
-                  style: GoogleFonts.inter(color: _textColor, fontSize: 13, fontWeight: FontWeight.bold),
+                  style: GoogleFonts.inter(
+                    color: _textColor,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   description,
-                  style: GoogleFonts.inter(color: _textMuted, fontSize: 11, height: 1.4),
+                  style: GoogleFonts.inter(
+                    color: _textMuted,
+                    fontSize: 11,
+                    height: 1.4,
+                  ),
                 ),
               ],
             ),
@@ -277,69 +355,133 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
   }
 
   void _showFAQ() {
+    final accent = ref.read(auraSettingsProvider).accentColor;
     showModalBottomSheet(
       context: context,
-      backgroundColor: _isLightMode ? Colors.white : const Color(0xFF0F0F1A),
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF0F0F1A),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        return DraggableScrollableSheet(
+          initialChildSize: 0.65,
+          minChildSize: 0.4,
+          maxChildSize: 0.85,
+          expand: false,
+          builder: (context, scrollController) {
+            return Container(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    "Frequently Asked Questions",
-                    style: GoogleFonts.inter(
-                      color: _textColor,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          "Frequently Asked Questions",
+                          style: GoogleFonts.inter(
+                            color: _textColor,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: const Icon(Icons.close_rounded, color: _textMuted),
+                      ),
+                    ],
                   ),
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Icon(Icons.close_rounded, color: _textMuted),
+                  const SizedBox(height: 20),
+                  Expanded(
+                    child: ListView(
+                      controller: scrollController,
+                      children: [
+                        _buildFAQItem(
+                          accent: accent,
+                          question: "What is DuckDuckGo Web Search integration?",
+                          answer:
+                              "Aura can now search the web using DuckDuckGo to answer questions requiring real-time information or current events.",
+                        ),
+                        _buildFAQItem(
+                          accent: accent,
+                          question: "How does the 0G Private Computer engine work?",
+                          answer:
+                              "0G Private Computer provides high-performance, private computing environments where your personal queries are processed securely without third-party exposure.",
+                        ),
+                        _buildFAQItem(
+                          accent: accent,
+                          question: "Are there fixes for voice recording on certain devices?",
+                          answer:
+                              "Yes, we have resolved voice recording and audio routing bugs specifically affecting Oppo and other Android devices to ensure crystal-clear conversations.",
+                        ),
+                        _buildFAQItem(
+                          accent: accent,
+                          question: "What is Aura AI?",
+                          answer:
+                              "Aura is your personalized AI assistant built inside Flicko. She can write content, generate code, create images, play music, send messages, and engage with you via natural conversations — all powered by cutting-edge AI models.",
+                        ),
+                        _buildFAQItem(
+                          accent: accent,
+                          question: "Which AI models does Aura use?",
+                          answer:
+                              "Aura primarily uses xAI's Grok model routed through secure server-side Edge Functions. If Grok is unavailable, Google Gemini automatically takes over as a fallback — so you always get a response.",
+                        ),
+                        _buildFAQItem(
+                          accent: accent,
+                          question: "Is my data secure?",
+                          answer:
+                              "Absolutely. All API requests are routed through verified Supabase Deno Edge Functions using production-grade JWT session authentication. No API keys are ever exposed on the client side.",
+                        ),
+                        _buildFAQItem(
+                          accent: accent,
+                          question: "How do I use voice commands?",
+                          answer:
+                              "You can trigger actions by typing natural commands like 'play [song name]', 'message [username]: [text]', or 'list servers' directly in Aura's chat.",
+                        ),
+                        _buildFAQItem(
+                          accent: accent,
+                          question: "How do I change the theme?",
+                          answer:
+                              "Go to Settings > Theme and choose from 6 available accent themes. Your selection persists across sessions and applies throughout the entire Aura experience.",
+                        ),
+                        _buildFAQItem(
+                          accent: accent,
+                          question: "What is the Temperature setting?",
+                          answer:
+                              "Temperature controls how creative vs. precise Aura's responses are. Low values (0.1) give factual, deterministic answers. High values (1.0) give more creative, varied responses. The default (0.7) is a balanced middle ground.",
+                        ),
+                        _buildFAQItem(
+                          accent: accent,
+                          question: "Can I use Aura offline?",
+                          answer:
+                              "Aura requires an internet connection to communicate with AI models. However, your chat history and settings are stored locally and will be available offline.",
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
-              Expanded(
-                child: ListView(
-                  children: [
-                    _buildFAQItem(
-                      question: "What is Aura AI?",
-                      answer: "Aura is your personalized AI assistant built inside Flicko. She can write, generate code, mock up visuals, or engage with you directly via natural voice conversations.",
-                    ),
-                    _buildFAQItem(
-                      question: "Is my conversations/API key secure?",
-                      answer: "Absolutely. All API requests are routed through verified Supabase Deno Edge Functions using production-grade JWT session authentication. Key management is 100% secure server-side.",
-                    ),
-                    _buildFAQItem(
-                      question: "How do I trigger local actions?",
-                      answer: "You can trigger client tools by simply typing commands such as 'play [song]', 'message [username]: [text]', or 'list servers' directly in Aura's text chat.",
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
   }
 
-  Widget _buildFAQItem({required String question, required String answer}) {
+  Widget _buildFAQItem({
+    required Color accent,
+    required String question,
+    required String answer,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
-          iconColor: _primaryAccent,
+          iconColor: accent,
           collapsedIconColor: _textMuted,
           title: Text(
             question,
@@ -368,167 +510,193 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
   }
 
   void _showThemeSelector() {
-    final themes = [
-      {"name": "Neon Glow", "color": const Color(0xFF7B4FFF)},
-      {"name": "Cyberpunk Violet", "color": const Color(0xFFFF00F5)},
-      {"name": "Emerald Aurora", "color": const Color(0xFF00FFCC)},
-      {"name": "Sunset Gold", "color": const Color(0xFFFFB300)},
-    ];
-
     showModalBottomSheet(
       context: context,
-      backgroundColor: _isLightMode ? Colors.white : const Color(0xFF0F0F1A),
+      backgroundColor: const Color(0xFF0F0F1A),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                "Select Theme Style",
-                style: GoogleFonts.inter(
-                  color: _textColor,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 20),
-              Column(
-                children: themes.map((t) {
-                  final isSelected = _currentTheme == t["name"];
-                  return InkWell(
-                    onTap: () {
-                      setState(() {
-                        _currentTheme = t["name"] as String;
-                        _primaryAccent = t["color"] as Color;
-                      });
-                      Navigator.pop(context);
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                      margin: const EdgeInsets.only(bottom: 12),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? (t["color"] as Color).withOpacity(0.1)
-                            : Colors.white.withOpacity(0.02),
-                        border: Border.all(
-                          color: isSelected
-                              ? (t["color"] as Color)
-                              : Colors.white.withOpacity(0.05),
-                          width: 1.2,
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 16,
-                            height: 16,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: t["color"] as Color,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Text(
-                            t["name"] as String,
-                            style: GoogleFonts.inter(
-                              color: _textColor,
-                              fontSize: 13,
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                            ),
-                          ),
-                          const Spacer(),
-                          if (isSelected)
-                            Icon(Icons.check_circle_rounded, color: _primaryAccent, size: 18),
-                        ],
-                      ),
+      builder: (sheetContext) {
+        return Consumer(
+          builder: (sheetContext, sheetRef, _) {
+            final settings = sheetRef.watch(auraSettingsProvider);
+            return Container(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    "Select Theme Style",
+                    style: GoogleFonts.inter(
+                      color: _textColor,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
-                  );
-                }).toList(),
+                  ),
+                  const SizedBox(height: 20),
+                  Column(
+                    children: auraThemes.map((t) {
+                      final isSelected = settings.themeName == t.name;
+                      return InkWell(
+                        onTap: () {
+                          sheetRef
+                              .read(auraSettingsProvider.notifier)
+                              .setTheme(t.name, t.color);
+                          Navigator.pop(sheetContext);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 14,
+                            horizontal: 16,
+                          ),
+                          margin: const EdgeInsets.only(bottom: 10),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? t.color.withOpacity(0.1)
+                                : Colors.white.withOpacity(0.02),
+                            border: Border.all(
+                              color: isSelected
+                                  ? t.color
+                                  : Colors.white.withOpacity(0.05),
+                              width: 1.2,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 16,
+                                height: 16,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: t.color,
+                                  boxShadow: isSelected
+                                      ? [
+                                          BoxShadow(
+                                            color: t.color.withOpacity(0.5),
+                                            blurRadius: 8,
+                                          ),
+                                        ]
+                                      : [],
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Text(
+                                t.name,
+                                style: GoogleFonts.inter(
+                                  color: _textColor,
+                                  fontSize: 13,
+                                  fontWeight: isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                ),
+                              ),
+                              const Spacer(),
+                              if (isSelected)
+                                Icon(
+                                  Icons.check_circle_rounded,
+                                  color: t.color,
+                                  size: 18,
+                                ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
   }
 
   void _showLanguageSelector() {
-    final languages = ["English", "Deutsch", "Español", "Français"];
-
     showModalBottomSheet(
       context: context,
-      backgroundColor: _isLightMode ? Colors.white : const Color(0xFF0F0F1A),
+      backgroundColor: const Color(0xFF0F0F1A),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                "Select Language",
-                style: GoogleFonts.inter(
-                  color: _textColor,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 20),
-              Column(
-                children: languages.map((lang) {
-                  final isSelected = _currentLanguage == lang;
-                  return InkWell(
-                    onTap: () {
-                      setState(() {
-                        _currentLanguage = lang;
-                      });
-                      Navigator.pop(context);
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                      margin: const EdgeInsets.only(bottom: 12),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? _primaryAccent.withOpacity(0.1)
-                            : Colors.white.withOpacity(0.02),
-                        border: Border.all(
-                          color: isSelected
-                              ? _primaryAccent
-                              : Colors.white.withOpacity(0.05),
-                          width: 1.2,
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Row(
-                        children: [
-                          Text(
-                            lang,
-                            style: GoogleFonts.inter(
-                              color: _textColor,
-                              fontSize: 13,
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                            ),
-                          ),
-                          const Spacer(),
-                          if (isSelected)
-                            Icon(Icons.check_circle_rounded, color: _primaryAccent, size: 18),
-                        ],
-                      ),
+      builder: (sheetContext) {
+        return Consumer(
+          builder: (sheetContext, sheetRef, _) {
+            final settings = sheetRef.watch(auraSettingsProvider);
+            return Container(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    "Select Language",
+                    style: GoogleFonts.inter(
+                      color: _textColor,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
-                  );
-                }).toList(),
+                  ),
+                  const SizedBox(height: 20),
+                  Column(
+                    children: auraLanguages.map((lang) {
+                      final isSelected = settings.language == lang;
+                      return InkWell(
+                        onTap: () {
+                          sheetRef
+                              .read(auraSettingsProvider.notifier)
+                              .setLanguage(lang);
+                          Navigator.pop(sheetContext);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 14,
+                            horizontal: 16,
+                          ),
+                          margin: const EdgeInsets.only(bottom: 10),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? settings.accentColor.withOpacity(0.1)
+                                : Colors.white.withOpacity(0.02),
+                            border: Border.all(
+                              color: isSelected
+                                  ? settings.accentColor
+                                  : Colors.white.withOpacity(0.05),
+                              width: 1.2,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Row(
+                            children: [
+                              Text(
+                                lang,
+                                style: GoogleFonts.inter(
+                                  color: _textColor,
+                                  fontSize: 13,
+                                  fontWeight: isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                ),
+                              ),
+                              const Spacer(),
+                              if (isSelected)
+                                Icon(
+                                  Icons.check_circle_rounded,
+                                  color: settings.accentColor,
+                                  size: 18,
+                                ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -536,6 +704,9 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
 
   @override
   Widget build(BuildContext context) {
+    final settings = ref.watch(auraSettingsProvider);
+    final accent = settings.accentColor;
+
     return Scaffold(
       backgroundColor: _bgBlack,
       body: Stack(
@@ -570,7 +741,7 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
                               width: 1.2,
                             ),
                           ),
-                          child: Icon(
+                          child: const Icon(
                             Icons.arrow_back_ios_new_rounded,
                             color: _textColor,
                             size: 16,
@@ -580,7 +751,7 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
                       Expanded(
                         child: Center(
                           child: Text(
-                            'Setting',
+                            'Settings',
                             style: TextStyle(
                               color: _textColor,
                               fontSize: 18,
@@ -590,7 +761,7 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
                           ),
                         ),
                       ),
-                      const SizedBox(width: 40), // Spacer balancing the back button
+                      const SizedBox(width: 40),
                     ],
                   ),
 
@@ -600,11 +771,8 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
                   Container(
                     height: 130,
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          _cardBg,
-                          _isLightMode ? const Color(0xFFD6D6E6) : const Color(0xFF080811),
-                        ],
+                      gradient: const LinearGradient(
+                        colors: [_cardBg, Color(0xFF080811)],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
@@ -612,7 +780,7 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
                       border: Border.all(color: _glassBorder, width: 1.0),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(_isLightMode ? 0.08 : 0.35),
+                          color: Colors.black.withOpacity(0.35),
                           blurRadius: 30,
                           offset: const Offset(0, 15),
                         ),
@@ -620,7 +788,6 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
                     ),
                     child: Stack(
                       children: [
-                        // Holo Wave graphic custom painter
                         Positioned.fill(
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(20),
@@ -630,14 +797,13 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
                                 return CustomPaint(
                                   painter: HoloWavePainter(
                                     animationValue: _waveController.value,
+                                    accentColor: accent,
                                   ),
                                 );
                               },
                             ),
                           ),
                         ),
-
-                        // Text content
                         Padding(
                           padding: const EdgeInsets.all(20.0),
                           child: Column(
@@ -666,8 +832,6 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
                             ],
                           ),
                         ),
-
-                        // Action button (arrow up right)
                         Positioned(
                           bottom: 20,
                           right: 20,
@@ -675,11 +839,11 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
                             width: 36,
                             height: 36,
                             decoration: BoxDecoration(
-                              color: _primaryAccent,
+                              color: accent,
                               borderRadius: BorderRadius.circular(10),
                               boxShadow: [
                                 BoxShadow(
-                                  color: _primaryAccent.withOpacity(0.35),
+                                  color: accent.withOpacity(0.35),
                                   blurRadius: 10,
                                   offset: const Offset(0, 4),
                                 ),
@@ -701,16 +865,18 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
                   const SizedBox(height: 24),
 
                   // Settings Group 1
-                  _buildListCardGroup([
+                  _buildListCardGroup(accent, [
                     _buildSettingsItem(
-                      icon: Icons.person_outline_rounded,
-                      title: "What's new",
+                      accent: accent,
+                      icon: Icons.auto_awesome_outlined,
+                      title: "What's New",
                       onTap: () {
                         HapticFeedback.mediumImpact();
                         _showWhatsNew();
                       },
                     ),
                     _buildSettingsItem(
+                      accent: accent,
                       icon: Icons.help_outline_rounded,
                       title: "FAQ",
                       onTap: () {
@@ -718,44 +884,37 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
                         _showFAQ();
                       },
                     ),
-                    _buildSettingsItem(
-                      icon: Icons.wb_sunny_outlined,
-                      title: "Light Mood",
-                      isToggle: true,
-                      toggleValue: _isLightMode,
-                      onToggle: (val) {
-                        setState(() {
-                          _isLightMode = val;
-                        });
-                      },
-                    ),
                   ]),
 
                   const SizedBox(height: 20),
 
                   // Settings Group 2
-                  _buildListCardGroup([
+                  _buildListCardGroup(accent, [
                     _buildSettingsItem(
-                      icon: Icons.grid_view_rounded,
+                      accent: accent,
+                      icon: Icons.palette_outlined,
                       title: "Theme",
-                      trailingText: _currentTheme,
+                      trailingText: settings.themeName,
                       onTap: () {
                         HapticFeedback.mediumImpact();
                         _showThemeSelector();
                       },
                     ),
                     _buildSettingsItem(
+                      accent: accent,
                       icon: Icons.tune_rounded,
-                      title: "Default chat settings",
+                      title: "Default Chat Settings",
+                      trailingText: 'T: ${settings.temperature.toStringAsFixed(1)}',
                       onTap: () {
                         HapticFeedback.mediumImpact();
                         _showChatSettingsDialog(context);
                       },
                     ),
                     _buildSettingsItem(
-                      icon: Icons.favorite_outline_rounded,
+                      accent: accent,
+                      icon: Icons.translate_rounded,
                       title: "Language",
-                      trailingText: _currentLanguage,
+                      trailingText: settings.language,
                       onTap: () {
                         HapticFeedback.mediumImpact();
                         _showLanguageSelector();
@@ -769,7 +928,7 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
                   Column(
                     children: [
                       Text(
-                        'AURA V2.4.0',
+                        'AURA V3.0.0',
                         style: GoogleFonts.inter(
                           color: _textMuted,
                           fontSize: 11,
@@ -779,7 +938,7 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Powered by Advanced Deep Neural Network',
+                        'Powered by xAI Grok + Google Gemini',
                         style: GoogleFonts.inter(
                           color: _textDimmed,
                           fontSize: 9,
@@ -798,7 +957,7 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
     );
   }
 
-  Widget _buildListCardGroup(List<Widget> items) {
+  Widget _buildListCardGroup(Color accent, List<Widget> items) {
     List<Widget> childrenWithDividers = [];
     for (int i = 0; i < items.length; i++) {
       childrenWithDividers.add(items[i]);
@@ -826,28 +985,25 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
   }
 
   Widget _buildSettingsItem({
+    required Color accent,
     required IconData icon,
     required String title,
     String? trailingText,
-    bool isToggle = false,
-    bool toggleValue = false,
-    ValueChanged<bool>? onToggle,
     VoidCallback? onTap,
   }) {
     return InkWell(
-      onTap: isToggle ? null : onTap,
+      onTap: onTap,
       child: SizedBox(
         height: 52,
         child: Row(
           children: [
-            // Left icon container
             Container(
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: _primaryAccent.withOpacity(0.1),
+                color: accent.withOpacity(0.1),
                 border: Border.all(
-                  color: _primaryAccent.withOpacity(0.15),
+                  color: accent.withOpacity(0.15),
                   width: 1.0,
                 ),
                 borderRadius: BorderRadius.circular(10),
@@ -855,7 +1011,7 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
               child: Center(
                 child: Icon(
                   icon,
-                  color: const Color(0xFFCBBAFF),
+                  color: accent.withOpacity(0.8),
                   size: 16,
                 ),
               ),
@@ -870,73 +1026,24 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
               ),
             ),
             const Spacer(),
-            if (isToggle)
-              GestureDetector(
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  if (onToggle != null) onToggle(!toggleValue);
-                },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 250),
-                  width: 44,
-                  height: 24,
-                  padding: const EdgeInsets.all(2),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    color: toggleValue
-                        ? _primaryAccent
-                        : Colors.white.withOpacity(0.08),
-                    border: Border.all(
-                      color: toggleValue
-                          ? Colors.white.withOpacity(0.15)
-                          : _glassBorder,
-                      width: 1.0,
-                    ),
-                    boxShadow: toggleValue
-                        ? [
-                            BoxShadow(
-                              color: _primaryAccent.withOpacity(0.4),
-                              blurRadius: 8,
-                            )
-                          ]
-                        : [],
+            if (trailingText != null)
+              Flexible(
+                child: Text(
+                  trailingText,
+                  style: GoogleFonts.inter(
+                    color: _textMuted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
                   ),
-                  child: Align(
-                    alignment: toggleValue
-                        ? Alignment.centerRight
-                        : Alignment.centerLeft,
-                    child: Container(
-                      width: 18,
-                      height: 18,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: toggleValue ? Colors.white : _textMuted,
-                      ),
-                    ),
-                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
-              )
-            else
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (trailingText != null)
-                    Text(
-                      trailingText,
-                      style: GoogleFonts.inter(
-                        color: _textMuted,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  const SizedBox(width: 8),
-                  Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    color: _textDimmed,
-                    size: 14,
-                  ),
-                ],
               ),
+            const SizedBox(width: 8),
+            const Icon(
+              Icons.arrow_forward_ios_rounded,
+              color: _textDimmed,
+              size: 14,
+            ),
           ],
         ),
       ),
@@ -946,15 +1053,19 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
 
 class HoloWavePainter extends CustomPainter {
   final double animationValue;
+  final Color accentColor;
 
-  HoloWavePainter({required this.animationValue});
+  HoloWavePainter({
+    required this.animationValue,
+    this.accentColor = const Color(0xFF7B4FFF),
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
     final rect = Rect.fromLTWH(0, 0, size.width, size.height);
     final gradient = LinearGradient(
       colors: [
-        const Color(0xFF7B4FFF).withOpacity(0.8),
+        accentColor.withOpacity(0.8),
         const Color(0xFF00F0FF).withOpacity(0.9),
         const Color(0xFFFF00F5).withOpacity(0.6),
       ],
@@ -969,14 +1080,12 @@ class HoloWavePainter extends CustomPainter {
 
     final double phase = animationValue * 2 * math.pi;
 
-    // Draw Wave 1 (thick primary)
     final path1 = Path();
     paint.strokeWidth = 3.5;
     for (double x = 0; x <= size.width; x++) {
-      // Wave equation with amplitude modulating along width to taper off
       final double env = math.sin((x / size.width) * math.pi);
-      final double y = size.height * 0.5 +
-          25.0 * math.sin(phase + (x * 0.02)) * env;
+      final double y =
+          size.height * 0.5 + 25.0 * math.sin(phase + (x * 0.02)) * env;
       if (x == 0) {
         path1.moveTo(x, y);
       } else {
@@ -985,9 +1094,7 @@ class HoloWavePainter extends CustomPainter {
     }
     canvas.drawPath(path1, paint);
 
-    // Draw Wave 2 (medium background)
     final path2 = Path();
-    paint.strokeWidth = 2.0;
     final paint2 = Paint()
       ..shader = gradient.createShader(rect)
       ..style = PaintingStyle.stroke
@@ -995,8 +1102,8 @@ class HoloWavePainter extends CustomPainter {
       ..strokeWidth = 2.0;
     for (double x = 0; x <= size.width; x++) {
       final double env = math.sin((x / size.width) * math.pi);
-      final double y = size.height * 0.5 +
-          15.0 * math.sin(-phase + (x * 0.035)) * env;
+      final double y =
+          size.height * 0.5 + 15.0 * math.sin(-phase + (x * 0.035)) * env;
       if (x == 0) {
         path2.moveTo(x, y);
       } else {
@@ -1005,7 +1112,6 @@ class HoloWavePainter extends CustomPainter {
     }
     canvas.drawPath(path2, paint2..color = paint2.color.withOpacity(0.6));
 
-    // Draw Wave 3 (thin backdrop)
     final path3 = Path();
     final paint3 = Paint()
       ..shader = gradient.createShader(rect)
@@ -1014,8 +1120,8 @@ class HoloWavePainter extends CustomPainter {
       ..strokeWidth = 1.2;
     for (double x = 0; x <= size.width; x++) {
       final double env = math.sin((x / size.width) * math.pi);
-      final double y = size.height * 0.5 +
-          8.0 * math.sin(phase * 1.5 + (x * 0.05)) * env;
+      final double y =
+          size.height * 0.5 + 8.0 * math.sin(phase * 1.5 + (x * 0.05)) * env;
       if (x == 0) {
         path3.moveTo(x, y);
       } else {
@@ -1027,5 +1133,6 @@ class HoloWavePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant HoloWavePainter oldDelegate) =>
-      oldDelegate.animationValue != animationValue;
+      oldDelegate.animationValue != animationValue ||
+      oldDelegate.accentColor != accentColor;
 }

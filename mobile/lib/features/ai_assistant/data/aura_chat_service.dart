@@ -11,6 +11,7 @@ import 'package:mobile/core/config/app_config.dart';
 import 'package:mobile/features/direct_messages/data/dm_repository.dart';
 import 'package:mobile/features/home/application/servers_notifier.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
+import 'package:mobile/features/ai_assistant/data/aura_settings_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 class AuraMessage {
@@ -433,6 +434,10 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
           });
         }
 
+        final settings = ref.read(auraSettingsProvider);
+        final language = settings.language;
+        final temperature = settings.temperature;
+
         final response = await dio.post(
           '$supabaseUrl/functions/v1/aura-chat',
           options: Options(
@@ -446,6 +451,8 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
           data: {
             'messages': conversationMessages,
             'category': category,
+            'language': language,
+            'temperature': temperature,
           },
         );
 
@@ -466,11 +473,72 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
           }
         }
       } catch (e) {
-        // Edge function call failed, fall through to mock
+        // Edge function call failed, fall through to Gemini fallback
       }
     }
 
-    // 3. Fallback to simulated response if live API failed
+    // 3. Gemini fallback — if primary model failed, try Google Gemini
+    if (!liveSuccess) {
+      try {
+        final geminiKey = await getApiKey();
+        if (geminiKey != null && geminiKey.isNotEmpty) {
+          final dio = Dio();
+          final geminiModel = AppConfig.geminiTextModel.isNotEmpty
+              ? AppConfig.geminiTextModel
+              : 'gemini-2.0-flash';
+
+          // Build Gemini-compatible messages
+          final geminiContents = <Map<String, dynamic>>[];
+          for (final msg in activeSession.messages) {
+            geminiContents.add({
+              'role': msg.sender == 'user' ? 'user' : 'model',
+              'parts': [{'text': msg.text}],
+            });
+          }
+
+          final settings = ref.read(auraSettingsProvider);
+          final language = settings.language;
+          final temperature = settings.temperature;
+
+          final geminiResponse = await dio.post(
+            'https://generativelanguage.googleapis.com/v1beta/models/$geminiModel:generateContent?key=$geminiKey',
+            options: Options(headers: {'Content-Type': 'application/json'}),
+            data: {
+              'contents': geminiContents,
+              'systemInstruction': {
+                'parts': [
+                  {
+                    'text': 'You are Aura AI. Please respond in the user\'s selected language: $language.'
+                  }
+                ]
+              },
+              'generationConfig': {
+                'temperature': temperature,
+                'maxOutputTokens': 2048,
+              },
+            },
+          );
+
+          if (geminiResponse.statusCode == 200 && geminiResponse.data != null) {
+            final candidates = geminiResponse.data['candidates'] as List?;
+            if (candidates != null && candidates.isNotEmpty) {
+              final parts = candidates[0]['content']?['parts'] as List?;
+              if (parts != null && parts.isNotEmpty) {
+                final geminiText = parts[0]['text'] as String?;
+                if (geminiText != null && geminiText.isNotEmpty) {
+                  responseText = geminiText;
+                  liveSuccess = true;
+                }
+              }
+            }
+          }
+        }
+      } catch (e) {
+        // Gemini fallback also failed, fall through to mock
+      }
+    }
+
+    // 4. Fallback to simulated response if all live APIs failed
     if (!liveSuccess) {
       if (category == 'Image Generator') {
         responseText = 'Generated an image representing "$text".';

@@ -232,9 +232,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/',
-                pageBuilder: (context, state) => const NoTransitionPage(
-                  key: ValueKey('shell-servers'),
-                  child: ServersScreen(),
+                pageBuilder: (context, state) => NoTransitionPage(
+                  key: state.pageKey,
+                  child: const ServersScreen(),
                 ),
                 routes: [
                   GoRoute(
@@ -306,9 +306,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/dms',
-                pageBuilder: (context, state) => const NoTransitionPage(
-                  key: ValueKey('shell-dms'),
-                  child: DMListScreen(),
+                pageBuilder: (context, state) => NoTransitionPage(
+                  key: state.pageKey,
+                  child: const DMListScreen(),
                 ),
                 routes: [
                   GoRoute(
@@ -331,9 +331,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/notifications',
-                pageBuilder: (context, state) => const NoTransitionPage(
-                  key: ValueKey('shell-notifications'),
-                  child: NotificationsScreen(),
+                pageBuilder: (context, state) => NoTransitionPage(
+                  key: state.pageKey,
+                  child: const NotificationsScreen(),
                 ),
               ),
             ],
@@ -344,9 +344,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/profile',
-                pageBuilder: (context, state) => const NoTransitionPage(
-                  key: ValueKey('shell-profile'),
-                  child: _CurrentUserProfileScreen(),
+                pageBuilder: (context, state) => NoTransitionPage(
+                  key: state.pageKey,
+                  child: const _CurrentUserProfileScreen(),
                 ),
               ),
             ],

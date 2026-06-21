@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:mobile/core/config/app_config.dart';
 import 'package:mobile/features/ai_assistant/data/aura_chat_service.dart';
+import 'package:mobile/features/ai_assistant/data/aura_settings_provider.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 
 class AuraDashboardScreen extends ConsumerStatefulWidget {
@@ -39,7 +40,7 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
     super.dispose();
   }
 
-  Future<void> _showApiKeyDialog(BuildContext context) async {
+  Future<void> _showApiKeyDialog(BuildContext context, Color accent) async {
     final notifier = ref.read(auraSessionsProvider.notifier);
     final currentKey = await notifier.getApiKey();
     final envKey = AppConfig.geminiApiKey.trim();
@@ -154,7 +155,7 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
                         const SizedBox(width: 12),
                         ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF7B4FFF),
+                            backgroundColor: accent,
                             foregroundColor: Colors.white,
                             elevation: 0,
                             padding: const EdgeInsets.symmetric(
@@ -207,7 +208,7 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
     );
   }
 
-  Widget _buildTopRow(BuildContext context) {
+  Widget _buildTopRow(BuildContext context, Color accent) {
     final authState = ref.watch(authNotifierProvider);
     final String displayName = authState.maybeWhen(
       authenticated: (authUser, userProfile) {
@@ -280,7 +281,7 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
           mainAxisSize: MainAxisSize.min,
           children: [
             GestureDetector(
-              onTap: () => _showApiKeyDialog(context),
+              onTap: () => _showApiKeyDialog(context, accent),
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -291,9 +292,9 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
                     width: 1.2,
                   ),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.key_rounded,
-                  color: Color(0xFF7B4FFF),
+                  color: accent,
                   size: 18,
                 ),
               ),
@@ -327,7 +328,7 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
     );
   }
 
-  Widget _buildHeroHeader() {
+  Widget _buildHeroHeader(Color accent) {
     return Row(
       children: [
         Expanded(
@@ -363,7 +364,7 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
             shape: BoxShape.circle,
             color: Colors.white.withOpacity(0.03),
             border: Border.all(
-              color: const Color(0xFF7B4FFF).withOpacity(0.15),
+              color: accent.withOpacity(0.15),
               width: 1.2,
             ),
           ),
@@ -382,7 +383,7 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
     ).animate().fadeIn(duration: 400.ms).slideX(begin: -0.1);
   }
 
-  Widget _buildBentoGrid() {
+  Widget _buildBentoGrid(Color accent) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -395,10 +396,10 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
               height: 180,
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
+                gradient: LinearGradient(
                   colors: [
-                    Color(0xFF7B4FFF),
-                    Color(0xFF5931CC),
+                    accent,
+                    const Color(0xFF5931CC),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -406,7 +407,7 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF7B4FFF).withOpacity(0.35),
+                    color: accent.withOpacity(0.35),
                     blurRadius: 20,
                     offset: const Offset(0, 8),
                   ),
@@ -492,9 +493,9 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
                           shape: BoxShape.circle,
                           color: Colors.white.withOpacity(0.04),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.chat_bubble_outline_rounded,
-                          color: Color(0xFF7B4FFF),
+                          color: accent,
                           size: 18,
                         ),
                       ),
@@ -545,11 +546,11 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
                           opacity: 0.65,
                           child: ShaderMask(
                             shaderCallback: (bounds) {
-                              return const LinearGradient(
+                              return LinearGradient(
                                 colors: [
-                                  Color(0xFF7B4FFF),
-                                  Color(0xFF00F0FF),
-                                  Color(0xFFFF00F5),
+                                  accent,
+                                  const Color(0xFF00F0FF),
+                                  const Color(0xFFFF00F5),
                                 ],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
@@ -585,14 +586,14 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
     ).animate().fadeIn(delay: 200.ms, duration: 400.ms);
   }
 
-  Widget _buildHistoryItem(AuraSession session) {
+  Widget _buildHistoryItem(AuraSession session, Color accent) {
     final Map<String, Color> bulletColors = {
       'Text Writer': const Color(0xFFFF00F5),
       'Image Generator': const Color(0xFFFF00F5),
       'Code Tutor': const Color(0xFF00F0FF),
-      'Chat': const Color(0xFF7B4FFF),
+      'Chat': accent,
     };
-    final dotColor = bulletColors[session.category] ?? const Color(0xFF7B4FFF);
+    final dotColor = bulletColors[session.category] ?? accent;
 
     return Dismissible(
       key: Key(session.id),
@@ -672,7 +673,7 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
     );
   }
 
-  Widget _buildHistorySection(List<AuraSession> filteredSessions) {
+  Widget _buildHistorySection(List<AuraSession> filteredSessions, Color accent) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -733,7 +734,7 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
             itemCount: math.min(filteredSessions.length, 5),
             itemBuilder: (context, index) {
               final session = filteredSessions[index];
-              return _buildHistoryItem(session);
+              return _buildHistoryItem(session, accent);
             },
           ),
       ],
@@ -742,6 +743,8 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
 
   @override
   Widget build(BuildContext context) {
+    final settings = ref.watch(auraSettingsProvider);
+    final accent = settings.accentColor;
     final sessions = ref.watch(auraSessionsProvider);
 
     final filteredSessions = sessions.where((session) {
@@ -761,6 +764,7 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
                 return CustomPaint(
                   painter: DeepSpaceBackgroundPainter(
                     animationValue: _bgAnimationController.value,
+                    accentColor: accent,
                   ),
                 );
               },
@@ -774,13 +778,13 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildTopRow(context),
+                    _buildTopRow(context, accent),
                     const SizedBox(height: 32),
-                    _buildHeroHeader(),
+                    _buildHeroHeader(accent),
                     const SizedBox(height: 24),
-                    _buildBentoGrid(),
+                    _buildBentoGrid(accent),
                     const SizedBox(height: 36),
-                    _buildHistorySection(filteredSessions),
+                    _buildHistorySection(filteredSessions, accent),
                   ],
                 ),
               ),
@@ -849,8 +853,12 @@ class BrainWavePainter extends CustomPainter {
 
 class DeepSpaceBackgroundPainter extends CustomPainter {
   final double animationValue;
+  final Color accentColor;
 
-  DeepSpaceBackgroundPainter({required this.animationValue});
+  DeepSpaceBackgroundPainter({
+    required this.animationValue,
+    required this.accentColor,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -858,7 +866,7 @@ class DeepSpaceBackgroundPainter extends CustomPainter {
     final paint1 = Paint()
       ..shader = RadialGradient(
         colors: [
-          const Color(0xFF7B4FFF).withOpacity(0.25),
+          accentColor.withOpacity(0.25),
           Colors.transparent,
         ],
       ).createShader(Rect.fromCircle(center: Offset(size.width * 0.2, size.height * 0.3), radius: size.width * 0.8));
@@ -867,7 +875,7 @@ class DeepSpaceBackgroundPainter extends CustomPainter {
     final paint2 = Paint()
       ..shader = RadialGradient(
         colors: [
-          const Color(0xFF00F0FF).withOpacity(0.18),
+          accentColor.withOpacity(0.12),
           Colors.transparent,
         ],
       ).createShader(Rect.fromCircle(center: Offset(size.width * 0.8, size.height * 0.7), radius: size.width * 0.7));
@@ -876,5 +884,6 @@ class DeepSpaceBackgroundPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant DeepSpaceBackgroundPainter oldDelegate) =>
-      oldDelegate.animationValue != animationValue;
+      oldDelegate.animationValue != animationValue ||
+      oldDelegate.accentColor != accentColor;
 }

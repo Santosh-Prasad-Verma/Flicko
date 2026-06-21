@@ -168,17 +168,7 @@ class _GamingHubScreenState extends State<GamingHubScreen> {
                   );
                 },
               ),
-              ListTile(
-                leading: const Icon(Icons.sports_esports_rounded, color: Colors.white70),
-                title: Text(
-                  'Play',
-                  style: GoogleFonts.inter(color: Colors.white70),
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                  context.push('/gaming/launch');
-                },
-              ),
+
               ListTile(
                 leading: const Icon(Icons.leaderboard_outlined, color: Colors.white70),
                 title: Text(

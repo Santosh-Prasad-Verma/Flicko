@@ -18,6 +18,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:mobile/core/config/app_config.dart';
 import 'package:mobile/core/services/foreground_service.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
+import 'package:mobile/features/ai_assistant/data/aura_settings_provider.dart';
 import 'package:mobile/features/ai_assistant/data/aura_chat_service.dart';
 import 'package:mobile/features/ai_assistant/data/aura_live_audio_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
@@ -67,7 +68,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
   bool _isContinuousActive = false;
 
   static const Color _bgBlack = Color(0xFF06060E);
-  static const Color _accentLime = Color(0xFF7B4FFF);
+  Color get _accentLime => ref.watch(auraSettingsProvider).accentColor;
   static const Color _textMuted = Color(0xFF8E8E9F);
 
   @override
@@ -161,12 +162,14 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
   }
 
   String _liveSystemInstruction() {
+    final language = ref.read(auraSettingsProvider).language;
     return [
       'You are Aura inside Flicko, a real-time voice companion.',
       'Answer normally and helpfully in a natural human conversational tone.',
       'Keep spoken answers concise unless the user asks for detail.',
       'Do not add app-side topic limits. Follow the provider safety policy and be direct.',
       'If the user asks to control Flicko, explain what you can do and what needs a visible user confirmation.',
+      'Please respond in the user\'s selected language: $language.',
     ].join(' ');
   }
 
@@ -510,6 +513,8 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
             }
           ],
           'category': 'Text Writer',
+          'language': ref.read(auraSettingsProvider).language,
+          'temperature': ref.read(auraSettingsProvider).temperature,
         },
       );
 
@@ -885,6 +890,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
                 return CustomPaint(
                   painter: DeepSpaceBackgroundPainter(
                     animationValue: _animationController.value,
+                    accentColor: _accentLime,
                   ),
                 );
               },
@@ -975,6 +981,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
                           painter: EkgWaveformPainter(
                             animationValue: _animationController.value,
                             isListening: _currentState != AuraVoiceState.idle,
+                            accentColor: _accentLime,
                           ),
                         );
                       },
@@ -1083,10 +1090,10 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF7B4FFF).withOpacity(0.12),
+        color: _accentLime.withOpacity(0.12),
         borderRadius: BorderRadius.circular(30),
         border: Border.all(
-          color: const Color(0xFF7B4FFF).withOpacity(0.35),
+          color: _accentLime.withOpacity(0.35),
           width: 1.0,
         ),
       ),
@@ -1267,17 +1274,17 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
                   height: 72,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    gradient: const LinearGradient(
+                    gradient: LinearGradient(
                       colors: [
-                        Color(0xFF7B4FFF),
-                        Color(0xFF5931CC),
+                        _accentLime,
+                        const Color(0xFF5931CC),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF7B4FFF).withOpacity(0.4),
+                        color: _accentLime.withOpacity(0.4),
                         blurRadius: _currentState == AuraVoiceState.listening ? 24 : 12,
                         spreadRadius: _currentState == AuraVoiceState.listening ? 6 : 2,
                       ),
@@ -1424,6 +1431,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
               animationValue: _animationController.value,
               state: _currentState,
               amplitude: _currentAmplitude,
+              accentColor: _accentLime,
             ),
           ),
         );
@@ -1615,17 +1623,17 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
                     height: 82,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      gradient: const LinearGradient(
+                      gradient: LinearGradient(
                         colors: [
-                          Color(0xFF7B4FFF),
-                          Color(0xFF5931CC),
+                          _accentLime,
+                          const Color(0xFF5931CC),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF7B4FFF).withOpacity(0.35),
+                          color: _accentLime.withOpacity(0.35),
                           blurRadius: _currentState == AuraVoiceState.listening
                               ? 24
                               : 12,
@@ -1707,11 +1715,13 @@ class AuraFluidOrbPainter extends CustomPainter {
   final double animationValue;
   final AuraVoiceState state;
   final double amplitude;
+  final Color accentColor;
 
   AuraFluidOrbPainter({
     required this.animationValue,
     required this.state,
     required this.amplitude,
+    required this.accentColor,
   });
 
   @override
@@ -1949,7 +1959,7 @@ class AuraFluidOrbPainter extends CustomPainter {
       [const Color(0xFFCBB6FC), const Color(0xFFBFF6EB)], // lavender → mint
       [const Color(0xFF00D4FF), const Color(0xFF8B00FF)], // cyan → violet
       [const Color(0xFFFFD1B3), const Color(0xFFFF007F)], // peach → magenta
-      [const Color(0xFFBFF6EB), const Color(0xFF7B4FFF)], // mint → purple
+      [const Color(0xFFBFF6EB), accentColor], // mint → dynamic accent color
     ];
     final List<double> layerAlphas = [0.88, 0.55, 0.40, 0.30];
 
@@ -2041,8 +2051,12 @@ class AuraFluidOrbPainter extends CustomPainter {
 
 class DeepSpaceBackgroundPainter extends CustomPainter {
   final double animationValue;
+  final Color accentColor;
 
-  DeepSpaceBackgroundPainter({required this.animationValue});
+  DeepSpaceBackgroundPainter({
+    required this.animationValue,
+    required this.accentColor,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -2050,7 +2064,7 @@ class DeepSpaceBackgroundPainter extends CustomPainter {
     final paint1 = Paint()
       ..shader = RadialGradient(
         colors: [
-          const Color(0xFF7B4FFF).withOpacity(0.25),
+          accentColor.withOpacity(0.25),
           Colors.transparent,
         ],
       ).createShader(Rect.fromCircle(center: Offset(size.width * 0.2, size.height * 0.3), radius: size.width * 0.8));
@@ -2068,16 +2082,19 @@ class DeepSpaceBackgroundPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant DeepSpaceBackgroundPainter oldDelegate) =>
-      oldDelegate.animationValue != animationValue;
+      oldDelegate.animationValue != animationValue ||
+      oldDelegate.accentColor != accentColor;
 }
 
 class EkgWaveformPainter extends CustomPainter {
   final double animationValue;
   final bool isListening;
+  final Color accentColor;
 
   EkgWaveformPainter({
     required this.animationValue,
     required this.isListening,
+    required this.accentColor,
   });
 
   @override
@@ -2088,7 +2105,7 @@ class EkgWaveformPainter extends CustomPainter {
     // Audio wave configurations
     final waves = [
       _WaveConfig(amplitude: 35, frequency: 0.015, speed: 0.15, color: const Color(0xB300F0FF)),  // Cyan primary
-      _WaveConfig(amplitude: 20, frequency: 0.025, speed: -0.1, color: const Color(0x807B4FFF)), // Purple overlay
+      _WaveConfig(amplitude: 20, frequency: 0.025, speed: -0.1, color: accentColor.withOpacity(0.5)), // Dynamic overlay
       _WaveConfig(amplitude: 10, frequency: 0.04, speed: 0.22, color: const Color(0x4DFF00F5))    // Pink background highlight
     ];
 

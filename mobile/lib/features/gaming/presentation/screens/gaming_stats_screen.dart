@@ -9,32 +9,54 @@ import 'package:go_router/go_router.dart';
 import 'package:mobile/features/gaming/providers/gaming_stats_provider.dart';
 
 // ---------------------------------------------------------------------------
-// Screen 3 — Statistics Dashboard
+// Screen 3 — Redesigned Statistics Dashboard (Cyberpunk Brutalist)
 // ---------------------------------------------------------------------------
 
-class GamingStatsScreen extends ConsumerWidget {
+class GamingStatsScreen extends ConsumerStatefulWidget {
   const GamingStatsScreen({super.key});
 
-  // ── palette ──────────────────────────────────────────────────────────────
-  static const _bgDark = Color(0xFF050505);
-  static const _bgMid = Color(0xFF0F0F0F);
-  static const _brandLime = Color(0xFF52B788); // brand Neon Lime
-  static const _emeraldGreen = Color(0xFF10B981); // Emerald Green
-  static const _dimmedGreen = Color(0xFF40916C); // Dimmed Green
-  static const _successGreen = Color(0xFF22C55E); // Success Green
+  @override
+  ConsumerState<GamingStatsScreen> createState() => _GamingStatsScreenState();
+}
 
-  // heatmap intensity palette (0=empty .. 3=high)
-  static const _heatEmpty = Color(0xFF1A1A1A);
-  static const _heatLow = Color(0xFF1B3D2F);
-  static const _heatMed = Color(0xFF2D6A4F);
+class _GamingStatsScreenState extends ConsumerState<GamingStatsScreen>
+    with SingleTickerProviderStateMixin {
+  // ── palette ──────────────────────────────────────────────────────────────
+  static const _bgDark = Color(0xFF050507);
+  static const _bgMid = Color(0xFF0B0B0F);
+  static const _brandLime = Color(0xFF52B788); // Neon Lime
+  static const _emeraldGreen = Color(0xFF10B981); // Emerald Green
+  static const _dimmedGreen = Color(0xFF2D6A4F); // Dimmed Green
+
+  // heatmap intensity palette
+  static const _heatEmpty = Color(0xFF16161A);
+  static const _heatLow = Color(0xFF133A27);
+  static const _heatMed = Color(0xFF1F5F3E);
   static const _heatHigh = Color(0xFF52B788);
 
+  late final AnimationController _rotationController;
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  void initState() {
+    super.initState();
+    _rotationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 16),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _rotationController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final statsAsync = ref.watch(gamingStatsProvider);
 
     return Scaffold(
-      extendBodyBehindAppBar: true,
+      extendBodyBehindAppBar: false,
       backgroundColor: _bgDark,
       appBar: _buildAppBar(context),
       body: Container(
@@ -50,22 +72,23 @@ class GamingStatsScreen extends ConsumerWidget {
             loading: () => const Center(
               child: CircularProgressIndicator(color: _brandLime),
             ),
-            error: (err, _) => _buildErrorState(ref, err.toString()),
+            error: (err, _) => _buildErrorState(err.toString()),
             data: (stats) => SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 8),
                   _buildDonutSection(stats.totalHours, stats.trend),
                   const SizedBox(height: 32),
-                  _buildPodiumRow(stats.topGames),
+                  _buildStatsGrid(stats),
+                  const SizedBox(height: 32),
+                  _buildTopGamesList(stats.topGames),
                   const SizedBox(height: 32),
                   _buildRecentCampaigns(stats.recentCampaigns),
                   const SizedBox(height: 32),
                   _buildXpHeatmap(stats.activityHeatmap),
-                  const SizedBox(height: 100), // bottom-nav clearance
+                  const SizedBox(height: 60), // bottom-nav clearance
                 ],
               ),
             ),
@@ -77,7 +100,7 @@ class GamingStatsScreen extends ConsumerWidget {
   }
 
   // ── Error state ─────────────────────────────────────────────────────────
-  Widget _buildErrorState(WidgetRef ref, String message) {
+  Widget _buildErrorState(String message) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -115,7 +138,7 @@ class GamingStatsScreen extends ConsumerWidget {
   // ── AppBar ───────────────────────────────────────────────────────────────
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
-      backgroundColor: const Color(0xFF050505),
+      backgroundColor: _bgDark,
       elevation: 0,
       leading: IconButton(
         icon: const Icon(Icons.arrow_back_ios_new_rounded,
@@ -125,160 +148,246 @@ class GamingStatsScreen extends ConsumerWidget {
         },
       ),
       title: Text(
-        'My Stats',
+        'STATS HUB',
         style: GoogleFonts.orbitron(
           color: Colors.white,
-          fontSize: 20,
-          fontWeight: FontWeight.w700,
+          fontSize: 18,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 1.5,
         ),
       ),
       centerTitle: true,
       actions: [
         IconButton(
-          icon: const Icon(Icons.settings_rounded,
-              color: Colors.white70, size: 22),
-          onPressed: () {},
+          icon: const Icon(Icons.refresh_rounded,
+              color: _brandLime, size: 22),
+          onPressed: () {
+            ref.invalidate(gamingStatsProvider);
+          },
         ),
+        const SizedBox(width: 8),
       ],
-    );
-  }
-
-  // ── 3‑D Tilted Donut Ring ───────────────────────────────────────────────
-  Widget _buildDonutSection(String totalHours, String trend) {
-    final isPositive = trend.startsWith('+');
-    return Center(
-      child: SizedBox(
-        width: 220,
-        height: 220,
-        child: Transform(
-          alignment: Alignment.center,
-          transform: Matrix4.identity()
-            ..setEntry(3, 2, 0.002)
-            ..rotateX(-0.4),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                width: 200,
-                height: 200,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                        color: _brandLime.withValues(alpha: 0.25),
-                        blurRadius: 60,
-                        spreadRadius: 10),
-                    BoxShadow(
-                        color: _dimmedGreen.withValues(alpha: 0.15),
-                        blurRadius: 80,
-                        spreadRadius: 20),
-                  ],
-                ),
-              ),
-              CustomPaint(
-                size: const Size(200, 200),
-                painter: DonutRingPainter(),
-              ),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    totalHours,
-                    style: GoogleFonts.orbitron(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '$trend ${isPositive ? '↑' : '↓'}',
-                    style: GoogleFonts.inter(
-                      color: isPositive ? _successGreen : _brandLime,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+      bottom: PreferredSize(
+        preferredSize: const Size.fromHeight(1.5),
+        child: Container(
+          color: const Color(0xFF1E293B),
+          height: 1.5,
         ),
       ),
     );
   }
 
-  // ── Top‑3 Podium Row ───────────────────────────────────────────────────
-  Widget _buildPodiumRow(List<TopGame> games) {
-    if (games.isEmpty) return const SizedBox.shrink();
-    final emojis = {
-      'Ludo Royale': '🎲',
-      'Ludo': '🎲',
-      'Cyber Arena': '🎮',
-      'Cyber Ninja': '🥷',
-      'Star Commander': '🚀',
-    };
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: games.take(3).map((g) {
-        final emoji = emojis[g.name] ?? '🎮';
-        final color = _parseHexColor(g.color, fallback: _brandLime);
-        return _podiumItem(emoji, g.name, g.hours, color);
-      }).toList(),
+  // ── Playtime HUD Donut Ring ───────────────────────────────────────────────
+  Widget _buildDonutSection(String totalHours, String trend) {
+    return Center(
+      child: SizedBox(
+        width: 230,
+        height: 230,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // Rotating dashed HUD outline ring
+            RotationTransition(
+              turns: _rotationController,
+              child: const CustomPaint(
+                size: Size(220, 220),
+                painter: DashedHudPainter(color: Color(0xFF1E293B)),
+              ),
+            ),
+            // Background ambient aura glow
+            Container(
+              width: 150,
+              height: 150,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: _brandLime.withOpacity(0.12),
+                    blurRadius: 50,
+                    spreadRadius: 8,
+                  ),
+                ],
+              ),
+            ),
+            // Solid donut ring sweep
+            const CustomPaint(
+              size: Size(180, 180),
+              painter: DonutRingPainter(value: 0.72),
+            ),
+            // Inner content panel
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'TOTAL PLAYTIME',
+                  style: GoogleFonts.spaceMono(
+                    color: const Color(0xFF94A3B8),
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  totalHours,
+                  style: GoogleFonts.orbitron(
+                    color: Colors.white,
+                    fontSize: 32,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _brandLime.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: _brandLime.withOpacity(0.4),
+                      width: 1.0,
+                    ),
+                  ),
+                  child: Text(
+                    '$trend win rate',
+                    style: GoogleFonts.spaceMono(
+                      color: _brandLime,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _podiumItem(String emoji, String name, String hours, Color color) {
-    return Column(
+  // ── Detailed Ludo Stats Grid ──────────────────────────────────────────────
+  Widget _buildStatsGrid(GamingStats stats) {
+    final winRate = stats.ludoPlayed > 0 ? (stats.ludoWon * 100 ~/ stats.ludoPlayed) : 0;
+    final playtimeHours = (stats.ludoMinutes / 60.0).toStringAsFixed(1);
+
+    return GridView.count(
+      crossAxisCount: 2,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisSpacing: 16,
+      mainAxisSpacing: 16,
+      childAspectRatio: 1.35,
       children: [
-        Container(
-          width: 72,
-          height: 72,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: RadialGradient(
-              colors: [color.withValues(alpha: 0.3), Colors.transparent],
-              radius: 0.85,
-            ),
-            border: Border.all(color: color, width: 3),
-            boxShadow: [
-              BoxShadow(
-                  color: color.withValues(alpha: 0.35),
-                  blurRadius: 16,
-                  spreadRadius: 2),
-            ],
-          ),
-          child: Center(
-            child: Text(emoji, style: const TextStyle(fontSize: 30)),
-          ),
+        _buildStatGridCard(
+          title: 'MATCHES PLAYED',
+          value: '${stats.ludoPlayed}',
+          icon: Icons.casino_outlined,
+          color: const Color(0xFF8B5CF6), // Neon Purple
         ),
-        const SizedBox(height: 8),
-        Text(
-          name,
-          style: GoogleFonts.inter(
-            color: Colors.white.withValues(alpha: 0.9),
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-          ),
+        _buildStatGridCard(
+          title: 'VICTORIES',
+          value: '${stats.ludoWon}',
+          icon: Icons.emoji_events_outlined,
+          color: const Color(0xFFFBBF24), // Gold
         ),
-        const SizedBox(height: 2),
-        Text(
-          hours,
-          style: GoogleFonts.inter(color: Colors.white54, fontSize: 11),
+        _buildStatGridCard(
+          title: 'WIN RATIO',
+          value: '$winRate%',
+          icon: Icons.pie_chart_outline_rounded,
+          color: const Color(0xFF52B788), // Neon Lime
+        ),
+        _buildStatGridCard(
+          title: 'PLAY TIME',
+          value: '${playtimeHours}h',
+          icon: Icons.hourglass_empty_rounded,
+          color: const Color(0xFF3B82F6), // Blue
         ),
       ],
     );
   }
 
-  // ── Recent Campaigns ────────────────────────────────────────────────────
-  Widget _buildRecentCampaigns(List<Campaign> campaigns) {
-    if (campaigns.isEmpty) return const SizedBox.shrink();
+  Widget _buildStatGridCard({
+    required String title,
+    required String value,
+    required IconData icon,
+    required Color color,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F0F12),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFF1E293B),
+          width: 1.5,
+        ),
+      ),
+      child: Stack(
+        children: [
+          // Corner Notch Accent
+          Positioned(
+            top: 0,
+            right: 0,
+            child: Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: const BorderRadius.only(
+                  topRight: Radius.circular(14),
+                  bottomLeft: Radius.circular(8),
+                ),
+                border: Border(
+                  bottom: BorderSide(color: color.withOpacity(0.3), width: 1.5),
+                  left: BorderSide(color: color.withOpacity(0.3), width: 1.5),
+                ),
+              ),
+              child: Center(
+                child: Icon(icon, color: color, size: 12),
+              ),
+            ),
+          ),
+          // Content
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Text(
+                  title,
+                  style: GoogleFonts.spaceMono(
+                    color: const Color(0xFF94A3B8),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  value,
+                  style: GoogleFonts.orbitron(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Top Games List ────────────────────────────────────────────────────────
+  Widget _buildTopGamesList(List<TopGame> games) {
+    if (games.isEmpty) return const SizedBox.shrink();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Recent Campaigns',
+          'Top Games',
           style: GoogleFonts.orbitron(
             color: Colors.white,
             fontSize: 16,
@@ -286,94 +395,207 @@ class GamingStatsScreen extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 14),
-        ...campaigns.map((c) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _campaignCard(c),
-            )),
+        ...games.map((g) {
+          final color = _parseHexColor(g.color, fallback: _brandLime);
+          final initials = g.name.isNotEmpty
+              ? g.name.split(' ').map((e) => e[0]).join().toUpperCase()
+              : 'G';
+
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0F0F12),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: const Color(0xFF1E293B),
+                width: 1.5,
+              ),
+            ),
+            child: Row(
+              children: [
+                // Game Badge Icon
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    color: color.withOpacity(0.1),
+                    border: Border.all(color: color.withOpacity(0.4), width: 1.5),
+                  ),
+                  child: Center(
+                    child: Text(
+                      initials,
+                      style: GoogleFonts.spaceMono(
+                        color: color,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                // Title and Progress representation
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        g.name,
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: g.hours.contains('0.0') ? 0.05 : 0.85,
+                          backgroundColor: const Color(0xFF16161A),
+                          valueColor: AlwaysStoppedAnimation<Color>(color),
+                          minHeight: 4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+                // Hours Label
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      g.hours,
+                      style: GoogleFonts.orbitron(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'PLAYED',
+                      style: GoogleFonts.spaceMono(
+                        color: const Color(0xFF94A3B8),
+                        fontSize: 8,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        }),
       ],
     );
   }
 
-  Widget _campaignCard(Campaign c) {
-    final progress = (c.progress.clamp(0, 100)) / 100.0;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.06),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      c.name,
-                      style: GoogleFonts.inter(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  Text(
-                    '${c.progress}%',
-                    style: GoogleFonts.orbitron(
-                      color: _emeraldGreen,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Stack(
-                children: [
-                  Container(
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                  ),
-                  FractionallySizedBox(
-                    alignment: Alignment.centerLeft,
-                    widthFactor: progress,
-                    child: Container(
-                      height: 8,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [_brandLime, _dimmedGreen],
-                        ),
-                        borderRadius: BorderRadius.circular(6),
-                        boxShadow: [
-                          BoxShadow(
-                              color: _brandLime.withValues(alpha: 0.4), blurRadius: 6),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+  // ── Recent Campaigns ────────────────────────────────────────────────────
+  Widget _buildRecentCampaigns(List<Campaign> campaigns) {
+    if (campaigns.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Active Campaigns',
+          style: GoogleFonts.orbitron(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
           ),
         ),
-      ),
+        const SizedBox(height: 14),
+        ...campaigns.map((c) {
+          final progress = (c.progress.clamp(0, 100)) / 100.0;
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0F0F12),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: const Color(0xFF1E293B),
+                width: 1.5,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        c.name,
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: _brandLime.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: _brandLime.withOpacity(0.3),
+                          width: 1.0,
+                        ),
+                      ),
+                      child: Text(
+                        'ACTIVE',
+                        style: GoogleFonts.spaceMono(
+                          color: _brandLime,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: LinearProgressIndicator(
+                          value: progress,
+                          minHeight: 6,
+                          backgroundColor: const Color(0xFF16161A),
+                          valueColor: const AlwaysStoppedAnimation<Color>(_brandLime),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Text(
+                      '${c.progress}%',
+                      style: GoogleFonts.orbitron(
+                        color: _brandLime,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        }),
+      ],
     );
   }
 
   // ── XP Activity Heatmap ─────────────────────────────────────────────────
   Widget _buildXpHeatmap(List<int> intensities) {
-    // Defensive normalisation: ensure 60 cells, clamp to 0..3
     final cells = List<int>.generate(
       60,
       (i) => i < intensities.length ? intensities[i].clamp(0, 3) : 0,
@@ -383,7 +605,7 @@ class GamingStatsScreen extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'XP Activity',
+          'Telemetry XP Log',
           style: GoogleFonts.orbitron(
             color: Colors.white,
             fontSize: 16,
@@ -391,23 +613,24 @@ class GamingStatsScreen extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 14),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
-              ),
-              child: GridView.count(
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0F0F12),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: const Color(0xFF1E293B),
+              width: 1.5,
+            ),
+          ),
+          child: Column(
+            children: [
+              GridView.count(
                 crossAxisCount: 10,
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                mainAxisSpacing: 5,
-                crossAxisSpacing: 5,
+                mainAxisSpacing: 6,
+                crossAxisSpacing: 6,
                 children: cells.map((i) {
                   final color = [_heatEmpty, _heatLow, _heatMed, _heatHigh][i];
                   return Container(
@@ -417,37 +640,51 @@ class GamingStatsScreen extends ConsumerWidget {
                       boxShadow: i >= 2
                           ? [
                               BoxShadow(
-                                  color: color.withValues(alpha: 0.45),
-                                  blurRadius: 6),
+                                color: color.withOpacity(0.3),
+                                blurRadius: 4,
+                                spreadRadius: 0.5,
+                              ),
                             ]
                           : null,
                     ),
                   );
                 }).toList(),
               ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            Text('Less ',
-                style: GoogleFonts.inter(color: Colors.white38, fontSize: 10)),
-            ...[_heatEmpty, _heatLow, _heatMed, _heatHigh].map(
-              (c) => Container(
-                width: 14,
-                height: 14,
-                margin: const EdgeInsets.symmetric(horizontal: 2),
-                decoration: BoxDecoration(
-                  color: c,
-                  borderRadius: BorderRadius.circular(3),
-                ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Text(
+                    'Dormant',
+                    style: GoogleFonts.spaceMono(
+                      color: const Color(0xFF94A3B8),
+                      fontSize: 9,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  ...[_heatEmpty, _heatLow, _heatMed, _heatHigh].map(
+                    (c) => Container(
+                      width: 10,
+                      height: 10,
+                      margin: const EdgeInsets.symmetric(horizontal: 2),
+                      decoration: BoxDecoration(
+                        color: c,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Hyperactive',
+                    style: GoogleFonts.spaceMono(
+                      color: _brandLime,
+                      fontSize: 9,
+                    ),
+                  ),
+                ],
               ),
-            ),
-            Text(' More',
-                style: GoogleFonts.inter(color: Colors.white38, fontSize: 10)),
-          ],
+            ],
+          ),
         ),
       ],
     );
@@ -471,9 +708,9 @@ class GamingStatsScreen extends ConsumerWidget {
         child: Container(
           height: 72,
           decoration: BoxDecoration(
-            color: _bgDark.withValues(alpha: 0.85),
+            color: _bgDark.withOpacity(0.85),
             border: Border(
-                top: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
+                top: BorderSide(color: Colors.white.withOpacity(0.06))),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -483,7 +720,17 @@ class GamingStatsScreen extends ConsumerWidget {
               return GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () {
+                  if (idx == 0) context.go('/');
+                  if (idx == 1) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Explore is coming soon!'),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  }
                   if (idx == 2) context.go('/gaming');
+                  if (idx == 4) context.go('/profile');
                 },
                 child: SizedBox(
                   width: 60,
@@ -499,10 +746,10 @@ class GamingStatsScreen extends ConsumerWidget {
                               height: 36,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: _brandLime.withValues(alpha: 0.18),
+                                color: _brandLime.withOpacity(0.18),
                                 boxShadow: [
                                   BoxShadow(
-                                      color: _brandLime.withValues(alpha: 0.4),
+                                      color: _brandLime.withOpacity(0.4),
                                       blurRadius: 14,
                                       spreadRadius: 1),
                                 ],
@@ -546,23 +793,60 @@ class GamingStatsScreen extends ConsumerWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// DonutRingPainter — 3‑colour sweep‑gradient arc at ~75 % fill
-// ═══════════════════════════════════════════════════════════════════════════
+// ── Dashed circular outline HUD rotating painter ──
+class DashedHudPainter extends CustomPainter {
+  final Color color;
+  const DashedHudPainter({required this.color});
 
-class DonutRingPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2 - 16;
-    const strokeWidth = 28.0;
-    const sweepAngle = 4.7; // ~75 % of 2π
+    final radius = size.width / 2 - 4;
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+
+    const dashWidth = 5.0;
+    const dashSpace = 8.0;
+
+    final circumference = 2 * pi * radius;
+    final numDashes = (circumference / (dashWidth + dashSpace)).floor();
+
+    for (int i = 0; i < numDashes; i++) {
+      final angle = (i * (dashWidth + dashSpace)) / radius;
+      final sweep = dashWidth / radius;
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        angle,
+        sweep,
+        false,
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant DashedHudPainter oldDelegate) => oldDelegate.color != color;
+}
+
+// ── 3-colour sweep-gradient arc at ~72% fill ──
+class DonutRingPainter extends CustomPainter {
+  final double value;
+  const DonutRingPainter({this.value = 0.72});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2 - 14;
+    const strokeWidth = 16.0;
+    final sweepAngle = 2 * pi * value;
     const startAngle = -pi / 2;
 
     final trackPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
-      ..color = const Color(0xFF1A1A1A);
+      ..color = const Color(0xFF16161A);
     canvas.drawCircle(center, radius, trackPaint);
 
     final rect = Rect.fromCircle(center: center, radius: radius);
@@ -571,13 +855,11 @@ class DonutRingPainter extends CustomPainter {
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round
       ..shader = const SweepGradient(
-        startAngle: 0,
-        endAngle: 2 * pi,
         colors: [
-          Color(0xFF2D6A4F), // deep green
-          Color(0xFF10B981), // emerald green
-          Color(0xFF52B788), // neon lime
-          Color(0xFF2D6A4F), // loop back
+          Color(0xFF10B981), // Emerald
+          Color(0xFF52B788), // Neon Lime
+          Color(0xFF34D399), // Mint
+          Color(0xFF10B981), // Emerald
         ],
         stops: [0.0, 0.35, 0.7, 1.0],
       ).createShader(rect);
@@ -586,7 +868,7 @@ class DonutRingPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant DonutRingPainter oldDelegate) => oldDelegate.value != value;
 }
 
 class _NavItem {

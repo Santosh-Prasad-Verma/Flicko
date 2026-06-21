@@ -10,6 +10,9 @@ class GamingStats {
   final List<TopGame> topGames;
   final List<Campaign> recentCampaigns;
   final List<int> activityHeatmap;
+  final int ludoPlayed;
+  final int ludoWon;
+  final int ludoMinutes;
 
   const GamingStats({
     required this.totalHours,
@@ -17,6 +20,9 @@ class GamingStats {
     required this.topGames,
     required this.recentCampaigns,
     required this.activityHeatmap,
+    required this.ludoPlayed,
+    required this.ludoWon,
+    required this.ludoMinutes,
   });
 
   factory GamingStats.fromJson(Map<String, dynamic> json) {
@@ -35,6 +41,9 @@ class GamingStats {
               ?.map((e) => (e as num).toInt())
               .toList() ??
           List.filled(60, 0),
+      ludoPlayed: json['ludo_played'] as int? ?? 0,
+      ludoWon: json['ludo_won'] as int? ?? 0,
+      ludoMinutes: json['ludo_minutes'] as int? ?? 0,
     );
   }
 
@@ -53,6 +62,9 @@ class GamingStats {
               cover: '/gaming/armored_warrior.png'),
         ],
         activityHeatmap: List.filled(60, 0),
+        ludoPlayed: 0,
+        ludoWon: 0,
+        ludoMinutes: 0,
       );
 }
 
@@ -230,5 +242,8 @@ final gamingStatsProvider = FutureProvider<GamingStats>((ref) async {
     topGames: topGames,
     recentCampaigns: campaigns,
     activityHeatmap: heatmap,
+    ludoPlayed: ludoPlayed,
+    ludoWon: ludoWon,
+    ludoMinutes: ludoMinutes,
   );
 });

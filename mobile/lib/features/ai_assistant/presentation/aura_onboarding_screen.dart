@@ -6,21 +6,24 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class AuraOnboardingScreen extends StatefulWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/features/ai_assistant/data/aura_settings_provider.dart';
+
+class AuraOnboardingScreen extends ConsumerStatefulWidget {
   const AuraOnboardingScreen({super.key});
 
   @override
-  State<AuraOnboardingScreen> createState() => _AuraOnboardingScreenState();
+  ConsumerState<AuraOnboardingScreen> createState() => _AuraOnboardingScreenState();
 }
 
-class _AuraOnboardingScreenState extends State<AuraOnboardingScreen>
+class _AuraOnboardingScreenState extends ConsumerState<AuraOnboardingScreen>
     with TickerProviderStateMixin {
   late AnimationController _rotationController;
   late AnimationController _pulseController;
   late AnimationController _bgAnimationController;
 
   static const Color _bgBlack = Color(0xFF06060E);
-  static const Color _primaryAccent = Color(0xFF7B4FFF);
+  Color get _primaryAccent => ref.watch(auraSettingsProvider).accentColor;
 
   @override
   void initState() {
@@ -72,6 +75,7 @@ class _AuraOnboardingScreenState extends State<AuraOnboardingScreen>
                 return CustomPaint(
                   painter: DeepSpaceBackgroundPainter(
                     animationValue: _bgAnimationController.value,
+                    accentColor: _primaryAccent,
                   ),
                 );
               },
@@ -428,16 +432,20 @@ class _AuraOnboardingScreenState extends State<AuraOnboardingScreen>
 
 class DeepSpaceBackgroundPainter extends CustomPainter {
   final double animationValue;
+  final Color accentColor;
 
-  DeepSpaceBackgroundPainter({required this.animationValue});
+  DeepSpaceBackgroundPainter({
+    required this.animationValue,
+    this.accentColor = const Color(0xFF7B4FFF),
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
-    // 1. Nebula 1: Purple Glow top-left
+    // 1. Nebula 1: Purple/Accent Glow top-left
     final paint1 = Paint()
       ..shader = RadialGradient(
         colors: [
-          const Color(0xFF7B4FFF).withOpacity(0.22),
+          accentColor.withOpacity(0.22),
           Colors.transparent,
         ],
       ).createShader(Rect.fromCircle(
@@ -446,11 +454,11 @@ class DeepSpaceBackgroundPainter extends CustomPainter {
     canvas.drawCircle(Offset(size.width * 0.2, size.height * 0.25),
         size.width * 0.9, paint1);
 
-    // 2. Nebula 2: Deep Indigo/Blue Glow bottom-right
+    // 2. Nebula 2: Deep Indigo/Blue/Accent Glow bottom-right
     final paint2 = Paint()
       ..shader = RadialGradient(
         colors: [
-          const Color(0xFF3A1599).withOpacity(0.20),
+          accentColor.withOpacity(0.12),
           Colors.transparent,
         ],
       ).createShader(Rect.fromCircle(
@@ -462,5 +470,6 @@ class DeepSpaceBackgroundPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant DeepSpaceBackgroundPainter oldDelegate) =>
-      oldDelegate.animationValue != animationValue;
+      oldDelegate.animationValue != animationValue ||
+      oldDelegate.accentColor != accentColor;
 }

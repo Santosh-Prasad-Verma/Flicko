@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:mobile/features/ai_assistant/data/aura_settings_provider.dart';
 import 'package:mobile/features/ai_assistant/data/aura_chat_service.dart';
 import 'package:mobile/features/ai_assistant/presentation/aura_sandbox_screen.dart';
 import 'package:mobile/features/ai_assistant/presentation/aura_image_viewer_screen.dart';
@@ -36,7 +37,7 @@ class _AuraChatScreenState extends ConsumerState<AuraChatScreen> {
   static const Color _cardGrey = Color(0xFF0D0D1A);
   static const Color _borderGrey = Color(0xFF1C1C24);
   static const Color _accentPink = Color(0xFFFF00F5);
-  static const Color _accentPurple = Color(0xFF7B4FFF);
+  Color get _accentPurple => ref.watch(auraSettingsProvider).accentColor;
   static const Color _textWhite = Color(0xFFFFFFFF);
   static const Color _textMuted = Color(0xFF8E8E9F);
 
@@ -57,13 +58,15 @@ class _AuraChatScreenState extends ConsumerState<AuraChatScreen> {
   }
 
   void _scrollToBottom() {
-    if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   Future<void> _sendMessage() async {
@@ -84,8 +87,12 @@ class _AuraChatScreenState extends ConsumerState<AuraChatScreen> {
       _currentSessionId = session.id;
     }
 
-    // Scroll to show user message
+    // Scroll to show user message + typing indicator
     _scrollToBottom();
+    // Also schedule a second scroll after a brief delay for layout settling
+    Future.delayed(const Duration(milliseconds: 150), () {
+      if (mounted) _scrollToBottom();
+    });
 
     // Send message to provider
     await ref.read(auraSessionsProvider.notifier).sendMessage(_currentSessionId!, text);
@@ -95,6 +102,10 @@ class _AuraChatScreenState extends ConsumerState<AuraChatScreen> {
         _isTyping = false;
       });
       _scrollToBottom();
+      // Ensure scroll after the response bubble is rendered
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) _scrollToBottom();
+      });
     }
   }
 
@@ -143,7 +154,10 @@ class _AuraChatScreenState extends ConsumerState<AuraChatScreen> {
         children: [
           Positioned.fill(
             child: CustomPaint(
-              painter: DeepSpaceBackgroundPainter(animationValue: 0.0),
+              painter: DeepSpaceBackgroundPainter(
+                animationValue: 0.0,
+                accentColor: ref.watch(auraSettingsProvider).accentColor,
+              ),
             ),
           ),
           SafeArea(
@@ -719,8 +733,12 @@ class _AuraChatScreenState extends ConsumerState<AuraChatScreen> {
 
 class DeepSpaceBackgroundPainter extends CustomPainter {
   final double animationValue;
+  final Color accentColor;
 
-  DeepSpaceBackgroundPainter({required this.animationValue});
+  DeepSpaceBackgroundPainter({
+    required this.animationValue,
+    required this.accentColor,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -728,7 +746,7 @@ class DeepSpaceBackgroundPainter extends CustomPainter {
     final paint1 = Paint()
       ..shader = RadialGradient(
         colors: [
-          const Color(0xFF7B4FFF).withOpacity(0.20),
+          accentColor.withOpacity(0.20),
           Colors.transparent,
         ],
       ).createShader(Rect.fromCircle(center: Offset(size.width * 0.2, size.height * 0.3), radius: size.width * 0.8));
@@ -745,5 +763,7 @@ class DeepSpaceBackgroundPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant DeepSpaceBackgroundPainter oldDelegate) => false;
+  bool shouldRepaint(covariant DeepSpaceBackgroundPainter oldDelegate) =>
+      oldDelegate.animationValue != animationValue ||
+      oldDelegate.accentColor != accentColor;
 }
