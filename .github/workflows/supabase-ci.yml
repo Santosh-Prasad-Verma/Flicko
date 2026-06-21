@@ -1,0 +1,41 @@
+name: Supabase CI
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'supabase/**'
+      - '.github/workflows/supabase-ci.yml'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'supabase/**'
+      - '.github/workflows/supabase-ci.yml'
+
+jobs:
+  supabase-lint:
+    name: Supabase Lint & Format Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 'latest'
+
+      - name: Verify Migration SQL Format
+        # Ensures all migration scripts follow formatting guidelines and are valid SQL
+        run: supabase db format --dry-run
+
+      - name: Setup Deno
+        # Deno is required for Supabase Edge Functions
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+
+      - name: Lint Edge Functions
+        # Lints TS/JS code inside the Deno edge functions directories
+        run: deno lint supabase/functions/
