@@ -94,11 +94,13 @@ serve(async (req: Request) => {
     });
   }
 
+  const ZERO_G_API_KEY = Deno.env.get('ZERO_G_API_KEY');
   const XAI_API_KEY = Deno.env.get('XAI_API_KEY');
+  const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
   const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
   const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('SUPABASE_ANON_KEY') || '';
 
-  if (!XAI_API_KEY) {
+  if (!XAI_API_KEY && !ZERO_G_API_KEY && !GEMINI_API_KEY) {
     return new Response(
       JSON.stringify({ error: 'Aura AI service is not configured (missing API key)' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
@@ -144,10 +146,64 @@ serve(async (req: Request) => {
     let responseText = '';
     let functionCall: any = null;
 
-    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
+    // 4. Primary Engine: 0G Private Computer (OpenAI-compatible)
+    if (ZERO_G_API_KEY && ZERO_G_API_KEY.trim().length > 0) {
+      try {
+        console.log('Attempting 0G Private Computer primary API call...');
+        const zeroGMessages = [
+          { role: 'system', content: systemPrompt },
+          ...messages.map((m: any) => ({
+            role: m.role || (m.sender === 'user' ? 'user' : 'assistant'),
+            content: m.content || m.text || '',
+          })),
+        ];
 
-    // 4. Primary Engine: Google Gemini API (Supports Free Tier)
-    if (GEMINI_API_KEY && GEMINI_API_KEY.trim().length > 0) {
+        const modelName = category === 'Code Tutor' ? 'glm-5.2' : '0gm-1.0-35b-a3b';
+
+        const zeroGResponse = await fetch('https://router-api.0g.ai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${ZERO_G_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: modelName,
+            messages: zeroGMessages,
+            tools: TOOLS,
+            temperature: 0.7,
+            max_tokens: 2048,
+          }),
+        });
+
+        if (zeroGResponse.ok) {
+          const zeroGData = await zeroGResponse.json();
+          const choice = zeroGData.choices?.[0];
+          if (choice) {
+            const message = choice.message;
+            if (message.tool_calls && message.tool_calls.length > 0) {
+              const toolCall = message.tool_calls[0];
+              functionCall = {
+                name: toolCall.function.name,
+                args: JSON.parse(toolCall.function.arguments || '{}'),
+              };
+              responseText = message.content || '';
+            } else {
+              responseText = message.content || '';
+            }
+            liveSuccess = true;
+            console.log('0G Private Computer API call succeeded!');
+          }
+        } else {
+          const errText = await zeroGResponse.text();
+          console.warn('0G Private Computer API call failed with status:', zeroGResponse.status, errText);
+        }
+      } catch (zeroGError) {
+        console.warn('0G Private Computer API error occurred:', zeroGError);
+      }
+    }
+
+    // 5. Fallback Engine: Google Gemini API (Supports Free Tier)
+    if (!liveSuccess && GEMINI_API_KEY && GEMINI_API_KEY.trim().length > 0) {
       try {
         console.log('Attempting Gemini primary API call...');
         const geminiContents: any[] = [];
