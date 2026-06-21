@@ -124,7 +124,8 @@ class _HomePageState extends State<HomePage> {
             Logger.root.info('Update available');
             ShowSnackBar().showSnackBar(
               context,
-              AppLocalizations.of(context)?.updateAvailable ?? 'Update available',
+              AppLocalizations.of(context)?.updateAvailable ??
+                  'Update available',
               duration: const Duration(seconds: 15),
               action: SnackBarAction(
                 textColor: Theme.of(context).colorScheme.secondary,
@@ -526,7 +527,7 @@ class _HomePageState extends State<HomePage> {
 
                         case 'YouTube':
                           return NavigationRailDestination(
-                            icon: const Icon(MdiIcons.youtube),
+                            icon: Icon(MdiIcons.youtube),
                             label: Text(AppLocalizations.of(context)!.youTube),
                           );
                         case 'Library':
@@ -584,10 +585,11 @@ class _HomePageState extends State<HomePage> {
                                 height: 60,
                                 child: CustomBottomNavBar(
                                   currentIndex: indexValue,
-                                  backgroundColor: Theme.of(context).brightness ==
-                                          Brightness.dark
-                                      ? Colors.black.withOpacity(0.9)
-                                      : Colors.white.withOpacity(0.9),
+                                  backgroundColor:
+                                      Theme.of(context).brightness ==
+                                              Brightness.dark
+                                          ? Colors.black.withOpacity(0.9)
+                                          : Colors.white.withOpacity(0.9),
                                   onTap: (index) {
                                     onItemTapped(index);
                                   },
@@ -659,7 +661,7 @@ class _HomePageState extends State<HomePage> {
 
         case 'YouTube':
           return CustomBottomNavBarItem(
-            icon: const Icon(MdiIcons.youtube),
+            icon: Icon(MdiIcons.youtube),
             title: Text(AppLocalizations.of(context)!.youTube),
             selectedColor: Theme.of(context).colorScheme.secondary,
           );

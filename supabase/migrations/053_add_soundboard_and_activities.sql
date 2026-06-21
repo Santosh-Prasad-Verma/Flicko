@@ -138,6 +138,7 @@ CREATE POLICY "Users manage own favorites"
   WITH CHECK (user_id = auth.uid());
 
 -- Activities: everyone can read
+DROP POLICY IF EXISTS "Anyone can view activities" ON activities;
 CREATE POLICY "Anyone can view activities"
   ON activities FOR SELECT
   USING (true);

@@ -299,7 +299,7 @@ class _AboutPageState extends State<AboutPage> {
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           IconButton(
-                                            icon: const Icon(
+                                            icon: Icon(
                                               MdiIcons.gmail,
                                             ),
                                             iconSize: 40,
@@ -331,7 +331,7 @@ class _AboutPageState extends State<AboutPage> {
                                         children: [
                                           IconButton(
                                             icon: const Icon(
-                                              MdiIcons.telegram,
+                                              Icons.telegram,
                                             ),
                                             iconSize: 40,
                                             tooltip: AppLocalizations.of(
@@ -361,7 +361,7 @@ class _AboutPageState extends State<AboutPage> {
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           IconButton(
-                                            icon: const Icon(
+                                            icon: Icon(
                                               MdiIcons.instagram,
                                             ),
                                             iconSize: 40,
@@ -425,7 +425,7 @@ class _AboutPageState extends State<AboutPage> {
                                         children: [
                                           IconButton(
                                             icon: const Icon(
-                                              MdiIcons.telegram,
+                                              Icons.telegram,
                                             ),
                                             iconSize: 40,
                                             tooltip: AppLocalizations.of(
@@ -456,7 +456,7 @@ class _AboutPageState extends State<AboutPage> {
                                         children: [
                                           IconButton(
                                             icon: const Icon(
-                                              MdiIcons.telegram,
+                                              Icons.telegram,
                                             ),
                                             iconSize: 40,
                                             tooltip: AppLocalizations.of(
