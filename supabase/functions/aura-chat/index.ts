@@ -79,7 +79,79 @@ const TOOLS = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'web_search',
+      description: 'Search the web/internet for real-time information, news, or recent developments.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: {
+            type: 'string',
+            description: 'The search query or keywords.',
+          },
+        },
+        required: ['query'],
+      },
+    },
+  },
 ];
+
+async function searchWeb(query: string): Promise<string> {
+  try {
+    console.log(`Running web search for: "${query}"`);
+    const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      }
+    });
+    if (!response.ok) {
+      return `Search failed with status: ${response.status}`;
+    }
+    const html = await response.text();
+    const resultBlocks = html.split('class="links_main links_deep result__body"');
+    const results: Array<{ title: string; url: string; snippet: string }> = [];
+    
+    for (let i = 1; i < resultBlocks.length && results.length < 5; i++) {
+      const block = resultBlocks[i];
+      const titleMatch = block.match(/<a[^>]*class="result__a"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/);
+      const snippetMatch = block.match(/<a[^>]*class="result__snippet"[^>]*>([\s\S]*?)<\/a>/);
+      
+      if (titleMatch) {
+        const rawUrl = titleMatch[1];
+        const title = titleMatch[2].replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').trim();
+        const snippet = snippetMatch ? snippetMatch[1].replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').trim() : '';
+        
+        let cleanUrl = rawUrl;
+        if (rawUrl.includes('uddg=')) {
+          const uddgMatch = rawUrl.match(/uddg=([^&]+)/);
+          if (uddgMatch) {
+            try {
+              cleanUrl = decodeURIComponent(uddgMatch[1]);
+            } catch (_) {
+              // ignore decoding error
+            }
+          }
+        }
+        if (cleanUrl.startsWith('//')) {
+          cleanUrl = 'https:' + cleanUrl;
+        }
+        results.push({ title, url: cleanUrl, snippet });
+      }
+    }
+    
+    if (results.length === 0) {
+      return "No search results found.";
+    }
+    
+    return results.map((r, idx) => `[Result ${idx + 1}]\nTitle: ${r.title}\nURL: ${r.url}\nDescription: ${r.snippet}`).join('\n\n');
+  } catch (err) {
+    console.error('searchWeb error:', err);
+    return `Error performing search: ${err instanceof Error ? err.message : String(err)}`;
+  }
+}
 
 serve(async (req: Request) => {
   // CORS preflight
@@ -159,43 +231,78 @@ serve(async (req: Request) => {
         ];
 
         const modelName = category === 'Code Tutor' ? 'glm-5.2' : '0gm-1.0-35b-a3b';
+        let loopCount = 0;
+        const maxLoops = 3;
 
-        const zeroGResponse = await fetch('https://router-api.0g.ai/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${ZERO_G_API_KEY}`,
-          },
-          body: JSON.stringify({
-            model: modelName,
-            messages: zeroGMessages,
-            tools: TOOLS,
-            temperature: 0.7,
-            max_tokens: 2048,
-          }),
-        });
+        while (loopCount < maxLoops) {
+          console.log(`0G API call loop ${loopCount + 1}...`);
+          const zeroGResponse = await fetch('https://router-api.0g.ai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${ZERO_G_API_KEY}`,
+            },
+            body: JSON.stringify({
+              model: modelName,
+              messages: zeroGMessages,
+              tools: TOOLS,
+              temperature: 0.7,
+              max_tokens: 2048,
+            }),
+          });
 
-        if (zeroGResponse.ok) {
+          if (!zeroGResponse.ok) {
+            const errText = await zeroGResponse.text();
+            console.warn('0G Private Computer API call failed with status:', zeroGResponse.status, errText);
+            break;
+          }
+
           const zeroGData = await zeroGResponse.json();
           const choice = zeroGData.choices?.[0];
-          if (choice) {
-            const message = choice.message;
-            if (message.tool_calls && message.tool_calls.length > 0) {
-              const toolCall = message.tool_calls[0];
+          if (!choice) break;
+
+          const message = choice.message;
+          if (message.tool_calls && message.tool_calls.length > 0) {
+            const toolCall = message.tool_calls[0];
+            const name = toolCall.function.name;
+            const args = JSON.parse(toolCall.function.arguments || '{}');
+
+            if (name === 'web_search') {
+              console.log(`Executing web search tool server-side. Query: "${args.query}"`);
+              const searchResult = await searchWeb(args.query);
+
+              zeroGMessages.push({
+                role: 'assistant',
+                content: message.content || null,
+                tool_calls: message.tool_calls,
+              });
+
+              zeroGMessages.push({
+                role: 'tool',
+                tool_call_id: toolCall.id,
+                name: 'web_search',
+                content: searchResult,
+              });
+
+              loopCount++;
+              continue;
+            } else {
               functionCall = {
-                name: toolCall.function.name,
-                args: JSON.parse(toolCall.function.arguments || '{}'),
+                name,
+                args,
               };
               responseText = message.content || '';
-            } else {
-              responseText = message.content || '';
+              liveSuccess = true;
+              break;
             }
+          } else {
+            responseText = message.content || '';
             liveSuccess = true;
-            console.log('0G Private Computer API call succeeded!');
+            break;
           }
-        } else {
-          const errText = await zeroGResponse.text();
-          console.warn('0G Private Computer API call failed with status:', zeroGResponse.status, errText);
+        }
+        if (liveSuccess) {
+          console.log('0G Private Computer API call succeeded!');
         }
       } catch (zeroGError) {
         console.warn('0G Private Computer API error occurred:', zeroGError);
@@ -271,52 +378,83 @@ serve(async (req: Request) => {
         })),
       ];
 
-      const xaiResponse = await fetch('https://api.x.ai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${XAI_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: 'grok-beta',
-          messages: xaiMessages,
-          tools: TOOLS,
-          temperature: 0.7,
-          max_tokens: 2048,
-        }),
-      });
+      let loopCount = 0;
+      const maxLoops = 3;
 
-      if (!xaiResponse.ok) {
-        const errBody = await xaiResponse.text();
-        console.error('xAI API error:', xaiResponse.status, errBody);
+      while (loopCount < maxLoops) {
+        console.log(`xAI API call loop ${loopCount + 1}...`);
+        const xaiResponse = await fetch('https://api.x.ai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${XAI_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: 'grok-beta',
+            messages: xaiMessages,
+            tools: TOOLS,
+            temperature: 0.7,
+            max_tokens: 2048,
+          }),
+        });
+
+        if (!xaiResponse.ok) {
+          const errBody = await xaiResponse.text();
+          console.error('xAI API error:', xaiResponse.status, errBody);
+          break;
+        }
+
+        const xaiData = await xaiResponse.json();
+        const choice = xaiData.choices?.[0];
+        if (!choice) break;
+
+        const message = choice.message;
+        if (message.tool_calls && message.tool_calls.length > 0) {
+          const toolCall = message.tool_calls[0];
+          const name = toolCall.function.name;
+          const args = JSON.parse(toolCall.function.arguments || '{}');
+
+          if (name === 'web_search') {
+            console.log(`Executing web search tool server-side (Grok fallback). Query: "${args.query}"`);
+            const searchResult = await searchWeb(args.query);
+
+            xaiMessages.push({
+              role: 'assistant',
+              content: message.content || null,
+              tool_calls: message.tool_calls,
+            });
+
+            xaiMessages.push({
+              role: 'tool',
+              tool_call_id: toolCall.id,
+              name: 'web_search',
+              content: searchResult,
+            });
+
+            loopCount++;
+            continue;
+          } else {
+            functionCall = {
+              name,
+              args,
+            };
+            responseText = message.content || '';
+            liveSuccess = true;
+            break;
+          }
+        } else {
+          responseText = message.content || '';
+          liveSuccess = true;
+          break;
+        }
+      }
+
+      if (!liveSuccess) {
         return new Response(
-          JSON.stringify({ error: `xAI API error: ${xaiResponse.status}`, details: errBody }),
+          JSON.stringify({ error: 'No response from Grok fallback' }),
           { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
         );
       }
-
-      const xaiData = await xaiResponse.json();
-      const choice = xaiData.choices?.[0];
-
-      if (!choice) {
-        return new Response(
-          JSON.stringify({ error: 'No response from Grok' }),
-          { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-        );
-      }
-
-      const message = choice.message;
-      if (message.tool_calls && message.tool_calls.length > 0) {
-        const toolCall = message.tool_calls[0];
-        functionCall = {
-          name: toolCall.function.name,
-          args: JSON.parse(toolCall.function.arguments || '{}'),
-        };
-        responseText = message.content || '';
-      } else {
-        responseText = message.content || '';
-      }
-      liveSuccess = true;
     }
 
     const result: any = { text: responseText };
