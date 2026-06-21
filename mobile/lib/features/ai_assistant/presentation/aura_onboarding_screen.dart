@@ -316,10 +316,10 @@ class _AuraOnboardingScreenState extends ConsumerState<AuraOnboardingScreen>
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(horizontal: 8),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
+                        gradient: LinearGradient(
                           colors: [
                             _primaryAccent,
-                            Color(0xFF5931CC),
+                            const Color(0xFF5931CC),
                           ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
@@ -347,7 +347,7 @@ class _AuraOnboardingScreenState extends ConsumerState<AuraOnboardingScreen>
                               shape: BoxShape.circle,
                               color: Colors.white,
                             ),
-                            child: const Center(
+                            child: Center(
                               child: Icon(
                                 Icons.send_rounded,
                                 color: _primaryAccent,
