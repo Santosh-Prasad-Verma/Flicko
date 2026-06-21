@@ -20,9 +20,3 @@ CREATE INDEX IF NOT EXISTS idx_reactions_message ON reactions(message_id);
 
 -- Index for server member lookups (access control checks)
 CREATE INDEX IF NOT EXISTS idx_server_members_server_user ON server_members(server_id, user_id);
-
--- Index for voice states channel
-CREATE INDEX IF NOT EXISTS idx_voice_states_channel ON voice_states(channel_id);
-
--- Index for voice states user
-CREATE INDEX IF NOT EXISTS idx_voice_states_user ON voice_states(user_id);
