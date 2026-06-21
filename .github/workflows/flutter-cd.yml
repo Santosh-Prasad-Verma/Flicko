@@ -1,0 +1,143 @@
+name: Flutter CD
+
+on:
+  push:
+    tags:
+      - 'v*' # Trigger build on version tags like v1.0.0
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target Environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+jobs:
+  build-android:
+    name: Build & Distribute Android
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+          cache-key: "flutter-:os:-:channel:-:version:-:arch:-:hash:"
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      # Setup Android Keystore for Signing
+      - name: Decode Android Keystore
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+
+      # Build Release Binaries
+      - name: Build Release APK
+        run: |
+          flutter build apk --release \
+            --dart-define=FLICKO_API_URL=${{ secrets.PROD_API_URL }} \
+            --dart-define=FLICKO_LIVEKIT_URL=${{ secrets.PROD_LIVEKIT_URL }}
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+      - name: Build Release App Bundle (AAB)
+        run: |
+          flutter build appbundle --release \
+            --dart-define=FLICKO_API_URL=${{ secrets.PROD_API_URL }} \
+            --dart-define=FLICKO_LIVEKIT_URL=${{ secrets.PROD_LIVEKIT_URL }}
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+      # Distribute Android Build to Firebase App Distribution (Beta testers)
+      - name: Upload to Firebase App Distribution
+        uses: wzieba/Firebase-Distribution-Github-Activity@v1
+        with:
+          appId: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
+          serviceCredentialsFileContent: ${{ secrets.FIREBASE_CREDENTIALS_JSON }}
+          groups: testers
+          file: mobile/build/app/outputs/flutter-apk/app-release.apk
+
+      # Optionally upload the AAB to Google Play Console
+      - name: Upload to Google Play
+        uses: r0adkfv/upload-google-play@v1
+        with:
+          serviceAccountJsonRaw: ${{ secrets.PLAY_STORE_JSON_KEY }}
+          packageName: com.flicko.app
+          releaseFiles: mobile/build/app/outputs/bundle/release/app-release.aab
+          track: internal # Play Store internal track
+
+  build-ios:
+    name: Build & Distribute iOS
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      # Install Apple Certificates and Provisioning Profiles
+      - name: Install Apple Certificate and Provisioning Profile
+        run: |
+          # Create and configure temporary keychain
+          security create-keychain -p "" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          
+          # Decode and import distribution certificate
+          echo "${{ secrets.IOS_CERTIFICATE_BASE64 }}" | base64 --decode > cert.p12
+          security import cert.p12 -k build.keychain -P "${{ secrets.IOS_CERTIFICATE_PASSWORD }}" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+          
+          # Decode and install provisioning profile
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "${{ secrets.IOS_PROVISION_PROFILE_BASE64 }}" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+
+      # Build iOS IPA
+      - name: Build iOS IPA
+        run: |
+          flutter build ipa --release --export-options-plist=ios/ExportOptions.plist \
+            --dart-define=FLICKO_API_URL=${{ secrets.PROD_API_URL }} \
+            --dart-define=FLICKO_LIVEKIT_URL=${{ secrets.PROD_LIVEKIT_URL }}
+
+      # Distribute iOS Build to TestFlight
+      - name: Upload to Apple TestFlight
+        uses: Apple-Actions/upload-testflight-build@v1
+        with:
+          app-path: mobile/build/ios/ipa/*.ipa
+          issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          key-id: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          private-key: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}

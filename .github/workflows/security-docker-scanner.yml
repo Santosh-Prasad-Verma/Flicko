@@ -1,0 +1,84 @@
+name: Security - Docker Image Scanner
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - '**/Dockerfile*'
+      - 'backend/**'
+      - 'services/**'
+      - 'mail-gateway/**'
+      - '.github/workflows/security-docker-scanner.yml'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - '**/Dockerfile*'
+      - 'backend/**'
+      - 'services/**'
+      - 'mail-gateway/**'
+      - '.github/workflows/security-docker-scanner.yml'
+
+jobs:
+  scan-images:
+    name: Docker Vulnerability Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 1. Scan Backend Service
+      - name: Build Backend (Dry Run)
+        run: |
+          docker build -t flicko/backend:test -f backend/Dockerfile ./backend
+
+      - name: Run Trivy Scanner on Backend
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'flicko/backend:test'
+          format: 'table'
+          exit-code: '1' # Fail build if critical vulnerabilities are found
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
+
+      # 2. Scan Mail Gateway Service
+      - name: Build Mail Gateway (Dry Run)
+        run: |
+          docker build -t flicko/mail-gateway:test -f mail-gateway/Dockerfile ./mail-gateway
+
+      - name: Run Trivy Scanner on Mail Gateway
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'flicko/mail-gateway:test'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
+
+      # 3. Scan WS Gateway Service
+      - name: Build WS Gateway (Dry Run)
+        run: |
+          docker build -t flicko/ws-gateway:test -f services/ws-gateway/Dockerfile.prod ./services
+
+      - name: Run Trivy Scanner on WS Gateway
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'flicko/ws-gateway:test'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
+
+      # 4. Scan Msg Service
+      - name: Build Msg Service (Dry Run)
+        run: |
+          docker build -t flicko/msg-service:test -f services/msg-service/Dockerfile.prod ./services
+
+      - name: Run Trivy Scanner on Msg Service
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'flicko/msg-service:test'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
