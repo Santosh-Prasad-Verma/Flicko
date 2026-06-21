@@ -7,6 +7,7 @@ import 'package:mobile/features/store/data/badge_service.dart' hide AnimatedBuil
 import 'package:mobile/features/store/data/avatar_decoration_service.dart';
 
 import 'package:mobile/features/auth/application/auth_notifier.dart';
+import 'package:mobile/core/services/presence_service.dart';
 
 enum UserStatus { online, idle, dnd, offline }
 
@@ -43,6 +44,15 @@ class UserAvatar extends ConsumerWidget {
     // If widget has explicit decoration param, use it. Otherwise resolve dynamic equipped decoration for current user
     final activeDecoration = decoration ?? (isCurrentUser ? decorationAsync?.value?.id : null);
     
+    // Resolve dynamic online status from presence service if userId is provided
+    final dynamicStatus = userId != null ? ref.watch(userOnlineStatusProvider(userId)) : null;
+    final resolvedStatus = dynamicStatus != null
+        ? dynamicStatus.maybeWhen(
+            data: (val) => val,
+            orElse: () => status,
+          )
+        : status;
+
     return SizedBox(
       width: size,
       height: size,
@@ -54,7 +64,7 @@ class UserAvatar extends ConsumerWidget {
             Positioned(
               right: 0,
               bottom: 0,
-              child: _buildStatusIndicator(),
+              child: _buildStatusIndicator(resolvedStatus),
             ),
           // Show equipped badge if available
           if (badgeAsync != null)
@@ -145,8 +155,8 @@ class UserAvatar extends ConsumerWidget {
     );
   }
 
-  Widget _buildStatusIndicator() {
-    final resolvedStatus = _resolveStatus(status);
+  Widget _buildStatusIndicator(Object? statusValue) {
+    final resolvedStatus = _resolveStatus(statusValue);
     final Color color;
     switch (resolvedStatus) {
       case UserStatus.online:

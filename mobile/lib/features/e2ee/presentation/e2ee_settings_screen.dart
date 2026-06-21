@@ -5,6 +5,7 @@ import 'package:mobile/core/constants/flicko_colors.dart';
 
 import '../application/e2ee_session.dart';
 import '../data/secure_keystore.dart';
+import 'e2ee_devices_screen.dart';
 
 /// Encryption settings — view your fingerprint, refill prekeys, wipe keys.
 class E2EESettingsScreen extends ConsumerStatefulWidget {
@@ -126,6 +127,22 @@ class _E2EESettingsScreenState extends ConsumerState<E2EESettingsScreen> {
             description:
                 'Generates fresh one-time prekeys so peers can start new conversations.',
             onTap: _busy ? null : _refill,
+          ),
+          const SizedBox(height: 12),
+          _action(
+            label: 'MANAGE DEVICES',
+            description:
+                'View active E2EE sessions and verify safety numbers or scan QR codes.',
+            onTap: _busy
+                ? null
+                : () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const E2EEDevicesScreen(),
+                      ),
+                    );
+                  },
           ),
           const SizedBox(height: 12),
           _action(

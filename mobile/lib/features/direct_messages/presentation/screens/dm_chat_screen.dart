@@ -10,6 +10,9 @@ import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/e2ee/application/identity_change_alert_provider.dart';
 import 'package:mobile/features/e2ee/presentation/identity_change_banner.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
+import 'package:mobile/core/services/presence_service.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mobile/features/calling/presentation/incoming_call_overlay.dart';
 import 'package:mobile/features/calling/services/call_signaling_service.dart';
 import 'package:mobile/features/calling/services/webrtc_call_service.dart';
@@ -38,6 +41,176 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
   String? _participantName;
   String? _participantAvatarUrl;
   bool _showEntranceWarp = true;
+
+  bool _isSummarizing = false;
+  String? _chatSummary;
+  String? _summaryError;
+
+  Future<void> _handleCatchMeUp(List<DMMessage> messages, String participantName) async {
+    if (messages.isEmpty) {
+      setState(() {
+        _summaryError = 'No messages to summarize.';
+      });
+      return;
+    }
+
+    setState(() {
+      _isSummarizing = true;
+      _chatSummary = null;
+      _summaryError = null;
+    });
+
+    try {
+      final recentMessages = messages.take(40).toList();
+      final messagesJson = recentMessages.map((m) {
+        final senderName = m.senderId == _myUserId ? 'Me' : participantName;
+        return {
+          'sender': senderName,
+          'content': m.content,
+        };
+      }).toList().reversed.toList();
+
+      final supabase = Supabase.instance.client;
+      final response = await supabase.functions.invoke(
+        'chat-summary',
+        body: {'messages': messagesJson},
+      );
+
+      final data = response.data;
+      if (data is Map && data.containsKey('summary')) {
+        setState(() {
+          _chatSummary = data['summary'] as String;
+          _isSummarizing = false;
+        });
+      } else {
+        throw Exception(data['error'] ?? 'Failed to parse summary response');
+      }
+    } catch (e) {
+      setState(() {
+        _summaryError = 'Aura could not summarize the conversation: $e';
+        _isSummarizing = false;
+      });
+    }
+  }
+
+  Widget _buildCatchMeUpSection(List<DMMessage> messages, String participantName) {
+    if (!_isSummarizing && _chatSummary == null && _summaryError == null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Material(
+            color: const Color(FlickoColors.bgSecondary),
+            shape: const StadiumBorder(),
+            child: InkWell(
+              customBorder: const StadiumBorder(),
+              onTap: () => _handleCatchMeUp(messages, participantName),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.auto_awesome, size: 16, color: Color(FlickoColors.brandLime)),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Catch me up',
+                      style: GoogleFonts.spaceGrotesk(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(FlickoColors.bgSecondary),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.auto_awesome, size: 18, color: Color(FlickoColors.brandLime)),
+              const SizedBox(width: 8),
+              Text(
+                _isSummarizing ? 'Catching you up...' : 'Aura Summary',
+                style: GoogleFonts.spaceGrotesk(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                ),
+              ),
+              const Spacer(),
+              IconButton(
+                icon: const Icon(Icons.close, size: 18, color: Colors.white60),
+                onPressed: () {
+                  setState(() {
+                    _isSummarizing = false;
+                    _chatSummary = null;
+                    _summaryError = null;
+                  });
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (_isSummarizing)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: List.generate(3, (i) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Container(
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                  ),
+                );
+              }),
+            )
+          else if (_summaryError != null)
+            Row(
+              children: [
+                const Icon(Icons.error_outline, size: 18, color: Colors.redAccent),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _summaryError!,
+                    style: GoogleFonts.inter(color: Colors.white70, fontSize: 12),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => _handleCatchMeUp(messages, participantName),
+                  child: Text('Retry', style: GoogleFonts.spaceGrotesk(color: const Color(FlickoColors.brandLime))),
+                ),
+              ],
+            )
+          else if (_chatSummary != null)
+            Text(
+              _chatSummary!,
+              style: GoogleFonts.inter(
+                color: Colors.white.withValues(alpha: 0.85),
+                fontSize: 13,
+                height: 1.4,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -420,6 +593,7 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
                       size: 52,
                       status: onlineStatus,
                       showStatus: true,
+                      userId: userId,
                     ),
                     const SizedBox(width: 16),
                     Expanded(
@@ -530,6 +704,15 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
     final onlineStatus = participant?.onlineStatus ?? 'offline';
     final equippedWarp = ref.watch(equippedWarpProvider).value;
 
+    final myId = ref.watch(currentUserIdProvider) ?? '';
+    final conversationId = [myId, widget.userId]..sort();
+    final conversationIdStr = conversationId.join('_');
+    final typingUsersAsync = ref.watch(typingStatusProvider(conversationIdStr));
+    final isOtherUserTyping = typingUsersAsync.maybeWhen(
+      data: (users) => users.contains(widget.userId),
+      orElse: () => false,
+    );
+
     return Scaffold(
       backgroundColor: const Color(FlickoColors.bgPrimary),
       body: Stack(
@@ -578,6 +761,7 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
                                   size: 36,
                                   status: onlineStatus,
                                   showStatus: true,
+                                  userId: participant.id,
                                 ),
                               const SizedBox(width: 10),
                               Expanded(
@@ -654,6 +838,9 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
                 },
               ),
 
+              // ── CATCH UP ──
+              _buildCatchMeUpSection(state.messages, participantName),
+
               // ── MESSAGES ──
               Expanded(
                 child: state.isLoading && state.messages.isEmpty
@@ -700,6 +887,35 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
                       ),
               ),
 
+              // ── TYPING INDICATOR ──
+              if (isOtherUserTyping)
+                Padding(
+                  padding: const EdgeInsets.only(left: 16, bottom: 8),
+                  child: Row(
+                    children: [
+                      const SizedBox(
+                        width: 12,
+                        height: 12,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 1.5,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Color(FlickoColors.brandLime),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '$participantName is typing...',
+                        style: GoogleFonts.inter(
+                          color: const Color(FlickoColors.textSecondary),
+                          fontSize: 12,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
               // ── INPUT ──
               DMChatInput(
                 onSend: (content, {attachments, gifUrl, stickerUrl}) {
@@ -713,6 +929,18 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
                         messageContent,
                         localAttachments: attachments,
                       );
+                },
+                onTypingStart: () {
+                  if (myId.isNotEmpty) {
+                    final ids = [myId, widget.userId]..sort();
+                    ref.read(presenceServiceProvider).setTyping(ids.join('_'), true);
+                  }
+                },
+                onTypingStop: () {
+                  if (myId.isNotEmpty) {
+                    final ids = [myId, widget.userId]..sort();
+                    ref.read(presenceServiceProvider).setTyping(ids.join('_'), false);
+                  }
                 },
               ),
             ],

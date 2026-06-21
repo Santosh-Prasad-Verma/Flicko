@@ -15,10 +15,14 @@ import 'package:mobile/features/server_channels/chat/presentation/widgets/sticke
 
 class DMChatInput extends StatefulWidget {
   final Function(String content, {List<XFile>? attachments, String? gifUrl, String? stickerUrl}) onSend;
+  final VoidCallback? onTypingStart;
+  final VoidCallback? onTypingStop;
 
   const DMChatInput({
     super.key,
     required this.onSend,
+    this.onTypingStart,
+    this.onTypingStop,
   });
 
   @override
@@ -46,6 +50,9 @@ class _DMChatInputState extends State<DMChatInput> {
   int _recordingSeconds = 0;
   String? _recordingPath;
 
+  Timer? _typingThrottle;
+  bool _isTyping = false;
+
   @override
   void initState() {
     super.initState();
@@ -57,6 +64,7 @@ class _DMChatInputState extends State<DMChatInput> {
     _controller.removeListener(_handleTextChanged);
     _controller.dispose();
     _recordingTimer?.cancel();
+    _typingThrottle?.cancel();
     _audioRecorder.dispose();
     super.dispose();
   }
@@ -65,6 +73,26 @@ class _DMChatInputState extends State<DMChatInput> {
     final isEmpty = _controller.text.trim().isEmpty && _selectedFiles.isEmpty;
     if (isEmpty != _isEmpty) {
       setState(() => _isEmpty = isEmpty);
+    }
+
+    if (!isEmpty) {
+      if (!_isTyping) {
+        _isTyping = true;
+        widget.onTypingStart?.call();
+      }
+      _typingThrottle?.cancel();
+      _typingThrottle = Timer(const Duration(seconds: 4), () {
+        if (mounted && _isTyping) {
+          _isTyping = false;
+          widget.onTypingStop?.call();
+        }
+      });
+    } else {
+      if (_isTyping) {
+        _isTyping = false;
+        _typingThrottle?.cancel();
+        widget.onTypingStop?.call();
+      }
     }
   }
 

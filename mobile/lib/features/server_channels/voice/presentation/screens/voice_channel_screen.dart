@@ -514,6 +514,12 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
         participant.identity;
     final avatarUrl = metadata?['avatar_url'] as String?;
 
+    // Detect if participant has an active screen share track
+    final screenShareTrack = participant.videoTrackPublications
+        .where((pub) => pub.track != null && pub.isScreenShare)
+        .toList();
+    final hasScreenShare = screenShareTrack.isNotEmpty;
+
     // Detect if participant has an active video track
     final videoTrack = participant.videoTrackPublications
         .where((pub) => pub.track != null && !pub.isScreenShare)
@@ -548,11 +554,14 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
                   ]
                 : [],
           ),
-          child: hasVideo
-              ? _buildVideoView(videoTrack.first.track as VideoTrack,
-                  participant, displayName, isSpeaking)
-              : _buildAvatarView(
-                  displayName, avatarUrl, participant, isSpeaking),
+          child: hasScreenShare
+              ? _buildVideoView(screenShareTrack.first.track as VideoTrack,
+                  participant, '$displayName (Screen)', isSpeaking, isScreenShare: true)
+              : hasVideo
+                  ? _buildVideoView(videoTrack.first.track as VideoTrack,
+                      participant, displayName, isSpeaking)
+                  : _buildAvatarView(
+                      displayName, avatarUrl, participant, isSpeaking),
         ),
       ),
     );
@@ -560,7 +569,7 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
 
   /// Renders the live video stream inside the frosted card
   Widget _buildVideoView(VideoTrack track, Participant participant,
-      String displayName, bool isSpeaking) {
+      String displayName, bool isSpeaking, {bool isScreenShare = false}) {
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -568,9 +577,52 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
           borderRadius: BorderRadius.circular(20),
           child: VideoTrackRenderer(
             track,
-            fit: VideoViewFit.cover,
+            fit: isScreenShare ? VideoViewFit.contain : VideoViewFit.cover,
           ),
         ),
+        // Red "LIVE" badge for screen sharing
+        if (isScreenShare)
+          Positioned(
+            top: 12,
+            left: 12,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFED4245), // Discord/Flicko Red
+                borderRadius: BorderRadius.circular(4),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFED4245).withValues(alpha: 0.4),
+                    blurRadius: 8,
+                    spreadRadius: 1,
+                  )
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'LIVE',
+                    style: GoogleFonts.spaceGrotesk(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         // Bottom name overlay
         Positioned(
           left: 0,
