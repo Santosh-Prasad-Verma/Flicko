@@ -60,10 +60,15 @@ CREATE POLICY "Anyone can read commands"
 CREATE POLICY "Admins can manage commands"
     ON application_commands FOR ALL
     USING (
-        guild_id IN (
-            SELECT server_id FROM server_members
-            WHERE user_id = auth.uid()
-            AND (role = 'admin' OR role = 'owner')
+        EXISTS (
+            SELECT 1 FROM public.servers s
+            WHERE s.id = guild_id AND s.owner_id = auth.uid()
+        )
+        OR EXISTS (
+            SELECT 1 FROM public.server_members sm
+            WHERE sm.server_id = guild_id
+              AND sm.user_id = auth.uid()
+              AND (SELECT id FROM public.roles r WHERE r.server_id = guild_id AND r.name = 'Admin') = ANY(sm.roles)
         )
     );
 
