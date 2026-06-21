@@ -65,10 +65,9 @@ import 'package:mobile/features/store/presentation/avatar_decoration_store_scree
 import 'package:mobile/features/store/presentation/nameplate_store_screen.dart';
 import 'package:mobile/features/store/presentation/voice_skin_store_screen.dart';
 import 'package:mobile/features/store/presentation/warp_drip_store_screen.dart';
-import 'package:mobile/features/store/presentation/badge_alchemy_screen.dart';
-import 'package:mobile/features/creator/presentation/creator_screen.dart';
-import 'package:mobile/features/creator/presentation/screens/creator_profile_screen.dart';
-import 'package:mobile/features/creator/presentation/screens/creator_thread_screen.dart';
+import 'package:mobile/features/newz/presentation/news_feed_screen.dart';
+import 'package:mobile/features/newz/presentation/news_detail_screen.dart';
+
 
 // Friends
 import 'package:mobile/features/friends/presentation/friend_requests_screen.dart';
@@ -119,9 +118,9 @@ import 'package:mobile/features/sonic_music/Screens/Home/home.dart' as sonic_mus
 import 'package:mobile/features/sonic_music/theme/app_theme.dart' as sonic_theme;
 
 // Gaming
+import 'package:mobile/features/store/presentation/badge_alchemy_screen.dart';
 import 'package:mobile/features/gaming/presentation/screens/gaming_hub_screen.dart';
 import 'package:mobile/features/gaming/presentation/screens/matchmaking_screen.dart';
-import 'package:mobile/features/gaming/presentation/screens/chess_game_screen.dart';
 import 'package:mobile/features/gaming/presentation/screens/ludo_game_screen.dart';
 import 'package:mobile/features/gaming/presentation/screens/game_launch_screen.dart';
 import 'package:mobile/features/gaming/presentation/screens/gaming_stats_screen.dart';
@@ -576,24 +575,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
-        path: '/creator',
-        builder: (context, state) => const CreatorScreen(),
+        path: '/newz',
+        builder: (context, state) => const NewsFeedScreen(),
         routes: [
           GoRoute(
-            path: 'posts/:id',
-            builder: (context, state) => CreatorThreadScreen(
-              postId: state.pathParameters['id']!,
-            ),
-          ),
-          GoRoute(
-            path: 'profile/:id',
-            builder: (context, state) => CreatorProfileScreen(
-              userId: state.pathParameters['id']!,
+            path: 'article/:id',
+            builder: (context, state) => NewsDetailScreen(
+              articleId: state.pathParameters['id']!,
             ),
           ),
         ],
       ),
-
       // Gaming
       GoRoute(path: '/gaming', builder: (context, state) => const GamingHubScreen()),
       GoRoute(path: '/gaming/launch', builder: (context, state) => const GameLaunchScreen()),
@@ -601,13 +593,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/gaming/matchmaking',
         builder: (context, state) => MatchmakingScreen(
-          activityName: state.uri.queryParameters['activity'] ?? 'Chess',
-        ),
-      ),
-      GoRoute(
-        path: '/gaming/chess/:gameId',
-        builder: (context, state) => ChessGameScreen(
-          gameId: state.pathParameters['gameId']!,
+          activityName: state.uri.queryParameters['activity'] ?? 'Ludo',
         ),
       ),
       GoRoute(

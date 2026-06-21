@@ -128,6 +128,7 @@ class _LudoBoardScreenState extends ConsumerState<LudoBoardScreen>
       loserIds: losers,
       isBotGame: isBotGame,
       gameId: state.gameId,
+      currentUserId: myUserId,
     );
   }
 

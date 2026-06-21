@@ -37,14 +37,6 @@ class _GamingHubScreenState extends State<GamingHubScreen> {
   // ── Banner Data ──────────────────────────────────────────────────────
   final List<_BannerData> _banners = [
     const _BannerData(
-      title: 'CHESS ARENA',
-      subtitle: 'Weekly Grandmaster Tournament',
-      tag: 'TOURNAMENT',
-      image: 'assets/images/gaming/armored_warrior.png',
-      route: '/gaming/launch',
-      color: _accentGreen,
-    ),
-    const _BannerData(
       title: 'LUDO ROYALE',
       subtitle: 'Play online with 4 players now!',
       tag: 'LIVE LOBBIES',
@@ -57,7 +49,7 @@ class _GamingHubScreenState extends State<GamingHubScreen> {
       subtitle: 'Unlock exclusive Neon cosmetics',
       tag: 'NEW REWARDS',
       image: 'assets/images/gaming/cyber_ninja.png',
-      route: '/gaming/matchmaking?activity=Chess',
+      route: '/ludo',
       color: _accentLime,
     ),
   ];
@@ -70,13 +62,6 @@ class _GamingHubScreenState extends State<GamingHubScreen> {
       genreColor: _accentPurple,
       image: 'assets/ludo/images/card-logo.png',
       route: '/ludo',
-    ),
-    const _GameData(
-      title: 'Chess Master',
-      genre: 'Strategy',
-      genreColor: _accentGreen,
-      image: 'assets/images/gaming/armored_warrior.png',
-      route: '/gaming/matchmaking?activity=Chess',
     ),
   ];
 
@@ -844,7 +829,7 @@ class _GamingHubScreenState extends State<GamingHubScreen> {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20),
         child: GestureDetector(
-          onTap: () => context.push('/gaming/launch'),
+          onTap: () => context.push('/ludo'),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(20),
             child: SizedBox(
@@ -856,8 +841,8 @@ class _GamingHubScreenState extends State<GamingHubScreen> {
                   // Background image
                   Image(
                     image: const AssetImage(
-                        'assets/images/gaming/armored_warrior.png'),
-                    fit: BoxFit.cover,
+                        'assets/ludo/images/card-logo.png'),
+                    fit: BoxFit.contain,
                     errorBuilder: (_, __, ___) => Container(
                       decoration: const BoxDecoration(
                         gradient: LinearGradient(
@@ -943,7 +928,7 @@ class _GamingHubScreenState extends State<GamingHubScreen> {
                                   // Play button
                                   GestureDetector(
                                     onTap: () =>
-                                        context.push('/gaming/launch'),
+                                        context.push('/ludo'),
                                     child: Container(
                                       width: 40,
                                       height: 40,
@@ -984,7 +969,7 @@ class _GamingHubScreenState extends State<GamingHubScreen> {
                               ),
                               const SizedBox(height: 10),
                               Text(
-                                'CHESS MASTER',
+                                'LUDO ROYALE',
                                 style: GoogleFonts.epilogue(
                                   fontSize: 20,
                                   fontWeight: FontWeight.w900,
@@ -995,7 +980,7 @@ class _GamingHubScreenState extends State<GamingHubScreen> {
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                'Challenge players worldwide in a game of intellect and strategy. Play Chess Master now on Flicko Gaming Hub.',
+                                'Play the classic board game Ludo with your friends online or offline. Play Ludo Royale now on Flicko Gaming Hub.',
                                 style: GoogleFonts.inter(
                                   fontSize: 12,
                                   color: _white.withValues(alpha: 0.55),
@@ -1087,15 +1072,15 @@ class _GamingHubScreenState extends State<GamingHubScreen> {
                       physics: const BouncingScrollPhysics(),
                       children: [
                         _buildNotificationItem(
-                          title: 'Chess Challenge Invite',
-                          description: 'Valkyrie has invited you to a live Chess match.',
+                          title: 'Ludo Challenge Invite',
+                          description: 'Valkyrie has invited you to a live Ludo match.',
                           time: 'Just now',
-                          icon: Icons.grid_3x3_rounded,
-                          color: _accentGreen,
+                          icon: Icons.casino_rounded,
+                          color: _accentPurple,
                           actionLabel: 'JOIN MATCH',
                           onAction: () {
                             Navigator.pop(context);
-                            context.push('/gaming/matchmaking?activity=Chess');
+                            context.push('/ludo');
                           },
                         ),
                         const SizedBox(height: 12),
@@ -1287,17 +1272,6 @@ class _GamingHubScreenState extends State<GamingHubScreen> {
                           image: 'assets/ludo/images/card-logo.png',
                           color: _accentPurple,
                           route: '/ludo',
-                        ),
-                        const SizedBox(height: 16),
-                        _buildLibraryItem(
-                          context,
-                          title: 'Chess Master',
-                          genre: 'STRATEGY GAME',
-                          rating: '4.9 ⭐',
-                          activePlayers: '870 online',
-                          image: 'assets/images/gaming/armored_warrior.png',
-                          color: _accentGreen,
-                          route: '/gaming/matchmaking?activity=Chess',
                         ),
                       ],
                     ),

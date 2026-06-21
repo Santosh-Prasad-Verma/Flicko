@@ -90,9 +90,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
     Future.delayed(const Duration(milliseconds: 500), () {
       if (!mounted) return;
       final act = widget.activityName.toLowerCase();
-      if (act.contains('chess')) {
-        context.pushReplacement('/gaming/chess/mock_match_id');
-      } else if (act.contains('ludo')) {
+      if (act.contains('ludo')) {
         context.pushReplacement('/ludo');
       } else if (act.contains('ninja') || act.contains('cyber') || act.contains('commander')) {
         context.pushReplacement('/gaming/ludo/mock_match_id'); // Fallback game UI

@@ -227,7 +227,7 @@ class _GameLaunchScreenState extends State<GameLaunchScreen>
                     padding: const EdgeInsets.symmetric(horizontal: 8.0),
                     child: GestureDetector(
                       onTap: () {
-                        context.push('/gaming/matchmaking?activity=Chess');
+                        context.push('/ludo');
                       },
                       child: Container(
                         height: 60,

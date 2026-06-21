@@ -480,38 +480,14 @@ class ServersScreen extends ConsumerWidget {
                               const SizedBox(height: 12),
                               _buildGameCard(
                                 context: context,
-                                title: 'Chess',
-                                tag: 'STRATEGIC',
-                                tagColor: const Color(0xFFD4E157),
+                                title: 'Ludo Royale',
+                                tag: 'BOARD GAME',
+                                tagColor: const Color(0xFF52B788),
                                 description:
-                                    'Engage in classic tactical warfare. Sharpen your mind with real-time multiplayer Chess and AI.',
+                                    'Play the classic board game of Ludo with friends, bots, or random players online.',
                                 imageUrl:
-                                    'https://images.unsplash.com/photo-1529692236671-f1f6e9460272?q=80&w=500&auto=format&fit=crop',
-                                onTap: () => context.push('/gaming/matchmaking?activity=Chess'),
-                              ),
-                              const SizedBox(height: 16),
-                              _buildGameCard(
-                                context: context,
-                                title: 'Poker',
-                                tag: 'CARD GAME',
-                                tagColor: const Color(0xFFFFCDD2),
-                                description:
-                                    'High stakes and bluffing. Join lobbies of varying skill levels, invite friends, or practice.',
-                                imageUrl:
-                                    'https://images.unsplash.com/photo-1511193311914-0346f16efe90?q=80&w=500&auto=format&fit=crop',
-                                onTap: () => context.push('/gaming/matchmaking?activity=Poker'),
-                              ),
-                              const SizedBox(height: 16),
-                              _buildGameCard(
-                                context: context,
-                                title: 'Drawing',
-                                tag: 'CREATIVE',
-                                tagColor: const Color(0xFFE0E0E0),
-                                description:
-                                    'Unleash your creativity in collaborative canvas sessions. Match up with random artists.',
-                                imageUrl:
-                                    'https://images.unsplash.com/photo-1513364776144-60967b0f800f?q=80&w=500&auto=format&fit=crop',
-                                onTap: () => context.push('/gaming/matchmaking?activity=Drawing'),
+                                    'https://images.unsplash.com/photo-1611195974226-a6a9be9dd763?q=80&w=500&auto=format&fit=crop',
+                                onTap: () => context.push('/ludo'),
                               ),
                             ] else if (serversState.selectedServerChannels.isNotEmpty) ...[
                               _buildCategoryHeader('TEXT CHANNELS'),

@@ -208,7 +208,7 @@ Chess and Ludo with matchmaking, in-game chat, and persistent state in Redis + P
 ├── nginx/               Production reverse-proxy config
 ├── monitoring/          Prometheus / Grafana / Loki configs
 ├── fail2ban/            Brute-force protection
-├── web/                 Next.js marketing site (flicko.focko.tech)
+├── web/                 Next.js marketing site (flicko.dev)
 ├── docs/                ~120 docs covering features, architecture, ops
 ├── docker-compose.*.yml dev / prod / zero-cost variants
 ├── livekit.yaml         LiveKit SFU config (gitignored)
@@ -370,7 +370,7 @@ Before going to production:
 
 ## Marketing site
 
-The Next.js 15 site at `web/` is deployed to Vercel and serves `flicko.focko.tech` with the public `/branding`, `/company`, `/developers`, `/nitro`, `/privacy`, `/terms` pages. It's standalone — the mobile app and backend don't import from it.
+The Next.js 15 site at `web/` is deployed to Vercel and serves `flicko.dev` with the public `/branding`, `/company`, `/developers`, `/nitro`, `/privacy`, `/terms` pages. It's standalone — the mobile app and backend don't import from it.
 
 ```bash
 cd web

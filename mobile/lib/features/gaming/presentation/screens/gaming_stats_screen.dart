@@ -213,8 +213,8 @@ class GamingStatsScreen extends ConsumerWidget {
   Widget _buildPodiumRow(List<TopGame> games) {
     if (games.isEmpty) return const SizedBox.shrink();
     final emojis = {
+      'Ludo Royale': '🎲',
       'Ludo': '🎲',
-      'Chess': '♟️',
       'Cyber Arena': '🎮',
       'Cyber Ninja': '🥷',
       'Star Commander': '🚀',

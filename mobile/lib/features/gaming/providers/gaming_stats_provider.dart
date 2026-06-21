@@ -1,6 +1,7 @@
-import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:mobile/data/clients/supabase_client.dart';
+import 'package:mobile/features/auth/application/auth_notifier.dart';
 
 /// Model for Gaming Stats API response
 class GamingStats {
@@ -39,28 +40,19 @@ class GamingStats {
 
   /// Fallback static data used when the API is unreachable.
   factory GamingStats.fallback() => GamingStats(
-        totalHours: '12,345h',
-        trend: '+18%',
+        totalHours: '0h',
+        trend: '+0%',
         topGames: const [
-          TopGame(name: 'Ludo', hours: '3,120h', color: '#40916C'),
-          TopGame(name: 'Chess', hours: '2,890h', color: '#10B981'),
-          TopGame(name: 'Cyber Arena', hours: '1,740h', color: '#52B788'),
+          TopGame(name: 'Ludo Royale', hours: '0h', color: '#52B788'),
+          TopGame(name: 'Cyber Arena', hours: '0h', color: '#40916C'),
         ],
         recentCampaigns: const [
           Campaign(
-              name: 'Cyber Ninja S4',
-              progress: 78,
-              cover: '/gaming/cyber_ninja.png'),
-          Campaign(
               name: 'Ludo Championship',
-              progress: 45,
+              progress: 0,
               cover: '/gaming/armored_warrior.png'),
-          Campaign(
-              name: 'Star Wars',
-              progress: 92,
-              cover: '/gaming/sci_fi_pilot.png'),
         ],
-        activityHeatmap: List.generate(60, (i) => (i * 7 + 3) % 4),
+        activityHeatmap: List.filled(60, 0),
       );
 }
 
@@ -100,21 +92,143 @@ class Campaign {
       );
 }
 
-/// Riverpod FutureProvider that fetches gaming stats from the backend.
-/// Falls back to static mock data if the API is unavailable.
+/// Riverpod FutureProvider that compiles gaming stats from Supabase and SharedPreferences.
 final gamingStatsProvider = FutureProvider<GamingStats>((ref) async {
-  try {
-    // TODO: Replace with authenticated HTTP client from app DI
-    final response = await http
-        .get(Uri.parse('http://localhost:8080/api/v1/gaming/stats'))
-        .timeout(const Duration(seconds: 5));
+  final client = ref.watch(supabaseClientProvider);
+  final userId = ref.watch(currentUserIdProvider);
 
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body) as Map<String, dynamic>;
-      return GamingStats.fromJson(data);
-    }
-  } catch (_) {
-    // Silently fall back to static data during development
+  if (userId == null) {
+    return GamingStats.fallback();
   }
-  return GamingStats.fallback();
+
+  int ludoPlayed = 0;
+  int ludoWon = 0;
+  int ludoMinutes = 0;
+  int messagesSentCount = 0;
+  int dmsSentCount = 0;
+  List<int> heatmap = List.filled(60, 0);
+
+  try {
+    // 1. Fetch Ludo stats from local SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    ludoPlayed = prefs.getInt('ludo_stat_matches_played') ?? 0;
+    ludoWon = prefs.getInt('ludo_stat_matches_won') ?? 0;
+    ludoMinutes = prefs.getInt('ludo_stat_minutes_played') ?? 0;
+
+    // 2. Query channel messages and DMs counts from Supabase
+    try {
+      final msgRes = await client
+          .from('messages')
+          .select('id')
+          .eq('author_id', userId);
+      messagesSentCount = (msgRes as List).length;
+    } catch (_) {}
+
+    try {
+      final dmRes = await client
+          .from('direct_messages')
+          .select('id')
+          .eq('sender_id', userId);
+      dmsSentCount = (dmRes as List).length;
+    } catch (_) {}
+
+    // 3. Query message timestamps of the last 60 days to build the heatmap
+    final sixtyDaysAgo = DateTime.now().subtract(const Duration(days: 60));
+    List<String> timestamps = [];
+
+    try {
+      final msgTimestamps = await client
+          .from('messages')
+          .select('created_at')
+          .eq('author_id', userId)
+          .gt('created_at', sixtyDaysAgo.toIso8601String());
+      for (var row in (msgTimestamps as List)) {
+        if (row['created_at'] != null) {
+          timestamps.add(row['created_at'].toString());
+        }
+      }
+    } catch (_) {}
+
+    try {
+      final dmTimestamps = await client
+          .from('direct_messages')
+          .select('created_at')
+          .eq('sender_id', userId)
+          .gt('created_at', sixtyDaysAgo.toIso8601String());
+      for (var row in (dmTimestamps as List)) {
+        if (row['created_at'] != null) {
+          timestamps.add(row['created_at'].toString());
+        }
+      }
+    } catch (_) {}
+
+    // Process heatmap counts
+    final now = DateTime.now();
+    final counts = List<int>.filled(60, 0);
+    for (var ts in timestamps) {
+      try {
+        final date = DateTime.parse(ts);
+        final diff = now.difference(date).inDays;
+        if (diff >= 0 && diff < 60) {
+          counts[59 - diff]++;
+        }
+      } catch (_) {}
+    }
+
+    // Map message counts to heatmap levels (0 to 3)
+    heatmap = counts.map((count) {
+      if (count == 0) return 0;
+      if (count <= 2) return 1;
+      if (count <= 5) return 2;
+      return 3;
+    }).toList();
+
+  } catch (e) {
+    // Gracefully handle SharedPreferences or other general exceptions
+    return GamingStats.fallback();
+  }
+
+  // Calculate total hours: Ludo play time + conversation hours (approx 1 min / 0.016 hours per sent message)
+  final double ludoHours = ludoMinutes / 60.0;
+  final double chatHours = (messagesSentCount + dmsSentCount) * 0.015;
+  final double totalHoursVal = ludoHours + chatHours;
+
+  final String totalHoursStr = totalHoursVal > 0.0 
+      ? '${totalHoursVal.toStringAsFixed(1)}h' 
+      : '0h';
+
+  // Trend: Win rate percentage of Ludo matches
+  final int winRate = ludoPlayed > 0 ? ((ludoWon * 100) ~/ ludoPlayed) : 0;
+  final String trendStr = '+$winRate%';
+
+  // Top Games list (without Chess)
+  final List<TopGame> topGames = [
+    TopGame(
+      name: 'Ludo Royale',
+      hours: '${ludoHours.toStringAsFixed(1)}h',
+      color: '#52B788',
+    ),
+    const TopGame(
+      name: 'Cyber Arena',
+      hours: '0.0h',
+      color: '#40916C',
+    ),
+  ];
+
+  // Campaign progress
+  final List<Campaign> campaigns = [
+    Campaign(
+      name: 'Ludo Championship',
+      progress: ludoPlayed > 0 ? (winRate.clamp(0, 100)) : 0,
+      cover: '/gaming/armored_warrior.png',
+    ),
+  ];
+
+  return GamingStats(
+    totalHours: totalHoursStr,
+    trend: trendStr,
+    topGames: topGames,
+    recentCampaigns: campaigns,
+    activityHeatmap: heatmap,
+  );
 });

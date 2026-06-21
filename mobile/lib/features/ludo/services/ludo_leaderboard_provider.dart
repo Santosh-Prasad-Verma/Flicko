@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// One row of the Ludo leaderboard returned by GET /api/v1/gaming/ludo/leaderboard.
 class LudoLeaderboardEntry {
@@ -67,6 +68,7 @@ final ludoLeaderboardProvider =
   ];
 });
 
+
 /// Submits a finished Ludo match to the backend. Best-effort: errors are
 /// swallowed so the local UX is never blocked.
 Future<void> submitLudoScore({
@@ -74,8 +76,23 @@ Future<void> submitLudoScore({
   required List<String> loserIds,
   required bool isBotGame,
   String? gameId,
+  String? currentUserId,
 }) async {
   try {
+    if (currentUserId != null) {
+      final prefs = await SharedPreferences.getInstance();
+      final played = prefs.getInt('ludo_stat_matches_played') ?? 0;
+      await prefs.setInt('ludo_stat_matches_played', played + 1);
+
+      if (winnerId == currentUserId) {
+        final won = prefs.getInt('ludo_stat_matches_won') ?? 0;
+        await prefs.setInt('ludo_stat_matches_won', won + 1);
+      }
+
+      final minutes = prefs.getInt('ludo_stat_minutes_played') ?? 0;
+      await prefs.setInt('ludo_stat_minutes_played', minutes + 15);
+    }
+
     await http
         .post(
           Uri.parse('$_baseUrl/api/v1/gaming/ludo/score'),

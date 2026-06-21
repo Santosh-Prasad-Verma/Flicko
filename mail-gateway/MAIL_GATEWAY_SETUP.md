@@ -20,19 +20,19 @@ SMTP_HOST=smtp-relay.brevo.com
 SMTP_PORT=587
 SMTP_USERNAME=your-brevo-username@smtp-brevo.com
 SMTP_PASSWORD=xkeysib-your-long-api-key
-SMTP_FROM=noreply@focko.tech   # Must be a verified domain in Brevo
+SMTP_FROM=noreply@flicko.dev   # Must be a verified domain in Brevo
 
 # Webhook Secret (generate with: openssl rand -hex 32)
 WEBHOOK_SECRET=your-random-secret-here
 
 # Domain
-DOMAIN=flicko.focko.tech
+DOMAIN=flicko.dev
 ```
 
 1. Go to: https://app.brevo.com/settings/keys/smtp
 2. Create a new SMTP Key
 3. Copy the key and use as `SMTP_PASSWORD`
-4. Ensure your sender domain (`focko.tech`) is verified in Brevo
+4. Ensure your sender domain (`flicko.dev`) is verified in Brevo
 
 ### 3. Generate Webhook Secret
 
@@ -65,7 +65,7 @@ docker compose -f docker-compose.prod.yml logs -f mail-gateway
    - **Name**: `flicko-mail-gateway`
    - **Hook type**: **Send Email**
    - **Enabled**: ✅ Toggle ON
-   - **HTTP endpoint**: `https://flicko.focko.tech/mail/hooks/email`
+   - **HTTP endpoint**: `https://flicko.dev/mail/hooks/email`
    - **HTTP Headers**: `Content-Type: application/json`
    - **Secrets**:
      - Key: `webhook_secret`
@@ -92,7 +92,7 @@ docker compose -f docker-compose.prod.yml logs -f mail-gateway
 docker compose -f docker-compose.prod.yml ps mail-gateway
 
 # Test health endpoint
-curl https://flicko.focko.tech/mail/health
+curl https://flicko.dev/mail/health
 # Expected: {"status":"ok"}
 ```
 
@@ -142,7 +142,7 @@ docker compose -f docker-compose.prod.yml logs nginx | grep mail
 
 **Test webhook endpoint directly**:
 ```bash
-curl -X POST https://flicko.focko.tech/mail/hooks/email \
+curl -X POST https://flicko.dev/mail/hooks/email \
   -H "Content-Type: application/json" \
   -H "x-supabase-signature: test" \
   -d '{"type":"signup","user":{"email":"test@example.com"}}'

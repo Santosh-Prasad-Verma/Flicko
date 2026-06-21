@@ -42,7 +42,7 @@ func (s *MailService) SendWelcomeEmail(to, username string) error {
 		Username: username,
 		Type:     "welcome",
 		AppName:  "Flicko",
-		AppURL:   "https://focko.tech",
+		AppURL:   "https://flicko.dev",
 		Year:     time.Now().Year(),
 	}
 	return s.send(req)
@@ -54,7 +54,7 @@ func (s *MailService) SendFlickoPlusConfirmation(to, username, txID, amount stri
 		Username:      username,
 		Type:          "flicko_plus",
 		AppName:       "Flicko",
-		AppURL:        "https://focko.tech",
+		AppURL:        "https://flicko.dev",
 		TransactionID: txID,
 		TotalAmount:   amount,
 		MemberSince:   time.Now().Format("Jan 02, 2006"),

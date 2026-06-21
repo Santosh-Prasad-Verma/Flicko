@@ -54,10 +54,10 @@ class _VoiceActivitiesScreenState extends ConsumerState<VoiceActivitiesScreen> {
       // Games
       VoiceActivity(
         id: '1',
-        name: 'Chess in the Park',
+        name: 'Ludo Royale',
         category: ActivityCategory.games,
-        description: 'Play chess with friends',
-        maxPlayers: 2,
+        description: 'Play ludo with friends',
+        maxPlayers: 4,
       ),
       VoiceActivity(
         id: '2',

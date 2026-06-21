@@ -570,7 +570,7 @@ class HelpScreen extends StatelessWidget {
                       _buildSystemRow('COSMETICS API', 'Supabase Realtime v2'),
                       const SizedBox(height: 20),
                       Text(
-                        'Designed by tech.focko under MIT License. All rights reserved.',
+                        'Designed by flicko.dev under MIT License. All rights reserved.',
                         style: GoogleFonts.inter(
                           color: _textMuted,
                           fontSize: 10,

@@ -933,9 +933,9 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
               onTap: () => context.push('/store'),
             ),
             _QuickEntry(
-              icon: Icons.brush_rounded,
-              label: 'Creator',
-              onTap: () => context.push('/creator'),
+              icon: Icons.newspaper_rounded,
+              label: 'Newz',
+              onTap: () => context.push('/newz'),
             ),
             _QuickEntry(
               icon: Icons.music_note_rounded,
