@@ -51,8 +51,14 @@ scrape_configs:
           service: msg-service
           env: production
 
-  # ── Redis Exporter — Removed (using Upstash cloud, monitor via dashboard)
-  # https://console.upstash.com
+  # ── Redis Exporter ───────────────────────────────────────────────────────
+  - job_name: "redis"
+    scrape_interval: 15s
+    static_configs:
+      - targets: ["redis-exporter:9121"]
+        labels:
+          service: redis
+          env: production
 
   # ── NGINX Exporter ───────────────────────────────────────────────────────
   - job_name: "nginx"

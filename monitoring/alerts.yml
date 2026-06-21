@@ -95,7 +95,14 @@ groups:
           summary: "Redis Pub/Sub messages being dropped"
           description: "Messages are being dropped due to backpressure at {{ $value }}/sec."
 
-      # RedisMemoryHigh — Removed (using Upstash cloud, monitor via dashboard)
+      - alert: RedisMemoryHigh
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis memory usage above 85%"
+          description: "Redis is using {{ $value | humanizePercentage }} of its max memory configuration."
 
       - alert: DBPoolExhaustion
         expr: flicko_db_pool_active_connections / 20 > 0.80

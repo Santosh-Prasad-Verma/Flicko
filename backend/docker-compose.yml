@@ -18,8 +18,11 @@ services:
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:?set_SUPABASE_SERVICE_ROLE_KEY}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY:-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
       - ENVIRONMENT=development
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - flicko-network
@@ -44,11 +47,26 @@ services:
       timeout: 5s
       retries: 5
 
-  # Redis — now hosted on Upstash (cloud). No local container needed.
-  # Set REDIS_URL in your .env to point to your Upstash instance.
+  redis:
+    image: redis:7-alpine
+    container_name: flicko-redis-backend
+    command: ["redis-server", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - flicko-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres_data:
+  redis_data:
 
 
 networks:

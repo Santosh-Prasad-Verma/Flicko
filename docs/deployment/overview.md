@@ -25,10 +25,12 @@ A typical production node runs these exact Docker containers:
 2. **`flicko-backend`** — The main monolith (REST API & Bot Engine).
 3. **`flicko-msg-service`** — The high-throughput message batcher.
 4. **`flicko-ws-gateway`** — The WebSocket handler.
-5. **`prometheus`** — Time-series metrics scraper.
-6. **`grafana`** — Visual dashboarding for the metrics.
+5. **`flicko-redis`** — Local self-hosted Redis instance for low latency caching/pubsub.
+6. **`flicko-redis-exporter`** — Scrapes Redis statistics for Grafana/Prometheus.
+7. **`prometheus`** — Time-series metrics scraper.
+8. **`grafana`** — Visual dashboarding for the metrics.
 
-*Note: We do NOT host PostgreSQL or Redis on the VPS. For reliability and data durability, those are delegated to Supabase and Upstash respectively.*
+*Note: We delegate PostgreSQL to Supabase for durability, while hosting Redis locally on the VPS to minimize latency (~0.1ms) and eliminate extra cloud costs.*
 
 ---
 

@@ -364,6 +364,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: flicko-redis
+    command: ["redis-server", "--maxmemory", "200mb", "--maxmemory-policy", "allkeys-lru"]
     <<: [*restart-policy, *default-logging]
     networks:
       - flicko_internal
@@ -487,9 +488,25 @@ services:
       start_period: 10s
 
   # ──────────────────────────────────────────────────────────────────────────
-  # REDIS EXPORTER — Removed (using Upstash cloud, no local redis-exporter)
-  # Monitor via Upstash dashboard instead: https://console.upstash.com
+  # REDIS EXPORTER — Scraping Redis metrics for Prometheus
   # ──────────────────────────────────────────────────────────────────────────
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.55.0
+    container_name: flicko-redis-exporter
+    <<: [*restart-policy, *default-logging]
+    environment:
+      - REDIS_ADDR=redis://redis:6379
+    networks:
+      - flicko_internal              # Reach local Redis
+      - flicko_monitor               # Prometheus scrapes this
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: "0.1"
+    depends_on:
+      redis:
+        condition: service_healthy
 
   # ──────────────────────────────────────────────────────────────────────────
   # PROMTAIL — Log Collector for Loki
