@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:livekit_client/livekit_client.dart';
 import 'package:audio_session/audio_session.dart';
@@ -79,12 +80,20 @@ class VoiceController extends Notifier<VoiceState> {
       _setupRoomListeners(room);
 
       // 5. Publish Local Audio
-      await room.localParticipant?.setMicrophoneEnabled(true);
+      bool micPublishFailed = false;
+      try {
+        await room.localParticipant?.setMicrophoneEnabled(true);
+      } catch (trackErr) {
+        developer.log('Failed to publish microphone track', name: 'VoiceController', error: trackErr);
+        micPublishFailed = true;
+      }
 
       state = state.copyWith(
         room: room,
         isConnected: true,
         isConnecting: false,
+        isMuted: micPublishFailed,
+        error: micPublishFailed ? 'Failed to publish audio track (joined in listen-only mode)' : null,
         participants: [room.localParticipant!, ...room.remoteParticipants.values],
       );
     } catch (e) {
@@ -132,7 +141,7 @@ class VoiceController extends Notifier<VoiceState> {
       }
       await _audioPlayer.play();
     } catch (e) {
-      print('Error playing remote sound: $e');
+      developer.log('Error playing remote sound', name: 'VoiceController', error: e);
     }
   }
 
@@ -172,8 +181,13 @@ class VoiceController extends Notifier<VoiceState> {
     if (room == null) return;
 
     final newMute = !state.isMuted;
-    await room.localParticipant?.setMicrophoneEnabled(!newMute);
-    state = state.copyWith(isMuted: newMute);
+    try {
+      await room.localParticipant?.setMicrophoneEnabled(!newMute);
+      state = state.copyWith(isMuted: newMute, error: null);
+    } catch (trackErr) {
+      developer.log('Failed to toggle microphone', name: 'VoiceController', error: trackErr);
+      state = state.copyWith(error: 'Failed to access microphone: $trackErr');
+    }
   }
 
   Future<void> toggleDeafen() async {

@@ -276,10 +276,27 @@ class MessageRepository {
     final userId = _client.auth.currentSession?.user.id;
     if (userId == null) throw Exception('Not authenticated');
 
+    // 1. Fetch parent message to get channel_id and content
+    final msgResponse = await _client.from('messages').select('channel_id, content').eq('id', messageId).single();
+    final channelId = msgResponse['channel_id'] as String;
+    final messageContent = msgResponse['content'] as String;
+
+    // 2. Fetch channel to get server_id
+    final channelResponse = await _client.from('channels').select('server_id').eq('id', channelId).single();
+    final serverId = channelResponse['server_id'] as String;
+
+    // 3. Generate a thread name from title or content snippet
+    final threadName = title ?? (messageContent.length > 30 ? '${messageContent.substring(0, 30)}...' : messageContent);
+
+    // 4. Insert thread with all required columns
     final response = await _client.from('threads').insert({
-      'message_id': messageId,
-      'author_id': userId,
-      if (title != null) 'title': title,
+      'server_id': serverId,
+      'parent_channel_id': channelId,
+      'parent_message_id': messageId,
+      'name': threadName.trim().isEmpty ? 'New Thread' : threadName,
+      'creator_id': userId,
+      'type': 'public',
+      'archive_at': DateTime.now().add(const Duration(hours: 24)).toIso8601String(),
     }).select('id').single();
 
     return response['id'] as String;
@@ -316,8 +333,8 @@ class MessageRepository {
 
     // Derive channel_id from the parent thread's original message
     // (channel_id is NOT NULL in the DB)
-    final threadRow = await _client.from('threads').select('message_id').eq('id', threadId).single();
-    final parentMessage = await _client.from('messages').select('channel_id').eq('id', threadRow['message_id']).single();
+    final threadRow = await _client.from('threads').select('parent_message_id').eq('id', threadId).single();
+    final parentMessage = await _client.from('messages').select('channel_id').eq('id', threadRow['parent_message_id']).single();
     final channelId = parentMessage['channel_id'] as String;
 
     final response = await _client.from('messages').insert({
