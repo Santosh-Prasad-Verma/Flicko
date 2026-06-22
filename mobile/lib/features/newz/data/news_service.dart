@@ -32,14 +32,11 @@ class NewsService {
   bool get hasApiKey => AppConfig.currentsApiKey.isNotEmpty;
 
   /// Fetch latest news articles, optionally filtered by category.
-  ///
-  /// Returns mock data if the API key is not configured.
   Future<List<NewsArticle>> fetchNews({
     NewsCategory category = NewsCategory.all,
   }) async {
     if (!hasApiKey) {
-      // Gracefully fall back to mock data
-      return _filterMock(category);
+      return [];
     }
 
     final cacheKey = category.name;
@@ -90,9 +87,7 @@ class NewsService {
     } catch (e) {
       // If we have stale cache, return it rather than showing an error
       if (cached != null) return cached.articles;
-
-      // Otherwise fall back to mock data
-      return _filterMock(category);
+      rethrow;
     }
   }
 
@@ -176,13 +171,6 @@ class NewsService {
       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
     ];
     return '${months[dt.month - 1]} ${dt.day}, ${dt.year}';
-  }
-
-  List<NewsArticle> _filterMock(NewsCategory category) {
-    return NewsArticle.mockArticles.where((a) {
-      if (category == NewsCategory.all) return true;
-      return a.category == category;
-    }).toList();
   }
 
   /// Clear the cache (useful for pull-to-refresh).
