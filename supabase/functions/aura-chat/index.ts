@@ -17,6 +17,27 @@
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+interface AuraMessage {
+  role?: string;
+  sender?: string;
+  content?: string;
+  text?: string;
+}
+
+interface AuraFunctionCall {
+  name: string;
+  args: Record<string, unknown>;
+}
+
+interface GeminiPart {
+  text: string;
+}
+
+interface GeminiContent {
+  role: 'model' | 'user';
+  parts: GeminiPart[];
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST',
@@ -216,19 +237,19 @@ serve(async (req: Request) => {
 
     let liveSuccess = false;
     let responseText = '';
-    let functionCall: any = null;
-
-    // 4. Primary Engine: 0G Private Computer (OpenAI-compatible)
-    if (ZERO_G_API_KEY && ZERO_G_API_KEY.trim().length > 0) {
-      try {
-        console.log('Attempting 0G Private Computer primary API call...');
-        const zeroGMessages = [
-          { role: 'system', content: systemPrompt },
-          ...messages.map((m: any) => ({
-            role: m.role || (m.sender === 'user' ? 'user' : 'assistant'),
-            content: m.content || m.text || '',
-          })),
-        ];
+    let functionCall: AuraFunctionCall | null = null;
+ 
+     // 4. Primary Engine: 0G Private Computer (OpenAI-compatible)
+     if (ZERO_G_API_KEY && ZERO_G_API_KEY.trim().length > 0) {
+       try {
+         console.log('Attempting 0G Private Computer primary API call...');
+         const zeroGMessages = [
+           { role: 'system', content: systemPrompt },
+           ...messages.map((m: AuraMessage) => ({
+             role: m.role || (m.sender === 'user' ? 'user' : 'assistant'),
+             content: m.content || m.text || '',
+           })),
+         ];
 
         const modelName = category === 'Code Tutor' ? 'glm-5.2' : '0gm-1.0-35b-a3b';
         let loopCount = 0;
@@ -313,7 +334,7 @@ serve(async (req: Request) => {
     if (!liveSuccess && GEMINI_API_KEY && GEMINI_API_KEY.trim().length > 0) {
       try {
         console.log('Attempting Gemini primary API call...');
-        const geminiContents: any[] = [];
+        const geminiContents: GeminiContent[] = [];
         let geminiSystemInstruction = systemPrompt;
 
         for (const m of messages) {
@@ -372,7 +393,7 @@ serve(async (req: Request) => {
       console.log('Falling back to xAI Grok API...');
       const xaiMessages = [
         { role: 'system', content: systemPrompt },
-        ...messages.map((m: any) => ({
+        ...messages.map((m: AuraMessage) => ({
           role: m.role || (m.sender === 'user' ? 'user' : 'assistant'),
           content: m.content || m.text || '',
         })),
@@ -457,7 +478,7 @@ serve(async (req: Request) => {
       }
     }
 
-    const result: any = { text: responseText };
+    const result: { text: string; functionCall?: AuraFunctionCall } = { text: responseText };
     if (functionCall) {
       result.functionCall = functionCall;
     }
@@ -466,10 +487,11 @@ serve(async (req: Request) => {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
-  } catch (err: any) {
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : 'Internal server error';
     console.error('aura-chat error:', err);
     return new Response(
-      JSON.stringify({ error: err?.message || 'Internal server error' }),
+      JSON.stringify({ error: errorMsg }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }

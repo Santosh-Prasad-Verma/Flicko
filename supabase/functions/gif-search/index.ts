@@ -28,8 +28,25 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+interface GiphyImage {
+  url?: string;
+  width?: string;
+  height?: string;
+}
+
+interface GiphyImages {
+  fixed_width?: GiphyImage;
+  original?: GiphyImage;
+}
+
+interface GiphyItem {
+  id: string;
+  title?: string;
+  images?: GiphyImages;
+}
+
 /** Map a raw GIPHY item to the compact shape the mobile client expects. */
-function normaliseGif(item: any) {
+function normaliseGif(item: GiphyItem) {
   const fw = item.images?.fixed_width;
   const orig = item.images?.original;
   return {

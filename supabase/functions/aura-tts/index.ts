@@ -103,10 +103,11 @@ serve(async (req: Request) => {
         'Content-Length': audioData.byteLength.toString(),
       },
     });
-  } catch (err: any) {
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : 'Internal server error';
     console.error('aura-tts error:', err);
     return new Response(
-      JSON.stringify({ error: err?.message || 'Internal server error' }),
+      JSON.stringify({ error: errorMsg }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }

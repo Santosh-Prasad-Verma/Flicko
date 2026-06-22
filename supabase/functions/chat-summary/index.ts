@@ -130,9 +130,10 @@ Be conversational but highly structured and brief. Use markdown bullet points. R
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
-  } catch (err: any) {
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : 'Internal server error';
     console.error('chat-summary error:', err);
-    return new Response(JSON.stringify({ error: err?.message || 'Internal server error' }), {
+    return new Response(JSON.stringify({ error: errorMsg }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
