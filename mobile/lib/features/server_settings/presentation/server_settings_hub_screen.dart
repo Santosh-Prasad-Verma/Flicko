@@ -29,7 +29,6 @@ class _ServerSettingsHubScreenState
   bool _isLoading = true;
   String _serverName = 'Server Settings';
   String? _iconUrl;
-  String? _bannerUrl;
   bool _isOwner = false;
   int _membersCount = 0;
   int _channelsCount = 0;
@@ -84,7 +83,6 @@ class _ServerSettingsHubScreenState
         setState(() {
           _serverName = serverData['name'] ?? 'Server';
           _iconUrl = serverData['icon'];
-          _bannerUrl = serverData['banner'];
           _membersCount = membersRes.length;
           _channelsCount = channelsRes.length;
           _rolesCount = rolesRes.length;
@@ -107,7 +105,10 @@ class _ServerSettingsHubScreenState
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: _neonGreen.withValues(alpha: 0.1), width: 1),
+          bottom: BorderSide(
+            color: _textWhite.withValues(alpha: 0.06),
+            width: 1,
+          ),
         ),
       ),
       child: Row(
@@ -115,7 +116,14 @@ class _ServerSettingsHubScreenState
         children: [
           GestureDetector(
             onTap: () => context.pop(),
-            child: Padding(padding: const EdgeInsets.all(8), child: Image.asset('assets/images/back.png', width: 20, height: 20, fit: BoxFit.contain),
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Image.asset(
+                'assets/images/back.png',
+                width: 20,
+                height: 20,
+                fit: BoxFit.contain,
+              ),
             ),
           ),
           Expanded(
@@ -124,21 +132,21 @@ class _ServerSettingsHubScreenState
               children: [
                 Text(
                   'SERVER SETTINGS',
-                  style: GoogleFonts.spaceGrotesk(
-                    color: _neonGreen.withValues(alpha: 0.8),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 2.0,
+                  style: GoogleFonts.inter(
+                    color: _textWhite.withValues(alpha: 0.9),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.2,
                   ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'MANAGE SERVER AND PREFERENCES',
-                  style: GoogleFonts.spaceMono(
-                    color: _textWhite.withValues(alpha: 0.3),
-                    fontSize: 8,
-                    letterSpacing: 1.0,
+                  'Manage server and preferences',
+                  style: GoogleFonts.inter(
+                    color: _textMuted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w400,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -189,7 +197,7 @@ class _ServerSettingsHubScreenState
                   ? const Center(
                       child: CircularProgressIndicator(
                         color: _neonGreen,
-                        strokeWidth: 3,
+                        strokeWidth: 2.5,
                       ),
                     )
                   : _errorMessage != null
@@ -201,22 +209,21 @@ class _ServerSettingsHubScreenState
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const SizedBox(height: 24),
+                                const SizedBox(height: 28),
                                 Text(
-                                  'SERVER\nSETTINGS',
-                                  style: GoogleFonts.epilogue(
+                                  'Server\nSettings',
+                                  style: GoogleFonts.inter(
                                     color: _textWhite,
-                                    fontSize: 48,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: -2,
-                                    height: 0.9,
-                                    fontStyle: FontStyle.italic,
+                                    fontSize: 40,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: -1.5,
+                                    height: 1.0,
                                   ),
                                 ),
                                 const SizedBox(height: 24),
                                 _buildServerHeader(),
                                 ...visibleSections.expand((section) => [
-                                  const SizedBox(height: 32),
+                                  const SizedBox(height: 28),
                                   _buildSectionHeader(section.title.toUpperCase()),
                                   ...section.items.map((item) => _buildSettingsRow(context, item)),
                                 ]),
@@ -226,17 +233,16 @@ class _ServerSettingsHubScreenState
                                     children: [
                                       Image.asset(
                                         'assets/branding/Flicko-for-black-background.png',
-                                        height: 48,
+                                        height: 32,
                                         errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                                       ),
-                                      const SizedBox(height: 12),
+                                      const SizedBox(height: 8),
                                       Text(
-                                        'FLICKO // SYSTEM_OK v1.2.4',
-                                        style: GoogleFonts.spaceMono(
-                                          color: _textWhite.withValues(alpha: 0.15),
-                                          fontSize: 9,
-                                          fontWeight: FontWeight.w900,
-                                          letterSpacing: 2.0,
+                                        'Flicko v1.2.4',
+                                        style: GoogleFonts.inter(
+                                          color: _textWhite.withValues(alpha: 0.12),
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w500,
                                         ),
                                       ),
                                     ],
@@ -261,14 +267,24 @@ class _ServerSettingsHubScreenState
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline_rounded,
-                color: Colors.redAccent, size: 48),
-            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.redAccent.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(
+                Icons.error_outline_rounded,
+                color: Colors.redAccent,
+                size: 40,
+              ),
+            ),
+            const SizedBox(height: 20),
             Text(
               'Failed to load server settings',
-              style: GoogleFonts.spaceGrotesk(
+              style: GoogleFonts.inter(
                 color: _textWhite,
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w700,
                 fontSize: 16,
               ),
             ),
@@ -276,9 +292,10 @@ class _ServerSettingsHubScreenState
             Text(
               _errorMessage ?? 'Unknown error occurred.',
               textAlign: TextAlign.center,
-              style: GoogleFonts.spaceMono(
+              style: GoogleFonts.inter(
                 color: _textMuted,
                 fontSize: 13,
+                fontWeight: FontWeight.w400,
               ),
             ),
             const SizedBox(height: 24),
@@ -287,15 +304,18 @@ class _ServerSettingsHubScreenState
                 backgroundColor: _neonGreen,
                 foregroundColor: Colors.black,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 padding:
                     const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
-              icon: const Icon(Icons.replay_rounded),
+              icon: const Icon(Icons.replay_rounded, size: 18),
               label: Text(
                 'Retry',
-                style: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.w900),
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
               ),
               onPressed: _loadServerData,
             ),
@@ -315,7 +335,11 @@ class _ServerSettingsHubScreenState
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: _surfaceContainer,
-        border: Border.all(color: _textWhite.withValues(alpha: 0.05)),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: _neonGreen.withValues(alpha: 0.15),
+          width: 1,
+        ),
       ),
       child: Column(
         children: [
@@ -325,52 +349,58 @@ class _ServerSettingsHubScreenState
                 padding: const EdgeInsets.all(2),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: _neonGreen, width: 1.5),
+                  border: Border.all(color: _neonGreen.withValues(alpha: 0.4), width: 1.5),
                 ),
                 child: Container(
-                  width: 72,
-                  height: 72,
+                  width: 64,
+                  height: 64,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: _surfaceContainer,
+                    color: _neonGreen.withValues(alpha: 0.08),
                     image: hasIcon ? DecorationImage(image: NetworkImage(_iconUrl!), fit: BoxFit.cover) : null,
                   ),
                   alignment: Alignment.center,
                   child: !hasIcon ? Text(
                     initials,
-                    style: GoogleFonts.spaceGrotesk(
+                    style: GoogleFonts.inter(
                       color: _neonGreen,
-                      fontSize: 24,
-                      fontWeight: FontWeight.w900,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
                     ),
                   ) : null,
                 ),
               ),
-              const SizedBox(width: 18),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _serverName.toUpperCase(),
-                      style: GoogleFonts.epilogue(
+                      _serverName,
+                      style: GoogleFonts.inter(
                         color: _textWhite,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                        fontStyle: FontStyle.italic,
-                        letterSpacing: -0.5,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.3,
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'ID: ${widget.serverId}',
-                      style: GoogleFonts.spaceMono(
-                        color: _neonGreen,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: _neonGreen.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(6),
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                      child: Text(
+                        'ID: ${widget.serverId}',
+                        style: GoogleFonts.inter(
+                          color: _neonGreen.withValues(alpha: 0.7),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
                 ),
@@ -378,25 +408,42 @@ class _ServerSettingsHubScreenState
             ],
           ),
           const SizedBox(height: 18),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildStatItem(
-                icon: Icons.people_alt_rounded,
-                value: _membersCount.toString(),
-                label: 'Members',
-              ),
-              _buildStatItem(
-                icon: Icons.tag_rounded,
-                value: _channelsCount.toString(),
-                label: 'Channels',
-              ),
-              _buildStatItem(
-                icon: Icons.shield_rounded,
-                value: _rolesCount.toString(),
-                label: 'Roles',
-              ),
-            ],
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(
+              color: _bgBlack.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildStatItem(
+                  icon: Icons.people_alt_rounded,
+                  value: _membersCount.toString(),
+                  label: 'Members',
+                ),
+                Container(
+                  width: 1,
+                  height: 28,
+                  color: _textWhite.withValues(alpha: 0.06),
+                ),
+                _buildStatItem(
+                  icon: Icons.tag_rounded,
+                  value: _channelsCount.toString(),
+                  label: 'Channels',
+                ),
+                Container(
+                  width: 1,
+                  height: 28,
+                  color: _textWhite.withValues(alpha: 0.06),
+                ),
+                _buildStatItem(
+                  icon: Icons.shield_rounded,
+                  value: _rolesCount.toString(),
+                  label: 'Roles',
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -413,26 +460,25 @@ class _ServerSettingsHubScreenState
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 16, color: _neonGreen),
+            Icon(icon, size: 15, color: _neonGreen.withValues(alpha: 0.8)),
             const SizedBox(width: 6),
             Text(
               value,
-              style: GoogleFonts.spaceGrotesk(
+              style: GoogleFonts.inter(
                 color: _textWhite,
-                fontWeight: FontWeight.w900,
-                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                fontSize: 16,
               ),
             ),
           ],
         ),
         const SizedBox(height: 2),
         Text(
-          label.toUpperCase(),
-          style: GoogleFonts.spaceMono(
-            color: _textMuted.withValues(alpha: 0.8),
-            fontSize: 9,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.5,
+          label,
+          style: GoogleFonts.inter(
+            color: _textMuted,
+            fontSize: 11,
+            fontWeight: FontWeight.w400,
           ),
         ),
       ],
@@ -440,103 +486,113 @@ class _ServerSettingsHubScreenState
   }
 
   Widget _buildSectionHeader(String title) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: GoogleFonts.epilogue(
-            color: _textWhite,
-            fontSize: 22,
-            fontWeight: FontWeight.w900,
-            fontStyle: FontStyle.italic,
-            letterSpacing: -0.5,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: GoogleFonts.inter(
+              color: _textMuted,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1.0,
+            ),
           ),
-        ),
-        Container(
-          height: 2,
-          color: _neonGreen,
-          margin: const EdgeInsets.only(top: 6, bottom: 16),
-        ),
-      ],
+          const SizedBox(height: 8),
+          Container(
+            height: 1,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  _neonGreen.withValues(alpha: 0.3),
+                  _neonGreen.withValues(alpha: 0.0),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildSettingsRow(BuildContext context, SettingsItem item) {
     final bool isDanger = item.isDanger;
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: _surfaceContainer,
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isDanger
-              ? Colors.red.withValues(alpha: 0.2)
-              : _textWhite.withValues(alpha: 0.05),
+              ? Colors.red.withValues(alpha: 0.12)
+              : _textWhite.withValues(alpha: 0.04),
         ),
       ),
-      child: InkWell(
-        onTap: () => context.push(item.route),
-        splashColor: isDanger
-            ? Colors.red.withValues(alpha: 0.1)
-            : _neonGreen.withValues(alpha: 0.1),
-        highlightColor: Colors.transparent,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: isDanger
-                      ? Colors.red.withValues(alpha: 0.1)
-                      : _neonGreen.withValues(alpha: 0.05),
-                  border: Border.all(
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          onTap: () => context.push(item.route),
+          borderRadius: BorderRadius.circular(16),
+          splashColor: isDanger
+              ? Colors.red.withValues(alpha: 0.08)
+              : _neonGreen.withValues(alpha: 0.08),
+          highlightColor: Colors.transparent,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
                     color: isDanger
-                        ? Colors.red.withValues(alpha: 0.2)
-                        : _neonGreen.withValues(alpha: 0.1),
+                        ? Colors.red.withValues(alpha: 0.08)
+                        : _neonGreen.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    item.icon,
+                    color: isDanger ? Colors.redAccent : _neonGreen,
+                    size: 20,
                   ),
                 ),
-                child: Icon(
-                  item.icon,
-                  color: isDanger ? Colors.redAccent : _neonGreen,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.label.toUpperCase(),
-                      style: GoogleFonts.spaceGrotesk(
-                        color: isDanger ? Colors.redAccent : _textWhite,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.0,
-                      ),
-                    ),
-                    if (item.description != null) ...[
-                      const SizedBox(height: 3),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        item.description!,
-                        style: GoogleFonts.spaceMono(
-                          color: _textMuted.withValues(alpha: 0.8),
-                          fontSize: 9,
-                          fontWeight: FontWeight.w500,
+                        item.label,
+                        style: GoogleFonts.inter(
+                          color: isDanger ? Colors.redAccent : _textWhite,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
+                      if (item.description != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          item.description!,
+                          style: GoogleFonts.inter(
+                            color: _textMuted,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Icon(
-                Icons.arrow_forward_ios_rounded,
-                color: _textWhite.withValues(alpha: 0.15),
-                size: 14,
-              ),
-            ],
+                const SizedBox(width: 8),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: _textWhite.withValues(alpha: 0.15),
+                  size: 20,
+                ),
+              ],
+            ),
           ),
         ),
       ),

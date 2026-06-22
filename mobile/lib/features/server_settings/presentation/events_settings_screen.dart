@@ -37,6 +37,8 @@ class _ServerEvent {
           ? DateTime.parse(json['end_time'] as String) 
           : null,
       channelId: json['location'] as String?,
+      imageUrl: json['image_url'] as String?,
+      attendeeCount: json['interested_count'] as int?,
     );
   }
 }
@@ -74,7 +76,7 @@ class _EventsSettingsScreenState extends ConsumerState<EventsSettingsScreen> {
 
     try {
       final response = await _client
-          .from('community_events')
+          .from('scheduled_events')
           .select('*')
           .eq('server_id', widget.serverId)
           .order('start_time', ascending: false);
@@ -132,7 +134,7 @@ class _EventsSettingsScreenState extends ConsumerState<EventsSettingsScreen> {
     if (confirmed != true) return;
 
     try {
-      await _client.from('events').delete().eq('id', eventId);
+      await _client.from('scheduled_events').delete().eq('id', eventId);
       await _loadEvents();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -419,14 +421,18 @@ class _CreateEventDialogState extends State<_CreateEventDialog> {
     setState(() => _isLoading = true);
 
     try {
-      await _client.from('events').insert({
+      final userId = _client.auth.currentUser?.id;
+      if (userId == null) throw Exception('Not authenticated');
+
+      await _client.from('scheduled_events').insert({
         'server_id': widget.serverId,
-        'title': _titleController.text.trim(),
+        'creator_id': userId,
+        'name': _titleController.text.trim(),
         'description': _descriptionController.text.trim().isEmpty 
             ? null 
             : _descriptionController.text.trim(),
+        'event_type': 'text',
         'start_time': DateTime.now().add(const Duration(days: 1)).toIso8601String(),
-        'attendee_count': 0,
       });
 
       if (mounted) {
