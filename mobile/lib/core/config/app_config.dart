@@ -60,6 +60,9 @@ class AppConfig {
   static const String _definedRtcTurnCredential = String.fromEnvironment(
     'FLICKO_RTC_TURN_CREDENTIAL',
   );
+  static const String _definedCurrentsApiKey = String.fromEnvironment(
+    'FLICKO_CURRENTS_API_KEY',
+  );
 
   static const String _definedLegacySupabaseUrl = String.fromEnvironment(
     'SUPABASE_URL',
@@ -116,6 +119,9 @@ class AppConfig {
   static const String _definedLegacyRtcTurnCredential = String.fromEnvironment(
     'RTC_TURN_CREDENTIAL',
   );
+  static const String _definedLegacyCurrentsApiKey = String.fromEnvironment(
+    'CURRENTS_API_KEY',
+  );
 
   static late final String supabaseUrl;
   static late final String supabaseAnonKey;
@@ -138,6 +144,7 @@ class AppConfig {
   static late final String rtcTurnUrl;
   static late final String rtcTurnUsername;
   static late final String rtcTurnCredential;
+  static late final String currentsApiKey;
 
   static void init() {
     supabaseUrl = _read(
@@ -259,6 +266,12 @@ class AppConfig {
       _definedLegacyRtcTurnCredential,
       'FLICKO_RTC_TURN_CREDENTIAL',
       'RTC_TURN_CREDENTIAL',
+    );
+    currentsApiKey = _read(
+      _definedCurrentsApiKey,
+      _definedLegacyCurrentsApiKey,
+      'FLICKO_CURRENTS_API_KEY',
+      'CURRENTS_API_KEY',
     );
   }
 

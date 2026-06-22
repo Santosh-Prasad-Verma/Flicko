@@ -50,6 +50,7 @@ class NewsArticle {
   final String publishDate;
   final String author;
   final String readTime;
+  final String? sourceUrl;
 
   const NewsArticle({
     required this.id,
@@ -61,7 +62,15 @@ class NewsArticle {
     required this.publishDate,
     required this.author,
     required this.readTime,
+    this.sourceUrl,
   });
+
+  /// Whether the image is a network URL (from API) vs a local asset.
+  bool get isNetworkImage =>
+      imageUrl.startsWith('http://') || imageUrl.startsWith('https://');
+
+  /// Whether this article has a valid image.
+  bool get hasImage => imageUrl.isNotEmpty;
 
   static const List<NewsArticle> mockArticles = [
     NewsArticle(
