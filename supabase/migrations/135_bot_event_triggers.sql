@@ -1,5 +1,5 @@
 -- CRIT-7: Postgres triggers that fire pg_notify('flicko_events', json)
--- whenever a row is inserted into server_members, messages, or message_reactions.
+-- whenever a row is inserted into server_members, messages, or reactions.
 -- The Go backend's PgListener picks these up and publishes into the EventBus
 -- so bots (welcome, automod, leveling, starboard) can react to real activity.
 
@@ -41,7 +41,7 @@ BEGIN
         FROM public.channels c
         WHERE c.id = channel_id_val;
 
-    WHEN 'message_reactions' THEN
+    WHEN 'reactions' THEN
       IF TG_OP = 'INSERT' THEN
         event_type := 'REACTION_ADD';
       ELSIF TG_OP = 'DELETE' THEN
@@ -75,7 +75,7 @@ BEGIN
           'content', NEW.content,
           'author_id', NEW.author_id
         )
-      WHEN TG_TABLE_NAME = 'message_reactions' AND NEW IS NOT NULL THEN
+      WHEN TG_TABLE_NAME = 'reactions' AND NEW IS NOT NULL THEN
         jsonb_build_object(
           'message_id', NEW.message_id,
           'emoji', NEW.emoji
@@ -115,13 +115,14 @@ CREATE TRIGGER trg_flicko_message_delete
   AFTER DELETE ON public.messages
   FOR EACH ROW EXECUTE FUNCTION public.notify_flicko_event();
 
--- message_reactions: ADD and REMOVE
-DROP TRIGGER IF EXISTS trg_flicko_reaction_add ON public.message_reactions;
+-- reactions: ADD and REMOVE
+DROP TRIGGER IF EXISTS trg_flicko_reaction_add ON public.reactions;
 CREATE TRIGGER trg_flicko_reaction_add
-  AFTER INSERT ON public.message_reactions
+  AFTER INSERT ON public.reactions
   FOR EACH ROW EXECUTE FUNCTION public.notify_flicko_event();
 
-DROP TRIGGER IF EXISTS trg_flicko_reaction_remove ON public.message_reactions;
+DROP TRIGGER IF EXISTS trg_flicko_reaction_remove ON public.reactions;
 CREATE TRIGGER trg_flicko_reaction_remove
-  AFTER DELETE ON public.message_reactions
+  AFTER DELETE ON public.reactions
   FOR EACH ROW EXECUTE FUNCTION public.notify_flicko_event();
+

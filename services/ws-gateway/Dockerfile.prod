@@ -12,7 +12,7 @@
 #
 # Or via docker-compose.prod.yml (sets context: ./services automatically).
 #
-# Final image: alpine:3.19 + static binary + CA certs ≈ 15–18 MB.
+# Final image: alpine:3.22 + static binary + CA certs ≈ 15–18 MB.
 # =============================================================================
 
 
@@ -72,17 +72,18 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
 # ─────────────────────────────────────────────────────────────────────────────
 # Stage 2: RUNTIME — minimal Alpine with just the binary
 # ─────────────────────────────────────────────────────────────────────────────
-# Why alpine:3.19 and not scratch?
+# Why alpine:3.22 and not scratch?
 #   - We need wget for HEALTHCHECK (scratch has no shell/tools).
 #   - We need ca-certificates for outbound TLS (Supabase, CF).
-#   - alpine:3.19 base is ~3.3 MB, total image stays under 20 MB.
-FROM alpine:3.19
+#   - alpine:3.22 base is ~3.3 MB, total image stays under 20 MB.
+FROM alpine:3.22
 
 # Install only what's strictly needed:
 #   ca-certificates — TLS cert bundle for outbound HTTPS (Redis TLS, etc.)
 #   tzdata          — timezone database (for UTC log timestamps)
 #   wget            — HEALTHCHECK probe (lighter than curl, no libcurl deps)
-RUN apk add --no-cache ca-certificates tzdata wget
+RUN apk upgrade --no-cache \
+    && apk add --no-cache ca-certificates tzdata wget
 
 # ── Non-root user ───────────────────────────────────────────────────────
 # Create a dedicated non-root user. NEVER run production containers as root.

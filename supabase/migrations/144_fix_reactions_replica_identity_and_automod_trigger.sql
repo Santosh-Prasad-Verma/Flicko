@@ -1,5 +1,44 @@
 -- Migration 144: Fix reactions replica identity and map enforce_auto_mod_rules to audit_logs (plural)
 
+-- Create dm_reactions table if it does not exist
+CREATE TABLE IF NOT EXISTS public.dm_reactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  message_id UUID NOT NULL REFERENCES public.direct_messages(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  emoji TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(message_id, user_id, emoji)
+);
+
+-- Enable RLS
+ALTER TABLE public.dm_reactions ENABLE ROW LEVEL SECURITY;
+
+-- Create policies for dm_reactions
+DROP POLICY IF EXISTS "Users can view dm_reactions" ON public.dm_reactions;
+CREATE POLICY "Users can view dm_reactions" ON public.dm_reactions
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM public.direct_messages dm
+      WHERE dm.id = dm_reactions.message_id
+      AND (dm.sender_id = auth.uid() OR dm.recipient_id = auth.uid())
+    )
+  );
+
+DROP POLICY IF EXISTS "Users can insert own dm_reactions" ON public.dm_reactions;
+CREATE POLICY "Users can insert own dm_reactions" ON public.dm_reactions
+  FOR INSERT WITH CHECK (
+    user_id = auth.uid()
+    AND EXISTS (
+      SELECT 1 FROM public.direct_messages dm
+      WHERE dm.id = dm_reactions.message_id
+      AND (dm.sender_id = auth.uid() OR dm.recipient_id = auth.uid())
+    )
+  );
+
+DROP POLICY IF EXISTS "Users can delete own dm_reactions" ON public.dm_reactions;
+CREATE POLICY "Users can delete own dm_reactions" ON public.dm_reactions
+  FOR DELETE USING (user_id = auth.uid());
+
 -- 1. Enable REPLICA IDENTITY FULL on reactions and dm_reactions for realtime delete payloads
 ALTER TABLE public.reactions REPLICA IDENTITY FULL;
 ALTER TABLE public.dm_reactions REPLICA IDENTITY FULL;

@@ -1,3 +1,10 @@
+-- Ensure the columns exist on external_bots if it was created by a conflicting migration (095)
+ALTER TABLE public.external_bots ADD COLUMN IF NOT EXISTS server_id UUID NULL REFERENCES public.servers(id) ON DELETE CASCADE;
+ALTER TABLE public.external_bots ADD COLUMN IF NOT EXISTS creator_id UUID NULL REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.external_bots ADD COLUMN IF NOT EXISTS public_key TEXT;
+ALTER TABLE public.external_bots ADD COLUMN IF NOT EXISTS api_token TEXT UNIQUE;
+ALTER TABLE public.external_bots ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+
 -- Create external bots table for the new developer ecosystem
 CREATE TABLE IF NOT EXISTS public.external_bots (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -13,6 +20,7 @@ CREATE TABLE IF NOT EXISTS public.external_bots (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
 
 -- Index the lookups
 CREATE INDEX IF NOT EXISTS idx_external_bots_server_id ON public.external_bots(server_id);

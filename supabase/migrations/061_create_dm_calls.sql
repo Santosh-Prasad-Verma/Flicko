@@ -2,7 +2,7 @@
 
 CREATE TABLE IF NOT EXISTS dm_calls (
   id                uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  conversation_id   uuid        NOT NULL REFERENCES direct_messages(id) ON DELETE CASCADE,
+  conversation_id   uuid        NOT NULL,
   initiator_id      uuid        NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   call_type         text        NOT NULL DEFAULT 'audio'
                                 CHECK (call_type IN ('audio', 'video')),
@@ -47,8 +47,9 @@ CREATE POLICY dm_calls_participants ON dm_calls
     initiator_id = auth.uid()
     OR auth.uid() = ANY(participants)
     OR EXISTS (
-      SELECT 1 FROM dm_participants
-      WHERE conversation_id = dm_calls.conversation_id
+      SELECT 1 FROM public.group_dm_participants
+      WHERE group_dm_id = dm_calls.conversation_id
         AND user_id = auth.uid()
     )
   );
+

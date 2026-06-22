@@ -12,7 +12,6 @@ on:
       - 'nginx/**'
       - 'docker-compose.prod.yml'
 
-
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -38,8 +37,8 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           password: ${{ secrets.VPS_PASSWORD }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          source: ".env.production"
-          target: "~/Flicko/"
+          source: '.env.production'
+          target: '~/Flicko/'
 
       - name: Deploy to VPS via SSH
         uses: appleboy/ssh-action@v1.0.3
@@ -55,9 +54,9 @@ jobs:
               rm -rf ~/Flicko || true
               git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} ~/Flicko
             fi
-            
+
             cd ~/Flicko || exit 1
-            
+
             # 2. Pull the latest code
             git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
             git reset --hard HEAD
@@ -72,7 +71,7 @@ jobs:
             # 3.5. Materialize JWT public key file for docker compose secret mount
             # Ensure the secrets directory exists
             mkdir -p ./secrets
-            
+
                         # Extract JWT_PUBLIC_KEY from the .env file if it exists,
             # and convert escaped newlines into real PEM line breaks.
             JWT_PUBLIC_KEY_LINE=$(grep -m 1 -E '^JWT_PUBLIC_KEY=' ~/Flicko/.env || true)

@@ -25,7 +25,7 @@ import 'package:mobile/features/sonic_music/Screens/LocalMusic/downed_songs.dart
 import 'package:mobile/features/sonic_music/Screens/LocalMusic/downed_songs_desktop.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile/features/sonic_music/localization/app_localizations.dart';
-import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 
 class LibraryPage extends StatefulWidget {
   const LibraryPage({super.key});

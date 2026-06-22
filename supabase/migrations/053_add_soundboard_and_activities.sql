@@ -45,20 +45,22 @@ $$;
 
 -- ── Activities ───────────────────────────────────────────────
 
-CREATE TABLE IF NOT EXISTS activities (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL,
-  description TEXT DEFAULT '',
-  icon_url TEXT DEFAULT '',
-  category TEXT NOT NULL CHECK (category IN ('games', 'watch_together', 'premium')),
-  max_participants INTEGER DEFAULT 25,
-  is_premium BOOLEAN DEFAULT false,
-  embed_url TEXT DEFAULT '',
-  developer TEXT DEFAULT 'Flicko',
-  avg_duration TEXT DEFAULT '~15 min',
-  enabled BOOLEAN DEFAULT true,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
+-- Since public.activities was initially created in migration 024 for presence tracking,
+-- we alter it to support catalog activities. We drop NOT NULL constraints on user_id and type,
+-- and add catalog-specific columns.
+ALTER TABLE public.activities ALTER COLUMN user_id DROP NOT NULL;
+ALTER TABLE public.activities ALTER COLUMN type DROP NOT NULL;
+
+ALTER TABLE public.activities ADD COLUMN IF NOT EXISTS description TEXT DEFAULT '';
+ALTER TABLE public.activities ADD COLUMN IF NOT EXISTS icon_url TEXT DEFAULT '';
+ALTER TABLE public.activities ADD COLUMN IF NOT EXISTS category TEXT CHECK (category IN ('games', 'watch_together', 'premium'));
+ALTER TABLE public.activities ADD COLUMN IF NOT EXISTS max_participants INTEGER DEFAULT 25;
+ALTER TABLE public.activities ADD COLUMN IF NOT EXISTS is_premium BOOLEAN DEFAULT false;
+ALTER TABLE public.activities ADD COLUMN IF NOT EXISTS embed_url TEXT DEFAULT '';
+ALTER TABLE public.activities ADD COLUMN IF NOT EXISTS developer TEXT DEFAULT 'Flicko';
+ALTER TABLE public.activities ADD COLUMN IF NOT EXISTS avg_duration TEXT DEFAULT '~15 min';
+ALTER TABLE public.activities ADD COLUMN IF NOT EXISTS enabled BOOLEAN DEFAULT true;
+
 
 -- ── Activity Sessions ────────────────────────────────────────
 

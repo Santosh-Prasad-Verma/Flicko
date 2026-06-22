@@ -94,6 +94,16 @@ CREATE POLICY "manage_roles_delete" ON public.roles
   );
 
 -- 4. Fix server_perks RLS policy recursion
+CREATE TABLE IF NOT EXISTS public.server_perks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  server_id UUID NOT NULL REFERENCES public.servers(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  description TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE public.server_perks ENABLE ROW LEVEL SECURITY;
+
 DROP POLICY IF EXISTS "manage_server_perks" ON public.server_perks;
 
 CREATE POLICY "manage_server_perks_insert" ON public.server_perks

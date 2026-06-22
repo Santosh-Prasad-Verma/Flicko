@@ -2,7 +2,7 @@ name: Security - Docker Image Scanner
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ['main']
     paths:
       - '**/Dockerfile*'
       - 'backend/**'
@@ -10,7 +10,7 @@ on:
       - 'mail-gateway/**'
       - '.github/workflows/security-docker-scanner.yml'
   pull_request:
-    branches: [ "main" ]
+    branches: ['main']
     paths:
       - '**/Dockerfile*'
       - 'backend/**'

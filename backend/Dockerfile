@@ -20,14 +20,15 @@ COPY . .
 RUN go build -trimpath -ldflags="-s -w" -o flicko-backend ./cmd/server/main.go
 
 # Final runtime image — MED-008: Pin alpine version for reproducible builds
-FROM alpine:3.19
+FROM alpine:3.22
 WORKDIR /app
 
 # Install CA certs for outbound TLS (Supabase, Cloudinary) + timezone data
 # stockfish installed separately from community repo or skipped if unavailable
-RUN apk add --no-cache ca-certificates tzdata wget \
-    && apk add --no-cache stockfish --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community/ \
-    || echo "stockfish not available, chess bot will use fallback"
+RUN apk upgrade --no-cache \
+    && apk add --no-cache ca-certificates tzdata wget \
+    && (apk add --no-cache stockfish --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community/ \
+    || echo "stockfish not available, chess bot will use fallback")
 
 # Add a non-root user
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup

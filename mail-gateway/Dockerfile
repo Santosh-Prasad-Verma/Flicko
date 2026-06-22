@@ -25,10 +25,11 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
     go build -ldflags="-s -w" -o server ./cmd/server
 
 # ── Runtime stage ──
-FROM alpine:3.19
+FROM alpine:3.22
 
 # Install CA certificates (required for TLS/SMTP connections)
-RUN apk add --no-cache ca-certificates tzdata
+RUN apk upgrade --no-cache \
+    && apk add --no-cache ca-certificates tzdata
 
 WORKDIR /app
 

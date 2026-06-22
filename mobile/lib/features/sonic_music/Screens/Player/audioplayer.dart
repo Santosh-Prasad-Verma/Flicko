@@ -56,7 +56,7 @@ import 'package:flutter_lyric/lyrics_reader_widget.dart';
 import 'package:get_it/get_it.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:logging/logging.dart';
-import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'package:url_launcher/url_launcher.dart';
