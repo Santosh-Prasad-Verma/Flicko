@@ -1,6 +1,6 @@
 module github.com/flicko-org/flicko/services/msg-service
 
-go 1.25.12
+go 1.25.11
 
 require (
 	github.com/alicebob/miniredis/v2 v2.37.0
@@ -8,7 +8,7 @@ require (
 	github.com/flicko-org/flicko/services/shared v0.0.0
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/hibiken/asynq v0.26.0
-	github.com/jackc/pgx/v5 v5.9.0
+	github.com/jackc/pgx/v5 v5.9.2
 	github.com/livekit/protocol v1.45.3
 	github.com/meilisearch/meilisearch-go v0.36.2
 	github.com/prometheus/client_golang v1.23.2
@@ -55,7 +55,7 @@ require (
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/oklog/ulid/v2 v2.1.1 // indirect
 	github.com/pion/datachannel v1.5.10 // indirect
-	github.com/pion/dtls/v3 v3.0.6 // indirect
+	github.com/pion/dtls/v3 v3.0.11 // indirect
 	github.com/pion/ice/v4 v4.0.10 // indirect
 	github.com/pion/interceptor v0.1.40 // indirect
 	github.com/pion/logging v0.2.4 // indirect
@@ -68,6 +68,7 @@ require (
 	github.com/pion/srtp/v3 v3.0.6 // indirect
 	github.com/pion/stun/v3 v3.0.0 // indirect
 	github.com/pion/transport/v3 v3.0.7 // indirect
+	github.com/pion/transport/v4 v4.0.1 // indirect
 	github.com/pion/turn/v4 v4.0.2 // indirect
 	github.com/pion/webrtc/v4 v4.1.2 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
