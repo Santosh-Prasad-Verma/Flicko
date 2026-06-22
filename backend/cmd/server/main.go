@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/flicko-org/flicko-backend/internal/activities/watchtogether"
 	"github.com/flicko-org/flicko-backend/internal/bots"
 	"github.com/flicko-org/flicko-backend/internal/cache"
 	"github.com/flicko-org/flicko-backend/internal/commands"
@@ -454,6 +455,23 @@ func main() {
 	if err != nil {
 		logger.Fatal("failed to initialize gaming hub", zap.Error(err))
 	}
+
+	// ── Watch Together Module Initialization ─────────────────────────────────
+	if cfg.ActivitiesWatchTogetherEnabled {
+		_, err := watchtogether.Initialize(
+			context.Background(),
+			logger,
+			db.Pool(),
+			redisCache,
+			liveKitService,
+			protected,
+			gamingPublisher,
+		)
+		if err != nil {
+			logger.Fatal("failed to initialize watch together module", zap.Error(err))
+		}
+	}
+
 
 	// CRIT-9: Register Asynq worker server for bot:move and ludo_bot:move tasks.
 	if coord := hub.BotCoordinatorAsynq(); coord != nil {

@@ -132,6 +132,7 @@ dependencies:
   sizer: ^2.0.15
   sliding_up_panel: any
   uuid: any
+  msgpack_dart: ^1.0.1
 
 dev_dependencies:
   flutter_test:

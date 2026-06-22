@@ -114,6 +114,8 @@ import 'package:mobile/features/server_settings/presentation/bot_marketplace_scr
 // Voice
 import 'package:mobile/features/server_channels/voice/presentation/screens/voice_activities_screen.dart';
 import 'package:mobile/features/server_channels/voice/presentation/screens/voice_channel_screen.dart';
+import 'package:mobile/features/activities/watch_together/presentation/standalone_room_screen.dart';
+import 'package:mobile/features/activities/watch_together/presentation/public_lobbies_screen.dart';
 import 'package:mobile/features/sonic_music/Screens/Home/home.dart' as sonic_music;
 import 'package:mobile/features/sonic_music/theme/app_theme.dart' as sonic_theme;
 
@@ -553,6 +555,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // Premium
       GoRoute(path: '/premium/plus', builder: (context, state) => const PremiumBillingScreen()),
       GoRoute(path: '/premium/nitro', builder: (context, state) => const PremiumBillingScreen()),
+
+      // Watch Together
+      GoRoute(path: '/watch-together/standalone', builder: (context, state) => const StandaloneRoomScreen()),
+      GoRoute(path: '/watch-together/lobbies', builder: (context, state) => const PublicLobbiesScreen()),
 
       // Store & Creator
       GoRoute(path: '/store', builder: (context, state) => const StoreScreen()),

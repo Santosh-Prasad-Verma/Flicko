@@ -48,6 +48,7 @@ type Config struct {
 	AIMessageSummaryEnabled bool
 	AIAutoTranslateEnabled  bool
 	AIModerationEnabled     bool
+	ActivitiesWatchTogetherEnabled bool
 
 	// Auto-translate
 	LibreTranslateBaseURL string // default http://libretranslate:5000
@@ -166,9 +167,10 @@ func Load() (*Config, error) {
 		OllamaBaseURL:           envOr("OLLAMA_BASE_URL", "http://ollama:11434"),
 		OllamaModel:             envOr("OLLAMA_MODEL", "llama3.1:8b"),
 		AIRequestTimeout:        time.Duration(parseIntEnv("AI_REQUEST_TIMEOUT_SECONDS", 12, 1, 120)) * time.Second,
-		AIMessageSummaryEnabled: parseBoolEnv("FEATURE_AI_MESSAGE_SUMMARY", false),
-		AIAutoTranslateEnabled:  parseBoolEnv("FEATURE_AI_AUTO_TRANSLATE", false),
-		AIModerationEnabled:     parseBoolEnv("FEATURE_AI_MODERATION", false),
+		AIMessageSummaryEnabled:        parseBoolEnv("FEATURE_AI_MESSAGE_SUMMARY", false),
+		AIAutoTranslateEnabled:         parseBoolEnv("FEATURE_AI_AUTO_TRANSLATE", false),
+		AIModerationEnabled:            parseBoolEnv("FEATURE_AI_MODERATION", false),
+		ActivitiesWatchTogetherEnabled: parseBoolEnv("FEATURE_ACTIVITIES_WATCH_TOGETHER", false),
 		LibreTranslateBaseURL:   envOr("LIBRETRANSLATE_BASE_URL", "http://libretranslate:5000"),
 		LibreTranslateAPIKey:    os.Getenv("LIBRETRANSLATE_API_KEY"),
 		DeepLAPIKey:             os.Getenv("DEEPL_API_KEY"),
