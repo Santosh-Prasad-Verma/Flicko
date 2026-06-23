@@ -1,0 +1,29 @@
+version: 2
+updates:
+  # 1. Track Go backend dependencies
+  - package-ecosystem: "gomod"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  # 2. Track Mail Gateway Go dependencies
+  - package-ecosystem: "gomod"
+    directory: "/mail-gateway"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 3
+
+  # 3. Track Flutter pub dependencies
+  - package-ecosystem: "pub"
+    directory: "/mobile"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  # 4. Track GitHub Actions updates
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 3
