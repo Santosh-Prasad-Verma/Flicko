@@ -13,17 +13,8 @@ import (
 )
 
 const (
-	TypeBotMove     = "bot:move"
 	TypeLudoBotMove = "ludo_bot:move"
 )
-
-// BotMovePayload represents the task payload for async bot moves (Chess)
-type BotMovePayload struct {
-	GameID     string `json:"game_id"`
-	PlayerID   string `json:"player_id"`
-	FEN        string `json:"fen"`
-	Difficulty int    `json:"difficulty"`
-}
 
 // LudoBotMovePayload represents the task payload for async bot moves (Ludo)
 type LudoBotMovePayload struct {
@@ -31,12 +22,16 @@ type LudoBotMovePayload struct {
 	PlayerID string `json:"player_id"`
 }
 
+// LockService defines the distributed lock manager interface.
+type LockService interface {
+	AcquireLock(ctx context.Context, key, token string, ttl time.Duration) (bool, error)
+	ReleaseLock(ctx context.Context, key, token string) error
+}
+
 // AsynqBotCoordinator enqueues bot moves via Asynq instead of in-memory goroutines.
 // This guarantees execution even if the pod crashes mid-turn.
 type AsynqBotCoordinator struct {
 	client       *asynq.Client
-	stockfish    StockfishPool
-	gameService  GameService
 	lockService  LockService
 	stateService StateReader
 	ludoEngine   gameSvc.LudoEngine
@@ -51,8 +46,6 @@ type StateReader interface {
 // NewAsynqBotCoordinator creates a coordinator that dispatches bot moves as async tasks
 func NewAsynqBotCoordinator(
 	client *asynq.Client,
-	pool StockfishPool,
-	gameSvc GameService,
 	lockSvc LockService,
 	stateSvc StateReader,
 	ludoEng gameSvc.LudoEngine,
@@ -60,55 +53,11 @@ func NewAsynqBotCoordinator(
 ) *AsynqBotCoordinator {
 	return &AsynqBotCoordinator{
 		client:       client,
-		stockfish:    pool,
-		gameService:  gameSvc,
 		lockService:  lockSvc,
 		stateService: stateSvc,
 		ludoEngine:   ludoEng,
 		logger:       logger,
 	}
-}
-
-// EnqueueBotMove schedules a delayed Asynq task for the chess bot turn.
-func (c *AsynqBotCoordinator) EnqueueBotMove(ctx context.Context, gameID, playerID, fen string, difficulty int) error {
-	if c.client == nil {
-		c.logger.Debug("asynq client is nil, skipping bot move enqueue")
-		return nil
-	}
-
-	payload, err := json.Marshal(BotMovePayload{
-		GameID:     gameID,
-		PlayerID:   playerID,
-		FEN:        fen,
-		Difficulty: difficulty,
-	})
-	if err != nil {
-		return err
-	}
-
-	// Random delay 500ms-2s for realistic feel
-	delay := 500*time.Millisecond + time.Duration(time.Now().UnixNano()%1500)*time.Millisecond
-
-	task := asynq.NewTask(TypeBotMove, payload)
-
-	info, err := c.client.EnqueueContext(ctx, task,
-		asynq.ProcessIn(delay),
-		asynq.MaxRetry(3),
-		asynq.Timeout(10*time.Second),
-	)
-	if err != nil {
-		c.logger.Error("failed to enqueue bot move task",
-			zap.Error(err),
-			zap.String("game_id", gameID),
-		)
-		return err
-	}
-
-	c.logger.Debug("bot move task enqueued",
-		zap.String("task_id", info.ID),
-		zap.String("game_id", gameID),
-	)
-	return nil
 }
 
 // EnqueueLudoBotMove schedules a delayed Asynq task for the ludo bot turn.
@@ -147,53 +96,6 @@ func (c *AsynqBotCoordinator) EnqueueLudoBotMove(ctx context.Context, gameID, pl
 	c.logger.Debug("ludo bot move task enqueued",
 		zap.String("task_id", info.ID),
 		zap.String("game_id", gameID),
-	)
-	return nil
-}
-
-// HandleBotMoveTask is the Asynq handler that processes chess bot moves.
-func (c *AsynqBotCoordinator) HandleBotMoveTask(ctx context.Context, t *asynq.Task) error {
-	var payload BotMovePayload
-	if err := json.Unmarshal(t.Payload(), &payload); err != nil {
-		c.logger.Error("failed to unmarshal bot move payload", zap.Error(err))
-		return fmt.Errorf("invalid payload: %w", err)
-	}
-
-	lockKey := cache.GenerateGameLockKey(payload.GameID)
-	token := fmt.Sprintf("bot-%d", time.Now().UnixNano())
-
-	acquired, err := c.lockService.AcquireLock(ctx, lockKey, token, 10*time.Second)
-	if err != nil || !acquired {
-		c.logger.Debug("bot failed to acquire lock (another pod handling)",
-			zap.String("game_id", payload.GameID),
-		)
-		return nil
-	}
-	defer c.lockService.ReleaseLock(context.Background(), lockKey, token)
-
-	// Query Stockfish for best move
-	move, err := c.stockfish.GetNextMove(ctx, payload.FEN, payload.Difficulty)
-	if err != nil {
-		c.logger.Error("stockfish failed to generate move",
-			zap.Error(err),
-			zap.String("game_id", payload.GameID),
-		)
-		return fmt.Errorf("stockfish error: %w", err)
-	}
-
-	// Process the move through game service
-	if err := c.gameService.ProcessMove(ctx, payload.GameID, payload.PlayerID, move); err != nil {
-		c.logger.Error("bot failed to process move",
-			zap.Error(err),
-			zap.String("game_id", payload.GameID),
-			zap.String("move", move),
-		)
-		return err
-	}
-
-	c.logger.Info("bot move processed successfully",
-		zap.String("game_id", payload.GameID),
-		zap.String("move", move),
 	)
 	return nil
 }

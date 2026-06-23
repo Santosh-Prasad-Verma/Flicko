@@ -57,8 +57,7 @@ func (h *StatsHandler) HandleGetStats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ludoCount := h.countByType(r.Context(), userID, "ludo")
-	chessCount := h.countByType(r.Context(), userID, "chess")
-	otherCount := count - ludoCount - chessCount
+	otherCount := count - ludoCount
 	if otherCount < 0 {
 		otherCount = 0
 	}
@@ -70,7 +69,6 @@ func (h *StatsHandler) HandleGetStats(w http.ResponseWriter, r *http.Request) {
 		Trend:      "+18%",
 		TopGames: []topGame{
 			{Name: "Ludo", Hours: scaledHours(4200, ludoCount), Color: "#40916C"},
-			{Name: "Chess", Hours: scaledHours(3800, chessCount), Color: "#10B981"},
 			{Name: "Cyber Arena", Hours: scaledHours(2100, otherCount), Color: "#52B788"},
 		},
 		RecentCampaigns: []recentCampaign{

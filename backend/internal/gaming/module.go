@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/flicko-org/flicko-backend/internal/bots"
-	"github.com/flicko-org/flicko-backend/internal/bots/chess"
 	"github.com/flicko-org/flicko-backend/internal/handlers/centrifugo"
 	"github.com/flicko-org/flicko-backend/internal/handlers/game"
 	"github.com/flicko-org/flicko-backend/internal/repo"
@@ -29,11 +28,8 @@ type Hub struct {
 	stateService   gameSvc.StateService
 	lockService    lock.LockService
 	matchmakingSvc matchmaking.MatchmakingService
-	chessValidator *gameSvc.ChessValidator
 	ludoValidator  *gameSvc.LudoValidator
 	ludoEngine     gameSvc.LudoEngine
-	stockfishPool  chess.StockfishPool
-	botCoordinator bots.BotCoordinator
 	asynqCoord     *bots.AsynqBotCoordinator // CRIT-9: exposed for main.go worker registration
 }
 
@@ -63,12 +59,6 @@ func (v *hubGameAccessValidator) GetGameStatusAndPlayers(ctx context.Context, ga
 	return st.Status, st.PlayerA, st.PlayerB, nil
 }
 
-// hubGameService implements bots.GameService
-type hubGameService struct {
-	stateService   gameSvc.StateService
-	chessValidator *gameSvc.ChessValidator
-}
-
 // hubStateReader adapts gameSvc.StateService to bots.StateReader.
 type hubStateReader struct {
 	stateService gameSvc.StateService
@@ -76,35 +66,6 @@ type hubStateReader struct {
 
 func (r *hubStateReader) GetGameState(ctx context.Context, gameID string) (json.RawMessage, int, error) {
 	return r.stateService.GetGameState(ctx, gameID)
-}
-
-func (s *hubGameService) ProcessMove(ctx context.Context, gameID, playerID, move string) error {
-	stateRaw, moveNum, err := s.stateService.GetGameState(ctx, gameID)
-	if err != nil {
-		return err
-	}
-	var st struct {
-		Fen string `json:"fen"`
-	}
-	if err := json.Unmarshal(stateRaw, &st); err != nil {
-		return err
-	}
-	
-	newGame, reason, err := s.chessValidator.ProcessMove(ctx, gameID, playerID, st.Fen, move)
-	if err != nil {
-		return err
-	}
-	_ = reason
-	
-	// Create new state
-	newState := struct {
-		Fen string `json:"fen"`
-	}{
-		Fen: newGame.FEN(),
-	}
-	
-	newStateBytes, _ := json.Marshal(newState)
-	return s.stateService.SaveState(ctx, gameID, newStateBytes, moveNum+1)
 }
 
 // Initialize bootstraps all gaming hub components, orchestrates dependency injection,
@@ -143,23 +104,11 @@ func Initialize(
 	// 3. Matchmaking
 	matchmakingSvc := matchmaking.NewMatchmakingService(rc, logger)
 
-	// 4. Game Logic Validators
-	chessValidator := gameSvc.NewChessValidator(lockService)
+	// 4. Game Logic Validators (Ludo only — Chess has been removed)
 	ludoValidator := gameSvc.NewLudoValidator(rngSvc)
 	ludoEngine := gameSvc.NewLudoEngineWithPublisher(stateService, ludoValidator, lockService, rngSvc, publisher)
 
-	// 5. Bot Intelligence
-	// Creates a bounded pool of 10 persistent stockfish engines
-	stockfishPool, err := chess.NewStockfishPool(10, logger)
-	if err != nil {
-		return nil, err
-	}
-
-	gameSvcAdapter := &hubGameService{stateService: stateService, chessValidator: chessValidator}
-	botCoordinator := bots.NewBotCoordinator(stockfishPool, gameSvcAdapter, lockService, logger)
-
-	// 5b. Asynq-backed coordinator (HIGH-15 + CRIT-9 wiring).
-	// Survives pod restart since tasks live in Redis.
+	// 5. Asynq-backed coordinator (Ludo bot tasks survive pod restart via Redis).
 	asynqClient := asynq.NewClient(asynq.RedisClientOpt{
 		Addr:      rc.Options().Addr,
 		Password:  rc.Options().Password,
@@ -168,8 +117,6 @@ func Initialize(
 	})
 	asynqCoord := bots.NewAsynqBotCoordinator(
 		asynqClient,
-		stockfishPool,
-		gameSvcAdapter,
 		lockService,
 		&hubStateReader{stateService: stateService},
 		ludoEngine,
@@ -210,21 +157,16 @@ func Initialize(
 		stateService:   stateService,
 		lockService:    lockService,
 		matchmakingSvc: matchmakingSvc,
-		chessValidator: chessValidator,
 		ludoValidator:  ludoValidator,
 		ludoEngine:     ludoEngine,
-		stockfishPool:  stockfishPool,
-		botCoordinator: botCoordinator,
 		asynqCoord:     asynqCoord,
 	}, nil
 }
 
-// Shutdown gracefully stops all async processing, drains channels, and kills OS processes.
+// Shutdown gracefully stops all async processing and drains channels.
 func (h *Hub) Shutdown() {
 	if h.gameRepo != nil {
 		h.gameRepo.StopAsyncWriter()
 	}
-	if h.stockfishPool != nil {
-		h.stockfishPool.Close()
-	}
 }
+

@@ -473,7 +473,7 @@ func main() {
 	}
 
 
-	// CRIT-9: Register Asynq worker server for bot:move and ludo_bot:move tasks.
+	// CRIT-9: Register Asynq worker server for ludo_bot:move tasks.
 	if coord := hub.BotCoordinatorAsynq(); coord != nil {
 		rdb := redisCache.GetRedisClient().(*redis.Client)
 		asynqRedisOpt := asynq.RedisClientOpt{
@@ -487,7 +487,6 @@ func main() {
 			Queues:      map[string]int{"default": 1},
 		})
 		asynqMux := asynq.NewServeMux()
-		asynqMux.HandleFunc(bots.TypeBotMove, coord.HandleBotMoveTask)
 		asynqMux.HandleFunc(bots.TypeLudoBotMove, coord.HandleLudoBotMoveTask)
 		go func() {
 			if err := asynqSrv.Run(asynqMux); err != nil {
@@ -495,10 +494,10 @@ func main() {
 			}
 		}()
 		logger.Info("asynq bot worker registered",
-			zap.String("tasks", "bot:move, ludo_bot:move"),
+			zap.String("tasks", "ludo_bot:move"),
 		)
 	} else {
-		logger.Warn("asynq bot worker NOT started — hub.BotCoordinatorAsynq() is nil (chess/ludo bots will use in-memory fallback)")
+		logger.Warn("asynq bot worker NOT started — hub.BotCoordinatorAsynq() is nil (ludo bot will use in-memory fallback)")
 	}
 
 	// Custom Emojis

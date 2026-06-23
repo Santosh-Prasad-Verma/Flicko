@@ -9,7 +9,6 @@ require (
 	github.com/hibiken/asynq v0.26.0
 	github.com/jackc/pgx/v5 v5.9.2
 	github.com/livekit/protocol v1.45.6
-	github.com/notnil/chess v1.10.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/razorpay/razorpay-go v1.3.4
 	github.com/redis/go-redis/v9 v9.18.0

@@ -18,7 +18,7 @@ const (
 )
 
 // GenerateQueueKey returns the key for the matchmaking sorted set queue for a specific game type.
-// Example: queue:chess
+// Example: queue:ludo
 func GenerateQueueKey(gameType string) string {
 	return fmt.Sprintf(QueuePrefix, gameType)
 }

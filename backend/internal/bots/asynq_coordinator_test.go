@@ -32,18 +32,6 @@ func (r *mockStateReader) GetGameState(ctx context.Context, gameID string) (json
 	return r.state, 1, nil
 }
 
-type mockStockfishPool struct{}
-
-func (p *mockStockfishPool) GetNextMove(ctx context.Context, fen string, difficulty int) (string, error) {
-	return "e2e4", nil
-}
-
-type mockGameService struct{}
-
-func (s *mockGameService) ProcessMove(ctx context.Context, gameID, playerID, move string) error {
-	return nil
-}
-
 type mockLudoEngine struct {
 	state *gameSvc.LudoGameState
 }
@@ -76,33 +64,8 @@ func (m *mockLudoEngine) InitializeGame(ctx context.Context, gameID string, play
 	return m.state, nil
 }
 
-func TestAsynqBotCoordinator_HandleChessBotMove(t *testing.T) {
-	logger := zap.NewNop()
-	pool := &mockStockfishPool{}
-	gameService := &mockGameService{}
-	lockService := &mockLockService{}
-	stateReader := &mockStateReader{}
-	ludoEngine := &mockLudoEngine{}
-
-	// Initialize coordinator (asynq.Client can remain uninitialized as we don't call Enqueue in this test)
-	coord := NewAsynqBotCoordinator(nil, pool, gameService, lockService, stateReader, ludoEngine, logger)
-
-	payloadBytes, _ := json.Marshal(BotMovePayload{
-		GameID:     "game_chess",
-		PlayerID:   "bot_1",
-		FEN:        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-		Difficulty: 1,
-	})
-
-	task := asynq.NewTask(TypeBotMove, payloadBytes)
-	err := coord.HandleBotMoveTask(context.Background(), task)
-	assert.NoError(t, err)
-}
-
 func TestAsynqBotCoordinator_HandleLudoBotMove(t *testing.T) {
 	logger := zap.NewNop()
-	pool := &mockStockfishPool{}
-	gameService := &mockGameService{}
 	lockService := &mockLockService{}
 	stateReader := &mockStateReader{}
 
@@ -136,7 +99,7 @@ func TestAsynqBotCoordinator_HandleLudoBotMove(t *testing.T) {
 	}
 
 	ludoEngine := &mockLudoEngine{state: ludoState}
-	coord := NewAsynqBotCoordinator(nil, pool, gameService, lockService, stateReader, ludoEngine, logger)
+	coord := NewAsynqBotCoordinator(nil, lockService, stateReader, ludoEngine, logger)
 
 	payloadBytes, _ := json.Marshal(LudoBotMovePayload{
 		GameID:   gameID,
