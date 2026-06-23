@@ -281,12 +281,6 @@ func (c *pgxClient) Query(ctx context.Context, sql string, args ...any) (pgx.Row
 		return nil, errors.New("database circuit breaker is open")
 	}
 
-	if _, hasDeadline := ctx.Deadline(); !hasDeadline {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, DefaultQueryTimeout)
-		defer cancel()
-	}
-
 	// Route queries to replica pool
 	targetPool := c.pool
 	if c.replicaPool != nil {
@@ -331,12 +325,6 @@ func (c *pgxClient) QueryRow(ctx context.Context, sql string, args ...any) pgx.R
 			Row: nil,
 			cb:  c.cb,
 		}
-	}
-
-	if _, hasDeadline := ctx.Deadline(); !hasDeadline {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, DefaultQueryTimeout)
-		defer cancel()
 	}
 
 	// Route queries to replica pool

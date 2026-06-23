@@ -76,7 +76,8 @@ import 'package:mobile/features/friends/presentation/friends_list_screen.dart';
 // Server Settings
 import 'package:mobile/features/server_settings/presentation/server_settings_hub_screen.dart';
 import 'package:mobile/features/server_settings/presentation/server_overview_screen.dart';
-import 'package:mobile/features/server_settings/presentation/placeholder_settings_screens.dart' hide BotsSettingsScreen, WebhooksSettingsScreen, OnboardingSettingsScreen, TemplatesSettingsScreen, EmojisSettingsScreen, ModerationSettingsScreen;
+import 'package:mobile/features/server_settings/presentation/placeholder_settings_screens.dart';
+import 'package:mobile/features/server_settings/presentation/events_settings_screen.dart';
 import 'package:mobile/features/server_settings/presentation/safety_setup_screen.dart';
 import 'package:mobile/features/server_settings/presentation/emoji_management_screen.dart';
 import 'package:mobile/features/server_settings/presentation/channels_settings_screen.dart';

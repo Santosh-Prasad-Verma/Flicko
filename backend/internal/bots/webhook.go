@@ -17,6 +17,16 @@ import (
 	"go.uber.org/zap"
 )
 
+type webhookLogJob struct {
+	botID        string
+	evt          events.Event
+	statusCode   int
+	responseTime int
+	success      bool
+	errMsg       string
+	retryCount   int
+}
+
 // WebhookDelivery handles delivery of events to external bot webhooks
 type WebhookDelivery struct {
 	ctx    BotContext
@@ -34,6 +44,7 @@ type WebhookDelivery struct {
 	// for healthy bots.
 	cbMu       sync.RWMutex
 	breakers   map[string]*delivery.CircuitBreaker
+	logQueue   chan *webhookLogJob
 }
 
 // ExternalBot represents a registered external bot
@@ -58,13 +69,23 @@ type WebhookPayload struct {
 
 // NewWebhookDelivery creates a new webhook delivery service
 func NewWebhookDelivery(ctx BotContext) *WebhookDelivery {
-	return &WebhookDelivery{
+	wd := &WebhookDelivery{
 		ctx: ctx,
 		client: &http.Client{
 			Timeout: 10 * time.Second,
 		},
-		logger: ctx.Logger,
+		logger:   ctx.Logger,
+		subCache: make(map[string]subCacheEntry),
+		breakers: make(map[string]*delivery.CircuitBreaker),
+		logQueue: make(chan *webhookLogJob, 10000),
 	}
+
+	// Start background log workers
+	for i := 0; i < 5; i++ {
+		go wd.logWorker()
+	}
+
+	return wd
 }
 
 // DeliverEvent delivers an event to all subscribed external bots.
@@ -277,32 +298,47 @@ func (wd *WebhookDelivery) generateSignature(body []byte, secret string) string 
 	return hex.EncodeToString(mac.Sum(nil))
 }
 
-// logDelivery records webhook delivery attempt in database (HIGH-10: async/fire-and-forget).
-func (wd *WebhookDelivery) logDelivery(ctx context.Context, botID string, evt events.Event, statusCode, responseTime int, success bool, err error, retryCount int) {
-	var errMsg string
-	if err != nil {
-		errMsg = err.Error()
-	}
-
-	// Fire-and-forget with a short timeout so we never block the delivery path.
-	go func() {
+func (wd *WebhookDelivery) logWorker() {
+	for job := range wd.logQueue {
 		logCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-		defer cancel()
-
 		query := `
 			INSERT INTO bot_webhook_deliveries (
 				bot_id, event_type, event_id, server_id, status_code,
 				response_time_ms, success, error_message, retry_count
 			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		`
-
 		if _, dbErr := wd.ctx.DB.Exec(logCtx, query,
-			botID, evt.Type, evt.ID, evt.ServerID, statusCode,
-			responseTime, success, errMsg, retryCount,
+			job.botID, job.evt.Type, job.evt.ID, job.evt.ServerID, job.statusCode,
+			job.responseTime, job.success, job.errMsg, job.retryCount,
 		); dbErr != nil {
 			wd.logger.Debug("log webhook delivery failed", zap.Error(dbErr))
 		}
-	}()
+		cancel()
+	}
+}
+
+// logDelivery records webhook delivery attempt in database (async queue).
+func (wd *WebhookDelivery) logDelivery(ctx context.Context, botID string, evt events.Event, statusCode, responseTime int, success bool, err error, retryCount int) {
+	var errMsg string
+	if err != nil {
+		errMsg = err.Error()
+	}
+
+	job := &webhookLogJob{
+		botID:        botID,
+		evt:          evt,
+		statusCode:   statusCode,
+		responseTime: responseTime,
+		success:      success,
+		errMsg:       errMsg,
+		retryCount:   retryCount,
+	}
+
+	select {
+	case wd.logQueue <- job:
+	default:
+		wd.logger.Warn("webhook log queue full, discarding delivery log")
+	}
 }
 
 // VerifyWebhookSignature verifies incoming webhook signature from external bot

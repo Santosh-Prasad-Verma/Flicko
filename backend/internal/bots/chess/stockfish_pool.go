@@ -47,29 +47,8 @@ func (f *fallbackPool) GetNextMove(ctx context.Context, fen string, difficulty i
 func (f *fallbackPool) Close() {}
 
 func NewStockfishPool(size int, logger *zap.Logger) (StockfishPool, error) {
-	// Check if stockfish is available by spawning a test worker
-	testWorker, err := spawnWorker()
-	if err != nil {
-		logger.Warn("stockfish executable not found in PATH or failed to start; falling back to random chess move generator", zap.Error(err))
-		return &fallbackPool{}, nil
-	}
-	testWorker.kill()
-
-	p := &pool{
-		workers: make(chan *stockfishWorker, size),
-		logger:  logger,
-	}
-
-	for i := 0; i < size; i++ {
-		worker, err := spawnWorker()
-		if err != nil {
-			p.Close()
-			return nil, fmt.Errorf("failed to spawn stockfish worker: %w", err)
-		}
-		p.workers <- worker
-	}
-
-	return p, nil
+	logger.Info("stockfish pool disabled; using random chess move generator fallback")
+	return &fallbackPool{}, nil
 }
 
 func spawnWorker() (*stockfishWorker, error) {

@@ -153,6 +153,7 @@ flutter:
   generate: true
 
   assets:
+    - .env
     - assets/cover.jpg
     - assets/artist.png
     - assets/album.png
