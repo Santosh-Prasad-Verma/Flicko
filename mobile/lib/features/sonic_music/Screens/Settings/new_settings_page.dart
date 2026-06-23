@@ -15,7 +15,7 @@ import 'package:flutter_material_design_icons/flutter_material_design_icons.dart
 
 class NewSettingsPage extends StatefulWidget {
   final Function? callback;
-  const NewSettingsPage({this.callback});
+  const NewSettingsPage({super.key, this.callback});
 
   @override
   State<NewSettingsPage> createState() => _NewSettingsPageState();

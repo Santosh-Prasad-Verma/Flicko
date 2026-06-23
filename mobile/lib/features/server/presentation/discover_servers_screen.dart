@@ -486,7 +486,7 @@ class _DiscoverServersScreenState extends ConsumerState<DiscoverServersScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${memberCount} members',
+                        '$memberCount members',
                         style: GoogleFonts.inter(
                           color: const Color(FlickoColors.textSecondary),
                           fontSize: 12,

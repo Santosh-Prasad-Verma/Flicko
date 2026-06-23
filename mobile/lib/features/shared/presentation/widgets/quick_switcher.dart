@@ -41,7 +41,7 @@ class _QuickSwitcherState extends ConsumerState<QuickSwitcher> {
   final _searchController = TextEditingController();
   final _focusNode = FocusNode();
   List<SwitcherItem> _results = [];
-  List<SwitcherItem> _recentItems = [];
+  final List<SwitcherItem> _recentItems = [];
   bool _isLoading = false;
 
   @override

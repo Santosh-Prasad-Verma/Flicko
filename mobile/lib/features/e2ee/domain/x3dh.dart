@@ -18,7 +18,6 @@ import 'dart:typed_data';
 import 'package:cryptography/cryptography.dart';
 
 import 'e2ee_models.dart';
-import 'protocol_info.dart';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 

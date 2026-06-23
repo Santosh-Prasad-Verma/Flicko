@@ -26,7 +26,7 @@ class ActivityPicker extends StatefulWidget {
 class _ActivityPickerState extends State<ActivityPicker> {
   final TextEditingController _searchController = TextEditingController();
   ActivityCategory _selectedCategory = ActivityCategory.games;
-  bool _isLoading = false;
+  final bool _isLoading = false;
   String? _error;
 
   // Activity categories with icons

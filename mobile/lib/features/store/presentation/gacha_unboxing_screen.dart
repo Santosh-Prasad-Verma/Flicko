@@ -423,7 +423,7 @@ class _GachaUnboxingScreenState extends ConsumerState<GachaUnboxingScreen> with 
   }
 
   Widget _buildTonearmArm() {
-    return Container(
+    return SizedBox(
       width: 80,
       height: 140,
       child: Stack(

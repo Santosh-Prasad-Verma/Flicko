@@ -11,7 +11,7 @@ import 'package:hive/hive.dart';
 
 class ThemePage extends StatefulWidget {
   final Function? callback;
-  const ThemePage({this.callback});
+  const ThemePage({super.key, this.callback});
 
   @override
   State<ThemePage> createState() => _ThemePageState();

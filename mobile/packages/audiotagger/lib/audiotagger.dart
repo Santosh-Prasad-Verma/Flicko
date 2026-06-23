@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:typed_data';
 
 import 'package:audiotagger/models/audiofile.dart';
 import 'package:flutter/services.dart';

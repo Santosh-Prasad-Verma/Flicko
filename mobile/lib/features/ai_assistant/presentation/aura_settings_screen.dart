@@ -136,7 +136,7 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
                         ),
                         Switch(
                           value: tempAutoplay,
-                          activeColor: accent,
+                          activeThumbColor: accent,
                           onChanged: (val) {
                             setDialogState(() => tempAutoplay = val);
                           },

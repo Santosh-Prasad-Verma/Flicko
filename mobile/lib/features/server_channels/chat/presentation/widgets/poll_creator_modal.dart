@@ -266,7 +266,7 @@ class _PollCreatorModalState extends State<_PollCreatorModal> {
                   title: Text('Allow multiple answers', style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary))),
                   value: _multiSelect,
                   onChanged: (v) => setState(() => _multiSelect = v),
-                  activeColor: const Color(FlickoColors.blurple),
+                  activeThumbColor: const Color(FlickoColors.blurple),
                   contentPadding: EdgeInsets.zero,
                 ),
                 

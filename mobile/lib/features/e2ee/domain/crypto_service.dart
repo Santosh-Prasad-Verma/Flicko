@@ -167,9 +167,9 @@ class CryptoService {
           SimplePublicKey(signedPrekeyPub, type: KeyPairType.x25519),
     );
 
-    final concat = <int>[]
-      ..addAll(await dh1.extractBytes())
-      ..addAll(await dh2.extractBytes());
+    final concat = <int>[...await dh1.extractBytes(), ...await dh2.extractBytes()]
+      
+      ;
 
     if (oneTimePrekeyPub != null) {
       final dh3 = await _x25519.sharedSecretKey(
@@ -206,9 +206,9 @@ class CryptoService {
           SimplePublicKey(senderEphemeralPub, type: KeyPairType.x25519),
     );
 
-    final concat = <int>[]
-      ..addAll(await dh1.extractBytes())
-      ..addAll(await dh2.extractBytes());
+    final concat = <int>[...await dh1.extractBytes(), ...await dh2.extractBytes()]
+      
+      ;
 
     if (oneTimePrekeyPriv != null) {
       final dh3 = await _x25519.sharedSecretKey(

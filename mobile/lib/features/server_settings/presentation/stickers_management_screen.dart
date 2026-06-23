@@ -182,7 +182,7 @@ class _StickersManagementScreenState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Sticker "${_newName}" uploaded!'),
+            content: Text('Sticker "$_newName" uploaded!'),
             backgroundColor: const Color(FlickoColors.green),
           ),
         );

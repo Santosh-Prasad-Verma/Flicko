@@ -12,7 +12,6 @@ import 'core/config/env.dart';
 import 'core/config/app_config.dart';
 import 'core/router/app_router.dart';
 import 'core/services/push_notification_service.dart';
-import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
 import 'core/services/translation_service.dart';
 import 'features/ludo/services/ludo_deep_links.dart';

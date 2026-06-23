@@ -41,7 +41,7 @@ class UnreadBadge extends StatelessWidget {
 
     final backgroundColor = hasMentions
         ? const Color(FlickoColors.blurple)
-        : const Color(0xED4245);
+        : const Color(0x00ed4245);
     final displayText = displayCount > 99 ? '99+' : displayCount.toString();
 
     if (dot) {
@@ -101,7 +101,7 @@ class UnreadDot extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: color ?? const Color(0xED4245),
+        color: color ?? const Color(0x00ed4245),
         shape: BoxShape.circle,
       ),
     );

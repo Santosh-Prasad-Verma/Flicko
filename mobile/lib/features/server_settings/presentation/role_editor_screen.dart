@@ -416,7 +416,7 @@ class _RoleEditorScreenState extends ConsumerState<RoleEditorScreen> {
               ),
               const SizedBox(height: 16),
             ];
-          }).toList(),
+          }),
         ],
       ),
     );
@@ -473,7 +473,7 @@ class _RoleEditorScreenState extends ConsumerState<RoleEditorScreen> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: isDangerous ? const Color(FlickoColors.red) : const Color(FlickoColors.brandLime),
+            activeThumbColor: isDangerous ? const Color(FlickoColors.red) : const Color(FlickoColors.brandLime),
           ),
         ],
       ),

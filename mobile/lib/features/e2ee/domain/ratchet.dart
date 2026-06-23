@@ -287,8 +287,8 @@ class DoubleRatchet {
     final allBytes = await derived.extractBytes();
     // First 32 bytes → new chain key, next derivation → message key.
     // We do two HKDF rounds: one for chain key, one for message key.
-    final newCk = await _hkdfDerive(currentCk, '${kRatchetMsgInfo}-ck');
-    final mk = await _hkdfDerive(currentCk, '${kRatchetMsgInfo}-mk');
+    final newCk = await _hkdfDerive(currentCk, '$kRatchetMsgInfo-ck');
+    final mk = await _hkdfDerive(currentCk, '$kRatchetMsgInfo-mk');
     return (chainKey: newCk, messageKey: mk);
   }
 

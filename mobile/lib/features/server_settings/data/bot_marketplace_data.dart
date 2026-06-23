@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 
 class BotMarketplaceItem {
   final String id;

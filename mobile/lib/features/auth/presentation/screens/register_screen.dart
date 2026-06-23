@@ -229,8 +229,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       // HIGH-002: Sanitize and validate inputs
       final sanitizedEmail = _emailController.text.trim().toLowerCase();
       final sanitizedUsername = trimmedUsername.replaceAll(RegExp(r'[^\w.-]'), '');
-      final _sanitizedName = trimmedUsername.replaceAll(RegExp(r'''[<>"'&]'''), '');
-      final sanitizedDisplayName = _sanitizedName.length > 32 ? _sanitizedName.substring(0, 32) : _sanitizedName;
+      final sanitizedName = trimmedUsername.replaceAll(RegExp(r'''[<>"'&]'''), '');
+      final sanitizedDisplayName = sanitizedName.length > 32 ? sanitizedName.substring(0, 32) : sanitizedName;
 
       if (sanitizedUsername != trimmedUsername) {
         setState(() => _usernameError = 'Username contains invalid characters (only letters, numbers, _ . - allowed)');

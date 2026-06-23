@@ -253,10 +253,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       });
       ref.read(authNotifierProvider.notifier).refreshProfile();
       if (mounted) {
-        if (context.canPop())
+        if (context.canPop()) {
           context.pop();
-        else
+        } else {
           context.go('/profile/settings');
+        }
       }
     } catch (e) {
       if (mounted) {

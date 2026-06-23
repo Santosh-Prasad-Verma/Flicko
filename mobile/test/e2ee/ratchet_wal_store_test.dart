@@ -1,20 +1,18 @@
-import 'dart:convert';
+// ignore_for_file: avoid_print
+
 import 'dart:typed_data';
 import 'dart:math';
 
-import 'package:crypto/crypto.dart';
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_sqlcipher/sqflite.dart' as sqlcipher;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:sqflite_common/sqlite_api.dart';
-import 'package:path/path.dart' as p;
 
 // We need to import the app's files
 // Assuming the package name is flicko or mobile? Let's use relative imports.
-import '../../lib/features/e2ee/data/ratchet_wal_store.dart';
-import '../../lib/features/e2ee/domain/ratchet.dart';
+import 'package:mobile/features/e2ee/data/ratchet_wal_store.dart';
+import 'package:mobile/features/e2ee/domain/ratchet.dart';
 
 class FakeSecureStorage extends FlutterSecureStorage {
   final Map<String, String> _data = {};
@@ -103,7 +101,7 @@ void main() {
     await testDb.close();
   });
 
-  Future<RatchetState> _createDummyState(int ns) async {
+  Future<RatchetState> createDummyState(int ns) async {
     final dhs = await Cryptography.instance.x25519().newKeyPair();
     return RatchetState(
       dhs: dhs,
@@ -117,14 +115,14 @@ void main() {
     );
   }
 
-  Database _openRawDb() {
+  Database openRawDb() {
     return testDb;
   }
 
   test('corrupt WAL entry triggers rollback rather than panic (11.6)', () async {
-    final state1 = await _createDummyState(1);
-    final state2 = await _createDummyState(2);
-    final state3 = await _createDummyState(3);
+    final state1 = await createDummyState(1);
+    final state2 = await createDummyState(2);
+    final state3 = await createDummyState(3);
 
     const convId = 'conv_123';
     
@@ -138,7 +136,7 @@ void main() {
     expect(recovered1!.ns, 3);
 
     // Now corrupt the second entry's JSON
-    final db = _openRawDb();
+    final db = openRawDb();
     await db.execute("UPDATE ratchet_wal SET snapshot_json = 'INVALID_JSON' WHERE seq_no = 1");
 
     // Recover should now roll back state2 and state3, leaving us at state1
@@ -147,7 +145,7 @@ void main() {
     expect(recovered2!.ns, 1);
 
     // Verify the DB actually deleted the corrupted and subsequent entries
-    final dbCheck = _openRawDb();
+    final dbCheck = openRawDb();
     final count = sqlcipher.Sqflite.firstIntValue(await dbCheck.rawQuery("SELECT COUNT(*) FROM ratchet_wal WHERE conversation_id = '$convId'"));
     expect(count, 1);
   });
@@ -161,7 +159,7 @@ void main() {
       
       final states = <RatchetState>[];
       for (int i = 0; i < 5; i++) {
-        final state = await _createDummyState(i);
+        final state = await createDummyState(i);
         states.add(state);
         await store.append(convId, state);
       }
@@ -174,7 +172,7 @@ void main() {
       final corruptionType = rand.nextInt(4);
       final corruptIndex = rand.nextInt(4) + 1; // Corrupt seq_no 1, 2, 3, or 4 (leave 0 alone to have a valid baseline)
       
-      final db = _openRawDb();
+      final db = openRawDb();
       switch (corruptionType) {
         case 0:
           await db.execute("DELETE FROM ratchet_wal WHERE conversation_id = '$convId' AND seq_no = $corruptIndex");
@@ -193,14 +191,14 @@ void main() {
       // Recover and expect it to yield state at (corruptIndex - 1) because seq_no starts at 0
       final recovered = await store.recover(convId);
       if (recovered == null) {
-        final dump = await _openRawDb().query('ratchet_wal');
+        final dump = await openRawDb().query('ratchet_wal');
         print('FAILED on iter=$iter, type=$corruptionType, index=$corruptIndex. DB state: $dump');
       }
       expect(recovered, isNotNull);
       expect(recovered!.ns, states[corruptIndex - 1].ns, reason: 'Failed on iteration $iter, type $corruptionType, seq $corruptIndex');
       
       // Verify db is rolled back
-      final dbCheck = _openRawDb();
+      final dbCheck = openRawDb();
       final count = sqlcipher.Sqflite.firstIntValue(await dbCheck.rawQuery("SELECT COUNT(*) FROM ratchet_wal WHERE conversation_id = '$convId'"));
       expect(count, corruptIndex); // Items up to corruptIndex-1 should remain, so total items is corruptIndex
     }
@@ -211,13 +209,13 @@ void main() {
     
     // We will insert 15 entries. The threshold is 10.
     for (int i = 0; i < 15; i++) {
-      final state = await _createDummyState(i);
+      final state = await createDummyState(i);
       await store.append(convId, state);
     }
     
     // Check count. Should be 10 because GC fires on every append.
-    final db = _openRawDb();
-    final count = sqlcipher.Sqflite.firstIntValue(await db.rawQuery("SELECT COUNT(*) FROM ratchet_wal WHERE conversation_id = '$convId'"));
+    final db = openRawDb();
+    final _count = sqlcipher.Sqflite.firstIntValue(await db.rawQuery("SELECT COUNT(*) FROM ratchet_wal WHERE conversation_id = '$convId'"));
     // Wait, the append fires fire-and-forget GC. Let's wait a bit or invoke GC synchronously for test.
     // GC is internal. Let's just yield a bit to let the microtask finish.
     await Future.delayed(Duration(milliseconds: 50));

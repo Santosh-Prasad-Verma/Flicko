@@ -832,7 +832,7 @@ class ControlButtons extends StatelessWidget {
   final Color? dominantColor;
 
   const ControlButtons(
-    this.audioHandler, {
+    this.audioHandler, {super.key, 
     this.shuffle = false,
     this.miniplayer = false,
     this.buttons = const ['Previous', 'Play/Pause', 'Next'],
@@ -1017,7 +1017,7 @@ class NowPlayingStream extends StatelessWidget {
   final bool head;
   final double headHeight;
 
-  const NowPlayingStream({
+  const NowPlayingStream({super.key, 
     required this.audioHandler,
     this.scrollController,
     this.panelController,
@@ -1685,7 +1685,7 @@ class ArtWorkWidget extends StatefulWidget {
   final double width;
   final AudioPlayerHandler audioHandler;
 
-  const ArtWorkWidget({
+  const ArtWorkWidget({super.key, 
     required this.cardKey,
     required this.mediaItem,
     required this.width,

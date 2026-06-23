@@ -161,7 +161,7 @@ class _BotLevelingSettingsScreenState extends ConsumerState<BotLevelingSettingsS
               subtitle: Text('Award XP for user activity', style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted), fontSize: 12)),
               value: _settings?['enabled'] ?? false,
               onChanged: _toggleEnabled,
-              activeColor: const Color(FlickoColors.blurple),
+              activeThumbColor: const Color(FlickoColors.blurple),
             ),
           ]),
           const SizedBox(height: 24),
@@ -221,7 +221,7 @@ class _BotLevelingSettingsScreenState extends ConsumerState<BotLevelingSettingsS
       subtitle: Text(hint, style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted), fontSize: 12)),
       value: value,
       onChanged: (v) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$label toggle - Coming Soon'))),
-      activeColor: const Color(FlickoColors.blurple),
+      activeThumbColor: const Color(FlickoColors.blurple),
     );
   }
 }

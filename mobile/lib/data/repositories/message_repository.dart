@@ -241,11 +241,11 @@ class MessageRepository {
             final record = payload.eventType == PostgresChangeEvent.delete
                 ? payload.oldRecord
                 : payload.newRecord;
-            if (record != null && (record['channel_id'] == channelId || payload.eventType == PostgresChangeEvent.delete)) {
+            if ((record['channel_id'] == channelId || payload.eventType == PostgresChangeEvent.delete)) {
               developer.log('[SupabaseRealtime] Received messages change event: ${payload.eventType} in channel: $channelId, record: $record');
               onChange(payload.eventType, Map<String, dynamic>.from(record));
             } else {
-              developer.log('[SupabaseRealtime] Messages change event did not match channel filter (channelId: $channelId, record channel_id: ${record?['channel_id']})');
+              developer.log('[SupabaseRealtime] Messages change event did not match channel filter (channelId: $channelId, record channel_id: ${record['channel_id']})');
             }
           },
         )
@@ -258,13 +258,11 @@ class MessageRepository {
             final record = payload.eventType == PostgresChangeEvent.delete
                 ? payload.oldRecord
                 : payload.newRecord;
-            if (record != null) {
-              final messageId = record['message_id'] as String?;
-              if (messageId != null) {
-                onChange(PostgresChangeEvent.update, {'id': messageId});
-              }
+            final messageId = record['message_id'] as String?;
+            if (messageId != null) {
+              onChange(PostgresChangeEvent.update, {'id': messageId});
             }
-          },
+                    },
         )
         .subscribe((status, error) {
           developer.log('[SupabaseRealtime] Subscription status for channel: $channelId changed to: $status, error: $error');

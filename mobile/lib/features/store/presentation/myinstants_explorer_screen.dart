@@ -25,7 +25,7 @@ class _MyInstantsExplorerScreenState extends ConsumerState<MyInstantsExplorerScr
   
   List<SoundboardSound> _sounds = [];
   Set<String> _downloadedSoundIds = {};
-  Set<String> _downloadingIds = {};
+  final Set<String> _downloadingIds = {};
   
   bool _isLoading = true;
   String? _playingId;

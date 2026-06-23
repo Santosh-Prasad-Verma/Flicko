@@ -38,7 +38,7 @@ class SharedWhiteboard extends StatefulWidget {
 }
 
 class _SharedWhiteboardState extends State<SharedWhiteboard> {
-  List<PathData> _paths = [];
+  final List<PathData> _paths = [];
   List<Offset> _currentPath = [];
   Color _selectedColor = Colors.white;
   double _brushSize = 4.0;

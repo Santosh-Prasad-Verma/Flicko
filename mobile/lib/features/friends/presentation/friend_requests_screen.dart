@@ -19,7 +19,7 @@ class FriendRequestsScreen extends ConsumerStatefulWidget {
 class _FriendRequestsScreenState extends ConsumerState<FriendRequestsScreen> {
   final _searchController = TextEditingController();
   FriendTab _activeTab = FriendTab.incoming;
-  bool _isLoading = false;
+  final bool _isLoading = false;
 
   // Mock data
   final List<FriendRequest> _incomingRequests = [

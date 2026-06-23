@@ -31,6 +31,8 @@ import 'package:logging/logging.dart';
 import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 
 class PlaylistScreen extends StatefulWidget {
+  const PlaylistScreen({super.key});
+
   @override
   _PlaylistScreenState createState() => _PlaylistScreenState();
 }

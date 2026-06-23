@@ -53,15 +53,15 @@ class Avatar extends StatelessWidget {
   Color get _statusColor {
     switch (status) {
       case StatusIndicator.online:
-        return const Color(0x23A559);
+        return const Color(0x0023a559);
       case StatusIndicator.idle:
-        return const Color(0xF0B232);
+        return const Color(0x00f0b232);
       case StatusIndicator.dnd:
-        return const Color(0xF23F43);
+        return const Color(0x00f23f43);
       case StatusIndicator.offline:
-        return const Color(0x80848E);
+        return const Color(0x0080848e);
       default:
-        return const Color(0x80848E);
+        return const Color(0x0080848e);
     }
   }
 

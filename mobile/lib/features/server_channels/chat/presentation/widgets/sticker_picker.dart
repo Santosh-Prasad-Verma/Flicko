@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/core/constants/stickers_list.dart';
 import 'package:mobile/features/store/data/store_service.dart';
 import 'package:mobile/features/store/data/equipment_service.dart';
@@ -72,7 +71,7 @@ class _StickerPickerState extends ConsumerState<StickerPicker>
   ];
 
   /// 246 premium stickers streamed from raw GitHub CDN
-  static late final List<StickerItem> _handyStickers = handyStickersList
+  static final List<StickerItem> _handyStickers = handyStickersList
       .asMap()
       .entries
       .map((entry) => StickerItem(

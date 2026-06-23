@@ -373,7 +373,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
     // 1. Listening state
     setState(() {
       _currentState = AuraVoiceState.listening;
-      _subtitleText = preSetText == null ? "Listening..." : preSetText;
+      _subtitleText = preSetText ?? "Listening...";
       _currentAmplitude = 0.0;
     });
 

@@ -21,7 +21,7 @@ class AuraDashboardScreen extends ConsumerStatefulWidget {
 class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
     with SingleTickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
+  final String _searchQuery = '';
   late AnimationController _bgAnimationController;
 
   @override

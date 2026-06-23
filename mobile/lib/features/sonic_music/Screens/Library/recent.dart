@@ -27,6 +27,8 @@ import 'package:mobile/features/sonic_music/localization/app_localizations.dart'
 import 'package:hive/hive.dart';
 
 class RecentlyPlayed extends StatefulWidget {
+  const RecentlyPlayed({super.key});
+
   @override
   _RecentlyPlayedState createState() => _RecentlyPlayedState();
 }

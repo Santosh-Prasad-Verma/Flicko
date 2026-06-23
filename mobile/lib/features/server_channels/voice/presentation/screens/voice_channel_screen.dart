@@ -506,18 +506,14 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
   // ══════════════════════════════════════════════════════════════════════════
   Widget _buildGlassParticipantCard(Participant participant, bool isSpeaking) {
     Map<String, dynamic>? metadata;
-    if (participant.metadata != null) {
-      final rawMeta = participant.metadata;
-      if (rawMeta is Map) {
-        metadata = Map<String, dynamic>.from(rawMeta);
-      } else if (rawMeta is String && rawMeta.isNotEmpty) {
-        try {
-          final decoded = jsonDecode(rawMeta);
-          if (decoded is Map) {
-            metadata = Map<String, dynamic>.from(decoded);
-          }
-        } catch (_) {}
-      }
+    final rawMeta = participant.metadata;
+    if (rawMeta != null && rawMeta.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(rawMeta);
+        if (decoded is Map) {
+          metadata = Map<String, dynamic>.from(decoded);
+        }
+      } catch (_) {}
     }
     final nameFromMeta = metadata?['username'] as String?;
     final displayName =

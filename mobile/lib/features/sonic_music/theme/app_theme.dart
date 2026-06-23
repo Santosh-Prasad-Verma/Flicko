@@ -68,7 +68,6 @@ class AppTheme {
       ),
       disabledColor: Colors.grey[600],
       brightness: Brightness.light,
-      indicatorColor: currentTheme.currentColor(),
       progressIndicatorTheme: const ProgressIndicatorThemeData()
           .copyWith(color: currentTheme.currentColor()),
       iconTheme: IconThemeData(
@@ -80,7 +79,7 @@ class AppTheme {
             primary: Colors.grey[800],
             brightness: Brightness.light,
             secondary: currentTheme.currentColor(),
-          ),
+          ), tabBarTheme: TabBarThemeData(indicatorColor: currentTheme.currentColor()),
     );
   }
 
@@ -115,7 +114,7 @@ class AppTheme {
       visualDensity: VisualDensity.adaptivePlatformDensity,
       brightness: Brightness.dark,
       appBarTheme: AppBarTheme(
-        color: currentTheme.getCanvasColor(),
+        backgroundColor: currentTheme.getCanvasColor(),
         foregroundColor: Colors.white,
         systemOverlayStyle: SystemUiOverlayStyle.light.copyWith(
           statusBarColor: Colors.transparent,
@@ -133,7 +132,6 @@ class AppTheme {
           borderRadius: BorderRadius.circular(7.0),
         ),
       ),
-      dialogBackgroundColor: currentTheme.getCardColor(),
       progressIndicatorTheme: const ProgressIndicatorThemeData()
           .copyWith(color: currentTheme.currentColor()),
       iconTheme: const IconThemeData(
@@ -141,12 +139,11 @@ class AppTheme {
         opacity: 1.0,
         size: 24.0,
       ),
-      indicatorColor: currentTheme.currentColor(),
       colorScheme: Theme.of(context).colorScheme.copyWith(
             primary: Colors.white,
             secondary: currentTheme.currentColor(),
             brightness: Brightness.dark,
-          ),
+          ), dialogTheme: DialogThemeData(backgroundColor: currentTheme.getCardColor()), tabBarTheme: TabBarThemeData(indicatorColor: currentTheme.currentColor()),
     );
   }
 }

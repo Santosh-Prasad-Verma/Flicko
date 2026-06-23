@@ -133,7 +133,7 @@ class _EqualizerTab extends ConsumerWidget {
               Switch(
                 value: effects.eqEnabled,
                 onChanged: (v) => ref.read(audioEffectsProvider.notifier).setEqEnabled(v),
-                activeColor: const Color(0xFF52B788),
+                activeThumbColor: const Color(0xFF52B788),
               ),
             ],
           ),

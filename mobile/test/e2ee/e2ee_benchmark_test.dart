@@ -5,6 +5,7 @@
 /// - Encrypt / Decrypt (< 5ms)
 /// - DH ratchet step (< 8ms)
 /// - 1MB backup chunk encrypt (< 50ms)
+library;
 import 'dart:typed_data';
 import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';

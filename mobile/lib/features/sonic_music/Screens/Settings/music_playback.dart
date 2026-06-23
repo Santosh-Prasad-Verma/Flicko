@@ -10,7 +10,7 @@ import 'package:hive/hive.dart';
 
 class MusicPlaybackPage extends StatefulWidget {
   final Function? callback;
-  const MusicPlaybackPage({this.callback});
+  const MusicPlaybackPage({super.key, this.callback});
 
   @override
   State<MusicPlaybackPage> createState() => _MusicPlaybackPageState();

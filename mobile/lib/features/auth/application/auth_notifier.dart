@@ -39,16 +39,16 @@ class AuthNotifier extends Notifier<AuthState> {
   void _init() {
     _repository.authStateChanges.listen((data) async {
       final session = data.session;
-      if (session != null && session.user != null) {
+      if (session != null) {
         try {
-          final profile = await _repository.getUserProfile(session.user!.id);
+          final profile = await _repository.getUserProfile(session.user.id);
           state = AuthState.authenticated(
-            authUser: session.user!,
+            authUser: session.user,
             userProfile: profile,
           );
         } catch (e) {
           state = AuthState.authenticated(
-            authUser: session.user!,
+            authUser: session.user,
           );
         }
         _bootstrapE2EE();

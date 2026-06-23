@@ -17,15 +17,14 @@ import 'dart:typed_data';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sqflite_common/sqlite_api.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
-import '../../lib/features/e2ee/application/e2ee_session.dart';
-import '../../lib/features/e2ee/application/group_chat_session.dart';
-import '../../lib/features/e2ee/data/e2ee_repository.dart';
-import '../../lib/features/e2ee/data/ratchet_wal_store.dart';
-import '../../lib/features/e2ee/data/secure_keystore.dart';
-import '../../lib/features/e2ee/domain/e2ee_models.dart' as models;
+import 'package:mobile/features/e2ee/application/e2ee_session.dart';
+import 'package:mobile/features/e2ee/application/group_chat_session.dart';
+import 'package:mobile/features/e2ee/data/e2ee_repository.dart';
+import 'package:mobile/features/e2ee/data/ratchet_wal_store.dart';
+import 'package:mobile/features/e2ee/data/secure_keystore.dart';
+import 'package:mobile/features/e2ee/domain/e2ee_models.dart' as models;
 
 // ── Fakes (mirror those in e2ee_session_v2_test.dart) ────────────────────────
 

@@ -28,7 +28,7 @@ import 'package:on_audio_query/on_audio_query.dart';
 class LocalPlaylists extends StatefulWidget {
   final List<PlaylistModel> playlistDetails;
   final OfflineAudioQuery offlineAudioQuery;
-  const LocalPlaylists({
+  const LocalPlaylists({super.key, 
     required this.playlistDetails,
     required this.offlineAudioQuery,
   });

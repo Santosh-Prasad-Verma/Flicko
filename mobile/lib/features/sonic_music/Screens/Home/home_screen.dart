@@ -17,16 +17,12 @@
  * Copyright (c) 2021-2023, Ankit Sangwan
  */
 
-import 'dart:math';
 
-import 'package:mobile/features/sonic_music/CustomWidgets/drawer.dart';
-import 'package:mobile/features/sonic_music/CustomWidgets/textinput_dialog.dart';
 import 'package:mobile/features/sonic_music/Screens/Home/saavn.dart';
 import 'package:mobile/features/sonic_music/Screens/Search/search.dart';
 import 'package:mobile/features/sonic_music/Screens/Library/liked.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:mobile/features/sonic_music/localization/app_localizations.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';

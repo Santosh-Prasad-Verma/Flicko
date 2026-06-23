@@ -142,7 +142,9 @@ class ServersNotifier extends Notifier<ServersState> {
   /// Pass `null` to switch back to the "Home/DMs" view.
   Future<void> selectServer(String? serverId) async {
     if (state.selectedServerId == serverId &&
-        state.selectedServerChannels.isNotEmpty) return;
+        state.selectedServerChannels.isNotEmpty) {
+      return;
+    }
 
     state = state.copyWith(
       selectedServerId: serverId,

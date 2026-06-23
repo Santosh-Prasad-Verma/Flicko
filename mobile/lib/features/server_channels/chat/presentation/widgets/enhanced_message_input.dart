@@ -16,7 +16,6 @@ import 'sticker_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/features/store/data/badge_alchemy_service.dart';
 import 'package:mobile/data/repositories/server_repository.dart';
-import 'package:mobile/data/models/user_model.dart';
 
 /// Enhanced MessageInput with Emoji/GIF pickers and Voice Recorder
 class EnhancedMessageInput extends ConsumerStatefulWidget {

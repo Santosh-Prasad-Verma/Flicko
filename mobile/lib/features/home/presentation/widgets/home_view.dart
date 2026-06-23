@@ -39,7 +39,7 @@ class HomeView extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                ...servers.map((s) => _ServerListRow(server: s)).toList(),
+                ...servers.map((s) => _ServerListRow(server: s)),
               ] else if (isLoading) ...[
                 const Center(
                   child: CircularProgressIndicator(color: Color(FlickoColors.blurple)),

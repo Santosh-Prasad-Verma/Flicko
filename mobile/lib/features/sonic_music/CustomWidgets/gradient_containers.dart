@@ -25,7 +25,7 @@ import 'package:get_it/get_it.dart';
 class GradientContainer extends StatefulWidget {
   final Widget? child;
   final bool? opacity;
-  const GradientContainer({required this.child, this.opacity});
+  const GradientContainer({super.key, required this.child, this.opacity});
   @override
   _GradientContainerState createState() => _GradientContainerState();
 }
@@ -61,7 +61,7 @@ class BottomGradientContainer extends StatefulWidget {
   final EdgeInsetsGeometry? margin;
   final EdgeInsetsGeometry? padding;
   final BorderRadiusGeometry? borderRadius;
-  const BottomGradientContainer({
+  const BottomGradientContainer({super.key, 
     required this.child,
     this.margin,
     this.padding,
@@ -122,7 +122,7 @@ class GradientCard extends StatefulWidget {
   final List<Color>? gradientColors;
   final AlignmentGeometry? gradientBegin;
   final AlignmentGeometry? gradientEnd;
-  const GradientCard({
+  const GradientCard({super.key, 
     required this.child,
     this.radius,
     this.elevation,

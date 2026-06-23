@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import '../../lib/features/e2ee/application/e2ee_session.dart';
-import '../../lib/features/e2ee/domain/identity_verification.dart';
-import '../../lib/features/e2ee/presentation/identity_change_banner.dart';
+import 'package:mobile/features/e2ee/application/e2ee_session.dart';
+import 'package:mobile/features/e2ee/domain/identity_verification.dart';
+import 'package:mobile/features/e2ee/presentation/identity_change_banner.dart';
 
 /// Minimal stub: only the methods the banner actually calls.
 /// Avoids the full E2EESession ctor (keystore + repo + WAL).

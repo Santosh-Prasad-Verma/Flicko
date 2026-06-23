@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 
 import 'package:audiotagger/models/audiofile.dart';
 import 'package:audiotagger/models/tag.dart';
@@ -20,25 +19,27 @@ void main() {
               args.containsKey("artwork")) {
             return true;
           } else {
-            throw new Exception('Missing parameter');
+            throw Exception('Missing parameter');
           }
         case 'readTags':
-          if (args.containsKey("path"))
+          if (args.containsKey("path")) {
             return <String, String>{
               "title": "Title of the song",
               "artist": "A fake artist",
               "album": "A fake album",
               "year": "2020",
             };
-          else
-            throw new Exception('Missing parameter');
+          } else {
+            throw Exception('Missing parameter');
+          }
         case 'readArtwork':
-          if (args.containsKey("path"))
+          if (args.containsKey("path")) {
             return Uint8List(2048);
-          else
-            throw new Exception('Missing parameter');
+          } else {
+            throw Exception('Missing parameter');
+          }
         default:
-          throw new Exception('Method not implemented');
+          throw Exception('Method not implemented');
       }
     });
   });
@@ -49,7 +50,7 @@ void main() {
 
   group("writing", () {
     test('writeTagsFromMap', () async {
-      final tagger = new Audiotagger();
+      final tagger = Audiotagger();
 
       final path = "storage/emulated/0/Music/test.mp3";
       final tags = <String, String>{
@@ -68,7 +69,7 @@ void main() {
     });
 
     test('writeTags', () async {
-      final tagger = new Audiotagger();
+      final tagger = Audiotagger();
 
       final path = "storage/emulated/0/Music/test.mp3";
       final tags = <String, String>{
@@ -90,7 +91,7 @@ void main() {
 
   group("reading", () {
     test('readTagsAsMap', () async {
-      final tagger = new Audiotagger();
+      final tagger = Audiotagger();
 
       final path = "storage/emulated/0/Music/test.mp3";
       final tagMap = <String, String>{
@@ -108,7 +109,7 @@ void main() {
     });
 
     test('readTags', () async {
-      final tagger = new Audiotagger();
+      final tagger = Audiotagger();
 
       final path = "storage/emulated/0/Music/test.mp3";
       final tagMap = <String, String>{
@@ -127,7 +128,7 @@ void main() {
     });
 
     test('readArtwork', () async {
-      final tagger = new Audiotagger();
+      final tagger = Audiotagger();
 
       final path = "storage/emulated/0/Music/test.mp3";
 
@@ -141,7 +142,7 @@ void main() {
     });
 
     test('readAudioFileAsMap', () async {
-      final tagger = new Audiotagger();
+      final tagger = Audiotagger();
 
       final path = "storage/emulated/0/Music/test.mp3";
       final audiofileMap = <String, dynamic>{
@@ -162,7 +163,7 @@ void main() {
     });
 
     test('readAudioFile', () async {
-      final tagger = new Audiotagger();
+      final tagger = Audiotagger();
 
       final path = "storage/emulated/0/Music/test.mp3";
       final audiofileMap = <String, dynamic>{

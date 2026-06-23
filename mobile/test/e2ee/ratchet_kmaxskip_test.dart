@@ -16,7 +16,7 @@ import 'dart:typed_data';
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import '../../lib/features/e2ee/domain/ratchet.dart';
+import 'package:mobile/features/e2ee/domain/ratchet.dart';
 
 /// Bootstrap a fresh sender/receiver pair sharing a static root key. We
 /// don't need X3DH for these tests — the property under test is in the

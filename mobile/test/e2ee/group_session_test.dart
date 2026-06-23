@@ -11,8 +11,8 @@ import 'dart:typed_data';
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import '../../lib/features/e2ee/domain/group_session.dart';
-import '../../lib/features/e2ee/domain/multi_device.dart';
+import 'package:mobile/features/e2ee/domain/group_session.dart';
+import 'package:mobile/features/e2ee/domain/multi_device.dart';
 
 void main() {
   group('GroupSession (sender keys)', () {

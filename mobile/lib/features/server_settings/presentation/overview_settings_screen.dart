@@ -246,7 +246,7 @@ class _OverviewSettingsScreenState extends ConsumerState<OverviewSettingsScreen>
           SnackBar(content: Text('$label - Coming Soon')),
         );
       },
-      activeColor: const Color(FlickoColors.blurple),
+      activeThumbColor: const Color(FlickoColors.blurple),
     );
   }
 

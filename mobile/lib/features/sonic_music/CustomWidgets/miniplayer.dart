@@ -19,7 +19,6 @@
 
 import 'dart:ui' as ui;
 import 'package:audio_service/audio_service.dart';
-import 'package:mobile/features/sonic_music/CustomWidgets/gradient_containers.dart';
 import 'package:mobile/features/sonic_music/CustomWidgets/image_card.dart';
 import 'package:mobile/features/sonic_music/Screens/Player/audioplayer.dart';
 import 'package:flutter/material.dart';
@@ -64,7 +63,7 @@ class _MiniPlayerState extends State<MiniPlayer> {
           )?.toList() as List;
 
           final bool isLocal =
-              mediaItem?.artUri?.toString().startsWith('file:') ?? false;
+              mediaItem.artUri?.toString().startsWith('file:') ?? false;
 
           final bool useDense = Hive.box('settings').get(
                 'useDenseMini',
@@ -76,32 +75,28 @@ class _MiniPlayerState extends State<MiniPlayer> {
             key: const Key('miniplayer'),
             direction: DismissDirection.vertical,
             confirmDismiss: (DismissDirection direction) {
-              if (mediaItem != null) {
-                if (direction == DismissDirection.down) {
-                  audioHandler.stop();
-                } else {
-                  Navigator.push(
-                    context,
-                    PageRouteBuilder(
-                      opaque: false,
-                      pageBuilder: (_, __, ___) => const PlayScreen(),
-                    ),
-                  );
-                }
+              if (direction == DismissDirection.down) {
+                audioHandler.stop();
+              } else {
+                Navigator.push(
+                  context,
+                  PageRouteBuilder(
+                    opaque: false,
+                    pageBuilder: (_, __, ___) => const PlayScreen(),
+                  ),
+                );
               }
-              return Future.value(false);
+                          return Future.value(false);
             },
             child: Dismissible(
-              key: Key(mediaItem?.id ?? 'nothingPlaying'),
+              key: Key(mediaItem.id ?? 'nothingPlaying'),
               confirmDismiss: (DismissDirection direction) {
-                if (mediaItem != null) {
-                  if (direction == DismissDirection.startToEnd) {
-                    audioHandler.skipToPrevious();
-                  } else {
-                    audioHandler.skipToNext();
-                  }
+                if (direction == DismissDirection.startToEnd) {
+                  audioHandler.skipToPrevious();
+                } else {
+                  audioHandler.skipToNext();
                 }
-                return Future.value(false);
+                              return Future.value(false);
               },
               child: Container(
                 margin: const EdgeInsets.symmetric(
@@ -137,17 +132,17 @@ class _MiniPlayerState extends State<MiniPlayer> {
                           context: context,
                           preferredMiniButtons: preferredMiniButtons,
                           useDense: useDense,
-                          title: mediaItem?.title ?? '',
-                          subtitle: mediaItem?.artist ?? '',
+                          title: mediaItem.title ?? '',
+                          subtitle: mediaItem.artist ?? '',
                           imagePath: (isLocal
-                                  ? mediaItem?.artUri?.toFilePath()
-                                  : mediaItem?.artUri?.toString()) ??
+                                  ? mediaItem.artUri?.toFilePath()
+                                  : mediaItem.artUri?.toString()) ??
                               '',
                           isLocalImage: isLocal,
                           isDummy: mediaItem == null,
                         ),
                         positionSlider(
-                          mediaItem?.duration?.inSeconds.toDouble(),
+                          mediaItem.duration?.inSeconds.toDouble(),
                         ),
                       ],
                     ),

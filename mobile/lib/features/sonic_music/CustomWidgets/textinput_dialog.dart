@@ -7,7 +7,7 @@ class TextInputDialog extends StatelessWidget {
   final TextInputType keyboardType;
   final Function(String, BuildContext) onSubmitted;
 
-  const TextInputDialog({
+  const TextInputDialog({super.key, 
     required this.title,
     this.initialText,
     required this.keyboardType,

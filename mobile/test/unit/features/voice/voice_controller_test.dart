@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:audio_session/audio_session.dart';
 import 'package:mobile/features/voice/presentation/controllers/voice_controller.dart';
-import 'package:mobile/features/voice/presentation/controllers/voice_state.dart';
 import 'package:mobile/features/voice/data/voice_repository.dart';
 import 'package:mocktail/mocktail.dart';
 

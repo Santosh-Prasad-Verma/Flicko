@@ -27,6 +27,8 @@ import 'package:mobile/features/sonic_music/localization/app_localizations.dart'
 import 'package:get_it/get_it.dart';
 
 class NowPlaying extends StatefulWidget {
+  const NowPlaying({super.key});
+
   @override
   _NowPlayingState createState() => _NowPlayingState();
 }

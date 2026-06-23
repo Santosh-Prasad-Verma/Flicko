@@ -17,28 +17,16 @@
  * Copyright (c) 2021-2023, Ankit Sangwan
  */
 
-import 'dart:io';
 import 'dart:math';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:mobile/features/sonic_music/APIs/api.dart';
-import 'package:mobile/features/sonic_music/CustomWidgets/collage.dart';
-import 'package:mobile/features/sonic_music/CustomWidgets/horizontal_albumlist.dart';
-import 'package:mobile/features/sonic_music/CustomWidgets/horizontal_albumlist_separated.dart';
-import 'package:mobile/features/sonic_music/CustomWidgets/image_card.dart';
-import 'package:mobile/features/sonic_music/CustomWidgets/like_button.dart';
-import 'package:mobile/features/sonic_music/CustomWidgets/on_hover.dart';
 import 'package:mobile/features/sonic_music/CustomWidgets/snackbar.dart';
-import 'package:mobile/features/sonic_music/CustomWidgets/song_tile_trailing_menu.dart';
 import 'package:mobile/features/sonic_music/Helpers/extensions.dart';
 import 'package:mobile/features/sonic_music/Helpers/format.dart';
-import 'package:mobile/features/sonic_music/Models/image_quality.dart';
 import 'package:mobile/features/sonic_music/Screens/Common/song_list.dart';
-import 'package:mobile/features/sonic_music/Screens/Library/liked.dart';
-import 'package:mobile/features/sonic_music/Screens/Search/artists.dart';
 import 'package:mobile/features/sonic_music/Services/player_service.dart';
 import 'package:flutter/material.dart';
-import 'package:mobile/features/sonic_music/localization/app_localizations.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:logging/logging.dart';
 
@@ -120,7 +108,7 @@ class _SaavnHomePageState extends State<SaavnHomePage>
       default:
         final List? artistList = item['more_info']?['artistMap']?['artists'] as List?;
         final artists = artistList?.map((artist) => artist['name']).toList();
-        return artists?.join(', ')?.toString().unescape() ?? '';
+        return artists?.join(', ').toString().unescape() ?? '';
     }
   }
 

@@ -463,7 +463,7 @@ class _BotsSettingsScreenState extends ConsumerState<BotsSettingsScreen> {
                 Switch(
                   value: bot.enabled,
                   onChanged: (value) => _toggleBot(bot, value),
-                  activeColor: const Color(FlickoColors.blurple),
+                  activeThumbColor: const Color(FlickoColors.blurple),
                 ),
               ],
             ),

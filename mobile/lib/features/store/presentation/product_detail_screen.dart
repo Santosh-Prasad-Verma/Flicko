@@ -7,7 +7,6 @@ import 'package:mobile/features/store/data/store_service.dart';
 import 'package:mobile/features/store/data/wishlist_service.dart';
 import 'package:mobile/features/store/data/store_audio_preview_service.dart';
 import 'package:mobile/features/store/data/store_theme_service.dart';
-import 'package:mobile/features/store/presentation/widgets/product_preview_widget.dart';
 
 class ProductDetailScreen extends ConsumerWidget {
   final String productId;

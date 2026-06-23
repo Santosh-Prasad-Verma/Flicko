@@ -6,7 +6,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/features/store/data/store_service.dart';
 import 'package:mobile/features/store/data/equipment_service.dart';
-import 'package:mobile/features/store/data/warp_service.dart';
 import 'package:mobile/features/store/data/wishlist_service.dart';
 import 'package:mobile/features/store/data/store_theme_service.dart';
 import 'package:mobile/core/services/flicko_haptics.dart';
@@ -29,7 +28,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
   int _selectedCategory = 0;
   String _searchQuery = '';
   bool _showSearch = false;
-  bool _showFilters = false;
+  final bool _showFilters = false;
   String _sortBy = 'newest'; // newest, price_low, price_high, popular
   final _searchController = TextEditingController();
 
@@ -400,7 +399,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                     style: GoogleFonts.inter(color: _muted, fontSize: 8, fontWeight: FontWeight.bold),
                   ),
                   Text(
-                    '${ownedCount} Items Collected',
+                    '$ownedCount Items Collected',
                     style: GoogleFonts.inter(color: _muted, fontSize: 8, fontWeight: FontWeight.bold),
                   ),
                 ],
@@ -1878,7 +1877,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                   border: Border.all(color: Colors.black, width: 1.5),
                   boxShadow: const [
                     BoxShadow(color: Color(0xFFFF007F),
-                      blurRadius: 14, offset: const Offset(0, 4),
+                      blurRadius: 14, offset: Offset(0, 4),
                     ),
                   ],
                 ),

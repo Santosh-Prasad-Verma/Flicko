@@ -183,7 +183,7 @@ class _BotWelcomeSettingsScreenState extends ConsumerState<BotWelcomeSettingsScr
               ),
               value: _settings?['enabled'] ?? false,
               onChanged: _toggleEnabled,
-              activeColor: const Color(FlickoColors.blurple),
+              activeThumbColor: const Color(FlickoColors.blurple),
             ),
           ]),
 
@@ -308,7 +308,7 @@ class _BotWelcomeSettingsScreenState extends ConsumerState<BotWelcomeSettingsScr
           SnackBar(content: Text('$label toggle - Coming Soon')),
         );
       },
-      activeColor: const Color(FlickoColors.blurple),
+      activeThumbColor: const Color(FlickoColors.blurple),
     );
   }
 }

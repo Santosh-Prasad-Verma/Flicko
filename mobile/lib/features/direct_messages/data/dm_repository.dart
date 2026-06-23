@@ -387,10 +387,8 @@ class DMRepository {
             final record = payload.eventType == PostgresChangeEvent.delete
                 ? payload.oldRecord
                 : payload.newRecord;
-            if (record != null) {
-              onUpdate(payload.eventType, Map<String, dynamic>.from(record));
-            }
-          },
+            onUpdate(payload.eventType, Map<String, dynamic>.from(record));
+                    },
         )
         .onPostgresChanges(
           event: PostgresChangeEvent.all,
@@ -406,10 +404,8 @@ class DMRepository {
             final record = payload.eventType == PostgresChangeEvent.delete
                 ? payload.oldRecord
                 : payload.newRecord;
-            if (record != null) {
-              onUpdate(payload.eventType, Map<String, dynamic>.from(record));
-            }
-          },
+            onUpdate(payload.eventType, Map<String, dynamic>.from(record));
+                    },
         )
         .onPostgresChanges(
           event: PostgresChangeEvent.all,
@@ -420,10 +416,8 @@ class DMRepository {
             final record = payload.eventType == PostgresChangeEvent.delete
                 ? payload.oldRecord
                 : payload.newRecord;
-            if (record != null) {
-              onUpdate(payload.eventType, Map<String, dynamic>.from(record));
-            }
-          },
+            onUpdate(payload.eventType, Map<String, dynamic>.from(record));
+                    },
         )
         .subscribe((status, error) {
           developer.log('[SupabaseRealtime] Subscription status for targeted DM convo: $status, error: $error');

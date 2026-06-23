@@ -19,7 +19,7 @@ class _SoundboardCreatorStudioState extends ConsumerState<SoundboardCreatorStudi
   bool _isRecording = false;
   bool _hasRecorded = false;
   double _recordingDuration = 0.0;
-  List<double> _liveWaveform = [];
+  final List<double> _liveWaveform = [];
   double _startTrim = 0.1;
   double _endTrim = 0.9;
   

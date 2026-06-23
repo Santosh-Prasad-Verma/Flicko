@@ -35,7 +35,7 @@ class SeekBar extends StatefulWidget {
   final ValueChanged<Duration>? onChanged;
   final ValueChanged<Duration>? onChangeEnd;
 
-  const SeekBar({
+  const SeekBar({super.key, 
     required this.duration,
     required this.position,
     required this.offline,

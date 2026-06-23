@@ -9,7 +9,7 @@ import 'package:hive/hive.dart';
 
 class AppUIPage extends StatefulWidget {
   final Function? callback;
-  const AppUIPage({this.callback});
+  const AppUIPage({super.key, this.callback});
 
   @override
   State<AppUIPage> createState() => _AppUIPageState();

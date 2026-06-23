@@ -51,7 +51,7 @@ class _EqualizerState extends State<Equalizer> {
             SwitchListTile(
               title: Text(AppLocalizations.of(context)!.equalizer),
               value: enabled,
-              activeColor: Theme.of(context).colorScheme.secondary,
+              activeThumbColor: Theme.of(context).colorScheme.secondary,
               onChanged: (value) {
                 enabled = value;
                 Hive.box('settings').put('setEqualizer', value);
@@ -75,7 +75,7 @@ class _EqualizerState extends State<Equalizer> {
 
 class EqualizerControls extends StatefulWidget {
   final AudioPlayerHandler audioHandler;
-  const EqualizerControls({required this.audioHandler});
+  const EqualizerControls({super.key, required this.audioHandler});
   @override
   _EqualizerControlsState createState() => _EqualizerControlsState();
 }

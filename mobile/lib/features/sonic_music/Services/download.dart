@@ -394,8 +394,8 @@ class Download with ChangeNotifier {
           stream = YouTubeServices.instance.getStreamClient(streamInfo);
         } catch (e) {
           Logger.root.severe('youtube_explode failed to get stream, trying fallback to getSongData: $e');
-          final Map? ytData = await YtMusicService().getSongData(videoId: data['id'].toString());
-          if (ytData != null && ytData['url'] != null && ytData['url'].toString().isNotEmpty) {
+          final Map ytData = await YtMusicService().getSongData(videoId: data['id'].toString());
+          if (ytData['url'] != null && ytData['url'].toString().isNotEmpty) {
             kUrl = ytData['url'].toString();
             Logger.root.info('Fallback URL found: $kUrl');
             client = Client();
@@ -433,8 +433,8 @@ class Download with ChangeNotifier {
               stream = YouTubeServices.instance.getStreamClient(streamInfo);
             } catch (ye) {
               Logger.root.severe('youtube_explode failed on download fallback, trying getSongData: $ye');
-              final Map? ytData = await YtMusicService().getSongData(videoId: videoId);
-              if (ytData != null && ytData['url'] != null && ytData['url'].toString().isNotEmpty) {
+              final Map ytData = await YtMusicService().getSongData(videoId: videoId);
+              if (ytData['url'] != null && ytData['url'].toString().isNotEmpty) {
                 kUrl = ytData['url'].toString();
                 client = Client();
                 final response = await client.send(Request('GET', Uri.parse(kUrl)));
@@ -592,11 +592,9 @@ class Download with ChangeNotifier {
                 final file = File(filepath!);
                 if (file.existsSync()) file.deleteSync();
               }
-              if (filepath2 != null) {
-                final file2 = File(filepath2!);
-                if (file2.existsSync()) file2.deleteSync();
-              }
-            }
+              final file2 = File(filepath2);
+              if (file2.existsSync()) file2.deleteSync();
+                        }
           } catch (e) {
             Logger.root.severe('Error finalizing download: $e');
             _handleDownloadError(context, filepath, filepath2, e.toString());
@@ -615,13 +613,13 @@ class Download with ChangeNotifier {
     notifyListeners();
     try {
       if (filepath != null) {
-        final file = File(filepath!);
+        final file = File(filepath);
         if (file.existsSync()) {
           file.deleteSync();
         }
       }
       if (filepath2 != null) {
-        final file2 = File(filepath2!);
+        final file2 = File(filepath2);
         if (file2.existsSync()) {
           file2.deleteSync();
         }

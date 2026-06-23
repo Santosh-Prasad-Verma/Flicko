@@ -127,7 +127,7 @@ class UserAvatar extends ConsumerWidget {
     if (hasDecoration) {
       return AnimatedAvatarDecoration(
         size: size,
-        decorationId: activeDec!,
+        decorationId: activeDec,
         child: innerAvatar,
       );
     }
@@ -239,7 +239,7 @@ class _AnimatedAvatarDecorationState extends State<AnimatedAvatarDecoration> wit
     return AnimatedBuilder(
       animation: _animationController,
       builder: (ctx, child) {
-        return Container(
+        return SizedBox(
           width: widget.size,
           height: widget.size,
           child: Stack(

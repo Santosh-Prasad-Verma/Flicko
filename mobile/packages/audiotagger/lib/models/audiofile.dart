@@ -37,18 +37,18 @@ class AudioFile {
 
   /// Create an `AudioFile` object from a `Map` of the infos.
   AudioFile.fromMap(Map map) {
-    this.length = map["length"];
-    this.bitRate = map["bitRate"];
-    this.channels = map["channels"];
-    this.encodingType = map["encodingType"];
-    this.format = map["format"];
-    this.sampleRate = map["sampleRate"];
-    this.isVariableBitRate = map["isVariableBitRate"];
+    length = map["length"];
+    bitRate = map["bitRate"];
+    channels = map["channels"];
+    encodingType = map["encodingType"];
+    format = map["format"];
+    sampleRate = map["sampleRate"];
+    isVariableBitRate = map["isVariableBitRate"];
   }
 
   /// Get a `Map` of the infos from an `AudioFile` object.
-  Map<String, dynamic?> toMap() {
-    return <String, dynamic?>{
+  Map<String, dynamic> toMap() {
+    return <String, dynamic>{
       "length": length,
       "bitRate": bitRate,
       "channels": channels,
