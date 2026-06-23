@@ -215,7 +215,6 @@ void main() {
     
     // Check count. Should be 10 because GC fires on every append.
     final db = openRawDb();
-    final _count = sqlcipher.Sqflite.firstIntValue(await db.rawQuery("SELECT COUNT(*) FROM ratchet_wal WHERE conversation_id = '$convId'"));
     // Wait, the append fires fire-and-forget GC. Let's wait a bit or invoke GC synchronously for test.
     // GC is internal. Let's just yield a bit to let the microtask finish.
     await Future.delayed(Duration(milliseconds: 50));

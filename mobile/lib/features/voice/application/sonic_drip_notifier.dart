@@ -380,7 +380,7 @@ class SonicDripNotifier extends Notifier<SonicDripState> {
     // Persist (fire-and-forget).
     SharedPreferences.getInstance()
       .then((p) => p.setDouble(_volumeKey, clamped))
-      .catchError((_) {});
+      .catchError((_) => false);
   }
 
   void toggleShuffle() {

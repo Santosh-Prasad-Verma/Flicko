@@ -166,7 +166,7 @@ void main() {
         final salt = randomBytes(16);
         final plaintext = randomBytes(kBackupChunkSize * 2 + 100);
         
-        final _b1 = await BackupEngine.createBackup(userId: 'user', data: plaintext, masterKey: masterKey, salt: salt);
+        await BackupEngine.createBackup(userId: 'user', data: plaintext, masterKey: masterKey, salt: salt);
         // Wait for unique nonces? Nonces are random so hashes will differ.
         // The property R8.3 states "identical input chunks produce identical content-hashes".
         // Wait, AEAD nonces are random, so ciphertext is NOT deterministic.
