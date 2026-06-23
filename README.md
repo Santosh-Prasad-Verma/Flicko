@@ -2,17 +2,17 @@
   <img src="assets/branding/Flicko-for-black-background.png" alt="Flicko Logo" width="140" height="140" />
 </p>
 
-<h1 align="center">⚡ Flicko</h1>
+<h1 align="center">Flicko</h1>
 
 <p align="center">
-  <strong>The open-source, self-hostable Discord alternative featuring secure real-time messaging, LiveKit voice/video, BlackHole-powered music, built-in bots, and end-to-end encryption.</strong>
+  <strong>An open-source, self-hostable communication platform featuring real-time messaging, WebRTC-based voice and video channels, integrated music streaming, extensible bot framework, and end-to-end encryption.</strong>
 </p>
 
 <p align="center">
-  <a href="#-quick-start"><strong>Quick Start</strong></a> •
-  <a href="#-architecture"><strong>Architecture</strong></a> •
-  <a href="#-key-features"><strong>Features</strong></a> •
-  <a href="#-self-hosting"><strong>Self-Hosting</strong></a> •
+  <a href="#quick-start"><strong>Quick Start</strong></a> •
+  <a href="#architecture"><strong>Architecture</strong></a> •
+  <a href="#key-features"><strong>Features</strong></a> •
+  <a href="#self-hosting"><strong>Self-Hosting</strong></a> •
   <a href="docs/README.md"><strong>Full Documentation</strong></a>
 </p>
 
@@ -29,49 +29,44 @@
 
 ---
 
-<p align="center">
-  <img src="assets/branding/Flicko-new-banner.png" alt="Flicko App Banner" width="100%" />
-</p>
+## Table of Contents
+
+- [What is Flicko?](#what-is-flicko)
+- [Architecture](#architecture)
+- [Key Features](#key-features)
+- [Tech Stack](#tech-stack)
+- [Repository Layout](#repository-layout)
+- [Quick Start](#quick-start)
+- [Self-Hosting](#self-hosting)
+- [Configuration](#configuration)
+- [Push Notifications](#push-notifications)
+- [Voice & Video Setup](#voice--video-setup)
+- [Music System (Sonic Drip)](#music-system-sonic-drip)
+- [End-to-End Encryption](#end-to-end-encryption)
+- [Database & Migrations](#database--migrations)
+- [Security Checklist](#security-checklist)
+- [Marketing Website](#marketing-website)
+- [Contributing](#contributing)
+- [License](#license)
 
 ---
 
-## 📖 Table of Contents
+## What is Flicko?
 
-- [🌟 What is Flicko?](#-what-is-flicko)
-- [🏗️ Architecture](#️-architecture)
-- [✨ Key Features](#-key-features)
-- [💻 Tech Stack](#-tech-stack)
-- [📁 Repository Layout](#-repository-layout)
-- [🚀 Quick Start](#-quick-start)
-- [🌐 Self-Hosting](#-self-hosting)
-- [⚙️ Configuration](#️-configuration)
-- [🔔 Push Notifications](#-push-notifications)
-- [🎙️ Voice & Video Setup](#️-voice--video-setup)
-- [🎵 Music System (Sonic Drip)](#-music-system-sonic-drip)
-- [🔒 End-to-End Encryption](#-end-to-end-encryption)
-- [🗄️ Database & Migrations](#️-database--migrations)
-- [🛡️ Security Checklist](#️-security-checklist)
-- [📣 Marketing Website](#-marketing-website)
-- [🤝 Contributing](#-contributing)
-- [📄 License](#-license)
+Flicko is a modern, performance-oriented communication platform designed to serve as a fully self-hostable, secure alternative to proprietary services. Built with a modular microservices architecture, Flicko is optimized for horizontal scalability and high availability, running efficiently on resources ranging from a single virtual private server to multi-region cloud infrastructures.
+
+### Core Architectural Pillars
+
+* **Real-Time Messaging** — High-performance text channels, threads, reactions, media attachments, custom server emojis, polls, user mentions, and real-time typing indicators.
+* **Voice & Video** — WebRTC-powered voice rooms, high-definition video calls, dynamic screen sharing, in-call soundboards, stage channels, and collaborative whiteboards.
+* **Integrated Music Streaming** — Native music search and streaming utilizing JioSaavn and YouTube API providers directly within the application client.
+* **Decentralized Security** — Private 1:1 direct messages secured via the Signal protocol (X3DH key agreement and Double Ratchet), backed by secure local keychains on user devices.
 
 ---
 
-## 🌟 What is Flicko?
+## Architecture
 
-Flicko is a modern, privacy-focused, and robust real-time communication platform designed to be a viable open-source alternative to Discord. Built with a modular microservices architecture, Flicko is fully self-hostable and scales easily from a single VPS to distributed cloud environments.
-
-### The Four Pillars of Flicko:
-* **💬 Real-Time Messaging** — Text channels, threads, nested replies, emoji reactions, media attachments, custom emojis, polls, mentions, and typing status.
-* **🎥 Crystal Clear Voice & Video** — WebRTC-powered voice rooms, high-definition video calls, screen sharing, integrated soundboards, stage channels, and collaborative whiteboards.
-* **🎵 Sonic Drip Music** — Seamless JioSaavn and YouTube integration providing direct music search and streaming directly within your client.
-* **🛡️ End-to-End Security** — Private DMs protected by the Signal protocol (X3DH key agreement and Double Ratchet), backed by local secure storage.
-
----
-
-## 🏗️ Architecture
-
-Flicko leverages a specialized Go-based microservices layer behind an NGINX reverse proxy. Real-time notifications and state management are orchestrated via Redis Pub/Sub, while persistent data is secured within Supabase Postgres using strict Row-Level Security (RLS).
+Flicko operates as a suite of specialized Go services fronted by an NGINX reverse proxy. Real-time notification routing and temporary application states are handled by Redis Pub/Sub, while persistent application data is secured using Postgres Row-Level Security (RLS) policies inside Supabase.
 
 ```mermaid
 graph TB
@@ -114,40 +109,40 @@ graph TB
 
 ---
 
-## ✨ Key Features
+## Key Features
 
-### 💬 Rich Messaging
-* **Modern Channel Formats:** Standard Text channels, Voice channels, Announcement feeds, and Forum channels with threads.
-* **Rich Interactions:** In-line replies, markdown formatting, Giphy integration, polls, pins, custom stickers, and mentions.
-* **E2EE Direct Messages:** X3DH key agreement and Double Ratchet (XChaCha20-Poly1305 + HKDF-SHA256) for unbreakable 1:1 chats.
-* **Reliable Delivery:** Read receipts, typing indicators, and full-text channel search using Postgres `tsvector`.
+### Rich Messaging
+* **Channel Management:** Supports Text, Voice, Announcement, and Forum channel formats with granular permission inheritance.
+* **Interactions:** In-line nested replies, markdown support, Giphy integration, custom server stickers, custom emojis, and message pinning.
+* **End-to-End Encryption:** X3DH key agreement and Double Ratchet protocol (utilizing XChaCha20-Poly1305 and HKDF-SHA256) for DMs.
+* **Search & Discovery:** Instant full-text channel and message search powered by Postgres `tsvector`.
 
-### 🎙️ Immersive Voice & Video
-* **LiveKit WebRTC Integration:** Ultra-low latency voice/video with auto-adaptive bitrate and noise suppression.
-* **Stage Channels:** Speaker queues, moderator controls, and audience "raise hand" requests.
-* **Screen Sharing & Camera:** HD stream broadcasting directly from mobile devices.
-* **Collaborative Whiteboard:** Synced in real-time, allowing users to draw and brainstorm together.
+### Immersive Voice & Video
+* **LiveKit SFU:** WebRTC integration providing sub-100ms latency audio and video streams.
+* **Stage Channels:** Supports moderator-controlled speaker queues and raise-hand requests.
+* **Screen Sharing:** High-resolution stream broadcasting directly from the mobile client.
+* **Collaborative Canvas:** Real-time whiteboard synchronization allowing interactive drawing on a shared canvas.
 
-### 🎵 Sonic Drip Music
-* **Direct Integration:** BlackHole-inspired search & streaming utilizing JioSaavn and YouTube.
-* **Spotify Integration:** Local capture for Spotify metadata throughWebView (no Premium required).
-* **System Integration:** Dynamic lock-screen media controls on iOS and Android via `audio_service`.
-* **Visualizer:** Pulsing "Gava" equalizer visualizer integrated into user profiles when streaming.
+### Sonic Drip Music
+* **Streaming Engine:** Direct streaming utilizing JioSaavn and YouTube engines.
+* **Spotify Integration:** Optional metadata lookup via local WebView cookie mapping.
+* **System Integration:** Full system media controller integration on iOS and Android via `audio_service`.
+* **Profile Integration:** Pulsing profile equalizer visualizer synced to real-time track playback.
 
-### 🎮 Gaming Hub
-* **Play In-App:** Full Chess and Ludo engines with real-time multiplayer matchmaking.
-* **Matchmaking & Stats:** Leaderboards, match history, and Elo scoring tracked in Redis + Postgres.
+### Gaming Hub
+* **Integrated Engines:** Embedded Chess and Ludo engines with real-time multiplayer support.
+* **Matchmaking:** Persistent matchmaking pools and Elo-based leaderboards tracked in Redis.
 
-### 🤖 Built-in Bot Framework
-Flicko ships with a complete, built-in asynchronous bot framework managed by `asynq_coordinator.go`:
-* **AutoMod Bot:** Real-time spam, link, and profanity filtering.
-* **Leveling Bot:** User XP progression system with custom role unlocks.
-* **Ticket Bot:** Support queue system with private ticket channels.
-* **Music Bot, Starboard Bot, Poll Bot, Welcome Bot, and Moderation Bot.**
+### Built-in Bot Framework
+Flicko includes a background worker bot subsystem orchestrated by `asynq_coordinator.go`:
+* **AutoMod Bot:** Automated message, link, and profanity filtering.
+* **Leveling Bot:** Advanced user experience progression and automated role assignments.
+* **Ticket Bot:** Support ticket management with dynamically created private channels.
+* **Starboard, Poll, Music, Welcome, and Moderation Bots.**
 
 ---
 
-## 💻 Tech Stack
+## Tech Stack
 
 | Layer | Technologies |
 |---|---|
@@ -164,7 +159,7 @@ Flicko ships with a complete, built-in asynchronous bot framework managed by `as
 
 ---
 
-## 📁 Repository Layout
+## Repository Layout
 
 ```
 .
@@ -184,23 +179,23 @@ Flicko ships with a complete, built-in asynchronous bot framework managed by `as
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
-### 1. Clone & Initialize Env
+### 1. Clone & Initialize Environment
 ```bash
 git clone git@github.com:Santosh-Prasad-Verma/Flicko.git
 cd Flicko
 cp .env.example .env
 cp .env.mail-gateway.example mail-gateway/.env
 ```
-*(Review and populate the `.env` files with your local/staging configuration)*
+*(Review and populate the `.env` files with your local or staging configuration parameters)*
 
-### 2. Launch Local Services
+### 2. Launch Infrastructure Services
 ```bash
 docker compose -f docker-compose.dev.yml up -d
 ```
 
-### 3. Run the Mobile App
+### 3. Build and Run the Client Application
 ```bash
 cd mobile
 flutter pub get
@@ -209,9 +204,9 @@ flutter run
 
 ---
 
-## 🌐 Self-Hosting
+## Self-Hosting
 
-For production hosting, Flicko uses `docker-compose.prod.yml` to spin up a fully isolated, secure network structure.
+For production environments, the `docker-compose.prod.yml` compose file isolates services within a dedicated container network structure.
 
 | Service Container | Port | Description |
 |---|---|---|
@@ -230,16 +225,16 @@ For production hosting, Flicko uses `docker-compose.prod.yml` to spin up a fully
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
-Secrets and configuration tokens are located across three locations:
+Secrets and configuration tokens are divided across three layers:
 1. **`.env`** (Root): Handles database configuration, Redis strings, JWT credentials, Razorpay IDs, and LiveKit keys.
 2. **`mail-gateway/.env`**: Handles Brevo SMTP keys and database webhook verification tokens.
 3. **`mobile/.env`**: Envs for Flutter client (Supabase URL, anon key, Appwrite API keys, LiveKit server address, Giphy tokens).
 
 ---
 
-## 🔔 Push Notifications
+## Push Notifications
 
 Flicko manages notifications with high reliability:
 1. **Token Registration:** The Flutter client registers its FCM token to the `public.user_devices` table.
@@ -249,7 +244,7 @@ Flicko manages notifications with high reliability:
 
 ---
 
-## 🎙️ Voice & Video Setup
+## Voice & Video Setup
 
 LiveKit runs as a container within the stack. Configure `livekit.yaml` to specify key-secret pairs:
 ```yaml
@@ -266,19 +261,19 @@ Ensure `LIVEKIT_API_KEY` and `LIVEKIT_API_SECRET` are correctly configured in bo
 
 ---
 
-## 🎵 Music System (Sonic Drip)
+## Music System (Sonic Drip)
 
 Sonic Drip compiles music metadata from JioSaavn and YouTube. A WebView captures required cookies when a user authenticates, sending them to the backend to proxy search/stream requests. Lock screen controls interface with iOS/Android audio systems seamlessly.
 
 ---
 
-## 🔒 End-to-End Encryption
+## End-to-End Encryption
 
 Secure conversations are fully decentralized. Key exchanges are handled via X3DH, while ongoing encryption utilizes a Double Ratchet chain. Plaintext is never sent to or visible by the server; it remains strictly inside local secure keychains on the sender and receiver devices.
 
 ---
 
-## 🗄️ Database & Migrations
+## Database & Migrations
 
 Our Postgres instance contains 131+ structured migrations. Key migrations:
 * `001-027`: Base tables (servers, channels, roles, voice state).
@@ -296,7 +291,7 @@ supabase db push
 
 ---
 
-## 🛡️ Security Checklist
+## Security Checklist
 
 Before taking your Flicko stack live:
 - [ ] Rotate the default `flicko_livekit_key` and `flicko_livekit_secret` values.
@@ -308,7 +303,7 @@ Before taking your Flicko stack live:
 
 ---
 
-## 📣 Marketing Website
+## Marketing Website
 
 Flicko includes a public-facing corporate website built with Next.js 15, Vercel ready, located inside `/web`.
 To run locally:
@@ -320,7 +315,7 @@ bun run dev
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Contributions make the open-source community an amazing place. We welcome bug fixes, documentation improvements, and feature PRs.
 * Ensure `flutter analyze` runs without errors before making mobile PRs.
@@ -329,7 +324,7 @@ Contributions make the open-source community an amazing place. We welcome bug fi
 
 ---
 
-## 📄 License
+## License
 
 Distributed under the MIT License. See `LICENSE` for more information.
 
