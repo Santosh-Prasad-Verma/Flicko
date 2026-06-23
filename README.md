@@ -2,16 +2,22 @@
   <img src="assets/branding/Flicko-for-black-background.png" alt="Flicko Logo" width="140" height="140" />
 </p>
 
-<h1 align="center">Flicko</h1>
+<h1 align="center">⚡ Flicko</h1>
 
 <p align="center">
-  <strong>Open-source, self-hostable Discord alternative with voice, video, music, gaming, and end-to-end encryption</strong>
-  <br />
-  <em>Real-time messaging · LiveKit voice & video · BlackHole-powered music · X3DH/Double Ratchet E2EE · 8-bot moderation framework</em>
+  <strong>The open-source, self-hostable Discord alternative featuring secure real-time messaging, LiveKit voice/video, BlackHole-powered music, built-in bots, and end-to-end encryption.</strong>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Go-1.25-00ADD8?style=for-the-badge&logo=go&logoColor=white" alt="Go" />
+  <a href="#-quick-start"><strong>Quick Start</strong></a> •
+  <a href="#-architecture"><strong>Architecture</strong></a> •
+  <a href="#-key-features"><strong>Features</strong></a> •
+  <a href="#-self-hosting"><strong>Self-Hosting</strong></a> •
+  <a href="docs/README.md"><strong>Full Documentation</strong></a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Go-1.26-00ADD8?style=for-the-badge&logo=go&logoColor=white" alt="Go" />
   <img src="https://img.shields.io/badge/Flutter-3.22+-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Flutter" />
   <img src="https://img.shields.io/badge/Supabase-Postgres+RLS-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" alt="Supabase" />
   <img src="https://img.shields.io/badge/LiveKit-WebRTC-5AC8FA?style=for-the-badge&logo=livekit&logoColor=white" alt="LiveKit" />
@@ -21,382 +27,316 @@
   <img src="https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker" />
 </p>
 
+---
+
 <p align="center">
-  <a href="#quick-start"><strong>Quick start</strong></a> ·
-  <a href="#architecture"><strong>Architecture</strong></a> ·
-  <a href="#features"><strong>Features</strong></a> ·
-  <a href="#self-hosting"><strong>Self-hosting</strong></a> ·
-  <a href="docs/README.md"><strong>Full docs</strong></a>
+  <img src="assets/branding/Flicko-new-banner.png" alt="Flicko App Banner" width="100%" />
 </p>
 
 ---
 
-<p align="center">
-  <img src="assets/branding/Flicko-new-banner.png" alt="Flicko App New Banner" width="100%" />
-</p>
+## 📖 Table of Contents
+
+- [🌟 What is Flicko?](#-what-is-flicko)
+- [🏗️ Architecture](#️-architecture)
+- [✨ Key Features](#-key-features)
+- [💻 Tech Stack](#-tech-stack)
+- [📁 Repository Layout](#-repository-layout)
+- [🚀 Quick Start](#-quick-start)
+- [🌐 Self-Hosting](#-self-hosting)
+- [⚙️ Configuration](#️-configuration)
+- [🔔 Push Notifications](#-push-notifications)
+- [🎙️ Voice & Video Setup](#️-voice--video-setup)
+- [🎵 Music System (Sonic Drip)](#-music-system-sonic-drip)
+- [🔒 End-to-End Encryption](#-end-to-end-encryption)
+- [🗄️ Database & Migrations](#️-database--migrations)
+- [🛡️ Security Checklist](#️-security-checklist)
+- [📣 Marketing Website](#-marketing-website)
+- [🤝 Contributing](#-contributing)
+- [📄 License](#-license)
 
 ---
 
-## Table of contents
+## 🌟 What is Flicko?
 
-- [What Flicko is](#what-flicko-is)
-- [Architecture](#architecture)
-- [Features](#features)
-- [Tech stack](#tech-stack)
-- [Repository layout](#repository-layout)
-- [Quick start](#quick-start)
-- [Self-hosting](#self-hosting)
-- [Configuration](#configuration)
-- [Push notifications](#push-notifications)
-- [Voice & video setup](#voice--video-setup)
-- [Music (Sonic Drip)](#music-sonic-drip)
-- [End-to-end encryption](#end-to-end-encryption)
-- [Database & migrations](#database--migrations)
-- [Security checklist](#security-checklist)
-- [Marketing site](#marketing-site)
-- [Contributing](#contributing)
-- [License](#license)
+Flicko is a modern, privacy-focused, and robust real-time communication platform designed to be a viable open-source alternative to Discord. Built with a modular microservices architecture, Flicko is fully self-hostable and scales easily from a single VPS to distributed cloud environments.
+
+### The Four Pillars of Flicko:
+* **💬 Real-Time Messaging** — Text channels, threads, nested replies, emoji reactions, media attachments, custom emojis, polls, mentions, and typing status.
+* **🎥 Crystal Clear Voice & Video** — WebRTC-powered voice rooms, high-definition video calls, screen sharing, integrated soundboards, stage channels, and collaborative whiteboards.
+* **🎵 Sonic Drip Music** — Seamless JioSaavn and YouTube integration providing direct music search and streaming directly within your client.
+* **🛡️ End-to-End Security** — Private DMs protected by the Signal protocol (X3DH key agreement and Double Ratchet), backed by local secure storage.
 
 ---
 
-## What Flicko is
+## 🏗️ Architecture
 
-Flicko is a complete, self-hostable communication platform built around four core pillars:
-
-1. **Real-time messaging** — text, replies, threads, reactions, attachments, GIFs, stickers, custom emojis, polls, mentions
-2. **Voice and video** — LiveKit-backed channels with screen share, soundboard, stage rooms, dm calls, and a shared whiteboard
-3. **Music streaming** — JioSaavn + YouTube via the BlackHole-style API surface (no Premium accounts required), with optional Spotify-via-cookies for power users
-4. **Servers** — Discord-style guilds with categories, voice/text/forum/stage channels, role-based permissions (26 bits), invites, bans, audit logs, AutoMod, onboarding flows, boosts, and templates
-
-On top of that you get end-to-end encryption for direct messages (X3DH key exchange + Double Ratchet), a built-in bot framework with 8 production bots (welcome, ticket, starboard, poll, music, moderation, leveling, automod), an in-app gaming hub with Chess and Ludo, a creator/store storefront, multi-server discovery, and a marketing site.
-
-## Architecture
-
-Flicko runs as a small fleet of Go services behind NGINX, plus managed cloud services. The mobile client is Flutter and talks to the backend over HTTPS + WebSocket, and to LiveKit directly over WebRTC.
+Flicko leverages a specialized Go-based microservices layer behind an NGINX reverse proxy. Real-time notifications and state management are orchestrated via Redis Pub/Sub, while persistent data is secured within Supabase Postgres using strict Row-Level Security (RLS).
 
 ```mermaid
 graph TB
-    subgraph Client["Client"]
-        APP["Flutter app<br/>iOS + Android"]
+    subgraph Client["Client Devices"]
+        APP["Flutter App<br/>(iOS / Android)"]
     end
 
-    subgraph Edge["Edge"]
-        CF["Cloudflare<br/>CDN · WAF"]
-        NGX["NGINX<br/>TLS · WS upgrade · rate limit"]
+    subgraph Edge["Gateway & Routing"]
+        CF["Cloudflare<br/>WAF & CDN"]
+        NGX["NGINX Proxy<br/>SSL / WebSockets / Rate Limits"]
     end
 
-    subgraph Backend["Self-hosted Go services"]
-        BE["backend<br/>auth · servers · bots · payments"]
-        WS["ws-gateway<br/>WebSocket manager"]
-        MSG["msg-service<br/>message ingestion"]
-        MAIL["mail-gateway<br/>branded SMTP relay"]
-        SD["sonic-drip<br/>spotapi (Python)"]
+    subgraph Backend["Go Microservices"]
+        BE["backend-service<br/>Core APIs & Bots"]
+        WS["ws-gateway<br/>WebSocket Broker"]
+        MSG["msg-service<br/>Message Pipeline"]
+        MAIL["mail-gateway<br/>Branded SMTP Relay"]
+        SD["sonic-drip<br/>Music Server (Python)"]
     end
 
-    subgraph Cloud["Managed services"]
-        DB["Supabase<br/>Postgres + RLS + Auth + Edge Fns"]
-        REDIS["Redis<br/>pub/sub · cache · queue"]
-        AW["Appwrite<br/>file storage"]
-        LK["LiveKit<br/>WebRTC SFU"]
-        FCM["Firebase<br/>Cloud Messaging"]
-        RP["Razorpay<br/>payments"]
+    subgraph Cloud["Data & Media Infrastructure"]
+        DB["Supabase Postgres<br/>Storage + RLS Rules"]
+        REDIS["Redis Cache<br/>Queues / Pub-Sub"]
+        AW["Appwrite Storage<br/>Asset CDN"]
+        LK["LiveKit SFU<br/>WebRTC Audio/Video"]
+        FCM["Firebase FCM<br/>Push Services"]
+        RP["Razorpay<br/>Subscription Billing"]
     end
 
     APP -->|HTTPS/WSS| CF --> NGX
-    APP -->|RTC| LK
-    APP -->|Push token| FCM
+    APP -->|WebRTC| LK
+    APP -->|Push Tokens| FCM
     NGX --> BE & WS & MSG & MAIL
     BE & MSG --> DB & REDIS
     WS --> REDIS
     BE --> AW & LK & RP
     SD --> DB
-    DB -->|Webhook on INSERT| FCM
+    DB -->|Db Hook on Message| FCM
 ```
 
-Three Docker networks isolate the stack: `flicko_edge` (NGINX, Cloudflare-facing), `flicko_internal` (Go services, Redis, Postgres replicas), and `flicko_monitor` (Prometheus, Grafana, Loki).
+---
 
-## Features
+## ✨ Key Features
 
-### Messaging
-- Channels: text, voice, stage, forum, announcement, threaded
-- Replies, reactions, attachments, GIFs (Giphy), stickers, custom server emojis, polls, mentions, slash commands
-- Direct messages with optional **end-to-end encryption** (X3DH + Double Ratchet, secure WAL-backed ratchet store)
-- Group DMs
-- Read receipts, typing indicators, message search with tsvector + ts_headline
-- Slowmode, message pinning, message history pagination
+### 💬 Rich Messaging
+* **Modern Channel Formats:** Standard Text channels, Voice channels, Announcement feeds, and Forum channels with threads.
+* **Rich Interactions:** In-line replies, markdown formatting, Giphy integration, polls, pins, custom stickers, and mentions.
+* **E2EE Direct Messages:** X3DH key agreement and Double Ratchet (XChaCha20-Poly1305 + HKDF-SHA256) for unbreakable 1:1 chats.
+* **Reliable Delivery:** Read receipts, typing indicators, and full-text channel search using Postgres `tsvector`.
 
-### Voice & video
-- LiveKit-backed voice and video channels (Opus + adaptive bitrate)
-- Screen share, video, soundboard, in-call activities
-- Stage channels with raise-hand and speaker queue
-- DM calls (1:1)
-- Shared whiteboard (drawing strokes synced via Postgres)
-- Push-to-talk + voice activity detection (VAD)
-- Spatial audio settings stub
+### 🎙️ Immersive Voice & Video
+* **LiveKit WebRTC Integration:** Ultra-low latency voice/video with auto-adaptive bitrate and noise suppression.
+* **Stage Channels:** Speaker queues, moderator controls, and audience "raise hand" requests.
+* **Screen Sharing & Camera:** HD stream broadcasting directly from mobile devices.
+* **Collaborative Whiteboard:** Synced in real-time, allowing users to draw and brainstorm together.
 
-### Music — Sonic Drip
-- BlackHole-style integration: JioSaavn + YouTube as the primary provider
-- iTunes preview-URL search as a global fallback
-- Spotify via SpotAPI (optional, requires user cookie capture; no Premium account required)
-- Now-playing card, queue, drip-bash sheet, search, soundboard
-- "Gava" pulsing equalizer bar shown on the user profile while a track is playing
-- Lock screen / Dynamic Island controls via `audio_service`
+### 🎵 Sonic Drip Music
+* **Direct Integration:** BlackHole-inspired search & streaming utilizing JioSaavn and YouTube.
+* **Spotify Integration:** Local capture for Spotify metadata throughWebView (no Premium required).
+* **System Integration:** Dynamic lock-screen media controls on iOS and Android via `audio_service`.
+* **Visualizer:** Pulsing "Gava" equalizer visualizer integrated into user profiles when streaming.
 
-### Servers (guilds)
-- Categories, channels, role hierarchy with 26 fine-grained permission bits
-- Invites, bans (with expiration), audit log, AutoMod
-- Onboarding flows, server templates, boosts (3 tiers), discovery & categories
-- Custom emojis, stickers, webhooks, application installs
-- Per-server moderation: mute, kick, ban, timeout, warn, AutoMod rules, member screening
+### 🎮 Gaming Hub
+* **Play In-App:** Full Chess and Ludo engines with real-time multiplayer matchmaking.
+* **Matchmaking & Stats:** Leaderboards, match history, and Elo scoring tracked in Redis + Postgres.
 
-### Bots (built-in)
-Welcome bot · Ticket bot · Starboard bot · Poll bot · Music bot · Moderation bot · Leveling bot · AutoMod bot. All managed through `backend/internal/bots/asynq_coordinator.go`.
+### 🤖 Built-in Bot Framework
+Flicko ships with a complete, built-in asynchronous bot framework managed by `asynq_coordinator.go`:
+* **AutoMod Bot:** Real-time spam, link, and profanity filtering.
+* **Leveling Bot:** User XP progression system with custom role unlocks.
+* **Ticket Bot:** Support queue system with private ticket channels.
+* **Music Bot, Starboard Bot, Poll Bot, Welcome Bot, and Moderation Bot.**
 
-### Gaming hub
-Chess and Ludo with matchmaking, in-game chat, and persistent state in Redis + Postgres.
+---
 
-### Premium & monetization
-- Razorpay-powered Flicko Plus and Flicko Pro subscription tiers
-- Custom emoji slots, animated avatars, larger uploads
-- Gift transactions and redemptions, boost credits
-- Cosmetic catalog and user cosmetics
+## 💻 Tech Stack
 
-### Notifications
-- Firebase Cloud Messaging (HTTP v1 API) for push
-- Supabase Database Webhook → `push-notify` Edge Function → FCM
-- In-app foreground handler with custom banner (`flutter_local_notifications`)
-
-### Security
-- Supabase Auth with email/password, Google OAuth, Apple Sign-In
-- MFA factors and recovery codes
-- Trusted devices, login events, security alerts
-- Account deletion jobs, data export jobs
-- Privacy controls (DM permissions, presence masking, activity hiding) enforced at the SQL level
-
-## Tech stack
-
-| Layer | Tech |
+| Layer | Technologies |
 |---|---|
-| Mobile | Flutter 3.22+, Dart 3.4+, Riverpod 3, GoRouter 17, freezed |
-| Backend | Go 1.25, Chi router, pgx/v5, asynq, livekit-server-sdk-go, jwt/v5, zap |
-| Realtime gateway | Custom WebSocket (`ws-gateway`), Redis pub/sub |
-| Database | Postgres 15 (Supabase), 131+ migrations, RLS on every user-facing table |
-| Cache & queue | Redis (Upstash or self-hosted) |
-| Object storage | Appwrite Storage |
-| Media | LiveKit (voice/video SFU), just_audio, audio_service, video_player |
-| Music API | sonic-drip Python service (FastAPI + spotapi 1.2.7), JioSaavn + YouTube |
-| Auth | Supabase Auth + custom Go middleware, biometric unlock on mobile |
-| Payments | Razorpay (Indian market) |
-| Push | Firebase Cloud Messaging (HTTP v1) |
-| Email | mail-gateway (Go) → Brevo SMTP, branded HTML templates |
-| Observability | Prometheus, Grafana, Loki, promtail |
-| Reverse proxy | NGINX 1.25-alpine, Cloudflare in front |
-| E2EE | X3DH (Curve25519), Double Ratchet (XChaCha20-Poly1305), Argon2id |
+| **Mobile Client** | Flutter 3.22+, Dart 3.4+, Riverpod 3, GoRouter 17, Freezed |
+| **Backend API** | Go 1.26, Chi Router, pgx/v5, Asynq, LiveKit Go SDK, Zap Logger |
+| **Real-time Gateway** | Custom Go WebSocket Broker (`ws-gateway`), Redis Pub/Sub |
+| **Database** | Postgres 15 (Supabase) with Row-Level Security (RLS) on all tables |
+| **File Storage** | Appwrite Object Storage |
+| **WebRTC Media** | LiveKit SFU (WebRTC), just_audio, audio_service |
+| **Music Services** | Python FastAPI, spotapi 1.2.7, JioSaavn & YouTube API |
+| **Push Notifications** | Firebase Cloud Messaging (FCM HTTP v1) |
+| **Payments & Billing** | Razorpay SDK (subscriptions, boosts, catalog transactions) |
+| **E2EE Core** | X3DH (Curve25519), Double Ratchet (XChaCha20-Poly1305), Argon2id |
 
-## Repository layout
+---
+
+## 📁 Repository Layout
 
 ```
 .
-├── mobile/              Flutter app (iOS + Android)
-├── backend/             Main Go service: auth, servers, bots, payments
-├── services/            ws-gateway, msg-service, shared
-├── sonic-drip/          Music meta-service (Go + Python spotapi-service)
-├── mail-gateway/        Branded SMTP relay (Go)
-├── supabase/
-│   ├── migrations/      131+ SQL migrations
-│   └── functions/       Edge Functions: voice-token, push-notify, gif-search
-├── nginx/               Production reverse-proxy config
-├── monitoring/          Prometheus / Grafana / Loki configs
-├── fail2ban/            Brute-force protection
-├── web/                 Next.js marketing site (flicko.dev)
-├── docs/                ~120 docs covering features, architecture, ops
-├── docker-compose.*.yml dev / prod / zero-cost variants
-├── livekit.yaml         LiveKit SFU config (gitignored)
-└── assets/branding/     Logos and banner art
+├── mobile/              # Flutter Client Application (iOS + Android)
+├── backend/             # Primary Go Backend API (Auth, Servers, Bots, Billing)
+├── services/            # Core Infrastructure Services (ws-gateway, msg-service, shared)
+├── sonic-drip/          # Music Stream Engine (Go + Python spotapi integration)
+├── mail-gateway/        # Branded HTML Transactional Email Relay (Go)
+├── supabase/            # Database configurations & migrations
+│   ├── migrations/      # 131+ production-ready SQL database migrations
+│   └── functions/       # Edge Functions (voice-token, push-notify, etc.)
+├── nginx/               # NGINX configuration templates
+├── monitoring/          # Prometheus, Grafana, and Loki configs
+├── web/                 # Marketing Site & Web Portal (Next.js 15 + Bun)
+└── docs/                # Extended architectural and deployment guides
 ```
 
-## Quick start
+---
 
+## 🚀 Quick Start
+
+### 1. Clone & Initialize Env
 ```bash
 git clone git@github.com:Santosh-Prasad-Verma/Flicko.git
 cd Flicko
 cp .env.example .env
 cp .env.mail-gateway.example mail-gateway/.env
+```
+*(Review and populate the `.env` files with your local/staging configuration)*
 
-# fill the env files in (see Configuration section)
-
+### 2. Launch Local Services
+```bash
 docker compose -f docker-compose.dev.yml up -d
 ```
 
-Then start the mobile app:
-
+### 3. Run the Mobile App
 ```bash
 cd mobile
 flutter pub get
 flutter run
 ```
 
-The mobile app reads its configuration from `mobile/.env` or `--dart-define` flags. See `mobile/lib/core/config/app_config.dart` for the full list.
+---
 
-## Self-hosting
+## 🌐 Self-Hosting
 
-Production deploys use `docker-compose.prod.yml` with these containers:
+For production hosting, Flicko uses `docker-compose.prod.yml` to spin up a fully isolated, secure network structure.
 
-| Service | Container | Port | Notes |
-|---|---|---|---|
-| NGINX | flicko-nginx | 80 / 443 | Cloudflare-fronted, terminates TLS |
-| Backend | flicko-backend | 8090 | Go service |
-| WS gateway | flicko-ws-gateway | 8091 | WebSocket manager |
-| Msg service | flicko-msg-service | 8092 | Message REST + ingestion |
-| Mail gateway | flicko-mail-gateway | 8082 | Brevo SMTP relay |
-| Sonic Drip | flicko-sonic-drip | 8001 | Music API |
-| LiveKit | flicko-livekit-sfu | 7880 / 7881 / 7882 udp | WebRTC SFU |
-| Redis | flicko-redis | 6379 | Pub/sub, cache, queue |
-| Prometheus | flicko-prometheus | 9090 | Metrics |
-| Grafana | flicko-grafana | 3000 | Dashboards |
-| Loki | flicko-loki | 3100 | Logs |
+| Service Container | Port | Description |
+|---|---|---|
+| `flicko-nginx` | `80` / `443` | Reverse proxy, SSL termination, WebSocket upgrade handling |
+| `flicko-backend` | `8090` | Primary Go REST API and Asynq Bot Worker |
+| `flicko-ws-gateway` | `8091` | High-throughput WebSocket connection broker |
+| `flicko-msg-service` | `8092` | REST ingestion layer for chat and media |
+| `flicko-sonic-drip` | `8001` | Music streaming metadata service |
+| `flicko-livekit-sfu` | `7880` - `7882` | LiveKit SFU media server (TCP/UDP WebRTC ports) |
+| `flicko-redis` | `6379` | Cache, key-value store, and pub/sub broker |
+| `flicko-prometheus` | `9090` | System metrics harvester |
+| `flicko-grafana` | `3000` | Real-time performance dashboards |
 
-The 8 GB / single-VPS variant is `docker-compose.zero.yml` (drops Loki, scales Redis down).
+> [!TIP]
+> For small server configurations (e.g. 8GB RAM single VPS), use `docker-compose.zero.yml` to launch without the heavy Prometheus/Grafana monitoring suite.
 
-For full setup steps see `docs/getting-started/installation.md`.
+---
 
-## Configuration
+## ⚙️ Configuration
 
-Secrets live in three places:
+Secrets and configuration tokens are located across three locations:
+1. **`.env`** (Root): Handles database configuration, Redis strings, JWT credentials, Razorpay IDs, and LiveKit keys.
+2. **`mail-gateway/.env`**: Handles Brevo SMTP keys and database webhook verification tokens.
+3. **`mobile/.env`**: Envs for Flutter client (Supabase URL, anon key, Appwrite API keys, LiveKit server address, Giphy tokens).
 
-- `.env` — backend Docker stack (database URL, Redis URL, JWT secret, LiveKit keys, Razorpay)
-- `mail-gateway/.env` — SMTP credentials and Supabase webhook secret
-- `mobile/.env` — Supabase URL/anon key, LiveKit URL, API base URL, Appwrite IDs, Giphy key
+---
 
-All `.env*` files plus `livekit.yaml`, `mobile/android/app/google-services.json`, `mobile/ios/Runner/GoogleService-Info.plist`, and `secrets/` are gitignored.
+## 🔔 Push Notifications
 
-For team setups Doppler is recommended (`mobile/flutter-start.sh` shows the pattern).
+Flicko manages notifications with high reliability:
+1. **Token Registration:** The Flutter client registers its FCM token to the `public.user_devices` table.
+2. **Database Trigger:** An `INSERT` trigger on `messages` posts a payload to the Supabase `push-notify` Edge function.
+3. **FCM Gateway:** The Edge function generates a secure Firebase Admin payload and dispatches it over FCM HTTP v1.
+4. **Local Alert:** When received in the foreground, `flutter_local_notifications` displays a beautiful, custom in-app banner.
 
-## Push notifications
+---
 
-End-to-end FCM flow:
+## 🎙️ Voice & Video Setup
 
-1. **On the device** the Flutter app requests permission, gets a registration token via `firebase_messaging`, and writes it to `public.user_devices` (per `mobile/lib/core/services/push_notification_service.dart`).
-2. **In the database** a webhook (`dispatch-push-on-message`) fires on `messages INSERT` and POSTs to the `push-notify` Edge Function.
-3. **In `supabase/functions/push-notify/index.ts`** the function looks up recipient FCM tokens, builds an FCM v1 payload, and sends via the Firebase Admin token (HTTP v1).
-4. **On the receiving device** Android delivers the notification (FCM service running on Google Play Services) or, if the app is foregrounded, the in-app handler renders a custom banner with `flutter_local_notifications`.
-
-To enable in your own Firebase project:
-
-```bash
-# 1. Create a Firebase project, register Android app with package tech.focko.flicko
-# 2. Drop the downloaded google-services.json into mobile/android/app/
-# 3. Generate a Firebase Admin SDK private key, then:
-supabase secrets set FIREBASE_SERVICE_ACCOUNT_KEY="$(cat ~/secrets/flicko-firebase-admin.json)" \
-  --project-ref <your-project-ref>
-supabase functions deploy push-notify --project-ref <your-project-ref>
-
-# 4. Create a Database Webhook in the Supabase dashboard:
-#    Table: messages   Events: INSERT   Function: push-notify
-```
-
-## Voice & video setup
-
-LiveKit runs in-stack as `flicko-livekit-sfu` with config in `livekit.yaml`.
-
+LiveKit runs as a container within the stack. Configure `livekit.yaml` to specify key-secret pairs:
 ```yaml
 keys:
-  <your-key>: <your-secret>
+  my_api_key_id: my_api_secret_hash_key
 ```
-
-Generate fresh credentials and write them in:
-
+Generate random keys for production:
 ```bash
 KEY=$(openssl rand -hex 16)
 SECRET=$(openssl rand -hex 32)
 echo "$KEY: $SECRET"
 ```
+Ensure `LIVEKIT_API_KEY` and `LIVEKIT_API_SECRET` are correctly configured in both the backend `.env` and `livekit.yaml`.
 
-Set the same `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` env vars in `.env` so the backend signs tokens with the matching secret.
+---
 
-## Music (Sonic Drip)
+## 🎵 Music System (Sonic Drip)
 
-Sonic Drip is the music subsystem. It uses the **BlackHole-Music-app** API surface (JioSaavn + YouTube) as its primary provider, with iTunes search as a global fallback for previews.
+Sonic Drip compiles music metadata from JioSaavn and YouTube. A WebView captures required cookies when a user authenticates, sending them to the backend to proxy search/stream requests. Lock screen controls interface with iOS/Android audio systems seamlessly.
 
-Spotify is supported only via the optional `sonic-drip/services/spotapi-service` Python service that uses [spotapi](https://pypi.org/project/spotapi/) — login happens in a WebView, cookies are captured server-side, no Premium account required. This is **off by default**; Spotify and iTunes can both be removed if you don't need them.
+---
 
-The "Gava" pulsing equalizer bar appears on the user profile while a track is playing, and `audio_service` surfaces playback controls to the Android lock screen / iOS Control Center / Dynamic Island.
+## 🔒 End-to-End Encryption
 
-## End-to-end encryption
+Secure conversations are fully decentralized. Key exchanges are handled via X3DH, while ongoing encryption utilizes a Double Ratchet chain. Plaintext is never sent to or visible by the server; it remains strictly inside local secure keychains on the sender and receiver devices.
 
-Direct messages can be end-to-end encrypted between devices using:
+---
 
-- **X3DH** (Curve25519) for the initial key exchange
-- **Double Ratchet** (XChaCha20-Poly1305 AEAD + HKDF-SHA256) for ongoing message keys
-- **Argon2id**-derived symmetric keys for the local secure keystore
-- Native crypto via `cryptography_flutter` with a pure-Dart fallback
+## 🗄️ Database & Migrations
 
-State is persisted in `mobile/lib/features/e2ee/` and a WAL-backed ratchet store on the device. The server only sees ciphertext, ephemeral pubs, and metadata — never plaintext or symmetric keys.
+Our Postgres instance contains 131+ structured migrations. Key migrations:
+* `001-027`: Base tables (servers, channels, roles, voice state).
+* `034`: Strict Row-Level Security (RLS) policies.
+* `035`: DB functions to calculate 26-bit role permissions.
+* `056-061`: WebRTC voice, video, screen share, and whiteboard states.
+* `099`: Strict privacy filters (presence hiding, friend requirements).
+* `131`: SQL optimizations for active channel participant tracking.
 
-See `.kiro/specs/enterprise-e2ee/` for the design notes.
+Run migrations against a live database:
+```bash
+supabase link --project-ref <your-ref>
+supabase db push
+```
 
-## Database & migrations
+---
 
-131+ migrations live in `supabase/migrations/`. Highlights:
+## 🛡️ Security Checklist
 
-- `001`–`027` core schema (profiles, servers, channels, messages, voice states, etc.)
-- `034` advanced RLS policies on every user-facing table
-- `035` permission calculation functions
-- `056`–`061` voice/video, screen share, streams, video settings, DM calls
-- `099` user privacy enforcement (DM rules, friend-request rules, presence masking)
-- `116` voice spatial settings
-- `124` server discovery scores, categories, tags
-- `129` member-roles SELECT policy
-- `130` fix missing RLS and FKs
-- `131` defensive defaults for `voice_states.session_id` and idempotent re-creation of privacy functions
+Before taking your Flicko stack live:
+- [ ] Rotate the default `flicko_livekit_key` and `flicko_livekit_secret` values.
+- [ ] Generate a secure, 256-bit JWT secret.
+- [ ] Verify that every user-facing table has Row-Level Security (RLS) enabled.
+- [ ] Verify SSL certificates are active (Cloudflare Origin certs are recommended).
+- [ ] Setup `fail2ban` for automated rate limit blocklisting.
+- [ ] Confirm Razorpay webhook signature verification is enabled in `.env`.
 
-Apply locally with `supabase db push` after `supabase link --project-ref <ref>`.
+---
 
-## Security checklist
+## 📣 Marketing Website
 
-Before going to production:
-
-- [ ] Rotate `livekit.yaml` keys (default `flicko_livekit_key:flicko_livekit_secret` is unsafe)
-- [ ] Rotate any keys ever committed in old history (use `git log -p -- <file>` to check)
-- [ ] Set `JWT_SECRET` to a long random value in `.env`
-- [ ] Confirm RLS is enabled on every user-facing table (`docs/database/rls.md`)
-- [ ] Set `FIREBASE_SERVICE_ACCOUNT_KEY` Supabase secret
-- [ ] Configure the LiveKit webhook secret if you use participant disconnect cleanup
-- [ ] Set `SUPABASE_AUTH_HOOK_SEND_EMAIL_SECRETS` for the mail-gateway hook
-- [ ] Replace dev TLS certs with Cloudflare Origin certs
-- [ ] Configure fail2ban (`fail2ban/`) for SSH and NGINX
-- [ ] Enable Cloudflare WAF rules (`docs/security/cloudflare.md`)
-- [ ] Configure Razorpay webhook signature verification
-
-## Marketing site
-
-The Next.js 15 site at `web/` is deployed to Vercel and serves `flicko.dev` with the public `/branding`, `/company`, `/developers`, `/nitro`, `/privacy`, `/terms` pages. It's standalone — the mobile app and backend don't import from it.
-
+Flicko includes a public-facing corporate website built with Next.js 15, Vercel ready, located inside `/web`.
+To run locally:
 ```bash
 cd web
-bun install   # or pnpm/npm
+bun install
 bun run dev
 ```
 
-## Contributing
+---
 
-PRs welcome. The minimum bar:
+## 🤝 Contributing
 
-1. `flutter analyze` clean for any `mobile/` change
-2. `go vet ./...` and `go build ./...` clean for any Go change
-3. Descriptive commit messages — Conventional Commits encouraged
-4. New SQL goes in a new numbered migration; never edit a deployed one
+Contributions make the open-source community an amazing place. We welcome bug fixes, documentation improvements, and feature PRs.
+* Ensure `flutter analyze` runs without errors before making mobile PRs.
+* Make sure `go vet ./...` and `go test ./...` pass for backend modifications.
+* Follow the [Conventional Commits](https://www.conventionalcommits.org/) standard.
 
-See `docs/CONTRIBUTING.md` for the full contributor guide.
+---
 
-## License
+## 📄 License
 
-MIT. See `LICENSE`.
+Distributed under the MIT License. See `LICENSE` for more information.
 
 ---
 
 <p align="center">
   <img src="assets/branding/Flicko-for-black-background.png" alt="Flicko" width="48" height="48" />
   <br />
-  <sub>Built with Flutter, Go, Supabase, LiveKit, and Firebase.</sub>
+  <sub>Built with passion using Flutter, Go, Supabase, and LiveKit.</sub>
 </p>
