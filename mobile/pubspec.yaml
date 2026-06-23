@@ -43,7 +43,7 @@ dependencies:
   
   # Backend & Services
   supabase_flutter: ^2.5.0
-  livekit_client: ^2.0.0
+  livekit_client: ^2.9.0-dev.0
   flutter_webrtc: ^1.4.0
   appwrite: ^23.1.0
   
