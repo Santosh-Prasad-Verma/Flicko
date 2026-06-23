@@ -9,8 +9,7 @@ import '../domain/ludo_state.dart';
 import '../domain/plot_data.dart';
 import 'ludo_notifier.dart';
 
-/// One Centrifugo client per session. Reuses the same WS endpoint pattern as
-/// `chessGameProvider`. URL ultimately comes from app config.
+/// One Centrifugo client per session. URL ultimately comes from app config.
 final ludoCentrifugoClientProvider = Provider<centrifuge.Client>((ref) {
   final client = centrifuge.createClient(
     'ws://localhost:8000/connection/websocket',

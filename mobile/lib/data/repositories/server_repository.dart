@@ -3,6 +3,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mobile/data/models/server_model.dart';
 import 'package:mobile/data/models/channel_model.dart';
 import 'package:mobile/data/models/user_model.dart';
+import 'package:http/http.dart' as http;
+import 'package:mobile/core/config/app_config.dart';
 
 /// Repository for handling server and channel related data operations.
 /// 
@@ -101,6 +103,22 @@ class ServerRepository {
         'user_id': userId,
         'role': 'member',
       });
+
+      // Trigger welcome bot notification on backend
+      if (AppConfig.hasApiBaseUrl) {
+        final token = _client.auth.currentSession?.accessToken;
+        final baseUrl = AppConfig.apiBaseUrl.endsWith('/')
+            ? AppConfig.apiBaseUrl.substring(0, AppConfig.apiBaseUrl.length - 1)
+            : AppConfig.apiBaseUrl;
+        final url = Uri.parse('$baseUrl/api/servers/$serverId/members/join-notify');
+        await http.post(
+          url,
+          headers: {
+            'Content-Type': 'application/json',
+            if (token != null) 'Authorization': 'Bearer $token',
+          },
+        );
+      }
     } catch (e) {
       rethrow;
     }

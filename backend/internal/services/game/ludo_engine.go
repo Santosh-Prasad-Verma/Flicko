@@ -70,9 +70,8 @@ func NewLudoEngineWithPublisher(
 	}
 }
 
-// channelForGame returns the Centrifugo channel name. The chess proxy
-// already authorises subscriptions on `game:<id>`; we keep the same shape
-// so the same proxy + subscribe hook serves both games.
+// channelForGame returns the Centrifugo channel name. The subscribe proxy
+// authorises subscriptions on `game:<id>` for all game types.
 func channelForGame(gameID string) string { return "game:" + gameID }
 
 func (e *ludoEngine) GetGameState(ctx context.Context, gameID string) (*LudoGameState, error) {

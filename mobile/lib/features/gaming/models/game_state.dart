@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-/// Represents the state of a game (chess, ludo, etc.)
+/// Represents the state of a game (ludo, etc.)
 class GameState {
   final String fen;
   final int moveNum;

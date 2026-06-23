@@ -147,8 +147,108 @@ class ChatNotifier extends Notifier<ChatState> {
   }
 
   /// Sends a new message with optional attachments.
-  Future<void> sendMessage(String content, {String? replyToId, List<XFile>? localAttachments}) async {
+  Future<void> sendMessage(String content, {String? replyToId, List<XFile>? localAttachments, String? serverId}) async {
     if (content.trim().isEmpty && (localAttachments == null || localAttachments.isEmpty)) return;
+
+    if (content.trim().startsWith('/')) {
+      final rawInput = content.substring(1).trim();
+      final tokens = _tokenize(rawInput);
+      if (tokens.isNotEmpty) {
+        final commandName = tokens[0];
+        final args = tokens.sublist(1);
+        final options = _parseCommandOptions(commandName, args);
+
+        state = state.copyWith(isSending: true);
+        try {
+          final res = await _repository.invokeCommand(
+            command: commandName,
+            channelId: _channelId,
+            serverId: serverId ?? '',
+            options: options,
+          );
+
+          if (res != null) {
+            final responseMap = res['response'] as Map<String, dynamic>?;
+            if (responseMap != null) {
+              final respContent = responseMap['content'] as String? ?? '';
+              final embed = responseMap['embed'] as Map<String, dynamic>?;
+              final ephemeral = responseMap['ephemeral'] as bool? ?? false;
+
+              // Format content to include embed if present
+              String finalContent = respContent;
+              if (embed != null) {
+                final title = embed['title'] as String? ?? '';
+                final desc = embed['description'] as String? ?? '';
+                final fields = embed['fields'] as List<dynamic>?;
+                
+                final List<String> embedParts = [];
+                if (title.isNotEmpty) embedParts.add('**$title**');
+                if (desc.isNotEmpty) embedParts.add(desc);
+                if (fields != null) {
+                  for (final f in fields) {
+                    final fMap = Map<String, dynamic>.from(f as Map);
+                    final fName = fMap['name'] as String? ?? '';
+                    final fVal = fMap['value'] as String? ?? '';
+                    if (fName.isNotEmpty || fVal.isNotEmpty) {
+                      embedParts.add('$fName: $fVal');
+                    }
+                  }
+                }
+                if (embedParts.isNotEmpty) {
+                  if (finalContent.isNotEmpty) {
+                    finalContent = '$finalContent\n\n${embedParts.join('\n')}';
+                  } else {
+                    finalContent = embedParts.join('\n');
+                  }
+                }
+              }
+
+              if (ephemeral) {
+                final ephemeralMsg = FlickoMessage(
+                  id: 'ephemeral_${DateTime.now().millisecondsSinceEpoch}',
+                  channelId: _channelId,
+                  authorId: 'system',
+                  content: finalContent,
+                  type: 'ephemeral',
+                  createdAt: DateTime.now(),
+                  author: UserModel(
+                    id: 'system',
+                    username: 'System',
+                    displayName: 'System',
+                    avatarUrl: null,
+                    onlineStatus: 'online',
+                    createdAt: DateTime.now(),
+                  ),
+                );
+                state = state.copyWith(
+                  messages: [ephemeralMsg, ...state.messages],
+                  isSending: false,
+                );
+              } else {
+                await _repository.sendSystemMessage(_channelId, finalContent);
+                state = state.copyWith(isSending: false);
+              }
+            } else {
+              state = state.copyWith(
+                isSending: false,
+                errorMessage: 'Empty command response',
+              );
+            }
+          } else {
+            state = state.copyWith(
+              isSending: false,
+              errorMessage: 'Failed to execute command: no response',
+            );
+          }
+        } catch (e) {
+          state = state.copyWith(
+            isSending: false,
+            errorMessage: 'Failed to execute command: $e',
+          );
+        }
+        return;
+      }
+    }
 
     final tempMessageId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
     final authState = ref.read(authNotifierProvider);
@@ -292,5 +392,84 @@ class ChatNotifier extends Notifier<ChatState> {
     } catch (e) {
       state = state.copyWith(errorMessage: 'Failed to create thread: $e');
     }
+  }
+
+  List<String> _tokenize(String text) {
+    final List<String> tokens = [];
+    final StringBuffer current = StringBuffer();
+    bool inDoubleQuotes = false;
+    bool inSingleQuotes = false;
+
+    for (int i = 0; i < text.length; i++) {
+      final char = text[i];
+      if (char == '"' && !inSingleQuotes) {
+        inDoubleQuotes = !inDoubleQuotes;
+        current.write(char);
+      } else if (char == "'" && !inDoubleQuotes) {
+        inSingleQuotes = !inSingleQuotes;
+        current.write(char);
+      } else if ((char == ' ' || char == '\t' || char == '\n') && !inDoubleQuotes && !inSingleQuotes) {
+        if (current.isNotEmpty) {
+          tokens.add(current.toString());
+          current.clear();
+        }
+      } else {
+        current.write(char);
+      }
+    }
+    if (current.isNotEmpty) {
+      tokens.add(current.toString());
+    }
+    return tokens;
+  }
+
+  Map<String, dynamic> _parseCommandOptions(String commandName, List<String> args) {
+    final Map<String, dynamic> options = {};
+    int positionalIdx = 0;
+
+    for (final arg in args) {
+      final colonIdx = arg.indexOf(':');
+      final equalIdx = arg.indexOf('=');
+
+      if (colonIdx > 0) {
+        final key = arg.substring(0, colonIdx).trim().toLowerCase();
+        var val = arg.substring(colonIdx + 1).trim();
+        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+          val = val.substring(1, val.length - 1);
+        }
+        if (val.toLowerCase() == 'true') {
+          options[key] = true;
+        } else if (val.toLowerCase() == 'false') {
+          options[key] = false;
+        } else {
+          options[key] = val;
+        }
+      } else if (equalIdx > 0) {
+        final key = arg.substring(0, equalIdx).trim().toLowerCase();
+        var val = arg.substring(equalIdx + 1).trim();
+        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+          val = val.substring(1, val.length - 1);
+        }
+        if (val.toLowerCase() == 'true') {
+          options[key] = true;
+        } else if (val.toLowerCase() == 'false') {
+          options[key] = false;
+        } else {
+          options[key] = val;
+        }
+      } else {
+        var val = arg.trim();
+        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+          val = val.substring(1, val.length - 1);
+        }
+        if (positionalIdx == 0) {
+          options['action'] = val;
+        } else {
+          options['positional_$positionalIdx'] = val;
+        }
+        positionalIdx++;
+      }
+    }
+    return options;
   }
 }

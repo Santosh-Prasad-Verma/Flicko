@@ -169,6 +169,7 @@ class _EnhancedMessageItemState extends ConsumerState<EnhancedMessageItem> {
     String text;
     IconData icon;
     Color color;
+    final bool isEphemeral = widget.message.type == 'ephemeral';
 
     switch (widget.message.type) {
       case 'join':
@@ -191,6 +192,10 @@ class _EnhancedMessageItemState extends ConsumerState<EnhancedMessageItem> {
             '${widget.message.author?.displayName ?? widget.message.author?.username ?? "Someone"} pinned a message';
         icon = Icons.push_pin;
         color = const Color(FlickoColors.warning);
+      case 'ephemeral':
+        text = widget.message.content;
+        icon = Icons.visibility_off;
+        color = const Color(FlickoColors.textMuted).withOpacity(0.8);
       default:
         text = widget.message.content;
         icon = Icons.info;
@@ -199,21 +204,32 @@ class _EnhancedMessageItemState extends ConsumerState<EnhancedMessageItem> {
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              text,
-              style: GoogleFonts.inter(
-                color: const Color(FlickoColors.textMuted),
-                fontSize: 13,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 14, color: color),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  isEphemeral ? 'Only you can see this • $text' : text,
+                  style: GoogleFonts.inter(
+                    color: color,
+                    fontSize: 13,
+                    fontStyle: isEphemeral ? FontStyle.italic : FontStyle.normal,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
               ),
-              textAlign: TextAlign.center,
-            ),
+            ],
           ),
+          if (widget.message.attachments.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            _buildAttachments(),
+          ],
         ],
       ),
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -18,13 +19,42 @@ class BotWelcomeSettingsScreen extends ConsumerStatefulWidget {
 
 class _BotWelcomeSettingsScreenState extends ConsumerState<BotWelcomeSettingsScreen> {
   bool _isLoading = true;
+  bool _isSaving = false;
+  bool _hasChanges = false;
   Map<String, dynamic>? _settings;
   String? _errorMessage;
+
+  List<Map<String, dynamic>> _channels = [];
+  List<Map<String, dynamic>> _roles = [];
+
+  final _welcomeMsgController = TextEditingController();
+  final _welcomeBannerController = TextEditingController();
+  final _welcomeGifController = TextEditingController();
+  final _dmMsgController = TextEditingController();
+  final _leaveMsgController = TextEditingController();
+
+  String? _welcomeChannelId;
+  String? _leaveChannelId;
+  bool _botEnabled = false;
+  bool _dmEnabled = false;
+  bool _welcomeCardEnabled = false;
+  bool _leaveEnabled = false;
+  List<String> _autoRoles = [];
 
   @override
   void initState() {
     super.initState();
     _loadSettings();
+  }
+
+  @override
+  void dispose() {
+    _welcomeMsgController.dispose();
+    _welcomeBannerController.dispose();
+    _welcomeGifController.dispose();
+    _dmMsgController.dispose();
+    _leaveMsgController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadSettings() async {
@@ -34,14 +64,63 @@ class _BotWelcomeSettingsScreenState extends ConsumerState<BotWelcomeSettingsScr
     });
 
     try {
-      final response = await Supabase.instance.client
+      final client = Supabase.instance.client;
+
+      // 1. Fetch welcome settings
+      final settingsResponse = await client
           .from('welcome_settings')
           .select('*')
           .eq('server_id', widget.serverId)
           .maybeSingle();
 
+      // 2. Fetch text channels
+      final channelsResponse = await client
+          .from('channels')
+          .select('id, name, type')
+          .eq('server_id', widget.serverId)
+          .eq('type', 'text');
+
+      // 3. Fetch server roles
+      final rolesResponse = await client
+          .from('roles')
+          .select('id, name')
+          .eq('server_id', widget.serverId);
+
       setState(() {
-        _settings = response;
+        _settings = settingsResponse;
+        _channels = List<Map<String, dynamic>>.from(channelsResponse ?? []);
+        _roles = List<Map<String, dynamic>>.from(rolesResponse ?? []);
+
+        if (settingsResponse != null) {
+          _botEnabled = settingsResponse['enabled'] ?? false;
+          _welcomeMsgController.text = settingsResponse['welcome_message'] ?? 'Welcome {{user}} to **{{server}}**! 🎉';
+          _welcomeBannerController.text = settingsResponse['welcome_banner_url'] ?? '';
+          _welcomeGifController.text = settingsResponse['welcome_gif_url'] ?? '';
+          _dmMsgController.text = settingsResponse['dm_message'] ?? 'Welcome to **{{server}}**! Read the rules to get started.';
+          _leaveMsgController.text = settingsResponse['leave_message'] ?? '**{{username}}** has left the server. 😢';
+          _welcomeChannelId = settingsResponse['welcome_channel_id'];
+          _leaveChannelId = settingsResponse['leave_channel_id'];
+          _dmEnabled = settingsResponse['dm_enabled'] ?? false;
+          _welcomeCardEnabled = settingsResponse['welcome_card_enabled'] ?? false;
+          _leaveEnabled = settingsResponse['leave_enabled'] ?? false;
+          _autoRoles = List<String>.from(settingsResponse['auto_roles'] ?? []);
+        } else {
+          // Initialize default templates
+          _botEnabled = false;
+          _welcomeMsgController.text = 'Welcome {{user}} to **{{server}}**! 🎉';
+          _welcomeBannerController.text = '';
+          _welcomeGifController.text = '';
+          _dmMsgController.text = 'Welcome to **{{server}}**! Read the rules to get started.';
+          _leaveMsgController.text = '**{{username}}** has left the server. 😢';
+          _welcomeChannelId = null;
+          _leaveChannelId = null;
+          _dmEnabled = false;
+          _welcomeCardEnabled = false;
+          _leaveEnabled = false;
+          _autoRoles = [];
+        }
+
+        _hasChanges = false;
         _isLoading = false;
       });
     } catch (e) {
@@ -52,25 +131,63 @@ class _BotWelcomeSettingsScreenState extends ConsumerState<BotWelcomeSettingsScr
     }
   }
 
-  Future<void> _toggleEnabled(bool enabled) async {
+  void _markChanged() {
+    if (!_hasChanges) setState(() => _hasChanges = true);
+  }
+
+  Future<void> _saveSettings() async {
+    if (_isSaving) return;
+    setState(() => _isSaving = true);
+    HapticFeedback.mediumImpact();
+
     try {
+      final payload = {
+        'enabled': _botEnabled,
+        'welcome_message': _welcomeMsgController.text.trim(),
+        'welcome_banner_url': _welcomeBannerController.text.trim(),
+        'welcome_gif_url': _welcomeGifController.text.trim(),
+        'dm_message': _dmMsgController.text.trim(),
+        'leave_message': _leaveMsgController.text.trim(),
+        'welcome_channel_id': _welcomeChannelId,
+        'leave_channel_id': _leaveChannelId,
+        'dm_enabled': _dmEnabled,
+        'welcome_card_enabled': _welcomeCardEnabled,
+        'leave_enabled': _leaveEnabled,
+        'auto_roles': _autoRoles,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+
       if (_settings != null) {
         await Supabase.instance.client
             .from('welcome_settings')
-            .update({'enabled': enabled})
+            .update(payload)
             .eq('server_id', widget.serverId);
       } else {
+        payload['server_id'] = widget.serverId;
+        payload['created_at'] = DateTime.now().toIso8601String();
         await Supabase.instance.client
             .from('welcome_settings')
-            .insert({
-              'server_id': widget.serverId,
-              'enabled': enabled,
-              'created_at': DateTime.now().toIso8601String(),
-            });
+            .insert(payload);
       }
+
+      setState(() {
+        _hasChanges = false;
+        _isSaving = false;
+      });
+
       await _loadSettings();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Settings saved successfully!'),
+            backgroundColor: Color(FlickoColors.green),
+          ),
+        );
+      }
     } catch (e) {
-      _showError('Failed to update settings: ${e.toString()}');
+      setState(() => _isSaving = false);
+      _showError('Failed to save settings: ${e.toString()}');
     }
   }
 
@@ -83,31 +200,57 @@ class _BotWelcomeSettingsScreenState extends ConsumerState<BotWelcomeSettingsScr
     );
   }
 
+  InputDecoration _inputDecoration(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: GoogleFonts.inter(color: const Color(FlickoColors.textMuted), fontSize: 14),
+      filled: true,
+      fillColor: const Color(FlickoColors.bgTertiary),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(FlickoRadius.md),
+        borderSide: BorderSide.none,
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(FlickoColors.bgPrimary),
       appBar: AppBar(
-        backgroundColor: const Color(FlickoColors.bgPrimary),
+        backgroundColor: const Color(FlickoColors.bgSecondary),
         elevation: 0,
         leading: IconButton(
           icon: Image.asset('assets/images/back.png', width: 20, height: 20, fit: BoxFit.contain),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Row(
-          children: [
-            const Text('👋', style: TextStyle(fontSize: 24)),
-            const SizedBox(width: 8),
-            Text(
-              'Welcome Bot',
-              style: GoogleFonts.inter(
-                color: const Color(FlickoColors.textPrimary),
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
+        title: Text(
+          'Welcome Bot',
+          style: GoogleFonts.inter(
+            color: const Color(FlickoColors.textPrimary),
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+          ),
         ),
+        actions: [
+          TextButton(
+            onPressed: _hasChanges && !_isSaving ? _saveSettings : null,
+            child: _isSaving
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Color(FlickoColors.blurple)),
+                  )
+                : Text(
+                    'Save',
+                    style: GoogleFonts.inter(
+                      color: _hasChanges ? const Color(FlickoColors.blurple) : const Color(FlickoColors.textMuted),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+          ),
+        ],
       ),
       body: _buildBody(),
     );
@@ -149,166 +292,366 @@ class _BotWelcomeSettingsScreenState extends ConsumerState<BotWelcomeSettingsScr
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Description
+          // Description banner
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: const Color(FlickoColors.bgSecondary),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(FlickoRadius.lg),
             ),
-            child: Text(
-              'Greet new members, assign auto-roles and send goodbye messages.',
-              style: GoogleFonts.inter(
-                color: const Color(FlickoColors.textSecondary),
-                fontSize: 14,
-              ),
+            child: Row(
+              children: [
+                const Text('👋', style: TextStyle(fontSize: 24)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Greet new members, assign auto-roles and send goodbye messages.',
+                    style: GoogleFonts.inter(
+                      color: const Color(FlickoColors.textSecondary),
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 24),
 
           // Enable toggle
-          _buildSection('Status', [
-            SwitchListTile(
-              title: Text(
-                'Enable Welcome Bot',
-                style: GoogleFonts.inter(
-                  color: const Color(FlickoColors.textPrimary),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              subtitle: Text(
-                'Automatically welcome new members',
-                style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted), fontSize: 12),
-              ),
-              value: _settings?['enabled'] ?? false,
-              onChanged: _toggleEnabled,
-              activeThumbColor: const Color(FlickoColors.blurple),
+          _buildToggleCard(
+            title: 'Enable Welcome Bot',
+            description: 'Automatically welcome new members when they join',
+            value: _botEnabled,
+            onChanged: (v) {
+              setState(() {
+                _botEnabled = v;
+              });
+              _markChanged();
+            },
+          ),
+          const SizedBox(height: 24),
+
+          if (_botEnabled) ...[
+            // Welcome channel
+            _buildSectionHeader('WELCOME CHANNEL'),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<String>(
+              value: _welcomeChannelId,
+              dropdownColor: const Color(FlickoColors.bgSecondary),
+              style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary)),
+              decoration: _inputDecoration('Select a welcome channel'),
+              items: _channels.map((ch) {
+                return DropdownMenuItem<String>(
+                  value: ch['id'] as String,
+                  child: Text('# ${ch['name']}', style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary))),
+                );
+              }).toList(),
+              onChanged: (val) {
+                setState(() {
+                  _welcomeChannelId = val;
+                });
+                _markChanged();
+              },
             ),
-          ]),
+            const SizedBox(height: 16),
 
-          const SizedBox(height: 24),
+            // Welcome message template
+            _buildSectionHeader('WELCOME MESSAGE'),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _welcomeMsgController,
+              maxLines: 3,
+              style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary)),
+              decoration: _inputDecoration('Welcome message template'),
+              onChanged: (_) => _markChanged(),
+            ),
+            const SizedBox(height: 16),
 
-          // Welcome Message Section
-          _buildSection('Welcome Message', [
-            _buildInfoField('Channel', _settings?['channel_id'] != null ? 'Configured' : 'Not set'),
-            _buildInfoField('Message', _settings?['message'] ?? 'Welcome {{user}} to **{{server}}**! 🎉'),
-          ]),
+            // Welcome banner URL
+            _buildSectionHeader('WELCOME BANNER URL'),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _welcomeBannerController,
+              style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary)),
+              decoration: _inputDecoration('https://example.com/banner.png'),
+              onChanged: (_) => _markChanged(),
+            ),
+            const SizedBox(height: 16),
 
-          const SizedBox(height: 24),
+            // Welcome GIF URL
+            _buildSectionHeader('WELCOME GIF URL'),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _welcomeGifController,
+              style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary)),
+              decoration: _inputDecoration('https://example.com/welcome.gif'),
+              onChanged: (_) => _markChanged(),
+            ),
+            const SizedBox(height: 16),
 
-          // Leave Message Section
-          _buildSection('Leave Message', [
-            _buildInfoField('Leave Message', _settings?['leave_message'] ?? 'Not configured'),
-          ]),
+            // DM on Join Toggle
+            _buildToggleCard(
+              title: 'Send DM on Join',
+              description: 'Send a private message to new members when they join',
+              value: _dmEnabled,
+              onChanged: (v) {
+                setState(() {
+                  _dmEnabled = v;
+                });
+                _markChanged();
+              },
+            ),
+            if (_dmEnabled) ...[
+              const SizedBox(height: 16),
+              _buildSectionHeader('DM MESSAGE'),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _dmMsgController,
+                maxLines: 3,
+                style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary)),
+                decoration: _inputDecoration('Welcome message sent to DM'),
+                onChanged: (_) => _markChanged(),
+              ),
+            ],
+            const SizedBox(height: 16),
 
-          const SizedBox(height: 24),
+            // Welcome Card Toggle
+            _buildToggleCard(
+              title: 'Generate Welcome Card',
+              description: 'Generate a visual welcome card image',
+              value: _welcomeCardEnabled,
+              onChanged: (v) {
+                setState(() {
+                  _welcomeCardEnabled = v;
+                });
+                _markChanged();
+              },
+            ),
+            const SizedBox(height: 16),
 
-          // Features Section
-          _buildSection('Features', [
-            _buildToggleField('DM on Join', 'Send a private message to new members', _settings?['dm_enabled'] ?? false),
-            _buildToggleField('Welcome Card', 'Generate a visual welcome card image', _settings?['card_enabled'] ?? false),
-            _buildInfoField('Auto Roles', '${(_settings?['auto_roles'] as List?)?.length ?? 0} roles'),
-          ]),
+            // Leave message status toggle
+            _buildToggleCard(
+              title: 'Enable Leave Messages',
+              description: 'Send goodbye message when a member leaves',
+              value: _leaveEnabled,
+              onChanged: (v) {
+                setState(() {
+                  _leaveEnabled = v;
+                });
+                _markChanged();
+              },
+            ),
+            if (_leaveEnabled) ...[
+              const SizedBox(height: 16),
+              // Leave message channel
+              _buildSectionHeader('LEAVE MESSAGE CHANNEL'),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                value: _leaveChannelId,
+                dropdownColor: const Color(FlickoColors.bgSecondary),
+                style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary)),
+                decoration: _inputDecoration('Select leave message channel'),
+                items: _channels.map((ch) {
+                  return DropdownMenuItem<String>(
+                    value: ch['id'] as String,
+                    child: Text('# ${ch['name']}', style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary))),
+                  );
+                }).toList(),
+                onChanged: (val) {
+                  setState(() {
+                    _leaveChannelId = val;
+                  });
+                  _markChanged();
+                },
+              ),
+              const SizedBox(height: 16),
 
-          const SizedBox(height: 24),
+              // Leave message template
+              _buildSectionHeader('LEAVE MESSAGE'),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _leaveMsgController,
+                maxLines: 3,
+                style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary)),
+                decoration: _inputDecoration('Leave message template'),
+                onChanged: (_) => _markChanged(),
+              ),
+            ],
+            const SizedBox(height: 24),
 
-          // Template Variables
-          _buildSection('Template Variables', [
-            _buildInfoField('{{user}}', 'Mention the user'),
-            _buildInfoField('{{username}}', "User's display name"),
-            _buildInfoField('{{server}}', 'Server name'),
-            _buildInfoField('{{memberCount}}', 'Total member count'),
-          ]),
+            // Auto roles section
+            _buildSectionHeader('AUTO ASSIGNED ROLES'),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(FlickoColors.bgSecondary),
+                borderRadius: BorderRadius.circular(FlickoRadius.lg),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Automatically assign these roles to new members:',
+                    style: GoogleFonts.inter(color: const Color(FlickoColors.textSecondary), fontSize: 13),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8.0,
+                    runSpacing: 4.0,
+                    children: [
+                      ..._autoRoles.map((roleId) {
+                        final role = _roles.firstWhere((r) => r['id'] == roleId, orElse: () => {'name': 'Unknown Role'});
+                        return Chip(
+                          label: Text(
+                            role['name'],
+                            style: GoogleFonts.inter(color: Colors.white, fontSize: 13),
+                          ),
+                          backgroundColor: const Color(FlickoColors.blurple),
+                          deleteIcon: const Icon(Icons.close, size: 16, color: Colors.white),
+                          onDeleted: () {
+                            setState(() {
+                              _autoRoles.remove(roleId);
+                            });
+                            _markChanged();
+                          },
+                        );
+                      }),
+                      if (_roles.length > _autoRoles.length)
+                        DropdownButton<String>(
+                          hint: Text('Add role...', style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted), fontSize: 13)),
+                          icon: const Icon(Icons.add, color: Color(FlickoColors.blurple)),
+                          underline: Container(),
+                          items: _roles
+                              .where((role) => !_autoRoles.contains(role['id']))
+                              .map((role) => DropdownMenuItem<String>(
+                                    value: role['id'] as String,
+                                    child: Text(role['name'] as String, style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary))),
+                                  ))
+                              .toList(),
+                          onChanged: (roleId) {
+                            if (roleId != null) {
+                              setState(() {
+                                _autoRoles.add(roleId);
+                              });
+                              _markChanged();
+                            }
+                          },
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
 
-          const SizedBox(height: 24),
-
-          // Commands
-          _buildSection('Commands', [
-            _buildInfoField('/welcome setup', 'Set welcome channel'),
-            _buildInfoField('/welcome message', 'Customize welcome message'),
-            _buildInfoField('/welcome test', 'Send a test welcome'),
-            _buildInfoField('/welcome leave', 'Set leave message'),
-            _buildInfoField('/welcome autorole', 'Add auto-assigned role'),
-            _buildInfoField('/welcome dm', 'Configure DM settings'),
-            _buildInfoField('/welcome card', 'Toggle welcome card'),
-          ]),
+            // Template Variables
+            _buildSectionHeader('TEMPLATE VARIABLES'),
+            const SizedBox(height: 8),
+            Container(
+              decoration: BoxDecoration(
+                color: const Color(FlickoColors.bgSecondary),
+                borderRadius: BorderRadius.circular(FlickoRadius.lg),
+              ),
+              child: Column(
+                children: [
+                  _buildVariableRow('{{user}}', 'Mentions the user'),
+                  _buildVariableRow('{{username}}', "User's display name"),
+                  _buildVariableRow('{{server}}', 'Server name'),
+                  _buildVariableRow('{{memberCount}}', 'Total member count'),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildSection(String title, List<Widget> children) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: GoogleFonts.inter(
-            color: const Color(FlickoColors.textSecondary),
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.5,
+  Widget _buildToggleCard({
+    required String title,
+    required String description,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(FlickoColors.bgSecondary),
+        borderRadius: BorderRadius.circular(FlickoRadius.lg),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: GoogleFonts.inter(
+                    color: const Color(FlickoColors.textPrimary),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: GoogleFonts.inter(
+                    color: const Color(FlickoColors.textMuted),
+                    fontSize: 12,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          decoration: BoxDecoration(
-            color: const Color(FlickoColors.bgSecondary),
-            borderRadius: BorderRadius.circular(12),
+          const SizedBox(width: 12),
+          Switch.adaptive(
+            value: value,
+            onChanged: onChanged,
+            activeColor: const Color(FlickoColors.blurple),
           ),
-          child: Column(children: children),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
-  Widget _buildInfoField(String label, String value) {
+  Widget _buildSectionHeader(String title) {
+    return Text(
+      title,
+      style: GoogleFonts.inter(
+        color: const Color(FlickoColors.textMuted),
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.6,
+      ),
+    );
+  }
+
+  Widget _buildVariableRow(String variable, String desc) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            label,
+            variable,
             style: GoogleFonts.inter(
-              color: const Color(FlickoColors.textPrimary),
+              color: const Color(FlickoColors.blurple),
+              fontWeight: FontWeight.w600,
               fontSize: 14,
             ),
           ),
           Text(
-            value,
+            desc,
             style: GoogleFonts.inter(
-              color: const Color(FlickoColors.textMuted),
-              fontSize: 14,
+              color: const Color(FlickoColors.textSecondary),
+              fontSize: 13,
             ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildToggleField(String label, String hint, bool value) {
-    return SwitchListTile(
-      title: Text(
-        label,
-        style: GoogleFonts.inter(
-          color: const Color(FlickoColors.textPrimary),
-          fontSize: 14,
-        ),
-      ),
-      subtitle: Text(
-        hint,
-        style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted), fontSize: 12),
-      ),
-      value: value,
-      onChanged: (v) {
-        // TODO: Implement toggle functionality
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$label toggle - Coming Soon')),
-        );
-      },
-      activeThumbColor: const Color(FlickoColors.blurple),
     );
   }
 }

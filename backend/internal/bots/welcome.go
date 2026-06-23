@@ -258,24 +258,63 @@ func (b *WelcomeBot) onMemberJoin(evt events.Event) error {
 		CardEnabled bool
 		DMEnabled   bool
 		DMMessage   string
+		BannerURL   *string
+		GIFURL      *string
 	}
 
 	err := b.ctx.DB.QueryRow(context.Background(),
 		`SELECT enabled, welcome_channel_id, welcome_message, auto_roles,
-				welcome_card_enabled, dm_enabled, dm_message
+				welcome_card_enabled, dm_enabled, dm_message, welcome_banner_url, welcome_gif_url
 		 FROM welcome_settings WHERE server_id = $1`, evt.ServerID).Scan(
 		&settings.Enabled, &settings.ChannelID, &settings.Message,
 		&settings.AutoRoles, &settings.CardEnabled, &settings.DMEnabled, &settings.DMMessage,
+		&settings.BannerURL, &settings.GIFURL,
 	)
 	if err != nil || !settings.Enabled {
 		return nil
+	}
+
+	// Auto-resolve or create welcome channel if not set
+	if settings.ChannelID == nil || *settings.ChannelID == "" {
+		var resolvedChannelID string
+		err := b.ctx.DB.QueryRow(context.Background(),
+			`SELECT id FROM channels WHERE server_id = $1 AND LOWER(name) = 'welcome' AND type = 'text' LIMIT 1`,
+			evt.ServerID).Scan(&resolvedChannelID)
+		if err != nil {
+			// Not found, create it
+			err = b.ctx.DB.QueryRow(context.Background(),
+				`INSERT INTO channels (server_id, type, name, position)
+				 VALUES ($1, 'text', 'welcome', 0) RETURNING id`,
+				evt.ServerID).Scan(&resolvedChannelID)
+			if err != nil {
+				b.logger.Error("failed to auto-create welcome channel", zap.Error(err))
+			}
+		}
+
+		if resolvedChannelID != "" {
+			_, err = b.ctx.DB.Exec(context.Background(),
+				`UPDATE welcome_settings SET welcome_channel_id = $1 WHERE server_id = $2`,
+				resolvedChannelID, evt.ServerID)
+			if err != nil {
+				b.logger.Error("failed to update welcome channel setting", zap.Error(err))
+			}
+			settings.ChannelID = &resolvedChannelID
+		}
 	}
 
 	// Send welcome message (best-effort).
 	if settings.ChannelID != nil {
 		msg, err := b.buildWelcomeMessage(evt.ServerID, userID)
 		if err == nil {
-			SendBotMessage(b.ctx, *settings.ChannelID, msg)
+			banner := ""
+			if settings.BannerURL != nil {
+				banner = *settings.BannerURL
+			}
+			gif := ""
+			if settings.GIFURL != nil {
+				gif = *settings.GIFURL
+			}
+			SendBotMessageDetailed(b.ctx, *settings.ChannelID, msg, banner, gif)
 		}
 	}
 

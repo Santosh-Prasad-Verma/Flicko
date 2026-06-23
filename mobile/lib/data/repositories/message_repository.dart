@@ -7,6 +7,7 @@ import 'package:mobile/data/models/flicko_message.dart';
 import 'package:mobile/data/clients/dio_client.dart';
 import 'package:mobile/core/services/appwrite_storage_service.dart';
 import 'package:mobile/core/config/app_config.dart';
+import 'package:mobile/features/server_channels/chat/presentation/widgets/command_autocomplete.dart';
 
 /// Repository for handling channel message-related data operations.
 /// 
@@ -394,6 +395,54 @@ class MessageRepository {
       'message_uuid': messageId,
       'pin_status': pinned,
     });
+  }
+
+  /// Fetches command definitions from the backend.
+  Future<List<CommandDefinition>> getCommandDefinitions() async {
+    try {
+      final response = await _dio.get('/v1/commands');
+      final List<dynamic> data = response.data as List<dynamic>;
+      return data.map((json) => CommandDefinition.fromJson(Map<String, dynamic>.from(json as Map))).toList();
+    } catch (e) {
+      developer.log('Failed to fetch command definitions', name: 'MessageRepository', error: e);
+      return [];
+    }
+  }
+
+  /// Invokes a slash command on the backend.
+  Future<Map<String, dynamic>?> invokeCommand({
+    required String command,
+    required String channelId,
+    required String serverId,
+    Map<String, dynamic>? options,
+  }) async {
+    try {
+      final response = await _dio.post('/v1/commands/invoke', data: {
+        'command_name': command,
+        'channel_id': channelId,
+        'server_id': serverId,
+        'options': options ?? {},
+      });
+      return response.data as Map<String, dynamic>?;
+    } catch (e) {
+      developer.log('Failed to invoke command', name: 'MessageRepository', error: e);
+      rethrow;
+    }
+  }
+
+  /// Sends a system/bot message directly to the channel (non-ephemeral bot response).
+  Future<void> sendSystemMessage(String channelId, String content) async {
+    try {
+      await _client.from('messages').insert({
+        'channel_id': channelId,
+        'content': content,
+        'type': 'system',
+        'created_at': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      developer.log('Failed to send system message', name: 'MessageRepository', error: e);
+      rethrow;
+    }
   }
 
   /// Parses raw message JSON map safely converting dynamic maps to Map<String, dynamic>.

@@ -16,6 +16,8 @@ import 'sticker_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/features/store/data/badge_alchemy_service.dart';
 import 'package:mobile/data/repositories/server_repository.dart';
+import 'package:mobile/data/repositories/message_repository.dart';
+import 'command_autocomplete.dart';
 
 /// Enhanced MessageInput with Emoji/GIF pickers and Voice Recorder
 class EnhancedMessageInput extends ConsumerStatefulWidget {
@@ -73,11 +75,31 @@ class _EnhancedMessageInputState extends ConsumerState<EnhancedMessageInput> {
   // Users for mention autocomplete
   final List<MentionUser> _availableUsers = [];
 
+  // Slash commands autocomplete state
+  List<CommandDefinition> _commands = [];
+  bool _showCommands = false;
+  String _commandQuery = '';
+
   @override
   void initState() {
     super.initState();
     _controller.addListener(_handleTextChanged);
     _loadServerMembers();
+    _loadCommandDefinitions();
+  }
+
+  Future<void> _loadCommandDefinitions() async {
+    try {
+      final repository = ref.read(messageRepositoryProvider);
+      final list = await repository.getCommandDefinitions();
+      if (mounted) {
+        setState(() {
+          _commands = list;
+        });
+      }
+    } catch (_) {
+      // Fail silently
+    }
   }
 
   Future<void> _loadServerMembers() async {
@@ -134,11 +156,62 @@ class _EnhancedMessageInputState extends ConsumerState<EnhancedMessageInput> {
       }
     });
 
+    // Check for command context
+    _checkForCommands();
     // Check for mention context
     _checkForMentions();
   }
 
+  void _checkForCommands() {
+    final text = _controller.text;
+    final cursorPosition = _controller.selection.start;
+    
+    if (cursorPosition <= 0) {
+      _dismissCommands();
+      return;
+    }
+    
+    // Check if the input starts with '/'
+    if (text.startsWith('/')) {
+      // Find the start of current word
+      int wordStart = cursorPosition - 1;
+      while (wordStart >= 0 && text[wordStart] != ' ' && text[wordStart] != '\n') {
+        wordStart--;
+      }
+      wordStart++;
+      
+      // If we are currently typing the first word (which starts with '/')
+      if (wordStart == 0) {
+        setState(() {
+          _showCommands = true;
+          _showMentions = false; // Hide mentions if showing commands
+          _commandQuery = text.substring(1, cursorPosition);
+        });
+        return;
+      }
+    }
+    
+    _dismissCommands();
+  }
+
+  void _dismissCommands() {
+    setState(() {
+      _showCommands = false;
+      _commandQuery = '';
+    });
+  }
+
+  void _insertCommand(CommandDefinition cmd) {
+    _controller.text = '/${cmd.name} ';
+    _controller.selection = TextSelection.collapsed(
+      offset: cmd.name.length + 2,
+    );
+    _dismissCommands();
+  }
+
   void _checkForMentions() {
+    if (_showCommands) return; // Don't check for mentions if commands is showing
+
     final text = _controller.text;
     final cursorPosition = _controller.selection.start;
     
@@ -394,6 +467,15 @@ class _EnhancedMessageInputState extends ConsumerState<EnhancedMessageInput> {
                 query: _mentionQuery,
                 onSelect: _insertMention,
                 onDismiss: _dismissMentions,
+              ),
+
+            // Command autocomplete
+            if (_showCommands)
+              CommandAutocomplete(
+                commands: _commands,
+                query: _commandQuery,
+                onSelect: _insertCommand,
+                onDismiss: _dismissCommands,
               ),
             
             // Reply bar

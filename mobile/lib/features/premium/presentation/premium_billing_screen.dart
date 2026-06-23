@@ -617,6 +617,7 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
         email: userEmail,
         username: username,
         amount: formattedAmount,
+        plan: plan,
       );
 
       if (isVerified) {

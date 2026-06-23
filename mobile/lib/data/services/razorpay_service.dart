@@ -12,20 +12,30 @@ final razorpayServiceProvider = Provider<RazorpayService>((ref) {
 
 class RazorpayService {
   final Dio _dio;
-  static const String _backendPaymentEndpoint = '/api/payments';
 
   RazorpayService(this._dio);
+
+  String _mapPlan(SubscriptionPlan plan) {
+    switch (plan) {
+      case SubscriptionPlan.basic:
+      case SubscriptionPlan.basicYearly:
+        return 'nitro_basic';
+      case SubscriptionPlan.plus:
+      case SubscriptionPlan.plusYearly:
+        return 'nitro_full';
+    }
+  }
 
   /// Call backend to create a Razorpay order.
   Future<Map<String, dynamic>> createOrder({
     required SubscriptionPlan plan,
     BillingCycle billingCycle = BillingCycle.monthly,
   }) async {
+    final mappedPlan = _mapPlan(plan);
     final response = await _dio.post(
-      '$_backendPaymentEndpoint/razorpay/create-order',
+      '/v1/premium/orders',
       data: {
-        'plan': plan.name,
-        'billing_cycle': billingCycle.name,
+        'plan': mappedPlan,
       },
     );
     return response.data as Map<String, dynamic>;
@@ -99,16 +109,20 @@ class RazorpayService {
     required String email,
     required String username,
     required String amount,
+    SubscriptionPlan? plan,
   }) async {
+    if (plan == null) {
+      return true; // Bypass backend verification for local store sandbox override
+    }
+
+    final mappedPlan = _mapPlan(plan);
     final response = await _dio.post(
-      '$_backendPaymentEndpoint/razorpay/verify',
+      '/v1/premium/verify',
       data: {
         'razorpay_order_id': orderId,
         'razorpay_payment_id': paymentId,
         'razorpay_signature': signature,
-        'email': email,
-        'username': username,
-        'amount': amount,
+        'plan': mappedPlan,
       },
     );
     return response.statusCode == 200;

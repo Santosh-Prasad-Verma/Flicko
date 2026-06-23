@@ -97,7 +97,7 @@ class _OnboardingSettingsScreenState extends ConsumerState<OnboardingSettingsScr
 
       setState(() {
         _rules = rules;
-        _onboardingEnabled = config?['enabled'] == true || rules.isNotEmpty;
+        _onboardingEnabled = config?['enabled'] == true;
         _welcomeTitleController.text = config?['welcome_title'] ?? '';
         _welcomeDescController.text = config?['welcome_description'] ?? '';
         _isLoading = false;
@@ -125,38 +125,35 @@ class _OnboardingSettingsScreenState extends ConsumerState<OnboardingSettingsScr
 
     try {
       // 1. Save/update screening rules
-      // Delete removed rules (ones that existed in DB but are no longer in list)
-      final existingIds = _rules.where((r) => r.id != null).map((r) => r.id!).toList();
-      if (existingIds.isNotEmpty) {
-        // We'll just upsert existing and insert new ones
-        for (int i = 0; i < _rules.length; i++) {
-          final rule = _rules[i];
-          if (rule.id != null) {
-            await _client.from('screening_rules').update({
-              'title': rule.title,
-              'description': rule.description,
-              'is_required': rule.isRequired,
-              'is_enabled': rule.isEnabled,
-              'position': i,
-            }).eq('id', rule.id!);
-          } else {
-            final resp = await _client.from('screening_rules').insert({
-              'server_id': widget.serverId,
-              'title': rule.title,
-              'description': rule.description,
-              'is_required': rule.isRequired,
-              'is_enabled': rule.isEnabled,
-              'position': i,
-              'created_by': _client.auth.currentUser?.id,
-            }).select().single();
-            rule.id == resp['id'];
-          }
+      // Get all rule IDs currently in DB for this server
+      final dbRules = await _client
+          .from('screening_rules')
+          .select('id')
+          .eq('server_id', widget.serverId);
+      
+      final dbIds = (dbRules as List).map((r) => r['id'] as String).toList();
+      final currentIds = _rules.where((r) => r.id != null).map((r) => r.id!).toSet();
+
+      // Delete rules that are in DB but no longer in our list
+      for (final id in dbIds) {
+        if (!currentIds.contains(id)) {
+          await _client.from('screening_rules').delete().eq('id', id);
         }
-      } else {
-        // All new rules
-        for (int i = 0; i < _rules.length; i++) {
-          final rule = _rules[i];
-          await _client.from('screening_rules').insert({
+      }
+
+      // Upsert/Insert current rules
+      for (int i = 0; i < _rules.length; i++) {
+        final rule = _rules[i];
+        if (rule.id != null) {
+          await _client.from('screening_rules').update({
+            'title': rule.title,
+            'description': rule.description,
+            'is_required': rule.isRequired,
+            'is_enabled': rule.isEnabled,
+            'position': i,
+          }).eq('id', rule.id!);
+        } else {
+          final resp = await _client.from('screening_rules').insert({
             'server_id': widget.serverId,
             'title': rule.title,
             'description': rule.description,
@@ -165,6 +162,7 @@ class _OnboardingSettingsScreenState extends ConsumerState<OnboardingSettingsScr
             'position': i,
             'created_by': _client.auth.currentUser?.id,
           }).select().single();
+          rule.id = resp['id'];
         }
       }
 
@@ -220,11 +218,6 @@ class _OnboardingSettingsScreenState extends ConsumerState<OnboardingSettingsScr
 
   void _removeRule(int index) {
     HapticFeedback.lightImpact();
-    final rule = _rules[index];
-    // If it exists in DB, delete it
-    if (rule.id != null) {
-      _client.from('screening_rules').delete().eq('id', rule.id!).then((_) {});
-    }
     setState(() => _rules.removeAt(index));
     _markChanged();
   }

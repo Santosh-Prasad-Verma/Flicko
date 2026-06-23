@@ -328,6 +328,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     messageContent,
                     replyToId: _replyTo?.id,
                     localAttachments: attachments,
+                    serverId: widget.serverId,
                   );
                   setState(() => _replyTo = null);
                 },

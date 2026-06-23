@@ -95,6 +95,94 @@ func SendBotMessage(bctx BotContext, channelID, content string) {
 	}
 }
 
+// SendBotMessageDetailed inserts a system message and registers banner and GIF attachments
+func SendBotMessageDetailed(bctx BotContext, channelID, content string, bannerURL, gifURL string) {
+	if channelID == "" || content == "" {
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	systemID, _ := EnsureSystemUser(ctx, bctx)
+
+	var messageID string
+	var err error
+	if systemID == "" {
+		err = bctx.DB.QueryRow(ctx,
+			`INSERT INTO messages (channel_id, author_id, content, type, created_at)
+			 VALUES ($1, NULL, $2, 'system', NOW()) RETURNING id`,
+			channelID, content).Scan(&messageID)
+	} else {
+		err = bctx.DB.QueryRow(ctx,
+			`INSERT INTO messages (channel_id, author_id, content, type, created_at)
+			 VALUES ($1, $2, $3, 'system', NOW()) RETURNING id`,
+			channelID, systemID, content).Scan(&messageID)
+	}
+
+	if err != nil {
+		bctx.Logger.Error("SendBotMessageDetailed failed to insert message",
+			zap.String("channel_id", channelID),
+			zap.Error(err),
+		)
+		return
+	}
+
+	// Insert banner attachment if present
+	if bannerURL != "" {
+		filename := "banner"
+		if idx := strings.LastIndex(bannerURL, "/"); idx != -1 && idx+1 < len(bannerURL) {
+			filename = bannerURL[idx+1:]
+		}
+		if idx := strings.Index(filename, "?"); idx != -1 {
+			filename = filename[:idx]
+		}
+		mimeType := "image/png"
+		if strings.HasSuffix(strings.ToLower(filename), ".jpg") || strings.HasSuffix(strings.ToLower(filename), ".jpeg") {
+			mimeType = "image/jpeg"
+		} else if strings.HasSuffix(strings.ToLower(filename), ".webp") {
+			mimeType = "image/webp"
+		} else if strings.HasSuffix(strings.ToLower(filename), ".gif") {
+			mimeType = "image/gif"
+		}
+
+		_, err = bctx.DB.Exec(ctx,
+			`INSERT INTO public.attachments (id, message_id, filename, size, mime_type, url, is_malware)
+			 VALUES (gen_random_uuid(), $1, $2, 0, $3, $4, false)`,
+			messageID, filename, mimeType, bannerURL)
+		if err != nil {
+			bctx.Logger.Error("SendBotMessageDetailed failed to insert banner attachment",
+				zap.String("message_id", messageID),
+				zap.Error(err),
+			)
+		}
+	}
+
+	// Insert GIF attachment if present
+	if gifURL != "" {
+		filename := "welcome.gif"
+		if idx := strings.LastIndex(gifURL, "/"); idx != -1 && idx+1 < len(gifURL) {
+			filename = gifURL[idx+1:]
+		}
+		if idx := strings.Index(filename, "?"); idx != -1 {
+			filename = filename[:idx]
+		}
+		mimeType := "image/gif"
+
+		_, err = bctx.DB.Exec(ctx,
+			`INSERT INTO public.attachments (id, message_id, filename, size, mime_type, url, is_malware)
+			 VALUES (gen_random_uuid(), $1, $2, 0, $3, $4, false)`,
+			messageID, filename, mimeType, gifURL)
+		if err != nil {
+			bctx.Logger.Error("SendBotMessageDetailed failed to insert GIF attachment",
+				zap.String("message_id", messageID),
+				zap.Error(err),
+			)
+		}
+	}
+}
+
+
 // ─── Username lookup (panic-safe) ─────────────────────────────────────────────
 
 // LookupUsername returns a display name for a user ID. Returns the safe
