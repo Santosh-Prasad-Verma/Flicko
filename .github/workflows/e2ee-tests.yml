@@ -34,6 +34,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Create Mock Env File
+        run: touch .env
+
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:

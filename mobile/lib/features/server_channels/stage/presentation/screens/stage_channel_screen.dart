@@ -33,7 +33,7 @@ class StageParticipant {
       displayName: user?['display_name'] as String?,
       avatarUrl: user?['avatar'] as String?,
       isSpeaker: !(json['suppress'] as bool? ?? false),
-      handRaised: false, // TODO: store hand_raised in voice_states
+      handRaised: json['hand_raised'] as bool? ?? false,
       selfMute: json['self_mute'] as bool? ?? false,
     );
   }

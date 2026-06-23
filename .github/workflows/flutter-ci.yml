@@ -25,6 +25,9 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Create Mock Env File
+        run: touch .env
+
       - name: Set up Java
         # Required for building Android components/runners if needed in widget testing
         uses: actions/setup-java@v4
