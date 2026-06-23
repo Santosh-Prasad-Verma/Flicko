@@ -19,7 +19,7 @@ class OnboardingSettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _ScreeningRule {
-  final String? id;
+  String? id;
   String title;
   String? description;
   bool isRequired;
