@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math' show pi, sin, cos;
 import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
@@ -504,9 +505,20 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
   //  FROSTED GLASS PARTICIPANT CARD
   // ══════════════════════════════════════════════════════════════════════════
   Widget _buildGlassParticipantCard(Participant participant, bool isSpeaking) {
-    final metadata = participant.metadata != null
-        ? Map<String, dynamic>.from(participant.metadata as Map)
-        : null;
+    Map<String, dynamic>? metadata;
+    if (participant.metadata != null) {
+      final rawMeta = participant.metadata;
+      if (rawMeta is Map) {
+        metadata = Map<String, dynamic>.from(rawMeta);
+      } else if (rawMeta is String && rawMeta.isNotEmpty) {
+        try {
+          final decoded = jsonDecode(rawMeta);
+          if (decoded is Map) {
+            metadata = Map<String, dynamic>.from(decoded);
+          }
+        } catch (_) {}
+      }
+    }
     final nameFromMeta = metadata?['username'] as String?;
     final displayName =
         (participant.name.isNotEmpty ? participant.name : null) ??

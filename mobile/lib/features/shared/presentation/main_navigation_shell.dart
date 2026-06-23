@@ -1,14 +1,16 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/calling/presentation/call_signal_listener.dart';
 import 'package:mobile/features/voice/presentation/widgets/voice_hud.dart';
+import 'package:mobile/features/notifications/application/unread_notifications_provider.dart';
 
 /// Flicko main navigation shell — premium edge-to-edge rectangular glassmorphic bottom bar.
-class MainNavigationShell extends StatelessWidget {
+class MainNavigationShell extends ConsumerWidget {
   /// The routed child widget for the selected tab.
   final Widget child;
 
@@ -30,7 +32,11 @@ class MainNavigationShell extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Watch unread notifications count in real-time
+    final unreadCountAsync = ref.watch(unreadNotificationsCountProvider);
+    final unreadCount = unreadCountAsync.value ?? 0;
+
     // Get the current location dynamically from GoRouterState to ensure reactive updates on navigation
     String activeLocation;
     try {
@@ -81,14 +87,14 @@ class MainNavigationShell extends StatelessWidget {
             left: 0,
             right: 0,
             bottom: showNavBar ? 0 : -navBarHeight, // slide down offscreen
-            child: _buildRectNavBar(context, bottomPadding),
+            child: _buildRectNavBar(context, bottomPadding, unreadCount),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildRectNavBar(BuildContext context, double bottomPadding) {
+  Widget _buildRectNavBar(BuildContext context, double bottomPadding, int unreadCount) {
     return Container(
       height: 64.0 + bottomPadding,
       decoration: BoxDecoration(
@@ -137,6 +143,7 @@ class MainNavigationShell extends StatelessWidget {
                   icon: Icons.notifications_none_rounded,
                   activeIcon: Icons.notifications_rounded,
                   label: 'Alerts',
+                  badgeCount: unreadCount,
                   onTap: onTabSelected,
                 ),
                 _NavTab(
@@ -164,6 +171,7 @@ class _NavTab extends StatelessWidget {
   final IconData activeIcon;
   final String label;
   final ValueChanged<int> onTap;
+  final int badgeCount;
 
   static const Color _neonGreen = Color(0xFF52B788);
 
@@ -174,6 +182,7 @@ class _NavTab extends StatelessWidget {
     required this.activeIcon,
     required this.label,
     required this.onTap,
+    this.badgeCount = 0,
   });
 
   bool get _isActive => index == activeIndex;
@@ -201,25 +210,57 @@ class _NavTab extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
-              transitionBuilder: (child, animation) {
-                return ScaleTransition(
-                  scale: animation,
-                  child: FadeTransition(
-                    opacity: animation,
-                    child: child,
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  transitionBuilder: (child, animation) {
+                    return ScaleTransition(
+                      scale: animation,
+                      child: FadeTransition(
+                        opacity: animation,
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: Icon(
+                    _isActive ? activeIcon : icon,
+                    key: ValueKey(_isActive),
+                    size: 24,
+                    color: _isActive
+                        ? _neonGreen
+                        : const Color(0xFF71717A), // textMuted
                   ),
-                );
-              },
-              child: Icon(
-                _isActive ? activeIcon : icon,
-                key: ValueKey(_isActive),
-                size: 24,
-                color: _isActive
-                    ? _neonGreen
-                    : const Color(0xFF71717A), // textMuted
-              ),
+                ),
+                if (badgeCount > 0)
+                  Positioned(
+                    right: -4,
+                    top: -4,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFFF3B3B), // neon red
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 14,
+                        minHeight: 14,
+                      ),
+                      child: Center(
+                        child: Text(
+                          badgeCount > 99 ? '99+' : '$badgeCount',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 8,
+                            fontWeight: FontWeight.w900,
+                            height: 1.0,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
             AnimatedSize(
               duration: const Duration(milliseconds: 300),

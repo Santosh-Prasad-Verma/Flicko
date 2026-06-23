@@ -71,6 +71,12 @@ func (s *pinService) PinMessage(ctx context.Context, userID, channelID, messageI
 		return fmt.Errorf("message is already pinned")
 	}
 
+	// Sync messages.pinned flag
+	_, err = s.db.Exec(ctx, "UPDATE public.messages SET pinned = TRUE WHERE id = $1", msgUUID)
+	if err != nil {
+		return fmt.Errorf("failed to update message pinned status: %w", err)
+	}
+
 	return nil
 }
 
@@ -100,6 +106,12 @@ func (s *pinService) UnpinMessage(ctx context.Context, userID, channelID, messag
 
 	if res.RowsAffected() == 0 {
 		return fmt.Errorf("message is not pinned")
+	}
+
+	// Sync messages.pinned flag
+	_, err = s.db.Exec(ctx, "UPDATE public.messages SET pinned = FALSE WHERE id = $1", msgUUID)
+	if err != nil {
+		return fmt.Errorf("failed to update message pinned status: %w", err)
 	}
 
 	return nil

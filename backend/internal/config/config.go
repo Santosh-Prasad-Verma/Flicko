@@ -138,7 +138,7 @@ func Load() (*Config, error) {
 	keyID := sha256.Sum256(encryptionKeyBytes)
 	keyIDHex = hex.EncodeToString(keyID[:8])
 
-	return &Config{
+	cfg := &Config{
 		DatabaseURL:        dbURL,
 		RedisURL:           redisURL,
 		JWTSecret:          jwtSecret,
@@ -160,21 +160,36 @@ func Load() (*Config, error) {
 		CentrifugoAPIKey:   os.Getenv("CENTRIFUGO_API_KEY"),
 		E2EEV2Enabled:      parseBoolEnv("E2EE_V2_ENABLED", false),
 		E2EEV2RolloutPercent: parseIntEnv("E2EE_V2_ROLLOUT_PERCENT", 0, 0, 100),
+	}
 
-		GroqAPIKey:              os.Getenv("GROQ_API_KEY"),
-		GroqBaseURL:             envOr("GROQ_BASE_URL", "https://api.groq.com/openai/v1"),
-		GroqModel:               envOr("GROQ_MODEL", "llama-3.3-70b-versatile"),
-		OllamaBaseURL:           envOr("OLLAMA_BASE_URL", "http://ollama:11434"),
-		OllamaModel:             envOr("OLLAMA_MODEL", "llama3.1:8b"),
-		AIRequestTimeout:        time.Duration(parseIntEnv("AI_REQUEST_TIMEOUT_SECONDS", 12, 1, 120)) * time.Second,
-		AIMessageSummaryEnabled:        parseBoolEnv("FEATURE_AI_MESSAGE_SUMMARY", false),
-		AIAutoTranslateEnabled:         parseBoolEnv("FEATURE_AI_AUTO_TRANSLATE", false),
-		AIModerationEnabled:            parseBoolEnv("FEATURE_AI_MODERATION", false),
-		ActivitiesWatchTogetherEnabled: parseBoolEnv("FEATURE_ACTIVITIES_WATCH_TOGETHER", false),
-		LibreTranslateBaseURL:   envOr("LIBRETRANSLATE_BASE_URL", "http://libretranslate:5000"),
-		LibreTranslateAPIKey:    os.Getenv("LIBRETRANSLATE_API_KEY"),
-		DeepLAPIKey:             os.Getenv("DEEPL_API_KEY"),
-	}, nil
+	groqKey := os.Getenv("GROQ_API_KEY")
+	groqBaseURL := envOr("GROQ_BASE_URL", "https://api.groq.com/openai/v1")
+	groqModel := envOr("GROQ_MODEL", "llama-3.3-70b-versatile")
+
+	if groqKey == "" {
+		if xaiKey := os.Getenv("XAI_API_KEY"); xaiKey != "" {
+			groqKey = xaiKey
+			groqBaseURL = "https://api.x.ai/v1"
+			groqModel = "grok-beta"
+		}
+	}
+
+	cfg.GroqAPIKey = groqKey
+	cfg.GroqBaseURL = groqBaseURL
+	cfg.GroqModel = groqModel
+
+	cfg.OllamaBaseURL = envOr("OLLAMA_BASE_URL", "http://ollama:11434")
+	cfg.OllamaModel = envOr("OLLAMA_MODEL", "llama3.1:8b")
+	cfg.AIRequestTimeout = time.Duration(parseIntEnv("AI_REQUEST_TIMEOUT_SECONDS", 12, 1, 120)) * time.Second
+	cfg.AIMessageSummaryEnabled = parseBoolEnv("FEATURE_AI_MESSAGE_SUMMARY", false)
+	cfg.AIAutoTranslateEnabled = parseBoolEnv("FEATURE_AI_AUTO_TRANSLATE", false)
+	cfg.AIModerationEnabled = parseBoolEnv("FEATURE_AI_MODERATION", false)
+	cfg.ActivitiesWatchTogetherEnabled = parseBoolEnv("FEATURE_ACTIVITIES_WATCH_TOGETHER", false)
+	cfg.LibreTranslateBaseURL = envOr("LIBRETRANSLATE_BASE_URL", "http://libretranslate:5000")
+	cfg.LibreTranslateAPIKey = os.Getenv("LIBRETRANSLATE_API_KEY")
+	cfg.DeepLAPIKey = os.Getenv("DEEPL_API_KEY")
+
+	return cfg, nil
 }
 
 func envOr(key, def string) string {
