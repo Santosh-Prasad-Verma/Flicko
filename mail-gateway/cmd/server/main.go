@@ -81,7 +81,7 @@ func main() {
 
 	// Global middleware stack: RequestID → RealIP → Logger → Recoverer
 	r.Use(chimiddleware.RequestID)
-	r.Use(chimiddleware.RealIP)
+	r.Use(RealIP)
 	r.Use(chimiddleware.Logger)
 	r.Use(chimiddleware.Recoverer)
 
@@ -182,4 +182,17 @@ func setupLogger(cfg *config.Config) {
 	}
 
 	slog.SetDefault(slog.New(h))
+}
+
+// RealIP is a middleware that sets the RemoteAddr to the client's true IP address
+// by reading X-Real-IP or X-Forwarded-For headers when running behind a trusted proxy.
+func RealIP(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if ip := r.Header.Get("X-Real-IP"); ip != "" {
+			r.RemoteAddr = ip
+		} else if ip := r.Header.Get("X-Forwarded-For"); ip != "" {
+			r.RemoteAddr = ip
+		}
+		next.ServeHTTP(w, r)
+	})
 }
