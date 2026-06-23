@@ -7,7 +7,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
 	github.com/hibiken/asynq v0.26.0
-	github.com/jackc/pgx/v5 v5.9.2
+	github.com/jackc/pgx/v5 v5.10.0
 	github.com/livekit/protocol v1.45.6
 	github.com/prometheus/client_golang v1.23.2
 	github.com/razorpay/razorpay-go v1.3.4
