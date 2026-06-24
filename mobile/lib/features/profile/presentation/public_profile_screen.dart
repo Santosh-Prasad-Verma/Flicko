@@ -306,12 +306,10 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
 
       await _client.from('friends').insert([
         {'user_id': currentUser.id, 'friend_id': widget.userId, 'status': 'accepted'},
-        {'user_id': widget.userId, 'friend_id': currentUser.id, 'status': 'accepted'},
       ]);
 
       await _client.from('friendships').insert([
         {'user_id': currentUser.id, 'friend_id': widget.userId},
-        {'user_id': widget.userId, 'friend_id': currentUser.id},
       ]);
 
       setState(() => _friendStatus = 'friends');

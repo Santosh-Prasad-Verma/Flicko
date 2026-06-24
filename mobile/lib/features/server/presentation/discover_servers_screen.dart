@@ -148,7 +148,6 @@ class _DiscoverServersScreenState extends ConsumerState<DiscoverServersScreen> {
       await _client.from('server_members').insert({
         'server_id': serverId,
         'user_id': user.id,
-        'role': 'member',
       });
 
       try {

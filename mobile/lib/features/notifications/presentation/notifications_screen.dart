@@ -600,12 +600,10 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
       await Supabase.instance.client.from('friends').insert([
         {'user_id': currentUserId, 'friend_id': senderId, 'status': 'accepted'},
-        {'user_id': senderId, 'friend_id': currentUserId, 'status': 'accepted'},
       ]);
 
       await Supabase.instance.client.from('friendships').insert([
         {'user_id': currentUserId, 'friend_id': senderId},
-        {'user_id': senderId, 'friend_id': currentUserId},
       ]);
 
       await _markAsRead(notifId);

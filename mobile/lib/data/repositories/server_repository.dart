@@ -101,7 +101,6 @@ class ServerRepository {
       await _client.from('server_members').upsert({
         'server_id': serverId,
         'user_id': userId,
-        'role': 'member',
       });
 
       // Trigger welcome bot notification on backend

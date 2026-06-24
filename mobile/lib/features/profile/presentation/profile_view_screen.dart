@@ -319,12 +319,10 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
 
         await _client.from('friends').insert([
           {'user_id': currentUser.id, 'friend_id': _profile!.id, 'status': 'accepted'},
-          {'user_id': _profile!.id, 'friend_id': currentUser.id, 'status': 'accepted'},
         ]);
 
         await _client.from('friendships').insert([
           {'user_id': currentUser.id, 'friend_id': _profile!.id},
-          {'user_id': _profile!.id, 'friend_id': currentUser.id},
         ]);
 
         setState(() => _friendStatus = 'friends');

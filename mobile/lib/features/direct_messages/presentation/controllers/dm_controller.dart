@@ -32,7 +32,7 @@ class DMState {
 final dmControllerProvider = NotifierProvider<DMController, DMState>(DMController.new);
 
 class DMController extends Notifier<DMState> {
-  late final DMRepository _repository;
+  late DMRepository _repository;
   RealtimeChannel? _subscription;
   String? _currentUserId;
 
