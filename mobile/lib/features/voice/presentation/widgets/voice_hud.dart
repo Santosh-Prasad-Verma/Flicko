@@ -45,16 +45,20 @@ class VoiceHUD extends ConsumerWidget {
                   style: GoogleFonts.inter(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
-                    fontSize: 14,
+                    fontSize: 13,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 if (voiceState.isConnected)
                   Text(
                     '${voiceState.participants.length} in call',
                     style: GoogleFonts.inter(
                       color: const Color(FlickoColors.textMuted),
-                      fontSize: 12,
+                      fontSize: 11,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
               ],
             ),
@@ -87,11 +91,9 @@ class VoiceHUD extends ConsumerWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        IconButton(
-          icon: const Icon(
-            Icons.tune_rounded,
-            color: Color(FlickoColors.green),
-          ),
+        _hudButton(
+          icon: Icons.tune_rounded,
+          color: const Color(FlickoColors.green),
           tooltip: 'Vocal Synthesizer',
           onPressed: () {
             showModalBottomSheet(
@@ -102,25 +104,41 @@ class VoiceHUD extends ConsumerWidget {
             );
           },
         ),
-        IconButton(
-          icon: Icon(
-            voiceState.isMuted ? Icons.mic_off : Icons.mic,
-            color: voiceState.isMuted ? Colors.red : Colors.white,
-          ),
+        _hudButton(
+          icon: voiceState.isMuted ? Icons.mic_off : Icons.mic,
+          color: voiceState.isMuted ? Colors.red : Colors.white,
           onPressed: controller.toggleMute,
         ),
-        IconButton(
-          icon: Icon(
-            voiceState.isDeafened ? Icons.headset_off : Icons.headset,
-            color: voiceState.isDeafened ? Colors.red : Colors.white,
-          ),
+        _hudButton(
+          icon: voiceState.isDeafened ? Icons.headset_off : Icons.headset,
+          color: voiceState.isDeafened ? Colors.red : Colors.white,
           onPressed: controller.toggleDeafen,
         ),
-        IconButton(
-          icon: const Icon(Icons.call_end, color: Colors.red),
+        _hudButton(
+          icon: Icons.call_end,
+          color: Colors.red,
           onPressed: controller.leaveChannel,
         ),
       ],
+    );
+  }
+
+  Widget _hudButton({
+    required IconData icon,
+    required Color color,
+    VoidCallback? onPressed,
+    String? tooltip,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2.0),
+      child: IconButton(
+        icon: Icon(icon, color: color, size: 20),
+        onPressed: onPressed,
+        tooltip: tooltip,
+        padding: const EdgeInsets.all(8.0),
+        constraints: const BoxConstraints(),
+        splashRadius: 18,
+      ),
     );
   }
 }

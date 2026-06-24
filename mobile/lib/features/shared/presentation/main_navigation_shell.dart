@@ -71,12 +71,17 @@ class MainNavigationShell extends ConsumerWidget {
           ),
 
           // Voice HUD - animated position so it floats perfectly above the navbar or at screen bottom
+          // Hides (slides offscreen) when on full-screen calling (voice/stage) pages to avoid overlap
           AnimatedPositioned(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOutQuart,
             left: 0,
             right: 0,
-            bottom: showNavBar ? (navBarHeight + 8.0) : (bottomPadding + 16.0),
+            bottom: (activeLocation.contains('/voice') || activeLocation.contains('/stage'))
+                ? -120.0 // Slide completely offscreen
+                : showNavBar
+                    ? (navBarHeight + 8.0)
+                    : (bottomPadding + 16.0),
             child: const VoiceHUD(),
           ),
 
