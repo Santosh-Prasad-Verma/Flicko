@@ -36,11 +36,11 @@ func TestServerService_CreateServer(t *testing.T) {
 	row := NewMockRow(uuid.New().String(), "Server Name", "desc", ownerID)
 	tx.On("QueryRow", ctx, mock.Anything, "Server Name", "desc", ownerUUID, "url").Return(row).Once()
 	
-	// Member insert
-	tx.On("Exec", ctx, mock.Anything, mock.Anything, ownerID).Return(pgconn.NewCommandTag("INSERT 1"), nil).Once()
+	// Member insert (matches two args in Exec: server.ID, ownerUUID)
+	tx.On("Exec", ctx, mock.Anything, mock.Anything, ownerUUID).Return(pgconn.NewCommandTag("INSERT 1"), nil).Once()
 	
-	// Default roles insert
-	tx.On("Exec", ctx, mock.Anything, mock.Anything, mock.Anything).Return(pgconn.NewCommandTag("INSERT 3"), nil).Once()
+	// Welcome settings insert (matches one arg in Exec: server.ID)
+	tx.On("Exec", ctx, mock.Anything, mock.Anything).Return(pgconn.NewCommandTag("INSERT 1"), nil).Once()
 	
 	tx.On("Commit", ctx).Return(nil).Once()
 	mc.On("SetJSON", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Maybe()
@@ -49,6 +49,9 @@ func TestServerService_CreateServer(t *testing.T) {
 	server, err := svc.CreateServer(ctx, ownerID, "Server Name", "desc", "url")
 	assert.NoError(t, err)
 	assert.NotNil(t, server)
+
+	db.AssertExpectations(t)
+	tx.AssertExpectations(t)
 }
 
 func TestServerService_JoinServer(t *testing.T) {
