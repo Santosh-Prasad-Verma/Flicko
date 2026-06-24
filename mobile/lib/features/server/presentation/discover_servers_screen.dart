@@ -508,7 +508,7 @@ class _DiscoverServersScreenState extends ConsumerState<DiscoverServersScreen> {
                         child: ElevatedButton(
                           onPressed: () {
                             if (isMember) {
-                              context.push('/server/$serverId');
+                              context.go('/');
                             } else {
                               _joinServer(serverId);
                             }

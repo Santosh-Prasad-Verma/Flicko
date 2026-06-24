@@ -3,8 +3,13 @@ import 'package:flutter/material.dart';
 enum NewsCategory {
   all,
   tech,
+  education,
   gaming,
-  updates,
+  entertainment,
+  sports,
+  science,
+  health,
+  business,
   global,
 }
 
@@ -12,15 +17,25 @@ extension NewsCategoryExtension on NewsCategory {
   String get displayName {
     switch (this) {
       case NewsCategory.all:
-        return 'ALL';
+        return 'All News';
       case NewsCategory.tech:
-        return 'TECH';
+        return 'Technology';
+      case NewsCategory.education:
+        return 'Education';
       case NewsCategory.gaming:
-        return 'GAMING';
-      case NewsCategory.updates:
-        return 'UPDATES';
+        return 'Gaming';
+      case NewsCategory.entertainment:
+        return 'Entertainment';
+      case NewsCategory.sports:
+        return 'Sports';
+      case NewsCategory.science:
+        return 'Science';
+      case NewsCategory.health:
+        return 'Health';
+      case NewsCategory.business:
+        return 'Business';
       case NewsCategory.global:
-        return 'GLOBAL';
+        return 'World';
     }
   }
 
@@ -29,11 +44,21 @@ extension NewsCategoryExtension on NewsCategory {
       case NewsCategory.all:
         return Icons.grid_view_rounded;
       case NewsCategory.tech:
-        return Icons.biotech_rounded;
+        return Icons.memory_rounded;
+      case NewsCategory.education:
+        return Icons.school_rounded;
       case NewsCategory.gaming:
         return Icons.sports_esports_rounded;
-      case NewsCategory.updates:
-        return Icons.system_update_alt_rounded;
+      case NewsCategory.entertainment:
+        return Icons.movie_rounded;
+      case NewsCategory.sports:
+        return Icons.sports_soccer_rounded;
+      case NewsCategory.science:
+        return Icons.science_rounded;
+      case NewsCategory.health:
+        return Icons.health_and_safety_rounded;
+      case NewsCategory.business:
+        return Icons.business_center_rounded;
       case NewsCategory.global:
         return Icons.language_rounded;
     }

@@ -140,6 +140,19 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
         return;
       }
 
+      // Check reverse direction too
+      final reverseFriendship = await _client
+          .from('friends')
+          .select('id')
+          .eq('user_id', widget.userId)
+          .eq('friend_id', currentUserId)
+          .maybeSingle();
+
+      if (reverseFriendship != null) {
+        setState(() => _friendStatus = 'friends');
+        return;
+      }
+
       // Check pending sent
       final sent = await _client
           .from('friend_requests')

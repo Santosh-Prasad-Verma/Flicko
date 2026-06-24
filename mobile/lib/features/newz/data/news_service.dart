@@ -23,8 +23,13 @@ class NewsService {
   static const Map<NewsCategory, String?> _categoryMap = {
     NewsCategory.all: null, // no filter = latest news
     NewsCategory.tech: 'technology',
+    NewsCategory.education: 'academia',
     NewsCategory.gaming: 'game',
-    NewsCategory.updates: 'programming',
+    NewsCategory.entertainment: 'entertainment',
+    NewsCategory.sports: 'sports',
+    NewsCategory.science: 'science',
+    NewsCategory.health: 'health',
+    NewsCategory.business: 'business',
     NewsCategory.global: 'world',
   };
 
@@ -50,7 +55,7 @@ class NewsService {
       final queryParams = <String, String>{
         'apiKey': AppConfig.currentsApiKey,
         'language': 'en',
-        'page_size': '20',
+        'page_size': '25',
       };
       if (apiCategory != null) {
         queryParams['category'] = apiCategory;
@@ -157,6 +162,24 @@ class NewsService {
       }
       if (cat.contains('game') || cat.contains('gaming')) {
         return NewsCategory.gaming;
+      }
+      if (cat.contains('education') || cat.contains('academia')) {
+        return NewsCategory.education;
+      }
+      if (cat.contains('entertainment') || cat.contains('movie')) {
+        return NewsCategory.entertainment;
+      }
+      if (cat.contains('sport')) {
+        return NewsCategory.sports;
+      }
+      if (cat.contains('science')) {
+        return NewsCategory.science;
+      }
+      if (cat.contains('health') || cat.contains('medical')) {
+        return NewsCategory.health;
+      }
+      if (cat.contains('business') || cat.contains('finance') || cat.contains('economy')) {
+        return NewsCategory.business;
       }
       if (cat.contains('world') || cat.contains('general')) {
         return NewsCategory.global;

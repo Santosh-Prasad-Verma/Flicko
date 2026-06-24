@@ -368,7 +368,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/server/create', builder: (context, state) => const CreateServerScreen()),
       GoRoute(
         path: '/server/:serverId',
-        builder: (context, state) => const ServerDetailScreen(),
+        builder: (context, state) => ServerDetailScreen(serverId: state.pathParameters['serverId']!),
         routes: [
           GoRoute(
             path: 'members',

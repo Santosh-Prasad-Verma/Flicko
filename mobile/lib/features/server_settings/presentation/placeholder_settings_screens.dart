@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
+import 'package:mobile/features/home/application/servers_notifier.dart';
 
 /// Base placeholder screen for server settings
 class ServerSettingsPlaceholderScreen extends StatelessWidget {
@@ -198,69 +201,215 @@ class DeleteServerScreen extends StatelessWidget {
   }
 }
 
-/// Server Detail Screen - Placeholder
-class ServerDetailScreen extends StatelessWidget {
-  const ServerDetailScreen({super.key});
+/// Server Detail Screen - Full Implementation
+class ServerDetailScreen extends ConsumerStatefulWidget {
+  final String serverId;
+  const ServerDetailScreen({super.key, required this.serverId});
+
+  @override
+  ConsumerState<ServerDetailScreen> createState() => _ServerDetailScreenState();
+}
+
+class _ServerDetailScreenState extends ConsumerState<ServerDetailScreen> {
+  bool _isLoading = true;
+  Map<String, dynamic>? _server;
+  int _memberCount = 0;
+  bool _isOwner = false;
+  String? _error;
+
+  final _client = Supabase.instance.client;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadServer();
+  }
+
+  Future<void> _loadServer() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final response = await _client
+          .from('servers')
+          .select('*')
+          .eq('id', widget.serverId)
+          .single();
+
+      final countResponse = await _client
+          .from('server_members')
+          .select('id')
+          .eq('server_id', widget.serverId);
+
+      final currentUser = _client.auth.currentUser;
+
+      if (mounted) {
+        setState(() {
+          _server = response;
+          _memberCount = (countResponse as List).length;
+          _isOwner = currentUser?.id == response['owner_id'];
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _error = e.toString();
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: const Color(FlickoColors.bgPrimary),
+        appBar: AppBar(
+          backgroundColor: const Color(FlickoColors.bgSecondary),
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),
+            onPressed: () => context.pop(),
+          ),
+        ),
+        body: const Center(
+          child: CircularProgressIndicator(color: Color(FlickoColors.brandLime)),
+        ),
+      );
+    }
+
+    if (_error != null || _server == null) {
+      return Scaffold(
+        backgroundColor: const Color(FlickoColors.bgPrimary),
+        appBar: AppBar(
+          backgroundColor: const Color(FlickoColors.bgSecondary),
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),
+            onPressed: () => context.pop(),
+          ),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: Color(FlickoColors.textMuted)),
+              const SizedBox(height: 16),
+              Text(
+                'Server not found',
+                style: GoogleFonts.inter(
+                  color: const Color(FlickoColors.textPrimary),
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _error ?? 'Unable to load server details.',
+                style: GoogleFonts.inter(color: const Color(FlickoColors.textSecondary), fontSize: 13),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final name = _server!['name'] ?? 'Unnamed Server';
+    final icon = _server!['icon'] as String?;
+    final description = _server!['description'] as String? ?? 'No description.';
+
     return Scaffold(
       backgroundColor: const Color(FlickoColors.bgPrimary),
       appBar: AppBar(
         backgroundColor: const Color(FlickoColors.bgSecondary),
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Color(FlickoColors.textPrimary)),
+          onPressed: () => context.pop(),
+        ),
         title: Text(
-          'Server',
+          name,
           style: GoogleFonts.inter(
             color: const Color(FlickoColors.textPrimary),
             fontWeight: FontWeight.w600,
           ),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.settings, color: Color(FlickoColors.textPrimary)),
-            onPressed: () {
-              context.push('/server/test-server-id/settings');
-            },
-          ),
+          if (_isOwner)
+            IconButton(
+              icon: const Icon(Icons.settings, color: Color(FlickoColors.textPrimary)),
+              onPressed: () => context.push('/server/${widget.serverId}/settings'),
+            ),
         ],
       ),
-      body: Center(
+      body: Padding(
+        padding: const EdgeInsets.all(24),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.dns,
-              size: 64,
-              color: Color(FlickoColors.textMuted),
+            const SizedBox(height: 24),
+            CircleAvatar(
+              radius: 48,
+              backgroundColor: const Color(FlickoColors.bgTertiary),
+              backgroundImage: icon != null ? NetworkImage(icon) : null,
+              child: icon == null
+                  ? Text(
+                      name.isNotEmpty ? name.substring(0, 1).toUpperCase() : 'S',
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 32,
+                      ),
+                    )
+                  : null,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             Text(
-              'Server View',
+              name,
               style: GoogleFonts.inter(
                 color: const Color(FlickoColors.textPrimary),
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Server detail screen placeholder',
+              '$_memberCount members',
               style: GoogleFonts.inter(
                 color: const Color(FlickoColors.textSecondary),
+                fontSize: 14,
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                description,
+                style: GoogleFonts.inter(
+                  color: const Color(FlickoColors.textSecondary),
+                  fontSize: 14,
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const SizedBox(height: 32),
             ElevatedButton(
-              onPressed: () {
-                context.push('/server/test-server-id/settings');
-              },
+              onPressed: () => context.go('/'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(FlickoColors.blurple),
+                backgroundColor: const Color(FlickoColors.brandLime),
+                foregroundColor: const Color(FlickoColors.black),
+                minimumSize: const Size(double.infinity, 48),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
               ),
               child: Text(
-                'Open Settings',
-                style: GoogleFonts.inter(color: Colors.white),
+                'View Channels',
+                style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 15),
               ),
             ),
           ],

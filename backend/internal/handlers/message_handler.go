@@ -1,22 +1,29 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
 	"github.com/flicko-org/flicko-backend/internal/middleware"
+	"github.com/flicko-org/flicko-backend/internal/services"
 	"github.com/flicko-org/flicko-backend/internal/services/ai/moderation"
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 )
 
+var userMentionRegex = regexp.MustCompile(`<@!?([0-9a-fA-F-]+)>`)
+
 type MessageHandler struct {
 	db         *pgxpool.Pool
 	logger     *zap.Logger
-	moderation moderation.Service // optional; nil disables AI mod
+	moderation moderation.Service           // optional; nil disables AI mod
+	mentionSvc services.MentionService      // optional; nil skips mention processing
+	notifSvc   services.NotificationService // optional; nil skips notification creation
 }
 
 func NewMessageHandler(db *pgxpool.Pool, logger *zap.Logger) *MessageHandler {
@@ -30,6 +37,18 @@ func NewMessageHandler(db *pgxpool.Pool, logger *zap.Logger) *MessageHandler {
 // Returns the receiver for chaining at construction time.
 func (h *MessageHandler) WithModeration(svc moderation.Service) *MessageHandler {
 	h.moderation = svc
+	return h
+}
+
+// WithMentionService wires the mention processor into the message pipeline.
+func (h *MessageHandler) WithMentionService(svc services.MentionService) *MessageHandler {
+	h.mentionSvc = svc
+	return h
+}
+
+// WithNotificationService wires notification creation into the message pipeline.
+func (h *MessageHandler) WithNotificationService(svc services.NotificationService) *MessageHandler {
+	h.notifSvc = svc
 	return h
 }
 
@@ -169,8 +188,36 @@ func (h *MessageHandler) CreateMessage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// 7. Process mentions and create notifications (best-effort, async-safe).
+	go h.processMentionsAndNotify(context.Background(), newID, payload.Content, userID, serverID)
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
 		"id": newID,
 	})
+}
+
+func (h *MessageHandler) processMentionsAndNotify(ctx context.Context, messageID, content, authorID, serverID string) {
+	if h.mentionSvc != nil {
+		if err := h.mentionSvc.ProcessMentions(ctx, messageID, content, authorID, &serverID); err != nil {
+			h.logger.Warn("failed to process mentions", zap.Error(err))
+		}
+	}
+	if h.notifSvc != nil {
+		matches := userMentionRegex.FindAllStringSubmatch(content, -1)
+		seen := make(map[string]bool)
+		for _, match := range matches {
+			if len(match) < 2 {
+				continue
+			}
+			mentionedUserID := match[1]
+			if mentionedUserID == authorID || seen[mentionedUserID] {
+				continue
+			}
+			seen[mentionedUserID] = true
+			if _, err := h.notifSvc.CreateNotification(ctx, mentionedUserID, "mention", "You were mentioned", "You were mentioned in a message", nil); err != nil {
+				h.logger.Warn("failed to create mention notification", zap.String("mentioned_user", mentionedUserID), zap.Error(err))
+			}
+		}
+	}
 }

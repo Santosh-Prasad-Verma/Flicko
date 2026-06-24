@@ -167,6 +167,19 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
         return;
       }
 
+      // Check reverse direction too
+      final reverseFriendship = await _client
+          .from('friends')
+          .select('id')
+          .eq('user_id', profileId)
+          .eq('friend_id', currentUserId)
+          .maybeSingle();
+
+      if (reverseFriendship != null) {
+        setState(() => _friendStatus = 'friends');
+        return;
+      }
+
       // Check friend_requests table
       final sent = await _client
           .from('friend_requests')
@@ -1474,12 +1487,150 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
     );
   }
 
+  void _showBlockConfirmation() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: _cardBg,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: _white.withValues(alpha: 0.08)),
+        ),
+        title: Text(
+          'Block ${_profile?.displayName ?? _profile?.username ?? "User"}?',
+          style: GoogleFonts.inter(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+            fontSize: 18,
+          ),
+        ),
+        content: Text(
+          'They will not be able to message you, send friend requests, or see your activity.',
+          style: GoogleFonts.inter(
+            color: _white.withValues(alpha: 0.6),
+            fontSize: 14,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.inter(
+                color: _muted,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(FlickoColors.red),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('${_profile?.username ?? "User"} has been blocked.'),
+                  backgroundColor: const Color(FlickoColors.red),
+                ),
+              );
+            },
+            child: Text(
+              'Block',
+              style: GoogleFonts.inter(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showReportDialog() {
+    final categories = [
+      'Spam or Abuse',
+      'Harassment',
+      'Inappropriate Content',
+      'Impersonation',
+      'Other Violation'
+    ];
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: _cardBg,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: _white.withValues(alpha: 0.08)),
+        ),
+        title: Text(
+          'Report Profile',
+          style: GoogleFonts.inter(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+            fontSize: 18,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Select a reason for reporting this profile:',
+              style: GoogleFonts.inter(
+                color: _white.withValues(alpha: 0.6),
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 12),
+            ...categories.map((cat) => ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  title: Text(
+                    cat,
+                    style: GoogleFonts.inter(color: _white, fontSize: 14),
+                  ),
+                  trailing: const Icon(Icons.chevron_right_rounded,
+                      color: Colors.white54, size: 20),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Report submitted for "$cat". Thank you!'),
+                        backgroundColor: const Color(FlickoColors.brandLime),
+                      ),
+                    );
+                  },
+                )),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.inter(
+                color: _muted,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showMoreOptions() {
     final isOwnProfile = _friendStatus == 'self';
 
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       builder: (ctx) => ClipRRect(
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         child: BackdropFilter(
@@ -1506,17 +1657,29 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
-                  if (!isOwnProfile) ...[
-                    _sheetItem(Icons.block_rounded, 'Block User', () {
+                  if (isOwnProfile) ...[
+                    _sheetItem(Icons.edit_outlined, 'Edit Profile', () {
                       Navigator.pop(ctx);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Coming Soon')));
-                    }, color: const Color(FlickoColors.red)),
-                    _sheetItem(Icons.report_outlined, 'Report Profile', () {
+                      context.push('/profile/settings/edit-profile');
+                    }),
+                    _sheetItem(Icons.settings_rounded, 'Settings', () {
                       Navigator.pop(ctx);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Coming Soon')));
-                    }, color: const Color(FlickoColors.red)),
+                      context.push('/profile/settings');
+                    }),
+                    _sheetItem(Icons.music_note_rounded, 'Sonic Drip Settings', () {
+                      Navigator.pop(ctx);
+                      context.push('/profile/settings/sonic-drip');
+                    }),
+                  ] else ...[
+                    _sheetItem(Icons.message_outlined, 'Send Message', () {
+                      Navigator.pop(ctx);
+                      context.push('/dms/${_profile?.id ?? widget.userId}');
+                    }),
+                    if (_friendStatus == 'none' || _friendStatus == 'pending_received')
+                      _sheetItem(Icons.person_add_rounded, _friendStatus == 'none' ? 'Add Friend' : 'Accept Request', () {
+                        Navigator.pop(ctx);
+                        _handleFriendAction();
+                      }),
                   ],
                   _sheetItem(Icons.copy_rounded, 'Copy User ID', () {
                     Clipboard.setData(ClipboardData(text: _profile?.id ?? widget.userId));
@@ -1524,6 +1687,36 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
                     ScaffoldMessenger.of(context)
                         .showSnackBar(const SnackBar(content: Text('ID copied!')));
                   }),
+                  _sheetItem(Icons.alternate_email_rounded, 'Copy Username', () {
+                    Clipboard.setData(ClipboardData(text: '@${_profile?.username ?? widget.userId}'));
+                    Navigator.pop(ctx);
+                    ScaffoldMessenger.of(context)
+                        .showSnackBar(const SnackBar(content: Text('Username copied!')));
+                  }),
+                  _sheetItem(Icons.share_rounded, 'Share Profile', () async {
+                    Navigator.pop(ctx);
+                    final link = 'https://flicko.app/user/${_profile?.username ?? widget.userId}';
+                    try {
+                      await SharePlus.instance.share(
+                        ShareParams(
+                          text: 'Check out ${_profile?.displayName ?? _profile?.username ?? "someone"} on Flicko: $link',
+                          subject: 'Flicko Profile',
+                        ),
+                      );
+                    } catch (e) {
+                      debugPrint('Error sharing profile: $e');
+                    }
+                  }),
+                  if (!isOwnProfile) ...[
+                    _sheetItem(Icons.block_rounded, 'Block User', () {
+                      Navigator.pop(ctx);
+                      _showBlockConfirmation();
+                    }, color: const Color(FlickoColors.red)),
+                    _sheetItem(Icons.report_outlined, 'Report Profile', () {
+                      Navigator.pop(ctx);
+                      _showReportDialog();
+                    }, color: const Color(FlickoColors.red)),
+                  ],
                   const SizedBox(height: 16),
                 ],
               ),

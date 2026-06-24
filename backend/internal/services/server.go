@@ -91,6 +91,12 @@ func (s *serverService) CreateServer(ctx context.Context, ownerID, name, descrip
 		return nil, fmt.Errorf("error adding owner as member: %w", err)
 	}
 
+	// Create default welcome settings for the new server
+	_, err = tx.Exec(ctx, `INSERT INTO welcome_settings (server_id, enabled, welcome_message) VALUES ($1, true, 'Welcome to the server, {user}! 🎉')`, server.ID)
+	if err != nil {
+		return nil, fmt.Errorf("error creating welcome settings: %w", err)
+	}
+
 	if err := tx.Commit(ctx); err != nil {
 		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}

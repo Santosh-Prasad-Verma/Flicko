@@ -8,6 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
+import 'package:mobile/features/home/application/servers_notifier.dart';
 
 /// Create Server Screen
 ///
@@ -225,6 +226,10 @@ class _CreateServerScreenState extends ConsumerState<CreateServerScreen> {
       }
 
       if (mounted) {
+        // Refresh server list and select the newly created server
+        ref.read(serversNotifierProvider.notifier).refresh();
+        ref.read(serversNotifierProvider.notifier).selectServer(serverId);
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Server created successfully!'),
@@ -232,7 +237,7 @@ class _CreateServerScreenState extends ConsumerState<CreateServerScreen> {
           ),
         );
 
-        context.go('/server/$serverId');
+        context.go('/');
       }
     } catch (e) {
       if (mounted) {
