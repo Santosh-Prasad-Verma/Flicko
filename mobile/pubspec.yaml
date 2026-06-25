@@ -57,7 +57,7 @@ dependencies:
   cryptography_flutter: ^2.3.2
   
   # Notifications & Media
-  firebase_core: ^4.3.0
+  firebase_core: ^4.11.0
   firebase_messaging: ^16.2.0
   flutter_local_notifications: ^21.0.0
   awesome_notifications: ^0.10.1
