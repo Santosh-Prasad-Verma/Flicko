@@ -1,10 +1,10 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter/material.dart' show Color, Colors;
+import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -17,51 +17,7 @@ final pushNotificationServiceProvider = Provider<PushNotificationService>((ref) 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   debugPrint('📬 Handling background message: ${message.messageId}');
-  
-  // Initialize local notifications for background
-  final notificationsPlugin = FlutterLocalNotificationsPlugin();
-  await _showLocalNotification(notificationsPlugin, message);
-}
-
-/// Show local notification
-Future<void> _showLocalNotification(
-  FlutterLocalNotificationsPlugin plugin,
-  RemoteMessage message,
-) async {
-  const androidDetails = AndroidNotificationDetails(
-    'flicko_default_channel',
-    'Flicko Notifications',
-    channelDescription: 'Default notification channel for Flicko',
-    importance: Importance.high,
-    priority: Priority.high,
-    showWhen: true,
-    enableVibration: true,
-    playSound: true,
-    icon: '@mipmap/ic_launcher',
-  );
-
-  const darwinDetails = DarwinNotificationDetails(
-    presentAlert: true,
-    presentBadge: true,
-    presentSound: true,
-  );
-
-  const details = NotificationDetails(
-    android: androidDetails,
-    iOS: darwinDetails,
-    macOS: darwinDetails,
-  );
-
-  final title = message.notification?.title ?? message.data['title'] ?? 'Flicko';
-  final body = message.notification?.body ?? message.data['body'] ?? '';
-
-  await plugin.show(
-    id: message.hashCode,
-    title: title,
-    body: body,
-    notificationDetails: details,
-    payload: jsonEncode(message.data),
-  );
+  await PushNotificationService.showRichNotification(message);
 }
 
 /// Push Notification Service
@@ -74,7 +30,6 @@ Future<void> _showLocalNotification(
 /// - Deep linking from notifications
 class PushNotificationService {
   final FirebaseMessaging _fcm = FirebaseMessaging.instance;
-  final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
   
   bool _initialized = false;
   String? _fcmToken;
@@ -92,6 +47,12 @@ class PushNotificationService {
   /// Current FCM token
   String? get fcmToken => _fcmToken;
 
+  static PushNotificationService? _instance;
+
+  PushNotificationService() {
+    _instance = this;
+  }
+
   /// Initialize the push notification service
   Future<void> initialize() async {
     if (_initialized) return;
@@ -103,19 +64,56 @@ class PushNotificationService {
       // 2. Request permissions
       await _requestPermissions();
 
-      // 3. Initialize local notifications
-      await _initLocalNotifications();
+      // 3. Initialize AwesomeNotifications
+      await AwesomeNotifications().initialize(
+        null, // Use default app icon
+        [
+          NotificationChannel(
+            channelGroupKey: 'flicko_group',
+            channelKey: 'flicko_default_channel',
+            channelName: 'Flicko Notifications',
+            channelDescription: 'Default notification channel for Flicko',
+            defaultColor: const Color(0xFF7D39EB),
+            ledColor: Colors.white,
+            importance: NotificationImportance.High,
+            channelShowBadge: true,
+            playSound: true,
+            enableVibration: true,
+          )
+        ],
+        channelGroups: [
+          NotificationChannelGroup(
+            channelGroupKey: 'flicko_group',
+            channelGroupName: 'Flicko Group',
+          )
+        ],
+        debug: kDebugMode,
+      );
 
-      // 4. Set up foreground message handler
+      // 4. Check if notification permissions are allowed, if not request
+      bool isAllowed = await AwesomeNotifications().isNotificationAllowed();
+      if (!isAllowed) {
+        await AwesomeNotifications().requestPermissionToSendNotifications();
+      }
+
+      // 5. Set up awesome_notifications event listeners
+      await AwesomeNotifications().setListeners(
+        onActionReceivedMethod: onActionReceivedMethod,
+        onNotificationCreatedMethod: onNotificationCreatedMethod,
+        onNotificationDisplayedMethod: onNotificationDisplayedMethod,
+        onDismissActionReceivedMethod: onDismissActionReceivedMethod,
+      );
+
+      // 6. Set up foreground message handler
       FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
 
-      // 5. Set up notification tap handler
+      // 7. Set up notification tap handler
       FirebaseMessaging.onMessageOpenedApp.listen(_handleNotificationTap);
 
-      // 6. Get and register FCM token
+      // 8. Get and register FCM token
       await _updateToken();
 
-      // 7. Listen for token refreshes
+      // 9. Listen for token refreshes
       _fcm.onTokenRefresh.listen(_onTokenRefresh);
 
       _initialized = true;
@@ -138,40 +136,52 @@ class PushNotificationService {
     debugPrint('📢 Notification permission status: ${settings.authorizationStatus}');
   }
 
-  /// Initialize local notifications
-  Future<void> _initLocalNotifications() async {
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const darwinSettings = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
-    );
-
-    const settings = InitializationSettings(
-      android: androidSettings,
-      iOS: darwinSettings,
-      macOS: darwinSettings,
-    );
-
-    await _localNotifications.initialize(
-      settings: settings,
-      onDidReceiveNotificationResponse: _onLocalNotificationTap,
-      onDidReceiveBackgroundNotificationResponse: _onBackgroundNotificationResponse,
-    );
-
-    // Create notification channel for Android
-    if (Platform.isAndroid) {
-      const channel = AndroidNotificationChannel(
-        'flicko_default_channel',
-        'Flicko Notifications',
-        description: 'Default notification channel for Flicko',
-        importance: Importance.high,
-      );
-
-      await _localNotifications
-          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-          ?.createNotificationChannel(channel);
+  @pragma("vm:entry-point")
+  static Future<void> onActionReceivedMethod(ReceivedAction receivedAction) async {
+    debugPrint('👆 User tapped notification. Payload: ${receivedAction.payload}');
+    if (receivedAction.payload != null) {
+      _instance?._notificationTapController.add(Map<String, dynamic>.from(receivedAction.payload!));
     }
+  }
+
+  @pragma("vm:entry-point")
+  static Future<void> onNotificationCreatedMethod(ReceivedNotification receivedNotification) async {
+    debugPrint('Notification created: ${receivedNotification.id}');
+  }
+
+  @pragma("vm:entry-point")
+  static Future<void> onNotificationDisplayedMethod(ReceivedNotification receivedNotification) async {
+    debugPrint('Notification displayed: ${receivedNotification.id}');
+  }
+
+  @pragma("vm:entry-point")
+  static Future<void> onDismissActionReceivedMethod(ReceivedAction receivedAction) async {
+    debugPrint('Notification dismissed: ${receivedAction.id}');
+  }
+
+  /// Show rich notification using AwesomeNotifications
+  static Future<void> showRichNotification(RemoteMessage message) async {
+    final title = message.notification?.title ?? message.data['title'] ?? 'Flicko';
+    final body = message.notification?.body ?? message.data['body'] ?? '';
+    final String? imageUrl = message.notification?.android?.imageUrl ?? message.data['image_url'];
+
+    await AwesomeNotifications().createNotification(
+      content: NotificationContent(
+        id: message.hashCode,
+        channelKey: 'flicko_default_channel',
+        title: title,
+        body: body,
+        bigPicture: imageUrl,
+        largeIcon: imageUrl,
+        hideLargeIconOnExpand: true,
+        notificationLayout: imageUrl != null 
+            ? NotificationLayout.BigPicture 
+            : NotificationLayout.Default,
+        payload: Map<String, String>.from(message.data.map(
+          (key, value) => MapEntry(key, value.toString()),
+        )),
+      ),
+    );
   }
 
   /// Handle foreground messages
@@ -182,7 +192,7 @@ class PushNotificationService {
     debugPrint('  - Data: ${message.data}');
 
     // Show local notification for foreground messages
-    _showLocalNotification(_localNotifications, message);
+    showRichNotification(message);
 
     // Notify listeners
     _foregroundMessageController.add(message);
@@ -192,25 +202,6 @@ class PushNotificationService {
   void _handleNotificationTap(RemoteMessage message) {
     debugPrint('👆 Notification tapped: ${message.data}');
     _notificationTapController.add(message.data);
-  }
-
-  /// Handle local notification taps
-  void _onLocalNotificationTap(NotificationResponse response) {
-    if (response.payload != null) {
-      try {
-        final data = jsonDecode(response.payload!) as Map<String, dynamic>;
-        debugPrint('👆 Local notification tapped: $data');
-        _notificationTapController.add(data);
-      } catch (e) {
-        debugPrint('❌ Error parsing notification payload: $e');
-      }
-    }
-  }
-
-  /// Handle background notification response
-  @pragma('vm:entry-point')
-  static void _onBackgroundNotificationResponse(NotificationResponse response) {
-    debugPrint('👆 Background notification response: ${response.payload}');
   }
 
   /// Update and register FCM token with Supabase

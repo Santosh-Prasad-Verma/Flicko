@@ -5,6 +5,7 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   app_links
   audioplayers_windows
+  awesome_notifications
   connectivity_plus
   desktop_webview_window
   file_selector_windows

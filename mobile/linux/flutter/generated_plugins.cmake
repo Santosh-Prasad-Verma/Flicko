@@ -4,6 +4,7 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   audioplayers_linux
+  awesome_notifications
   desktop_webview_window
   file_selector_linux
   flutter_secure_storage_linux
