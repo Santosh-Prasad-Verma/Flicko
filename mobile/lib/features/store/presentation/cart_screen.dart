@@ -574,6 +574,8 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
   int _selectedPaymentMethod = 0; // 0 = saved card, 1 = new card, 2 = UPI, 3 = wallet
   final _couponController = TextEditingController();
   String? _couponError;
+  // ignore: unused_field
+  bool _couponSuccess = false;
 
   @override
   void dispose() {
