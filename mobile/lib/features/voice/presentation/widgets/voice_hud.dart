@@ -6,18 +6,27 @@ import 'package:mobile/features/voice/presentation/controllers/voice_controller.
 import 'package:mobile/features/voice/presentation/controllers/voice_state.dart';
 import 'voice_synth_board_sheet.dart';
 
-/// Provider for tracking whether the Voice HUD overlay is collapsed into compact pill mode.
-final voiceHudMinimizedProvider = StateProvider<bool>((ref) => false);
-
 /// Floating Voice HUD bar displayed when connected to a voice channel in the background.
 /// Features full controls, vocal synthesizer access, tap-to-navigate, and expandable/collapsible pill modes.
-class VoiceHUD extends ConsumerWidget {
+class VoiceHUD extends ConsumerStatefulWidget {
   const VoiceHUD({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<VoiceHUD> createState() => _VoiceHUDState();
+}
+
+class _VoiceHUDState extends ConsumerState<VoiceHUD> {
+  bool _isMinimized = false;
+
+  void _toggleMinimized() {
+    setState(() {
+      _isMinimized = !_isMinimized;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final voiceState = ref.watch(voiceControllerProvider);
-    final isMinimized = ref.watch(voiceHudMinimizedProvider);
 
     if (!voiceState.isConnected && !voiceState.isConnecting) {
       return const SizedBox.shrink();
@@ -27,14 +36,14 @@ class VoiceHUD extends ConsumerWidget {
       duration: const Duration(milliseconds: 250),
       curve: Curves.easeOutCubic,
       margin: const EdgeInsets.symmetric(horizontal: 4),
-      padding: isMinimized
+      padding: _isMinimized
           ? const EdgeInsets.symmetric(horizontal: 14, vertical: 8)
           : const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
         color: const Color(0xFF121215).withValues(alpha: 0.95),
-        borderRadius: BorderRadius.circular(isMinimized ? 24 : 16),
+        borderRadius: BorderRadius.circular(_isMinimized ? 24 : 16),
         border: Border.all(
-          color: const Color(FlickoColors.green).withValues(alpha: isMinimized ? 0.4 : 0.25),
+          color: const Color(FlickoColors.green).withValues(alpha: _isMinimized ? 0.4 : 0.25),
           width: 1.5,
         ),
         boxShadow: [
@@ -45,7 +54,7 @@ class VoiceHUD extends ConsumerWidget {
           ),
         ],
       ),
-      child: isMinimized
+      child: _isMinimized
           ? _buildMinimizedPill(context, ref, voiceState)
           : _buildExpandedHud(context, ref, voiceState),
     );
@@ -60,7 +69,7 @@ class VoiceHUD extends ConsumerWidget {
       children: [
         // Pulsing active call indicator
         GestureDetector(
-          onTap: () => _toggleMinimized(ref),
+          onTap: _toggleMinimized,
           behavior: HitTestBehavior.opaque,
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -113,7 +122,7 @@ class VoiceHUD extends ConsumerWidget {
             color: Colors.white70,
             size: 22,
           ),
-          onPressed: () => _toggleMinimized(ref),
+          onPressed: _toggleMinimized,
           tooltip: 'Expand Controls',
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
@@ -225,7 +234,7 @@ class VoiceHUD extends ConsumerWidget {
           icon: Icons.keyboard_arrow_down_rounded,
           color: Colors.white70,
           tooltip: 'Minimize',
-          onPressed: () => _toggleMinimized(ref),
+          onPressed: _toggleMinimized,
         ),
         _hudButton(
           icon: Icons.call_end_rounded,
@@ -254,9 +263,5 @@ class VoiceHUD extends ConsumerWidget {
         splashRadius: 16,
       ),
     );
-  }
-
-  void _toggleMinimized(WidgetRef ref) {
-    ref.read(voiceHudMinimizedProvider.notifier).update((state) => !state);
   }
 }
