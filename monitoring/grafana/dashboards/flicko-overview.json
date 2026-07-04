@@ -58,7 +58,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "flicko_ws_active_connections",
+          "expr": "flicko_ws_active_connections or nginx_connections_active",
           "legendFormat": "connections",
           "refId": "A"
         }
@@ -508,8 +508,8 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum by (path) (rate(flicko_http_request_duration_seconds_count[5m]))",
-          "legendFormat": "{{ path }}",
+          "expr": "sum by (path) (rate(flicko_http_request_duration_seconds_count[5m])) or rate(nginx_http_requests_total[5m])",
+          "legendFormat": "requests",
           "refId": "A"
         }
       ]
@@ -538,7 +538,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum by (status) (rate(flicko_http_request_duration_seconds_count[5m]))",
+          "expr": "sum by (status) (rate(flicko_http_request_duration_seconds_count[5m])) or rate(nginx_http_requests_total[5m])",
           "legendFormat": "{{ status }}",
           "refId": "A"
         }

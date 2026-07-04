@@ -439,7 +439,7 @@ services:
       - 1.1.1.1
     environment:
       GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PASSWORD}"
-      GF_SERVER_ROOT_URL: "https://${DOMAIN:-flicko.dev}/grafana"
+      GF_SERVER_ROOT_URL: "https://${DOMAIN:-flicko.dev}/grafana/"
       GF_SERVER_SERVE_FROM_SUB_PATH: "true"
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_LOG_MODE: "console"
@@ -537,7 +537,7 @@ services:
     container_name: flicko-nginx-exporter
     <<: [*restart-policy, *default-logging]
     command:
-      - "--nginx.scrape-uri=http://nginx/stub_status"
+      - "--nginx.scrape-uri=http://nginx:8080/stub_status"
     networks:
       - flicko_internal              # Reach NGINX stub_status
       - flicko_monitor               # Prometheus scrapes this
