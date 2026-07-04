@@ -128,7 +128,7 @@ class _MessageBubbleState extends ConsumerState<MessageBubble> {
     final senderName =
         message.sender?.displayName ?? message.sender?.username ?? 'Unknown';
     final avatarUrl = message.sender?.avatarUrl;
-    final timeStr = DateFormat('h:mm a').format(message.createdAt);
+    final timeStr = DateFormat('h:mm a').format(message.createdAt.toLocal());
     final currentUserId = Supabase.instance.client.auth.currentUser?.id;
     final isMine = message.senderId == currentUserId;
 

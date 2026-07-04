@@ -111,7 +111,7 @@ class MessageItem extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context) {
-    final timeStr = DateFormat('h:mm a').format(message.createdAt);
+    final timeStr = DateFormat('h:mm a').format(message.createdAt.toLocal());
     final authorName =
         message.author?.displayName ?? message.author?.username ?? 'Unknown';
     final roleColor = message.author?.accentColor != null
