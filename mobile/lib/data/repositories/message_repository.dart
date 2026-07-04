@@ -400,7 +400,7 @@ class MessageRepository {
   /// Fetches command definitions from the backend.
   Future<List<CommandDefinition>> getCommandDefinitions() async {
     try {
-      final response = await _dio.get('/v1/commands');
+      final response = await _dio.get('/api/v1/commands');
       final List<dynamic> data = response.data as List<dynamic>;
       return data.map((json) => CommandDefinition.fromJson(Map<String, dynamic>.from(json as Map))).toList();
     } catch (e) {
@@ -417,7 +417,7 @@ class MessageRepository {
     Map<String, dynamic>? options,
   }) async {
     try {
-      final response = await _dio.post('/v1/commands/invoke', data: {
+      final response = await _dio.post('/api/v1/commands/invoke', data: {
         'command_name': command,
         'channel_id': channelId,
         'server_id': serverId,
