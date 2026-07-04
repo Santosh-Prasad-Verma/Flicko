@@ -517,8 +517,3 @@ class MusicLibraryRepositoryImpl implements MusicLibraryRepository {
     source: json['source'] as String? ?? 'saavn',
   );
 }
-
-// Typo fix helper
-Future<SharedPreferences> _getPrefs() async {
-  return await SharedPreferences.getInstance();
-}

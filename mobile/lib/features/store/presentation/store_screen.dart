@@ -28,7 +28,6 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
   int _selectedCategory = 0;
   String _searchQuery = '';
   bool _showSearch = false;
-  final bool _showFilters = false;
   String _sortBy = 'newest'; // newest, price_low, price_high, popular
   final _searchController = TextEditingController();
 
@@ -2213,7 +2212,6 @@ class _GachaSpinDialogState extends State<GachaSpinDialog> with TickerProviderSt
   late AnimationController _confettiController;
   
   bool _isSpinning = false;
-  bool _isNeedleDropped = false;
   StoreProduct? _reward;
   final List<ConfettiParticle> _particles = [];
   final math.Random _random = math.Random();
@@ -2223,7 +2221,6 @@ class _GachaSpinDialogState extends State<GachaSpinDialog> with TickerProviderSt
   static const Color _neon = Color(0xFF52B788);
   static const Color _white = Color(0xFFFFFFFF);
   static const Color _muted = Color(0xFF71717A);
-  static const Color _lime = Color(0xFF52B788);
   static const Color _gold = Color(0xFFFFD700);
 
   Color _getRarityColor(String rarity) {

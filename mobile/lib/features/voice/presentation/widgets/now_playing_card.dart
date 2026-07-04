@@ -13,7 +13,6 @@ class NowPlayingCard extends StatelessWidget {
   });
 
   static const _lime = Color(0xFF52B788);
-  static const _grey = Color(0xFF1A1A1A);
 
   @override
   Widget build(BuildContext context) {

@@ -23,7 +23,6 @@ class _MusicSettingsSheetState extends ConsumerState<MusicSettingsSheet>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
-  static const _bg = Color(0xFF050505);
   static const _surface = Color(0xFF0C0C0E);
   static const _neon = Color(0xFF52B788);
   static const _white = Color(0xFFFBF9FA);

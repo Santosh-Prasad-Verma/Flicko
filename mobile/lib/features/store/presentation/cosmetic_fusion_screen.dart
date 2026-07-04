@@ -219,7 +219,6 @@ class _CosmeticFusionScreenState extends ConsumerState<CosmeticFusionScreen> wit
   }
 
   Widget _buildLoadedSlot(UserPurchase item, CosmeticFusionNotifier notifier) {
-    final color = _getRarityColor(item.productType); // Mapping mock color for preview
     return GestureDetector(
       onTap: () {
         FlickoHaptics.light();

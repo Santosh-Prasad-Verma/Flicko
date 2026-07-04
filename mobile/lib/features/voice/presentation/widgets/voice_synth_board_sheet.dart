@@ -16,7 +16,6 @@ class _VoiceSynthBoardSheetState extends ConsumerState<VoiceSynthBoardSheet> wit
   late AnimationController _waveAnimationController;
 
   static const Color _bg = Color(0xFF000000);
-  static const Color _surface = Color(0xFF000000);
   static const Color _neon = Color(0xFF52B788);
   static const Color _white = Color(0xFFFFFFFF);
   static const Color _muted = Color(0xFF71717A);

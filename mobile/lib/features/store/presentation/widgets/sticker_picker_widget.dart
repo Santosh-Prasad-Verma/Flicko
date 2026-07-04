@@ -25,6 +25,7 @@ class StickerPickerWidget extends ConsumerStatefulWidget {
 class _StickerPickerWidgetState extends ConsumerState<StickerPickerWidget>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  // ignore: unused_field
   String _searchQuery = '';
 
   static const Color _bg = Color(0xFF050505);
