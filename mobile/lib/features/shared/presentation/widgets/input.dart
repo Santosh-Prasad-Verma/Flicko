@@ -171,7 +171,8 @@ class _InputState extends State<Input> {
             ],
           ),
         ),
-        if (hasError) ...[
+      ),
+      if (hasError) ...[
           const SizedBox(height: 4),
           Text(
             widget.error!,
