@@ -75,6 +75,28 @@ class _BotMusicSettingsScreenState extends ConsumerState<BotMusicSettingsScreen>
     }
   }
 
+  Future<void> _updateSetting(String key, dynamic value) async {
+    try {
+      if (_settings != null) {
+        await Supabase.instance.client
+            .from('music_settings')
+            .update({key: value})
+            .eq('server_id', widget.serverId);
+      } else {
+        await Supabase.instance.client
+            .from('music_settings')
+            .insert({
+              'server_id': widget.serverId,
+              key: value,
+              'created_at': DateTime.now().toIso8601String(),
+            });
+      }
+      await _loadSettings();
+    } catch (e) {
+      _showError('Failed to update setting: ${e.toString()}');
+    }
+  }
+
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -172,9 +194,9 @@ class _BotMusicSettingsScreenState extends ConsumerState<BotMusicSettingsScreen>
           ]),
           const SizedBox(height: 24),
           _buildSection('Permissions', [
-            _buildToggleField('DJ Mode Only', 'Only DJ role can control playback', _settings?['dj_only'] ?? false),
-            _buildToggleField('Allow Playlists', 'Allow queuing complete playlists', _settings?['allow_playlists'] ?? true),
-            _buildToggleField('Vote Skip', 'Require user skip votes', _settings?['vote_skip'] ?? true),
+            _buildToggleField('DJ Mode Only', 'Only DJ role can control playback', 'dj_only', _settings?['dj_only'] ?? false),
+            _buildToggleField('Allow Playlists', 'Allow queuing complete playlists', 'allow_playlists', _settings?['allow_playlists'] ?? true),
+            _buildToggleField('Vote Skip', 'Require user skip votes', 'vote_skip', _settings?['vote_skip'] ?? true),
           ]),
           const SizedBox(height: 24),
           _buildSection('Commands', [
@@ -214,12 +236,12 @@ class _BotMusicSettingsScreenState extends ConsumerState<BotMusicSettingsScreen>
     );
   }
 
-  Widget _buildToggleField(String label, String hint, bool value) {
+  Widget _buildToggleField(String label, String hint, String key, bool value) {
     return SwitchListTile(
       title: Text(label, style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary), fontSize: 14)),
       subtitle: Text(hint, style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted), fontSize: 12)),
       value: value,
-      onChanged: (v) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$label toggle - Coming Soon'))),
+      onChanged: (v) => _updateSetting(key, v),
       activeThumbColor: const Color(FlickoColors.blurple),
     );
   }

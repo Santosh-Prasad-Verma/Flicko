@@ -225,13 +225,7 @@ class _BotsSettingsScreenState extends ConsumerState<BotsSettingsScreen> {
   }
 
   void _handleBotPress(BotInfo bot) {
-    // Navigate to bot-specific settings
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${bot.displayName} settings - Coming Soon'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    context.push('/server/${widget.serverId}/settings/bot-${bot.name}');
   }
 
   @override

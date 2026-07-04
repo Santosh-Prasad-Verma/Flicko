@@ -30,6 +30,19 @@ class DMRepository {
 
   DMRepository(this._client, this._appwriteStorage, this._e2ee);
 
+  /// Searches users by username or display name, excluding the current user.
+  Future<List<UserModel>> searchUsers(String query, String currentUserId) async {
+    final response = await _client
+        .from('profiles')
+        .select('*')
+        .neq('id', currentUserId)
+        .or('username.ilike.%$query%,display_name.ilike.%$query%')
+        .limit(20);
+    return (response as List)
+        .map((e) => UserModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
   /// Fetches a user profile by ID.
   Future<UserModel> fetchUserProfile(String userId) async {
     final response = await _client

@@ -75,6 +75,28 @@ class _BotTicketSettingsScreenState extends ConsumerState<BotTicketSettingsScree
     }
   }
 
+  Future<void> _updateSetting(String key, dynamic value) async {
+    try {
+      if (_settings != null) {
+        await Supabase.instance.client
+            .from('ticket_settings')
+            .update({key: value})
+            .eq('server_id', widget.serverId);
+      } else {
+        await Supabase.instance.client
+            .from('ticket_settings')
+            .insert({
+              'server_id': widget.serverId,
+              key: value,
+              'created_at': DateTime.now().toIso8601String(),
+            });
+      }
+      await _loadSettings();
+    } catch (e) {
+      _showError('Failed to update setting: ${e.toString()}');
+    }
+  }
+
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -172,9 +194,9 @@ class _BotTicketSettingsScreenState extends ConsumerState<BotTicketSettingsScree
           ]),
           const SizedBox(height: 24),
           _buildSection('Options', [
-            _buildToggleField('Transcript Logging', 'Save logs of closed tickets', _settings?['transcript_logging'] ?? true),
-            _buildToggleField('Feedback Form', 'Ask for feedback upon closing', _settings?['feedback_form'] ?? false),
-            _buildToggleField('User Close Permission', 'Allow users to close their own tickets', _settings?['user_close'] ?? true),
+            _buildToggleField('Transcript Logging', 'Save logs of closed tickets', 'transcript_logging', _settings?['transcript_logging'] ?? true),
+            _buildToggleField('Feedback Form', 'Ask for feedback upon closing', 'feedback_form', _settings?['feedback_form'] ?? false),
+            _buildToggleField('User Close Permission', 'Allow users to close their own tickets', 'user_close', _settings?['user_close'] ?? true),
           ]),
           const SizedBox(height: 24),
           _buildSection('Commands', [
@@ -213,12 +235,12 @@ class _BotTicketSettingsScreenState extends ConsumerState<BotTicketSettingsScree
     );
   }
 
-  Widget _buildToggleField(String label, String hint, bool value) {
+  Widget _buildToggleField(String label, String hint, String key, bool value) {
     return SwitchListTile(
       title: Text(label, style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary), fontSize: 14)),
       subtitle: Text(hint, style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted), fontSize: 12)),
       value: value,
-      onChanged: (v) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$label toggle - Coming Soon'))),
+      onChanged: (v) => _updateSetting(key, v),
       activeThumbColor: const Color(FlickoColors.blurple),
     );
   }

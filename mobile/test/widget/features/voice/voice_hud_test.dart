@@ -96,9 +96,9 @@ void main() {
       );
 
       expect(find.text('Voice Connected'), findsOneWidget);
-      expect(find.byIcon(Icons.mic), findsOneWidget);
-      expect(find.byIcon(Icons.headset), findsOneWidget);
-      expect(find.byIcon(Icons.call_end), findsOneWidget);
+      expect(find.byIcon(Icons.mic_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.headset_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.call_end_rounded), findsOneWidget);
     });
 
     testWidgets('Tapping mute button calls toggleMute on controller', (tester) async {
@@ -117,7 +117,7 @@ void main() {
         ),
       );
 
-      await tester.tap(find.byIcon(Icons.mic));
+      await tester.tap(find.byIcon(Icons.mic_rounded));
       await tester.pump();
 
       expect(fakeController.toggleMuteCalled, isTrue);
@@ -139,7 +139,7 @@ void main() {
         ),
       );
 
-      await tester.tap(find.byIcon(Icons.call_end));
+      await tester.tap(find.byIcon(Icons.call_end_rounded));
       await tester.pump();
 
       expect(fakeController.leaveChannelCalled, isTrue);

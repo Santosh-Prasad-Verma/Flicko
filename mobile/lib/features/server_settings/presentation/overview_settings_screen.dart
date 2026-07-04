@@ -114,8 +114,8 @@ class _OverviewSettingsScreenState extends ConsumerState<OverviewSettingsScreen>
           ]),
           const SizedBox(height: 24),
           _buildSection('PREFERENCES', [
-            _buildToggleRow('Explicit Content Filter', 'Filter explicit content', true),
-            _buildToggleRow('Verification Level', 'Require verification', false),
+            _buildToggleRow('Explicit Content Filter', 'Filter explicit content', 'explicit_content_filter', (_serverData?['explicit_content_filter'] ?? 0) != 0),
+            _buildToggleRow('Verification Level', 'Require verification', 'verification_level', (_serverData?['verification_level'] ?? 0) != 0),
           ]),
         ],
       ),
@@ -224,7 +224,7 @@ class _OverviewSettingsScreenState extends ConsumerState<OverviewSettingsScreen>
     );
   }
 
-  Widget _buildToggleRow(String label, String description, bool value) {
+  Widget _buildToggleRow(String label, String description, String key, bool value) {
     return SwitchListTile(
       title: Text(
         label,
@@ -241,13 +241,39 @@ class _OverviewSettingsScreenState extends ConsumerState<OverviewSettingsScreen>
         ),
       ),
       value: value,
-      onChanged: (v) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$label - Coming Soon')),
-        );
-      },
+      onChanged: (v) => _updateServerPreference(key, v ? 1 : 0),
       activeThumbColor: const Color(FlickoColors.blurple),
     );
+  }
+
+  Future<void> _updateServerPreference(String key, int value) async {
+    try {
+      await Supabase.instance.client
+          .from('servers')
+          .update({key: value})
+          .eq('id', widget.serverId);
+      await _loadServerData();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Preference updated successfully!'),
+            backgroundColor: Color(FlickoColors.green),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update preference: ${e.toString()}'),
+            backgroundColor: const Color(FlickoColors.danger),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   String _formatDate(String? dateString) {

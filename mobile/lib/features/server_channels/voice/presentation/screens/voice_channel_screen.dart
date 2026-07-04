@@ -1,4 +1,4 @@
-import 'dart:convert';
+
 import 'dart:math' show pi, sin, cos;
 import 'dart:ui' show ImageFilter;
 import 'dart:developer' as developer;
@@ -462,58 +462,6 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
       ),
     );
   }
-
-  // ══════════════════════════════════════════════════════════════════════════
-  //  PARTICIPANTS GRID
-  // ══════════════════════════════════════════════════════════════════════════
-  Widget _buildParticipantsGrid(voice_state.VoiceState voiceState) {
-    if (voiceState.participants.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            AnimatedBuilder(
-              animation: _pulseController,
-              builder: (context, child) {
-                final scale = 1.0 + 0.08 * sin(_pulseController.value * 2 * pi);
-                return Transform.scale(
-                  scale: scale,
-                  child: Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: _neonGreen.withValues(alpha: 0.06),
-                      border: Border.all(
-                          color: _neonGreen.withValues(alpha: 0.15), width: 2),
-                    ),
-                    child: Icon(Icons.volume_up_rounded,
-                        size: 36, color: _neonGreen.withValues(alpha: 0.5)),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'No one is here yet',
-              style: GoogleFonts.outfit(
-                color: _white.withValues(alpha: 0.5),
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Join to start the conversation',
-              style: GoogleFonts.inter(
-                color: _white.withValues(alpha: 0.25),
-                fontSize: 14,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
 
   void _showFullScreenVideo(VideoTrack track, String displayName) {
     Navigator.of(context).push(
@@ -1026,18 +974,7 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
     );
   }
 
-  Widget _buildInitial(String displayName) {
-    return Center(
-      child: Text(
-        displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
-        style: GoogleFonts.outfit(
-          color: _neonGreen,
-          fontSize: 24,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
+
 
   Widget _buildStatusIcons(Participant participant) {
     return Row(

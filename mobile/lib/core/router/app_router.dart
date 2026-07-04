@@ -16,6 +16,7 @@ import 'package:mobile/features/shared/presentation/main_navigation_shell.dart';
 import 'package:mobile/features/server_channels/chat/presentation/screens/chat_screen.dart';
 import 'package:mobile/features/direct_messages/presentation/screens/dm_list_screen.dart';
 import 'package:mobile/features/direct_messages/presentation/screens/dm_chat_screen.dart';
+import 'package:mobile/features/direct_messages/presentation/screens/new_dm_screen.dart';
 import 'package:mobile/features/direct_messages/presentation/screens/group_dm_list_screen.dart';
 import 'package:mobile/features/server/presentation/create_server_screen.dart';
 import 'package:mobile/features/server/presentation/discover_servers_screen.dart';
@@ -314,6 +315,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   child: const DMListScreen(),
                 ),
                 routes: [
+                  GoRoute(
+                    path: 'new',
+                    builder: (context, state) => const NewDMScreen(),
+                  ),
                   GoRoute(
                     path: ':userId',
                     builder: (context, state) => DMChatScreen(

@@ -217,14 +217,7 @@ class _BoostsSettingsScreenState extends ConsumerState<BoostsSettingsScreen> {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Boost server - Coming Soon'),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        },
+        onPressed: _showBoostConfirmation,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 16),
@@ -239,5 +232,94 @@ class _BoostsSettingsScreenState extends ConsumerState<BoostsSettingsScreen> {
         ),
       ),
     );
+  }
+
+  void _showBoostConfirmation() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(FlickoColors.bgSecondary),
+        title: Text(
+          'Boost Server',
+          style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          'Are you sure you want to use a server boost to upgrade this server\'s level and unlock premium benefits?',
+          style: GoogleFonts.inter(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.inter(color: Colors.white70),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _boostServer();
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(FlickoColors.blurple)),
+            child: Text(
+              'Boost',
+              style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _boostServer() async {
+    try {
+      final currentCount = _boostData?['boost_count'] ?? 0;
+      final newCount = currentCount + 1;
+      int newLevel = 0;
+      if (newCount >= 14) {
+        newLevel = 3;
+      } else if (newCount >= 7) {
+        newLevel = 2;
+      } else if (newCount >= 2) {
+        newLevel = 1;
+      }
+
+      if (_boostData != null) {
+        await Supabase.instance.client
+            .from('server_boosts')
+            .update({
+              'boost_count': newCount,
+              'boost_level': newLevel,
+            })
+            .eq('server_id', widget.serverId);
+      } else {
+        await Supabase.instance.client
+            .from('server_boosts')
+            .insert({
+              'server_id': widget.serverId,
+              'boost_count': newCount,
+              'boost_level': newLevel,
+              'created_at': DateTime.now().toIso8601String(),
+            });
+      }
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Server boosted successfully! Level $newLevel reached 🎉'),
+          backgroundColor: const Color(FlickoColors.green),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+
+      await _loadBoostData();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to boost server: ${e.toString()}'),
+          backgroundColor: const Color(FlickoColors.danger),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 }

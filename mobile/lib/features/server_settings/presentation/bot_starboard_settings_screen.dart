@@ -74,6 +74,28 @@ class _BotStarboardSettingsScreenState extends ConsumerState<BotStarboardSetting
     }
   }
 
+  Future<void> _updateSetting(String key, dynamic value) async {
+    try {
+      if (_settings != null) {
+        await Supabase.instance.client
+            .from('starboard_settings')
+            .update({key: value})
+            .eq('server_id', widget.serverId);
+      } else {
+        await Supabase.instance.client
+            .from('starboard_settings')
+            .insert({
+              'server_id': widget.serverId,
+              key: value,
+              'created_at': DateTime.now().toIso8601String(),
+            });
+      }
+      await _loadSettings();
+    } catch (e) {
+      _showError('Failed to update setting: ${e.toString()}');
+    }
+  }
+
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -171,8 +193,8 @@ class _BotStarboardSettingsScreenState extends ConsumerState<BotStarboardSetting
           ]),
           const SizedBox(height: 24),
           _buildSection('Features', [
-            _buildToggleField('Self-star', 'Allow users to star their own messages', _settings?['allow_self_star'] ?? false),
-            _buildToggleField('Auto-delete', 'Delete original message when starred', _settings?['auto_delete'] ?? false),
+            _buildToggleField('Self-star', 'Allow users to star their own messages', 'allow_self_star', _settings?['allow_self_star'] ?? false),
+            _buildToggleField('Auto-delete', 'Delete original message when starred', 'auto_delete', _settings?['auto_delete'] ?? false),
           ]),
           const SizedBox(height: 24),
           _buildSection('Commands', [
@@ -210,12 +232,12 @@ class _BotStarboardSettingsScreenState extends ConsumerState<BotStarboardSetting
     );
   }
 
-  Widget _buildToggleField(String label, String hint, bool value) {
+  Widget _buildToggleField(String label, String hint, String key, bool value) {
     return SwitchListTile(
       title: Text(label, style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary), fontSize: 14)),
       subtitle: Text(hint, style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted), fontSize: 12)),
       value: value,
-      onChanged: (v) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$label toggle - Coming Soon'))),
+      onChanged: (v) => _updateSetting(key, v),
       activeThumbColor: const Color(FlickoColors.blurple),
     );
   }

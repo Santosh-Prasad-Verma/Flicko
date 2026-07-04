@@ -75,6 +75,28 @@ class _BotLevelingSettingsScreenState extends ConsumerState<BotLevelingSettingsS
     }
   }
 
+  Future<void> _updateSetting(String key, dynamic value) async {
+    try {
+      if (_settings != null) {
+        await Supabase.instance.client
+            .from('level_settings')
+            .update({key: value})
+            .eq('server_id', widget.serverId);
+      } else {
+        await Supabase.instance.client
+            .from('level_settings')
+            .insert({
+              'server_id': widget.serverId,
+              key: value,
+              'created_at': DateTime.now().toIso8601String(),
+            });
+      }
+      await _loadSettings();
+    } catch (e) {
+      _showError('Failed to update setting: ${e.toString()}');
+    }
+  }
+
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -173,10 +195,10 @@ class _BotLevelingSettingsScreenState extends ConsumerState<BotLevelingSettingsS
           ]),
           const SizedBox(height: 24),
           _buildSection('Features', [
-            _buildToggleField('Voice XP', 'Award XP for voice chat', _settings?['voice_xp'] ?? true),
-            _buildToggleField('Message XP', 'Award XP for messages', _settings?['message_xp'] ?? true),
-            _buildToggleField('Role Rewards', 'Assign roles at levels', _settings?['role_rewards'] ?? true),
-            _buildToggleField('Announcements', 'Announce level ups', _settings?['announcements'] ?? true),
+            _buildToggleField('Voice XP', 'Award XP for voice chat', 'voice_xp', _settings?['voice_xp'] ?? true),
+            _buildToggleField('Message XP', 'Award XP for messages', 'message_xp', _settings?['message_xp'] ?? true),
+            _buildToggleField('Role Rewards', 'Assign roles at levels', 'role_rewards', _settings?['role_rewards'] ?? true),
+            _buildToggleField('Announcements', 'Announce level ups', 'announcements', _settings?['announcements'] ?? true),
           ]),
           const SizedBox(height: 24),
           _buildSection('Commands', [
@@ -215,12 +237,12 @@ class _BotLevelingSettingsScreenState extends ConsumerState<BotLevelingSettingsS
     );
   }
 
-  Widget _buildToggleField(String label, String hint, bool value) {
+  Widget _buildToggleField(String label, String hint, String key, bool value) {
     return SwitchListTile(
       title: Text(label, style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary), fontSize: 14)),
       subtitle: Text(hint, style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted), fontSize: 12)),
       value: value,
-      onChanged: (v) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$label toggle - Coming Soon'))),
+      onChanged: (v) => _updateSetting(key, v),
       activeThumbColor: const Color(FlickoColors.blurple),
     );
   }

@@ -74,6 +74,28 @@ class _BotModerationSettingsScreenState extends ConsumerState<BotModerationSetti
     }
   }
 
+  Future<void> _updateSetting(String key, dynamic value) async {
+    try {
+      if (_settings != null) {
+        await Supabase.instance.client
+            .from('mod_settings')
+            .update({key: value})
+            .eq('server_id', widget.serverId);
+      } else {
+        await Supabase.instance.client
+            .from('mod_settings')
+            .insert({
+              'server_id': widget.serverId,
+              key: value,
+              'created_at': DateTime.now().toIso8601String(),
+            });
+      }
+      await _loadSettings();
+    } catch (e) {
+      _showError('Failed to update setting: ${e.toString()}');
+    }
+  }
+
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -171,10 +193,10 @@ class _BotModerationSettingsScreenState extends ConsumerState<BotModerationSetti
           ]),
           const SizedBox(height: 24),
           _buildSection('Features', [
-            _buildToggleField('Auto-delete', 'Delete violating messages', _settings?['auto_delete'] ?? true),
-            _buildToggleField('Auto-mute', 'Mute repeat offenders', _settings?['auto_mute'] ?? true),
-            _buildToggleField('Log Actions', 'Log moderation actions', _settings?['log_actions'] ?? true),
-            _buildToggleField('DM Violators', 'DM users when warned', _settings?['dm_violators'] ?? true),
+            _buildToggleField('Auto-delete', 'Delete violating messages', 'auto_delete', _settings?['auto_delete'] ?? true),
+            _buildToggleField('Auto-mute', 'Mute repeat offenders', 'auto_mute', _settings?['auto_mute'] ?? true),
+            _buildToggleField('Log Actions', 'Log moderation actions', 'log_actions', _settings?['log_actions'] ?? true),
+            _buildToggleField('DM Violators', 'DM users when warned', 'dm_violators', _settings?['dm_violators'] ?? true),
           ]),
           const SizedBox(height: 24),
           _buildSection('Commands', [
@@ -214,12 +236,12 @@ class _BotModerationSettingsScreenState extends ConsumerState<BotModerationSetti
     );
   }
 
-  Widget _buildToggleField(String label, String hint, bool value) {
+  Widget _buildToggleField(String label, String hint, String key, bool value) {
     return SwitchListTile(
       title: Text(label, style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary), fontSize: 14)),
       subtitle: Text(hint, style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted), fontSize: 12)),
       value: value,
-      onChanged: (v) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$label toggle - Coming Soon'))),
+      onChanged: (v) => _updateSetting(key, v),
       activeThumbColor: const Color(FlickoColors.blurple),
     );
   }

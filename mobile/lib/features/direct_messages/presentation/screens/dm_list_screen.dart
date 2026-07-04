@@ -30,11 +30,7 @@ class DMListScreen extends ConsumerWidget {
           backgroundColor: const Color(FlickoColors.emeraldGreen),
           foregroundColor: const Color(FlickoColors.black),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('New DM flow coming soon!')),
-            );
-          },
+          onPressed: () => context.push('/dms/new'),
           child: const Icon(Icons.edit_outlined, size: 22),
         ),
       ),
