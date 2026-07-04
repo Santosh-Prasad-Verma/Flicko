@@ -17,10 +17,6 @@ positions:
 
 clients:
   - url: http://loki:3100/loki/api/v1/push
-  - url: https://logs-prod-028.grafana.net/loki/api/v1/push
-    basic_auth:
-      username: "1670790"
-      password_file: "/etc/promtail/agent_token"
 
 scrape_configs:
   - job_name: docker

@@ -18,16 +18,6 @@ global:
 rule_files:
   - "alerts.yml"
 
-remote_write:
-  - url: "https://prometheus-prod-43-prod-ap-south-1.grafana.net/api/prom/push"
-    basic_auth:
-      username: "3350230"
-      password_file: "/etc/prometheus/agent_token"
-    queue_config:
-      max_samples_per_send: 1000
-      batch_send_deadline: 5s
-      max_shards: 3
-
 # ── Scrape configs ───────────────────────────────────────────────────────────
 scrape_configs:
 
