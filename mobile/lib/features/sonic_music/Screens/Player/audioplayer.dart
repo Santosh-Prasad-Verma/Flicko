@@ -22,6 +22,7 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:ui' as ui;
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:mobile/features/sonic_music/CustomWidgets/add_playlist.dart';
 import 'package:mobile/features/sonic_music/CustomWidgets/copy_clipboard.dart';
@@ -2402,6 +2403,63 @@ class NameNControls extends StatefulWidget {
 
 class _NameNControlsState extends State<NameNControls> {
   double _panelPosition = 0.0;
+  String _streamingQuality = 'HQ • 320 kbps';
+  late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _updateQuality();
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((results) {
+      _updateQuality(results: results);
+    });
+  }
+
+  @override
+  void didUpdateWidget(NameNControls oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.mediaItem.id != oldWidget.mediaItem.id || widget.offline != oldWidget.offline) {
+      _updateQuality();
+    }
+  }
+
+  @override
+  void dispose() {
+    _connectivitySubscription.cancel();
+    super.dispose();
+  }
+
+  Future<void> _updateQuality({List<ConnectivityResult>? results}) async {
+    if (widget.offline) {
+      if (mounted) {
+        setState(() {
+          _streamingQuality = 'Offline';
+        });
+      }
+      return;
+    }
+
+    final List<ConnectivityResult> connectionResults = results ?? await Connectivity().checkConnectivity();
+    final bool isWifi = connectionResults.contains(ConnectivityResult.wifi);
+    final String quality;
+    if (widget.mediaItem.genre == 'YouTube') {
+      final ytQuality = Hive.box('settings').get('ytQuality', defaultValue: 'High').toString();
+      quality = 'YT • $ytQuality';
+    } else {
+      if (isWifi) {
+        final wifiQuality = Hive.box('settings').get('streamingWifiQuality', defaultValue: '320 kbps').toString();
+        quality = 'HQ • $wifiQuality';
+      } else {
+        final mobileQuality = Hive.box('settings').get('streamingQuality', defaultValue: '96 kbps').toString();
+        quality = mobileQuality == '320 kbps' ? 'HQ • 320 kbps' : 'SQ • $mobileQuality';
+      }
+    }
+    if (mounted) {
+      setState(() {
+        _streamingQuality = quality;
+      });
+    }
+  }
 
   Stream<Duration> get _bufferedPositionStream =>
       widget.audioHandler.playbackState
@@ -2463,6 +2521,42 @@ class _NameNControlsState extends State<NameNControls> {
                                 fontWeight: FontWeight.normal,
                                 color: Colors.white.withOpacity(0.6),
                               ),
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.08),
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(
+                                      color: Colors.white.withOpacity(0.12),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        widget.offline ? Icons.download_done_rounded : Icons.music_note_rounded,
+                                        size: 12,
+                                        color: Colors.white.withOpacity(0.7),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        _streamingQuality,
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.white.withOpacity(0.8),
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),

@@ -124,13 +124,14 @@ class Download with ChangeNotifier {
     }
 
     filename = '${filename.replaceAll(avoid, "").replaceAll("  ", " ")}.m4a';
-    if (dlPath == '') {
-      Logger.root.info('Cached Download path is empty, getting new path');
+    if (dlPath == '' || (Platform.isAndroid && (dlPath.startsWith('/storage/') || dlPath == '/storage/emulated/0/Music'))) {
+      Logger.root.info('Cached Download path is empty or old external, getting new path');
       final String? temp = await ExtStorageProvider.getExtStorage(
         dirName: 'Music',
         writeAccess: true,
       );
       dlPath = temp!;
+      Hive.box('settings').put('downloadPath', dlPath);
     }
     Logger.root.info('New Download path: $dlPath');
     if (data['url'].toString().contains('google') && createYoutubeFolder) {

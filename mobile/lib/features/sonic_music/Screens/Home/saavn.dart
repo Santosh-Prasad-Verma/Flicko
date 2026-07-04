@@ -24,6 +24,7 @@ import 'package:mobile/features/sonic_music/APIs/api.dart';
 import 'package:mobile/features/sonic_music/CustomWidgets/snackbar.dart';
 import 'package:mobile/features/sonic_music/Helpers/extensions.dart';
 import 'package:mobile/features/sonic_music/Helpers/format.dart';
+import 'package:mobile/features/sonic_music/Helpers/image_resolution_modifier.dart';
 import 'package:mobile/features/sonic_music/Screens/Common/song_list.dart';
 import 'package:mobile/features/sonic_music/Services/player_service.dart';
 import 'package:flutter/material.dart';
@@ -177,25 +178,16 @@ class _SaavnHomePageState extends State<SaavnHomePage>
         'bgColor': const Color(0xFFCBB6FC),
         'textColor': const Color(0xFF0F071B),
         'btnColor': const Color(0xFF45226E),
-        'img': 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?auto=format&fit=crop&q=80&w=400',
-        'title': 'Discover weekly',
-        'subtitle': 'The original slow instrumental best playlists.',
       },
       {
         'bgColor': const Color(0xFFFFD1B3),
         'textColor': const Color(0xFF2C1405),
         'btnColor': const Color(0xFF8E3E15),
-        'img': 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&q=80&w=400',
-        'title': 'Starlit Reverie',
-        'subtitle': 'Soothing acoustic and starlit melodies.',
       },
       {
         'bgColor': const Color(0xFFBFF6EB),
         'textColor': const Color(0xFF04241E),
         'btnColor': const Color(0xFF0D6E5C),
-        'img': 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?auto=format&fit=crop&q=80&w=400',
-        'title': 'Midnight Confessions',
-        'subtitle': 'Smooth, soulful lo-fi beats for late night vibes.',
       },
     ];
 
@@ -218,16 +210,16 @@ class _SaavnHomePageState extends State<SaavnHomePage>
           child: PageView.builder(
             physics: const BouncingScrollPhysics(),
             controller: PageController(viewportFraction: 0.9),
-            itemCount: min(curatedItems.length, carouselStyles.length),
+            itemCount: curatedItems.length,
             itemBuilder: (context, index) {
               final item = curatedItems[index] as Map;
               final style = carouselStyles[index % carouselStyles.length];
-              final String title = style['title']!;
-              final String subtitle = style['subtitle']!;
+              final String title = item['title']?.toString().unescape() ?? '';
+              final String subtitle = getSubTitle(item);
               final Color bgColor = style['bgColor'] as Color;
               final Color textColor = style['textColor'] as Color;
               final Color btnColor = style['btnColor'] as Color;
-              final String imageUrl = style['img']!;
+              final String imageUrl = getImageUrl(item['image']?.toString(), quality: 'high');
 
               return GestureDetector(
                 onTap: () {
@@ -279,12 +271,17 @@ class _SaavnHomePageState extends State<SaavnHomePage>
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    title,
-                                    style: GoogleFonts.spaceGrotesk(
-                                      color: textColor,
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.w900,
+                                  SizedBox(
+                                    width: 180,
+                                    child: Text(
+                                      title,
+                                      style: GoogleFonts.spaceGrotesk(
+                                        color: textColor,
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                                   const SizedBox(height: 6),

@@ -24,6 +24,13 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
   final String _searchQuery = '';
   late AnimationController _bgAnimationController;
 
+  Color get _bgColor => Theme.of(context).scaffoldBackgroundColor;
+  Color get _cardBg => Theme.of(context).cardColor;
+  Color get _textColor => Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white;
+  Color get _textMuted => Theme.of(context).textTheme.bodySmall?.color ?? const Color(0xFF8E8E9F);
+  Color get _borderColor => Theme.of(context).dividerColor;
+  bool get _isLight => Theme.of(context).brightness == Brightness.light;
+
   @override
   void initState() {
     super.initState();
@@ -59,11 +66,11 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
         return StatefulBuilder(
           builder: (context, setState) {
             return Dialog(
-              backgroundColor: const Color(0xFF0F0C16),
+              backgroundColor: _cardBg,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(24),
                 side: BorderSide(
-                  color: Colors.white.withOpacity(0.07),
+                  color: _textColor.withOpacity(0.07),
                   width: 1.2,
                 ),
               ),
@@ -76,7 +83,7 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
                     Text(
                       'Gemini API Key',
                       style: GoogleFonts.inter(
-                        color: Colors.white,
+                        color: _textColor,
                         fontSize: 20,
                         fontWeight: FontWeight.w800,
                       ),
@@ -87,7 +94,7 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
                           ? 'A runtime Gemini key is configured. Add a key here only if you want to override it on this device.'
                           : 'Provide a Gemini API key to activate live text and native-audio voice responses.',
                       style: GoogleFonts.inter(
-                        color: Colors.white.withOpacity(0.6),
+                        color: _textColor.withOpacity(0.6),
                         fontSize: 13,
                         height: 1.4,
                       ),
@@ -95,10 +102,10 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
                     const SizedBox(height: 20),
                     Container(
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.04),
+                        color: _textColor.withOpacity(0.04),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.07),
+                          color: _textColor.withOpacity(0.07),
                           width: 1.2,
                         ),
                       ),
@@ -106,13 +113,13 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
                         controller: controller,
                         obscureText: obscureText,
                         style: GoogleFonts.spaceMono(
-                          color: Colors.white,
+                          color: _textColor,
                           fontSize: 13,
                         ),
                         decoration: InputDecoration(
                           hintText: 'Enter API Key...',
                           hintStyle: GoogleFonts.spaceMono(
-                            color: Colors.white.withOpacity(0.3),
+                            color: _textColor.withOpacity(0.3),
                             fontSize: 13,
                           ),
                           contentPadding: const EdgeInsets.symmetric(
@@ -125,7 +132,7 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
                               obscureText
                                   ? Icons.visibility_off_outlined
                                   : Icons.visibility_outlined,
-                              color: Colors.white.withOpacity(0.6),
+                              color: _textColor.withOpacity(0.6),
                               size: 20,
                             ),
                             onPressed: () {
@@ -146,7 +153,7 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
                           child: Text(
                             'Cancel',
                             style: GoogleFonts.inter(
-                              color: Colors.white.withOpacity(0.6),
+                              color: _textColor.withOpacity(0.6),
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
                             ),
@@ -182,7 +189,7 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
                                               : 'Gemini API key cleared. Aura Live needs a key to answer online.')
                                         : 'Gemini API key updated successfully!',
                                   ),
-                                  backgroundColor: const Color(0xFF0F0C16),
+                                  backgroundColor: _cardBg,
                                   behavior: SnackBarBehavior.floating,
                                 ),
                               );
@@ -250,15 +257,15 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.white.withOpacity(0.03),
+              color: _textColor.withOpacity(0.03),
               border: Border.all(
-                color: Colors.white.withOpacity(0.07),
+                color: _textColor.withOpacity(0.07),
                 width: 1.2,
               ),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.arrow_back_ios_new_rounded,
-              color: Colors.white,
+              color: _textColor,
               size: 16,
             ),
           ),
@@ -268,7 +275,7 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
             Text(
               'Hi, $displayName',
               style: GoogleFonts.inter(
-                color: Colors.white,
+                color: _textColor,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
@@ -286,9 +293,9 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.03),
+                  color: _textColor.withOpacity(0.03),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.07),
+                    color: _textColor.withOpacity(0.07),
                     width: 1.2,
                   ),
                 ),
@@ -309,15 +316,15 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.03),
+                  color: _textColor.withOpacity(0.03),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.07),
+                    color: _textColor.withOpacity(0.07),
                     width: 1.2,
                   ),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.menu_rounded,
-                  color: Colors.white,
+                  color: _textColor,
                   size: 18,
                 ),
               ),
@@ -338,7 +345,7 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
               Text(
                 'How may I help\nyou today?',
                 style: GoogleFonts.inter(
-                  color: Colors.white,
+                  color: _textColor,
                   fontSize: 32,
                   fontWeight: FontWeight.w900,
                   height: 1.15,
@@ -348,7 +355,7 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
               Text(
                 'AURA AI assistant is ready to chat or speak with you.',
                 style: GoogleFonts.inter(
-                  color: const Color(0xFF8E8E9F),
+                  color: _textMuted,
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),
@@ -362,7 +369,7 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
           height: 90,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: Colors.white.withOpacity(0.03),
+            color: _textColor.withOpacity(0.03),
             border: Border.all(
               color: accent.withOpacity(0.15),
               width: 1.2,
@@ -478,10 +485,10 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
                     vertical: 14,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.03),
+                    color: _textColor.withOpacity(0.03),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.07),
+                      color: _textColor.withOpacity(0.07),
                       width: 1.2,
                     ),
                   ),
@@ -491,7 +498,7 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.04),
+                          color: _textColor.withOpacity(0.04),
                         ),
                         child: Icon(
                           Icons.chat_bubble_outline_rounded,
@@ -508,7 +515,7 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
                             Text(
                               'Chat with Bot',
                               style: GoogleFonts.inter(
-                                color: Colors.white,
+                                color: _textColor,
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -518,7 +525,7 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
                       ),
                       Icon(
                         Icons.arrow_outward_rounded,
-                        color: Colors.white.withOpacity(0.4),
+                        color: _textColor.withOpacity(0.4),
                         size: 16,
                       ),
                     ],
@@ -530,10 +537,10 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
               Container(
                 height: 84,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.03),
+                  color: _textColor.withOpacity(0.03),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.07),
+                    color: _textColor.withOpacity(0.07),
                     width: 1.2,
                   ),
                 ),
@@ -556,7 +563,7 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
                                 end: Alignment.bottomRight,
                               ).createShader(bounds);
                             },
-                            child: CustomPaint(painter: BrainWavePainter()),
+                            child: CustomPaint(painter: BrainWavePainter(color: _textColor.withOpacity(0.3))),
                           ),
                         ),
                       ),
@@ -567,7 +574,7 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
                           child: Text(
                             'AURA ENGINE v2.5',
                             style: GoogleFonts.spaceMono(
-                              color: Colors.white.withOpacity(0.4),
+                              color: _textColor.withOpacity(0.4),
                               fontSize: 9,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 1.2,
@@ -612,7 +619,7 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Session "${session.title}" deleted.'),
-            backgroundColor: const Color(0xFF0F0C16),
+            backgroundColor: _cardBg,
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -621,9 +628,9 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.02),
+          color: _textColor.withOpacity(0.02),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withOpacity(0.07), width: 1.2),
+          border: Border.all(color: _borderColor.withOpacity(0.15), width: 1.2),
         ),
         child: ListTile(
           contentPadding: EdgeInsets.zero,
@@ -651,7 +658,7 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
           title: Text(
             session.title,
             style: GoogleFonts.inter(
-              color: Colors.white.withOpacity(0.9),
+              color: _textColor.withOpacity(0.9),
               fontSize: 14,
               fontWeight: FontWeight.w600,
             ),
@@ -664,7 +671,7 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
             },
             child: Icon(
               Icons.more_vert_rounded,
-              color: Colors.white.withOpacity(0.3),
+              color: _textColor.withOpacity(0.3),
               size: 20,
             ),
           ),
@@ -683,7 +690,7 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
             Text(
               'History',
               style: GoogleFonts.inter(
-                color: Colors.white,
+                color: _textColor,
                 fontSize: 20,
                 fontWeight: FontWeight.w900,
               ),
@@ -696,7 +703,7 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
                 child: Text(
                   'Clear all',
                   style: GoogleFonts.inter(
-                    color: Colors.white.withOpacity(0.4),
+                    color: _textColor.withOpacity(0.4),
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                   ),
@@ -711,16 +718,16 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
             alignment: Alignment.center,
             child: Column(
               children: [
-                const Icon(
+                Icon(
                   Icons.history_toggle_off_rounded,
-                  color: Colors.white30,
+                  color: _textColor.withOpacity(0.3),
                   size: 36,
                 ),
                 const SizedBox(height: 12),
                 Text(
                   'No search results or history',
                   style: GoogleFonts.inter(
-                    color: Colors.white30,
+                    color: _textColor.withOpacity(0.3),
                     fontSize: 13,
                   ),
                 ),
@@ -744,7 +751,8 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(auraSettingsProvider);
-    final accent = settings.accentColor;
+    final rawAccent = settings.accentColor;
+    final accent = rawAccent == Colors.transparent ? Theme.of(context).primaryColor : rawAccent;
     final sessions = ref.watch(auraSessionsProvider);
 
     final filteredSessions = sessions.where((session) {
@@ -754,7 +762,7 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
     }).toList();
 
     return Scaffold(
-      backgroundColor: const Color(0xFF06060E),
+      backgroundColor: _bgColor,
       body: Stack(
         children: [
           Positioned.fill(
@@ -765,6 +773,7 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
                   painter: DeepSpaceBackgroundPainter(
                     animationValue: _bgAnimationController.value,
                     accentColor: accent,
+                    isLight: _isLight,
                   ),
                 );
               },
@@ -797,10 +806,13 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
 }
 
 class BrainWavePainter extends CustomPainter {
+  final Color color;
+  BrainWavePainter({required this.color});
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white
+      ..color = color
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.2;
 
@@ -848,25 +860,30 @@ class BrainWavePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant BrainWavePainter oldDelegate) => oldDelegate.color != color;
 }
 
 class DeepSpaceBackgroundPainter extends CustomPainter {
   final double animationValue;
   final Color accentColor;
+  final bool isLight;
 
   DeepSpaceBackgroundPainter({
     required this.animationValue,
     required this.accentColor,
+    this.isLight = false,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
+    final double nebula1Opacity = isLight ? 0.07 : 0.25;
+    final double nebula2Opacity = isLight ? 0.04 : 0.12;
+
     // Overlapping radial gradients (Nebulas)
     final paint1 = Paint()
       ..shader = RadialGradient(
         colors: [
-          accentColor.withOpacity(0.25),
+          accentColor.withOpacity(nebula1Opacity),
           Colors.transparent,
         ],
       ).createShader(Rect.fromCircle(center: Offset(size.width * 0.2, size.height * 0.3), radius: size.width * 0.8));
@@ -875,7 +892,7 @@ class DeepSpaceBackgroundPainter extends CustomPainter {
     final paint2 = Paint()
       ..shader = RadialGradient(
         colors: [
-          accentColor.withOpacity(0.12),
+          accentColor.withOpacity(nebula2Opacity),
           Colors.transparent,
         ],
       ).createShader(Rect.fromCircle(center: Offset(size.width * 0.8, size.height * 0.7), radius: size.width * 0.7));
@@ -885,5 +902,6 @@ class DeepSpaceBackgroundPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant DeepSpaceBackgroundPainter oldDelegate) =>
       oldDelegate.animationValue != animationValue ||
-      oldDelegate.accentColor != accentColor;
+      oldDelegate.accentColor != accentColor ||
+      oldDelegate.isLight != isLight;
 }

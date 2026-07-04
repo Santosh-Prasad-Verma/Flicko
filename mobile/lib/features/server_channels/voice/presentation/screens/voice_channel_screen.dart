@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math' show pi, sin, cos;
 import 'dart:ui' show ImageFilter;
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,6 +11,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/collaboration/presentation/shared_whiteboard.dart';
+import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
 import 'package:mobile/features/voice/presentation/controllers/voice_controller.dart';
 import 'package:mobile/features/voice/presentation/controllers/voice_state.dart' as voice_state;
 import 'package:mobile/features/voice/presentation/soundboard_sheet.dart';
@@ -36,6 +38,35 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
   Map<String, dynamic>? _channel;
   bool _isLoading = false;
   bool _showWhiteboard = false;
+  
+  // ── Lazy Profile Cache ─────────────────────────────────────────────────────
+  final Map<String, Map<String, dynamic>> _profilesCache = {};
+  final Set<String> _fetchingProfileIds = {};
+
+  void _fetchProfile(String userId) async {
+    if (_profilesCache.containsKey(userId) || _fetchingProfileIds.contains(userId)) {
+      return;
+    }
+    _fetchingProfileIds.add(userId);
+    try {
+      final profile = await Supabase.instance.client
+          .from('profiles')
+          .select('username, display_name, avatar')
+          .eq('id', userId)
+          .maybeSingle();
+      if (profile != null) {
+        if (mounted) {
+          setState(() {
+            _profilesCache[userId] = profile;
+          });
+        }
+      }
+    } catch (e) {
+      developer.log('Error fetching user profile', name: 'VoiceChannelScreen', error: e);
+    } finally {
+      _fetchingProfileIds.remove(userId);
+    }
+  }
 
   // ── Theme Colors ──────────────────────────────────────────────────────────
   static const Color _bgBlack = Color(0xFF060608);
@@ -484,8 +515,91 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
       );
     }
 
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
+  void _showFullScreenVideo(VideoTrack track, String displayName) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black.withValues(alpha: 0.5),
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.close, color: Colors.white),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            title: Text(
+              displayName,
+              style: GoogleFonts.outfit(color: Colors.white, fontSize: 16),
+            ),
+          ),
+          body: Center(
+            child: InteractiveViewer(
+              maxScale: 4.0,
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: VideoTrackRenderer(
+                  track,
+                  fit: VideoViewFit.contain,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildParticipantsGrid(voice_state.VoiceState voiceState) {
+    if (voiceState.participants.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            AnimatedBuilder(
+              animation: _pulseController,
+              builder: (context, child) {
+                final scale = 1.0 + 0.08 * sin(_pulseController.value * 2 * pi);
+                return Transform.scale(
+                  scale: scale,
+                  child: Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _neonGreen.withValues(alpha: 0.06),
+                      border: Border.all(
+                          color: _neonGreen.withValues(alpha: 0.15), width: 2),
+                    ),
+                    child: Icon(Icons.volume_up_rounded,
+                        size: 36, color: _neonGreen.withValues(alpha: 0.5)),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'No one is here yet',
+              style: GoogleFonts.outfit(
+                color: _white.withValues(alpha: 0.5),
+                fontSize: 18,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Join to start the conversation',
+              style: GoogleFonts.inter(
+                color: _white.withValues(alpha: 0.25),
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final mainContent = GridView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         childAspectRatio: 0.85,
@@ -493,40 +607,174 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
         mainAxisSpacing: 12,
       ),
       itemCount: voiceState.participants.length,
-      itemBuilder: (context, index) => _buildGlassParticipantCard(
-        voiceState.participants[index],
-        voiceState.speakingParticipants
-            .contains(voiceState.participants[index].sid),
-      ),
+      itemBuilder: (context, index) {
+        final p = voiceState.participants[index];
+        return _buildGlassParticipantCard(
+          p,
+          voiceState.speakingParticipants.contains(p.sid),
+          ignoreScreenShare: true,
+        );
+      },
     );
+
+    // Find screen share participant
+    Participant? screenSharingParticipant;
+    VideoTrack? screenShareTrack;
+    for (final p in voiceState.participants) {
+      final pubs = p.videoTrackPublications.where((pub) => pub.track != null && pub.isScreenShare).toList();
+      if (pubs.isNotEmpty) {
+        screenSharingParticipant = p;
+        screenShareTrack = pubs.first.track as VideoTrack?;
+        break;
+      }
+    }
+
+    if (screenSharingParticipant != null && screenShareTrack != null) {
+      final userId = screenSharingParticipant.identity;
+      _fetchProfile(userId);
+      final cachedProfile = _profilesCache[userId];
+      final displayName = cachedProfile?['display_name'] as String? ?? 
+                          cachedProfile?['username'] as String? ?? 
+                          (screenSharingParticipant.name.isNotEmpty ? screenSharingParticipant.name : 'User');
+
+      return Column(
+        children: [
+          // Pinned Screen Share Card
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: AspectRatio(
+              aspectRatio: 16 / 9,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    VideoTrackRenderer(
+                      screenShareTrack,
+                      fit: VideoViewFit.contain,
+                    ),
+                    // Tap to full-screen overlay detector
+                    Positioned.fill(
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () => _showFullScreenVideo(screenShareTrack!, '$displayName\'s Screen'),
+                          child: const SizedBox.expand(),
+                        ),
+                      ),
+                    ),
+                    // "LIVE" Badge
+                    Positioned(
+                      top: 12,
+                      left: 12,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFED4245),
+                          borderRadius: BorderRadius.circular(4),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFED4245).withValues(alpha: 0.4),
+                              blurRadius: 8,
+                              spreadRadius: 1,
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'LIVE',
+                              style: GoogleFonts.spaceGrotesk(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 1.0,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    // Bottom Banner Overlay
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.transparent,
+                              Colors.black.withValues(alpha: 0.8),
+                            ],
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '$displayName is sharing their screen',
+                                style: GoogleFonts.inter(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const Icon(Icons.fullscreen_rounded, color: Colors.white, size: 22),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // Scrollable Grid of remaining participants
+          Expanded(
+            child: mainContent,
+          ),
+        ],
+      );
+    }
+
+    return mainContent;
   }
 
   // ══════════════════════════════════════════════════════════════════════════
   //  FROSTED GLASS PARTICIPANT CARD
   // ══════════════════════════════════════════════════════════════════════════
-  Widget _buildGlassParticipantCard(Participant participant, bool isSpeaking) {
-    Map<String, dynamic>? metadata;
-    final rawMeta = participant.metadata;
-    if (rawMeta != null && rawMeta.isNotEmpty) {
-      try {
-        final decoded = jsonDecode(rawMeta);
-        if (decoded is Map) {
-          metadata = Map<String, dynamic>.from(decoded);
-        }
-      } catch (_) {}
-    }
-    final nameFromMeta = metadata?['username'] as String?;
-    final displayName =
-        (participant.name.isNotEmpty ? participant.name : null) ??
-        nameFromMeta ??
-        participant.identity;
-    final avatarUrl = metadata?['avatar_url'] as String?;
+  Widget _buildGlassParticipantCard(Participant participant, bool isSpeaking, {bool ignoreScreenShare = false}) {
+    final userId = participant.identity;
+    _fetchProfile(userId);
+
+    final cachedProfile = _profilesCache[userId];
+    final String displayName = cachedProfile?['display_name'] as String? ?? 
+                               cachedProfile?['username'] as String? ?? 
+                               (participant.name.isNotEmpty ? participant.name : 'User');
+    final String? avatarUrl = cachedProfile?['avatar'] as String?;
 
     // Detect if participant has an active screen share track
     final screenShareTrack = participant.videoTrackPublications
         .where((pub) => pub.track != null && pub.isScreenShare)
         .toList();
-    final hasScreenShare = screenShareTrack.isNotEmpty;
+    final hasScreenShare = !ignoreScreenShare && screenShareTrack.isNotEmpty;
 
     // Detect if participant has an active video track
     final videoTrack = participant.videoTrackPublications
@@ -743,16 +991,14 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
                             ]
                           : [],
                     ),
-                    child: avatarUrl != null
-                        ? ClipOval(
-                            child: Image.network(
-                              avatarUrl,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) =>
-                                  _buildInitial(displayName),
-                            ),
-                          )
-                        : _buildInitial(displayName),
+                    child: UserAvatar(
+                      imageUrl: avatarUrl,
+                      name: displayName,
+                      size: 64,
+                      userId: participant.identity,
+                      showStatus: false,
+                      showBadge: false,
+                    ),
                   ),
                 ],
               ),
@@ -905,6 +1151,181 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
     );
   }
 
+  void _showMoreOptionsSheet(voice_state.VoiceState voiceState) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (context) => ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.65),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              border: Border.all(
+                color: _white.withValues(alpha: 0.08),
+                width: 1,
+              ),
+            ),
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Handle line
+                    Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 24),
+                      decoration: BoxDecoration(
+                        color: _white.withValues(alpha: 0.25),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _moreSheetBtn(
+                            icon: Icons.videocam_rounded,
+                            label: 'Camera',
+                            activeColor: _neonGreen,
+                            isActive: voiceState.room?.localParticipant?.isCameraEnabled() ?? false,
+                            onTap: () {
+                              Navigator.pop(context);
+                              _handleToggleVideo();
+                            },
+                          ),
+                          _moreSheetBtn(
+                            icon: Icons.desktop_windows_rounded,
+                            label: 'Share Screen',
+                            activeColor: _neonCyan,
+                            isActive: voiceState.room?.localParticipant?.isScreenShareEnabled() ?? false,
+                            onTap: () {
+                              Navigator.pop(context);
+                              _handleToggleScreenShare();
+                            },
+                          ),
+                          _moreSheetBtn(
+                            icon: Icons.sports_esports_rounded,
+                            label: 'Activities',
+                            activeColor: _neonCyan,
+                            isActive: false,
+                            onTap: () {
+                              Navigator.pop(context);
+                              _handleActivities();
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _moreSheetBtn(
+                            icon: Icons.brush_rounded,
+                            label: 'Whiteboard',
+                            activeColor: _neonCyan,
+                            isActive: _showWhiteboard,
+                            onTap: () {
+                              Navigator.pop(context);
+                              setState(() => _showWhiteboard = !_showWhiteboard);
+                            },
+                          ),
+                          _moreSheetBtn(
+                            icon: Icons.music_note_rounded,
+                            label: 'Soundboard',
+                            activeColor: _neonGreen,
+                            isActive: false,
+                            onTap: () {
+                              Navigator.pop(context);
+                              showModalBottomSheet(
+                                context: context,
+                                isScrollControlled: true,
+                                backgroundColor: Colors.transparent,
+                                builder: (context) => SoundboardSheet(serverId: widget.serverId),
+                              );
+                            },
+                          ),
+                          // Placeholder to keep spacing alignment neat
+                          const SizedBox(width: 80),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _moreSheetBtn({
+    required IconData icon,
+    required String label,
+    required Color activeColor,
+    required bool isActive,
+    required VoidCallback onTap,
+  }) {
+    final bgColor = isActive ? activeColor.withValues(alpha: 0.18) : _white.withValues(alpha: 0.06);
+    final iconColor = isActive ? activeColor : _white.withValues(alpha: 0.7);
+
+    return GestureDetector(
+      onTap: onTap,
+      child: SizedBox(
+        width: 80,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 54,
+              height: 54,
+              decoration: BoxDecoration(
+                color: bgColor,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isActive ? activeColor.withValues(alpha: 0.2) : _white.withValues(alpha: 0.06),
+                  width: 1,
+                ),
+                boxShadow: isActive
+                    ? [
+                        BoxShadow(
+                          color: activeColor.withValues(alpha: 0.15),
+                          blurRadius: 12,
+                          spreadRadius: 0,
+                        )
+                      ]
+                    : [],
+              ),
+              child: Icon(icon, color: iconColor, size: 24),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                color: _white.withValues(alpha: 0.7),
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildConnectedGlassControls(voice_state.VoiceState voiceState) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -928,25 +1349,11 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
           label: 'Deafen',
         ),
         _glassControlBtn(
-          icon: Icons.videocam_rounded,
-          isActive: false,
-          activeColor: _neonGreen,
-          onTap: _handleToggleVideo,
-          label: 'Video',
-        ),
-        _glassControlBtn(
-          icon: Icons.desktop_windows_rounded,
+          icon: Icons.keyboard_arrow_up_rounded,
           isActive: false,
           activeColor: _neonCyan,
-          onTap: _handleToggleScreenShare,
-          label: 'Share',
-        ),
-        _glassControlBtn(
-          icon: Icons.sports_esports_rounded,
-          isActive: false,
-          activeColor: _neonCyan,
-          onTap: _handleActivities,
-          label: 'Activity',
+          onTap: () => _showMoreOptionsSheet(voiceState),
+          label: 'More',
         ),
         _glassControlBtn(
           icon: Icons.call_end_rounded,

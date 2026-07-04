@@ -32,13 +32,25 @@ class _AuraChatScreenState extends ConsumerState<AuraChatScreen> {
   // Track which message is currently simulating TTS speaking
   String? _speakingMessageId;
 
-  static const Color _bgBlack = Color(0xFF06060E);
-  static const Color _cardGrey = Color(0xFF0D0D1A);
-  static const Color _borderGrey = Color(0xFF1C1C24);
-  static const Color _accentPink = Color(0xFFFF00F5);
-  Color get _accentPurple => ref.watch(auraSettingsProvider).accentColor;
-  static const Color _textWhite = Color(0xFFFFFFFF);
-  static const Color _textMuted = Color(0xFF8E8E9F);
+  Color get _bgBlack => Theme.of(context).scaffoldBackgroundColor;
+  Color get _cardGrey => Theme.of(context).cardColor;
+  Color get _borderGrey => Theme.of(context).dividerColor;
+  Color get _textWhite => Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white;
+  Color get _textMuted => Theme.of(context).textTheme.bodySmall?.color ?? const Color(0xFF8E8E9F);
+  bool get _isLight => Theme.of(context).brightness == Brightness.light;
+
+  Color get _accentPink {
+    final settings = ref.watch(auraSettingsProvider);
+    if (settings.themeName == 'Sync with App') {
+      return Theme.of(context).primaryColor;
+    }
+    return const Color(0xFFFF00F5);
+  }
+
+  Color get _accentPurple {
+    final accent = ref.watch(auraSettingsProvider).accentColor;
+    return accent == Colors.transparent ? Theme.of(context).primaryColor : accent;
+  }
 
   @override
   void initState() {
@@ -155,7 +167,8 @@ class _AuraChatScreenState extends ConsumerState<AuraChatScreen> {
             child: CustomPaint(
               painter: DeepSpaceBackgroundPainter(
                 animationValue: 0.0,
-                accentColor: ref.watch(auraSettingsProvider).accentColor,
+                accentColor: _accentPurple,
+                isLight: _isLight,
               ),
             ),
           ),
@@ -200,15 +213,15 @@ class _AuraChatScreenState extends ConsumerState<AuraChatScreen> {
           child: Container(
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.white.withOpacity(0.03),
+              color: _textWhite.withOpacity(0.03),
               border: Border.all(
-                color: Colors.white.withOpacity(0.07),
+                color: _textWhite.withOpacity(0.07),
                 width: 1.2,
               ),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.arrow_back_ios_new_rounded,
-              color: Colors.white,
+              color: _textWhite,
               size: 14,
             ),
           ),
@@ -358,7 +371,7 @@ class _AuraChatScreenState extends ConsumerState<AuraChatScreen> {
       height: 32,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: Colors.white.withOpacity(0.03),
+        color: _textWhite.withOpacity(0.03),
         border: Border.all(
           color: accent.withOpacity(0.4),
           width: 1.2,
@@ -382,14 +395,14 @@ class _AuraChatScreenState extends ConsumerState<AuraChatScreen> {
       height: 32,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: Colors.white.withOpacity(0.04),
+        color: _textWhite.withOpacity(0.04),
         border: Border.all(
-          color: Colors.white.withOpacity(0.07),
+          color: _textWhite.withOpacity(0.07),
           width: 1.2,
         ),
       ),
-      child: const Center(
-        child: Icon(Icons.person, color: Colors.white, size: 18),
+      child: Center(
+        child: Icon(Icons.person, color: _textWhite, size: 18),
       ),
     );
   }
@@ -404,10 +417,10 @@ class _AuraChatScreenState extends ConsumerState<AuraChatScreen> {
             topRight: Radius.circular(16),
             bottomLeft: Radius.circular(16),
           ),
-          gradient: const LinearGradient(
+          gradient: LinearGradient(
             colors: [
-              Color(0xFF7B4FFF),
-              Color(0xFF5931CC),
+              _accentPurple,
+              const Color(0xFF5931CC),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -426,8 +439,8 @@ class _AuraChatScreenState extends ConsumerState<AuraChatScreen> {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.03),
-          border: Border.all(color: Colors.white.withOpacity(0.07)),
+          color: _textWhite.withOpacity(0.03),
+          border: Border.all(color: _textWhite.withOpacity(0.07)),
           borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(16),
             topRight: Radius.circular(16),
@@ -668,11 +681,11 @@ class _AuraChatScreenState extends ConsumerState<AuraChatScreen> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.03),
-                border: Border.all(color: Colors.white.withOpacity(0.07)),
+                color: _textWhite.withOpacity(0.03),
+                border: Border.all(color: _textWhite.withOpacity(0.07)),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.add, color: _textWhite, size: 18),
+              child: Icon(Icons.add, color: _textWhite, size: 18),
             ),
           ),
           const SizedBox(width: 12),
@@ -681,8 +694,8 @@ class _AuraChatScreenState extends ConsumerState<AuraChatScreen> {
               height: 48,
               padding: const EdgeInsets.symmetric(horizontal: 18),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.03),
-                border: Border.all(color: Colors.white.withOpacity(0.07)),
+                color: _textWhite.withOpacity(0.03),
+                border: Border.all(color: _textWhite.withOpacity(0.07)),
                 borderRadius: BorderRadius.circular(26),
               ),
               child: TextField(
@@ -733,19 +746,24 @@ class _AuraChatScreenState extends ConsumerState<AuraChatScreen> {
 class DeepSpaceBackgroundPainter extends CustomPainter {
   final double animationValue;
   final Color accentColor;
+  final bool isLight;
 
   DeepSpaceBackgroundPainter({
     required this.animationValue,
     required this.accentColor,
+    this.isLight = false,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
+    final double nebula1Opacity = isLight ? 0.06 : 0.20;
+    final double nebula2Opacity = isLight ? 0.04 : 0.12;
+
     // Overlapping radial gradients (Nebulas)
     final paint1 = Paint()
       ..shader = RadialGradient(
         colors: [
-          accentColor.withOpacity(0.20),
+          accentColor.withOpacity(nebula1Opacity),
           Colors.transparent,
         ],
       ).createShader(Rect.fromCircle(center: Offset(size.width * 0.2, size.height * 0.3), radius: size.width * 0.8));
@@ -754,7 +772,7 @@ class DeepSpaceBackgroundPainter extends CustomPainter {
     final paint2 = Paint()
       ..shader = RadialGradient(
         colors: [
-          const Color(0xFF00F0FF).withOpacity(0.12),
+          (isLight ? accentColor : const Color(0xFF00F0FF)).withOpacity(nebula2Opacity),
           Colors.transparent,
         ],
       ).createShader(Rect.fromCircle(center: Offset(size.width * 0.8, size.height * 0.7), radius: size.width * 0.7));
@@ -764,5 +782,6 @@ class DeepSpaceBackgroundPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant DeepSpaceBackgroundPainter oldDelegate) =>
       oldDelegate.animationValue != animationValue ||
-      oldDelegate.accentColor != accentColor;
+      oldDelegate.accentColor != accentColor ||
+      oldDelegate.isLight != isLight;
 }

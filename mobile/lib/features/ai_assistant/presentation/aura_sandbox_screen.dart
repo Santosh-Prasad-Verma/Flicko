@@ -19,11 +19,12 @@ class _AuraSandboxScreenState extends State<AuraSandboxScreen> {
   double _borderWidth = 1.5;
   Color _accentColor = const Color(0xFFFF007F); // Cyber Pink
 
-  static const Color _bgBlack = Color(0xFF000000);
-  static const Color _cardGrey = Color(0xFF111115);
-  static const Color _borderGrey = Color(0xFF222228);
-  static const Color _textWhite = Color(0xFFFBF9FA);
-  static const Color _textMuted = Color(0xFF8E8E93);
+  Color get _bgBlack => Theme.of(context).scaffoldBackgroundColor;
+  Color get _cardGrey => Theme.of(context).cardColor;
+  Color get _borderGrey => Theme.of(context).dividerColor;
+  Color get _textWhite => Theme.of(context).textTheme.bodyLarge?.color ?? const Color(0xFFFBF9FA);
+  Color get _textMuted => Theme.of(context).textTheme.bodySmall?.color ?? const Color(0xFF8E8E93);
+  bool get _isLight => Theme.of(context).brightness == Brightness.light;
 
   final List<Color> _availableColors = [
     const Color(0xFFFF007F), // Cyber Pink
@@ -41,7 +42,7 @@ class _AuraSandboxScreenState extends State<AuraSandboxScreen> {
         backgroundColor: _bgBlack,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.close_rounded, color: _textWhite),
+          icon: Icon(Icons.close_rounded, color: _textWhite),
           onPressed: () => context.pop(),
         ),
         title: Text(

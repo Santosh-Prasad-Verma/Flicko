@@ -121,9 +121,9 @@ func (s *templateService) CreateTemplate(ctx context.Context, serverID, creatorI
 
 	code := generateTemplateCode()
 	query := `
-		INSERT INTO public.server_templates (code, source_server_id, creator_id, name, description, template_data)
+		INSERT INTO public.server_templates (code, source_server_id, creator_id, name, description, serialized_data)
 		VALUES ($1, $2, $3, $4, $5, $6)
-		RETURNING code, source_server_id, creator_id, name, description, usage_count, template_data, created_at, updated_at
+		RETURNING code, source_server_id, creator_id, name, description, usage_count, serialized_data, created_at, updated_at
 	`
 
 	var t models.ServerTemplate
@@ -138,7 +138,7 @@ func (s *templateService) CreateTemplate(ctx context.Context, serverID, creatorI
 
 func (s *templateService) GetTemplate(ctx context.Context, code string) (*models.ServerTemplate, error) {
 	query := `
-		SELECT code, source_server_id, creator_id, name, description, usage_count, template_data, created_at, updated_at
+		SELECT code, source_server_id, creator_id, name, description, usage_count, serialized_data, created_at, updated_at
 		FROM public.server_templates WHERE code = $1
 	`
 	var t models.ServerTemplate

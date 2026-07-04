@@ -15,11 +15,6 @@ class ServersScreen extends ConsumerWidget {
     final serversState = ref.watch(serversNotifierProvider);
     final authState = ref.watch(authNotifierProvider);
 
-    final avatarUrl = authState.maybeWhen(
-      authenticated: (user, profile) => profile?.avatarUrl,
-      orElse: () => null,
-    );
-
     final currentUserId = authState.maybeWhen(
       authenticated: (user, profile) => user.id,
       orElse: () => '',
@@ -445,6 +440,15 @@ class ServersScreen extends ConsumerWidget {
                                               onTap: () {
                                                 Navigator.pop(context);
                                                 context.push('/server/${selectedServer.id}/settings/invites');
+                                              },
+                                            ),
+                                            ListTile(
+                                              leading: const Icon(Icons.exit_to_app, color: Colors.redAccent),
+                                              title: Text('Leave Server',
+                                                  style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.redAccent)),
+                                              onTap: () {
+                                                Navigator.pop(context);
+                                                context.push('/server/${selectedServer.id}/server-options');
                                               },
                                             ),
                                           ],

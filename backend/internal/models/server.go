@@ -48,7 +48,7 @@ type ServerTemplate struct {
 	Name           string    `json:"name" db:"name"`
 	Description    *string   `json:"description,omitempty" db:"description"`
 	UsageCount     int       `json:"usage_count" db:"usage_count"`
-	TemplateData   any       `json:"template_data" db:"template_data"`
+	TemplateData   any       `json:"serialized_data" db:"serialized_data"`
 	CreatedAt      time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt      time.Time `json:"updated_at" db:"updated_at"`
 }

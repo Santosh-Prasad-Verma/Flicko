@@ -133,7 +133,7 @@ class _TemplatesSettingsScreenState extends ConsumerState<TemplatesSettingsScree
             'description': preset['description'],
             'source_server_id': widget.serverId,
             'creator_id': currentUser?.id,
-            'template_data': {
+            'serialized_data': {
               'channels': preset['channels'],
               'roles': preset['roles'],
             },
@@ -193,7 +193,7 @@ class _TemplatesSettingsScreenState extends ConsumerState<TemplatesSettingsScree
             'description': _descController.text.trim(),
             'source_server_id': widget.serverId,
             'creator_id': currentUser?.id,
-            'template_data': {'channels': [], 'roles': []},
+            'serialized_data': {'channels': [], 'roles': []},
             'usage_count': 0,
             'created_at': DateTime.now().toIso8601String(),
           })
@@ -487,7 +487,7 @@ class _TemplatesSettingsScreenState extends ConsumerState<TemplatesSettingsScree
   }
 
   Widget _buildTemplateCard(Map<String, dynamic> template) {
-    final data = template['template_data'] as Map<String, dynamic>? ?? {};
+    final data = template['serialized_data'] as Map<String, dynamic>? ?? {};
     final channels = (data['channels'] as List?)?.length ?? 0;
     final roles = (data['roles'] as List?)?.length ?? 0;
 

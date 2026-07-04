@@ -47,37 +47,14 @@ class ExtStorageProvider {
     try {
       // checking platform
       if (Platform.isAndroid) {
-        if (await requestPermission(Permission.storage)) {
-          directory = await getExternalStorageDirectory();
-
-          // getting main path
-          final String newPath = directory!.path
-              .replaceFirst('Android/data/com.shadow.blackhole/files', dirName);
-
-          directory = Directory(newPath);
-
-          // checking if directory exist or not
-          if (!await directory.exists()) {
-            // if directory not exists then asking for permission to create folder
-            await requestPermission(Permission.manageExternalStorage);
-            //creating folder
-
-            await directory.create(recursive: true);
-          }
-          if (await directory.exists()) {
-            try {
-              if (writeAccess) {
-                await requestPermission(Permission.manageExternalStorage);
-              }
-              // if directory exists then returning the complete path
-              return newPath;
-            } catch (e) {
-              rethrow;
-            }
-          }
-        } else {
-          return throw 'something went wrong';
+        directory = await getApplicationDocumentsDirectory();
+        final finalDirName = dirName.replaceAll('BlackHole/', '');
+        final String newPath = '${directory.path}/$finalDirName';
+        final dir = Directory(newPath);
+        if (!await dir.exists()) {
+          await dir.create(recursive: true);
         }
+        return newPath;
       } else if (Platform.isIOS || Platform.isMacOS) {
         directory = await getApplicationDocumentsDirectory();
         final finalDirName = dirName.replaceAll('BlackHole/', '');
@@ -89,6 +66,6 @@ class ExtStorageProvider {
     } catch (e) {
       rethrow;
     }
-    return directory.path;
+    return directory?.path;
   }
 }

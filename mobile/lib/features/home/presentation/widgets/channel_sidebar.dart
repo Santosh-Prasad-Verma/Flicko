@@ -58,7 +58,10 @@ class _ChannelSidebarState extends ConsumerState<ChannelSidebar> {
       color: const Color(FlickoColors.bgSecondary),
       child: Column(
         children: [
-          _ServerHeader(name: widget.server.name),
+          _ServerHeader(
+            serverId: widget.server.id,
+            name: widget.server.name,
+          ),
           
           Expanded(
             child: ListView(
@@ -96,34 +99,41 @@ class _ChannelSidebarState extends ConsumerState<ChannelSidebar> {
 }
 
 class _ServerHeader extends StatelessWidget {
+  final String serverId;
   final String name;
-  const _ServerHeader({required this.name});
+  const _ServerHeader({
+    required this.serverId,
+    required this.name,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 48,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: const BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: Color(FlickoColors.bgTertiary), width: 1.5),
-        ),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              name,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
+    return InkWell(
+      onTap: () => context.push('/server/$serverId/options'),
+      child: Container(
+        height: 48,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: const BoxDecoration(
+          border: Border(
+            bottom: BorderSide(color: Color(FlickoColors.bgTertiary), width: 1.5),
           ),
-          const Icon(Icons.expand_more, color: Colors.white),
-        ],
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                name,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const Icon(Icons.more_horiz, color: Colors.white),
+          ],
+        ),
       ),
     );
   }

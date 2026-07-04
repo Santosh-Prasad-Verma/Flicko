@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:mobile/features/sonic_music/CustomWidgets/box_switch_tile.dart';
 import 'package:mobile/features/sonic_music/CustomWidgets/gradient_containers.dart';
 import 'package:mobile/features/sonic_music/CustomWidgets/snackbar.dart';
@@ -16,14 +17,41 @@ class DownloadPage extends StatefulWidget {
 
 class _DownloadPageState extends State<DownloadPage> {
   final Box settingsBox = Hive.box('settings');
-  String downloadPath = Hive.box('settings')
-      .get('downloadPath', defaultValue: '/storage/emulated/0/Music') as String;
+  String downloadPath = '';
   String downloadQuality = Hive.box('settings')
       .get('downloadQuality', defaultValue: '320 kbps') as String;
   String ytDownloadQuality = Hive.box('settings')
       .get('ytDownloadQuality', defaultValue: 'High') as String;
   int downFilename =
       Hive.box('settings').get('downFilename', defaultValue: 0) as int;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDownloadPath();
+  }
+
+  Future<void> _loadDownloadPath() async {
+    String path = settingsBox.get('downloadPath', defaultValue: '') as String;
+    if (path.isEmpty ||
+        (Platform.isAndroid &&
+            (path.startsWith('/storage/') ||
+                path == '/storage/emulated/0/Music'))) {
+      path = await ExtStorageProvider.getExtStorage(
+            dirName: 'Music',
+            writeAccess: true,
+          ) ??
+          '';
+      if (path.isNotEmpty) {
+        settingsBox.put('downloadPath', path);
+      }
+    }
+    if (mounted) {
+      setState(() {
+        downloadPath = path;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

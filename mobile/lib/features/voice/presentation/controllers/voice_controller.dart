@@ -183,7 +183,20 @@ class VoiceController extends Notifier<VoiceState> {
     final newMute = !state.isMuted;
     try {
       await room.localParticipant?.setMicrophoneEnabled(!newMute);
-      state = state.copyWith(isMuted: newMute, error: null);
+      
+      // If we are unmuting, we must also undeafen (a deafened user cannot be unmuted)
+      bool newDeafen = state.isDeafened;
+      if (!newMute && state.isDeafened) {
+        newDeafen = false;
+        // Resubscribe to remote audio tracks
+        for (final p in room.remoteParticipants.values) {
+          for (final sub in p.audioTrackPublications) {
+            await sub.subscribe();
+          }
+        }
+      }
+
+      state = state.copyWith(isMuted: newMute, isDeafened: newDeafen, error: null);
     } catch (trackErr) {
       developer.log('Failed to toggle microphone', name: 'VoiceController', error: trackErr);
       state = state.copyWith(error: 'Failed to access microphone: $trackErr');
@@ -195,8 +208,7 @@ class VoiceController extends Notifier<VoiceState> {
     if (room == null) return;
 
     final newDeafen = !state.isDeafened;
-    // Deafen logic: mute microphone AND local playback
-    // In LiveKit, we might handle this by muting all remote audio tracks
+    // Deafen logic: unsubscribe/subscribe remote audio tracks
     for (final p in room.remoteParticipants.values) {
       for (final sub in p.audioTrackPublications) {
         if (newDeafen) {
@@ -207,13 +219,19 @@ class VoiceController extends Notifier<VoiceState> {
       }
     }
 
+    // If we are deafening ourselves, we MUST also mute ourselves
+    bool newMute = state.isMuted;
     if (newDeafen && !state.isMuted) {
-      await toggleMute();
-    } else if (!newDeafen && state.isMuted) {
-      await toggleMute();
+      newMute = true;
+      try {
+        await room.localParticipant?.setMicrophoneEnabled(false);
+      } catch (trackErr) {
+        developer.log('Failed to mute on deafen', name: 'VoiceController', error: trackErr);
+      }
     }
+    // Note: When undeafening, we do not automatically unmute, so the user stays in their controlled mute state.
 
-    state = state.copyWith(isDeafened: newDeafen);
+    state = state.copyWith(isDeafened: newDeafen, isMuted: newMute);
   }
 
   Future<void> toggleVideo() async {
@@ -235,9 +253,14 @@ class VoiceController extends Notifier<VoiceState> {
     final localParticipant = room.localParticipant;
     if (localParticipant == null) return;
 
-    final isScreenShareEnabled = localParticipant.isScreenShareEnabled();
-    await localParticipant.setScreenShareEnabled(!isScreenShareEnabled);
-    _updateParticipants();
+    try {
+      final isScreenShareEnabled = localParticipant.isScreenShareEnabled();
+      await localParticipant.setScreenShareEnabled(!isScreenShareEnabled);
+      _updateParticipants();
+    } catch (e) {
+      developer.log('Error toggling screen share', name: 'VoiceController', error: e);
+      state = state.copyWith(error: 'Failed to share screen: ${e.toString()}');
+    }
   }
 
   Future<void> leaveChannel() async {

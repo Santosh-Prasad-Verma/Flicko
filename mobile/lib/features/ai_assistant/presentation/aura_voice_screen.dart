@@ -67,9 +67,15 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
   double _currentAmplitude = 0.0;
   bool _isContinuousActive = false;
 
-  static const Color _bgBlack = Color(0xFF06060E);
-  Color get _accentLime => ref.watch(auraSettingsProvider).accentColor;
-  static const Color _textMuted = Color(0xFF8E8E9F);
+  Color get _bgBlack => Theme.of(context).scaffoldBackgroundColor;
+  Color get _cardBg => Theme.of(context).cardColor;
+  Color get _textColor => Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white;
+  Color get _textMuted => Theme.of(context).textTheme.bodySmall?.color ?? const Color(0xFF8E8E9F);
+  Color get _accentLime {
+    final accent = ref.watch(auraSettingsProvider).accentColor;
+    return accent == Colors.transparent ? Theme.of(context).primaryColor : accent;
+  }
+  bool get _isLight => Theme.of(context).brightness == Brightness.light;
 
   @override
   void initState() {
@@ -679,13 +685,13 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
           builder: (context, setSheetState) {
             return Container(
               decoration: BoxDecoration(
-                color: const Color(0xFF0F0C16).withOpacity(0.95),
+                color: _cardBg.withOpacity(0.95),
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(32),
                   topRight: Radius.circular(32),
                 ),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.08),
+                  color: _textColor.withOpacity(0.08),
                   width: 1.2,
                 ),
               ),
@@ -714,7 +720,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
                             width: 48,
                             height: 5,
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
+                              color: _textColor.withOpacity(0.2),
                               borderRadius: BorderRadius.circular(10),
                             ),
                           ),
@@ -723,7 +729,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
                         Text(
                           'Aura Configuration',
                           style: GoogleFonts.inter(
-                            color: Colors.white,
+                            color: _textColor,
                             fontSize: 22,
                             fontWeight: FontWeight.w800,
                           ),
@@ -857,17 +863,21 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? _accentLime : Colors.white.withOpacity(0.04),
+          color: isSelected ? _accentLime : _textColor.withOpacity(0.04),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: isSelected ? _accentLime : Colors.white.withOpacity(0.08),
+            color: isSelected ? _accentLime : _textColor.withOpacity(0.08),
             width: 1.2,
           ),
         ),
         child: Text(
           title,
           style: GoogleFonts.inter(
-            color: isSelected ? const Color(0xFF020104) : Colors.white,
+            color: isSelected
+                ? (_isLight && _accentLime == Theme.of(context).primaryColor
+                    ? Colors.white
+                    : const Color(0xFF020104))
+                : _textColor,
             fontSize: 13,
             fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
           ),
@@ -891,6 +901,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
                   painter: DeepSpaceBackgroundPainter(
                     animationValue: _animationController.value,
                     accentColor: _accentLime,
+                    isLight: _isLight,
                   ),
                 );
               },
@@ -927,8 +938,8 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
                       center: Alignment.center,
                       radius: 0.85,
                       colors: [
-                        const Color(0xFF381559).withOpacity(opacityFactor * 1.5),
-                        const Color(0xFF0F031D).withOpacity(opacityFactor * 0.4),
+                        (_isLight ? _accentLime : const Color(0xFF381559)).withOpacity(opacityFactor * (_isLight ? 0.35 : 1.5)),
+                        (_isLight ? _accentLime : const Color(0xFF0F031D)).withOpacity(opacityFactor * (_isLight ? 0.08 : 0.4)),
                         Colors.transparent,
                       ],
                     ),
@@ -956,7 +967,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
                     'What can I\nhelp you with?',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.inter(
-                      color: Colors.white,
+                      color: _textColor,
                       fontSize: 32,
                       fontWeight: FontWeight.w800,
                       height: 1.15,
@@ -982,6 +993,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
                             animationValue: _animationController.value,
                             isListening: _currentState != AuraVoiceState.idle,
                             accentColor: _accentLime,
+                            isLight: _isLight,
                           ),
                         );
                       },
@@ -1021,15 +1033,15 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.03),
+                color: _textColor.withOpacity(0.03),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.07),
+                  color: _textColor.withOpacity(0.07),
                   width: 1.2,
                 ),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.arrow_back_ios_new_rounded,
-                color: Colors.white,
+                color: _textColor,
                 size: 16,
               ),
             ),
@@ -1037,7 +1049,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
           Text(
             'TaLK to AI',
             style: GoogleFonts.inter(
-              color: Colors.white,
+              color: _textColor,
               fontSize: 16,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.5,
@@ -1052,15 +1064,15 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.03),
+                color: _textColor.withOpacity(0.03),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.07),
+                  color: _textColor.withOpacity(0.07),
                   width: 1.2,
                 ),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.menu_rounded,
-                color: Colors.white,
+                color: _textColor,
                 size: 16,
               ),
             ),
@@ -1100,7 +1112,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
       child: Text(
         'Hey $displayName 👋',
         style: GoogleFonts.inter(
-          color: const Color(0xFFCBBAFF),
+          color: _isLight ? (Color.lerp(_accentLime, Colors.black, 0.4) ?? _accentLime) : const Color(0xFFCBBAFF),
           fontSize: 12,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.5,
@@ -1126,10 +1138,10 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 20),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.03),
+        color: _textColor.withOpacity(0.03),
         borderRadius: BorderRadius.circular(26),
         border: Border.all(
-          color: Colors.white.withOpacity(0.07),
+          color: _textColor.withOpacity(0.07),
           width: 1.0,
         ),
       ),
@@ -1139,7 +1151,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
           Text(
             text,
             style: GoogleFonts.inter(
-              color: const Color(0xFF8E8E9F),
+              color: _textMuted,
               fontSize: 14,
               fontWeight: FontWeight.w500,
             ),
@@ -1151,12 +1163,12 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
                 Container(
                   width: 8,
                   height: 8,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Color(0xFF00F0FF),
+                    color: _accentLime,
                     boxShadow: [
                       BoxShadow(
-                        color: Color(0xFF00F0FF),
+                        color: _accentLime,
                         blurRadius: 8,
                       ),
                     ],
@@ -1175,7 +1187,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: const Color(0xFF00F0FF),
+                              color: _accentLime,
                               width: 2.0,
                             ),
                           ),
@@ -1199,7 +1211,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
         _subtitleText,
         textAlign: TextAlign.center,
         style: GoogleFonts.inter(
-          color: const Color(0xFF8E8E9F),
+          color: _textMuted,
           fontSize: 13,
           height: 1.6,
           fontStyle: FontStyle.italic,
@@ -1226,16 +1238,16 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
             height: 46,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.white.withOpacity(0.03),
+              color: _textColor.withOpacity(0.03),
               border: Border.all(
-                color: Colors.white.withOpacity(0.07),
+                color: _textColor.withOpacity(0.07),
                 width: 1.0,
               ),
             ),
-            child: const Center(
+            child: Center(
               child: Icon(
                 Icons.refresh_rounded,
-                color: Color(0xFF8E8E9F),
+                color: _textMuted,
                 size: 18,
               ),
             ),
@@ -1277,7 +1289,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
                     gradient: LinearGradient(
                       colors: [
                         _accentLime,
-                        const Color(0xFF5931CC),
+                        _isLight ? Theme.of(context).primaryColor : const Color(0xFF5931CC),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
@@ -1290,7 +1302,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
                       ),
                     ],
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.25),
+                      color: _textColor.withOpacity(0.25),
                       width: 2.0,
                     ),
                   ),
@@ -1326,16 +1338,16 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
             height: 46,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.white.withOpacity(0.03),
+              color: _textColor.withOpacity(0.03),
               border: Border.all(
-                color: Colors.white.withOpacity(0.07),
+                color: _textColor.withOpacity(0.07),
                 width: 1.0,
               ),
             ),
-            child: const Center(
+            child: Center(
               child: Icon(
                 Icons.close_rounded,
-                color: Color(0xFF8E8E9F),
+                color: _textMuted,
                 size: 18,
               ),
             ),
@@ -1356,7 +1368,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
       child: Text(
         'TALK TO AI',
         style: GoogleFonts.inter(
-          color: const Color(0xFFCBBAFF),
+          color: _isLight ? (Color.lerp(_accentLime, Colors.black, 0.4) ?? _accentLime) : const Color(0xFFCBBAFF),
           fontSize: 12,
           fontWeight: FontWeight.w800,
           letterSpacing: 0.5,
@@ -1374,7 +1386,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
           child: Text(
             "QUICK SUGGESTIONS",
             style: GoogleFonts.inter(
-              color: Colors.white.withOpacity(0.35),
+              color: _textColor.withOpacity(0.35),
               fontSize: 9,
               fontWeight: FontWeight.bold,
               letterSpacing: 1.5,
@@ -1395,15 +1407,15 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
                 child: ActionChip(
                   label: Text(text),
                   labelStyle: GoogleFonts.inter(
-                    color: Colors.white,
+                    color: _textColor,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
-                  backgroundColor: Colors.white.withOpacity(0.03),
+                  backgroundColor: _textColor.withOpacity(0.03),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                     side: BorderSide(
-                      color: Colors.white.withOpacity(0.06),
+                      color: _textColor.withOpacity(0.06),
                       width: 1.0,
                     ),
                   ),
@@ -1432,6 +1444,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
               state: _currentState,
               amplitude: _currentAmplitude,
               accentColor: _accentLime,
+              isLight: _isLight,
             ),
           ),
         );
@@ -1449,22 +1462,22 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
       case AuraVoiceState.listening:
         label = 'Listening';
         icon = Icons.hearing_rounded;
-        color = const Color(0xFF00D4FF);
+        color = _isLight ? const Color(0xFF0088AA) : const Color(0xFF00D4FF);
         break;
       case AuraVoiceState.connecting:
         label = 'Connecting';
         icon = Icons.wifi_tethering_rounded;
-        color = const Color(0xFFCBB6FC);
+        color = _isLight ? const Color(0xFF6B31CC) : const Color(0xFFCBB6FC);
         break;
       case AuraVoiceState.thinking:
         label = 'Processing';
         icon = Icons.auto_awesome_rounded;
-        color = const Color(0xFFCBB6FC);
+        color = _isLight ? const Color(0xFF6B31CC) : const Color(0xFFCBB6FC);
         break;
       case AuraVoiceState.speaking:
         label = 'Speaking';
         icon = Icons.record_voice_over_rounded;
-        color = _accentLime;
+        color = _isLight ? (Color.lerp(_accentLime, Colors.black, 0.2) ?? _accentLime) : _accentLime;
         break;
       default:
         return const SizedBox.shrink();
@@ -1529,7 +1542,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
                   key: ValueKey(_subtitleText),
                   textAlign: TextAlign.center,
                   style: GoogleFonts.inter(
-                    color: Colors.white,
+                    color: _textColor,
                     fontSize: 19,
                     fontWeight: FontWeight.w700,
                     height: 1.38,
@@ -1553,7 +1566,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
               child: Text(
                 _activeSpeechWord.toUpperCase(),
                 style: GoogleFonts.inter(
-                  color: _accentLime,
+                  color: _isLight ? (Color.lerp(_accentLime, Colors.black, 0.4) ?? _accentLime) : _accentLime,
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.2,
@@ -1587,8 +1600,8 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
               }
             },
             size: 54,
-            backgroundColor: Colors.white.withOpacity(0.03),
-            iconColor: Colors.white.withOpacity(0.9),
+            backgroundColor: _textColor.withOpacity(0.03),
+            iconColor: _textColor.withOpacity(0.9),
           ),
 
           // Central Microphone Activation Pulsing Button
@@ -1626,7 +1639,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
                       gradient: LinearGradient(
                         colors: [
                           _accentLime,
-                          const Color(0xFF5931CC),
+                          _isLight ? Theme.of(context).primaryColor : const Color(0xFF5931CC),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
@@ -1680,8 +1693,8 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
               }
             },
             size: 54,
-            backgroundColor: Colors.white.withOpacity(0.03),
-            iconColor: Colors.white.withOpacity(0.9),
+            backgroundColor: _textColor.withOpacity(0.03),
+            iconColor: _textColor.withOpacity(0.9),
           ),
         ],
       ),
@@ -1703,7 +1716,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
         decoration: BoxDecoration(
           color: backgroundColor,
           shape: BoxShape.circle,
-          border: Border.all(color: Colors.white.withOpacity(0.07), width: 1.2),
+          border: Border.all(color: _textColor.withOpacity(0.07), width: 1.2),
         ),
         child: Center(child: Icon(icon, color: iconColor, size: 22)),
       ),
@@ -1716,12 +1729,14 @@ class AuraFluidOrbPainter extends CustomPainter {
   final AuraVoiceState state;
   final double amplitude;
   final Color accentColor;
+  final bool isLight;
 
   AuraFluidOrbPainter({
     required this.animationValue,
     required this.state,
     required this.amplitude,
     required this.accentColor,
+    this.isLight = false,
   });
 
   @override
@@ -1762,26 +1777,29 @@ class AuraFluidOrbPainter extends CustomPainter {
     // ═══════════════════════════════════════════
     // LAYER 0 — Deep Space Nebula Background Glow
     // ═══════════════════════════════════════════
+    final double isLightFactor = isLight ? 0.3 : 1.0;
     for (int g = 0; g < 3; g++) {
       final double gr = radius * (2.2 - g * 0.3);
-      final double ga = state == AuraVoiceState.idle
+      final double ga = (state == AuraVoiceState.idle
           ? 0.06 + 0.03 * breathe
           : state == AuraVoiceState.listening
               ? 0.14 + 0.08 * amplitude
               : state == AuraVoiceState.thinking
                   ? 0.18
-                  : 0.10 + 0.06 * amplitude;
-      final colors = g == 0
-          ? [const Color(0xFF7B2FFF).withValues(alpha: ga), Colors.transparent]
-          : g == 1
-              ? [
-                  const Color(0xFFFF007F).withValues(alpha: ga * 0.6),
-                  Colors.transparent,
-                ]
-              : [
-                  const Color(0xFF00D4FF).withValues(alpha: ga * 0.4),
-                  Colors.transparent,
-                ];
+                  : 0.10 + 0.06 * amplitude) * isLightFactor;
+      final colors = isLight
+          ? [accentColor.withValues(alpha: ga), Colors.transparent]
+          : g == 0
+              ? [const Color(0xFF7B2FFF).withValues(alpha: ga), Colors.transparent]
+              : g == 1
+                  ? [
+                      const Color(0xFFFF007F).withValues(alpha: ga * 0.6),
+                      Colors.transparent,
+                    ]
+                  : [
+                      const Color(0xFF00D4FF).withValues(alpha: ga * 0.4),
+                      Colors.transparent,
+                    ];
       final glowPaint = Paint()
         ..shader = RadialGradient(
           colors: colors,
@@ -1805,8 +1823,8 @@ class AuraFluidOrbPainter extends CustomPainter {
       final pPaint = Paint()
         ..style = PaintingStyle.fill
         ..color = Color.lerp(
-          const Color(0xFFCBB6FC),
-          const Color(0xFF00F0FF),
+          isLight ? accentColor : const Color(0xFFCBB6FC),
+          isLight ? Color.lerp(accentColor, Colors.black, 0.4)! : const Color(0xFF00F0FF),
           (i / particleCount),
         )!
             .withValues(alpha: pa);
@@ -1818,11 +1836,12 @@ class AuraFluidOrbPainter extends CustomPainter {
     // ═══════════════════════════════════════════
     for (int ring = 0; ring < 2; ring++) {
       final double rr = radius * (1.50 + ring * 0.22);
+      final Color ringColor = isLight
+          ? (ring == 0 ? accentColor : accentColor.withOpacity(0.5))
+          : (ring == 0 ? const Color(0xFF00F0FF) : const Color(0xFFCBB6FC));
       final ringPaint = Paint()
         ..style = PaintingStyle.stroke
-        ..color =
-            (ring == 0 ? const Color(0xFF00F0FF) : const Color(0xFFCBB6FC))
-                .withValues(alpha: 0.06 + 0.04 * breathe)
+        ..color = ringColor.withValues(alpha: isLight ? 0.12 + 0.06 * breathe : 0.06 + 0.04 * breathe)
         ..strokeWidth = 0.8;
       canvas.drawCircle(center, rr, ringPaint);
 
@@ -1831,8 +1850,9 @@ class AuraFluidOrbPainter extends CustomPainter {
         final double na = phase * (0.25 + ring * 0.1) + (n * 2 * math.pi / 3);
         final double nx = cx + rr * math.cos(na);
         final double ny = cy + rr * math.sin(na);
-        final nodeColor =
-            ring == 0 ? const Color(0xFF00F0FF) : const Color(0xFFCBB6FC);
+        final nodeColor = isLight
+            ? (ring == 0 ? accentColor : Color.lerp(accentColor, Colors.black, 0.3)!)
+            : (ring == 0 ? const Color(0xFF00F0FF) : const Color(0xFFCBB6FC));
         // Glow halo
         canvas.drawCircle(
           Offset(nx, ny),
@@ -1893,11 +1913,13 @@ class AuraFluidOrbPainter extends CustomPainter {
       final double ex = cx + (eqRadius + barH) * math.cos(angle);
       final double ey = cy + (eqRadius + barH) * math.sin(angle);
 
-      final barColor = Color.lerp(
-        const Color(0xFFCBB6FC),
-        const Color(0xFF00F0FF),
-        t,
-      )!;
+      final barColor = isLight
+          ? Color.lerp(accentColor, Color.lerp(accentColor, Colors.black, 0.3)!, t)!
+          : Color.lerp(
+              const Color(0xFFCBB6FC),
+              const Color(0xFF00F0FF),
+              t,
+            )!;
       final barAlpha = state == AuraVoiceState.idle
           ? 0.4
           : 0.75 + 0.25 * (barH / 30.0).clamp(0.0, 1.0);
@@ -1945,9 +1967,10 @@ class AuraFluidOrbPainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.6
           ..strokeCap = StrokeCap.round
-          ..color = const Color(
-            0xFF00D4FF,
-          ).withValues(alpha: 0.35 + 0.35 * (h / 12.0).clamp(0.0, 1.0));
+          ..color = (isLight ? accentColor : const Color(0xFF00D4FF))
+              .withValues(alpha: isLight 
+                  ? 0.5 + 0.3 * (h / 12.0).clamp(0.0, 1.0)
+                  : 0.35 + 0.35 * (h / 12.0).clamp(0.0, 1.0));
         canvas.drawLine(Offset(outerX, outerY), Offset(innerX, innerY), bPaint);
       }
     }
@@ -2006,7 +2029,7 @@ class AuraFluidOrbPainter extends CustomPainter {
       if (layer > 0) {
         canvas.saveLayer(
           Rect.fromCircle(center: center, radius: radius * 1.5),
-          Paint()..blendMode = BlendMode.screen,
+          Paint()..blendMode = isLight ? BlendMode.srcOver : BlendMode.screen,
         );
       }
       canvas.drawPath(
@@ -2052,19 +2075,24 @@ class AuraFluidOrbPainter extends CustomPainter {
 class DeepSpaceBackgroundPainter extends CustomPainter {
   final double animationValue;
   final Color accentColor;
+  final bool isLight;
 
   DeepSpaceBackgroundPainter({
     required this.animationValue,
     required this.accentColor,
+    this.isLight = false,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
+    final double nebula1Opacity = isLight ? 0.06 : 0.22;
+    final double nebula2Opacity = isLight ? 0.04 : 0.12;
+
     // Overlapping radial gradients (Nebulas)
     final paint1 = Paint()
       ..shader = RadialGradient(
         colors: [
-          accentColor.withOpacity(0.25),
+          accentColor.withOpacity(nebula1Opacity),
           Colors.transparent,
         ],
       ).createShader(Rect.fromCircle(center: Offset(size.width * 0.2, size.height * 0.3), radius: size.width * 0.8));
@@ -2073,7 +2101,7 @@ class DeepSpaceBackgroundPainter extends CustomPainter {
     final paint2 = Paint()
       ..shader = RadialGradient(
         colors: [
-          const Color(0xFF00F0FF).withOpacity(0.18),
+          (isLight ? accentColor : const Color(0xFF00F0FF)).withOpacity(nebula2Opacity),
           Colors.transparent,
         ],
       ).createShader(Rect.fromCircle(center: Offset(size.width * 0.8, size.height * 0.7), radius: size.width * 0.7));
@@ -2083,18 +2111,21 @@ class DeepSpaceBackgroundPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant DeepSpaceBackgroundPainter oldDelegate) =>
       oldDelegate.animationValue != animationValue ||
-      oldDelegate.accentColor != accentColor;
+      oldDelegate.accentColor != accentColor ||
+      oldDelegate.isLight != isLight;
 }
 
 class EkgWaveformPainter extends CustomPainter {
   final double animationValue;
   final bool isListening;
   final Color accentColor;
+  final bool isLight;
 
   EkgWaveformPainter({
     required this.animationValue,
     required this.isListening,
     required this.accentColor,
+    this.isLight = false,
   });
 
   @override
@@ -2104,9 +2135,24 @@ class EkgWaveformPainter extends CustomPainter {
 
     // Audio wave configurations
     final waves = [
-      _WaveConfig(amplitude: 35, frequency: 0.015, speed: 0.15, color: const Color(0xB300F0FF)),  // Cyan primary
-      _WaveConfig(amplitude: 20, frequency: 0.025, speed: -0.1, color: accentColor.withOpacity(0.5)), // Dynamic overlay
-      _WaveConfig(amplitude: 10, frequency: 0.04, speed: 0.22, color: const Color(0x4DFF00F5))    // Pink background highlight
+      _WaveConfig(
+        amplitude: 35,
+        frequency: 0.015,
+        speed: 0.15,
+        color: isLight ? accentColor.withOpacity(0.7) : const Color(0xB300F0FF),
+      ),
+      _WaveConfig(
+        amplitude: 20,
+        frequency: 0.025,
+        speed: -0.1,
+        color: isLight ? accentColor.withOpacity(0.4) : accentColor.withOpacity(0.5),
+      ),
+      _WaveConfig(
+        amplitude: 10,
+        frequency: 0.04,
+        speed: 0.22,
+        color: isLight ? accentColor.withOpacity(0.2) : const Color(0x4DFF00F5),
+      ),
     ];
 
     final double offset = animationValue * 20 * math.pi;
@@ -2147,7 +2193,8 @@ class EkgWaveformPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant EkgWaveformPainter oldDelegate) {
     return oldDelegate.animationValue != animationValue ||
-        oldDelegate.isListening != isListening;
+        oldDelegate.isListening != isListening ||
+        oldDelegate.isLight != isLight;
   }
 }
 

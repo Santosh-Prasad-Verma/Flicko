@@ -12,8 +12,8 @@ class AuraSettings {
   final bool autoVoiceAutoplay;
 
   const AuraSettings({
-    this.themeName = 'Neon Glow',
-    this.accentColor = const Color(0xFF7B4FFF),
+    this.themeName = 'Sync with App',
+    this.accentColor = Colors.transparent,
     this.language = 'English',
     this.temperature = 0.7,
     this.autoVoiceAutoplay = false,
@@ -47,8 +47,8 @@ class AuraSettings {
 
   factory AuraSettings.fromMap(Map<String, dynamic> map) {
     return AuraSettings(
-      themeName: map['themeName'] as String? ?? 'Neon Glow',
-      accentColor: Color(map['accentColor'] as int? ?? 0xFF7B4FFF),
+      themeName: map['themeName'] as String? ?? 'Sync with App',
+      accentColor: Color(map['accentColor'] as int? ?? Colors.transparent.value),
       language: map['language'] as String? ?? 'English',
       temperature: (map['temperature'] as num?)?.toDouble() ?? 0.7,
       autoVoiceAutoplay: map['autoVoiceAutoplay'] as bool? ?? false,
@@ -64,6 +64,7 @@ class AuraTheme {
 }
 
 const List<AuraTheme> auraThemes = [
+  AuraTheme(name: 'Sync with App', color: Colors.transparent),
   AuraTheme(name: 'Neon Glow', color: Color(0xFF7B4FFF)),
   AuraTheme(name: 'Cyberpunk Violet', color: Color(0xFFFF00F5)),
   AuraTheme(name: 'Emerald Aurora', color: Color(0xFF00FFCC)),

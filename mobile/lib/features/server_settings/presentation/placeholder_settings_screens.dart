@@ -166,7 +166,7 @@ class DeleteServerScreen extends StatelessWidget {
                         ElevatedButton(
                           onPressed: () {
                             Navigator.pop(context);
-                            context.go('/servers');
+                            context.go('/');
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(FlickoColors.danger),

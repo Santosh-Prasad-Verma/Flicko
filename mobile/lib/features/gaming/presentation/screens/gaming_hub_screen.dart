@@ -37,12 +37,22 @@ class _GamingHubScreenState extends State<GamingHubScreen> {
   // ── Banner Data ──────────────────────────────────────────────────────
   final List<_BannerData> _banners = [
     const _BannerData(
-      title: 'LUDO ROYALE',
-      subtitle: 'Play online with 4 players now!',
-      tag: 'LIVE LOBBIES',
-      image: 'assets/ludo/images/card-logo.png',
+      title: 'LUDO CHAMPIONSHIP',
+      subtitle: 'Play & climb the leaderboard!',
+      tag: 'TOURNAMENT',
+      image: 'assets/images/gaming/ludo-banner.jpg',
+      route: '/ludo',
+      color: _accentLime,
+      isFullBackground: true,
+    ),
+    const _BannerData(
+      title: 'LUDO CHALLENGE',
+      subtitle: 'Roll the dice and beat your friends!',
+      tag: 'PLAY NOW',
+      image: 'assets/images/gaming/ludo-banner2.jpg',
       route: '/ludo',
       color: _accentPurple,
+      isFullBackground: true,
     ),
     const _BannerData(
       title: 'CYBER SEASON',
@@ -468,24 +478,48 @@ class _GamingHubScreenState extends State<GamingHubScreen> {
                         child: Stack(
                           fit: StackFit.expand,
                           children: [
-                            // Glowing nebula light in the background
-                            Positioned(
-                              right: -40,
-                              top: -40,
-                              child: Container(
-                                width: 140,
-                                height: 140,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  gradient: RadialGradient(
-                                    colors: [
-                                      banner.color.withValues(alpha: 0.3),
-                                      Colors.transparent,
-                                    ],
+                            if (banner.isFullBackground) ...[
+                              Positioned.fill(
+                                child: Image.asset(
+                                  banner.image,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => const SizedBox(),
+                                ),
+                              ),
+                              Positioned.fill(
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.centerLeft,
+                                      end: Alignment.centerRight,
+                                      colors: [
+                                        Colors.black.withValues(alpha: 0.85),
+                                        Colors.black.withValues(alpha: 0.2),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
+                            ] else ...[
+                              // Glowing nebula light in the background
+                              Positioned(
+                                right: -40,
+                                top: -40,
+                                child: Container(
+                                  width: 140,
+                                  height: 140,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    gradient: RadialGradient(
+                                      colors: [
+                                        banner.color.withValues(alpha: 0.3),
+                                        Colors.transparent,
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                             // Text contents on the left
                             Padding(
                               padding: const EdgeInsets.all(20),
@@ -538,17 +572,18 @@ class _GamingHubScreenState extends State<GamingHubScreen> {
                                 ],
                               ),
                             ),
-                            // Character image floating on the right
-                            Positioned(
-                              right: 12,
-                              bottom: 0,
-                              top: 8,
-                              child: Image.asset(
-                                banner.image,
-                                fit: BoxFit.contain,
-                                errorBuilder: (_, __, ___) => const SizedBox(),
-                              ),
-                            ),
+                            if (!banner.isFullBackground)
+                              // Character image floating on the right
+                              Positioned(
+                                  right: 12,
+                                  bottom: 0,
+                                  top: 8,
+                                  child: Image.asset(
+                                    banner.image,
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (_, __, ___) => const SizedBox(),
+                                  ),
+                                ),
                           ],
                         ),
                       ),
@@ -1415,6 +1450,7 @@ class _BannerData {
   final String image;
   final String route;
   final Color color;
+  final bool isFullBackground;
 
   const _BannerData({
     required this.title,
@@ -1423,5 +1459,6 @@ class _BannerData {
     required this.image,
     required this.route,
     required this.color,
+    this.isFullBackground = false,
   });
 }

@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
+import 'package:mobile/features/home/application/servers_notifier.dart';
 
 class ServerOptionsScreen extends ConsumerStatefulWidget {
   final String serverId;
@@ -77,6 +78,38 @@ class _ServerOptionsScreenState extends ConsumerState<ServerOptionsScreen> {
   }
 
   Future<void> _leaveServer() async {
+    final currentUser = ref.read(currentUserProvider);
+    final isOwner = _server?['owner_id'] == currentUser?.id;
+
+    if (isOwner) {
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: const Color(FlickoColors.bgSecondary),
+            title: Text(
+              'Cannot Leave Server',
+              style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary)),
+            ),
+            content: Text(
+              'As the owner of this server, you cannot leave it. You must transfer ownership or delete the server in settings.',
+              style: GoogleFonts.inter(color: const Color(FlickoColors.textSecondary)),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(
+                  'OK',
+                  style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary)),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+      return;
+    }
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -129,6 +162,9 @@ class _ServerOptionsScreenState extends ConsumerState<ServerOptionsScreen> {
           .delete()
           .eq('server_id', widget.serverId)
           .eq('user_id', user.id);
+
+      // Refresh the server list in the sidebar
+      ref.read(serversNotifierProvider.notifier).refresh();
 
       if (mounted) {
         Navigator.of(context).popUntil((route) => route.isFirst);

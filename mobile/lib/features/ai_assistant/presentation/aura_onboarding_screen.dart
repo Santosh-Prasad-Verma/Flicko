@@ -22,8 +22,15 @@ class _AuraOnboardingScreenState extends ConsumerState<AuraOnboardingScreen>
   late AnimationController _pulseController;
   late AnimationController _bgAnimationController;
 
-  static const Color _bgBlack = Color(0xFF06060E);
-  Color get _primaryAccent => ref.watch(auraSettingsProvider).accentColor;
+  Color get _bgBlack => Theme.of(context).scaffoldBackgroundColor;
+  Color get _textColor => Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white;
+  Color get _textMuted => Theme.of(context).textTheme.bodySmall?.color ?? const Color(0xFF8E8E9F);
+  bool get _isLight => Theme.of(context).brightness == Brightness.light;
+
+  Color get _primaryAccent {
+    final accent = ref.watch(auraSettingsProvider).accentColor;
+    return accent == Colors.transparent ? Theme.of(context).primaryColor : accent;
+  }
 
   @override
   void initState() {
@@ -76,6 +83,7 @@ class _AuraOnboardingScreenState extends ConsumerState<AuraOnboardingScreen>
                   painter: DeepSpaceBackgroundPainter(
                     animationValue: _bgAnimationController.value,
                     accentColor: _primaryAccent,
+                    isLight: _isLight,
                   ),
                 );
               },
@@ -125,15 +133,15 @@ class _AuraOnboardingScreenState extends ConsumerState<AuraOnboardingScreen>
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: Colors.white.withOpacity(0.03),
+                            color: _textColor.withOpacity(0.03),
                             border: Border.all(
-                              color: Colors.white.withOpacity(0.07),
+                              color: _textColor.withOpacity(0.07),
                               width: 1.2,
                             ),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.arrow_back_ios_new_rounded,
-                            color: Colors.white,
+                            color: _textColor,
                             size: 16,
                           ),
                         ),
@@ -184,7 +192,7 @@ class _AuraOnboardingScreenState extends ConsumerState<AuraOnboardingScreen>
                                 color: _primaryAccent.withOpacity(0.9),
                                 width: 2),
                             right: BorderSide(
-                                color: Colors.white.withOpacity(0.6),
+                                color: _textColor.withOpacity(0.6),
                                 width: 2.5),
                           ),
                         ),
@@ -198,7 +206,7 @@ class _AuraOnboardingScreenState extends ConsumerState<AuraOnboardingScreen>
                           speedFactor: 4.8,
                           border: Border(
                             top: BorderSide(
-                                color: Colors.white.withOpacity(0.5),
+                                color: _textColor.withOpacity(0.5),
                                 width: 1.5),
                             right: BorderSide(
                                 color: _primaryAccent.withOpacity(0.7),
@@ -255,7 +263,7 @@ class _AuraOnboardingScreenState extends ConsumerState<AuraOnboardingScreen>
                           speedFactor: 4.0, // base speed multiplier
                           border: Border(
                             top: BorderSide(
-                                color: Colors.white.withOpacity(0.85),
+                                color: _textColor.withOpacity(0.85),
                                 width: 3),
                             left: BorderSide(
                                 color: _primaryAccent.withOpacity(0.4),
@@ -275,7 +283,7 @@ class _AuraOnboardingScreenState extends ConsumerState<AuraOnboardingScreen>
                         'Ask Me\nAnything!',
                         textAlign: TextAlign.center,
                         style: GoogleFonts.inter(
-                          color: Colors.white,
+                          color: _textColor,
                           fontSize: 38,
                           fontWeight: FontWeight.w900,
                           height: 1.1,
@@ -289,7 +297,7 @@ class _AuraOnboardingScreenState extends ConsumerState<AuraOnboardingScreen>
                           'Welcome to your intelligent virtual assistant here to make your life easier',
                           textAlign: TextAlign.center,
                           style: GoogleFonts.inter(
-                            color: const Color(0xFF8E8E9F),
+                            color: _textMuted,
                             fontSize: 13,
                             height: 1.6,
                             fontWeight: FontWeight.w500,
@@ -326,11 +334,11 @@ class _AuraOnboardingScreenState extends ConsumerState<AuraOnboardingScreen>
                         ),
                         borderRadius: BorderRadius.circular(32),
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.15),
+                          color: _textColor.withOpacity(0.15),
                           width: 1.0,
                         ),
                         boxShadow: [
-                          BoxShadow(
+                           BoxShadow(
                             color: _primaryAccent.withOpacity(0.35),
                             blurRadius: 20,
                             offset: const Offset(0, 8),
@@ -433,19 +441,24 @@ class _AuraOnboardingScreenState extends ConsumerState<AuraOnboardingScreen>
 class DeepSpaceBackgroundPainter extends CustomPainter {
   final double animationValue;
   final Color accentColor;
+  final bool isLight;
 
   DeepSpaceBackgroundPainter({
     required this.animationValue,
     this.accentColor = const Color(0xFF7B4FFF),
+    this.isLight = false,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
+    final double nebula1Opacity = isLight ? 0.06 : 0.22;
+    final double nebula2Opacity = isLight ? 0.04 : 0.12;
+
     // 1. Nebula 1: Purple/Accent Glow top-left
     final paint1 = Paint()
       ..shader = RadialGradient(
         colors: [
-          accentColor.withOpacity(0.22),
+          accentColor.withOpacity(nebula1Opacity),
           Colors.transparent,
         ],
       ).createShader(Rect.fromCircle(
@@ -458,7 +471,7 @@ class DeepSpaceBackgroundPainter extends CustomPainter {
     final paint2 = Paint()
       ..shader = RadialGradient(
         colors: [
-          accentColor.withOpacity(0.12),
+          accentColor.withOpacity(nebula2Opacity),
           Colors.transparent,
         ],
       ).createShader(Rect.fromCircle(
@@ -471,5 +484,6 @@ class DeepSpaceBackgroundPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant DeepSpaceBackgroundPainter oldDelegate) =>
       oldDelegate.animationValue != animationValue ||
-      oldDelegate.accentColor != accentColor;
+      oldDelegate.accentColor != accentColor ||
+      oldDelegate.isLight != isLight;
 }

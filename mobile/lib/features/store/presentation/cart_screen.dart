@@ -7,6 +7,7 @@ import 'package:mobile/features/store/data/store_service.dart';
 import 'package:mobile/features/store/data/store_payment_service.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/settings/application/payment_methods_provider.dart';
+import 'package:mobile/core/config/app_config.dart';
 
 // Shared colors
 const _kBg = Color(0xFF000000);
@@ -1159,18 +1160,44 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
 
         // Process paid items
         if (widget.paidItems.isNotEmpty && finalAmount > 0) {
-          final paymentService = ref.read(storePaymentServiceProvider);
-          final result = await paymentService.processPayment(
-            amount: finalAmount,
-            userEmail: user.email ?? '',
-            userPhone: profile?.phone ?? '',
-            description: 'Flicko Store Purchase - ${widget.paidItems.length} item(s)',
-            items: widget.paidItems,
-          );
+          final bool hasLiveGateway = AppConfig.hasApiBaseUrl && AppConfig.razorpayKeyId.isNotEmpty;
+          bool useSandbox = !hasLiveGateway;
 
-          if (!result.success) {
-            _showError(result.error ?? 'Payment failed');
-            return;
+          if (hasLiveGateway) {
+            final paymentService = ref.read(storePaymentServiceProvider);
+            final result = await paymentService.processPayment(
+              amount: finalAmount,
+              userEmail: user.email ?? '',
+              userPhone: profile?.phone ?? '',
+              description: 'Flicko Store Purchase - ${widget.paidItems.length} item(s)',
+              items: widget.paidItems,
+            );
+
+            if (!result.success) {
+              // Offer sandbox fallback if live payment fails
+              final confirmed = await _showSandboxConfirmationDialog(context, finalAmount);
+              if (confirmed == true) {
+                useSandbox = true;
+              } else {
+                _showError(result.error ?? 'Payment failed');
+                return;
+              }
+            }
+          } else {
+            final confirmed = await _showSandboxConfirmationDialog(context, finalAmount);
+            if (confirmed == true) {
+              useSandbox = true;
+            } else {
+              _showError('Payment cancelled: Live gateway not configured.');
+              return;
+            }
+          }
+
+          if (useSandbox) {
+            final storeService = ref.read(storeServiceProvider);
+            for (final item in widget.paidItems) {
+              await storeService.purchaseProduct(item.product);
+            }
           }
         } else if (widget.paidItems.isNotEmpty && finalAmount == 0) {
           // If discounted to 100% free, claim it as free
@@ -1207,6 +1234,112 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
         ),
       );
     }
+  }
+
+  Future<bool?> _showSandboxConfirmationDialog(BuildContext context, double amount) async {
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.black,
+        shape: const Border(
+          top: BorderSide(color: _kNeon, width: 4),
+          left: BorderSide(color: _kNeon, width: 2),
+          right: BorderSide(color: _kNeon, width: 2),
+          bottom: BorderSide(color: _kNeon, width: 2),
+        ),
+        title: Row(
+          children: [
+            const Icon(Icons.terminal, color: _kNeon, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'SANDBOX_OVERRIDE',
+                style: GoogleFonts.spaceGrotesk(
+                  color: _kWhite,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 18,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.05),
+                border: Border.all(color: Colors.red.withValues(alpha: 0.5), width: 1),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline, color: Colors.red, size: 14),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'LIVE_GATEWAY: NOT_CONFIGURED',
+                      style: GoogleFonts.robotoMono(
+                        color: Colors.red,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'PROCESS STORE PURCHASE OF ₹${amount.toStringAsFixed(0)} IN TEST MODE?\n\n'
+              'THIS WILL GRANT COSMETICS WITHOUT PROCESSING A REAL PAYMENT.',
+              style: GoogleFonts.robotoMono(
+                color: _kWhite.withValues(alpha: 0.8),
+                fontSize: 12,
+                height: 1.6,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(
+              'ABORT',
+              style: GoogleFonts.robotoMono(
+                color: _kWhite.withValues(alpha: 0.5),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: () => Navigator.pop(ctx, true),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              decoration: BoxDecoration(
+                color: _kNeon,
+                border: Border.all(color: Colors.black, width: 2),
+                boxShadow: const [
+                  BoxShadow(color: Colors.white, offset: Offset(3, 3)),
+                ],
+              ),
+              child: Text(
+                'OVERRIDE_&_PURCHASE',
+                style: GoogleFonts.spaceGrotesk(
+                  color: Colors.black,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 13,
+                  letterSpacing: 1,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showSuccessDialog(BuildContext context) {
@@ -1282,33 +1415,5 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
         ),
       ),
     );
-  }
-
-  Color _getRarityColor(String rarity) {
-    switch (rarity.toLowerCase()) {
-      case 'legendary':
-        return _kGold;
-      case 'epic':
-        return _kNeon;
-      case 'rare':
-        return const Color(0xFF00E5FF);
-      default:
-        return _kMuted;
-    }
-  }
-
-  IconData _iconForType(String type) {
-    switch (type.toUpperCase()) {
-      case 'THEME':
-        return Icons.palette_rounded;
-      case 'STICKERS':
-        return Icons.emoji_emotions_rounded;
-      case 'SOUNDS':
-        return Icons.music_note_rounded;
-      case 'BADGE':
-        return Icons.verified_rounded;
-      default:
-        return Icons.store_rounded;
-    }
   }
 }

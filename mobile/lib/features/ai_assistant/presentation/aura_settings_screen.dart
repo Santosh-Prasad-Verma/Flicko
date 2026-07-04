@@ -18,13 +18,13 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _waveController;
 
-  // Dark-mode-only palette (light mode removed per user request)
-  static const Color _bgBlack = Color(0xFF06060E);
-  static const Color _cardBg = Color(0xFF131326);
-  static const Color _glassBorder = Color(0x12FFFFFF);
-  static const Color _textMuted = Color(0xFF8E8E9F);
-  static const Color _textDimmed = Color(0xFF5D5D74);
-  static const Color _textColor = Colors.white;
+  Color get _bgBlack => Theme.of(context).scaffoldBackgroundColor;
+  Color get _cardBg => Theme.of(context).cardColor;
+  Color get _glassBorder => Theme.of(context).dividerColor.withOpacity(0.12);
+  Color get _textMuted => Theme.of(context).textTheme.bodySmall?.color ?? const Color(0xFF8E8E9F);
+  Color get _textDimmed => Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.6) ?? const Color(0xFF5D5D74);
+  Color get _textColor => Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white;
+  bool get _isLight => Theme.of(context).brightness == Brightness.light;
 
   @override
   void initState() {
@@ -45,7 +45,8 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
     final settings = ref.read(auraSettingsProvider);
     double tempTemp = settings.temperature;
     bool tempAutoplay = settings.autoVoiceAutoplay;
-    final accent = settings.accentColor;
+    final rawAccent = settings.accentColor;
+    final accent = rawAccent == Colors.transparent ? Theme.of(context).primaryColor : rawAccent;
 
     showDialog(
       context: context,
@@ -53,7 +54,7 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
         return StatefulBuilder(
           builder: (dialogContext, setDialogState) {
             return Dialog(
-              backgroundColor: const Color(0xFF0F0F1A),
+              backgroundColor: _cardBg,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(24),
                 side: BorderSide(color: accent, width: 1.5),
@@ -108,7 +109,7 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
                         fontSize: 10,
                       ),
                     ),
-                    Divider(height: 24, color: Colors.white.withOpacity(0.05)),
+                    Divider(height: 24, color: _textColor.withOpacity(0.05)),
                     Row(
                       children: [
                         Expanded(
@@ -185,11 +186,12 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
   }
 
   void _showWhatsNew() {
-    final accent = ref.read(auraSettingsProvider).accentColor;
+    final rawAccent = ref.read(auraSettingsProvider).accentColor;
+    final accent = rawAccent == Colors.transparent ? Theme.of(context).primaryColor : rawAccent;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF0F0F1A),
+      backgroundColor: _cardBg,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -218,7 +220,7 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
                       ),
                       GestureDetector(
                         onTap: () => Navigator.pop(context),
-                        child: const Icon(Icons.close_rounded, color: _textMuted),
+                        child: Icon(Icons.close_rounded, color: _textMuted),
                       ),
                     ],
                   ),
@@ -355,11 +357,12 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
   }
 
   void _showFAQ() {
-    final accent = ref.read(auraSettingsProvider).accentColor;
+    final rawAccent = ref.read(auraSettingsProvider).accentColor;
+    final accent = rawAccent == Colors.transparent ? Theme.of(context).primaryColor : rawAccent;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF0F0F1A),
+      backgroundColor: _cardBg,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -390,7 +393,7 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
                       ),
                       GestureDetector(
                         onTap: () => Navigator.pop(context),
-                        child: const Icon(Icons.close_rounded, color: _textMuted),
+                        child: Icon(Icons.close_rounded, color: _textMuted),
                       ),
                     ],
                   ),
@@ -512,7 +515,7 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
   void _showThemeSelector() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF0F0F1A),
+      backgroundColor: _cardBg,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -538,6 +541,9 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
                   Column(
                     children: auraThemes.map((t) {
                       final isSelected = settings.themeName == t.name;
+                      final themeCol = t.color == Colors.transparent
+                          ? Theme.of(context).primaryColor
+                          : t.color;
                       return InkWell(
                         onTap: () {
                           sheetRef
@@ -553,12 +559,12 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
                           margin: const EdgeInsets.only(bottom: 10),
                           decoration: BoxDecoration(
                             color: isSelected
-                                ? t.color.withOpacity(0.1)
-                                : Colors.white.withOpacity(0.02),
+                                ? themeCol.withOpacity(0.1)
+                                : _textColor.withOpacity(0.02),
                             border: Border.all(
                               color: isSelected
-                                  ? t.color
-                                  : Colors.white.withOpacity(0.05),
+                                  ? themeCol
+                                  : _textColor.withOpacity(0.05),
                               width: 1.2,
                             ),
                             borderRadius: BorderRadius.circular(16),
@@ -570,11 +576,11 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
                                 height: 16,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color: t.color,
+                                  color: themeCol,
                                   boxShadow: isSelected
                                       ? [
                                           BoxShadow(
-                                            color: t.color.withOpacity(0.5),
+                                            color: themeCol.withOpacity(0.5),
                                             blurRadius: 8,
                                           ),
                                         ]
@@ -596,7 +602,7 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
                               if (isSelected)
                                 Icon(
                                   Icons.check_circle_rounded,
-                                  color: t.color,
+                                  color: themeCol,
                                   size: 18,
                                 ),
                             ],
@@ -617,7 +623,7 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
   void _showLanguageSelector() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF0F0F1A),
+      backgroundColor: _cardBg,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -625,6 +631,8 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
         return Consumer(
           builder: (sheetContext, sheetRef, _) {
             final settings = sheetRef.watch(auraSettingsProvider);
+            final rawAccent = settings.accentColor;
+            final accent = rawAccent == Colors.transparent ? Theme.of(context).primaryColor : rawAccent;
             return Container(
               padding: const EdgeInsets.all(24),
               child: Column(
@@ -658,12 +666,12 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
                           margin: const EdgeInsets.only(bottom: 10),
                           decoration: BoxDecoration(
                             color: isSelected
-                                ? settings.accentColor.withOpacity(0.1)
-                                : Colors.white.withOpacity(0.02),
+                                ? accent.withOpacity(0.1)
+                                : _textColor.withOpacity(0.02),
                             border: Border.all(
                               color: isSelected
-                                  ? settings.accentColor
-                                  : Colors.white.withOpacity(0.05),
+                                  ? accent
+                                  : _textColor.withOpacity(0.05),
                               width: 1.2,
                             ),
                             borderRadius: BorderRadius.circular(16),
@@ -684,7 +692,7 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
                               if (isSelected)
                                 Icon(
                                   Icons.check_circle_rounded,
-                                  color: settings.accentColor,
+                                  color: accent,
                                   size: 18,
                                 ),
                             ],
@@ -705,7 +713,8 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(auraSettingsProvider);
-    final accent = settings.accentColor;
+    final rawAccent = settings.accentColor;
+    final accent = rawAccent == Colors.transparent ? Theme.of(context).primaryColor : rawAccent;
 
     return Scaffold(
       backgroundColor: _bgBlack,
@@ -714,7 +723,11 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
           // Twinkling background
           Positioned.fill(
             child: CustomPaint(
-              painter: DeepSpaceBackgroundPainter(animationValue: 0.0),
+              painter: DeepSpaceBackgroundPainter(
+                animationValue: 0.0,
+                accentColor: accent,
+                isLight: _isLight,
+              ),
             ),
           ),
           SafeArea(
@@ -741,7 +754,7 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
                               width: 1.2,
                             ),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.arrow_back_ios_new_rounded,
                             color: _textColor,
                             size: 16,
@@ -771,7 +784,7 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
                   Container(
                     height: 130,
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
+                      gradient: LinearGradient(
                         colors: [_cardBg, Color(0xFF080811)],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
@@ -965,7 +978,7 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
         childrenWithDividers.add(
           Divider(
             height: 1,
-            color: Colors.white.withOpacity(0.04),
+            color: _textColor.withOpacity(0.04),
           ),
         );
       }
@@ -973,7 +986,7 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.015),
+        color: _textColor.withOpacity(0.015),
         border: Border.all(color: _glassBorder, width: 1.0),
         borderRadius: BorderRadius.circular(20),
       ),
@@ -1020,7 +1033,7 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
             Text(
               title,
               style: GoogleFonts.inter(
-                color: Colors.white,
+                color: _textColor,
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
               ),
@@ -1039,7 +1052,7 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
                 ),
               ),
             const SizedBox(width: 8),
-            const Icon(
+            Icon(
               Icons.arrow_forward_ios_rounded,
               color: _textDimmed,
               size: 14,
