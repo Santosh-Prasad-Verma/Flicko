@@ -1,66 +1,57 @@
-package services
+package services_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
+	"github.com/flicko-org/flicko-backend/internal/services"
 	"github.com/google/uuid"
-	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
-// MockRedisClient is a simple mock for the Redis client
-type MockRedisClient struct {
-	mock.Mock
+func TestPermissionService_InvalidateServerCache(t *testing.T) {
+	mockCache := NewMockCache()
+	service := services.NewPermissionService(nil, mockCache)
+
+	serverID := uuid.New()
+	versionKey := fmt.Sprintf("perm_version:%s", serverID.String())
+
+	ctx := context.Background()
+
+	// Invalidate Server Cache (bumps version)
+	err := service.InvalidateServerCache(ctx, serverID)
+	assert.NoError(t, err)
+
+	// Value stored in mockCache for versionKey should now be "1" (or incremented)
+	val, err := mockCache.Get(ctx, versionKey)
+	assert.NoError(t, err)
+	assert.Equal(t, "1", val)
 }
 
-func (m *MockRedisClient) Get(ctx context.Context, key string) (string, error) {
-	args := m.Called(ctx, key)
-	return args.String(0), args.Error(1)
-}
+func TestPermissionService_CacheKeyFormatting(t *testing.T) {
+	mockCache := NewMockCache()
 
-func (m *MockRedisClient) Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error {
-	args := m.Called(ctx, key, value, expiration)
-	return args.Error(0)
-}
-
-func (m *MockRedisClient) DeletePattern(ctx context.Context, pattern string) error {
-	args := m.Called(ctx, pattern)
-	return args.Error(0)
-}
-
-func (m *MockRedisClient) GetJSON(ctx context.Context, key string, dest interface{}) error {
-	return nil
-}
-func (m *MockRedisClient) SetJSON(ctx context.Context, key string, value interface{}, expiration time.Duration) error {
-	return nil
-}
-func (m *MockRedisClient) Exists(ctx context.Context, key string) (bool, error) { return false, nil }
-func (m *MockRedisClient) Publish(ctx context.Context, channel string, message interface{}) error {
-	return nil
-}
-func (m *MockRedisClient) Subscribe(ctx context.Context, channel string) *redis.PubSub { return nil }
-func (m *MockRedisClient) Close() error                                                { return nil }
-
-// Since testing the DB function requires an actual DB connection,
-// we will focus on unit testing the caching logic here.
-// Full database integration tests for permissions should be done in a separate suite.
-
-func TestPermissionService_HasPermission_CacheHit(t *testing.T) {
-	// Setup
-	userID := uuid.New()
+	serverID := uuid.New()
 	channelID := uuid.New()
-	permissionName := "SEND_MESSAGES"
+	userID := uuid.New()
+	permissionName := "VIEW_CHANNEL"
 
-	mockRedis := new(MockRedisClient)
-	mockRedis.On("Get", mock.Anything, "perm:"+userID.String()+":"+channelID.String()+":"+permissionName).Return("true", nil)
+	ctx := context.Background()
+	_ = mockCache.Set(ctx, fmt.Sprintf("chan_srv:%s", channelID.String()), serverID.String(), 24*time.Hour)
+	_ = mockCache.Set(ctx, fmt.Sprintf("perm_version:%s", serverID.String()), "5", 24*time.Hour)
 
-	// Since we expect a cache hit, the DB shouldn't be called.
-	// We need to refactor the PermissionService to accept an interface for Redis to make it fully testable like this.
+	// Expected cache key format: perm:{serverID}:{version}:{userID}:{channelID}:{permissionName}
+	expectedCacheKey := fmt.Sprintf("perm:%s:5:%s:%s:VIEW_CHANNEL", serverID.String(), userID.String(), channelID.String())
 
-	// We need to refactor the PermissionService to accept an interface for Redis to make it fully testable like this.
-	// This is a placeholder test showing the intention.
-	assert.True(t, true)
+	// Pre-populate cache with "true"
+	_ = mockCache.Set(ctx, expectedCacheKey, "true", 5*time.Minute)
+
+	service := services.NewPermissionService(nil, mockCache)
+
+	// Call HasPermission - should hit the cache using our version-tagged key without DB access!
+	hasPerm, err := service.HasPermission(ctx, userID, channelID, permissionName)
+	assert.NoError(t, err)
+	assert.True(t, hasPerm)
 }

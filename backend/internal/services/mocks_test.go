@@ -246,6 +246,11 @@ func (m *MockPermissionService) InvalidatePermissionCache(ctx context.Context, u
 	return args.Error(0)
 }
 
+func (m *MockPermissionService) InvalidateServerCache(ctx context.Context, serverID uuid.UUID) error {
+	args := m.Called(ctx, serverID)
+	return args.Error(0)
+}
+
 // MockAuditLogService for testing
 type MockAuditLogService struct {
 	mock.Mock
@@ -277,17 +282,22 @@ func NewMockCache() *MockCache {
 }
 
 func (m *MockCache) Get(ctx context.Context, key string) (string, error) {
-	args := m.Called(ctx, key)
-	if args.Get(0) == nil {
-		return m.store[key], args.Error(1)
+	if len(m.ExpectedCalls) > 0 {
+		args := m.Called(ctx, key)
+		if args.Get(0) != nil {
+			return args.String(0), args.Error(1)
+		}
 	}
-	return args.String(0), args.Error(1)
+	return m.store[key], nil
 }
 
 func (m *MockCache) Set(ctx context.Context, key, value string, ttl time.Duration) error {
 	m.store[key] = value
-	args := m.Called(ctx, key, value, ttl)
-	return args.Error(0)
+	if len(m.ExpectedCalls) > 0 {
+		args := m.Called(ctx, key, value, ttl)
+		return args.Error(0)
+	}
+	return nil
 }
 
 func (m *MockCache) Delete(ctx context.Context, key string) error {
@@ -365,6 +375,9 @@ func (m *MockCache) Ping(ctx context.Context) error {
 }
 
 func (m *MockCache) GetRedisClient() redis.Cmdable {
+	if len(m.ExpectedCalls) == 0 {
+		return nil
+	}
 	args := m.Called()
 	if args.Get(0) == nil {
 		return nil

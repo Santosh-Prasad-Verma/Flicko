@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"regexp"
 	"strings"
@@ -13,6 +14,7 @@ import (
 	"github.com/flicko-org/flicko-backend/internal/services/ai/moderation"
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
 
@@ -20,6 +22,7 @@ var userMentionRegex = regexp.MustCompile(`<@!?([0-9a-fA-F-]+)>`)
 
 type MessageHandler struct {
 	db         *pgxpool.Pool
+	redis      redis.Cmdable
 	logger     *zap.Logger
 	moderation moderation.Service           // optional; nil disables AI mod
 	mentionSvc services.MentionService      // optional; nil skips mention processing
@@ -31,6 +34,11 @@ func NewMessageHandler(db *pgxpool.Pool, logger *zap.Logger) *MessageHandler {
 		db:     db,
 		logger: logger.Named("handler.message"),
 	}
+}
+
+func (h *MessageHandler) WithRedis(rdb redis.Cmdable) *MessageHandler {
+	h.redis = rdb
+	return h
 }
 
 // WithModeration wires an AI moderation service into the message pipeline.
@@ -67,6 +75,21 @@ func (h *MessageHandler) CreateMessage(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
+	}
+
+	idempotencyKey := r.Header.Get("Idempotency-Key")
+	var cacheKey string
+	if idempotencyKey != "" {
+		cacheKey = fmt.Sprintf("idempotency:%s:%s", userID, idempotencyKey)
+		if h.redis != nil {
+			cachedResp, err := h.redis.Get(ctx, cacheKey).Result()
+			if err == nil && cachedResp != "" {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(cachedResp))
+				return
+			}
+		}
 	}
 
 	var payload CreateMessagePayload
@@ -191,10 +214,17 @@ func (h *MessageHandler) CreateMessage(w http.ResponseWriter, r *http.Request) {
 	// 7. Process mentions and create notifications (best-effort, async-safe).
 	go h.processMentionsAndNotify(context.Background(), newID, payload.Content, userID, serverID)
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
+	respData := map[string]string{
 		"id": newID,
-	})
+	}
+	respBytes, _ := json.Marshal(respData)
+	if cacheKey != "" && h.redis != nil {
+		_ = h.redis.Set(ctx, cacheKey, string(respBytes), 24*time.Hour).Err()
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(respBytes)
 }
 
 func (h *MessageHandler) processMentionsAndNotify(ctx context.Context, messageID, content, authorID, serverID string) {

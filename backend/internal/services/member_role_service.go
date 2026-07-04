@@ -96,7 +96,7 @@ func (s *memberRoleService) AddRole(ctx context.Context, serverID, userID, roleI
 	}
 
 	// Invalidate permission cache
-	_ = s.permService.InvalidatePermissionCache(ctx, userUUID, uuid.Nil)
+	_ = s.permService.InvalidateServerCache(ctx, serverUUID)
 
 	// Audit Log
 	_ = s.auditService.CreateLog(ctx, serverID, &executorID, models.ActionMemberRoleUpdate, "user", &userID, nil, map[string]interface{}{
@@ -138,7 +138,7 @@ func (s *memberRoleService) RemoveRole(ctx context.Context, serverID, userID, ro
 	}
 
 	// Invalidate permission cache
-	_ = s.permService.InvalidatePermissionCache(ctx, userUUID, uuid.Nil)
+	_ = s.permService.InvalidateServerCache(ctx, serverUUID)
 
 	// Audit Log
 	_ = s.auditService.CreateLog(ctx, serverID, &executorID, models.ActionMemberRoleUpdate, "user", &userID, nil, map[string]interface{}{

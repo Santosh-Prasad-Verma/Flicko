@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -46,7 +47,11 @@ func (c *Client) SendMessage(ctx context.Context, channelID, content string) (*M
 		return nil, err
 	}
 
-	req.Header.Set("Authorization", "Bearer "+c.APIKey)
+	authHeaderVal := c.APIKey
+	if !strings.HasPrefix(authHeaderVal, "Bot ") && !strings.HasPrefix(authHeaderVal, "Bearer ") {
+		authHeaderVal = "Bot " + authHeaderVal
+	}
+	req.Header.Set("Authorization", authHeaderVal)
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.HTTPClient.Do(req)

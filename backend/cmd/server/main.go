@@ -12,6 +12,7 @@ import (
 
 	"github.com/flicko-org/flicko-backend/internal/activities/watchtogether"
 	"github.com/flicko-org/flicko-backend/internal/bots"
+	"github.com/flicko-org/flicko-backend/internal/bots/gateway"
 	"github.com/flicko-org/flicko-backend/internal/cache"
 	"github.com/flicko-org/flicko-backend/internal/commands"
 	"github.com/flicko-org/flicko-backend/internal/config"
@@ -131,8 +132,8 @@ func main() {
 	}
 	logger.Info("bot system initialized", zap.Int("bot_count", 8))
 
-	// Wire bot auth middleware with database connection
-	handlers.SetBotAuthDB(db.Pool(), logger)
+	// Wire bot auth middleware with database connection and redis caching
+	handlers.SetBotAuthDB(db.Pool(), cfg.JWTSecret, redisCache.GetRedisClient(), logger)
 	handlers.SetBotMarketplaceDB(db.Pool(), logger)
 
 	// Start background tickers for bots (minute/hour events).
@@ -391,14 +392,38 @@ func main() {
 	protected.HandleFunc("/bots/{id}/keys", handlers.HandleGenerateAPIKey).Methods("POST")
 	protected.HandleFunc("/bots/{id}/rotate-secret", handlers.HandleRotateBotSecret).Methods("POST")
 
+	// ── Developer Portal Applications Endpoints ──────────────────────────────
+	appHandler := handlers.NewApplicationHandler(db.Pool(), cfg.JWTSecret, logger)
+	protected.HandleFunc("/applications", appHandler.Create).Methods("POST")
+	protected.HandleFunc("/applications", appHandler.List).Methods("GET")
+	protected.HandleFunc("/applications/{id}", appHandler.Get).Methods("GET")
+	protected.HandleFunc("/applications/{id}", appHandler.Update).Methods("PATCH")
+	protected.HandleFunc("/applications/{id}", appHandler.Delete).Methods("DELETE")
+	protected.HandleFunc("/applications/{id}/bot/reset-token", appHandler.ResetToken).Methods("POST")
+
+	// ── OAuth2 Bot Authorize Endpoints ─────────────────────────────────────
+	oauth2Handler := handlers.NewOAuth2Handler(db.Pool(), logger)
+	api.HandleFunc("/oauth2/authorize", oauth2Handler.GetAuthorizeInfo).Methods("GET")
+	protected.HandleFunc("/oauth2/authorize", oauth2Handler.AuthorizeBot).Methods("POST")
+
+	// ── Interactions & Webhook Handlers ─────────────────────────────────────
+	interactionHandler := handlers.NewInteractionHandler(db.Pool(), logger)
+	api.HandleFunc("/interactions", interactionHandler.HandleInteraction).Methods("POST")
+
+	// ── Gateway WebSocket Protocol & Sharding Endpoints ─────────────────────
+	gwServer := gateway.NewServer(db.Pool(), redisCache.GetRedisClient(), cfg.JWTSecret, logger)
+	shardCoord := gateway.NewShardCoordinator(db.Pool(), redisCache.GetRedisClient(), logger)
+	api.Handle("/gateway", gwServer.HandleWebSocket())
+	api.HandleFunc("/gateway/bot", shardCoord.HandleGatewayBot).Methods("GET")
+
+
 	// ── Webhook / Bot API Endpoints (called *by* bots) ─────────────────────
-	// These use the new BotAuthMiddleware requiring `flicko_bot_...` Authorization bearers
+	botRateLimiter := middleware.NewBotRateLimiter(redisCache.GetRedisClient(), logger)
 	botAPI := api.PathPrefix("/bot-api").Subrouter()
-	botAPI.Use(apiLimiter.Limit)
 	botAPI.Use(func(next http.Handler) http.Handler {
-		// Use empty required scope for now or "messages.write" for specific targets
 		return handlers.BotAuthMiddleware("", next)
 	})
+	botAPI.Use(botRateLimiter.Limit)
 
 	botAPI.HandleFunc("/messages/{channelId}", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -509,8 +534,8 @@ func main() {
 	musicHandler := handlers.NewMusicHandler(db.Pool(), logger)
 	protected.HandleFunc("/servers/{serverId}/music/state", musicHandler.GetMusicState).Methods("GET")
 
-	// Message creation (for timeouts, silent, mentions)
-	msgHandler := handlers.NewMessageHandler(db.Pool(), logger)
+	// Message creation (for timeouts, silent, mentions, idempotency)
+	msgHandler := handlers.NewMessageHandler(db.Pool(), logger).WithRedis(redisCache.GetRedisClient())
 	// Inject AI moderation so every send runs Llama-Guard before insert.
 	// Gated by the same flag — when off the handler skips the classifier.
 	if cfg.AIModerationEnabled {
