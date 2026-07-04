@@ -587,6 +587,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
+        path: '/news',
+        redirect: (context, state) => '/newz',
+      ),
+      GoRoute(
         path: '/newz',
         builder: (context, state) => const NewsFeedScreen(),
         routes: [

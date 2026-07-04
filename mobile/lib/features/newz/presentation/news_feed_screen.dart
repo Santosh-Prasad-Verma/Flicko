@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/features/newz/data/news_article.dart';
 import 'package:mobile/features/newz/data/news_service.dart';
 import 'package:mobile/features/newz/presentation/in_app_browser_screen.dart';
+import 'package:mobile/features/shared/presentation/widgets/pill_search_bar.dart';
 
 class NewsFeedScreen extends StatefulWidget {
   const NewsFeedScreen({super.key});
@@ -136,50 +137,12 @@ class _NewsFeedScreenState extends State<NewsFeedScreen> {
   Widget _buildSearchBar() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-      child: Container(
-        height: 44,
-        decoration: BoxDecoration(
-          color: _cardBg,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-        ),
-        child: Row(
-          children: [
-            const SizedBox(width: 12),
-            Icon(Icons.search_rounded,
-                color: _accent.withValues(alpha: 0.7), size: 20),
-            const SizedBox(width: 8),
-            Expanded(
-              child: TextField(
-                controller: _searchController,
-                onChanged: (val) => setState(() => _searchQuery = val),
-                style: GoogleFonts.inter(
-                    color: Colors.white, fontSize: 14),
-                decoration: InputDecoration(
-                  hintText: 'Enter keywords...',
-                  hintStyle: GoogleFonts.inter(
-                      color: Colors.white.withValues(alpha: 0.3), fontSize: 14),
-                  border: InputBorder.none,
-                  isDense: true,
-                  contentPadding: EdgeInsets.zero,
-                ),
-              ),
-            ),
-            if (_searchQuery.isNotEmpty)
-              GestureDetector(
-                onTap: () {
-                  _searchController.clear();
-                  setState(() => _searchQuery = '');
-                },
-                child: const Padding(
-                  padding: EdgeInsets.all(8),
-                  child: Icon(Icons.close_rounded,
-                      color: Colors.white38, size: 18),
-                ),
-              ),
-            const SizedBox(width: 4),
-          ],
-        ),
+      child: PillSearchBar(
+        controller: _searchController,
+        hintText: 'Search news, topics or authors...',
+        onBackPressed: () => context.pop(),
+        onChanged: (val) => setState(() => _searchQuery = val),
+        onClear: () => setState(() => _searchQuery = ''),
       ),
     );
   }

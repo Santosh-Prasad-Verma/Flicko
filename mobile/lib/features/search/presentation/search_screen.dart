@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/data/services/user_search_service.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
+import 'package:mobile/features/shared/presentation/widgets/pill_search_bar.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
@@ -44,83 +45,28 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
-          titleSpacing: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFFE4E4E7)),
-            onPressed: () => context.pop(),
-          ),
+          automaticallyImplyLeading: false,
+          toolbarHeight: 64,
+          titleSpacing: 16,
           flexibleSpace: ClipRRect(
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
               child: Container(color: Colors.black.withValues(alpha: 0.4)),
             ),
           ),
-          title: Container(
-            height: 42,
-            margin: const EdgeInsets.only(right: 16),
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(21),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.search_rounded,
-                  color: const Color(0xFF52B788).withValues(alpha: 0.7),
-                  size: 20,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextField(
-                    controller: _searchController,
-                    autofocus: true,
-                    style: GoogleFonts.inter(
-                      color: const Color(0xFFE4E4E7),
-                      fontSize: 15,
-                      fontWeight: FontWeight.w400,
-                    ),
-                    onChanged: (value) {
-                      ref.read(userSearchQueryProvider.notifier).state = value;
-                      setState(() {});
-                    },
-                    decoration: InputDecoration(
-                      hintText: 'Search users...',
-                      hintStyle: GoogleFonts.inter(
-                        color: Colors.white.withValues(alpha: 0.25),
-                        fontSize: 15,
-                      ),
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      isDense: true,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ),
-                ),
-                if (_searchController.text.isNotEmpty)
-                  GestureDetector(
-                    onTap: () {
-                      _searchController.clear();
-                      ref.read(userSearchQueryProvider.notifier).state = '';
-                      setState(() {});
-                    },
-                    child: Container(
-                      width: 20,
-                      height: 20,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.08),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.close_rounded,
-                        color: Color(0xFF71717A),
-                        size: 14,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
+          title: PillSearchBar(
+            controller: _searchController,
+            hintText: 'Search users...',
+            autofocus: true,
+            onBackPressed: () => context.pop(),
+            onChanged: (value) {
+              ref.read(userSearchQueryProvider.notifier).state = value;
+              setState(() {});
+            },
+            onClear: () {
+              ref.read(userSearchQueryProvider.notifier).state = '';
+              setState(() {});
+            },
           ),
         ),
         body: searchResults.when(

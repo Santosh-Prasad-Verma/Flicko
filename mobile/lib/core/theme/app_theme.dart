@@ -153,6 +153,11 @@ class AppTheme {
               GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600),
         ),
       ),
+      textSelectionTheme: const TextSelectionThemeData(
+        cursorColor: Color(0xFF52B788),
+        selectionColor: Color(0x4052B788),
+        selectionHandleColor: Color(0xFF52B788),
+      ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: bgTertiary,
@@ -160,17 +165,17 @@ class AppTheme {
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(20),
           borderSide: const BorderSide(color: Color(FlickoColors.border)),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(20),
           borderSide: const BorderSide(color: Color(FlickoColors.border)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(20),
           borderSide: const BorderSide(
-            color: Color(FlickoColors.brandLime),
+            color: Color(0xFF52B788),
             width: 1.4,
           ),
         ),

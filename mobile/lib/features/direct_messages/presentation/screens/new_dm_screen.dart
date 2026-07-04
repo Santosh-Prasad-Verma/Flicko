@@ -6,6 +6,7 @@ import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/data/models/user_model.dart';
 import 'package:mobile/features/direct_messages/data/dm_repository.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
+import 'package:mobile/features/shared/presentation/widgets/pill_search_bar.dart';
 
 class NewDMScreen extends ConsumerStatefulWidget {
   const NewDMScreen({super.key});
@@ -87,104 +88,16 @@ class _NewDMScreenState extends ConsumerState<NewDMScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // ── HEADER ──
+            // ── SEARCH BAR WITH INTEGRATED BACK ARROW ──
             Padding(
-              padding: const EdgeInsets.fromLTRB(8, 8, 16, 0),
-              child: Row(
-                children: [
-                  IconButton(
-                    onPressed: () => context.pop(),
-                    icon: const Icon(
-                      Icons.arrow_back_rounded,
-                      color: Color(FlickoColors.textPrimary),
-                      size: 22,
-                    ),
-                    splashRadius: 20,
-                  ),
-                  const SizedBox(width: 4),
-                  const Text(
-                    'New Message',
-                    style: TextStyle(
-                      color: Color(FlickoColors.textPrimary),
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      fontFamily: 'Inter',
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            // ── SEARCH BAR ──
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: const Color(FlickoColors.bgTertiary),
-                  borderRadius: BorderRadius.circular(FlickoRadius.xl),
-                  border: Border.all(
-                    color: const Color(FlickoColors.border),
-                    width: 1,
-                  ),
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  focusNode: _focusNode,
-                  onChanged: _onSearchChanged,
-                  style: const TextStyle(
-                    color: Color(FlickoColors.textPrimary),
-                    fontSize: 15,
-                    fontFamily: 'Inter',
-                  ),
-                  cursorColor: const Color(FlickoColors.emeraldGreen),
-                  decoration: InputDecoration(
-                    hintText: 'Search by username or display name...',
-                    hintStyle: TextStyle(
-                      color: const Color(FlickoColors.textMuted),
-                      fontSize: 15,
-                      fontFamily: 'Inter',
-                    ),
-                    prefixIcon: const Padding(
-                      padding: EdgeInsets.only(left: 14, right: 10),
-                      child: Icon(
-                        Icons.search_rounded,
-                        color: Color(FlickoColors.textMuted),
-                        size: 20,
-                      ),
-                    ),
-                    prefixIconConstraints: const BoxConstraints(
-                      minWidth: 44,
-                      minHeight: 44,
-                    ),
-                    suffixIcon: _searchController.text.isNotEmpty
-                        ? GestureDetector(
-                            onTap: () {
-                              _searchController.clear();
-                              _onSearchChanged('');
-                            },
-                            child: const Padding(
-                              padding: EdgeInsets.only(right: 10),
-                              child: Icon(
-                                Icons.close_rounded,
-                                color: Color(FlickoColors.textMuted),
-                                size: 18,
-                              ),
-                            ),
-                          )
-                        : null,
-                    suffixIconConstraints: const BoxConstraints(
-                      minWidth: 36,
-                      minHeight: 36,
-                    ),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
-                  ),
-                ),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: PillSearchBar(
+                controller: _searchController,
+                focusNode: _focusNode,
+                hintText: 'Search by username or display name...',
+                onBackPressed: () => context.pop(),
+                onChanged: _onSearchChanged,
+                onClear: () => _onSearchChanged(''),
               ),
             ),
 
