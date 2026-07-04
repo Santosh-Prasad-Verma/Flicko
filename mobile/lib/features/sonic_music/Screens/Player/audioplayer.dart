@@ -277,19 +277,19 @@ class _PlayScreenState extends State<PlayScreen> {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 10, vertical: 6),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.15),
+                                color: const Color(0xFFC0EC54),
                                 borderRadius: BorderRadius.circular(20.0),
                               ),
                               child: const Row(
                                 children: [
                                   Icon(Icons.music_note_rounded,
-                                      size: 16, color: Colors.white),
+                                      size: 16, color: Colors.black),
                                   SizedBox(width: 4),
                                   Text("Song",
                                       style: TextStyle(
                                           fontSize: 12,
                                           fontWeight: FontWeight.bold,
-                                          color: Colors.white)),
+                                          color: Colors.black)),
                                 ],
                               ),
                             ),
@@ -753,17 +753,14 @@ class _PlayScreenState extends State<PlayScreen> {
                 decoration: BoxDecoration(
                   gradient: Theme.of(context).brightness == Brightness.dark
                       ? RadialGradient(
-                          center: const Alignment(0, -0.4),
-                          radius: 1.5,
+                          center: const Alignment(0, -0.5),
+                          radius: 1.4,
                           colors: [
-                            Color.alphaBlend(
-                              domColor.withOpacity(0.32),
-                              const Color(0xFF1E004F), // space violet-neon
-                            ),
-                            const Color(0xFF0C0022), // deep space blue
-                            const Color(0xFF05000E), // dark background base
+                            domColor.withOpacity(0.18),
+                            const Color(0xFF07040A),
+                            Colors.black,
                           ],
-                          stops: const [0.0, 0.65, 1.0],
+                          stops: const [0.0, 0.7, 1.0],
                         )
                       : LinearGradient(
                           begin: Alignment.topCenter,
@@ -1391,13 +1388,20 @@ class _RelatedSongsSectionState extends State<RelatedSongsSection> {
         similarList = topList.reversed.toList();
       }
 
-      // Merge and deduplicate by song id, cap at 8
-      final seen = <String>{};
+      // Merge and deduplicate by song id and normalized title+artist
+      final seenIds = <String>{};
+      final seenTitles = <String>{};
       final List<Map> merged = [];
       for (final song in [...topList, ...similarList]) {
         final songId = song['id']?.toString() ?? '';
-        if (songId.isNotEmpty && seen.add(songId)) {
-          merged.add(song);
+        final title = (song['title'] ?? song['name'] ?? '').toString().toLowerCase().trim();
+        final artist = (song['artist'] ?? song['artistName'] ?? song['subtitle'] ?? '').toString().toLowerCase().trim();
+        final titleArtistKey = '$title-$artist';
+
+        if (songId.isNotEmpty && seenIds.add(songId)) {
+          if (title.isEmpty || seenTitles.add(titleArtistKey)) {
+            merged.add(song);
+          }
         }
         if (merged.length >= 8) break;
       }
@@ -1518,7 +1522,7 @@ class _RelatedSongsSectionState extends State<RelatedSongsSection> {
         padding: EdgeInsets.symmetric(vertical: 40.0),
         child: Center(
           child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Colors.white30),
+            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFC0EC54)),
           ),
         ),
       );
@@ -1538,7 +1542,7 @@ class _RelatedSongsSectionState extends State<RelatedSongsSection> {
                   height: 18,
                   width: 3.5,
                   decoration: const BoxDecoration(
-                    color: Color(0xFF3F51B5),
+                    color: Color(0xFFC0EC54),
                     borderRadius: BorderRadius.all(Radius.circular(2)),
                   ),
                 ),
@@ -2528,10 +2532,10 @@ class _NameNControlsState extends State<NameNControls> {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.08),
+                                    color: Colors.white.withOpacity(0.04),
                                     borderRadius: BorderRadius.circular(6),
                                     border: Border.all(
-                                      color: Colors.white.withOpacity(0.12),
+                                      color: const Color(0xFFC0EC54).withOpacity(0.2),
                                       width: 1,
                                     ),
                                   ),
@@ -2541,7 +2545,7 @@ class _NameNControlsState extends State<NameNControls> {
                                       Icon(
                                         widget.offline ? Icons.download_done_rounded : Icons.music_note_rounded,
                                         size: 12,
-                                        color: Colors.white.withOpacity(0.7),
+                                        color: const Color(0xFFC0EC54),
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
@@ -2842,7 +2846,7 @@ class _NameNControlsState extends State<NameNControls> {
                                     width: 70,
                                     child: CircularProgressIndicator(
                                       valueColor: AlwaysStoppedAnimation<Color>(
-                                          Colors.white),
+                                          Color(0xFFC0EC54)),
                                       strokeWidth: 3.0,
                                     ),
                                   ),
@@ -2854,13 +2858,14 @@ class _NameNControlsState extends State<NameNControls> {
                                     height: 64,
                                     width: 64,
                                     decoration: const BoxDecoration(
-                                      color: Colors.white,
+                                      color: Color(0xFFC0EC54),
                                       shape: BoxShape.circle,
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.black26,
-                                          blurRadius: 8.0,
-                                          offset: Offset(0, 4),
+                                          color: Color(0x55C0EC54),
+                                          blurRadius: 16.0,
+                                          spreadRadius: 2.0,
+                                          offset: Offset(0, 0),
                                         ),
                                       ],
                                     ),

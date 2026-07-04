@@ -173,24 +173,6 @@ class _SaavnHomePageState extends State<SaavnHomePage>
     final curatedItems = _getCuratedItems();
     if (curatedItems.isEmpty) return const SizedBox();
 
-    final List<Map<String, dynamic>> carouselStyles = [
-      {
-        'bgColor': const Color(0xFFCBB6FC),
-        'textColor': const Color(0xFF0F071B),
-        'btnColor': const Color(0xFF45226E),
-      },
-      {
-        'bgColor': const Color(0xFFFFD1B3),
-        'textColor': const Color(0xFF2C1405),
-        'btnColor': const Color(0xFF8E3E15),
-      },
-      {
-        'bgColor': const Color(0xFFBFF6EB),
-        'textColor': const Color(0xFF04241E),
-        'btnColor': const Color(0xFF0D6E5C),
-      },
-    ];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -213,12 +195,8 @@ class _SaavnHomePageState extends State<SaavnHomePage>
             itemCount: curatedItems.length,
             itemBuilder: (context, index) {
               final item = curatedItems[index] as Map;
-              final style = carouselStyles[index % carouselStyles.length];
               final String title = item['title']?.toString().unescape() ?? '';
               final String subtitle = getSubTitle(item);
-              final Color bgColor = style['bgColor'] as Color;
-              final Color textColor = style['textColor'] as Color;
-              final Color btnColor = style['btnColor'] as Color;
               final String imageUrl = getImageUrl(item['image']?.toString(), quality: 'high');
 
               return GestureDetector(
@@ -234,8 +212,12 @@ class _SaavnHomePageState extends State<SaavnHomePage>
                 child: Container(
                   margin: const EdgeInsets.symmetric(horizontal: 8),
                   decoration: BoxDecoration(
-                    color: bgColor,
+                    color: Colors.white.withOpacity(0.03),
                     borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: const Color(0xFFC0EC54).withOpacity(0.15),
+                      width: 1,
+                    ),
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(24),
@@ -276,7 +258,7 @@ class _SaavnHomePageState extends State<SaavnHomePage>
                                     child: Text(
                                       title,
                                       style: GoogleFonts.spaceGrotesk(
-                                        color: textColor,
+                                        color: Colors.white,
                                         fontSize: 22,
                                         fontWeight: FontWeight.w900,
                                       ),
@@ -290,7 +272,7 @@ class _SaavnHomePageState extends State<SaavnHomePage>
                                     child: Text(
                                       subtitle,
                                       style: GoogleFonts.spaceGrotesk(
-                                        color: textColor.withOpacity(0.7),
+                                        color: Colors.white.withOpacity(0.6),
                                         fontSize: 13,
                                         fontWeight: FontWeight.w600,
                                       ),
@@ -307,19 +289,19 @@ class _SaavnHomePageState extends State<SaavnHomePage>
                                     child: Container(
                                       width: 44,
                                       height: 44,
-                                      decoration: BoxDecoration(
+                                      decoration: const BoxDecoration(
                                         shape: BoxShape.circle,
-                                        color: btnColor,
+                                        color: Color(0xFFC0EC54),
                                       ),
-                                      child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 24),
+                                      child: const Icon(Icons.play_arrow_rounded, color: Colors.black, size: 24),
                                     ),
                                   ),
-                                  const SizedBox(width: 14),
-                                  Icon(Icons.favorite_border_rounded, color: textColor.withOpacity(0.65), size: 20),
-                                  const SizedBox(width: 14),
-                                  Icon(Icons.download_outlined, color: textColor.withOpacity(0.65), size: 20),
-                                  const SizedBox(width: 14),
-                                  Icon(Icons.more_horiz_rounded, color: textColor.withOpacity(0.65), size: 20),
+                                  const SizedBox(width: 16),
+                                  Icon(Icons.favorite_border_rounded, color: Colors.white.withOpacity(0.6), size: 20),
+                                  const SizedBox(width: 16),
+                                  Icon(Icons.download_outlined, color: Colors.white.withOpacity(0.6), size: 20),
+                                  const SizedBox(width: 16),
+                                  Icon(Icons.more_horiz_rounded, color: Colors.white.withOpacity(0.6), size: 20),
                                 ],
                               ),
                             ],
@@ -337,141 +319,7 @@ class _SaavnHomePageState extends State<SaavnHomePage>
     );
   }
 
-  Widget _buildTopDailyPlaylistsSection() {
-    final curatedItems = _getCuratedItems();
-    if (curatedItems.isEmpty) return const SizedBox();
 
-    final displayedItems = curatedItems.take(4).toList();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 28, 16, 12),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Top daily playlists',
-                style: GoogleFonts.spaceGrotesk(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              GestureDetector(
-                onTap: () {
-                  Navigator.pushNamed(context, '/playlists');
-                },
-                child: Text(
-                  'See all',
-                  style: GoogleFonts.spaceGrotesk(
-                    color: Colors.white.withOpacity(0.5),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          itemCount: displayedItems.length,
-          itemBuilder: (context, index) {
-            final item = displayedItems[index] as Map;
-            final title = item['title']?.toString().unescape() ?? 'Unknown Playlist';
-            final subTitle = getSubTitle(item);
-
-            return GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  PageRouteBuilder(
-                    opaque: false,
-                    pageBuilder: (_, __, ___) => SongsListPage(listItem: item),
-                  ),
-                );
-              },
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.02),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white.withOpacity(0.04), width: 1),
-                ),
-                child: Row(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: Image.network(
-                        item['image'].toString(),
-                        width: 64,
-                        height: 64,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          width: 64,
-                          height: 64,
-                          color: Colors.white.withOpacity(0.05),
-                          child: const Icon(Icons.music_note, color: Colors.white30),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            title,
-                            style: GoogleFonts.spaceGrotesk(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            subTitle,
-                            style: GoogleFonts.spaceGrotesk(
-                              color: Colors.white.withOpacity(0.5),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () => _playPlaylistOrAlbum(item),
-                      child: Container(
-                        width: 38,
-                        height: 38,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.04),
-                          border: Border.all(color: Colors.white.withOpacity(0.08), width: 1),
-                        ),
-                        child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 20),
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
-      ],
-    );
-  }
 
   List recommendations = [];
   List oldFavorites = [];
@@ -549,9 +397,9 @@ class _SaavnHomePageState extends State<SaavnHomePage>
                 child: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.03),
+                    color: Colors.white.withOpacity(0.04),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.white.withOpacity(0.05), width: 1),
+                    border: Border.all(color: const Color(0xFFC0EC54).withOpacity(0.12), width: 1),
                   ),
                   child: Row(
                     children: [
@@ -600,7 +448,7 @@ class _SaavnHomePageState extends State<SaavnHomePage>
                           ],
                         ),
                       ),
-                      const Icon(Icons.play_arrow_rounded, color: Colors.white70, size: 20),
+                      const Icon(Icons.play_arrow_rounded, color: Color(0xFFC0EC54), size: 20),
                     ],
                   ),
                 ),
@@ -651,20 +499,41 @@ class _SaavnHomePageState extends State<SaavnHomePage>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: Image.network(
-                          item['image'].toString(),
-                          width: 110,
-                          height: 110,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Container(
-                            width: 110,
-                            height: 110,
-                            color: Colors.white10,
-                            child: const Icon(Icons.music_note, color: Colors.white30),
+                      Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(18),
+                            child: Image.network(
+                              item['image'].toString(),
+                              width: 110,
+                              height: 110,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => Container(
+                                width: 110,
+                                height: 110,
+                                color: Colors.white.withOpacity(0.05),
+                                child: const Icon(Icons.music_note, color: Colors.white30),
+                              ),
+                            ),
                           ),
-                        ),
+                          Positioned(
+                            right: 8,
+                            bottom: 8,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.black.withOpacity(0.65),
+                                border: Border.all(color: const Color(0xFFC0EC54).withOpacity(0.3), width: 1),
+                              ),
+                              child: const Icon(
+                                Icons.play_arrow_rounded,
+                                color: Color(0xFFC0EC54),
+                                size: 16,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -728,20 +597,41 @@ class _SaavnHomePageState extends State<SaavnHomePage>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: Image.network(
-                          item['image'].toString(),
-                          width: 110,
-                          height: 110,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Container(
-                            width: 110,
-                            height: 110,
-                            color: Colors.white10,
-                            child: const Icon(Icons.music_note, color: Colors.white30),
+                      Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(18),
+                            child: Image.network(
+                              item['image'].toString(),
+                              width: 110,
+                              height: 110,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => Container(
+                                width: 110,
+                                height: 110,
+                                color: Colors.white.withOpacity(0.05),
+                                child: const Icon(Icons.music_note, color: Colors.white30),
+                              ),
+                            ),
                           ),
-                        ),
+                          Positioned(
+                            right: 8,
+                            bottom: 8,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.black.withOpacity(0.65),
+                                border: Border.all(color: const Color(0xFFC0EC54).withOpacity(0.3), width: 1),
+                              ),
+                              child: const Icon(
+                                Icons.play_arrow_rounded,
+                                color: Color(0xFFC0EC54),
+                                size: 16,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -804,20 +694,41 @@ class _SaavnHomePageState extends State<SaavnHomePage>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: Image.network(
-                          item['image'].toString(),
-                          width: 110,
-                          height: 110,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Container(
-                            width: 110,
-                            height: 110,
-                            color: Colors.white10,
-                            child: const Icon(Icons.music_note, color: Colors.white30),
+                      Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(18),
+                            child: Image.network(
+                              item['image'].toString(),
+                              width: 110,
+                              height: 110,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => Container(
+                                width: 110,
+                                height: 110,
+                                color: Colors.white.withOpacity(0.05),
+                                child: const Icon(Icons.music_note, color: Colors.white30),
+                              ),
+                            ),
                           ),
-                        ),
+                          Positioned(
+                            right: 8,
+                            bottom: 8,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.black.withOpacity(0.65),
+                                border: Border.all(color: const Color(0xFFC0EC54).withOpacity(0.3), width: 1),
+                              ),
+                              child: const Icon(
+                                Icons.play_arrow_rounded,
+                                color: Color(0xFFC0EC54),
+                                size: 16,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -841,84 +752,7 @@ class _SaavnHomePageState extends State<SaavnHomePage>
     );
   }
 
-  Widget _buildCommunityPlaylistsSection() {
-    final playlists = data['top_playlists'] as List?;
-    if (playlists == null || playlists.isEmpty) return const SizedBox();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 20, 16, 10),
-          child: Text(
-            'Trending community playlists',
-            style: GoogleFonts.spaceGrotesk(
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ),
-        SizedBox(
-          height: 160,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            itemCount: playlists.length,
-            itemBuilder: (context, index) {
-              final item = playlists[index] as Map;
-              return GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    PageRouteBuilder(
-                      opaque: false,
-                      pageBuilder: (_, __, ___) => SongsListPage(listItem: item),
-                    ),
-                  );
-                },
-                child: Container(
-                  width: 110,
-                  margin: const EdgeInsets.symmetric(horizontal: 6),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: Image.network(
-                          item['image'].toString(),
-                          width: 110,
-                          height: 110,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Container(
-                            width: 110,
-                            height: 110,
-                            color: Colors.white10,
-                            child: const Icon(Icons.music_note, color: Colors.white30),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        item['title']?.toString().unescape() ?? '',
-                        style: GoogleFonts.spaceGrotesk(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                        ),
-                         maxLines: 1,
-                         overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
+
 
   Widget _buildBiggestHitsSection() {
     final hits = data['charts'] as List?;
@@ -962,20 +796,41 @@ class _SaavnHomePageState extends State<SaavnHomePage>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: Image.network(
-                          item['image'].toString(),
-                          width: 110,
-                          height: 110,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Container(
-                            width: 110,
-                            height: 110,
-                            color: Colors.white10,
-                            child: const Icon(Icons.music_note, color: Colors.white30),
+                      Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(18),
+                            child: Image.network(
+                              item['image'].toString(),
+                              width: 110,
+                              height: 110,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => Container(
+                                width: 110,
+                                height: 110,
+                                color: Colors.white.withOpacity(0.05),
+                                child: const Icon(Icons.music_note, color: Colors.white30),
+                              ),
+                            ),
                           ),
-                        ),
+                          Positioned(
+                            right: 8,
+                            bottom: 8,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.black.withOpacity(0.65),
+                                border: Border.all(color: const Color(0xFFC0EC54).withOpacity(0.3), width: 1),
+                              ),
+                              child: const Icon(
+                                Icons.play_arrow_rounded,
+                                color: Color(0xFFC0EC54),
+                                size: 16,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -1041,20 +896,41 @@ class _SaavnHomePageState extends State<SaavnHomePage>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: Image.network(
-                          item['image'].toString(),
-                          width: 110,
-                          height: 110,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Container(
-                            width: 110,
-                            height: 110,
-                            color: Colors.white10,
-                            child: const Icon(Icons.music_note, color: Colors.white30),
+                      Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(18),
+                            child: Image.network(
+                              item['image'].toString(),
+                              width: 110,
+                              height: 110,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => Container(
+                                width: 110,
+                                height: 110,
+                                color: Colors.white.withOpacity(0.05),
+                                child: const Icon(Icons.music_note, color: Colors.white30),
+                              ),
+                            ),
                           ),
-                        ),
+                          Positioned(
+                            right: 8,
+                            bottom: 8,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.black.withOpacity(0.65),
+                                border: Border.all(color: const Color(0xFFC0EC54).withOpacity(0.3), width: 1),
+                              ),
+                              child: const Icon(
+                                Icons.play_arrow_rounded,
+                                color: Color(0xFFC0EC54),
+                                size: 16,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -1117,20 +993,41 @@ class _SaavnHomePageState extends State<SaavnHomePage>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: Image.network(
-                          item['image'].toString(),
-                          width: 110,
-                          height: 110,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Container(
-                            width: 110,
-                            height: 110,
-                            color: Colors.white10,
-                            child: const Icon(Icons.music_note, color: Colors.white30),
+                      Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(18),
+                            child: Image.network(
+                              item['image'].toString(),
+                              width: 110,
+                              height: 110,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => Container(
+                                width: 110,
+                                height: 110,
+                                color: Colors.white.withOpacity(0.05),
+                                child: const Icon(Icons.music_note, color: Colors.white30),
+                              ),
+                            ),
                           ),
-                        ),
+                          Positioned(
+                            right: 8,
+                            bottom: 8,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.black.withOpacity(0.65),
+                                border: Border.all(color: const Color(0xFFC0EC54).withOpacity(0.3), width: 1),
+                              ),
+                              child: const Icon(
+                                Icons.play_arrow_rounded,
+                                color: Color(0xFFC0EC54),
+                                size: 16,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -1205,11 +1102,9 @@ class _SaavnHomePageState extends State<SaavnHomePage>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (showTrending) _buildCuratedTrendingCarousel().animate().fadeIn(duration: 350.ms).slideY(begin: 0.05, end: 0),
-                  if (showTrending) _buildTopDailyPlaylistsSection().animate().fadeIn(duration: 400.ms).slideY(begin: 0.05, end: 0),
                   if (showPersonal) _buildRecentlyPlayedSection().animate().fadeIn(duration: 450.ms).slideY(begin: 0.05, end: 0),
                   if (showPersonal) _buildQuickplaySection().animate().fadeIn(duration: 500.ms).slideY(begin: 0.05, end: 0),
                   if (showTrending) _buildTrendingSongsSection().animate().fadeIn(duration: 550.ms).slideY(begin: 0.05, end: 0),
-                  if (showTrending) _buildCommunityPlaylistsSection().animate().fadeIn(duration: 600.ms).slideY(begin: 0.05, end: 0),
                   if (showPersonal) _buildSimilarSection().animate().fadeIn(duration: 650.ms).slideY(begin: 0.05, end: 0),
                   if (showTrending) _buildBiggestHitsSection().animate().fadeIn(duration: 700.ms).slideY(begin: 0.05, end: 0),
                   if (showNewRelease) _buildFreshFindsSection().animate().fadeIn(duration: 750.ms).slideY(begin: 0.05, end: 0),
