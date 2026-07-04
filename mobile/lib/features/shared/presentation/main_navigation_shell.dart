@@ -70,18 +70,23 @@ class MainNavigationShell extends ConsumerWidget {
             child: CallSignalListener(child: child),
           ),
 
-          // Voice HUD - animated position so it floats perfectly above the navbar or at screen bottom
-          // Hides (slides offscreen) when on full-screen calling (voice/stage) pages to avoid overlap
+          // Voice HUD - animated position so it floats cleanly at the top on sub-pages (chat screens)
+          // or above the navbar on main root tabs, avoiding input field overlap entirely.
           AnimatedPositioned(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOutQuart,
-            left: 0,
-            right: 0,
+            left: 12,
+            right: 12,
+            top: (activeLocation.contains('/voice') || activeLocation.contains('/stage'))
+                ? -160.0
+                : showNavBar
+                    ? null
+                    : (MediaQuery.of(context).padding.top + 54.0),
             bottom: (activeLocation.contains('/voice') || activeLocation.contains('/stage'))
-                ? -120.0 // Slide completely offscreen
+                ? -160.0
                 : showNavBar
                     ? (navBarHeight + 8.0)
-                    : (bottomPadding + 16.0),
+                    : null,
             child: const VoiceHUD(),
           ),
 
