@@ -26,6 +26,14 @@ func CSRFMiddleware(logger *zap.Logger) func(http.Handler) http.Handler {
 				return
 			}
 
+			// Token-based requests (e.g. mobile/API clients sending Authorization Bearer token)
+			// are inherently immune to CSRF since browsers do not automatically attach bearer tokens.
+			authHeader := r.Header.Get("Authorization")
+			if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
+				next.ServeHTTP(w, r)
+				return
+			}
+
 			// Extract CSRF token from header
 			token := r.Header.Get("X-CSRF-Token")
 			if token == "" {
