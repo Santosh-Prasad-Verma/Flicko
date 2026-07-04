@@ -85,51 +85,73 @@ class _InputState extends State<Input> {
           ),
           const SizedBox(height: 6),
         ],
-        Container(
-          decoration: BoxDecoration(
-            color: hasError 
-                ? const Color(FlickoColors.danger).withValues(alpha: 0.1)
-                : const Color(FlickoColors.bgTertiary),
-            borderRadius: BorderRadius.circular(12),
-            border: hasError
-                ? Border.all(color: const Color(FlickoColors.danger))
-                : null,
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _controller,
-                  obscureText: _obscureText,
-                  enabled: widget.enabled,
-                  keyboardType: widget.keyboardType,
-                  maxLines: widget.isPassword ? 1 : widget.maxLines,
-                  onChanged: widget.onChanged,
-                  onSubmitted: widget.onSubmitted,
-                  style: GoogleFonts.inter(
-                    color: const Color(FlickoColors.textPrimary),
-                    fontSize: 15,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: widget.hint,
-                    hintStyle: GoogleFonts.inter(
-                      color: const Color(FlickoColors.textMuted),
+        Focus(
+          onFocusChange: (focused) {
+            setState(() {
+              _isFocused = focused;
+            });
+          },
+          child: Container(
+            height: 52,
+            decoration: BoxDecoration(
+              color: hasError 
+                  ? const Color(FlickoColors.danger).withValues(alpha: 0.1)
+                  : const Color(0xFF0C0C10).withValues(alpha: 0.95),
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(
+                color: hasError
+                    ? const Color(FlickoColors.danger)
+                    : (_isFocused ? const Color(0xFF52B788) : Colors.white.withValues(alpha: 0.12)),
+                width: 1.5,
+              ),
+              boxShadow: _isFocused
+                  ? [
+                      BoxShadow(
+                        color: const Color(0xFF52B788).withValues(alpha: 0.15),
+                        blurRadius: 10,
+                        spreadRadius: 1,
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _controller,
+                    obscureText: _obscureText,
+                    enabled: widget.enabled,
+                    keyboardType: widget.keyboardType,
+                    maxLines: widget.isPassword ? 1 : widget.maxLines,
+                    onChanged: widget.onChanged,
+                    onSubmitted: widget.onSubmitted,
+                    cursorColor: const Color(0xFF52B788),
+                    cursorWidth: 2.2,
+                    cursorHeight: 20.0,
+                    cursorRadius: const Radius.circular(1.0),
+                    style: GoogleFonts.inter(
+                      color: const Color(FlickoColors.textPrimary),
                       fontSize: 15,
                     ),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
+                    decoration: InputDecoration(
+                      hintText: widget.hint,
+                      hintStyle: GoogleFonts.inter(
+                        color: Colors.white.withValues(alpha: 0.3),
+                        fontSize: 15,
+                      ),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 14,
+                      ),
                     ),
+                    onTap: () {
+                      setState(() => _isFocused = true);
+                    },
                   ),
-                  onTap: () {
-                    setState(() => _isFocused = true);
-                  },
-                  onTapOutside: (_) {
-                    setState(() => _isFocused = false);
-                  },
                 ),
-              ),
               if (widget.isPassword)
                 GestureDetector(
                   onTap: _toggleObscureText,

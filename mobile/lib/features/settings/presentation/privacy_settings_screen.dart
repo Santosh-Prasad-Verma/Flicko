@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mobile/features/settings/application/user_settings_notifier.dart';
+import 'package:dio/dio.dart';
+import 'package:mobile/core/config/app_config.dart';
 
 /// Privacy & Safety Settings Screen (Sleek Brutalist Black/Neon Theme)
 class PrivacySettingsScreen extends ConsumerStatefulWidget {
@@ -165,27 +167,58 @@ class _PrivacySettingsScreenState
     if (confirmed != true || !mounted) return;
 
     try {
+      if (!AppConfig.hasApiBaseUrl) {
+        throw Exception("API Base URL not configured.");
+      }
+
       final client = Supabase.instance.client;
       final user = client.auth.currentUser;
       if (user == null) return;
 
-      // Insert a data export request record; a backend function/edge function
-      // processes it and emails the user a download link.
-      await client.from('data_export_requests').insert({
-        'user_id': user.id,
-        'email': user.email,
-        'status': 'pending',
-        'requested_at': DateTime.now().toUtc().toIso8601String(),
+      final token = client.auth.currentSession?.accessToken ?? "";
+      final dio = Dio(BaseOptions(
+        baseUrl: AppConfig.apiBaseUrl.endsWith('/')
+            ? AppConfig.apiBaseUrl
+            : '${AppConfig.apiBaseUrl}/',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      ));
+
+      final response = await dio.post('privacy/export', data: {
+        'format': 'json',
       });
 
+      if (response.statusCode == 200 || response.statusCode == 201 || response.statusCode == 202) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Data export initiated. You will receive an email when your files are ready.',
+                style: GoogleFonts.spaceGrotesk(color: Colors.black),
+              ),
+              backgroundColor: _neonGreen,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      } else {
+        throw Exception("Failed to request export (HTTP ${response.statusCode})");
+      }
+    } on DioException catch (e) {
+      String errMsg = "Failed to request export.";
+      if (e.response != null && e.response!.data is Map) {
+        final responseData = e.response!.data as Map;
+        if (responseData.containsKey('error')) {
+          errMsg = responseData['error'].toString();
+        }
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'Export requested. You will receive an email within 24 hours.',
-              style: GoogleFonts.spaceGrotesk(color: Colors.black),
-            ),
-            backgroundColor: _neonGreen,
+            content: Text(errMsg),
+            backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
         );

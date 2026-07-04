@@ -281,8 +281,8 @@ func main() {
 
 	// Slash commands
 	protected.HandleFunc("/commands", botHandler.ListCommands).Methods("GET")
-	protected.HandleFunc("/commands/{serverId}", botHandler.ListServerCommands).Methods("GET")
 	protected.HandleFunc("/commands/invoke", botHandler.InvokeCommand).Methods("POST")
+	protected.HandleFunc("/commands/{serverId}", botHandler.ListServerCommands).Methods("GET")
 
 	// Bot settings
 	protected.HandleFunc("/servers/{serverId}/bots/{botName}/settings", botHandler.GetBotSettings).Methods("GET")

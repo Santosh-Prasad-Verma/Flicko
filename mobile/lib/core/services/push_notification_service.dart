@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show Color, Colors;
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Provider for PushNotificationService
@@ -13,10 +14,48 @@ final pushNotificationServiceProvider = Provider<PushNotificationService>((ref) 
   return PushNotificationService();
 });
 
+/// Check if quiet hours are currently active by reading SharedPreferences.
+/// Used in top-level / static contexts where Riverpod is unavailable.
+Future<bool> _isQuietHoursActive() async {
+  final prefs = await SharedPreferences.getInstance();
+  final quietEnabled = prefs.getBool('notif_quiet_hours') ?? false;
+  if (!quietEnabled) return false;
+
+  final startStr = prefs.getString('notif_quiet_start') ?? '22:00';
+  final endStr = prefs.getString('notif_quiet_end') ?? '08:00';
+
+  final now = DateTime.now();
+  final currentMinutes = now.hour * 60 + now.minute;
+
+  final startParts = startStr.split(':');
+  final startMinutes =
+      (int.tryParse(startParts[0]) ?? 22) * 60 +
+      (int.tryParse(startParts.length > 1 ? startParts[1] : '0') ?? 0);
+
+  final endParts = endStr.split(':');
+  final endMinutes =
+      (int.tryParse(endParts[0]) ?? 8) * 60 +
+      (int.tryParse(endParts.length > 1 ? endParts[1] : '0') ?? 0);
+
+  if (startMinutes <= endMinutes) {
+    return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
+  } else {
+    // Overnight range (e.g. 22:00 → 08:00)
+    return currentMinutes >= startMinutes || currentMinutes <= endMinutes;
+  }
+}
+
 /// Background message handler (must be top-level function)
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   debugPrint('📬 Handling background message: ${message.messageId}');
+
+  // Check quiet hours before showing notification
+  if (await _isQuietHoursActive()) {
+    debugPrint('🌙 Quiet hours active — suppressing background notification');
+    return;
+  }
+
   await PushNotificationService.showRichNotification(message);
 }
 
@@ -161,9 +200,31 @@ class PushNotificationService {
 
   /// Show rich notification using AwesomeNotifications
   static Future<void> showRichNotification(RemoteMessage message) async {
+    // Check quiet hours before displaying
+    if (await _isQuietHoursActive()) {
+      debugPrint('🌙 Quiet hours active — suppressing rich notification');
+      return;
+    }
+
     final title = message.notification?.title ?? message.data['title'] ?? 'Flicko';
-    final body = message.notification?.body ?? message.data['body'] ?? '';
-    final String? imageUrl = message.notification?.android?.imageUrl ?? message.data['image_url'];
+    var body = message.notification?.body ?? message.data['body'] ?? '';
+    var imageUrl = message.notification?.android?.imageUrl ?? message.data['image_url'];
+
+    // Rewrite media URLs to human-readable strings and set as big picture
+    final lowerBody = body.trim().toLowerCase();
+    if (lowerBody.startsWith('http://') || lowerBody.startsWith('https://')) {
+      final mediaUrl = body.trim();
+      imageUrl ??= mediaUrl;
+      if (lowerBody.contains('/sticker/')) {
+        body = 'sent a sticker ⚡';
+      } else if (lowerBody.endsWith('.gif') || lowerBody.contains('.gif')) {
+        body = 'sent a GIF 🎬';
+      } else if (lowerBody.endsWith('.png') || lowerBody.endsWith('.jpg') || lowerBody.endsWith('.jpeg') || lowerBody.endsWith('.webp')) {
+        body = 'sent a photo 📷';
+      } else if (lowerBody.endsWith('.mp4') || lowerBody.endsWith('.mov') || lowerBody.endsWith('.webm') || lowerBody.endsWith('.avi')) {
+        body = 'sent a video 🎥';
+      }
+    }
 
     await AwesomeNotifications().createNotification(
       content: NotificationContent(
@@ -185,11 +246,18 @@ class PushNotificationService {
   }
 
   /// Handle foreground messages
-  void _handleForegroundMessage(RemoteMessage message) {
+  Future<void> _handleForegroundMessage(RemoteMessage message) async {
     debugPrint('📬 Foreground message received:');
     debugPrint('  - Title: ${message.notification?.title}');
     debugPrint('  - Body: ${message.notification?.body}');
     debugPrint('  - Data: ${message.data}');
+
+    // Check quiet hours before showing notification
+    if (await _isQuietHoursActive()) {
+      debugPrint('🌙 Quiet hours active — suppressing foreground notification');
+      _foregroundMessageController.add(message);
+      return;
+    }
 
     // Show local notification for foreground messages
     showRichNotification(message);

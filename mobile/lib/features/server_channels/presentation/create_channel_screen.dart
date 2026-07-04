@@ -237,6 +237,8 @@ class _CreateChannelScreenState extends ConsumerState<CreateChannelScreen> {
     );
   }
 
+  bool _isNameFocused = false;
+
   Widget _buildChannelNameInput() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -251,49 +253,80 @@ class _CreateChannelScreenState extends ConsumerState<CreateChannelScreen> {
           ),
         ),
         const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: const Color(FlickoColors.bgTertiary),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
+        Focus(
+          onFocusChange: (focused) {
+            setState(() {
+              _isNameFocused = focused;
+            });
+          },
+          child: Container(
+            height: 52,
+            decoration: BoxDecoration(
               color: _errorMessage != null
-                  ? const Color(FlickoColors.danger)
-                  : Colors.transparent,
+                  ? const Color(FlickoColors.danger).withValues(alpha: 0.1)
+                  : const Color(0xFF0C0C10).withValues(alpha: 0.95),
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(
+                color: _errorMessage != null
+                    ? const Color(FlickoColors.danger)
+                    : (_isNameFocused ? const Color(0xFF52B788) : Colors.white.withValues(alpha: 0.12)),
+                width: 1.5,
+              ),
+              boxShadow: _isNameFocused
+                  ? [
+                      BoxShadow(
+                        color: const Color(0xFF52B788).withValues(alpha: 0.15),
+                        blurRadius: 10,
+                        spreadRadius: 1,
+                      ),
+                    ]
+                  : null,
             ),
-          ),
-          child: Row(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Icon(
-                  _selectedType == ChannelType.text ? Icons.text_fields : Icons.volume_up,
-                  size: 18,
-                  color: const Color(FlickoColors.textMuted),
-                ),
-              ),
-              Expanded(
-                child: TextField(
-                  controller: _nameController,
-                  onChanged: _handleNameChange,
-                  style: GoogleFonts.inter(
-                    color: const Color(FlickoColors.textPrimary),
-                    fontSize: 16,
+            child: Row(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(left: 20),
+                  child: Icon(
+                    _selectedType == ChannelType.text ? Icons.tag : Icons.volume_up_rounded,
+                    size: 20,
+                    color: _isNameFocused ? const Color(0xFF52B788) : const Color(FlickoColors.textMuted),
                   ),
-                  decoration: InputDecoration(
-                    hintText: 'new-channel',
-                    hintStyle: GoogleFonts.inter(
-                      color: const Color(FlickoColors.textMuted),
-                      fontSize: 16,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    controller: _nameController,
+                    onChanged: _handleNameChange,
+                    cursorColor: const Color(0xFF52B788),
+                    cursorWidth: 2.2,
+                    cursorHeight: 20.0,
+                    cursorRadius: const Radius.circular(1.0),
+                    style: GoogleFonts.inter(
+                      color: const Color(FlickoColors.textPrimary),
+                      fontSize: 15,
                     ),
-                    border: InputBorder.none,
+                    decoration: InputDecoration(
+                      hintText: 'new-channel',
+                      hintStyle: GoogleFonts.inter(
+                        color: Colors.white.withValues(alpha: 0.3),
+                        fontSize: 15,
+                      ),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      isDense: true,
+                      counterText: '',
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    maxLength: 100,
+                    autofocus: true,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => _createChannel(),
                   ),
-                  maxLength: 100,
-                  autofocus: true,
-                  textInputAction: TextInputAction.done,
-                  onSubmitted: (_) => _createChannel(),
                 ),
-              ),
-            ],
+                const SizedBox(width: 20),
+              ],
+            ),
           ),
         ),
         if (_errorMessage != null) ...[

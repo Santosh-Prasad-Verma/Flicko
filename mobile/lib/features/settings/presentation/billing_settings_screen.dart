@@ -8,6 +8,8 @@ import 'package:intl/intl.dart';
 import 'dart:ui' show ImageFilter;
 import 'dart:math' show pi;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:dio/dio.dart';
+import 'package:mobile/core/config/app_config.dart';
 
 class BillingSettingsScreen extends ConsumerStatefulWidget {
   const BillingSettingsScreen({super.key});
@@ -1072,20 +1074,35 @@ class _GlassRedeemDialogState extends State<GlassRedeemDialog> with SingleTicker
     });
 
     try {
+      if (!AppConfig.hasApiBaseUrl) {
+        throw Exception("API Base URL not configured.");
+      }
+
       final client = Supabase.instance.client;
       final user = client.auth.currentUser;
       if (user == null) {
         throw Exception("Authentication required. Please sign in again.");
       }
 
-      final response = await client.rpc('redeem_gift_code', params: {
-        'p_code': code,
-        'p_user_id': user.id,
+      final token = client.auth.currentSession?.accessToken ?? "";
+      final dio = Dio(BaseOptions(
+        baseUrl: AppConfig.apiBaseUrl.endsWith('/')
+            ? AppConfig.apiBaseUrl
+            : '${AppConfig.apiBaseUrl}/',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      ));
+
+      final response = await dio.post('premium/redeem', data: {
+        'code': code.toUpperCase(),
       });
 
-      if (response != null && response['success'] == true) {
-        final plan = response['plan'] as String;
-        final durationDays = response['duration_days'] as int;
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final responseData = response.data as Map<String, dynamic>;
+        final plan = responseData['plan'] as String;
+        final durationDays = responseData['duration_days'] as int;
 
         setState(() {
           _unlockedPlan = plan;
@@ -1100,10 +1117,22 @@ class _GlassRedeemDialogState extends State<GlassRedeemDialog> with SingleTicker
         widget.onSuccess();
       } else {
         setState(() {
-          _errorMessage = response?['error'] ?? "Voucher is invalid or already claimed.";
+          _errorMessage = "Voucher is invalid or already claimed.";
           _isLoading = false;
         });
       }
+    } on DioException catch (e) {
+      String errMsg = "Voucher is invalid or already claimed.";
+      if (e.response != null && e.response!.data is Map) {
+        final responseData = e.response!.data as Map;
+        if (responseData.containsKey('error')) {
+          errMsg = responseData['error'].toString();
+        }
+      }
+      setState(() {
+        _errorMessage = errMsg;
+        _isLoading = false;
+      });
     } catch (e) {
       setState(() {
         _errorMessage = e.toString().replaceAll("Exception: ", "");

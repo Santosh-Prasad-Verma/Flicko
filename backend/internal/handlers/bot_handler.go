@@ -144,7 +144,7 @@ func (h *BotHandler) InvokeCommand(w http.ResponseWriter, r *http.Request) {
 		}
 		err := h.db.QueryRow(r.Context(),
 			`INSERT INTO interactions (type, guild_id, channel_id, user_id, data)
-			 VALUES (2, $1, $2, $3, $4)
+			 VALUES (2, $1::uuid, $2::uuid, $3::uuid, $4)
 			 RETURNING id`,
 			body.ServerID, body.ChannelID, userID, data).Scan(&interactionID)
 		if err != nil {
@@ -227,19 +227,19 @@ func (h *BotHandler) GetBotSettings(w http.ResponseWriter, r *http.Request) {
 	var query string
 	switch botName {
 	case "moderation":
-		query = `SELECT row_to_json(s) FROM mod_settings s WHERE server_id = $1`
+		query = `SELECT row_to_json(s) FROM mod_settings s WHERE server_id = $1::uuid`
 	case "automod":
-		query = `SELECT row_to_json(s) FROM automod_settings s WHERE server_id = $1`
+		query = `SELECT row_to_json(s) FROM automod_settings s WHERE server_id = $1::uuid`
 	case "welcome":
-		query = `SELECT row_to_json(s) FROM welcome_settings s WHERE server_id = $1`
+		query = `SELECT row_to_json(s) FROM welcome_settings s WHERE server_id = $1::uuid`
 	case "leveling":
-		query = `SELECT row_to_json(s) FROM level_settings s WHERE server_id = $1`
+		query = `SELECT row_to_json(s) FROM level_settings s WHERE server_id = $1::uuid`
 	case "ticket":
-		query = `SELECT row_to_json(s) FROM ticket_settings s WHERE server_id = $1`
+		query = `SELECT row_to_json(s) FROM ticket_settings s WHERE server_id = $1::uuid`
 	case "starboard":
-		query = `SELECT row_to_json(s) FROM starboard_settings s WHERE server_id = $1`
+		query = `SELECT row_to_json(s) FROM starboard_settings s WHERE server_id = $1::uuid`
 	case "music":
-		query = `SELECT row_to_json(s) FROM music_settings s WHERE server_id = $1`
+		query = `SELECT row_to_json(s) FROM music_settings s WHERE server_id = $1::uuid`
 	default:
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Unknown bot: " + botName})
 		return
@@ -287,19 +287,19 @@ func (h *BotHandler) UpdateBotSettings(w http.ResponseWriter, r *http.Request) {
 	var upsertSQL string
 	switch botName {
 	case "moderation":
-		upsertSQL = `INSERT INTO mod_settings (server_id, enabled) VALUES ($1, $2) ON CONFLICT (server_id) DO UPDATE SET enabled = $2`
+		upsertSQL = `INSERT INTO mod_settings (server_id, enabled) VALUES ($1::uuid, $2) ON CONFLICT (server_id) DO UPDATE SET enabled = $2`
 	case "automod":
-		upsertSQL = `INSERT INTO automod_settings (server_id, enabled) VALUES ($1, $2) ON CONFLICT (server_id) DO UPDATE SET enabled = $2`
+		upsertSQL = `INSERT INTO automod_settings (server_id, enabled) VALUES ($1::uuid, $2) ON CONFLICT (server_id) DO UPDATE SET enabled = $2`
 	case "welcome":
-		upsertSQL = `INSERT INTO welcome_settings (server_id, enabled) VALUES ($1, $2) ON CONFLICT (server_id) DO UPDATE SET enabled = $2`
+		upsertSQL = `INSERT INTO welcome_settings (server_id, enabled) VALUES ($1::uuid, $2) ON CONFLICT (server_id) DO UPDATE SET enabled = $2`
 	case "leveling":
-		upsertSQL = `INSERT INTO level_settings (server_id, enabled) VALUES ($1, $2) ON CONFLICT (server_id) DO UPDATE SET enabled = $2`
+		upsertSQL = `INSERT INTO level_settings (server_id, enabled) VALUES ($1::uuid, $2) ON CONFLICT (server_id) DO UPDATE SET enabled = $2`
 	case "ticket":
-		upsertSQL = `INSERT INTO ticket_settings (server_id, enabled) VALUES ($1, $2) ON CONFLICT (server_id) DO UPDATE SET enabled = $2`
+		upsertSQL = `INSERT INTO ticket_settings (server_id, enabled) VALUES ($1::uuid, $2) ON CONFLICT (server_id) DO UPDATE SET enabled = $2`
 	case "starboard":
-		upsertSQL = `INSERT INTO starboard_settings (server_id, enabled) VALUES ($1, $2) ON CONFLICT (server_id) DO UPDATE SET enabled = $2`
+		upsertSQL = `INSERT INTO starboard_settings (server_id, enabled) VALUES ($1::uuid, $2) ON CONFLICT (server_id) DO UPDATE SET enabled = $2`
 	case "music":
-		upsertSQL = `INSERT INTO music_settings (server_id, enabled) VALUES ($1, $2) ON CONFLICT (server_id) DO UPDATE SET enabled = $2`
+		upsertSQL = `INSERT INTO music_settings (server_id, enabled) VALUES ($1::uuid, $2) ON CONFLICT (server_id) DO UPDATE SET enabled = $2`
 	default:
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Unknown bot"})
 		return
@@ -948,7 +948,7 @@ func (h *BotHandler) canManageBots(ctx context.Context, serverID, userID string)
 
 	var isOwner bool
 	if err := h.db.QueryRow(ctx,
-		`SELECT EXISTS(SELECT 1 FROM servers WHERE id = $1 AND owner_id = $2)`,
+		`SELECT EXISTS(SELECT 1 FROM servers WHERE id = $1::uuid AND owner_id = $2::uuid)`,
 		serverID, userID,
 	).Scan(&isOwner); err == nil && isOwner {
 		return true
@@ -962,8 +962,8 @@ func (h *BotHandler) canManageBots(ctx context.Context, serverID, userID string)
 			SELECT 1
 			FROM member_roles mr
 			JOIN roles r ON r.id = mr.role_id
-			WHERE mr.server_id = $1
-			  AND mr.user_id = $2
+			WHERE mr.server_id = $1::uuid
+			  AND mr.user_id = $2::uuid
 			  AND (r.permissions & $3) <> 0
 		)`,
 		serverID, userID, wantBits,

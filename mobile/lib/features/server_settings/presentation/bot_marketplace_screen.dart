@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
+import 'package:dio/dio.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:mobile/core/config/app_config.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/server_settings/data/bot_marketplace_data.dart';
 
@@ -328,11 +331,18 @@ class _BotMarketplaceScreenState extends State<BotMarketplaceScreen> with Single
   }
 }
 
-class _BotDetailSheet extends StatelessWidget {
+class _BotDetailSheet extends StatefulWidget {
   final BotMarketplaceItem item;
   final String serverId;
 
   const _BotDetailSheet({required this.item, required this.serverId});
+
+  @override
+  State<_BotDetailSheet> createState() => _BotDetailSheetState();
+}
+
+class _BotDetailSheetState extends State<_BotDetailSheet> {
+  bool _isInstalling = false;
 
   @override
   Widget build(BuildContext context) {
@@ -352,7 +362,7 @@ class _BotDetailSheet extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Center(
-                  child: Text(item.icon, style: const TextStyle(fontSize: 32)),
+                  child: Text(widget.item.icon, style: const TextStyle(fontSize: 32)),
                 ),
               ),
               const SizedBox(width: 16),
@@ -361,7 +371,7 @@ class _BotDetailSheet extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      item.name,
+                      widget.item.name,
                       style: GoogleFonts.inter(
                         color: const Color(FlickoColors.textPrimary),
                         fontSize: 20,
@@ -369,7 +379,7 @@ class _BotDetailSheet extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'by ${item.author}',
+                      'by ${widget.item.author}',
                       style: GoogleFonts.inter(
                         color: const Color(FlickoColors.textMuted),
                         fontSize: 14,
@@ -391,7 +401,7 @@ class _BotDetailSheet extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            item.description,
+            widget.item.description,
             style: GoogleFonts.inter(
               color: const Color(FlickoColors.textPrimary),
               fontSize: 15,
@@ -403,14 +413,52 @@ class _BotDetailSheet extends StatelessWidget {
             width: double.infinity,
             height: 50,
             child: ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Installing ${item.name} to server...'),
-                    backgroundColor: const Color(FlickoColors.success),
-                  ),
-                );
+              onPressed: _isInstalling ? null : () async {
+                setState(() => _isInstalling = true);
+                try {
+                  final dio = Dio(BaseOptions(
+                    baseUrl: AppConfig.apiBaseUrl.endsWith('/') ? AppConfig.apiBaseUrl : '${AppConfig.apiBaseUrl}/',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': 'Bearer ${Supabase.instance.client.auth.currentSession?.accessToken ?? ""}',
+                    },
+                    connectTimeout: const Duration(seconds: 10),
+                    receiveTimeout: const Duration(seconds: 10),
+                  ));
+
+                  final botId = widget.item.id;
+                  await dio.put(
+                    'api/v1/servers/${widget.serverId}/bots/$botId/settings',
+                    data: {'enabled': true},
+                  );
+
+                  if (mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Successfully added ${widget.item.name} to server!'),
+                        backgroundColor: const Color(FlickoColors.success),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    setState(() => _isInstalling = false);
+                    String errMsg = e.toString();
+                    if (e is DioException) {
+                      final resp = e.response;
+                      if (resp != null && resp.data is Map) {
+                        errMsg = (resp.data as Map)['error'] ?? errMsg;
+                      }
+                    }
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Failed to add to server: $errMsg'),
+                        backgroundColor: const Color(FlickoColors.danger),
+                      ),
+                    );
+                  }
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF5865F2),
@@ -418,14 +466,20 @@ class _BotDetailSheet extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: Text(
-                'Add to Server',
-                style: GoogleFonts.inter(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: Colors.white,
-                ),
-              ),
+              child: _isInstalling
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : Text(
+                      'Add to Server',
+                      style: GoogleFonts.inter(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Colors.white,
+                      ),
+                    ),
             ),
           ),
           const SizedBox(height: 12),

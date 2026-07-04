@@ -128,6 +128,29 @@ extension UserSettingsHelpers on UserSettings {
       'system_developer_mode': developerMode,
     };
   }
+
+  bool isQuietHoursActive([DateTime? nowTime]) {
+    if (!quietHoursEnabled) return false;
+    final now = nowTime ?? DateTime.now();
+    final currentMinutes = now.hour * 60 + now.minute;
+
+    final startParts = quietHoursStart.split(':');
+    final startHour = int.tryParse(startParts[0]) ?? 22;
+    final startMin = int.tryParse(startParts.length > 1 ? startParts[1] : '0') ?? 0;
+    final startMinutes = startHour * 60 + startMin;
+
+    final endParts = quietHoursEnd.split(':');
+    final endHour = int.tryParse(endParts[0]) ?? 8;
+    final endMin = int.tryParse(endParts.length > 1 ? endParts[1] : '0') ?? 0;
+    final endMinutes = endHour * 60 + endMin;
+
+    if (startMinutes <= endMinutes) {
+      return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
+    } else {
+      // Overnight (e.g., 22:00 to 08:00)
+      return currentMinutes >= startMinutes || currentMinutes <= endMinutes;
+    }
+  }
 }
 
 UserSettings userSettingsFromPreferencesMap(Map<String, dynamic> map) {

@@ -423,12 +423,135 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     );
   }
 
+  bool _isMediaUrl(String? url) {
+    if (url == null) return false;
+    final lower = url.toLowerCase();
+    return lower.startsWith('http://') || lower.startsWith('https://');
+  }
+
+  String _getMediaType(String url) {
+    final lower = url.toLowerCase();
+    if (lower.contains('/sticker/')) return 'sticker';
+    if (lower.endsWith('.gif') || lower.contains('.gif')) return 'gif';
+    if (lower.endsWith('.png') || lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.webp')) return 'image';
+    if (lower.endsWith('.mp4') || lower.endsWith('.mov') || lower.endsWith('.webm') || lower.endsWith('.avi')) return 'video';
+    return 'link';
+  }
+
+  Widget _buildPreviewWidget(String preview) {
+    if (_isMediaUrl(preview)) {
+      final mediaType = _getMediaType(preview);
+      if (mediaType == 'sticker' || mediaType == 'gif' || mediaType == 'image' || mediaType == 'video') {
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 180, maxHeight: 120),
+            decoration: BoxDecoration(
+              color: _bgPrimary,
+              border: Border.all(color: _border, width: 1.5),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Image.network(
+                  preview,
+                  fit: BoxFit.cover,
+                  width: 180,
+                  height: 120,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Container(
+                      width: 180,
+                      height: 120,
+                      color: _bgPrimary,
+                      child: const Center(
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: _greenPunch,
+                            strokeWidth: 2,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      padding: const EdgeInsets.all(12),
+                      color: _bgSurface,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.broken_image_outlined, color: _textSecondary, size: 18),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Failed to load media',
+                            style: GoogleFonts.outfit(color: _textSecondary, fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+                if (mediaType == 'video')
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.4),
+                      shape: BoxShape.circle,
+                    ),
+                    padding: const EdgeInsets.all(6),
+                    child: const Icon(
+                      Icons.play_arrow_rounded,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      }
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: _bgPrimary,
+        border: Border.all(color: _border, width: 1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        preview,
+        style: GoogleFonts.outfit(
+          color: _textSecondary,
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+
   Widget _buildNotificationItem(Notification notification) {
     final meta = notification.content ?? {};
     final userName = meta['userName'] as String? ?? 'Someone';
-    final content = meta['content'] as String? ?? 'sent a notification';
+    var content = meta['content'] as String? ?? 'sent a notification';
     final preview = meta['preview'] as String?;
     final accentColor = _getTypeAccentColor(notification.type);
+
+    if (content == 'sent you a direct message' && _isMediaUrl(preview)) {
+      final mediaType = _getMediaType(preview!);
+      if (mediaType == 'sticker') {
+        content = 'sent you a sticker ⚡';
+      } else if (mediaType == 'gif') {
+        content = 'sent you a GIF 🎬';
+      } else if (mediaType == 'image') {
+        content = 'sent you a photo 📷';
+      } else if (mediaType == 'video') {
+        content = 'sent you a video 🎥';
+      }
+    }
 
     return GestureDetector(
       onTap: () => _markAsRead(notification.id),
@@ -491,7 +614,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                               width: 8,
                               height: 8,
                               margin: const EdgeInsets.only(right: 6),
-                              decoration: BoxDecoration(
+                              decoration: const BoxDecoration(
                                 color: _greenPunch,
                                 shape: BoxShape.circle,
                               ),
@@ -521,22 +644,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                   ),
                   if (preview != null) ...[
                     const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: _bgPrimary,
-                        border: Border.all(color: _border, width: 1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        preview,
-                        style: GoogleFonts.outfit(
-                          color: _textSecondary,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
+                    _buildPreviewWidget(preview),
                   ],
                   if (notification.type == 'friend_request' && !notification.read) ...[
                     const SizedBox(height: 12),
