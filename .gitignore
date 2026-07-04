@@ -318,3 +318,6 @@ API.md
 
 # BoxBox project
 BoxBox/
+
+# Monitoring secrets
+monitoring/agent_token

@@ -409,6 +409,7 @@ services:
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - ./monitoring/agent_token:/etc/prometheus/agent_token:ro
       - prometheus_data:/prometheus
     deploy:
       resources:
@@ -522,6 +523,7 @@ services:
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock
       - ./monitoring/promtail-config.yml:/etc/promtail/config.yml:ro
+      - ./monitoring/agent_token:/etc/promtail/agent_token:ro
     command: -config.file=/etc/promtail/config.yml
     deploy:
       resources:

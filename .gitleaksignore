@@ -36,3 +36,6 @@ efa97ed1cc1b218aa3a0a37c825838900034aa9d:mobile/test/unit/message_edit_trigger_t
 f3cd9813b1b8fa441c3d946ebbd4653df9900e9d:missing-features/11-streaming/native-rtmp-streaming/TRD.md:generic-api-key:86
 f3cd9813b1b8fa441c3d946ebbd4653df9900e9d:mobile/lib/features/e2ee/application/e2ee_session.dart:generic-api-key:185
 fb8cdc4142b8a3aac8a11715414850bd7bf9d839:.env.example:generic-api-key:6
+31d5e52fc3d1d5559db876dd40f2b0704d5740d2:monitoring/prometheus.yml:grafana-cloud-api-token:25
+31d5e52fc3d1d5559db876dd40f2b0704d5740d2:monitoring/promtail-config.yml:grafana-cloud-api-token:23
+
