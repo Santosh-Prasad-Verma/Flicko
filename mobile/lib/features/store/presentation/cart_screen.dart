@@ -10,12 +10,10 @@ import 'package:mobile/features/settings/application/payment_methods_provider.da
 import 'package:mobile/core/config/app_config.dart';
 
 // Shared colors
-const _kBg = Color(0xFF000000);
 const _kSurface = Color(0xFF000000);
 const _kNeon = Color(0xFF52B788);
 const _kWhite = Color(0xFFFFFFFF);
 const _kMuted = Color(0xFF71717A);
-const _kLime = Color(0xFF52B788);
 const _kGold = Color(0xFFFFD700);
 
 // Helper functions for cart items
@@ -516,7 +514,6 @@ class CartScreen extends ConsumerWidget {
 
   void _showCheckoutDialog(BuildContext context, WidgetRef ref, List<CartItem> cart) {
     final total = ref.read(cartProvider.notifier).total;
-    final hasFreeItems = cart.any((item) => item.product.price == 0);
     final paidItems = cart.where((item) => item.product.price > 0).toList();
     final freeItems = cart.where((item) => item.product.price == 0).toList();
 
@@ -577,7 +574,6 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
   int _selectedPaymentMethod = 0; // 0 = saved card, 1 = new card, 2 = UPI, 3 = wallet
   final _couponController = TextEditingController();
   String? _couponError;
-  bool _couponSuccess = false;
 
   @override
   void dispose() {
@@ -585,8 +581,6 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
     super.dispose();
   }
 
-  static const Color _kBg = Color(0xFF000000);
-  static const Color _kSurface = Color(0xFF000000);
   static const Color _kNeon = Color(0xFF52B788);
   static const Color _kWhite = Color(0xFFFFFFFF);
   static const Color _kMuted = Color(0xFF71717A);

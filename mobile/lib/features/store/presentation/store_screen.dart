@@ -2335,9 +2335,6 @@ class _GachaSpinDialogState extends State<GachaSpinDialog> with TickerProviderSt
 
     // 1. Drop the needle arm onto the record
     await _needleController.forward();
-    setState(() {
-      _isNeedleDropped = true;
-    });
 
     // 2. Start rapid spinning
     _rotationController.repeat();
