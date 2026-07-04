@@ -141,7 +141,7 @@ Registers a new application. The platform automatically generates a unique `clie
     "created_at": "2026-07-04T16:00:00Z",
     "updated_at": "2026-07-04T16:00:00Z"
   },
-  "client_secret": "314f6b57112003c4a2a1..."
+  "client_secret": "<CLIENT_SECRET>"
 }
 ```
 
@@ -209,7 +209,7 @@ Generates a new signed bot token. Any previously issued tokens are instantly rev
 **Response (200 OK):**
 ```json
 {
-  "token": "v1.ZThhOTQ2YjUtMGMxNy00OGY4LWIzZDktNjAxOTY4ODQ2Yzk4.MTc2NDkyOTI1MA.4e3f2c5d6e7f8a9b..."
+  "token": "v1.<BASE64_BOT_ID>.<BASE64_ISSUED_AT>.<HMAC_SIGNATURE>"
 }
 ```
 
@@ -218,7 +218,7 @@ To authenticate as a bot, make requests with the signed token using either the `
 
 **Header:**
 ```http
-Authorization: Bot v1.ZThhOTQ2YjUtMGMxNy00OGY4LWIzZDktNjAxOTY4ODQ2Yzk4.MTc2NDkyOTI1MA.4e3f2c5d6e7f8a9b...
+Authorization: Bot v1.<BASE64_BOT_ID>.<BASE64_ISSUED_AT>.<HMAC_SIGNATURE>
 ```
 
 #### 2.3 Token Format

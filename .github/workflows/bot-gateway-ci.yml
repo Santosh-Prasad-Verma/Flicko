@@ -1,0 +1,49 @@
+name: Bot & Gateway Integration CI
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/internal/bots/**'
+      - 'backend/internal/handlers/**'
+      - 'backend/internal/middleware/**'
+      - 'backend/internal/services/**'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/internal/bots/**'
+      - 'backend/internal/handlers/**'
+      - 'backend/internal/middleware/**'
+      - 'backend/internal/services/**'
+
+jobs:
+  test:
+    name: Bot & Gateway Protocol Tests
+    runs-on: ubuntu-latest
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: true
+          cache-dependency-path: backend/go.sum
+
+      - name: Run Bot Auth & Gateway Tests
+        working-directory: backend
+        run: |
+          go test -v -race ./internal/bots/... ./internal/middleware/... ./internal/handlers/...
