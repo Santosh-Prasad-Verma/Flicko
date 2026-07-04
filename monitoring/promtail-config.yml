@@ -17,6 +17,10 @@ positions:
 
 clients:
   - url: http://loki:3100/loki/api/v1/push
+  - url: https://logs-prod-028.grafana.net/loki/api/v1/push
+    basic_auth:
+      username: "1670790"
+      password: "glc_eyJvIjoiMTgzNDIxMiIsIm4iOiJzdGFjay0xNzEzMDAzLWFsbG95LWZsaWNrby1zZXJ2ZXIiLCJrIjoiMXQ1cTQyNHhKUU5YcTFMYTZBTmNNMzExIiwibSI6eyJyIjoicHJvZC1hcC1zb3V0aC0xIn19"
 
 scrape_configs:
   - job_name: docker

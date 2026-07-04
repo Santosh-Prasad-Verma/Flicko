@@ -513,7 +513,7 @@ services:
   # ──────────────────────────────────────────────────────────────────────────
   # Scrapes Docker container logs and ships them to Loki for centralized logging.
   promtail:
-    image: grafana/promtail:2.9.0
+    image: grafana/promtail:3.0.0
     container_name: flicko-promtail
     <<: [*restart-policy, *default-logging]
     networks:
