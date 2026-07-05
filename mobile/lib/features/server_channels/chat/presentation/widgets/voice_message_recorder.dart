@@ -159,7 +159,7 @@ class _VoiceMessageRecorderState extends State<VoiceMessageRecorder> {
                 height: 48,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: _amplitudes.isEmpty
                       ? List.generate(
                           20,
