@@ -1716,6 +1716,13 @@ class _ArtWorkWidgetState extends State<ArtWorkWidget> {
   LyricsReaderModel? lyricsReaderModel;
   bool flipped = false;
 
+  late final Stream<List<dynamic>> _lyricsPositionStream =
+      Rx.combineLatest2<Duration, PlaybackState, List<dynamic>>(
+        AudioService.position,
+        widget.audioHandler.playbackState,
+        (position, state) => [position, state.playing],
+      ).distinct();
+
   bool get saavnHasLyrics {
     final value = widget.mediaItem.extras?['has_lyrics'];
     return value == true || value?.toString().toLowerCase() == 'true';
@@ -1882,11 +1889,7 @@ class _ArtWorkWidgetState extends State<ArtWorkWidget> {
                                                 ),
                                               )
                                             : StreamBuilder<List<dynamic>>(
-                                                stream: Rx.combineLatest2<Duration, PlaybackState, List<dynamic>>(
-                                                  AudioService.position,
-                                                  widget.audioHandler.playbackState,
-                                                  (position, state) => [position, state.playing],
-                                                ),
+                                                stream: _lyricsPositionStream,
                                                 builder: (context, snapshot) {
                                                   final list = snapshot.data ?? [Duration.zero, false];
                                                   final position = list[0] as Duration;
@@ -2494,20 +2497,20 @@ class _NameNControlsState extends State<NameNControls> {
     }
   }
 
-  Stream<Duration> get _bufferedPositionStream =>
+  late final Stream<Duration> _bufferedPositionStream =
       widget.audioHandler.playbackState
           .map((state) => state.bufferedPosition)
           .distinct();
-  Stream<Duration?> get _durationStream =>
+  late final Stream<Duration?> _durationStream =
       widget.audioHandler.mediaItem.map((item) => item?.duration).distinct();
-  Stream<PositionData> get _positionDataStream =>
+  late final Stream<PositionData> _positionDataStream =
       Rx.combineLatest3<Duration, Duration, Duration?, PositionData>(
         AudioService.position,
         _bufferedPositionStream,
         _durationStream,
         (position, bufferedPosition, duration) =>
             PositionData(position, bufferedPosition, duration ?? Duration.zero),
-      );
+      ).distinct();
 
   @override
   Widget build(BuildContext context) {

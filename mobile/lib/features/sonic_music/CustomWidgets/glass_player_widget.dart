@@ -24,19 +24,19 @@ class _DraggableGlassPlayerState extends State<DraggableGlassPlayer> {
   Offset _position = const Offset(20, 120); // Initial position
   bool _isMinimized = false;
 
-  Stream<Duration> get _bufferedPositionStream => audioHandler.playbackState
+  late final Stream<Duration> _bufferedPositionStream = audioHandler.playbackState
       .map((state) => state.bufferedPosition)
       .distinct();
-  Stream<Duration?> get _durationStream =>
+  late final Stream<Duration?> _durationStream =
       audioHandler.mediaItem.map((item) => item?.duration).distinct();
-  Stream<PositionData> get _positionDataStream =>
+  late final Stream<PositionData> _positionDataStream =
       Rx.combineLatest3<Duration, Duration, Duration?, PositionData>(
         AudioService.position,
         _bufferedPositionStream,
         _durationStream,
         (position, bufferedPosition, duration) =>
             PositionData(position, bufferedPosition, duration ?? Duration.zero),
-      );
+      ).distinct();
 
   String _formatDuration(Duration duration) {
     String twoDigits(int n) => n.toString().padLeft(2, '0');
