@@ -746,7 +746,7 @@ class _PlayScreenState extends State<PlayScreen> {
               ),
             ),
             builder:
-                (BuildContext context, List<Color?> value, Widget? child) {
+                (BuildContext context, List<Color?>? value, Widget? child) {
               final Color domColor = value?[0] ?? const Color(0xFF2B0C0A);
               // Blend dominant album color with Flicko green base for a
               // solid glassmorphic look (no transparent see-through).
@@ -774,7 +774,7 @@ class _PlayScreenState extends State<PlayScreen> {
                           end: Alignment.bottomCenter,
                           colors: [
                             Color.lerp(domColor, const Color(0xFF3D6B45), 0.4)!
-                                .withOpacity(0.9),
+                                .withValues(alpha: 0.9),
                             const Color(0xFFF0F5F1),
                           ],
                         ),
