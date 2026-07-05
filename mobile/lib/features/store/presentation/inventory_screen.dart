@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:get_it/get_it.dart';
+import 'package:mobile/features/sonic_music/Helpers/config.dart';
 import 'package:mobile/features/store/data/store_service.dart';
 import 'package:mobile/features/store/data/equipment_service.dart';
 
@@ -16,12 +18,12 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
-  static const Color _bg = Color(0xFF050505);
+  static const Color _bg = Color(0xFF07040A);
   static const Color _surface = Color(0xFF0C0C0E);
-  static const Color _neon = Color(0xFF9B84EE);
+  Color get _neon => GetIt.I<MyTheme>().currentColor();
   static const Color _white = Color(0xFFFFFFFF);
   static const Color _muted = Color(0xFF71717A);
-  static const Color _lime = Color(0xFF52B788);
+  Color get _lime => GetIt.I<MyTheme>().currentColor();
   static const Color _gold = Color(0xFFFFD700);
 
   final _tabs = ['ALL', 'THEMES', 'STICKERS', 'SOUNDS', 'BADGES'];
@@ -38,15 +40,33 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
     super.dispose();
   }
 
+  Widget _buildLiquidGlassBackground({required Widget child}) {
+    final currentTheme = GetIt.I<MyTheme>();
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF07040A),
+        gradient: RadialGradient(
+          center: const Alignment(-0.5, -0.6),
+          radius: 1.5,
+          colors: [
+            currentTheme.currentColor().withValues(alpha: 0.08),
+            const Color(0xFF07040A),
+          ],
+        ),
+      ),
+      child: child,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final inventoryAsync = ref.watch(inventoryProvider);
     final equippedAsync = ref.watch(equippedItemsProvider);
 
     return Scaffold(
-      backgroundColor: _bg,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
-        backgroundColor: _surface,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: _white),
@@ -83,7 +103,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.mic_none_rounded, color: _neon),
+            icon: Icon(Icons.mic_none_rounded, color: _neon),
             tooltip: 'Sound Studio',
             onPressed: () => context.push('/store/sound-studio'),
           ),
@@ -103,14 +123,16 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
           tabs: _tabs.map((t) => Tab(text: t)).toList(),
         ),
       ),
-      body: inventoryAsync.when(
-        data: (items) => equippedAsync.when(
-          data: (equipped) => _buildInventoryList(items, equipped),
-          loading: () => const Center(child: CircularProgressIndicator(color: _neon)),
-          error: (_, __) => const Center(child: Text('Error loading equipped items', style: TextStyle(color: Colors.red))),
+      body: _buildLiquidGlassBackground(
+        child: inventoryAsync.when(
+          data: (items) => equippedAsync.when(
+            data: (equipped) => _buildInventoryList(items, equipped),
+            loading: () => Center(child: CircularProgressIndicator(color: _neon)),
+            error: (_, __) => const Center(child: Text('Error loading equipped items', style: TextStyle(color: Colors.red))),
+          ),
+          loading: () => Center(child: CircularProgressIndicator(color: _neon)),
+          error: (e, _) => Center(child: Text('Error: $e', style: const TextStyle(color: Colors.red))),
         ),
-        loading: () => const Center(child: CircularProgressIndicator(color: _neon)),
-        error: (e, _) => Center(child: Text('Error: $e', style: const TextStyle(color: Colors.red))),
       ),
     );
   }

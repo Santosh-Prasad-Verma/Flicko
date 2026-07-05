@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:get_it/get_it.dart';
+import 'package:mobile/features/sonic_music/Helpers/config.dart';
 import 'package:mobile/features/newz/data/news_article.dart';
 import 'package:mobile/features/newz/data/news_service.dart';
 import 'package:mobile/features/newz/presentation/in_app_browser_screen.dart';
@@ -21,8 +23,8 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
   NewsArticle? _article;
   bool _isLoading = true;
 
-  static const Color _accent = Color(0xFF52B788);
-  static const Color _bgDark = Color(0xFF050505);
+  Color get _accent => GetIt.I<MyTheme>().currentColor();
+  static const Color _bgDark = Color(0xFF07040A);
   static const Color _cardBg = Color(0xFF0F0F12);
 
   @override
@@ -50,10 +52,28 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
     }
   }
 
+  Widget _buildLiquidGlassBackground({required Widget child}) {
+    final currentTheme = GetIt.I<MyTheme>();
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF07040A),
+        gradient: RadialGradient(
+          center: const Alignment(-0.5, -0.6),
+          radius: 1.5,
+          colors: [
+            currentTheme.currentColor().withValues(alpha: 0.08),
+            const Color(0xFF07040A),
+          ],
+        ),
+      ),
+      child: child,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: _bgDark,
         body: Center(
           child: CircularProgressIndicator(color: _accent),
@@ -84,10 +104,11 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
     }
 
     return Scaffold(
-      backgroundColor: _bgDark,
-      body: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: [
+      backgroundColor: Colors.transparent,
+      body: _buildLiquidGlassBackground(
+        child: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
           SliverAppBar(
             expandedHeight: 280,
             pinned: true,
@@ -275,6 +296,7 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }

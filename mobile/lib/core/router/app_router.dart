@@ -567,23 +567,104 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/watch-together/lobbies', builder: (context, state) => const PublicLobbiesScreen()),
 
       // Store & Creator
-      GoRoute(path: '/store', builder: (context, state) => const StoreScreen()),
-      GoRoute(path: '/store/cart', builder: (context, state) => const CartScreen()),
-      GoRoute(path: '/store/inventory', builder: (context, state) => const InventoryScreen()),
-      GoRoute(path: '/store/themes', builder: (context, state) => const ThemePickerScreen()),
-      GoRoute(path: '/store/myinstants', builder: (context, state) => const MyInstantsExplorerScreen()),
-      GoRoute(path: '/store/sound-studio', builder: (context, state) => const SoundboardCreatorStudio()),
-      GoRoute(path: '/store/fusion', builder: (context, state) => const CosmeticFusionScreen()),
-      GoRoute(path: '/store/gacha', builder: (context, state) => const GachaUnboxingScreen()),
-      GoRoute(path: '/store/decorations', builder: (context, state) => const AvatarDecorationStoreScreen()),
-      GoRoute(path: '/store/nameplates', builder: (context, state) => const NameplateStoreScreen()),
-      GoRoute(path: '/store/voice-skins', builder: (context, state) => const VoiceSkinStoreScreen()),
-      GoRoute(path: '/store/warp-drips', builder: (context, state) => const WarpDripStoreScreen()),
-      GoRoute(path: '/store/badge-alchemy', builder: (context, state) => const BadgeAlchemyScreen()),
+      GoRoute(
+        path: '/store',
+        builder: (context, state) => Theme(
+          data: sonic_theme.AppTheme.darkTheme(context: context),
+          child: const StoreScreen(),
+        ),
+      ),
+      GoRoute(
+        path: '/store/cart',
+        builder: (context, state) => Theme(
+          data: sonic_theme.AppTheme.darkTheme(context: context),
+          child: const CartScreen(),
+        ),
+      ),
+      GoRoute(
+        path: '/store/inventory',
+        builder: (context, state) => Theme(
+          data: sonic_theme.AppTheme.darkTheme(context: context),
+          child: const InventoryScreen(),
+        ),
+      ),
+      GoRoute(
+        path: '/store/themes',
+        builder: (context, state) => Theme(
+          data: sonic_theme.AppTheme.darkTheme(context: context),
+          child: const ThemePickerScreen(),
+        ),
+      ),
+      GoRoute(
+        path: '/store/myinstants',
+        builder: (context, state) => Theme(
+          data: sonic_theme.AppTheme.darkTheme(context: context),
+          child: const MyInstantsExplorerScreen(),
+        ),
+      ),
+      GoRoute(
+        path: '/store/sound-studio',
+        builder: (context, state) => Theme(
+          data: sonic_theme.AppTheme.darkTheme(context: context),
+          child: const SoundboardCreatorStudio(),
+        ),
+      ),
+      GoRoute(
+        path: '/store/fusion',
+        builder: (context, state) => Theme(
+          data: sonic_theme.AppTheme.darkTheme(context: context),
+          child: const CosmeticFusionScreen(),
+        ),
+      ),
+      GoRoute(
+        path: '/store/gacha',
+        builder: (context, state) => Theme(
+          data: sonic_theme.AppTheme.darkTheme(context: context),
+          child: const GachaUnboxingScreen(),
+        ),
+      ),
+      GoRoute(
+        path: '/store/decorations',
+        builder: (context, state) => Theme(
+          data: sonic_theme.AppTheme.darkTheme(context: context),
+          child: const AvatarDecorationStoreScreen(),
+        ),
+      ),
+      GoRoute(
+        path: '/store/nameplates',
+        builder: (context, state) => Theme(
+          data: sonic_theme.AppTheme.darkTheme(context: context),
+          child: const NameplateStoreScreen(),
+        ),
+      ),
+      GoRoute(
+        path: '/store/voice-skins',
+        builder: (context, state) => Theme(
+          data: sonic_theme.AppTheme.darkTheme(context: context),
+          child: const VoiceSkinStoreScreen(),
+        ),
+      ),
+      GoRoute(
+        path: '/store/warp-drips',
+        builder: (context, state) => Theme(
+          data: sonic_theme.AppTheme.darkTheme(context: context),
+          child: const WarpDripStoreScreen(),
+        ),
+      ),
+      GoRoute(
+        path: '/store/badge-alchemy',
+        builder: (context, state) => Theme(
+          data: sonic_theme.AppTheme.darkTheme(context: context),
+          child: const BadgeAlchemyScreen(),
+        ),
+      ),
       GoRoute(
         path: '/store/product/:productId',
-        builder: (context, state) => ProductDetailScreen(
-          productId: state.pathParameters['productId']!,
+        builder: (context, state) => Theme(
+          data: sonic_theme.AppTheme.darkTheme(context: context),
+          child: ProductDetailScreen(
+            productId: state.pathParameters['productId']!,
+          ),
         ),
       ),
       GoRoute(
@@ -592,12 +673,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/newz',
-        builder: (context, state) => const NewsFeedScreen(),
+        builder: (context, state) => Theme(
+          data: sonic_theme.AppTheme.darkTheme(context: context),
+          child: const NewsFeedScreen(),
+        ),
         routes: [
           GoRoute(
             path: 'article/:id',
-            builder: (context, state) => NewsDetailScreen(
-              articleId: state.pathParameters['id']!,
+            builder: (context, state) => Theme(
+              data: sonic_theme.AppTheme.darkTheme(context: context),
+              child: NewsDetailScreen(
+                articleId: state.pathParameters['id']!,
+              ),
             ),
           ),
         ],

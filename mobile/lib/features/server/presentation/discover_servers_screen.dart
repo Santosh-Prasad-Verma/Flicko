@@ -7,6 +7,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
+import 'package:mobile/data/repositories/server_repository.dart';
+import 'package:mobile/features/home/application/servers_notifier.dart';
+import 'package:mobile/features/shared/presentation/widgets/skeleton_loader.dart';
 
 class DiscoverServersScreen extends ConsumerStatefulWidget {
   const DiscoverServersScreen({super.key});
@@ -38,12 +41,9 @@ class _DiscoverServersScreenState extends ConsumerState<DiscoverServersScreen> {
     super.dispose();
   }
 
-  String? _errorDetail;
-
   Future<void> _loadServers() async {
     setState(() {
       _isLoading = true;
-      _errorDetail = null;
     });
 
     try {
@@ -106,7 +106,6 @@ class _DiscoverServersScreenState extends ConsumerState<DiscoverServersScreen> {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _errorDetail = e.toString();
         });
       }
     }
@@ -145,10 +144,7 @@ class _DiscoverServersScreenState extends ConsumerState<DiscoverServersScreen> {
     setState(() => _joiningId = serverId);
 
     try {
-      await _client.from('server_members').insert({
-        'server_id': serverId,
-        'user_id': user.id,
-      });
+      await ref.read(serverRepositoryProvider).joinServer(serverId, user.id);
 
       try {
         final firstChannel = await _client
@@ -174,6 +170,8 @@ class _DiscoverServersScreenState extends ConsumerState<DiscoverServersScreen> {
           });
         }
       } catch (_) {}
+
+      await ref.read(serversNotifierProvider.notifier).refresh();
 
       setState(() {
         final idx = _servers.indexWhere((s) => s['id'] == serverId);
@@ -227,8 +225,6 @@ class _DiscoverServersScreenState extends ConsumerState<DiscoverServersScreen> {
                       _buildTopicSection().animate().fadeIn(delay: 200.ms),
                       const SizedBox(height: 32),
                       _buildTrendingSpacesSection(),
-                      const SizedBox(height: 32),
-                      _buildTrendingMomentsSection(),
                       const SizedBox(height: 32),
                       _buildCleanFooter(),
                     ],
@@ -548,118 +544,14 @@ class _DiscoverServersScreenState extends ConsumerState<DiscoverServersScreen> {
     );
   }
 
-  Widget _buildTrendingMomentsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Live Moments',
-          style: GoogleFonts.inter(
-            color: const Color(FlickoColors.textPrimary),
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 20),
-        SizedBox(
-          height: 180,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            itemCount: 5,
-            itemBuilder: (context, index) => _buildMomentCard(index),
-          ),
-        ),
-      ],
-    );
-  }
 
-  Widget _buildMomentCard(int index) {
-    return Container(
-      width: 140,
-      margin: const EdgeInsets.only(right: 16, bottom: 8),
-      decoration: BoxDecoration(
-        color: const Color(FlickoColors.bgSecondary),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(FlickoColors.border), width: 1),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Container(
-              width: double.infinity,
-              color: const Color(FlickoColors.bgTertiary),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  const Icon(Icons.play_circle_outline_rounded, color: Colors.white70, size: 36),
-                  Positioned(
-                    top: 8,
-                    left: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: const Color(FlickoColors.danger),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        'LIVE',
-                        style: GoogleFonts.inter(
-                          color: Colors.white,
-                          fontSize: 8,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '@user_${index + 101}',
-                  style: GoogleFonts.inter(
-                    color: const Color(FlickoColors.brandLime),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Live Stream',
-                  style: GoogleFonts.inter(
-                    color: const Color(FlickoColors.textSecondary),
-                    fontSize: 10,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildLoadingState() {
-    return Center(
-      child: Column(
-        children: [
-          const SizedBox(height: 40),
-          const CircularProgressIndicator(color: Color(FlickoColors.brandLime)),
-          const SizedBox(height: 16),
-          Text(
-            'Loading servers...',
-            style: GoogleFonts.inter(color: const Color(FlickoColors.textSecondary), fontSize: 13),
-          ),
-        ],
-      ),
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: 3,
+      itemBuilder: (context, index) => const ServerSkeleton(),
     );
   }
 

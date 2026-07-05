@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:get_it/get_it.dart';
+import 'package:mobile/features/sonic_music/Helpers/config.dart';
 import 'package:mobile/features/newz/data/news_article.dart';
 import 'package:mobile/features/newz/data/news_service.dart';
 import 'package:mobile/features/newz/presentation/in_app_browser_screen.dart';
@@ -22,8 +24,7 @@ class _NewsFeedScreenState extends State<NewsFeedScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
-  static const Color _accent = Color(0xFF52B788);
-  static const Color _bgDark = Color(0xFF050505);
+  Color get _accent => GetIt.I<MyTheme>().currentColor();
   static const Color _cardBg = Color(0xFF0F0F12);
 
   @override
@@ -86,49 +87,69 @@ class _NewsFeedScreenState extends State<NewsFeedScreen> {
         .toList();
   }
 
+  Widget _buildLiquidGlassBackground({required Widget child}) {
+    final currentTheme = GetIt.I<MyTheme>();
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF07040A),
+        gradient: RadialGradient(
+          center: const Alignment(-0.5, -0.6),
+          radius: 1.5,
+          colors: [
+            currentTheme.currentColor().withValues(alpha: 0.08),
+            const Color(0xFF07040A),
+          ],
+        ),
+      ),
+      child: child,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final articles = _filteredArticles;
 
     return Scaffold(
-      backgroundColor: _bgDark,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Search bar
-            _buildSearchBar(),
-            // Category tabs
-            _buildCategoryBar(),
-            const SizedBox(height: 8),
-            // Content
-            Expanded(
-              child: _isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(color: _accent))
-                  : _error != null && articles.isEmpty
-                      ? _buildErrorState()
-                      : articles.isEmpty
-                          ? _buildEmptyState()
-                          : RefreshIndicator(
-                              onRefresh: _onRefresh,
-                              color: _accent,
-                              backgroundColor: _cardBg,
-                              child: ListView.builder(
-                                physics: const AlwaysScrollableScrollPhysics(
-                                    parent: BouncingScrollPhysics()),
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 16, vertical: 8),
-                                itemCount: articles.length,
-                                itemBuilder: (context, index) {
-                                  return Padding(
-                                    padding: const EdgeInsets.only(bottom: 16),
-                                    child: _buildNewsCard(articles[index]),
-                                  );
-                                },
+      backgroundColor: Colors.transparent,
+      body: _buildLiquidGlassBackground(
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Search bar
+              _buildSearchBar(),
+              // Category tabs
+              _buildCategoryBar(),
+              const SizedBox(height: 8),
+              // Content
+              Expanded(
+                child: _isLoading
+                    ? Center(
+                        child: CircularProgressIndicator(color: _accent))
+                    : _error != null && articles.isEmpty
+                        ? _buildErrorState()
+                        : articles.isEmpty
+                            ? _buildEmptyState()
+                            : RefreshIndicator(
+                                onRefresh: _onRefresh,
+                                color: _accent,
+                                backgroundColor: _cardBg,
+                                child: ListView.builder(
+                                  physics: const AlwaysScrollableScrollPhysics(
+                                      parent: BouncingScrollPhysics()),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 8),
+                                  itemCount: articles.length,
+                                  itemBuilder: (context, index) {
+                                    return Padding(
+                                      padding: const EdgeInsets.only(bottom: 16),
+                                      child: _buildNewsCard(articles[index]),
+                                    );
+                                  },
+                                ),
                               ),
-                            ),
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );

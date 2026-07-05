@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:get_it/get_it.dart';
+import 'package:mobile/features/sonic_music/Helpers/config.dart';
 import 'package:mobile/features/store/data/store_service.dart';
 import 'package:mobile/features/store/data/equipment_service.dart';
 import 'package:mobile/features/store/data/wishlist_service.dart';
@@ -33,10 +35,10 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
 
   static const _bg = Color(0xFF000000); // Pure Black
   static const _surface = Color(0xFF0C0C0E); // Deep Black-Gray
-  static const _neon = Color(0xFF52B788); // Sonic Drip Lime Green
+  Color get _neon => GetIt.I<MyTheme>().currentColor();
   static const _white = Color(0xFFFFFFFF);
   static const _muted = Color(0xFF71717A);
-  static const _lime = Color(0xFF52B788); // Lime Green
+  Color get _lime => GetIt.I<MyTheme>().currentColor();
   static const _gold = Color(0xFFFFD700);
 
   final _categories = ['ALL', 'THEMES', 'DECORATIONS', 'NAMEPLATES', 'VOICE_SKINS', 'WARP_DRIPS', 'STICKERS', 'SOUNDS', 'BADGES'];
@@ -60,11 +62,12 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
   }
 
   Widget _buildLiquidGlassBackground({required Widget child}) {
+    final currentTheme = GetIt.I<MyTheme>();
     return Stack(
       children: [
-        // Pure black base
-        Container(color: const Color(0xFF000000)),
-        // Ambient glow 1 (Emerald Green)
+        // Dark theme background base
+        Container(color: const Color(0xFF07040A)),
+        // Ambient glow 1 (Dynamic Current Color)
         Positioned(
           top: -100,
           left: -80,
@@ -73,7 +76,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
             height: 320,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: const Color(0xFF10B981).withValues(alpha: 0.18),
+              color: currentTheme.currentColor().withValues(alpha: 0.18),
             ),
           ),
         ),
@@ -190,7 +193,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                 top: 8,
                 child: Container(
                   padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     color: _lime,
                     shape: BoxShape.circle,
                   ),
@@ -316,7 +319,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                           color: _neon.withValues(alpha: 0.15),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.stars_rounded, color: _neon, size: 16),
+                        child: Icon(Icons.stars_rounded, color: _neon, size: 16),
                       ),
                       const SizedBox(width: 10),
                       Text(
@@ -494,7 +497,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
               ),
             );
           },
-          loading: () => const SliverToBoxAdapter(
+          loading: () => SliverToBoxAdapter(
             child: Center(child: CircularProgressIndicator(color: _neon)),
           ),
           error: (e, _) => SliverToBoxAdapter(
@@ -723,7 +726,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                           itemBuilder: (ctx, index) => _buildWishlistItem(products[index]),
                         );
                       },
-                      loading: () => const Center(child: CircularProgressIndicator(color: _neon)),
+                      loading: () => Center(child: CircularProgressIndicator(color: _neon)),
                       error: (_, __) => const Center(child: Text('Error loading wishlist', style: TextStyle(color: Colors.red))),
                     ),
                   ),
@@ -881,7 +884,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                         ),
                       ),
                       const SizedBox(width: 12),
-                      const Icon(Icons.arrow_forward, color: _lime, size: 20),
+                      Icon(Icons.arrow_forward, color: _lime, size: 20),
                     ],
                   ),
                 ],
@@ -1371,11 +1374,11 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
               ),
             );
           },
-          loading: () => const Center(child: CircularProgressIndicator(color: _neon)),
+          loading: () => Center(child: CircularProgressIndicator(color: _neon)),
           error: (_, __) => const Center(child: Text('Error loading equipped items', style: TextStyle(color: Colors.red))),
         );
       },
-      loading: () => const Center(child: CircularProgressIndicator(color: _neon)),
+      loading: () => Center(child: CircularProgressIndicator(color: _neon)),
       error: (e, _) => Center(child: Text('Error: $e', style: TextStyle(color: Colors.red))),
     );
   }
@@ -1408,7 +1411,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.science_outlined, color: _neon, size: 16),
+                      Icon(Icons.science_outlined, color: _neon, size: 16),
                       const SizedBox(width: 8),
                       Flexible(
                         child: Text(
@@ -1445,7 +1448,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                 color: _neon.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.bolt, color: _neon, size: 18),
+              child: Icon(Icons.bolt, color: _neon, size: 18),
             ),
           ],
         ),
@@ -1953,7 +1956,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     color: _lime.withValues(alpha: 0.2),
-                    child: const Icon(Icons.check_circle, color: _lime),
+                    child: Icon(Icons.check_circle, color: _lime),
                   ),
                   title: Text(
                     'Equip Item',
@@ -2002,7 +2005,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                 onTap: () {
                   Navigator.pop(ctx);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Gifting coming soon!'), backgroundColor: _lime),
+                    SnackBar(content: Text('Gifting coming soon!'), backgroundColor: _lime),
                   );
                 },
               ),
@@ -2218,7 +2221,7 @@ class _GachaSpinDialogState extends State<GachaSpinDialog> with TickerProviderSt
   bool _isEquipped = false;
 
   static const Color _bg = Color(0xFF000000);
-  static const Color _neon = Color(0xFF52B788);
+  Color get _neon => GetIt.I<MyTheme>().currentColor();
   static const Color _white = Color(0xFFFFFFFF);
   static const Color _muted = Color(0xFF71717A);
   static const Color _gold = Color(0xFFFFD700);
