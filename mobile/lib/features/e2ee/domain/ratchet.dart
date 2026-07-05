@@ -167,9 +167,53 @@ class RatchetState {
       'pn': pn,
       'skipped_count': skipped.length,
     };
-  }
+}
 
-  /// Perform the first root-key ratchet step to derive CKs.
+// ── Errors ───────────────────────────────────────────────────────────────────
+
+/// Raised when more than [kMaxSkip] keys would have to be derived to
+/// catch up to an out-of-order message. The conversation can recover
+/// after the next live DH ratchet step.
+class RatchetSkipExceededError extends Error {
+  final int requested;
+  RatchetSkipExceededError(this.requested);
+  @override
+  String toString() =>
+      'RatchetSkipExceededError(requested=$requested, max=$kMaxSkip)';
+}
+
+/// Raised when an envelope's authenticated decryption fails (tampering,
+/// replay, or wrong key).
+class RatchetDecryptError extends Error {
+  final String reason;
+  RatchetDecryptError(this.reason);
+  @override
+  String toString() => 'RatchetDecryptError($reason)';
+}
+
+// ── Double Ratchet Engine ────────────────────────────────────────────────────
+
+/// Production Double Ratchet implementation using the `cryptography` package.
+///
+/// All operations are deterministic given the same inputs, making
+/// the engine suitable for property-based testing.
+class DoubleRatchet {
+  static final _x25519 = Cryptography.instance.x25519();
+  static final _aead = Xchacha20.poly1305Aead();
+  static final _hkdf = Hkdf(hmac: Hmac.sha256(), outputLength: 32);
+
+  /// Initialise a ratchet state for the **sender** (Alice) after X3DH.
+  ///
+  /// [sharedKey] is the 32-byte SK from X3DH.
+  /// [recipientDhPub] is Bob's SPK pub (the first DHr).
+  static Future<RatchetState> initSender({
+    required Uint8List sharedKey,
+    required Uint8List recipientDhPub,
+  }) async {
+    // Generate the first sending DH pair.
+    final dhs = await _x25519.newKeyPair();
+
+    // Perform the first root-key ratchet step to derive CKs.
     final dhOut = await _x25519.sharedSecretKey(
       keyPair: dhs,
       remotePublicKey:
