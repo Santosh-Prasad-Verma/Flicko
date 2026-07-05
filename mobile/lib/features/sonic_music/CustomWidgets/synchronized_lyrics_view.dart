@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_lyric/lyrics_reader.dart';
+import 'package:flutter_lyric/lyrics_reader_model.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 
@@ -24,7 +25,7 @@ class SynchronizedLyricsView extends StatefulWidget {
 }
 
 class _SynchronizedLyricsViewState extends State<SynchronizedLyricsView> {
-  LyricsModel? _lyricsModel;
+  LyricsReaderModel? _lyricsModel;
   final LyricUI _lyricUI = FlickoLyricUI();
 
   @override
@@ -136,9 +137,9 @@ class _SynchronizedLyricsViewState extends State<SynchronizedLyricsView> {
 }
 
 /// Custom Glassmorphic Lyric UI theme for LyricsReader
-class FlickoLyricUI extends LyricUI {
+class FlickoLyricUI extends UINetease {
   @override
-  TextStyle getPlayingTextStyle() {
+  TextStyle getPlayingMainTextStyle() {
     return GoogleFonts.inter(
       color: const Color(FlickoColors.green),
       fontSize: 22,
@@ -153,7 +154,7 @@ class FlickoLyricUI extends LyricUI {
   }
 
   @override
-  TextStyle getOtherTextStyle() {
+  TextStyle getOtherMainTextStyle() {
     return GoogleFonts.inter(
       color: Colors.white.withValues(alpha: 0.45),
       fontSize: 16,
@@ -162,7 +163,7 @@ class FlickoLyricUI extends LyricUI {
   }
 
   @override
-  double getInlineHeight() => 32;
+  double getInlineSpace() => 32;
 
   @override
   double getLineSpace() => 18;
@@ -171,14 +172,8 @@ class FlickoLyricUI extends LyricUI {
   LyricAlign getLyricHorizontalAlign() => LyricAlign.CENTER;
 
   @override
-  LyricBaseLine getLyricBaseLine() => LyricBaseLine.CENTER;
+  LyricBaseLine getBiasBaseLine() => LyricBaseLine.CENTER;
 
   @override
-  bool enableOtherTap() => true;
-
-  @override
-  Color getSelectLineColor() => const Color(FlickoColors.green);
-
-  @override
-  Color getSelectLineTextStyleColor() => const Color(FlickoColors.green);
+  Color getLyricHightlightColor() => const Color(FlickoColors.green);
 }
