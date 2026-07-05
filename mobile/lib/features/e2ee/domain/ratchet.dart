@@ -167,6 +167,7 @@ class RatchetState {
       'pn': pn,
       'skipped_count': skipped.length,
     };
+  }
 }
 
 // ── Errors ───────────────────────────────────────────────────────────────────
