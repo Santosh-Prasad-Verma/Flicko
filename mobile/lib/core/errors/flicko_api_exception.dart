@@ -80,9 +80,9 @@ class NotFoundApiException extends FlickoApiException {
 class RateLimitedApiException extends FlickoApiException {
   final Duration retryAfter;
 
-  const RateLimitedApiException(this.retryAfter, {super.requestId})
+  RateLimitedApiException(this.retryAfter, {super.requestId})
       : super(
-          'Too many requests. Please try again after ${retryAfter.inSeconds} seconds.',
+          'Too many requests. Please try again later.',
           statusCode: 429,
         );
 }

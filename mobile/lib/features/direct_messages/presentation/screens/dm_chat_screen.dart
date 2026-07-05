@@ -9,7 +9,6 @@ import 'package:mobile/features/direct_messages/presentation/widgets/message_bub
 import 'package:mobile/features/direct_messages/presentation/widgets/dm_chat_input.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/shared/presentation/widgets/skeleton_loader.dart';
-import 'package:mobile/features/shared/presentation/widgets/flicko_error_state.dart';
 import 'package:mobile/features/e2ee/application/identity_change_alert_provider.dart';
 import 'package:mobile/features/e2ee/presentation/identity_change_banner.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';

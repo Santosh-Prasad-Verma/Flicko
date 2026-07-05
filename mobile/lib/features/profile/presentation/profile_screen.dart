@@ -20,17 +20,13 @@ class ProfileScreen extends ConsumerWidget {
     final authState = ref.watch(authNotifierProvider);
 
     return authState.when(
-      data: (user) => _buildProfile(context, ref, user, null),
-      loading: () => const Scaffold(
+      initial: () => const Scaffold(
         backgroundColor: Color(FlickoColors.bgPrimary),
         body: SafeArea(child: ProfileSkeleton()),
       ),
-      error: (err, stack) => Scaffold(
-        backgroundColor: const Color(FlickoColors.bgPrimary),
-        body: FlickoErrorState.fromException(
-          err,
-          onRetry: () => ref.refresh(authNotifierProvider),
-        ),
+      loading: () => const Scaffold(
+        backgroundColor: Color(FlickoColors.bgPrimary),
+        body: SafeArea(child: ProfileSkeleton()),
       ),
       authenticated: (user, profile) => _buildProfile(context, ref, user, profile),
       unauthenticated: () => Scaffold(
@@ -38,6 +34,14 @@ class ProfileScreen extends ConsumerWidget {
         body: FlickoErrorState(
           type: FlickoErrorType.unauthorized,
           onRetry: () => context.go('/login'),
+        ),
+      ),
+      error: (msg) => Scaffold(
+        backgroundColor: const Color(FlickoColors.bgPrimary),
+        body: FlickoErrorState(
+          type: FlickoErrorType.generic,
+          customMessage: msg,
+          onRetry: () => ref.read(authNotifierProvider.notifier).checkAuth(),
         ),
       ),
     );

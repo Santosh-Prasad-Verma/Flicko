@@ -35,12 +35,12 @@ class ServersScreen extends ConsumerWidget {
       );
     }
 
-    if (serversState.error != null && normalServers.isEmpty) {
+    if (serversState.errorMessage != null && normalServers.isEmpty) {
       return Scaffold(
         backgroundColor: Colors.black,
         body: FlickoErrorState.fromException(
-          serversState.error!,
-          onRetry: () => ref.read(serversNotifierProvider.notifier).loadServers(),
+          serversState.errorMessage!,
+          onRetry: () => ref.read(serversNotifierProvider.notifier).refresh(),
         ),
       );
     }
