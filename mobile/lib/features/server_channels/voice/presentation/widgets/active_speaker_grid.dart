@@ -61,10 +61,11 @@ class ActiveSpeakerGrid extends StatelessWidget {
         final avatarUrl = profile['avatar_url'] as String?;
 
         // Check for video track publication
-        TrackPublication<VideoTrack>? videoPub;
+        VideoTrack? videoTrack;
         for (final pub in participant.videoTrackPublications) {
-          if (pub.subscribed && pub.track != null && !pub.muted) {
-            videoPub = pub;
+          final track = pub.track;
+          if (pub.subscribed && track is VideoTrack && !pub.muted) {
+            videoTrack = track;
             break;
           }
         }
@@ -74,7 +75,7 @@ class ActiveSpeakerGrid extends StatelessWidget {
           participant: participant,
           displayName: displayName,
           avatarUrl: avatarUrl,
-          videoPub: videoPub,
+          videoTrack: videoTrack,
           isSpeaking: isSpeaking,
         );
       },
@@ -86,7 +87,7 @@ class ActiveSpeakerGrid extends StatelessWidget {
     required Participant participant,
     required String displayName,
     required String? avatarUrl,
-    required TrackPublication<VideoTrack>? videoPub,
+    required VideoTrack? videoTrack,
     required bool isSpeaking,
   }) {
     return AnimatedContainer(
@@ -116,16 +117,16 @@ class ActiveSpeakerGrid extends StatelessWidget {
           alignment: Alignment.center,
           children: [
             // If video track is active, render VideoTrackRenderer
-            if (videoPub != null && videoPub.track != null)
-              VideoTrackRenderer(videoPub.track!)
+            if (videoTrack != null)
+              VideoTrackRenderer(videoTrack)
             else
               // Audio-only Avatar layout
               Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   UserAvatar(
-                    avatarUrl: avatarUrl,
-                    username: displayName,
+                    imageUrl: avatarUrl,
+                    name: displayName,
                     size: 56,
                   ),
                   const SizedBox(height: 12),
