@@ -10,6 +10,7 @@ final livekitServiceProvider = Provider<LiveKitService>((ref) {
 
 class LiveKitService {
   Room? _room;
+  EventsListener<RoomEvent>? _listener;
   bool _isDeafened = false;
 
   Room? get currentRoom => _room;
@@ -18,24 +19,21 @@ class LiveKitService {
   final _activeSpeakersController = StreamController<List<Participant>>.broadcast();
   Stream<List<Participant>> get activeSpeakersStream => _activeSpeakersController.stream;
 
-  StreamSubscription? _roomEventsSubscription;
-
   Future<void> connect(
     String token, {
     RoomOptions? roomOptions,
     ConnectOptions? connectOptions,
     AudioCaptureOptions? audioCaptureOptions,
   }) async {
-    _room = Room();
-
     final roomOps = roomOptions ?? const RoomOptions(
       adaptiveStream: true,
       dynacast: true,
       defaultAudioPublishOptions: AudioPublishOptions(
-        audioBitrate: 64000,
         dtx: true,
       ),
     );
+
+    _room = Room(roomOptions: roomOps);
 
     final connOps = connectOptions ?? const ConnectOptions(
       autoSubscribe: true,
@@ -46,14 +44,12 @@ class LiveKitService {
       echoCancellation: true,
       noiseSuppression: true,
       autoGainControl: true,
-      highpassFilter: true,
       typingNoiseDetection: true,
     );
 
     await _room!.connect(
       AppConfig.livekitUrl,
       token,
-      roomOptions: roomOps,
       connectOptions: connOps,
     );
 
@@ -65,11 +61,10 @@ class LiveKitService {
     }
 
     // Listen to active speakers event
-    _roomEventsSubscription?.cancel();
-    _roomEventsSubscription = _room!.events.listen((event) {
-      if (event is RoomActiveSpeakersChangedEvent) {
-        _activeSpeakersController.add(event.speakers);
-      }
+    _listener?.dispose();
+    _listener = _room!.createListener();
+    _listener!.on<ActiveSpeakersChangedEvent>((event) {
+      _activeSpeakersController.add(event.speakers);
     });
   }
 
@@ -81,7 +76,6 @@ class LiveKitService {
       echoCancellation: true,
       noiseSuppression: true,
       autoGainControl: true,
-      highpassFilter: true,
       typingNoiseDetection: true,
     );
     await _room!.localParticipant!.setMicrophoneEnabled(!isEnabled, audioCaptureOptions: audioOptions);
@@ -107,17 +101,14 @@ class LiveKitService {
     _isDeafened = !_isDeafened;
     for (final participant in _room!.remoteParticipants.values) {
       for (final publication in participant.audioTrackPublications) {
-        if (_isDeafened) {
-          await publication.track?.mute();
-        } else {
-          await publication.track?.unmute();
-        }
+        await publication.setSubscribed(!_isDeafened);
       }
     }
   }
 
   Future<void> disconnect() async {
-    _roomEventsSubscription?.cancel();
+    _listener?.dispose();
+    _listener = null;
     if (_room != null) {
       await _room!.disconnect();
       _room = null;
