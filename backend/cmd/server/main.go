@@ -226,11 +226,14 @@ func main() {
 	apiLimiter := middleware.NewDistributedRateLimiter(redisCache.GetRedisClient(), 50, logger, "api")
 	// 50 requests per second per IP for general API endpoints
 
-	// Protected routes with auth middleware and general API limiter
-	// This separates them from auth routes so limiters don't stack incorrectly.
 	protected := api.PathPrefix("/").Subrouter()
 	protected.Use(apiLimiter.Limit)
 	protected.Use(middleware.Auth)
+	protected.Use(middleware.ValidationMiddleware)
+
+	// Initialize caching and throttling middlewares
+	cacheMiddleware := middleware.NewCacheMiddleware(redisCache.GetRedisClient(), logger)
+	throttler := middleware.NewThrottler(redisCache.GetRedisClient(), logger)
 
 	// MED-007 & HIGH-008: Enhanced health check with comprehensive dependency checks
 	healthChecker := handlers.NewHealthChecker(db, redisCache.GetRedisClient(), logger)
@@ -304,8 +307,8 @@ func main() {
 
 	// Server Discovery
 	discoveryHandler := handlers.NewDiscoveryHandler(db.Pool(), logger)
-	protected.HandleFunc("/servers/discover", discoveryHandler.DiscoverServers).Methods("GET")
-	protected.HandleFunc("/servers/discover/trending", discoveryHandler.GetTrendingServers).Methods("GET")
+	protected.Handle("/servers/discover", cacheMiddleware.Cache(middleware.CacheMedium)(http.HandlerFunc(discoveryHandler.DiscoverServers))).Methods("GET")
+	protected.Handle("/servers/discover/trending", cacheMiddleware.Cache(middleware.CacheMedium)(http.HandlerFunc(discoveryHandler.GetTrendingServers))).Methods("GET")
 
 	// Activities lifecycle + catalog
 	activityHandler := handlers.NewActivityHandler(db.Pool(), logger)
@@ -370,7 +373,7 @@ func main() {
 	if cfg.AIModerationEnabled {
 		moderationHandler.RegisterRoutes(protected)
 	}
-	protected.HandleFunc("/activities/catalog", activityHandler.GetCatalog).Methods("GET")
+	protected.Handle("/activities/catalog", cacheMiddleware.Cache(middleware.CacheLong)(http.HandlerFunc(activityHandler.GetCatalog))).Methods("GET")
 	protected.HandleFunc("/activities/catalog/{id}/validate", activityHandler.ValidateCatalogActivity).Methods("POST")
 	protected.HandleFunc("/activities/providers/register", activityHandler.RegisterProvider).Methods("POST")
 	protected.HandleFunc("/activities/providers/{id}/publish", activityHandler.PublishProvider).Methods("POST")
@@ -455,7 +458,7 @@ func main() {
 	protected.HandleFunc("/premium/redeem", premiumHandler.RedeemGift).Methods("POST")
 	protected.HandleFunc("/premium/boost-credits", premiumHandler.GetBoostCredits).Methods("GET")
 	protected.HandleFunc("/premium/boost-credits/apply", premiumHandler.ApplyBoostCredit).Methods("POST")
-	protected.HandleFunc("/premium/cosmetics", premiumHandler.ListCosmetics).Methods("GET")
+	protected.Handle("/premium/cosmetics", cacheMiddleware.Cache(middleware.CacheLong)(http.HandlerFunc(premiumHandler.ListCosmetics))).Methods("GET")
 	protected.HandleFunc("/profile/cosmetics/apply", premiumHandler.ApplyCosmetic).Methods("POST")
 	protected.HandleFunc("/premium/orders", premiumHandler.CreateOrder).Methods("POST")
 	protected.HandleFunc("/premium/verify", premiumHandler.VerifyPayment).Methods("POST")
@@ -464,7 +467,7 @@ func main() {
 	protected.HandleFunc("/apps/{id}/installs/{installId}/permissions", appInstallHandler.UpdateInstallPermissions).Methods("PATCH")
 	protected.HandleFunc("/interactions/components", interactionsHandler.CreateComponentInteraction).Methods("POST")
 	protected.HandleFunc("/interactions/modals", interactionsHandler.CreateModalInteraction).Methods("POST")
-	protected.HandleFunc("/app-directory", appDirectoryHandler.ListAppDirectory).Methods("GET")
+	protected.Handle("/app-directory", cacheMiddleware.Cache(middleware.CacheMedium)(http.HandlerFunc(appDirectoryHandler.ListAppDirectory))).Methods("GET")
 	protected.HandleFunc("/forum/posts/{id}/vote", forumHandler.VoteForumPost).Methods("POST")
 	protected.HandleFunc("/servers/{id}/insights", insightsHandler.GetServerInsights).Methods("GET")
 
@@ -560,7 +563,7 @@ func main() {
 	readStateSvc := services.NewReadStateService(db.Pool())
 	readStateHandler := handlers.NewReadStateHandler(readStateSvc, logger)
 
-	protected.HandleFunc("/channels/{channelId}/messages/{messageId}/read", readStateHandler.MarkAsRead).Methods("POST")
+	protected.Handle("/channels/{channelId}/messages/{messageId}/read", throttler.Throttle(1*time.Second)(http.HandlerFunc(readStateHandler.MarkAsRead))).Methods("POST")
 	protected.HandleFunc("/users/@me/read_states", readStateHandler.GetUserReadStates).Methods("GET")
 
 	// User endpoint - uses actual auth context
@@ -633,7 +636,7 @@ func main() {
 
 	// Per-user feature flags (E2EE v2 rollout)
 	flagsHandler := handlers.NewFeatureFlagsHandler(logger, cfg.E2EEV2Enabled, cfg.E2EEV2RolloutPercent)
-	protected.HandleFunc("/users/@me/config", flagsHandler.GetConfig).Methods("GET")
+	protected.Handle("/users/@me/config", cacheMiddleware.Cache(middleware.CacheShort)(http.HandlerFunc(flagsHandler.GetConfig))).Methods("GET")
 
 
 

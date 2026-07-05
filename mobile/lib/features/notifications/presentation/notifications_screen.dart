@@ -5,6 +5,8 @@ import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import 'package:go_router/go_router.dart';
 import '../../auth/application/auth_notifier.dart';
 import '../../shared/presentation/widgets/user_avatar.dart';
+import '../../shared/presentation/widgets/skeleton_loader.dart';
+import '../../shared/presentation/widgets/flicko_error_state.dart';
 import '../../../data/models/user_model.dart';
 
 class Notification {
@@ -384,38 +386,13 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
   Widget _buildBody() {
     if (_isLoading && _notifications.isEmpty) {
-      return const Center(
-        child: CircularProgressIndicator(color: _greenPunch),
-      );
+      return const NotificationSkeleton(count: 6);
     }
 
     if (_errorMessage != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, size: 48, color: _textSecondary),
-            const SizedBox(height: 16),
-            Text('Error loading notifications',
-                style: GoogleFonts.outfit(color: _textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Text(_errorMessage!,
-                style: GoogleFonts.outfit(color: _textSecondary, fontSize: 14),
-                textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _greenPunch,
-                foregroundColor: Colors.black,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              onPressed: _loadNotifications,
-              child: Text('Retry', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-            ),
-          ],
-        ),
+      return FlickoErrorState.fromException(
+        _errorMessage!,
+        onRetry: _loadNotifications,
       );
     }
 

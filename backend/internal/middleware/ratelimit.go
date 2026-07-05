@@ -1,8 +1,13 @@
 package middleware
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
+	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -13,6 +18,7 @@ import (
 
 	"github.com/flicko-org/flicko-backend/internal/services"
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 	"golang.org/x/time/rate"
 )
@@ -285,4 +291,79 @@ func TimeoutMiddleware(timeout time.Duration) func(http.Handler) http.Handler {
 			}
 		})
 	}
+}
+
+// Throttler enforces a minimum interval between rapid identical requests per user using Redis SET NX EX.
+type Throttler struct {
+	rdb    redis.Cmdable
+	logger *zap.Logger
+}
+
+// NewThrottler creates a new Throttler instance.
+func NewThrottler(rdb redis.Cmdable, logger *zap.Logger) *Throttler {
+	return &Throttler{
+		rdb:    rdb,
+		logger: logger,
+	}
+}
+
+// Throttle enforces a minimum interval between identical write requests for a given duration.
+func (t *Throttler) Throttle(interval time.Duration) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if t.rdb == nil {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			userID := ""
+			if val, ok := r.Context().Value(userIDKey).(string); ok && val != "" {
+				userID = val
+			} else {
+				ip := r.Header.Get("X-Forwarded-For")
+				if ip == "" {
+					ip, _, _ = net.SplitHostPort(r.RemoteAddr)
+				}
+				userID = ip
+			}
+
+			var bodyBytes []byte
+			if r.Body != nil {
+				var err error
+				bodyBytes, err = io.ReadAll(r.Body)
+				if err == nil {
+					r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+				}
+			}
+
+			h := sha256.New()
+			h.Write([]byte(r.Method))
+			h.Write([]byte(r.URL.Path))
+			h.Write(bodyBytes)
+			fingerprint := hex.EncodeToString(h.Sum(nil)[:8])
+
+			key := fmt.Sprintf("throttle:%s:%s", userID, fingerprint)
+
+			ok, err := t.rdb.SetNX(r.Context(), key, "1", interval).Result()
+			if err != nil {
+				if t.logger != nil {
+					t.logger.Warn("redis error in ThrottleMiddleware", zap.Error(err))
+				}
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			if !ok {
+				writeAPIError(w, r, http.StatusTooManyRequests, "RATE_LIMITED", "Too many rapid identical requests. Please wait before retrying.")
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// ThrottleMiddleware is a helper wrapper to create a throttling middleware handler.
+func ThrottleMiddleware(rdb redis.Cmdable, interval time.Duration, logger *zap.Logger) func(http.Handler) http.Handler {
+	return NewThrottler(rdb, logger).Throttle(interval)
 }

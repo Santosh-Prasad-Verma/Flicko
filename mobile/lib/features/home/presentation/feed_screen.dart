@@ -9,6 +9,8 @@ import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/data/models/auth_state.dart' as app_auth;
 import 'package:mobile/features/voice/application/sonic_drip_notifier.dart';
 import 'package:mobile/features/voice/presentation/controllers/voice_controller.dart';
+import 'package:mobile/features/shared/presentation/widgets/skeleton_loader.dart';
+import 'package:mobile/features/shared/presentation/widgets/flicko_error_state.dart';
 
 /// Feed/Home Screen — Discord Mobile Style
 ///
@@ -27,6 +29,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
   bool _isLoading = true;
   List<Map<String, dynamic>> _servers = [];
   List<Map<String, dynamic>> _channels = [];
+  Object? _error;
 
   final _serverIconSize = 48.0;
   final _activeIndicatorHeight = 36.0;
@@ -38,7 +41,10 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
   }
 
   Future<void> _loadServers() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
     
     try {
       final supabase = Supabase.instance.client;
@@ -75,7 +81,10 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       });
     } catch (e) {
       debugPrint('Error loading servers: $e');
-      setState(() => _isLoading = false);
+      setState(() {
+        _error = e;
+        _isLoading = false;
+      });
     }
   }
 
@@ -153,10 +162,16 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     if (_isLoading) {
       return const Scaffold(
         backgroundColor: Color(FlickoColors.bgTertiary),
-        body: Center(
-          child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Color(FlickoColors.blurple)),
-          ),
+        body: SafeArea(child: FeedSkeleton()),
+      );
+    }
+
+    if (_error != null && _servers.isEmpty) {
+      return Scaffold(
+        backgroundColor: const Color(FlickoColors.bgTertiary),
+        body: FlickoErrorState.fromException(
+          _error!,
+          onRetry: _loadServers,
         ),
       );
     }

@@ -7,6 +7,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
+import 'package:mobile/features/shared/presentation/widgets/skeleton_loader.dart';
+import 'package:mobile/features/shared/presentation/widgets/flicko_error_state.dart';
 import 'package:mobile/data/models/user_model.dart';
 import 'package:intl/intl.dart';
 
@@ -17,9 +19,27 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authNotifierProvider);
 
-    return authState.maybeWhen(
+    return authState.when(
+      data: (user) => _buildProfile(context, ref, user, null),
+      loading: () => const Scaffold(
+        backgroundColor: Color(FlickoColors.bgPrimary),
+        body: SafeArea(child: ProfileSkeleton()),
+      ),
+      error: (err, stack) => Scaffold(
+        backgroundColor: const Color(FlickoColors.bgPrimary),
+        body: FlickoErrorState.fromException(
+          err,
+          onRetry: () => ref.refresh(authNotifierProvider),
+        ),
+      ),
       authenticated: (user, profile) => _buildProfile(context, ref, user, profile),
-      orElse: () => const Scaffold(body: Center(child: Text('Logged out'))),
+      unauthenticated: () => Scaffold(
+        backgroundColor: const Color(FlickoColors.bgPrimary),
+        body: FlickoErrorState(
+          type: FlickoErrorType.unauthorized,
+          onRetry: () => context.go('/login'),
+        ),
+      ),
     );
   }
 

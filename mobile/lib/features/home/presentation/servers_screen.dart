@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/home/application/servers_notifier.dart';
 import 'package:mobile/features/voice/presentation/controllers/voice_controller.dart';
+import 'package:mobile/features/shared/presentation/widgets/skeleton_loader.dart';
+import 'package:mobile/features/shared/presentation/widgets/flicko_error_state.dart';
 import 'package:mobile/data/models/server_model.dart';
 import 'package:mobile/data/models/channel_model.dart';
 
@@ -29,10 +31,16 @@ class ServersScreen extends ConsumerWidget {
     if (serversState.isLoading && normalServers.isEmpty) {
       return const Scaffold(
         backgroundColor: Colors.black,
-        body: Center(
-          child: CircularProgressIndicator(
-            color: Color(0xFFC0EB10),
-          ),
+        body: SafeArea(child: FeedSkeleton()),
+      );
+    }
+
+    if (serversState.error != null && normalServers.isEmpty) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        body: FlickoErrorState.fromException(
+          serversState.error!,
+          onRetry: () => ref.read(serversNotifierProvider.notifier).loadServers(),
         ),
       );
     }
