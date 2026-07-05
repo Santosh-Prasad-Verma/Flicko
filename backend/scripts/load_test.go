@@ -1,20 +1,21 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io"
 	"net/http"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
+// Result represents the metrics collected from an HTTP request execution.
 type Result struct {
-	StatusCode int
-	Duration   time.Duration
+	StatusCode  int
 	CacheHeader string
-	Err        error
+	Duration    time.Duration
+	Err         error
 }
 
 func main() {
@@ -58,9 +59,10 @@ func runCacheBenchmark(endpoint string, totalReqs int, concurrency int) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
+			ctx := context.Background()
 			for range jobs {
 				reqStart := time.Now()
-				req, err := http.NewRequest("GET", endpoint, nil)
+				req, err := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
 				if err != nil {
 					results <- Result{Err: err}
 					continue
@@ -72,7 +74,7 @@ func runCacheBenchmark(endpoint string, totalReqs int, concurrency int) {
 					results <- Result{Err: err, Duration: dur}
 					continue
 				}
-				io.Copy(io.Discard, resp.Body)
+				_, _ = io.Copy(io.Discard, resp.Body)
 				resp.Body.Close()
 
 				results <- Result{
@@ -95,11 +97,11 @@ func runCacheBenchmark(endpoint string, totalReqs int, concurrency int) {
 
 	for res := range results {
 		if res.Err == nil && (res.StatusCode >= 200 && res.StatusCode < 300) {
-			atomic.AddInt64(&successCount, 1)
+			successCount++
 			if res.CacheHeader == "HIT" {
-				atomic.AddInt64(&cacheHitCount, 1)
+				cacheHitCount++
 			} else {
-				atomic.AddInt64(&cacheMissCount, 1)
+				cacheMissCount++
 			}
 		}
 		if res.Duration > 0 {
@@ -135,16 +137,20 @@ func runCacheBenchmark(endpoint string, totalReqs int, concurrency int) {
 func runRateLimitTest(endpoint string) {
 	client := &http.Client{Timeout: 3 * time.Second}
 	var hit429 int
+	ctx := context.Background()
 
 	// Send 30 rapid requests in tight loop
 	for i := 0; i < 30; i++ {
-		req, _ := http.NewRequest("POST", endpoint, nil)
+		req, err := http.NewRequestWithContext(ctx, "POST", endpoint, nil)
+		if err != nil {
+			continue
+		}
 		resp, err := client.Do(req)
 		if err == nil {
 			if resp.StatusCode == 429 {
 				hit429++
 			}
-			io.Copy(io.Discard, resp.Body)
+			_, _ = io.Copy(io.Discard, resp.Body)
 			resp.Body.Close()
 		}
 	}
