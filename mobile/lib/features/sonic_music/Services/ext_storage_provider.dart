@@ -66,6 +66,5 @@ class ExtStorageProvider {
     } catch (e) {
       rethrow;
     }
-    return directory?.path;
   }
 }

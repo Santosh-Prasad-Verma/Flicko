@@ -64,7 +64,7 @@ final dioProvider = Provider<Dio>((ref) {
   dio.interceptors.add(_ClientCacheInterceptor());
 
   // 3. Automatic retry interceptor for network timeouts & 5xx server errors
-  dio.interceptors.add(_RetryInterceptor(dio: dio));
+  dio.interceptors.add(_RetryInterceptor(dio: dio, maxRetries: 3));
 
   // 4. Error mapping interceptor
   dio.interceptors.add(_ErrorMappingInterceptor());

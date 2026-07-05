@@ -12,7 +12,6 @@ class GiphyService {
   
   // Rate limiting
   static const int _maxRequestsPerHour = 1000;
-  static const int _maxRequestsPerDay = 10000;
   int _requestCount = 0;
   DateTime _lastReset = DateTime.now();
 

@@ -6,6 +6,7 @@ final translationServiceProvider = NotifierProvider<TranslationService, Map<Stri
 
 class TranslationService extends Notifier<Map<String, dynamic>> {
   String _currentLocale = 'en';
+  String get currentLocale => _currentLocale;
 
   @override
   Map<String, dynamic> build() {

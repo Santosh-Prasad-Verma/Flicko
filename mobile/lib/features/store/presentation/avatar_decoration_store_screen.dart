@@ -65,7 +65,6 @@ class _AvatarDecorationStoreScreenState extends ConsumerState<AvatarDecorationSt
   static const Color _muted = Color(0xFF71717A);
   static const Color _lime = Color(0xFF52B788);
   static const Color _orange = Color(0xFFFAA61A);
-  static const Color _magenta = Color(0xFFFF007F);
   static const Color _cyberBlue = Color(0xFF00E5FF);
 
   @override

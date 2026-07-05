@@ -169,73 +169,13 @@ class RatchetState {
     };
   }
 
-  /// Deep-copy skipped map for safe state transitions.
-  Map<SkippedKeyId, Uint8List> _copySkipped() {
-    return Map.fromEntries(
-      skipped.entries.map(
-        (e) => MapEntry(e.key, Uint8List.fromList(e.value)),
-      ),
-    );
-  }
-}
-
-// ── Errors ───────────────────────────────────────────────────────────────────
-
-/// Raised when more than [kMaxSkip] keys would have to be derived to
-/// catch up to an out-of-order message. The conversation can recover
-/// after the next live DH ratchet step.
-class RatchetSkipExceededError extends Error {
-  final int requested;
-  RatchetSkipExceededError(this.requested);
-  @override
-  String toString() =>
-      'RatchetSkipExceededError(requested=$requested, max=$kMaxSkip)';
-}
-
-/// Raised when an envelope's authenticated decryption fails (tampering,
-/// replay, or wrong key).
-class RatchetDecryptError extends Error {
-  final String reason;
-  RatchetDecryptError(this.reason);
-  @override
-  String toString() => 'RatchetDecryptError($reason)';
-}
-
-// ── Double Ratchet Engine ────────────────────────────────────────────────────
-
-/// Production Double Ratchet implementation using the `cryptography` package.
-///
-/// All operations are deterministic given the same inputs, making
-/// the engine suitable for property-based testing.
-class DoubleRatchet {
-  static final _x25519 = Cryptography.instance.x25519();
-  static final _aead = Xchacha20.poly1305Aead();
-  static final _hkdf = Hkdf(hmac: Hmac.sha256(), outputLength: 32);
-
-  /// Initialise a ratchet state for the **sender** (Alice) after X3DH.
-  ///
-  /// [sharedKey] is the 32-byte SK from X3DH.
-  /// [recipientDhPub] is Bob's SPK pub (the first DHr).
-  static Future<RatchetState> initSender({
-    required Uint8List sharedKey,
-    required Uint8List recipientDhPub,
-  }) async {
-    // Generate the first sending DH pair.
-    final dhs = await _x25519.newKeyPair();
-
-    // Perform the first root-key ratchet step to derive CKs.
-    final dhsPriv = await dhs.extractPrivateKeyBytes();
+  /// Perform the first root-key ratchet step to derive CKs.
     final dhOut = await _x25519.sharedSecretKey(
       keyPair: dhs,
       remotePublicKey:
           SimplePublicKey(recipientDhPub, type: KeyPairType.x25519),
     );
     final dhBytes = await dhOut.extractBytes();
-
-    // Concatenate sharedKey || DH output for HKDF input.
-    final ikm = Uint8List(sharedKey.length + dhBytes.length)
-      ..setRange(0, sharedKey.length, sharedKey)
-      ..setRange(sharedKey.length, sharedKey.length + dhBytes.length, dhBytes);
 
     // Derive root key and sending chain key.
     final rkCk = await _kdfRootKey(sharedKey, Uint8List.fromList(dhBytes), kRatchetRootInfo);
@@ -279,13 +219,6 @@ class DoubleRatchet {
   /// The old chain key is discarded (forward secrecy per message — R5.1, R5.2).
   static Future<({Uint8List chainKey, Uint8List messageKey})>
       advanceSendingChain(Uint8List currentCk) async {
-    final derived = await _hkdf.deriveKey(
-      secretKey: SecretKey(currentCk),
-      info: utf8.encode(kRatchetMsgInfo),
-      nonce: Uint8List(0),
-    );
-    final allBytes = await derived.extractBytes();
-    // First 32 bytes → new chain key, next derivation → message key.
     // We do two HKDF rounds: one for chain key, one for message key.
     final newCk = await _hkdfDerive(currentCk, '$kRatchetMsgInfo-ck');
     final mk = await _hkdfDerive(currentCk, '$kRatchetMsgInfo-mk');

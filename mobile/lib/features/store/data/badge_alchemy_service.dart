@@ -326,7 +326,6 @@ class BadgeAlchemyNotifier extends Notifier<BadgeAlchemyState> {
   }
 
   StoreProduct getFallbackBadgeProduct(UserPurchase purchase) {
-    final b = BuiltInBadges.getById(purchase.productId);
     String rarity = 'rare';
     if (purchase.productId == 'og-badge' || purchase.productId == 'verified-plus' || purchase.productId == 'cosmic-overlord-badge' || purchase.productId == 'alchemist-badge') {
       rarity = 'legendary';

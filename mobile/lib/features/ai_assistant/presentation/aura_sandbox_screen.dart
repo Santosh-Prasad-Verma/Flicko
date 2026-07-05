@@ -24,7 +24,6 @@ class _AuraSandboxScreenState extends State<AuraSandboxScreen> {
   Color get _borderGrey => Theme.of(context).dividerColor;
   Color get _textWhite => Theme.of(context).textTheme.bodyLarge?.color ?? const Color(0xFFFBF9FA);
   Color get _textMuted => Theme.of(context).textTheme.bodySmall?.color ?? const Color(0xFF8E8E93);
-  bool get _isLight => Theme.of(context).brightness == Brightness.light;
 
   final List<Color> _availableColors = [
     const Color(0xFFFF007F), // Cyber Pink

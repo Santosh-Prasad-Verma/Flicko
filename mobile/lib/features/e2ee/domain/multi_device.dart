@@ -132,7 +132,6 @@ class SelfPairingRequest {
 /// Manages per-device sessions, sender key distribution,
 /// and self-pairing flows.
 class MultiDeviceManager {
-  static final _x25519 = Cryptography.instance.x25519();
   static final _hkdf = Hkdf(hmac: Hmac.sha256(), outputLength: 32);
 
   /// Generate a new sender key for group/multi-device delivery.

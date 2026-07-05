@@ -308,6 +308,9 @@ class PresenceService {
   /// Get current user status
   String get currentStatus => _currentStatus;
 
+  /// Get current channel ID
+  String? get currentChannelId => _currentChannelId;
+
   /// Check if connected
   bool get isConnected => _connected;
 
