@@ -202,9 +202,9 @@ class _SearchPageState extends State<SearchPage> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color(0xFF0C0022),
-            Color(0xFF120630),
-            Color(0xFF0A001A),
+            Color(0xFF0A1A0F),
+            Color(0xFF0D1F12),
+            Color(0xFF060E08),
           ],
         ),
       ),

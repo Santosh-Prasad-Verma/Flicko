@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/home/application/servers_notifier.dart';
+import 'package:mobile/features/voice/presentation/controllers/voice_controller.dart';
 import 'package:mobile/data/models/server_model.dart';
 import 'package:mobile/data/models/channel_model.dart';
 
@@ -520,6 +521,7 @@ class ServersScreen extends ConsumerWidget {
                                   channelId: ch.id,
                                   isSelected: false,
                                   isVoice: true,
+                                  ref: ref,
                                 );
                               }),
                             ] else ...[
@@ -588,6 +590,7 @@ class ServersScreen extends ConsumerWidget {
                                 channelId: 'lounge',
                                 isSelected: false,
                                 isVoice: true,
+                                ref: ref,
                                 trailing: Text(
                                   '3 / 10',
                                   style: GoogleFonts.outfit(
@@ -667,6 +670,7 @@ class ServersScreen extends ConsumerWidget {
                                 channelId: 'gaming-voice',
                                 isSelected: false,
                                 isVoice: true,
+                                ref: ref,
                               ),
                             ],
                           ],
@@ -710,11 +714,13 @@ class ServersScreen extends ConsumerWidget {
     required bool isSelected,
     bool isVoice = false,
     Widget? trailing,
+    WidgetRef? ref,
   }) {
     return GestureDetector(
       onTap: () {
-        if (isVoice) {
-          context.push('/server/$serverId/channel/$channelId/voice');
+        if (isVoice && ref != null) {
+          // Join voice channel in the background — the floating VoiceHUD appears.
+          ref.read(voiceControllerProvider.notifier).joinChannel(channelId, serverId);
         } else {
           context.push('/server/$serverId/channel/$channelId');
         }

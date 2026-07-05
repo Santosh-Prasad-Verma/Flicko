@@ -746,8 +746,15 @@ class _PlayScreenState extends State<PlayScreen> {
               ),
             ),
             builder:
-                (BuildContext context, List<Color?>? value, Widget? child) {
+                (BuildContext context, List<Color?> value, Widget? child) {
               final Color domColor = value?[0] ?? const Color(0xFF2B0C0A);
+              // Blend dominant album color with Flicko green base for a
+              // solid glassmorphic look (no transparent see-through).
+              final Color greenBase = Color.lerp(
+                domColor,
+                const Color(0xFF0A1A0F),
+                0.65,
+              )!;
               return AnimatedContainer(
                 duration: const Duration(milliseconds: 600),
                 decoration: BoxDecoration(
@@ -756,18 +763,19 @@ class _PlayScreenState extends State<PlayScreen> {
                           center: const Alignment(0, -0.5),
                           radius: 1.4,
                           colors: [
-                            domColor.withOpacity(0.18),
-                            const Color(0xFF07040A),
-                            Colors.black,
+                            Color.lerp(domColor, const Color(0xFF1B3A20), 0.5)!,
+                            greenBase,
+                            const Color(0xFF060E08),
                           ],
-                          stops: const [0.0, 0.7, 1.0],
+                          stops: const [0.0, 0.55, 1.0],
                         )
                       : LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            domColor.withOpacity(0.15),
-                            Colors.white,
+                            Color.lerp(domColor, const Color(0xFF3D6B45), 0.4)!
+                                .withOpacity(0.9),
+                            const Color(0xFFF0F5F1),
                           ],
                         ),
                 ),
@@ -1533,45 +1541,7 @@ class _RelatedSongsSectionState extends State<RelatedSongsSection> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Section Title: Related Songs Mockup Description in UI
-          Padding(
-            padding: const EdgeInsets.only(left: 20.0, bottom: 8.0, top: 10.0),
-            child: Row(
-              children: [
-                Container(
-                  height: 18,
-                  width: 3.5,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFC0EC54),
-                    borderRadius: BorderRadius.all(Radius.circular(2)),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                const Text(
-                  "Related Songs",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding:
-                const EdgeInsets.only(left: 20.0, right: 20.0, bottom: 20.0),
-            child: Text(
-              "Recommended hit songs and similar tracks based on your listening choices.",
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.4),
-                fontSize: 12,
-              ),
-            ),
-          ),
-
-          // Container Card 1: Top Songs
+          // Single consolidated "Related Songs" card
           ClipRRect(
             borderRadius: BorderRadius.circular(24.0),
             child: BackdropFilter(
@@ -1591,12 +1561,37 @@ class _RelatedSongsSectionState extends State<RelatedSongsSection> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text(
-                      "You Might Also Like",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                    Row(
+                      children: [
+                        Container(
+                          height: 18,
+                          width: 3.5,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFC0EC54),
+                            borderRadius: BorderRadius.all(Radius.circular(2)),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          "Related Songs",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 11.5),
+                      child: Text(
+                        "Based on your listening choices",
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.4),
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),

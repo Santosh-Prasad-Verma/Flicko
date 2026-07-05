@@ -8,6 +8,7 @@ import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/data/models/auth_state.dart' as app_auth;
 import 'package:mobile/features/voice/application/sonic_drip_notifier.dart';
+import 'package:mobile/features/voice/presentation/controllers/voice_controller.dart';
 
 /// Feed/Home Screen — Discord Mobile Style
 ///
@@ -106,7 +107,9 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
 
   void _handleChannelPress(String channelId, String channelType) {
     if (channelType == 'voice' || channelType == 'stage') {
-      context.push('/server/$_selectedServerId/channel/$channelId/voice');
+      // Join voice channel in the background — the floating VoiceHUD appears
+      // automatically. Users can tap the HUD to navigate to the full voice screen.
+      ref.read(voiceControllerProvider.notifier).joinChannel(channelId, _selectedServerId ?? '');
     } else {
       context.push('/server/$_selectedServerId/channel/$channelId');
     }
