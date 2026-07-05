@@ -75,7 +75,7 @@ func runCacheBenchmark(endpoint string, totalReqs int, concurrency int) {
 					continue
 				}
 				_, _ = io.Copy(io.Discard, resp.Body)
-				resp.Body.Close()
+				_ = resp.Body.Close()
 
 				results <- Result{
 					StatusCode:  resp.StatusCode,
@@ -151,7 +151,7 @@ func runRateLimitTest(endpoint string) {
 				hit429++
 			}
 			_, _ = io.Copy(io.Discard, resp.Body)
-			resp.Body.Close()
+			_ = resp.Body.Close()
 		}
 	}
 
