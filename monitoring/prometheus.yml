@@ -39,6 +39,16 @@ scrape_configs:
           service: msg-service
           env: production
 
+  # ── Backend Service (Go) ──────────────────────────────────────────────────
+  - job_name: "backend"
+    scrape_interval: 15s
+    metrics_path: "/api/v1/metrics"
+    static_configs:
+      - targets: ["backend:8080"]
+        labels:
+          service: backend
+          env: production
+
   # ── Redis Exporter ───────────────────────────────────────────────────────
   - job_name: "redis"
     scrape_interval: 15s

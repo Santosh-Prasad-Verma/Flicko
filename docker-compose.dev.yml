@@ -45,10 +45,12 @@ services:
       - "--storage.tsdb.path=/prometheus"
       - "--storage.tsdb.retention.time=7d"
     volumes:
-      - ./monitoring/prometheus-dev.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus-dev.yml:/etc/prometheus/prometheus.yml:ro,z
       - prometheus_dev_data:/prometheus
     networks:
       - flicko_dev
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   # ----------------------------------------------------------
   # GRAFANA — Dashboards
@@ -67,6 +69,8 @@ services:
       GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
     volumes:
       - grafana_dev_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro,z
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro,z
     networks:
       - flicko_dev
 

@@ -27,14 +27,17 @@ scrape_configs:
           service: msg-service
           env: dev
 
-  # ── Redis exporter (if added later) ────────────────────
-  # - job_name: "redis"
-  #   static_configs:
-  #     - targets: ["redis-exporter:9121"]
-
-  # ── Storage — Using Cloudinary (cloud), no local storage to scrape
+  # ── main-backend (Go, run locally) ─────────────────────
+  - job_name: "main-backend"
+    metrics_path: "/api/v1/metrics"
+    static_configs:
+      - targets: ["host.docker.internal:8080"]
+        labels:
+          service: main-backend
+          env: dev
 
   # ── Prometheus self-monitoring ─────────────────────────
   - job_name: "prometheus"
     static_configs:
       - targets: ["localhost:9090"]
+
