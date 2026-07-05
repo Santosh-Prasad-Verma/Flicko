@@ -48,9 +48,19 @@ class _DownloadButtonState extends State<DownloadButton> {
   void initState() {
     super.initState();
     down = Download(widget.data['id'].toString());
-    down.addListener(() {
+    down.addListener(_updateState);
+  }
+
+  @override
+  void dispose() {
+    down.removeListener(_updateState);
+    super.dispose();
+  }
+
+  void _updateState() {
+    if (mounted) {
       setState(() {});
-    });
+    }
   }
 
   @override
@@ -174,9 +184,19 @@ class _MultiDownloadButtonState extends State<MultiDownloadButton> {
   void initState() {
     super.initState();
     down = Download(widget.data.first['id'].toString());
-    down.addListener(() {
+    down.addListener(_updateState);
+  }
+
+  @override
+  void dispose() {
+    down.removeListener(_updateState);
+    super.dispose();
+  }
+
+  void _updateState() {
+    if (mounted) {
       setState(() {});
-    });
+    }
   }
 
   Future<void> _waitUntilDone(String id) async {
@@ -286,9 +306,19 @@ class _AlbumDownloadButtonState extends State<AlbumDownloadButton> {
   void initState() {
     super.initState();
     down = Download(widget.albumId);
-    down.addListener(() {
+    down.addListener(_updateState);
+  }
+
+  @override
+  void dispose() {
+    down.removeListener(_updateState);
+    super.dispose();
+  }
+
+  void _updateState() {
+    if (mounted) {
       setState(() {});
-    });
+    }
   }
 
   Future<void> _waitUntilDone(String id) async {

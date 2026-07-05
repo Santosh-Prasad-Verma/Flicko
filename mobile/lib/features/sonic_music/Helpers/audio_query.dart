@@ -23,14 +23,25 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import 'package:on_audio_query/on_audio_query.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 
 class OfflineAudioQuery {
   static OnAudioQuery audioQuery = OnAudioQuery();
   static final RegExp avoid = RegExp(r'[\.\\\*\:\"\?#/;\|]');
 
   Future<void> requestPermission() async {
-    while (!await audioQuery.permissionsStatus()) {
-      await audioQuery.permissionsRequest();
+    if (Platform.isAndroid) {
+      try {
+        final androidInfo = await DeviceInfoPlugin().androidInfo;
+        if (androidInfo.version.sdkInt >= 33) {
+          await Permission.audio.request();
+        } else {
+          await Permission.storage.request();
+        }
+      } catch (e) {
+        Logger.root.warning('Error requesting offline storage permissions: $e');
+      }
     }
   }
 
