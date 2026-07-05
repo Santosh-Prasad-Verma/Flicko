@@ -105,8 +105,19 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
         throw Exception('Server returned status code ${response.statusCode}');
       }
     } catch (e) {
+      String errorMsg = e.toString();
+      if (e is DioException) {
+        final data = e.response?.data;
+        if (data is Map) {
+          errorMsg = data['error']?.toString() ?? e.message ?? e.toString();
+        } else if (data is String && data.isNotEmpty) {
+          errorMsg = data;
+        } else {
+          errorMsg = e.message ?? e.toString();
+        }
+      }
       setState(() {
-        _summaryError = 'Aura could not summarize the conversation: ${e is DioException ? (e.response?.data?['error'] ?? e.message) : e}';
+        _summaryError = 'Aura could not summarize the conversation: $errorMsg';
         _isSummarizing = false;
       });
     }
