@@ -5,6 +5,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/data/models/user_model.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
+import 'package:dio/dio.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:mobile/core/config/app_config.dart';
 
 /// Account Settings Screen (Sleek Brutalist Black/Neon Theme)
 class AccountSettingsScreen extends ConsumerStatefulWidget {
@@ -17,12 +20,67 @@ class AccountSettingsScreen extends ConsumerStatefulWidget {
 class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
   bool _isEditingPhone = false;
   final _phoneController = TextEditingController();
+  List<Map<String, dynamic>> _sessions = [];
+  bool _isLoadingSessions = false;
 
   static const Color _neonGreen = Color(0xFF52B788);
   static const Color _bgBlack = Color(0xFF050505);
   static const Color _surfaceContainer = Color(0xFF0C0C0E);
   static const Color _textWhite = Color(0xFFFBF9FA);
   static const Color _textMuted = Color(0xFF71717A);
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSessions();
+  }
+
+  Future<void> _loadSessions() async {
+    if (!AppConfig.hasApiBaseUrl) return;
+    setState(() => _isLoadingSessions = true);
+    try {
+      final token = Supabase.instance.client.auth.currentSession?.accessToken ?? "";
+      final dio = Dio(BaseOptions(
+        baseUrl: AppConfig.apiBaseUrl.endsWith('/') ? AppConfig.apiBaseUrl : '${AppConfig.apiBaseUrl}/',
+        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
+      ));
+      final response = await dio.get('users/@me/sessions');
+      if (response.statusCode == 200 && response.data is List) {
+        setState(() {
+          _sessions = (response.data as List).cast<Map<String, dynamic>>();
+          _isLoadingSessions = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoadingSessions = false);
+    }
+  }
+
+  Future<void> _revokeSession(String sessionId) async {
+    if (!AppConfig.hasApiBaseUrl) return;
+    try {
+      final token = Supabase.instance.client.auth.currentSession?.accessToken ?? "";
+      final dio = Dio(BaseOptions(
+        baseUrl: AppConfig.apiBaseUrl.endsWith('/') ? AppConfig.apiBaseUrl : '${AppConfig.apiBaseUrl}/',
+        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
+      ));
+      await dio.delete('users/@me/sessions/$sessionId');
+      setState(() {
+        _sessions.removeWhere((s) => s['id'] == sessionId);
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Session revoked'), backgroundColor: Color(0xFF52B788)),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to revoke session: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -67,6 +125,8 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                       _buildProfileCard(displayName, username, profile?.avatarUrl, profile?.bannerUrl),
                       const SizedBox(height: 40),
                       _buildAccountInfoSection(email, username, profile),
+                      const SizedBox(height: 40),
+                      _buildSessionsSection(),
                       const SizedBox(height: 40),
                       _buildAccountManagementSection(),
                       const SizedBox(height: 48),
@@ -453,6 +513,91 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSessionsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('ACTIVE SESSIONS',
+              style: GoogleFonts.epilogue(
+                color: _textWhite, fontSize: 22, fontWeight: FontWeight.w900,
+                fontStyle: FontStyle.italic, letterSpacing: -0.5,
+              ),
+            ),
+            if (_isLoadingSessions)
+              const SizedBox(
+                width: 16, height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2, color: _neonGreen),
+              ),
+          ],
+        ),
+        Container(height: 2, color: _neonGreen, margin: const EdgeInsets.only(top: 6, bottom: 16)),
+        if (_sessions.isEmpty && !_isLoadingSessions)
+          Container(
+            padding: const EdgeInsets.all(20),
+            color: _surfaceContainer,
+            child: Row(
+              children: [
+                const Icon(Icons.devices_rounded, color: _neonGreen, size: 22),
+                const SizedBox(width: 12),
+                Text('Current device active', style: GoogleFonts.spaceMono(color: _textWhite, fontSize: 13)),
+              ],
+            ),
+          )
+        else
+          ..._sessions.map((session) {
+            final device = session['user_agent'] ?? session['device_name'] ?? 'Mobile Device';
+            final ip = session['ip'] ?? session['ip_address'] ?? 'Unknown IP';
+            final sessionId = session['id'] as String? ?? '';
+            final isCurrent = session['is_current'] as bool? ?? false;
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: _surfaceContainer,
+                border: Border.all(color: isCurrent ? _neonGreen.withValues(alpha: 0.4) : _textWhite.withValues(alpha: 0.05)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.smartphone_rounded, color: isCurrent ? _neonGreen : _textMuted, size: 24),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(device.toString(), style: GoogleFonts.spaceGrotesk(color: _textWhite, fontWeight: FontWeight.bold, fontSize: 14)),
+                            if (isCurrent) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                color: _neonGreen,
+                                child: Text('THIS DEVICE', style: GoogleFonts.spaceMono(color: Colors.black, fontSize: 8, fontWeight: FontWeight.bold)),
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text('IP: $ip', style: GoogleFonts.spaceMono(color: _textMuted, fontSize: 11)),
+                      ],
+                    ),
+                  ),
+                  if (!isCurrent && sessionId.isNotEmpty)
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+                      onPressed: () => _revokeSession(sessionId),
+                    ),
+                ],
+              ),
+            );
+          }),
+      ],
     );
   }
 
