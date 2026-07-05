@@ -41,7 +41,7 @@ class ProfileScreen extends ConsumerWidget {
         body: FlickoErrorState(
           type: FlickoErrorType.generic,
           customMessage: msg,
-          onRetry: () => ref.read(authNotifierProvider.notifier).checkAuth(),
+          onRetry: () => ref.read(authNotifierProvider.notifier).refreshProfile(),
         ),
       ),
     );
