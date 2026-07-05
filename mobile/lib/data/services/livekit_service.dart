@@ -101,7 +101,11 @@ class LiveKitService {
     _isDeafened = !_isDeafened;
     for (final participant in _room!.remoteParticipants.values) {
       for (final publication in participant.audioTrackPublications) {
-        await publication.setSubscribed(!_isDeafened);
+        if (_isDeafened) {
+          await publication.unsubscribe();
+        } else {
+          await publication.subscribe();
+        }
       }
     }
   }
