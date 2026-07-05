@@ -518,19 +518,27 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
     AudioSource? audioSource;
     try {
       if (mediaItem.artUri.toString().startsWith('file:')) {
-        audioSource =
-            AudioSource.uri(Uri.file(mediaItem.extras!['url'].toString()));
+        final filePath = mediaItem.extras?['url']?.toString();
+        if (filePath != null && File(filePath).existsSync()) {
+          audioSource = AudioSource.uri(Uri.file(filePath));
+        }
       } else {
         if (downloadsBox != null &&
             downloadsBox!.containsKey(mediaItem.id) &&
             useDown) {
-          Logger.root.info('Found ${mediaItem.id} in downloads');
-          audioSource = AudioSource.uri(
-            Uri.file(
-              (downloadsBox!.get(mediaItem.id) as Map)['path'].toString(),
-            ),
-            tag: mediaItem.id,
-          );
+          final downMap = downloadsBox!.get(mediaItem.id);
+          final downPath = (downMap is Map) ? downMap['path']?.toString() : null;
+          if (downPath != null && File(downPath).existsSync()) {
+            Logger.root.info('Found ${mediaItem.id} in downloads');
+            audioSource = AudioSource.uri(
+              Uri.file(downPath),
+              tag: mediaItem.id,
+            );
+          } else {
+            Logger.root.warning(
+              'Found ${mediaItem.id} in downloads box but local file missing at $downPath. Falling back to stream.',
+            );
+          }
         } else if (Hive.box('song_cache').containsKey(mediaItem.id)) {
           final cachedData = Hive.box('song_cache').get(mediaItem.id) as Map;
           final cachedPath = cachedData['path']?.toString();
