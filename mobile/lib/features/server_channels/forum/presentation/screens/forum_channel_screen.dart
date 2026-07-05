@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/shared/presentation/widgets/skeleton_loader.dart';
 import 'package:mobile/features/shared/presentation/widgets/flicko_error_state.dart';
 
@@ -226,7 +227,7 @@ class _ForumChannelScreenState extends ConsumerState<ForumChannelScreen> {
               child: _isLoading
                   ? const Padding(
                       padding: EdgeInsets.all(16),
-                      child: SkeletonLoader(type: SkeletonType.feed, count: 5),
+                      child: FeedSkeleton(),
                     )
                   : _buildPostList(),
             ),
