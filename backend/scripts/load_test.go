@@ -113,6 +113,23 @@ func runCacheBenchmark(endpoint string, totalReqs int, concurrency int) {
 	fmt.Printf("  Successful HTTPs   : %d / %d\n", successCount, totalReqs)
 	fmt.Printf("  Cache HITs         : %d (%.1f%%)\n", cacheHitCount, float64(cacheHitCount)/float64(totalReqs)*100)
 	fmt.Printf("  Cache MISSes       : %d (%.1f%%)\n", cacheMissCount, float64(cacheMissCount)/float64(totalReqs)*100)
+
+	if len(durations) > 0 {
+		var totalDur time.Duration
+		minDur := durations[0]
+		maxDur := durations[0]
+		for _, d := range durations {
+			totalDur += d
+			if d < minDur {
+				minDur = d
+			}
+			if d > maxDur {
+				maxDur = d
+			}
+		}
+		avgDur := totalDur / time.Duration(len(durations))
+		fmt.Printf("  Latency (Min/Avg/Max): %v / %v / %v\n", minDur, avgDur, maxDur)
+	}
 }
 
 func runRateLimitTest(endpoint string) {
