@@ -151,9 +151,14 @@ class LudoBotBrain {
     final target = advanced.pos;
     final travel = advanced.travelCount;
 
-    var score = piece.travelCount;
-    if (travel == travelToHome) score += 75;
+    var score = piece.travelCount; // base score prioritizing furthest advanced pieces
+    
+    // 1. Reaching home/center is top priority!
+    if (travel == travelToHome) {
+      score += 150;
+    }
 
+    // 2. Capturing an opponent is highly prioritized!
     final occupants =
         state.currentPosition.where((p) => p.pos == target).toList();
     final enemies =
@@ -161,21 +166,37 @@ class LudoBotBrain {
     if (enemies.isNotEmpty &&
         !safeSpots.contains(target) &&
         !starSpots.contains(target)) {
-      score += 100;
-    }
-    if (safeSpots.contains(target) || starSpots.contains(target)) {
-      score += 25;
+      score += 180;
     }
 
-    // Hard mode: penalise destinations that an opponent could capture from
-    // their next move (any roll 1..6 that lands on `target` from a piece on
-    // a non-safe perimeter cell).
+    // 3. Landing on a safe or star cell is nice
+    if (safeSpots.contains(target) || starSpots.contains(target)) {
+      score += 40;
+    }
+
+    // 4. Danger evasion: if currently vulnerable to capture but moving to target makes it safe
+    final isCurrentVulnerable = _isReachableByOpponent(piece.pos, piece.id[0], state);
+    final isTargetVulnerable = _isReachableByOpponent(target, piece.id[0], state);
+    if (isCurrentVulnerable && !isTargetVulnerable) {
+      score += 90;
+    }
+
+    // 5. Hard mode: penalise destinations that an opponent could capture on their next turn
     if (difficulty == BotDifficulty.hard &&
         !safeSpots.contains(target) &&
         !starSpots.contains(target) &&
         target <= 52) {
       final risky = _isReachableByOpponent(target, piece.id[0], state);
-      if (risky) score -= 60;
+      if (risky) score -= 80;
+    }
+
+    // 6. Medium difficulty also avoids risky targets with lighter penalty
+    if (difficulty == BotDifficulty.medium &&
+        !safeSpots.contains(target) &&
+        !starSpots.contains(target) &&
+        target <= 52) {
+      final risky = _isReachableByOpponent(target, piece.id[0], state);
+      if (risky) score -= 40;
     }
 
     return score;

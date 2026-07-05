@@ -193,6 +193,26 @@ class _LudoBoardScreenState extends ConsumerState<LudoBoardScreen>
             ),
             Positioned(
               top: 12,
+              left: 64,
+              child: IconButton(
+                tooltip: LudoSoundService.instance.muted ? 'Unmute' : 'Mute',
+                icon: Icon(
+                  LudoSoundService.instance.muted
+                      ? Icons.volume_off_rounded
+                      : Icons.volume_up_rounded,
+                  color: LudoColors.white,
+                  size: 28,
+                ),
+                onPressed: () {
+                  setState(() {
+                    LudoSoundService.instance
+                        .setMuted(!LudoSoundService.instance.muted);
+                  });
+                },
+              ),
+            ),
+            Positioned(
+              top: 12,
               right: 16,
               child: _ScoreBadge(state: state),
             ),

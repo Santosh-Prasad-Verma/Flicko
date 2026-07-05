@@ -70,7 +70,7 @@ class LudoNotifier extends Notifier<LudoState> {
   // ────────────────────────────────────────────────────────────────────────
 
   void _updateDiceNumber(int diceNo) {
-    state = state.copyWith(diceNo: diceNo, isDiceRolled: false);
+    state = state.copyWith(diceNo: diceNo, isDiceRolled: true);
   }
 
   void _enablePileSelection(int playerNo) {
@@ -194,32 +194,22 @@ class LudoNotifier extends Notifier<LudoState> {
     _updateDiceNumber(diceNumber);
 
     final pieces = state.piecesFor(playerNo);
-    final isAnyPieceAlive =
-        pieces.any((e) => e.pos != 0 && e.pos != travelToHome);
-    final isAnyPieceLocked = pieces.any((e) => e.pos != 0);
-
-    if (!isAnyPieceAlive) {
-      if (diceNumber == 6) {
-        _enablePileSelection(playerNo);
-      } else {
-        await _delay(1500);
-        _updatePlayerChance(_nextPlayer(playerNo));
-      }
-      return;
-    }
-
+    final hasPocketPieces = pieces.any((e) => e.pos == 0);
+    final canRelease = (diceNumber == 6) && hasPocketPieces;
     final canMove = pieces.any(
       (p) => p.travelCount + diceNumber <= travelToHome && p.pos != 0,
     );
+    final hasLegalMove = canMove || canRelease;
 
-    if ((!canMove && diceNumber == 6 && !isAnyPieceLocked) ||
-        (!canMove && diceNumber != 6)) {
+    if (!hasLegalMove) {
       await _delay(1500);
       _updatePlayerChance(_nextPlayer(playerNo));
       return;
     }
 
-    if (diceNumber == 6) _enablePileSelection(playerNo);
+    if (diceNumber == 6 && hasPocketPieces) {
+      _enablePileSelection(playerNo);
+    }
     _enableCellSelection(playerNo);
   }
 
