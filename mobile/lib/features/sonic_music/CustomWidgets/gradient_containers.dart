@@ -31,7 +31,25 @@ class GradientContainer extends StatefulWidget {
 }
 
 class _GradientContainerState extends State<GradientContainer> {
-  MyTheme currentTheme = GetIt.I<MyTheme>();
+  late final MyTheme currentTheme;
+
+  @override
+  void initState() {
+    super.initState();
+    currentTheme = GetIt.I<MyTheme>();
+    currentTheme.addListener(_themeListener);
+  }
+
+  @override
+  void dispose() {
+    currentTheme.removeListener(_themeListener);
+    super.dispose();
+  }
+
+  void _themeListener() {
+    if (mounted) setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -41,12 +59,12 @@ class _GradientContainerState extends State<GradientContainer> {
           end: Alignment.bottomRight,
           colors: Theme.of(context).brightness == Brightness.dark
               ? [
-                  const Color(0xFF150B29), // Rich Deep Purple
-                  const Color(0xFF07040A), // Black
-                  const Color(0xFF07040A), // Black
+                  currentTheme.currentColor().withValues(alpha: 0.08),
+                  const Color(0xFF07040A),
+                  const Color(0xFF07040A),
                 ]
               : [
-                  const Color(0xfff5f9ff),
+                  currentTheme.currentColor().withValues(alpha: 0.1),
                   Colors.white,
                 ],
         ),
@@ -73,7 +91,25 @@ class BottomGradientContainer extends StatefulWidget {
 }
 
 class _BottomGradientContainerState extends State<BottomGradientContainer> {
-  MyTheme currentTheme = GetIt.I<MyTheme>();
+  late final MyTheme currentTheme;
+
+  @override
+  void initState() {
+    super.initState();
+    currentTheme = GetIt.I<MyTheme>();
+    currentTheme.addListener(_themeListener);
+  }
+
+  @override
+  void dispose() {
+    currentTheme.removeListener(_themeListener);
+    super.dispose();
+  }
+
+  void _themeListener() {
+    if (mounted) setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     final borderRadius = widget.borderRadius ?? const BorderRadius.all(Radius.circular(15.0));
@@ -88,7 +124,7 @@ class _BottomGradientContainerState extends State<BottomGradientContainer> {
             decoration: BoxDecoration(
               borderRadius: borderRadius,
               border: Border.all(
-                color: Colors.white.withOpacity(0.08),
+                color: Colors.white.withValues(alpha: 0.08),
                 width: 1.0,
               ),
               gradient: LinearGradient(
@@ -96,12 +132,12 @@ class _BottomGradientContainerState extends State<BottomGradientContainer> {
                 end: Alignment.bottomRight,
                 colors: Theme.of(context).brightness == Brightness.dark
                     ? [
-                        Colors.black.withOpacity(0.7),
-                        const Color(0xFF130924).withOpacity(0.5),
+                        Colors.black.withValues(alpha: 0.7),
+                        currentTheme.currentColor().withValues(alpha: 0.15),
                       ]
                     : [
-                        Colors.white.withOpacity(0.85),
-                        Colors.white.withOpacity(0.6),
+                        Colors.white.withValues(alpha: 0.85),
+                        currentTheme.currentColor().withValues(alpha: 0.1),
                       ],
               ),
             ),

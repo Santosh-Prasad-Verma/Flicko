@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 
 class OverviewSettingsScreen extends ConsumerStatefulWidget {
@@ -18,16 +19,33 @@ class OverviewSettingsScreen extends ConsumerStatefulWidget {
 
 class _OverviewSettingsScreenState extends ConsumerState<OverviewSettingsScreen> {
   bool _isLoading = true;
+  bool _isSaving = false;
   Map<String, dynamic>? _serverData;
   String? _errorMessage;
+
+  late TextEditingController _nameController;
+  late TextEditingController _descController;
+  late TextEditingController _iconController;
 
   @override
   void initState() {
     super.initState();
+    _nameController = TextEditingController();
+    _descController = TextEditingController();
+    _iconController = TextEditingController();
     _loadServerData();
   }
 
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _descController.dispose();
+    _iconController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadServerData() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -40,15 +58,75 @@ class _OverviewSettingsScreenState extends ConsumerState<OverviewSettingsScreen>
           .eq('id', widget.serverId)
           .single();
 
-      setState(() {
-        _serverData = response;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _serverData = response;
+          _nameController.text = response['name'] ?? '';
+          _descController.text = response['description'] ?? '';
+          _iconController.text = response['icon'] ?? '';
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _errorMessage = e.toString();
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString();
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _saveChanges() async {
+    final name = _nameController.text.trim();
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Server name cannot be empty'),
+          backgroundColor: Color(FlickoColors.danger),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    try {
+      final iconVal = _iconController.text.trim();
+      await Supabase.instance.client
+          .from('servers')
+          .update({
+            'name': name,
+            'description': _descController.text.trim(),
+            'icon': iconVal.isEmpty ? null : iconVal,
+          })
+          .eq('id', widget.serverId);
+
+      await _loadServerData();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Server overview updated successfully!'),
+            backgroundColor: Color(FlickoColors.green),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update server: ${e.toString()}'),
+            backgroundColor: const Color(FlickoColors.danger),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
     }
   }
 
@@ -57,7 +135,7 @@ class _OverviewSettingsScreenState extends ConsumerState<OverviewSettingsScreen>
     return Scaffold(
       backgroundColor: const Color(FlickoColors.bgPrimary),
       appBar: AppBar(
-        backgroundColor: const Color(FlickoColors.bgPrimary),
+        backgroundColor: const Color(FlickoColors.bgSecondary),
         elevation: 0,
         leading: IconButton(
           icon: Image.asset('assets/images/back.png', width: 20, height: 20, fit: BoxFit.contain),
@@ -71,6 +149,28 @@ class _OverviewSettingsScreenState extends ConsumerState<OverviewSettingsScreen>
             fontWeight: FontWeight.w600,
           ),
         ),
+        actions: [
+          if (!_isLoading && _errorMessage == null)
+            TextButton(
+              onPressed: _isSaving ? null : _saveChanges,
+              child: _isSaving
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Color(FlickoColors.brandLime),
+                      ),
+                    )
+                  : Text(
+                      'Save',
+                      style: GoogleFonts.inter(
+                        color: const Color(FlickoColors.brandLime),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+            ),
+        ],
       ),
       body: _buildBody(),
     );
@@ -79,7 +179,7 @@ class _OverviewSettingsScreenState extends ConsumerState<OverviewSettingsScreen>
   Widget _buildBody() {
     if (_isLoading) {
       return const Center(
-        child: CircularProgressIndicator(color: Color(FlickoColors.blurple)),
+        child: CircularProgressIndicator(color: Color(FlickoColors.brandLime)),
       );
     }
 
@@ -105,39 +205,49 @@ class _OverviewSettingsScreenState extends ConsumerState<OverviewSettingsScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildServerInfo(),
+          _buildServerInfoCard(),
+          const SizedBox(height: 24),
+          _buildEditFields(),
           const SizedBox(height: 24),
           _buildSection('SERVER INFORMATION', [
             _buildInfoRow('Server ID', _serverData?['id'] ?? 'Unknown'),
             _buildInfoRow('Created', _formatDate(_serverData?['created_at'])),
-            _buildInfoRow('Owner', _serverData?['owner_id'] ?? 'Unknown'),
+            _buildInfoRow('Owner ID', _serverData?['owner_id'] ?? 'Unknown'),
           ]),
           const SizedBox(height: 24),
-          _buildSection('PREFERENCES', [
-            _buildToggleRow('Explicit Content Filter', 'Filter explicit content', 'explicit_content_filter', (_serverData?['explicit_content_filter'] ?? 0) != 0),
-            _buildToggleRow('Verification Level', 'Require verification', 'verification_level', (_serverData?['verification_level'] ?? 0) != 0),
-          ]),
         ],
       ),
     );
   }
 
-  Widget _buildServerInfo() {
+  Widget _buildServerInfoCard() {
+    final iconUrl = _iconController.text.trim();
+    final hasIcon = iconUrl.isNotEmpty;
+    final initials = _nameController.text.isNotEmpty
+        ? _nameController.text.split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join().toUpperCase()
+        : 'S';
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(FlickoColors.bgSecondary),
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(FlickoColors.border)),
       ),
       child: Row(
         children: [
           CircleAvatar(
             radius: 32,
-            backgroundImage: _serverData?['icon'] != null ? NetworkImage(_serverData!['icon'] as String) : null,
-            child: _serverData?['icon'] == null
+            backgroundColor: const Color(FlickoColors.bgTertiary),
+            backgroundImage: hasIcon ? CachedNetworkImageProvider(iconUrl) : null,
+            child: !hasIcon
                 ? Text(
-                    _serverData?['name']?[0] ?? '?',
-                    style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary), fontSize: 24),
+                    initials,
+                    style: GoogleFonts.inter(
+                      color: const Color(FlickoColors.brandLime),
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
                   )
                 : null,
           ),
@@ -147,30 +257,122 @@ class _OverviewSettingsScreenState extends ConsumerState<OverviewSettingsScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _serverData?['name'] ?? 'Unknown',
+                  _nameController.text.isEmpty ? 'New Server' : _nameController.text,
                   style: GoogleFonts.inter(
                     color: const Color(FlickoColors.textPrimary),
-                    fontSize: 20,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                if (_serverData?['description'] != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    _serverData!['description'] as String,
-                    style: GoogleFonts.inter(
-                      color: const Color(FlickoColors.textSecondary),
-                      fontSize: 14,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                const SizedBox(height: 4),
+                Text(
+                  _descController.text.isEmpty ? 'No description set.' : _descController.text,
+                  style: GoogleFonts.inter(
+                    color: const Color(FlickoColors.textSecondary),
+                    fontSize: 13,
                   ),
-                ],
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildEditFields() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'EDIT SERVER DETAILS',
+          style: GoogleFonts.inter(
+            color: const Color(FlickoColors.textMuted),
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(FlickoColors.bgSecondary),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            children: [
+              _buildTextField(
+                label: 'SERVER NAME',
+                controller: _nameController,
+                hint: 'Enter server name',
+                maxLength: 100,
+              ),
+              const SizedBox(height: 16),
+              _buildTextField(
+                label: 'DESCRIPTION',
+                controller: _descController,
+                hint: 'Enter server description',
+                maxLength: 256,
+                maxLines: 3,
+              ),
+              const SizedBox(height: 16),
+              _buildTextField(
+                label: 'ICON URL',
+                controller: _iconController,
+                hint: 'Enter image URL for server icon',
+                maxLength: 500,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTextField({
+    required String label,
+    required TextEditingController controller,
+    required String hint,
+    int? maxLength,
+    int maxLines = 1,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.inter(
+            color: const Color(FlickoColors.textMuted),
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 6),
+        TextField(
+          controller: controller,
+          maxLines: maxLines,
+          maxLength: maxLength,
+          onChanged: (_) => setState(() {}),
+          style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary), fontSize: 14),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: GoogleFonts.inter(color: const Color(FlickoColors.textMuted), fontSize: 13),
+            filled: true,
+            fillColor: const Color(FlickoColors.bgTertiary),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            counterText: '',
+          ),
+        ),
+      ],
     );
   }
 
@@ -182,7 +384,7 @@ class _OverviewSettingsScreenState extends ConsumerState<OverviewSettingsScreen>
           title,
           style: GoogleFonts.inter(
             color: const Color(FlickoColors.textMuted),
-            fontSize: 12,
+            fontSize: 11,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.5,
           ),
@@ -216,64 +418,12 @@ class _OverviewSettingsScreenState extends ConsumerState<OverviewSettingsScreen>
             value,
             style: GoogleFonts.inter(
               color: const Color(FlickoColors.textMuted),
-              fontSize: 14,
+              fontSize: 13,
             ),
           ),
         ],
       ),
     );
-  }
-
-  Widget _buildToggleRow(String label, String description, String key, bool value) {
-    return SwitchListTile(
-      title: Text(
-        label,
-        style: GoogleFonts.inter(
-          color: const Color(FlickoColors.textPrimary),
-          fontSize: 14,
-        ),
-      ),
-      subtitle: Text(
-        description,
-        style: GoogleFonts.inter(
-          color: const Color(FlickoColors.textMuted),
-          fontSize: 12,
-        ),
-      ),
-      value: value,
-      onChanged: (v) => _updateServerPreference(key, v ? 1 : 0),
-      activeThumbColor: const Color(FlickoColors.blurple),
-    );
-  }
-
-  Future<void> _updateServerPreference(String key, int value) async {
-    try {
-      await Supabase.instance.client
-          .from('servers')
-          .update({key: value})
-          .eq('id', widget.serverId);
-      await _loadServerData();
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Preference updated successfully!'),
-            backgroundColor: Color(FlickoColors.green),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to update preference: ${e.toString()}'),
-            backgroundColor: const Color(FlickoColors.danger),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    }
   }
 
   String _formatDate(String? dateString) {

@@ -40,6 +40,7 @@ func (h *AISummaryHandler) RegisterRoutes(r *mux.Router) {
 	r.HandleFunc("/ai/summary/stream/{request_id}", h.Stream).Methods(http.MethodGet)
 	r.HandleFunc("/ai/summary/{id}", h.Get).Methods(http.MethodGet)
 	r.HandleFunc("/ai/summary/{id}/feedback", h.Feedback).Methods(http.MethodPost)
+	r.HandleFunc("/ai/summary/chat", h.SummarizeChatDirect).Methods(http.MethodPost)
 }
 
 type requestBody struct {
@@ -208,4 +209,52 @@ func (h *AISummaryHandler) Feedback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+type chatMessage struct {
+	Sender  string `json:"sender"`
+	Content string `json:"content"`
+}
+
+type chatSummaryBody struct {
+	Messages []chatMessage `json:"messages"`
+}
+
+// SummarizeChatDirect handles direct chat history summarization.
+func (h *AISummaryHandler) SummarizeChatDirect(w http.ResponseWriter, r *http.Request) {
+	userID := getUserID(r)
+	if userID == "" {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	var body chatSummaryBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid json")
+		return
+	}
+
+	if len(body.Messages) == 0 {
+		writeError(w, http.StatusBadRequest, "messages array is required")
+		return
+	}
+
+	windowMessages := make([]message_summary.WindowMessage, len(body.Messages))
+	for i, m := range body.Messages {
+		windowMessages[i] = message_summary.WindowMessage{
+			Author:  m.Sender,
+			Content: m.Content,
+		}
+	}
+
+	summary, err := h.svc.SummarizeChatDirect(r.Context(), windowMessages)
+	if err != nil {
+		h.logger.Error("direct chat summary failed", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "internal_error")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"summary": summary,
+	})
 }

@@ -27,6 +27,8 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:get_it/get_it.dart';
+import 'package:mobile/features/sonic_music/Helpers/config.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
@@ -40,16 +42,24 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final ScrollController _scrollController = ScrollController();
   String _activeCategory = 'All';
+  late final MyTheme currentTheme;
 
   @override
   void initState() {
     super.initState();
+    currentTheme = GetIt.I<MyTheme>();
+    currentTheme.addListener(_themeListener);
   }
 
   @override
   void dispose() {
+    currentTheme.removeListener(_themeListener);
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _themeListener() {
+    if (mounted) setState(() {});
   }
 
   Widget _buildOutlinedHeaderButton({required IconData icon, required VoidCallback onTap}) {
@@ -60,8 +70,8 @@ class _HomeScreenState extends State<HomeScreen> {
         height: 42,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: Colors.white.withOpacity(0.04),
-          border: Border.all(color: Colors.white.withOpacity(0.12), width: 1.2),
+          color: Colors.white.withValues(alpha: 0.04),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.12), width: 1.2),
         ),
         child: Icon(icon, color: Colors.white, size: 18),
       ),
@@ -78,12 +88,12 @@ class _HomeScreenState extends State<HomeScreen> {
           borderRadius: BorderRadius.circular(30),
           border: isActive
               ? null
-              : Border.all(color: Colors.white.withOpacity(0.08), width: 1),
+              : Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1),
         ),
         child: Text(
           label,
           style: GoogleFonts.spaceGrotesk(
-            color: isActive ? const Color(0xFF07040A) : Colors.white.withOpacity(0.6),
+            color: isActive ? const Color(0xFF07040A) : Colors.white.withValues(alpha: 0.6),
             fontWeight: FontWeight.w800,
             fontSize: 13,
           ),
@@ -104,7 +114,7 @@ class _HomeScreenState extends State<HomeScreen> {
           center: const Alignment(-0.5, -0.6),
           radius: 1.5,
           colors: [
-            const Color(0xFF52B788).withOpacity(0.08),
+            currentTheme.currentColor().withValues(alpha: 0.08),
             const Color(0xFF07040A),
           ],
         ),

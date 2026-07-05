@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/home/application/servers_notifier.dart';
 import 'package:mobile/data/models/server_model.dart';
@@ -168,7 +169,23 @@ class _ServerIconWidget extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: server.iconUrl != null
-          ? Image.network(server.iconUrl!, fit: BoxFit.cover)
+          ? CachedNetworkImage(
+              imageUrl: server.iconUrl!,
+              fit: BoxFit.cover,
+              placeholder: (context, url) => Center(
+                child: SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Colors.white.withOpacity(0.3),
+                    ),
+                  ),
+                ),
+              ),
+              errorWidget: (context, url, error) => const Icon(Icons.error),
+            )
           : Center(
               child: Text(
                 server.name.split(' ').where((e) => e.isNotEmpty).map((e) => e[0]).join('').toUpperCase().substring(0, server.name.length > 1 ? 2 : 1),

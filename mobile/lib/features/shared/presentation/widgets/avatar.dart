@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
@@ -86,12 +87,20 @@ class Avatar extends StatelessWidget {
               ),
               child: _resolvedUri.isNotEmpty
                   ? ClipOval(
-                      child: Image.network(
-                        _resolvedUri,
+                      child: CachedNetworkImage(
+                        imageUrl: _resolvedUri,
                         width: _dimension,
                         height: _dimension,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
+                        placeholder: (context, url) => Center(
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              const Color(FlickoColors.textPrimary).withValues(alpha: 0.3),
+                            ),
+                          ),
+                        ),
+                        errorWidget: (context, url, error) {
                           return Center(
                             child: Text(
                               _initials,

@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
-import 'package:mobile/features/home/application/servers_notifier.dart';
 
 /// Base placeholder screen for server settings
 class ServerSettingsPlaceholderScreen extends StatelessWidget {
@@ -355,7 +355,7 @@ class _ServerDetailScreenState extends ConsumerState<ServerDetailScreen> {
             CircleAvatar(
               radius: 48,
               backgroundColor: const Color(FlickoColors.bgTertiary),
-              backgroundImage: icon != null ? NetworkImage(icon) : null,
+              backgroundImage: icon != null ? CachedNetworkImageProvider(icon) : null,
               child: icon == null
                   ? Text(
                       name.isNotEmpty ? name.substring(0, 1).toUpperCase() : 'S',

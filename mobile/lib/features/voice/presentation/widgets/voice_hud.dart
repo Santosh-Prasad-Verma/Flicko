@@ -35,10 +35,10 @@ class _VoiceHUDState extends ConsumerState<VoiceHUD> {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
       curve: Curves.easeOutCubic,
-      margin: const EdgeInsets.symmetric(horizontal: 4),
+      margin: const EdgeInsets.symmetric(horizontal: 2),
       padding: _isMinimized
-          ? const EdgeInsets.symmetric(horizontal: 14, vertical: 8)
-          : const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          ? const EdgeInsets.symmetric(horizontal: 10, vertical: 8)
+          : const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       decoration: BoxDecoration(
         color: const Color(0xFF121215).withValues(alpha: 0.95),
         borderRadius: BorderRadius.circular(_isMinimized ? 24 : 16),
@@ -149,7 +149,7 @@ class _VoiceHUDState extends ConsumerState<VoiceHUD> {
     return Row(
       children: [
         _buildStatusIndicator(voiceState),
-        const SizedBox(width: 12),
+        const SizedBox(width: 8),
         Expanded(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -253,14 +253,14 @@ class _VoiceHUDState extends ConsumerState<VoiceHUD> {
     String? tooltip,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 1.0),
+      padding: const EdgeInsets.symmetric(horizontal: 0.2),
       child: IconButton(
-        icon: Icon(icon, color: color, size: 19),
+        icon: Icon(icon, color: color, size: 18),
         onPressed: onPressed,
         tooltip: tooltip,
-        padding: const EdgeInsets.all(6.0),
-        constraints: const BoxConstraints(),
-        splashRadius: 16,
+        padding: const EdgeInsets.all(3.0),
+        constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+        splashRadius: 14,
       ),
     );
   }

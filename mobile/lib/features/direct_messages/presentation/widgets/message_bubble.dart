@@ -15,6 +15,7 @@ import 'package:mobile/features/shared/presentation/widgets/message_drip_card.da
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/features/server_channels/chat/presentation/widgets/message_actions.dart';
 import 'package:mobile/data/models/flicko_message.dart';
+import 'package:mobile/features/shared/presentation/widgets/voice_message_player.dart';
 import 'package:mobile/features/direct_messages/presentation/controllers/dm_chat_controller.dart';
 
 class MessageBubble extends ConsumerStatefulWidget {
@@ -329,6 +330,24 @@ class _MessageBubbleState extends ConsumerState<MessageBubble> {
   }
 
   Widget _buildAttachment(BuildContext context, DMAttachment attachment) {
+    final type = attachment.type.toLowerCase();
+    final name = attachment.name?.toLowerCase() ?? '';
+    final isAudio = type.startsWith('audio/') ||
+        name.endsWith('.m4a') ||
+        name.endsWith('.mp3') ||
+        name.endsWith('.wav') ||
+        name.endsWith('.ogg');
+
+    if (isAudio) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: FlickoSpacing.sm),
+        child: VoiceMessagePlayer(
+          audioUrl: attachment.url,
+          fileName: attachment.name,
+        ),
+      );
+    }
+
     if (attachment.type.startsWith('image/')) {
       return Padding(
         padding: const EdgeInsets.only(bottom: FlickoSpacing.sm),

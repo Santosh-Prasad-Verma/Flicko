@@ -1740,7 +1740,9 @@ class _ArtWorkWidgetState extends State<ArtWorkWidget> {
             artist: widget.mediaItem.artist.toString(),
           ).then((Map value) {
             lyrics['lyrics'] = value['lyrics'];
-            lyrics['type'] = value['type'];
+            final String lyricsText = lyrics['lyrics'].toString();
+            final bool isLrc = lyricsText.contains(RegExp(r'\[\d{2}:\d{2}'));
+            lyrics['type'] = isLrc ? 'lrc' : 'text';
             lyrics['source'] = value['source'];
             lyrics['id'] = widget.mediaItem.id;
             done.value = true;
@@ -1752,7 +1754,9 @@ class _ArtWorkWidgetState extends State<ArtWorkWidget> {
         } else {
           Logger.root.info('Lyrics found offline');
           lyrics['lyrics'] = value;
-          lyrics['type'] = value.startsWith('[00') ? 'lrc' : 'text';
+          final String lyricsText = lyrics['lyrics'].toString();
+          final bool isLrc = lyricsText.contains(RegExp(r'\[\d{2}:\d{2}'));
+          lyrics['type'] = isLrc ? 'lrc' : 'text';
           lyrics['source'] = 'Local';
           lyrics['id'] = widget.mediaItem.id;
           done.value = true;
@@ -1774,7 +1778,9 @@ class _ArtWorkWidgetState extends State<ArtWorkWidget> {
           return;
         }
         lyrics['lyrics'] = value['lyrics'];
-        lyrics['type'] = value['type'];
+        final String lyricsText = lyrics['lyrics'].toString();
+        final bool isLrc = lyricsText.contains(RegExp(r'\[\d{2}:\d{2}'));
+        lyrics['type'] = isLrc ? 'lrc' : 'text';
         lyrics['source'] = value['source'];
         lyrics['id'] = widget.mediaItem.id;
         done.value = true;
@@ -1878,18 +1884,22 @@ class _ArtWorkWidgetState extends State<ArtWorkWidget> {
                                                   fontSize: 16.0,
                                                 ),
                                               )
-                                            : StreamBuilder<Duration>(
-                                                stream: AudioService.position,
+                                            : StreamBuilder<List<dynamic>>(
+                                                stream: Rx.combineLatest2<Duration, PlaybackState, List<dynamic>>(
+                                                  AudioService.position,
+                                                  widget.audioHandler.playbackState,
+                                                  (position, state) => [position, state.playing],
+                                                ),
                                                 builder: (context, snapshot) {
-                                                  final position =
-                                                      snapshot.data ??
-                                                          Duration.zero;
+                                                  final list = snapshot.data ?? [Duration.zero, false];
+                                                  final position = list[0] as Duration;
+                                                  final playing = list[1] as bool;
                                                   return LyricsReader(
                                                     model: lyricsReaderModel,
                                                     position:
                                                         position.inMilliseconds,
                                                     lyricUi: GlassLyricUI(),
-                                                    playing: true,
+                                                    playing: playing,
                                                     size: Size(
                                                       widget.width * 0.85,
                                                       widget.width * 0.85,
@@ -2194,6 +2204,28 @@ class _ArtWorkWidgetState extends State<ArtWorkWidget> {
                                   imageUrl: widget.mediaItem.artUri.toString(),
                                   width: widget.width * 0.85,
                                 ),
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          width: widget.width * 0.85,
+                          child: IgnorePointer(
+                            child: StreamBuilder<PlaybackState>(
+                              stream: widget.audioHandler.playbackState,
+                              builder: (context, snapshot) {
+                                final isPlaying = snapshot.data?.playing ?? false;
+                                return ClipRRect(
+                                  borderRadius: const BorderRadius.only(
+                                    bottomLeft: Radius.circular(15.0),
+                                    bottomRight: Radius.circular(15.0),
+                                  ),
+                                  child: AudioVisualizerWidget(
+                                    isPlaying: isPlaying,
+                                    color: Theme.of(context).colorScheme.primary,
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
                         ),
                         Visibility(
                           visible: value,
@@ -3098,5 +3130,124 @@ class _NameNControlsState extends State<NameNControls> {
         ],
       ),
     );
+  }
+}
+
+class AudioVisualizerWidget extends StatefulWidget {
+  final bool isPlaying;
+  final Color color;
+
+  const AudioVisualizerWidget({
+    super.key,
+    required this.isPlaying,
+    required this.color,
+  });
+
+  @override
+  State<AudioVisualizerWidget> createState() => _AudioVisualizerWidgetState();
+}
+
+class _AudioVisualizerWidgetState extends State<AudioVisualizerWidget>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    );
+    if (widget.isPlaying) {
+      _controller.repeat();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant AudioVisualizerWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isPlaying != oldWidget.isPlaying) {
+      if (widget.isPlaying) {
+        _controller.repeat();
+      } else {
+        _controller.stop();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return CustomPaint(
+          size: const Size(double.infinity, 50),
+          painter: WaveformPainter(
+            animationValue: _controller.value,
+            isPlaying: widget.isPlaying,
+            color: widget.color,
+          ),
+        );
+      },
+    );
+  }
+}
+
+class WaveformPainter extends CustomPainter {
+  final double animationValue;
+  final bool isPlaying;
+  final Color color;
+
+  WaveformPainter({
+    required this.animationValue,
+    required this.isPlaying,
+    required this.color,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color.withOpacity(0.6)
+      ..style = PaintingStyle.fill;
+
+    final width = size.width;
+    final height = size.height;
+
+    final int barCount = 35;
+    final double barWidth = width / barCount;
+    final double spacing = 2.0;
+
+    for (int i = 0; i < barCount; i++) {
+      double baseHeight = 8.0;
+      if (isPlaying) {
+        final sin1 = sin((i * 0.3) + (animationValue * pi * 4));
+        final sin2 = cos((i * 0.5) - (animationValue * pi * 2));
+        baseHeight += (sin1.abs() * 18.0) + (sin2.abs() * 12.0);
+      } else {
+        baseHeight += sin(i * 0.5).abs() * 4.0;
+      }
+
+      final double x = i * barWidth;
+      final double y = height - baseHeight;
+
+      final rect = RRect.fromRectAndRadius(
+        Rect.fromLTWH(x + spacing, y, barWidth - (spacing * 2), baseHeight),
+        const Radius.circular(3),
+      );
+      canvas.drawRRect(rect, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant WaveformPainter oldDelegate) {
+    return oldDelegate.animationValue != animationValue ||
+        oldDelegate.isPlaying != isPlaying ||
+        oldDelegate.color != color;
   }
 }

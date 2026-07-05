@@ -81,44 +81,102 @@ class EqualizerControls extends StatefulWidget {
 }
 
 class _EqualizerControlsState extends State<EqualizerControls> {
-  Future<Map> getEq() async {
-    final Map parameters =
-        await widget.audioHandler.customAction('getEqualizerParams') as Map;
-    return parameters;
+  late Future<Map> _eqFuture;
+  String _selectedPreset = 'Custom';
+
+  @override
+  void initState() {
+    super.initState();
+    _eqFuture = _fetchEq();
+  }
+
+  Future<Map> _fetchEq() async {
+    return await widget.audioHandler.customAction('getEqualizerParams') as Map;
+  }
+
+  final Map<String, List<double>> presets = {
+    'Flat': [0.5, 0.5, 0.5, 0.5, 0.5],
+    'Bass Boost': [0.8, 0.7, 0.5, 0.5, 0.5],
+    'Electronic': [0.75, 0.65, 0.5, 0.6, 0.7],
+    'Acoustic': [0.65, 0.55, 0.55, 0.65, 0.55],
+    'Vocal Boost': [0.4, 0.5, 0.65, 0.75, 0.6],
+  };
+
+  void _applyPreset(String name, List<double> gains) {
+    for (int i = 0; i < gains.length; i++) {
+      Hive.box('settings').put('equalizerBand$i', gains[i]);
+      widget.audioHandler.customAction('setBandGain', {'band': i, 'gain': gains[i]});
+    }
+    setState(() {
+      _selectedPreset = name;
+      _eqFuture = _fetchEq();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<Map>(
-      future: getEq(),
+      future: _eqFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
           return const SizedBox();
         }
         final data = snapshot.data;
         if (data == null) return const SizedBox();
-        return Row(
+        return Column(
           children: [
-            for (final band in data['bands'] as List<Map>)
-              Expanded(
-                child: Column(
-                  children: [
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: presets.keys.map((presetName) {
+                  final isSelected = _selectedPreset == presetName;
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                    child: ChoiceChip(
+                      label: Text(presetName),
+                      selected: isSelected,
+                      selectedColor: Theme.of(context).colorScheme.primary,
+                      labelStyle: TextStyle(
+                        color: isSelected ? Colors.black : Colors.white,
+                        fontSize: 12,
+                      ),
+                      onSelected: (selected) {
+                        if (selected) {
+                          _applyPreset(presetName, presets[presetName]!);
+                        }
+                      },
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: Row(
+                children: [
+                  for (final band in data['bands'] as List<Map>)
                     Expanded(
-                      child: VerticalSlider(
-                        min: data['minDecibels'] as double,
-                        max: data['maxDecibels'] as double,
-                        value: band['gain'] as double,
-                        bandIndex: band['index'] as int,
-                        audioHandler: widget.audioHandler,
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: VerticalSlider(
+                              min: data['minDecibels'] as double,
+                              max: data['maxDecibels'] as double,
+                              value: band['gain'] as double,
+                              bandIndex: band['index'] as int,
+                              audioHandler: widget.audioHandler,
+                            ),
+                          ),
+                          Text(
+                            '${band['centerFrequency'].round()}\nHz',
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
                       ),
                     ),
-                    Text(
-                      '${band['centerFrequency'].round()}\nHz',
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
+                ],
               ),
+            ),
           ],
         );
       },

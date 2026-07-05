@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 
 class LeaderboardSettingsScreen extends ConsumerStatefulWidget {
@@ -147,7 +148,7 @@ class _LeaderboardSettingsScreenState extends ConsumerState<LeaderboardSettingsS
           const SizedBox(width: 12),
           CircleAvatar(
             radius: 24,
-            backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
+            backgroundImage: avatarUrl != null ? CachedNetworkImageProvider(avatarUrl) : null,
             child: avatarUrl == null
                 ? Text(
                     username[0].toUpperCase(),

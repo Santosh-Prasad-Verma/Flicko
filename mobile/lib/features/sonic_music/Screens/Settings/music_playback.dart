@@ -462,6 +462,32 @@ class _MusicPlaybackPageState extends State<MusicPlaybackPage> {
               keyName: 'cacheSong',
               defaultValue: true,
             ),
+            ListTile(
+              title: const Text('Audio Crossfade'),
+              subtitle: const Text('Smooth transition between tracks'),
+              trailing: DropdownButton<int>(
+                value: Hive.box('settings').get('crossfadeDuration', defaultValue: 0) as int,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).textTheme.bodyLarge!.color,
+                ),
+                underline: const SizedBox(),
+                onChanged: (int? newValue) {
+                  if (newValue != null) {
+                    setState(() {
+                      Hive.box('settings').put('crossfadeDuration', newValue);
+                    });
+                  }
+                },
+                items: const [
+                  DropdownMenuItem<int>(value: 0, child: Text('Off')),
+                  DropdownMenuItem<int>(value: 1, child: Text('1 Second')),
+                  DropdownMenuItem<int>(value: 2, child: Text('2 Seconds')),
+                  DropdownMenuItem<int>(value: 3, child: Text('3 Seconds')),
+                ],
+              ),
+              dense: true,
+            ),
           ],
         ),
       ),

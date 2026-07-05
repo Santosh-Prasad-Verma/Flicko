@@ -237,7 +237,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/',
                 pageBuilder: (context, state) => NoTransitionPage(
-                  key: state.pageKey,
+                  key: const ValueKey('servers_tab_root'),
                   child: const ServersScreen(),
                 ),
                 routes: [
@@ -311,7 +311,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/dms',
                 pageBuilder: (context, state) => NoTransitionPage(
-                  key: state.pageKey,
+                  key: const ValueKey('dms_tab_root'),
                   child: const DMListScreen(),
                 ),
                 routes: [
@@ -340,7 +340,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/notifications',
                 pageBuilder: (context, state) => NoTransitionPage(
-                  key: state.pageKey,
+                  key: const ValueKey('notifications_tab_root'),
                   child: const NotificationsScreen(),
                 ),
               ),
@@ -353,7 +353,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/profile',
                 pageBuilder: (context, state) => NoTransitionPage(
-                  key: state.pageKey,
+                  key: const ValueKey('profile_tab_root'),
                   child: const _CurrentUserProfileScreen(),
                 ),
               ),

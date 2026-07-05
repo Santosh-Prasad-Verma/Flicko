@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/features/direct_messages/presentation/controllers/dm_chat_controller.dart';
@@ -20,6 +21,8 @@ import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/features/store/data/warp_service.dart';
 import 'package:mobile/features/shared/presentation/widgets/entrance_warp_overlay.dart';
+import 'package:dio/dio.dart';
+import 'package:mobile/core/config/app_config.dart';
 
 class DMChatScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -70,24 +73,39 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
         };
       }).toList().reversed.toList();
 
-      final supabase = Supabase.instance.client;
-      final response = await supabase.functions.invoke(
-        'chat-summary',
-        body: {'messages': messagesJson},
+      if (!AppConfig.hasApiBaseUrl) {
+        throw Exception('API base URL is not configured.');
+      }
+
+      final dio = Dio(BaseOptions(
+        baseUrl: AppConfig.apiBaseUrl.endsWith('/') ? AppConfig.apiBaseUrl : '${AppConfig.apiBaseUrl}/',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${Supabase.instance.client.auth.currentSession?.accessToken ?? ""}',
+        },
+      ));
+
+      final response = await dio.post(
+        'api/v1/ai/summary/chat',
+        data: {'messages': messagesJson},
       );
 
-      final data = response.data;
-      if (data is Map && data.containsKey('summary')) {
-        setState(() {
-          _chatSummary = data['summary'] as String;
-          _isSummarizing = false;
-        });
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = response.data;
+        if (data is Map && data.containsKey('summary')) {
+          setState(() {
+            _chatSummary = data['summary'] as String;
+            _isSummarizing = false;
+          });
+        } else {
+          throw Exception('Failed to parse summary response');
+        }
       } else {
-        throw Exception(data['error'] ?? 'Failed to parse summary response');
+        throw Exception('Server returned status code ${response.statusCode}');
       }
     } catch (e) {
       setState(() {
-        _summaryError = 'Aura could not summarize the conversation: $e';
+        _summaryError = 'Aura could not summarize the conversation: ${e is DioException ? (e.response?.data?['error'] ?? e.message) : e}';
         _isSummarizing = false;
       });
     }
@@ -98,28 +116,49 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
       return Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Material(
-            color: const Color(FlickoColors.bgSecondary),
-            shape: const StadiumBorder(),
-            child: InkWell(
-              customBorder: const StadiumBorder(),
-              onTap: () => _handleCatchMeUp(messages, participantName),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.auto_awesome, size: 16, color: Color(FlickoColors.brandLime)),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Catch me up',
-                      style: GoogleFonts.spaceGrotesk(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(
+                color: const Color(FlickoColors.brandLime).withValues(alpha: 0.2),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(FlickoColors.brandLime).withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  spreadRadius: 1,
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(30),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                child: Material(
+                  color: const Color(0xFF0F0F12).withValues(alpha: 0.6),
+                  child: InkWell(
+                    onTap: () => _handleCatchMeUp(messages, participantName),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.auto_awesome, size: 16, color: Color(FlickoColors.brandLime)),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Catch me up',
+                            style: GoogleFonts.spaceGrotesk(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -130,84 +169,144 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(FlickoColors.bgSecondary),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.auto_awesome, size: 18, color: Color(FlickoColors.brandLime)),
-              const SizedBox(width: 8),
-              Text(
-                _isSummarizing ? 'Catching you up...' : 'Aura Summary',
-                style: GoogleFonts.spaceGrotesk(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                ),
-              ),
-              const Spacer(),
-              IconButton(
-                icon: const Icon(Icons.close, size: 18, color: Colors.white60),
-                onPressed: () {
-                  setState(() {
-                    _isSummarizing = false;
-                    _chatSummary = null;
-                    _summaryError = null;
-                  });
-                },
-              ),
-            ],
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
-          const SizedBox(height: 8),
-          if (_isSummarizing)
-            Column(
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Container(
+            color: const Color(0xFF0F0F12).withValues(alpha: 0.75),
+            padding: const EdgeInsets.all(20),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: List.generate(3, (i) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Container(
-                    height: 12,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.05),
-                      borderRadius: BorderRadius.circular(6),
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.auto_awesome, size: 18, color: Color(FlickoColors.brandLime)),
+                    const SizedBox(width: 8),
+                    Text(
+                      _isSummarizing ? 'Aura is reading...' : 'Aura Summary',
+                      style: GoogleFonts.spaceGrotesk(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                    const Spacer(),
+                    if (!_isSummarizing)
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _isSummarizing = false;
+                            _chatSummary = null;
+                            _summaryError = null;
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.05),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.close, size: 16, color: Colors.white60),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                if (_isSummarizing)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      LinearProgressIndicator(
+                        backgroundColor: Colors.white.withValues(alpha: 0.05),
+                        valueColor: const AlwaysStoppedAnimation<Color>(Color(FlickoColors.brandLime)),
+                        minHeight: 2,
+                      ),
+                      const SizedBox(height: 16),
+                      ...List.generate(3, (i) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: FractionallySizedBox(
+                            alignment: Alignment.centerLeft,
+                            widthFactor: i == 0 ? 0.95 : (i == 1 ? 0.85 : 0.6),
+                            child: Container(
+                              height: 12,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.05),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
+                    ],
+                  )
+                else if (_summaryError != null)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.error_outline, size: 18, color: Colors.redAccent),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _summaryError!,
+                              style: GoogleFonts.inter(
+                                color: Colors.white.withValues(alpha: 0.7),
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: OutlinedButton.icon(
+                          onPressed: () => _handleCatchMeUp(messages, participantName),
+                          icon: const Icon(Icons.refresh, size: 14, color: Color(FlickoColors.brandLime)),
+                          label: Text(
+                            'Retry',
+                            style: GoogleFonts.spaceGrotesk(
+                              color: const Color(FlickoColors.brandLime),
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: const Color(FlickoColors.brandLime).withValues(alpha: 0.3)),
+                            shape: const StadiumBorder(),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                else if (_chatSummary != null)
+                  Text(
+                    _chatSummary!,
+                    style: GoogleFonts.inter(
+                      color: Colors.white.withValues(alpha: 0.9),
+                      fontSize: 13.5,
+                      height: 1.5,
                     ),
                   ),
-                );
-              }),
-            )
-          else if (_summaryError != null)
-            Row(
-              children: [
-                const Icon(Icons.error_outline, size: 18, color: Colors.redAccent),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    _summaryError!,
-                    style: GoogleFonts.inter(color: Colors.white70, fontSize: 12),
-                  ),
-                ),
-                TextButton(
-                  onPressed: () => _handleCatchMeUp(messages, participantName),
-                  child: Text('Retry', style: GoogleFonts.spaceGrotesk(color: const Color(FlickoColors.brandLime))),
-                ),
               ],
-            )
-          else if (_chatSummary != null)
-            Text(
-              _chatSummary!,
-              style: GoogleFonts.inter(
-                color: Colors.white.withValues(alpha: 0.85),
-                fontSize: 13,
-                height: 1.4,
-              ),
             ),
-        ],
+          ),
+        ),
       ),
     );
   }

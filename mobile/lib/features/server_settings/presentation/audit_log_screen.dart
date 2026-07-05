@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 
 class AuditLogScreen extends ConsumerStatefulWidget {
@@ -154,7 +155,7 @@ class _AuditLogScreenState extends ConsumerState<AuditLogScreen> {
               borderRadius: BorderRadius.circular(12),
               image: avatar != null
                   ? DecorationImage(
-                      image: NetworkImage(avatar), fit: BoxFit.cover)
+                      image: CachedNetworkImageProvider(avatar), fit: BoxFit.cover)
                   : null,
             ),
             child: avatar == null

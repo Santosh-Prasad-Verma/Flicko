@@ -21,11 +21,11 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
   bool _isPurchasing = false;
   String _purchasingPlan = '';
 
-  static const Color lime = Color(0xFF52B788);
-  static const Color black = Color(0xFF000000);
+  static const Color lime = Color(0xFFC0EC54);
+  static const Color black = Color(0xFF07040A);
   static const Color white = Color(0xFFFFFFFF);
-  static const Color grey = Color(0xFF1A1A1A);
-  static const Color red = Color(0xFFFF3333);
+  static const Color grey = Color(0xFF1E1C24);
+  static const Color red = Color(0xFFFF5252);
   static const Color purple = Color(0xFF9B84EE);
 
   @override
@@ -115,40 +115,38 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
   Widget _buildAppBar() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: black,
-        border: Border(bottom: BorderSide(color: lime, width: 4)),
+        border: Border(bottom: BorderSide(color: Colors.white.withOpacity(0.04), width: 1)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _brutalistIconButton(Icons.arrow_back_ios_new, () => context.pop()),
+          _modernIconButton(Icons.arrow_back_ios_new, () => context.pop()),
           Text(
-            'BILLING.CONFIG',
-            style: GoogleFonts.spaceGrotesk(
+            'Flicko Plus',
+            style: GoogleFonts.outfit(
               color: white,
               fontWeight: FontWeight.w900,
               fontSize: 20,
               letterSpacing: -0.5,
             ),
           ),
-          _brutalistIconButton(Icons.history, () {}),
+          _modernIconButton(Icons.history, () {}),
         ],
       ),
     );
   }
 
-  Widget _brutalistIconButton(IconData icon, VoidCallback onTap) {
+  Widget _modernIconButton(IconData icon, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: black,
-          border: Border.all(color: white, width: 2.5),
-          boxShadow: const [
-            BoxShadow(color: lime, offset: Offset(3, 3)),
-          ],
+          color: Colors.white.withOpacity(0.03),
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white.withOpacity(0.08), width: 1.2),
         ),
         child: Icon(icon, size: 20, color: white),
       ),
@@ -159,49 +157,37 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Stack(
+        Row(
           children: [
             Text(
-              'BILLING',
-              style: GoogleFonts.spaceGrotesk(
-                fontSize: 64,
+              'FLICKO',
+              style: GoogleFonts.outfit(
+                fontSize: 48,
                 fontWeight: FontWeight.w900,
-                height: 0.9,
-                letterSpacing: -2,
+                letterSpacing: -1.5,
                 color: lime,
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.only(top: 45),
-              child: Text(
-                'SYSTEM',
-                style: GoogleFonts.spaceGrotesk(
-                  fontSize: 64,
-                  fontWeight: FontWeight.w900,
-                  height: 0.9,
-                  letterSpacing: -2,
-                  foreground: Paint()
-                    ..style = PaintingStyle.stroke
-                    ..strokeWidth = 2
-                    ..color = white,
-                ),
+            const SizedBox(width: 10),
+            Text(
+              'PLUS',
+              style: GoogleFonts.outfit(
+                fontSize: 48,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -1.5,
+                color: white,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 24),
-        Container(
-          width: 60,
-          height: 8,
-          color: lime,
-        ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 12),
         Text(
-          'MANAGE YOUR MEMBERSHIP LEVEL AND UNLOCK THE FULL CULTURE EXPERIENCE. SYSTEM STATUS: OPERATIONAL',
-          style: GoogleFonts.robotoMono(
-            color: white.withValues(alpha: 0.7),
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
+          'MANAGE YOUR MEMBERSHIP LEVEL AND UNLOCK THE FULL CULTURE EXPERIENCE.',
+          style: GoogleFonts.inter(
+            color: white.withOpacity(0.6),
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            height: 1.5,
           ),
         ),
       ],
@@ -221,18 +207,19 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
     bool isCurrent = false,
     bool isPopular = false,
   }) {
+    final cardBorderColor = isPopular ? lime.withOpacity(0.4) : Colors.white.withOpacity(0.08);
+    final cardGlowColor = isPopular ? lime.withOpacity(0.06) : Colors.white.withOpacity(0.02);
+
     return Container(
       decoration: BoxDecoration(
-        color: black,
-        border: Border.all(
-            color: accentColor != grey
-                ? accentColor
-                : (isPopular ? lime : white.withValues(alpha: 0.5)),
-            width: 3),
+        color: const Color(0xFF0F0F12),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: cardBorderColor, width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: accentColor != grey ? accentColor : (isPopular ? lime : white.withValues(alpha: 0.1)),
-            offset: const Offset(6, 6),
+            color: cardGlowColor,
+            blurRadius: 24,
+            spreadRadius: -4,
           ),
         ],
       ),
@@ -247,34 +234,36 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Container(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: accentColor != grey ? accentColor : (isPopular ? lime : white),
+                        color: isPopular ? lime : Colors.white.withOpacity(0.06),
+                        borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        title,
-                        style: GoogleFonts.robotoMono(
-                          color: black,
-                          fontSize: 12,
+                        title.replaceAll('_', ' '),
+                        style: GoogleFonts.outfit(
+                          color: isPopular ? Colors.black : Colors.white,
+                          fontSize: 11,
                           fontWeight: FontWeight.w900,
+                          letterSpacing: 1.0,
                         ),
                       ),
                     ),
                     if (isCurrent)
                       Container(
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: lime,
-                          border: Border.all(color: black, width: 2),
+                          color: Colors.transparent,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: lime, width: 1.5),
                         ),
                         child: Text(
                           'ACTIVE',
-                          style: GoogleFonts.robotoMono(
-                            color: black,
+                          style: GoogleFonts.outfit(
+                            color: lime,
                             fontSize: 10,
                             fontWeight: FontWeight.w900,
+                            letterSpacing: 1.0,
                           ),
                         ),
                       ),
@@ -287,18 +276,18 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
                   children: [
                     Text(
                       price,
-                      style: GoogleFonts.spaceGrotesk(
+                      style: GoogleFonts.outfit(
                         color: textColor,
                         fontSize: 48,
                         fontWeight: FontWeight.w900,
-                        letterSpacing: -2,
+                        letterSpacing: -1.5,
                       ),
                     ),
                     if (period != null)
                       Text(
                         period,
-                        style: GoogleFonts.robotoMono(
-                          color: textColor.withValues(alpha: 0.6),
+                        style: GoogleFonts.outfit(
+                          color: textColor.withOpacity(0.5),
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
@@ -308,11 +297,11 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
                 const SizedBox(height: 12),
                 Text(
                   description,
-                  style: GoogleFonts.robotoMono(
-                    color: textColor.withValues(alpha: 0.8),
+                  style: GoogleFonts.inter(
+                    color: textColor.withOpacity(0.7),
                     fontSize: 13,
                     height: 1.4,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -320,27 +309,30 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
                       padding: const EdgeInsets.only(bottom: 12),
                       child: Row(
                         children: [
-                          Icon(Icons.add,
-                              size: 16, color: accentColor != grey ? accentColor : (isPopular ? lime : textColor)),
+                          Icon(
+                            Icons.check_circle_outline_rounded,
+                            size: 18,
+                            color: isPopular ? lime : Colors.white70,
+                          ),
                           const SizedBox(width: 12),
                           Text(
-                            f.toUpperCase(),
-                            style: GoogleFonts.robotoMono(
+                            f,
+                            style: GoogleFonts.inter(
                               color: textColor,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],
-                      )),
-                    ),
+                      ),
+                    )),
                 if (buttonText != null) ...[
                   const SizedBox(height: 32),
-                  _brutalistButton(
+                  _modernButton(
                     text: buttonText,
                     onTap: onTap!,
-                    color: accentColor != grey ? accentColor : (isPopular ? lime : white),
-                    textColor: black,
+                    color: isPopular ? lime : Colors.white,
+                    textColor: Colors.black,
                     isLoading: _isPurchasing && _purchasingPlan == buttonText,
                   ),
                 ],
@@ -350,24 +342,20 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
           if (isPopular)
             Positioned(
               top: 0,
-              right: 20,
+              right: 24,
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: const BoxDecoration(
                   color: lime,
-                  border: Border(
-                    left: BorderSide(color: black, width: 3),
-                    right: BorderSide(color: black, width: 3),
-                    bottom: BorderSide(color: black, width: 3),
-                  ),
+                  borderRadius: BorderRadius.vertical(bottom: Radius.circular(10)),
                 ),
                 child: Text(
                   'POPULAR',
-                  style: GoogleFonts.spaceGrotesk(
-                    color: black,
-                    fontSize: 12,
+                  style: GoogleFonts.outfit(
+                    color: Colors.black,
+                    fontSize: 10,
                     fontWeight: FontWeight.w900,
+                    letterSpacing: 1.0,
                   ),
                 ),
               ),
@@ -377,7 +365,7 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
     );
   }
 
-  Widget _brutalistButton({
+  Widget _modernButton({
     required String text,
     required VoidCallback onTap,
     required Color color,
@@ -388,16 +376,19 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
       onTap: isLoading ? null : onTap,
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 20),
+        padding: const EdgeInsets.symmetric(vertical: 18),
         decoration: BoxDecoration(
           color: color,
-          border: Border.all(color: black, width: 3),
-          boxShadow: [
-            BoxShadow(
-              color: color == white ? lime : white,
-              offset: const Offset(4, 4),
-            ),
-          ],
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: color == lime
+              ? [
+                  BoxShadow(
+                    color: lime.withOpacity(0.3),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  )
+                ]
+              : null,
         ),
         child: Center(
           child: isLoading
@@ -405,15 +396,17 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
                   height: 20,
                   width: 20,
                   child: CircularProgressIndicator(
-                      strokeWidth: 3, color: textColor),
+                    strokeWidth: 3,
+                    color: textColor,
+                  ),
                 )
               : Text(
-                  text,
-                  style: GoogleFonts.spaceGrotesk(
+                  text.replaceAll('_', ' '),
+                  style: GoogleFonts.outfit(
                     color: textColor,
                     fontWeight: FontWeight.w900,
-                    fontSize: 16,
-                    letterSpacing: 1.5,
+                    fontSize: 15,
+                    letterSpacing: 1.0,
                   ),
                 ),
         ),
@@ -426,34 +419,33 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: grey,
-        border: Border.all(color: red, width: 3),
-        boxShadow: [
-          BoxShadow(color: red.withValues(alpha: 0.5), offset: const Offset(6, 6)),
-        ],
+        color: const Color(0xFF0F0F12),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: red.withOpacity(0.2), width: 1.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.report_problem, color: red, size: 24),
+              Icon(Icons.report_problem, color: red, size: 20),
               const SizedBox(width: 12),
               Text(
-                'CRITICAL_SYSTEM_ACTION',
-                style: GoogleFonts.robotoMono(
+                'CRITICAL SYSTEM ACTION',
+                style: GoogleFonts.outfit(
                   color: red,
                   fontWeight: FontWeight.w900,
-                  fontSize: 14,
+                  fontSize: 12,
+                  letterSpacing: 1.0,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
           Text(
-            'PURGE_ACCOUNT',
-            style: GoogleFonts.spaceGrotesk(
-              fontSize: 28,
+            'Purge Account',
+            style: GoogleFonts.outfit(
+              fontSize: 24,
               fontWeight: FontWeight.w900,
               color: white,
             ),
@@ -461,29 +453,32 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
           const SizedBox(height: 12),
           Text(
             'THIS ACTION WILL REMOVE ALL DATA FROM OUR CORE SERVERS. IT IS PERMANENT AND CANNOT BE UNDONE.',
-            style: GoogleFonts.robotoMono(
-              color: white.withValues(alpha: 0.6),
+            style: GoogleFonts.inter(
+              color: white.withOpacity(0.5),
               fontSize: 12,
-              fontWeight: FontWeight.bold,
+              height: 1.5,
+              fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 28),
           GestureDetector(
             onTap: () {},
             child: Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 16),
               decoration: BoxDecoration(
-                color: black,
-                border: Border.all(color: red, width: 2),
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: red.withOpacity(0.5), width: 1.5),
               ),
               child: Center(
                 child: Text(
-                  'EXECUTE_TERMINATION',
-                  style: GoogleFonts.spaceGrotesk(
+                  'EXECUTE TERMINATION',
+                  style: GoogleFonts.outfit(
                     color: red,
                     fontWeight: FontWeight.w900,
-                    fontSize: 14,
+                    fontSize: 13,
+                    letterSpacing: 1.0,
                   ),
                 ),
               ),
@@ -499,29 +494,30 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
       children: [
         Row(
           children: [
-            Expanded(child: Container(height: 2, color: grey)),
+            Expanded(child: Container(height: 1, color: Colors.white.withOpacity(0.06))),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
-                'END_MANIFEST',
-                style: GoogleFonts.robotoMono(
-                  color: white.withValues(alpha: 0.2),
-                  fontSize: 12,
+                'END MANIFEST',
+                style: GoogleFonts.outfit(
+                  color: white.withOpacity(0.2),
+                  fontSize: 11,
                   fontWeight: FontWeight.w900,
+                  letterSpacing: 1.0,
                 ),
               ),
             ),
-            Expanded(child: Container(height: 2, color: grey)),
+            Expanded(child: Container(height: 1, color: Colors.white.withOpacity(0.06))),
           ],
         ),
         const SizedBox(height: 24),
         Text(
           'ALL TRANSACTIONS ARE ENCRYPTED. NO REFUNDS FOR PARTIAL BILLING CYCLES. FLICKO_CORE_OS_V4.0.0_STABLE',
           textAlign: TextAlign.center,
-          style: GoogleFonts.robotoMono(
-            color: white.withValues(alpha: 0.3),
-            fontSize: 10,
-            fontWeight: FontWeight.bold,
+          style: GoogleFonts.spaceMono(
+            color: white.withOpacity(0.3),
+            fontSize: 9,
+            fontWeight: FontWeight.w500,
             height: 1.5,
           ),
         ),
@@ -651,19 +647,19 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: black,
+        backgroundColor: const Color(0xFF0C0C0F),
         shape: RoundedRectangleBorder(
-          side: BorderSide(color: lime, width: 3),
-          borderRadius: BorderRadius.zero,
+          side: BorderSide(color: lime.withOpacity(0.2), width: 1.5),
+          borderRadius: BorderRadius.circular(24),
         ),
         title: Row(
           children: [
-            Icon(Icons.terminal, color: lime, size: 20),
+            Icon(Icons.terminal_rounded, color: lime, size: 20),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'SANDBOX_OVERRIDE',
-                style: GoogleFonts.spaceGrotesk(
+                'Sandbox Override',
+                style: GoogleFonts.outfit(
                   color: white,
                   fontWeight: FontWeight.w900,
                   fontSize: 18,
@@ -677,10 +673,11 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: grey,
-                border: Border.all(color: red.withValues(alpha: 0.5), width: 1),
+                color: const Color(0xFF16161C),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: red.withOpacity(0.3), width: 1),
               ),
               child: Row(
                 children: [
@@ -688,10 +685,10 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'LIVE_GATEWAY: NOT_CONFIGURED',
-                      style: GoogleFonts.robotoMono(
+                      'LIVE GATEWAY: NOT CONFIGURABLE',
+                      style: GoogleFonts.spaceMono(
                         color: red,
-                        fontSize: 11,
+                        fontSize: 10,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -703,8 +700,8 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
             Text(
               'ACTIVATE FLICKO ${planName.toUpperCase()} IN TEST MODE?\n\n'
               'THIS WILL GRANT PREMIUM ACCESS WITHOUT PROCESSING A REAL PAYMENT.',
-              style: GoogleFonts.robotoMono(
-                color: white.withValues(alpha: 0.8),
+              style: GoogleFonts.inter(
+                color: white.withOpacity(0.7),
                 fontSize: 12,
                 height: 1.6,
               ),
@@ -717,8 +714,8 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
             onPressed: () => Navigator.pop(ctx, false),
             child: Text(
               'ABORT',
-              style: GoogleFonts.robotoMono(
-                color: white.withValues(alpha: 0.5),
+              style: GoogleFonts.spaceMono(
+                color: white.withOpacity(0.4),
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -730,18 +727,21 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               decoration: BoxDecoration(
                 color: lime,
-                border: Border.all(color: black, width: 2),
-                boxShadow: const [
-                  BoxShadow(color: white, offset: Offset(3, 3)),
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: lime.withOpacity(0.2),
+                    blurRadius: 10,
+                  )
                 ],
               ),
               child: Text(
-                'OVERRIDE_&_ACTIVATE',
-                style: GoogleFonts.spaceGrotesk(
-                  color: black,
+                'OVERRIDE & ACTIVATE',
+                style: GoogleFonts.outfit(
+                  color: Colors.black,
                   fontWeight: FontWeight.w900,
                   fontSize: 13,
-                  letterSpacing: 1,
+                  letterSpacing: 0.5,
                 ),
               ),
             ),

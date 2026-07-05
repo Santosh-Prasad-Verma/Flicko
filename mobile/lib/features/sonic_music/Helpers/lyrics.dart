@@ -18,6 +18,7 @@
  */
 
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:audiotagger/audiotagger.dart';
 import 'package:audiotagger/models/tag.dart';
@@ -293,6 +294,18 @@ class Lyrics {
   }
 
   static Future<String> getOffLyrics(String path) async {
+    try {
+      final String lrcPath = path.replaceAll(RegExp(r'\.\w+$'), '.lrc');
+      final File lrcFile = File(lrcPath);
+      if (await lrcFile.exists()) {
+        final String content = await lrcFile.readAsString();
+        if (content.isNotEmpty) {
+          return content;
+        }
+      }
+    } catch (e) {
+      Logger.root.severe('Error reading companion lrc file: $e');
+    }
     try {
       final Audiotagger tagger = Audiotagger();
       final Tag? tags = await tagger.readTags(path: path);

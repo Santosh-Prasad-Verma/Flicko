@@ -21,6 +21,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:path_provider/path_provider.dart';
+import 'package:http/http.dart' as http;
 import 'package:audio_service/audio_service.dart';
 import 'package:audio_session/audio_session.dart';
 import 'package:get_it/get_it.dart';
@@ -49,6 +51,19 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
   bool loadStart = true;
   bool useDown = true;
   AndroidEqualizerParameters? _equalizerParams;
+
+  AudioPlayer? _nextPlayer;
+  bool _isCrossfading = false;
+  Timer? _crossfadeTimer;
+  List<StreamSubscription>? _playerSubscriptions;
+
+  final _currentIndexSubject = BehaviorSubject<int?>.seeded(0);
+  final _shuffleModeEnabledSubject = BehaviorSubject<bool>.seeded(false);
+  final _shuffleIndicesSubject = BehaviorSubject<List<int>?>.seeded([]);
+  final _playbackEventSubject = BehaviorSubject<PlaybackEvent>();
+  final _loopModeSubject = BehaviorSubject<LoopMode>.seeded(LoopMode.off);
+  final _processingStateSubject = BehaviorSubject<ProcessingState>.seeded(ProcessingState.idle);
+  final _sequenceSubject = BehaviorSubject<List<IndexedAudioSource>?>.seeded([]);
 
   late AudioPlayer? _player;
   late String connectionType = 'mobile';
@@ -155,6 +170,7 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
   Future<void> _init() async {
     _activateDelegate();
     Logger.root.info('starting audio service');
+    await Hive.openBox('song_cache');
     if (Hive.isBoxOpen('settings')) {
       preferredCompactNotificationButtons = Hive.box('settings').get(
         'preferredCompactNotificationButtons',
@@ -235,6 +251,7 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
       if (item.artUri.toString().startsWith('http')) {
         addRecentlyPlayed(item);
         _recentSubject.add([item]);
+        _prefetchAndCacheSong(item);
 
         if (recommend && item.extras!['autoplay'] as bool) {
           final List<MediaItem> mediaQueue = queue.value;
@@ -277,11 +294,18 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
       }
     });
 
+    _subscribeToPlayer(_player!);
+
+    // Add position listener on active player to trigger crossfade when nearing song end
+    _player!.positionStream.listen((pos) {
+      _checkCrossfade(pos);
+    });
+
     Rx.combineLatest4<int?, List<MediaItem>, bool, List<int>?, MediaItem?>(
-        _player!.currentIndexStream,
+        _currentIndexSubject,
         queue,
-        _player!.shuffleModeEnabledStream,
-        _player!.shuffleIndicesStream,
+        _shuffleModeEnabledSubject,
+        _shuffleIndicesSubject,
         (index, queue, shuffleModeEnabled, shuffleIndices) {
       final queueIndex = getQueueIndex(
         index,
@@ -294,16 +318,16 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
     }).whereType<MediaItem>().distinct().listen(mediaItem.add);
 
     // Propagate all events from the audio player to AudioService clients.
-    _player!.playbackEventStream
+    _playbackEventSubject
         .listen(_broadcastState, onError: _playbackError);
 
-    _player!.shuffleModeEnabledStream
+    _shuffleModeEnabledSubject
         .listen((enabled) => _broadcastState(_player!.playbackEvent));
 
-    _player!.loopModeStream
+    _loopModeSubject
         .listen((event) => _broadcastState(_player!.playbackEvent));
 
-    _player!.processingStateStream.listen((state) {
+    _processingStateSubject.listen((state) {
       if (state == ProcessingState.completed) {
         stop();
         _player!.seek(Duration.zero, index: 0);
@@ -315,7 +339,7 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
           (sequence) =>
               sequence.map((source) => _mediaItemExpando[source]!).toList(),
         )
-        .pipe(queue);
+        .listen(queue.add);
 
     try {
       if (loadStart) {
@@ -507,7 +531,18 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
             ),
             tag: mediaItem.id,
           );
-        } else {
+        } else if (Hive.box('song_cache').containsKey(mediaItem.id)) {
+          final cachedData = Hive.box('song_cache').get(mediaItem.id) as Map;
+          final cachedPath = cachedData['path']?.toString();
+          if (cachedPath != null && File(cachedPath).existsSync()) {
+            Logger.root.info('Found ${mediaItem.id} in song_cache');
+            audioSource = AudioSource.uri(
+              Uri.file(cachedPath),
+              tag: mediaItem.id,
+            );
+          }
+        }
+        if (audioSource == null) {
           if (mediaItem.genre == 'YouTube') {
             final rawUrl = mediaItem.extras?['url']?.toString();
             final int expiredAt =
@@ -664,6 +699,7 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
   }
 
   Future<void> startService() async {
+    _nextPlayer = AudioPlayer();
     bool withPipeline = false;
     if (Hive.isBoxOpen('settings')) {
       withPipeline =
@@ -881,6 +917,7 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
   @override
   Future<void> skipToNext() {
     _activateDelegate();
+    _cancelCrossfade();
     return _player!.seekToNext();
   }
 
@@ -904,6 +941,7 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
   @override
   Future<void> skipToPrevious() async {
     _activateDelegate();
+    _cancelCrossfade();
     resetOnSkip =
         Hive.box('settings').get('resetOnSkip', defaultValue: false) as bool;
     if (resetOnSkip) {
@@ -921,6 +959,7 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
   Future<void> skipToQueueItem(int index) async {
     if (index < 0 || index >= _playlist.children.length) return;
     _activateDelegate();
+    _cancelCrossfade();
 
     _player!.seek(
       Duration.zero,
@@ -946,12 +985,14 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
   @override
   Future<void> seek(Duration position) {
     _activateDelegate();
+    _cancelCrossfade();
     return _player!.seek(position);
   }
 
   @override
   Future<void> stop() async {
     Logger.root.info('stopping player');
+    _cancelCrossfade();
     await _player!.stop();
     await playbackState.firstWhere(
       (state) => state.processingState == AudioProcessingState.idle,
@@ -1401,5 +1442,217 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
         queueIndex: queueIndex,
       ),
     );
+  }
+
+  Future<void> _prefetchAndCacheSong(MediaItem item) async {
+    if (!cacheSong) return;
+    if (item.artUri == null || !item.artUri.toString().startsWith('http')) return;
+
+    final songCacheBox = Hive.box('song_cache');
+    if (songCacheBox.containsKey(item.id)) return;
+    if (downloadsBox != null && downloadsBox!.containsKey(item.id)) return;
+
+    Logger.root.info('🚀 Starting background prefetch for: ${item.title}');
+
+    try {
+      final tempDir = await getTemporaryDirectory();
+      final cacheDir = Directory('${tempDir.path}/song_cache');
+      if (!await cacheDir.exists()) {
+        await cacheDir.create(recursive: true);
+      }
+
+      String? streamUrl;
+      if (item.genre == 'YouTube') {
+        try {
+          final streamInfo = (await YouTubeServices.instance.getStreamInfo(item.id)).last;
+          streamUrl = streamInfo.url.toString();
+        } catch (e) {
+          Logger.root.severe('Error getting YouTube stream URL for cache: $e');
+          final Map ytData = await YtMusicService().getSongData(videoId: item.id);
+          streamUrl = ytData['url']?.toString();
+        }
+      } else {
+        streamUrl = _saavnStreamUrl(item);
+      }
+
+      if (streamUrl == null || streamUrl.isEmpty) {
+        Logger.root.warning('Failed to resolve stream URL for prefetch: ${item.title}');
+        return;
+      }
+
+      final audioFile = File('${cacheDir.path}/${item.id}.m4a');
+      final response = await http.get(Uri.parse(streamUrl));
+      if (response.statusCode == 200) {
+        await audioFile.writeAsBytes(response.bodyBytes);
+      } else {
+        Logger.root.warning('Prefetch download failed with status: ${response.statusCode}');
+        return;
+      }
+
+      String? localImagePath;
+      if (item.artUri != null) {
+        final imageFile = File('${cacheDir.path}/${item.id}.jpg');
+        final imgResponse = await http.get(Uri.parse(item.artUri.toString()));
+        if (imgResponse.statusCode == 200) {
+          await imageFile.writeAsBytes(imgResponse.bodyBytes);
+          localImagePath = imageFile.path;
+        }
+      }
+
+      final cacheData = {
+        'id': item.id,
+        'path': audioFile.path,
+        'image': localImagePath,
+        'title': item.title,
+        'artist': item.artist,
+        'album': item.album,
+        'genre': item.genre,
+        'duration': item.duration?.inSeconds,
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+      };
+
+      await songCacheBox.put(item.id, cacheData);
+      Logger.root.info('✅ Successfully cached song: ${item.title}');
+
+      await _evictOldestCacheIfNeeded();
+    } catch (e) {
+      Logger.root.severe('Error prefetching song: $e');
+    }
+  }
+
+  Future<void> _evictOldestCacheIfNeeded() async {
+    final songCacheBox = Hive.box('song_cache');
+    if (songCacheBox.length <= 30) return;
+
+    final items = songCacheBox.values.toList();
+    items.sort((a, b) {
+      final tA = (a as Map)['timestamp'] as int? ?? 0;
+      final tB = (b as Map)['timestamp'] as int? ?? 0;
+      return tA.compareTo(tB);
+    });
+
+    final evictCount = songCacheBox.length - 30;
+    for (int i = 0; i < evictCount; i++) {
+      final item = items[i] as Map;
+      final id = item['id'].toString();
+      final path = item['path']?.toString();
+      final imagePath = item['image']?.toString();
+
+      if (path != null) {
+        final f = File(path);
+        if (await f.exists()) await f.delete();
+      }
+      if (imagePath != null) {
+        final img = File(imagePath);
+        if (await img.exists()) await img.delete();
+      }
+
+      await songCacheBox.delete(id);
+      Logger.root.info('Evicted cached song with ID: $id');
+    }
+  }
+
+  void _subscribeToPlayer(AudioPlayer player) {
+    if (_playerSubscriptions != null) {
+      for (final s in _playerSubscriptions!) {
+        s.cancel();
+      }
+    }
+
+    _playerSubscriptions = [
+      player.currentIndexStream.listen((val) => _currentIndexSubject.add(val)),
+      player.shuffleModeEnabledStream.listen((val) => _shuffleModeEnabledSubject.add(val)),
+      player.shuffleIndicesStream.listen((val) => _shuffleIndicesSubject.add(val)),
+      player.playbackEventStream.listen((val) => _playbackEventSubject.add(val)),
+      player.loopModeStream.listen((val) => _loopModeSubject.add(val)),
+      player.processingStateStream.listen((val) => _processingStateSubject.add(val)),
+      player.sequenceStream.listen((val) => _sequenceSubject.add(val)),
+    ];
+  }
+
+  void _cancelCrossfade() {
+    _crossfadeTimer?.cancel();
+    if (_isCrossfading) {
+      _player?.setVolume(1.0);
+      _nextPlayer?.stop();
+      _nextPlayer?.setVolume(0.0);
+      _isCrossfading = false;
+    }
+  }
+
+  void _checkCrossfade(Duration position) {
+    final duration = _player?.duration;
+    if (duration == null || duration == Duration.zero) return;
+
+    final crossfadeSeconds = Hive.box('settings').get('crossfadeDuration', defaultValue: 0) as int;
+    if (crossfadeSeconds <= 0) return;
+
+    final remaining = duration - position;
+    if (remaining.inSeconds <= crossfadeSeconds && !_isCrossfading) {
+      final queueIndex = playbackState.value.queueIndex;
+      if (queueIndex != null && queueIndex + 1 < queue.value.length) {
+        _startCrossfade(queueIndex + 1, crossfadeSeconds);
+      }
+    }
+  }
+
+  Future<void> _startCrossfade(int nextIndex, int crossfadeSeconds) async {
+    _isCrossfading = true;
+    Logger.root.info('🎚️ Starting overlap crossfade to index $nextIndex');
+
+    final nextItem = queue.value[nextIndex];
+    final nextSource = _itemToSource(nextItem);
+    if (nextSource == null) {
+      _isCrossfading = false;
+      return;
+    }
+
+    try {
+      await _nextPlayer!.setAudioSource(nextSource);
+      _nextPlayer!.setVolume(0.0);
+      _nextPlayer!.play();
+
+      final steps = 20;
+      final stepDuration = Duration(milliseconds: (crossfadeSeconds * 1000) ~/ steps);
+      double progress = 0.0;
+
+      _crossfadeTimer?.cancel();
+      _crossfadeTimer = Timer.periodic(stepDuration, (timer) async {
+        progress += 1.0 / steps;
+        if (progress >= 1.0) {
+          timer.cancel();
+          _player!.stop();
+          _player!.setVolume(1.0);
+
+          // Swap players
+          final temp = _player;
+          _player = _nextPlayer;
+          _nextPlayer = temp;
+
+          // Re-subscribe proxy subjects to the new player
+          _subscribeToPlayer(_player!);
+
+          // Bind position stream listener to check for crossfading
+          _player!.positionStream.listen((pos) {
+            _checkCrossfade(pos);
+          });
+
+          // Update the queue index and broadcast state
+          playbackState.add(playbackState.value.copyWith(
+            queueIndex: nextIndex,
+          ));
+          mediaItem.add(nextItem);
+          _broadcastState(_player!.playbackEvent);
+
+          _isCrossfading = false;
+        } else {
+          _player!.setVolume(1.0 - progress);
+          _nextPlayer!.setVolume(progress);
+        }
+      });
+    } catch (e) {
+      Logger.root.severe('Error during crossfade transition: $e');
+      _isCrossfading = false;
+    }
   }
 }

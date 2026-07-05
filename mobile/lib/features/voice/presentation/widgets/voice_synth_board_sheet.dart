@@ -1,9 +1,11 @@
 import 'dart:math' as math;
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/features/voice/data/voice_filter_service.dart';
 import 'package:mobile/core/services/flicko_haptics.dart';
+import 'package:mobile/core/constants/flicko_colors.dart';
 
 class VoiceSynthBoardSheet extends ConsumerStatefulWidget {
   const VoiceSynthBoardSheet({super.key});
@@ -15,12 +17,10 @@ class VoiceSynthBoardSheet extends ConsumerStatefulWidget {
 class _VoiceSynthBoardSheetState extends ConsumerState<VoiceSynthBoardSheet> with SingleTickerProviderStateMixin {
   late AnimationController _waveAnimationController;
 
-  static const Color _bg = Color(0xFF000000);
-  static const Color _neon = Color(0xFF52B788);
-  static const Color _white = Color(0xFFFFFFFF);
-  static const Color _muted = Color(0xFF71717A);
-  static const Color _lime = Color(0xFF52B788);
-  static const Color _gold = Color(0xFFFFD700);
+  static const Color _neon = Color(FlickoColors.brandLime);
+  static const Color _white = Color(FlickoColors.textPrimary);
+  static const Color _lime = Color(FlickoColors.brandLime);
+  static const Color _gold = Color(FlickoColors.gold);
 
   @override
   void initState() {
@@ -44,173 +44,208 @@ class _VoiceSynthBoardSheetState extends ConsumerState<VoiceSynthBoardSheet> wit
     final equippedSkinAsync = ref.watch(equippedVoiceSkinProvider);
     final equippedSkin = equippedSkinAsync.value;
 
-    return Container(
-      color: _bg,
-      padding: const EdgeInsets.only(bottom: 24),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Top Accent brutalist border
-            Container(
-              height: 4,
-              width: double.infinity,
-              color: _neon,
-            ),
-            
-            // Handle & Title
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF0F0F12).withValues(alpha: 0.85),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1),
+          ),
+          padding: const EdgeInsets.only(bottom: 24),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Top drag handle indicator
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.center,
+                  child: Container(
+                    width: 42,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                
+                // Handle & Title
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'VOCAL_FX_SYNTHESIZER',
-                        style: GoogleFonts.spaceGrotesk(
-                          color: _white,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 18,
-                          letterSpacing: 2,
-                        ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'VOCAL FX SYNTHESIZER',
+                            style: GoogleFonts.spaceGrotesk(
+                              color: _white,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 18,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'REAL-TIME VOICE STREAM MODULATION',
+                            style: GoogleFonts.spaceMono(
+                              color: _white.withValues(alpha: 0.4),
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'REAL-TIME VOICE STREAM MODULATION',
-                        style: GoogleFonts.spaceMono(
-                          color: _muted,
-                          fontSize: 9,
-                          fontWeight: FontWeight.bold,
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.05),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.close_rounded, color: Colors.white70, size: 18),
                         ),
                       ),
                     ],
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.close, color: _white),
-                    onPressed: () => Navigator.pop(context),
+                ),
+
+                // Visualizer Spectrum Box
+                Container(
+                  height: 110,
+                  width: double.infinity,
+                  margin: const EdgeInsets.symmetric(horizontal: 20),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.4),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: _neon.withValues(alpha: 0.25), width: 1.5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: _neon.withValues(alpha: 0.05),
+                        blurRadius: 10,
+                        spreadRadius: 1,
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
-
-            // Visualizer Spectrum Box
-            Container(
-              height: 100,
-              width: double.infinity,
-              margin: const EdgeInsets.symmetric(horizontal: 20),
-              decoration: BoxDecoration(
-                border: Border.all(color: _neon, width: 1.5),
-                color: Colors.black,
-              ),
-              child: AnimatedBuilder(
-                animation: _waveAnimationController,
-                builder: (context, _) {
-                  return CustomPaint(
-                    painter: SynthesizerWavePainter(
-                      animationValue: _waveAnimationController.value,
-                      preset: filter.activePresetName,
-                      pitch: filter.pitchSemitones,
-                      reverb: filter.reverbRoom,
-                      bitcrush: filter.bitcrushFrequency,
-                      isEnabled: filter.isEnabled,
-                      neonColor: _neon,
-                      goldColor: _gold,
-                      skinId: equippedSkin?.id,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: AnimatedBuilder(
+                      animation: _waveAnimationController,
+                      builder: (context, _) {
+                        return CustomPaint(
+                          painter: SynthesizerWavePainter(
+                            animationValue: _waveAnimationController.value,
+                            preset: filter.activePresetName,
+                            pitch: filter.pitchSemitones,
+                            reverb: filter.reverbRoom,
+                            bitcrush: filter.bitcrushFrequency,
+                            isEnabled: filter.isEnabled,
+                            neonColor: _neon,
+                            goldColor: _gold,
+                            skinId: equippedSkin?.id,
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Preset choices
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text(
-                'VOCAL_PRESETS',
-                style: GoogleFonts.spaceGrotesk(
-                  color: _white,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 11,
-                  letterSpacing: 1.5,
+                  ),
                 ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 80,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                children: [
-                  _buildPresetCard('NONE', '🎙️', filter.activePresetName == 'NONE', notifier),
-                  _buildPresetCard('AUTOTUNE', '✨', filter.activePresetName == 'AUTOTUNE', notifier),
-                  _buildPresetCard('ROBOT', '🤖', filter.activePresetName == 'ROBOT', notifier),
-                  _buildPresetCard('CHIPMUNK', '🐿️', filter.activePresetName == 'CHIPMUNK', notifier),
-                  _buildPresetCard('ECHO', '🌌', filter.activePresetName == 'ECHO', notifier),
-                  _buildPresetCard('SYNTH VOX', '🎛️', filter.activePresetName == 'SYNTH VOX', notifier),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
+                const SizedBox(height: 24),
 
-            // Dynamic Synthesizer Sliders
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text(
-                'SYNTHESIZER_PARAMETERS',
-                style: GoogleFonts.spaceGrotesk(
-                  color: _white,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 11,
-                  letterSpacing: 1.5,
+                // Preset choices
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Text(
+                    'VOCAL PRESETS',
+                    style: GoogleFonts.spaceGrotesk(
+                      color: _white.withValues(alpha: 0.9),
+                      fontWeight: FontWeight.w800,
+                      fontSize: 12,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            const SizedBox(height: 16),
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 80,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    children: [
+                      _buildPresetCard('NONE', '🎙️', filter.activePresetName == 'NONE', notifier),
+                      _buildPresetCard('AUTOTUNE', '✨', filter.activePresetName == 'AUTOTUNE', notifier),
+                      _buildPresetCard('ROBOT', '🤖', filter.activePresetName == 'ROBOT', notifier),
+                      _buildPresetCard('CHIPMUNK', '🐿️', filter.activePresetName == 'CHIPMUNK', notifier),
+                      _buildPresetCard('ECHO', '🌌', filter.activePresetName == 'ECHO', notifier),
+                      _buildPresetCard('SYNTH VOX', '🎛️', filter.activePresetName == 'SYNTH VOX', notifier),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
 
-            // Pitch transposer semitones
-            _buildSliderRow(
-              title: 'PITCH semitones',
-              value: filter.pitchSemitones,
-              min: -12.0,
-              max: 12.0,
-              displayVal: '${filter.pitchSemitones > 0 ? '+' : ''}${filter.pitchSemitones.toStringAsFixed(1)} semitones',
-              onChanged: (val) {
-                FlickoHaptics.light();
-                notifier.updatePitch(val);
-              },
-            ),
+                // Dynamic Synthesizer Sliders
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Text(
+                    'SYNTHESIZER PARAMETERS',
+                    style: GoogleFonts.spaceGrotesk(
+                      color: _white.withValues(alpha: 0.9),
+                      fontWeight: FontWeight.w800,
+                      fontSize: 12,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
 
-            // Reverb room
-            _buildSliderRow(
-              title: 'CATHEDRAL REVERB room',
-              value: filter.reverbRoom,
-              min: 0.0,
-              max: 100.0,
-              displayVal: '${filter.reverbRoom.toInt()}% room depth',
-              onChanged: (val) {
-                FlickoHaptics.light();
-                notifier.updateReverb(val);
-              },
-            ),
+                // Pitch transposer semitones
+                _buildSliderRow(
+                  title: 'PITCH semitones',
+                  value: filter.pitchSemitones,
+                  min: -12.0,
+                  max: 12.0,
+                  displayVal: '${filter.pitchSemitones > 0 ? '+' : ''}${filter.pitchSemitones.toStringAsFixed(1)} semitones',
+                  onChanged: (val) {
+                    FlickoHaptics.light();
+                    notifier.updatePitch(val);
+                  },
+                ),
 
-            // Bitcrush pixels
-            _buildSliderRow(
-              title: 'CYBER BITCRUSH distortion',
-              value: filter.bitcrushFrequency,
-              min: 4.0,
-              max: 16.0,
-              displayVal: '${filter.bitcrushFrequency.toInt()}-bit pixelate',
-              onChanged: (val) {
-                FlickoHaptics.light();
-                notifier.updateBitcrush(val);
-              },
+                // Reverb room
+                _buildSliderRow(
+                  title: 'CATHEDRAL REVERB room',
+                  value: filter.reverbRoom,
+                  min: 0.0,
+                  max: 100.0,
+                  displayVal: '${filter.reverbRoom.toInt()}% room depth',
+                  onChanged: (val) {
+                    FlickoHaptics.light();
+                    notifier.updateReverb(val);
+                  },
+                ),
+
+                // Bitcrush pixels
+                _buildSliderRow(
+                  title: 'CYBER BITCRUSH distortion',
+                  value: filter.bitcrushFrequency,
+                  min: 4.0,
+                  max: 16.0,
+                  displayVal: '${filter.bitcrushFrequency.toInt()}-bit pixelate',
+                  onChanged: (val) {
+                    FlickoHaptics.light();
+                    notifier.updateBitcrush(val);
+                  },
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -226,14 +261,21 @@ class _VoiceSynthBoardSheetState extends ConsumerState<VoiceSynthBoardSheet> wit
         width: 100,
         margin: const EdgeInsets.only(right: 12),
         decoration: BoxDecoration(
-          color: isSelected ? _lime : Colors.black,
-          border: Border.all(color: _lime, width: 2),
-          boxShadow: [
-            BoxShadow(
-              color: isSelected ? Colors.black : _lime,
-              offset: const Offset(3, 3),
-            ),
-          ],
+          color: isSelected ? _lime.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.03),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? _lime : Colors.white.withValues(alpha: 0.08),
+            width: 1.5,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: _lime.withValues(alpha: 0.15),
+                    blurRadius: 8,
+                    spreadRadius: 1,
+                  )
+                ]
+              : null,
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -243,7 +285,7 @@ class _VoiceSynthBoardSheetState extends ConsumerState<VoiceSynthBoardSheet> wit
             Text(
               name,
               style: GoogleFonts.spaceMono(
-                color: isSelected ? Colors.black : Colors.white,
+                color: isSelected ? _lime : Colors.white70,
                 fontSize: 9,
                 fontWeight: FontWeight.w900,
               ),
@@ -274,7 +316,7 @@ class _VoiceSynthBoardSheetState extends ConsumerState<VoiceSynthBoardSheet> wit
             children: [
               Text(
                 title.toUpperCase(),
-                style: GoogleFonts.spaceMono(color: _muted, fontSize: 9, fontWeight: FontWeight.bold),
+                style: GoogleFonts.spaceMono(color: _white.withValues(alpha: 0.4), fontSize: 9, fontWeight: FontWeight.bold),
               ),
               Text(
                 displayVal.toUpperCase(),
@@ -282,13 +324,22 @@ class _VoiceSynthBoardSheetState extends ConsumerState<VoiceSynthBoardSheet> wit
               ),
             ],
           ),
-          Slider(
-            value: value.clamp(min, max),
-            min: min,
-            max: max,
-            onChanged: onChanged,
-            activeColor: _lime,
-            inactiveColor: _muted.withOpacity(0.2),
+          SliderTheme(
+            data: SliderThemeData(
+              trackHeight: 3,
+              activeTrackColor: _lime,
+              inactiveTrackColor: Colors.white.withValues(alpha: 0.08),
+              thumbColor: _white,
+              overlayColor: _lime.withValues(alpha: 0.12),
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+              overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+            ),
+            child: Slider(
+              value: value.clamp(min, max),
+              min: min,
+              max: max,
+              onChanged: onChanged,
+            ),
           ),
         ],
       ),

@@ -10,6 +10,7 @@ import 'package:mobile/data/models/flicko_message.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/features/ai_assistant/translate/presentation/translated_text_panel.dart';
 import 'package:mobile/features/shared/presentation/widgets/safe_network_media.dart';
+import 'package:mobile/features/shared/presentation/widgets/voice_message_player.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
 // Note: MessageDripCard removed in favor of glass theme
 import 'poll_message_card.dart';
@@ -543,6 +544,24 @@ class _EnhancedMessageItemState extends ConsumerState<EnhancedMessageItem> {
   Widget _buildAttachments() {
     return Column(
       children: widget.message.attachments.map((attachment) {
+        final contentType = attachment.contentType.toLowerCase();
+        final filename = attachment.filename.toLowerCase();
+        final isAudio = contentType.startsWith('audio/') ||
+            filename.endsWith('.m4a') ||
+            filename.endsWith('.mp3') ||
+            filename.endsWith('.wav') ||
+            filename.endsWith('.ogg');
+
+        if (isAudio) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8.0),
+            child: VoiceMessagePlayer(
+              audioUrl: attachment.url,
+              fileName: attachment.filename,
+            ),
+          );
+        }
+
         final isImage = attachment.contentType.startsWith('image/');
 
         if (isImage) {

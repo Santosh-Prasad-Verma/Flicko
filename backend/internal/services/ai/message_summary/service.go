@@ -42,6 +42,9 @@ type Service interface {
 
 	// Feedback records a thumbs-up/down rating.
 	Feedback(ctx context.Context, summaryID, userID string, rating int16, reason *string) error
+
+	// SummarizeChatDirect performs a direct/blocking summary of a custom list of messages.
+	SummarizeChatDirect(ctx context.Context, messages []WindowMessage) (string, error)
 }
 
 // RequestInput is the validated payload from the HTTP handler.
@@ -475,4 +478,44 @@ func optStr(s string) *string {
 		return nil
 	}
 	return &s
+}
+
+func (s *service) SummarizeChatDirect(ctx context.Context, messages []WindowMessage) (string, error) {
+	if len(messages) == 0 {
+		return "", errors.New("no messages to summarize")
+	}
+
+	var chatBuilder strings.Builder
+	for _, m := range messages {
+		chatBuilder.WriteString(fmt.Sprintf("%s: %s\n", m.Author, m.Content))
+	}
+
+	const dmSystemPrompt = `You are Aura, an AI summarization assistant inside the Flicko messaging app.
+Summarize the following chat conversation into a concise bulleted list. Focus on key decisions, questions raised, and main topics.
+Be conversational but highly structured and brief. Use markdown bullet points. Return only the summary text.`
+
+	stream, err := s.llm.Stream(ctx, llm.Request{
+		Messages: []llm.Message{
+			{Role: llm.RoleSystem, Content: dmSystemPrompt},
+			{Role: llm.RoleUser, Content: "Chat history:\n" + chatBuilder.String()},
+		},
+		Temperature: 0.3,
+		MaxTokens:   512,
+	})
+	if err != nil {
+		return "", fmt.Errorf("llm stream: %w", err)
+	}
+
+	var sb strings.Builder
+	for tok := range stream {
+		if tok.Done {
+			if tok.Reason == "error" {
+				return "", fmt.Errorf("llm generation error: %s", tok.Content)
+			}
+			break
+		}
+		sb.WriteString(tok.Content)
+	}
+
+	return sb.String(), nil
 }

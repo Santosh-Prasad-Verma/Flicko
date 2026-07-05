@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import 'package:go_router/go_router.dart';
 import '../../auth/application/auth_notifier.dart';
+import '../../shared/presentation/widgets/user_avatar.dart';
+import '../../../data/models/user_model.dart';
 
 class Notification {
   final String id;
@@ -35,13 +37,13 @@ class Notification {
 }
 
 // ── Design tokens ──
-const _bgPrimary = Color(0xFF000000);
-const _bgCard = Color(0xFF0A0A0A);
-const _bgSurface = Color(0xFF111111);
-const _greenPunch = Color(0xFF10B981);
+const _bgPrimary = Color(0xFF07040A);
+const _bgCard = Color(0xFF0F0F12);
+const _bgSurface = Color(0xFF14141A);
+const _greenPunch = Color(0xFFC0EC54);
 const _textPrimary = Colors.white;
 const _textSecondary = Color(0xFF9CA3AF);
-const _border = Color(0xFF1A1A1A);
+const _border = Color(0xFF1F1F24);
 
 class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
@@ -54,6 +56,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   final List<String> _tabs = ['All', 'Mentions', 'DMs', 'Friends'];
   String _activeTab = 'All';
   List<Notification> _notifications = [];
+  Map<String, UserModel> _senderProfiles = {};
   bool _isLoading = true;
   String? _errorMessage;
   String? _currentUserId;
@@ -114,8 +117,31 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           .order('created_at', ascending: false)
           .limit(50);
 
+      final List<Notification> loadedNotifications = (response as List).map((n) => Notification.fromJson(n)).toList();
+
+      // Extract unique user IDs of senders from notification content
+      final userIds = loadedNotifications
+          .map((n) => (n.content?['userId'] as String? ?? n.content?['senderId'] as String? ?? n.content?['sender_id'] as String?))
+          .where((id) => id != null)
+          .cast<String>()
+          .toSet()
+          .toList();
+
+      final Map<String, UserModel> loadedProfiles = {};
+      if (userIds.isNotEmpty) {
+        final profilesRes = await Supabase.instance.client
+            .from('profiles')
+            .select('*')
+            .inFilter('id', userIds);
+        for (final p in profilesRes as List) {
+          final userModel = UserModel.fromJson(p as Map<String, dynamic>);
+          loadedProfiles[userModel.id] = userModel;
+        }
+      }
+
       setState(() {
-        _notifications = (response as List).map((n) => Notification.fromJson(n)).toList();
+        _notifications = loadedNotifications;
+        _senderProfiles = loadedProfiles;
         _isLoading = false;
       });
     } catch (e) {
@@ -312,24 +338,35 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 return Expanded(
                   child: GestureDetector(
                     onTap: () => setState(() => _activeTab = tab),
-                    child: Container(
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
                       margin: const EdgeInsets.symmetric(horizontal: 4),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
                       decoration: BoxDecoration(
-                        color: active ? _greenPunch : _bgSurface,
+                        color: active ? _greenPunch : Colors.white.withOpacity(0.02),
                         border: Border.all(
-                          color: active ? _greenPunch : _border,
-                          width: 1.5,
+                          color: active ? _greenPunch : Colors.white.withOpacity(0.06),
+                          width: 1.0,
                         ),
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(30),
+                        boxShadow: active
+                            ? [
+                                BoxShadow(
+                                  color: _greenPunch.withOpacity(0.25),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                )
+                              ]
+                            : null,
                       ),
                       child: Text(
                         tab.toUpperCase(),
                         textAlign: TextAlign.center,
                         style: GoogleFonts.outfit(
                           color: active ? Colors.black : _textSecondary,
-                          fontSize: 12,
+                          fontSize: 11,
                           fontWeight: FontWeight.w800,
+                          letterSpacing: 0.5,
                         ),
                       ),
                     ),
@@ -540,6 +577,9 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     final preview = meta['preview'] as String?;
     final accentColor = _getTypeAccentColor(notification.type);
 
+    final senderId = meta['userId'] as String? ?? meta['senderId'] as String? ?? meta['sender_id'] as String?;
+    final senderProfile = senderId != null ? _senderProfiles[senderId] : null;
+
     if (content == 'sent you a direct message' && _isMediaUrl(preview)) {
       final mediaType = _getMediaType(preview!);
       if (mediaType == 'sticker') {
@@ -569,20 +609,42 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Icon / Avatar
-            Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                color: accentColor.withValues(alpha: 0.12),
-                border: Border.all(color: accentColor.withValues(alpha: 0.3), width: 1.5),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(
-                _getTypeIcon(notification.type),
-                size: 20,
-                color: accentColor,
-              ),
+            // UserAvatar with Notification Type badge overlay
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                UserAvatar(
+                  imageUrl: senderProfile?.avatarUrl ?? meta['userAvatar'] as String?,
+                  name: userName,
+                  size: 46,
+                  userId: senderId,
+                  showStatus: false,
+                  decoration: senderProfile?.avatarDecoration,
+                ),
+                Positioned(
+                  right: -3,
+                  bottom: -3,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: const BoxDecoration(
+                      color: _bgPrimary,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        color: accentColor,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        _getTypeIcon(notification.type),
+                        size: 10,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(width: 14),
 
@@ -660,7 +722,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          onPressed: () => _handleAcceptFriend(notification.id, meta['userId'] as String?),
+                          onPressed: () => _handleAcceptFriend(notification.id, senderId),
                           child: Text(
                             'Accept',
                             style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13),
@@ -677,7 +739,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                             ),
                             side: BorderSide(color: _border, width: 1.5),
                           ),
-                          onPressed: () => _handleDeclineFriend(notification.id, meta['userId'] as String?),
+                          onPressed: () => _handleDeclineFriend(notification.id, senderId),
                           child: Text(
                             'Decline',
                             style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13),

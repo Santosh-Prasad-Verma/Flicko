@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 
 class ServerSettingsHubScreen extends ConsumerStatefulWidget {
@@ -357,7 +358,7 @@ class _ServerSettingsHubScreenState
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: _neonGreen.withValues(alpha: 0.08),
-                    image: hasIcon ? DecorationImage(image: NetworkImage(_iconUrl!), fit: BoxFit.cover) : null,
+                    image: hasIcon ? DecorationImage(image: CachedNetworkImageProvider(_iconUrl!), fit: BoxFit.cover) : null,
                   ),
                   alignment: Alignment.center,
                   child: !hasIcon ? Text(
