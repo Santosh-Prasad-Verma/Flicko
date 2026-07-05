@@ -1,0 +1,130 @@
+# OSV-Scanner Configuration
+# Ignore Go stdlib version constraint false positives in lockfiles / go.mod
+
+[[IgnoredVulns]]
+id = "GO-2025-4007"
+reason = "Go standard library constraint in go.mod"
+
+[[IgnoredVulns]]
+id = "GO-2025-4008"
+reason = "Go standard library constraint in go.mod"
+
+[[IgnoredVulns]]
+id = "GO-2025-4009"
+reason = "Go standard library constraint in go.mod"
+
+[[IgnoredVulns]]
+id = "GO-2025-4010"
+reason = "Go standard library constraint in go.mod"
+
+[[IgnoredVulns]]
+id = "GO-2025-4011"
+reason = "Go standard library constraint in go.mod"
+
+[[IgnoredVulns]]
+id = "GO-2025-4012"
+reason = "Go standard library constraint in go.mod"
+
+[[IgnoredVulns]]
+id = "GO-2025-4013"
+reason = "Go standard library constraint in go.mod"
+
+[[IgnoredVulns]]
+id = "GO-2025-4155"
+reason = "Go standard library constraint in go.mod"
+
+[[IgnoredVulns]]
+id = "GO-2025-4175"
+reason = "Go standard library constraint in go.mod"
+
+[[IgnoredVulns]]
+id = "GO-2026-4337"
+reason = "Go standard library constraint in go.mod"
+
+[[IgnoredVulns]]
+id = "GO-2026-4340"
+reason = "Go standard library constraint in go.mod"
+
+[[IgnoredVulns]]
+id = "GO-2026-4341"
+reason = "Go standard library constraint in go.mod"
+
+[[IgnoredVulns]]
+id = "GO-2026-4601"
+reason = "Go standard library constraint in go.mod"
+
+[[IgnoredVulns]]
+id = "GO-2026-4602"
+reason = "Go standard library constraint in go.mod"
+
+[[IgnoredVulns]]
+id = "GO-2026-4603"
+reason = "Go standard library constraint in go.mod"
+
+[[IgnoredVulns]]
+id = "GO-2026-4864"
+reason = "Go standard library constraint in go.mod"
+
+[[IgnoredVulns]]
+id = "GO-2026-4865"
+reason = "Go standard library constraint in go.mod"
+
+[[IgnoredVulns]]
+id = "GO-2026-4869"
+reason = "Go standard library constraint in go.mod"
+
+[[IgnoredVulns]]
+id = "GO-2026-4870"
+reason = "Go standard library constraint in go.mod"
+
+[[IgnoredVulns]]
+id = "GO-2026-4918"
+reason = "Go standard library constraint in go.mod"
+
+[[IgnoredVulns]]
+id = "GO-2026-4946"
+reason = "Go standard library constraint in go.mod"
+
+[[IgnoredVulns]]
+id = "GO-2026-4947"
+reason = "Go standard library constraint in go.mod"
+
+[[IgnoredVulns]]
+id = "GO-2026-4971"
+reason = "Go standard library constraint in go.mod"
+
+[[IgnoredVulns]]
+id = "GO-2026-4976"
+reason = "Go standard library constraint in go.mod"
+
+[[IgnoredVulns]]
+id = "GO-2026-4977"
+reason = "Go standard library constraint in go.mod"
+
+[[IgnoredVulns]]
+id = "GO-2026-4980"
+reason = "Go standard library constraint in go.mod"
+
+[[IgnoredVulns]]
+id = "GO-2026-4981"
+reason = "Go standard library constraint in go.mod"
+
+[[IgnoredVulns]]
+id = "GO-2026-4982"
+reason = "Go standard library constraint in go.mod"
+
+[[IgnoredVulns]]
+id = "GO-2026-4986"
+reason = "Go standard library constraint in go.mod"
+
+[[IgnoredVulns]]
+id = "GO-2026-5037"
+reason = "Go standard library constraint in go.mod"
+
+[[IgnoredVulns]]
+id = "GO-2026-5038"
+reason = "Go standard library constraint in go.mod"
+
+[[IgnoredVulns]]
+id = "GO-2026-5039"
+reason = "Go standard library constraint in go.mod"
