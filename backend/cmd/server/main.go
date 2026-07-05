@@ -31,6 +31,7 @@ import (
 	"github.com/flicko-org/flicko-backend/internal/telemetry"
 	"github.com/gorilla/mux"
 	"github.com/hibiken/asynq"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -251,6 +252,9 @@ func main() {
 	api.HandleFunc("/healthz/ready", func(w http.ResponseWriter, r *http.Request) {
 		healthChecker.ReadinessProbe().ServeHTTP(w, r)
 	}).Methods("GET")
+
+	// Prometheus metrics endpoint
+	api.Handle("/metrics", promhttp.Handler()).Methods("GET")
 
 	// Old health check code removed - now using HealthChecker above
 
