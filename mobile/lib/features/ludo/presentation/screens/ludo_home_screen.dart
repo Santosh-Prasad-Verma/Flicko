@@ -129,6 +129,24 @@ class _LudoHomeScreenState extends ConsumerState<LudoHomeScreen> {
                       ),
                       const Spacer(),
                       IconButton(
+                        icon: Icon(
+                          LudoSoundService.instance.muted
+                              ? Icons.volume_off_rounded
+                              : Icons.volume_up_rounded,
+                          color: Colors.white70,
+                        ),
+                        tooltip: 'Mute/Unmute',
+                        onPressed: () {
+                          setState(() {
+                            LudoSoundService.instance.setMuted(!LudoSoundService.instance.muted);
+                            if (!LudoSoundService.instance.muted) {
+                              LudoSoundService.instance.play('home');
+                            }
+                          });
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
                         icon: const Icon(Icons.leaderboard_rounded,
                             color: Colors.white70),
                         tooltip: 'Leaderboard',

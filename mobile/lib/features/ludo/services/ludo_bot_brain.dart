@@ -44,6 +44,39 @@ class LudoBotBrain {
       final stateAfterRoll = notifier.currentState;
       if (stateAfterRoll.winner != null) return;
 
+      // Both release and move are possible (rolled a 6 + has pocket pieces + has on-board pieces)
+      if (stateAfterRoll.pileSelectionPlayer == playerNo &&
+          stateAfterRoll.cellSelectionPlayer == playerNo) {
+        final onBoardPieces = stateAfterRoll
+            .piecesFor(playerNo)
+            .where((p) => p.pos != 0 && p.travelCount + 6 <= travelToHome)
+            .toList();
+        final hasPocket = stateAfterRoll.piecesFor(playerNo).any((p) => p.pos == 0);
+
+        if (hasPocket && onBoardPieces.isNotEmpty) {
+          final bestOnBoard = _pickPiece(onBoardPieces, 6, playerNo, stateAfterRoll, difficulty);
+          final bestOnBoardScore = _score(playerNo, bestOnBoard, 6, stateAfterRoll, difficulty);
+
+          // Releasing a piece has a base priority of 45. If the best on-board move is higher (e.g. capture/finish), do that!
+          if (bestOnBoardScore > 45) {
+            await Future<void>.delayed(const Duration(milliseconds: 500));
+            if (_isDisposed) return;
+            final advanced = advancePiece(
+              playerNo: playerNo,
+              fromPos: bestOnBoard.pos,
+              fromTravel: bestOnBoard.travelCount,
+              diceNo: 6,
+            );
+            await notifier.handleForward(
+              playerNo: playerNo,
+              pieceId: bestOnBoard.id,
+              targetPos: advanced.pos,
+            );
+            return;
+          }
+        }
+      }
+
       // Pocket release path.
       if (stateAfterRoll.pileSelectionPlayer == playerNo) {
         final pocketPiece =

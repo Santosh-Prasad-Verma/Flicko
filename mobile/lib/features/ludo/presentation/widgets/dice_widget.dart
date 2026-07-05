@@ -37,6 +37,7 @@ class _DiceWidgetState extends ConsumerState<DiceWidget>
   )..repeat(reverse: true);
 
   bool _rolling = false;
+  int _lastRolledValue = 1;
 
   @override
   void dispose() {
@@ -60,6 +61,10 @@ class _DiceWidgetState extends ConsumerState<DiceWidget>
         !state.touchDiceBlock;
     final canShowArrow = isMyTurn && !state.isDiceRolled;
     final reduceMotion = MediaQuery.disableAnimationsOf(context);
+
+    if (state.chancePlayer == widget.playerNo && state.isDiceRolled && !_rolling && state.diceNo > 0) {
+      _lastRolledValue = state.diceNo;
+    }
 
     final row = Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -113,13 +118,13 @@ class _DiceWidgetState extends ConsumerState<DiceWidget>
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    if (isMyTurn && !_rolling)
+                    if (!_rolling)
                       Image.asset(
-                        diceAsset(state.diceNo),
+                        diceAsset(_lastRolledValue),
                         width: 38,
                         height: 38,
                         errorBuilder: (_, __, ___) => Center(
-                          child: Text('${state.diceNo}',
+                          child: Text('$_lastRolledValue',
                               style: const TextStyle(
                                   fontSize: 26, fontWeight: FontWeight.w900)),
                         ),

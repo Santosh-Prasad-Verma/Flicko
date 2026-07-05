@@ -202,7 +202,7 @@ class LudoNotifier extends Notifier<LudoState> {
       if (diceNumber == 6) {
         _enablePileSelection(playerNo);
       } else {
-        await _delay(600);
+        await _delay(1500);
         _updatePlayerChance(_nextPlayer(playerNo));
       }
       return;
@@ -214,7 +214,7 @@ class LudoNotifier extends Notifier<LudoState> {
 
     if ((!canMove && diceNumber == 6 && !isAnyPieceLocked) ||
         (!canMove && diceNumber != 6)) {
-      await _delay(600);
+      await _delay(1500);
       _updatePlayerChance(_nextPlayer(playerNo));
       return;
     }
@@ -233,6 +233,7 @@ class LudoNotifier extends Notifier<LudoState> {
       travelCount: 1,
     );
     _unfreezeDice();
+    _maybeTriggerBot();
   }
 
   /// Move a piece on the board by the current dice number, step-by-step.
@@ -283,15 +284,17 @@ class LudoNotifier extends Notifier<LudoState> {
       await _sound.play('safe_spot');
     }
 
+    bool captured = false;
     if (differentOwners &&
         !safeSpots.contains(finalPath) &&
         !starSpots.contains(finalPath)) {
       final enemy = atFinal.firstWhere((p) => p.id[0] != pieceId[0]);
       await _capture(enemy);
+      captured = true;
       _unfreezeDice();
     }
 
-    if (diceNo == 6 || travelCount == travelToHome) {
+    if (diceNo == 6 || travelCount == travelToHome || captured) {
       if (travelCount == travelToHome) {
         await _sound.play('home_win');
         if (_hasTeamWon(playerNo) || _hasSoloWon(playerNo)) {

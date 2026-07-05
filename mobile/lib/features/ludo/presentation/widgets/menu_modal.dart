@@ -5,13 +5,18 @@ import '../../services/ludo_notifier.dart';
 import '../../services/ludo_sound_service.dart';
 import 'ludo_colors.dart';
 
-/// In-game pause menu. Resume / new game / exit.
-class MenuModal extends ConsumerWidget {
+/// In-game pause menu. Resume / mute / new game / exit.
+class MenuModal extends ConsumerStatefulWidget {
   const MenuModal({super.key, required this.onClose});
   final VoidCallback onClose;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MenuModal> createState() => _MenuModalState();
+}
+
+class _MenuModalState extends ConsumerState<MenuModal> {
+  @override
+  Widget build(BuildContext context) {
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 24),
@@ -29,16 +34,29 @@ class MenuModal extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _btn(context, 'RESUME', onClose),
+            _btn(context, 'RESUME', widget.onClose),
+            const SizedBox(height: 12),
+            _btn(
+              context,
+              LudoSoundService.instance.muted ? 'UNMUTE SOUND' : 'MUTE SOUND',
+              () {
+                setState(() {
+                  LudoSoundService.instance.setMuted(!LudoSoundService.instance.muted);
+                  if (!LudoSoundService.instance.muted) {
+                    LudoSoundService.instance.play('game_start');
+                  }
+                });
+              },
+            ),
             const SizedBox(height: 12),
             _btn(context, 'NEW GAME', () {
               ref.read(ludoNotifierProvider.notifier).resetGame();
               LudoSoundService.instance.play('game_start');
-              onClose();
+              widget.onClose();
             }),
             const SizedBox(height: 12),
             _btn(context, 'EXIT', () {
-              onClose();
+              widget.onClose();
               Navigator.of(context).maybePop();
             }),
           ],
