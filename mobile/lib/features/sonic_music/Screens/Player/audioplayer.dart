@@ -27,6 +27,8 @@ import 'package:audio_service/audio_service.dart';
 import 'package:mobile/features/sonic_music/CustomWidgets/add_playlist.dart';
 import 'package:mobile/features/sonic_music/CustomWidgets/copy_clipboard.dart';
 import 'package:mobile/features/sonic_music/CustomWidgets/download_button.dart';
+import 'package:mobile/features/sonic_music/CustomWidgets/synchronized_lyrics_view.dart';
+import 'package:mobile/features/sonic_music/Services/offline_downloader_service.dart';
 import 'package:mobile/features/sonic_music/CustomWidgets/empty_screen.dart';
 import 'package:mobile/features/sonic_music/CustomWidgets/equalizer.dart';
 import 'package:mobile/features/sonic_music/CustomWidgets/like_button.dart';

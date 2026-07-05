@@ -7,6 +7,7 @@ import 'package:mobile/data/models/flicko_message.dart';
 import 'package:mobile/features/ai_assistant/translate/application/translate_provider.dart';
 import 'package:mobile/features/ai_assistant/translate/application/translate_settings_provider.dart';
 import 'package:mobile/features/ai_assistant/translate/domain/translation.dart';
+import 'package:mobile/features/server_channels/chat/presentation/widgets/reaction_picker_sheet.dart';
 import 'package:mobile/features/sonic_music/localization/app_localizations.dart';
 
 /// Message Actions Bottom Sheet
@@ -213,34 +214,57 @@ class MessageActions extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: quickEmojis.map((emoji) {
-          final isSelected = message.reactions.any(
-            (r) => r.emoji == emoji && r.me,
-          );
-          
-          return GestureDetector(
+        children: [
+          ...quickEmojis.map((emoji) {
+            final isSelected = message.reactions.any(
+              (r) => r.emoji == emoji && r.me,
+            );
+            
+            return GestureDetector(
+              onTap: () {
+                Navigator.pop(context);
+                onReaction(emoji);
+              },
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? const Color(FlickoColors.blurple).withValues(alpha: 0.3)
+                      : const Color(FlickoColors.bgTertiary),
+                  borderRadius: BorderRadius.circular(20),
+                  border: isSelected
+                      ? Border.all(color: const Color(FlickoColors.blurple))
+                      : null,
+                ),
+                child: Text(
+                  emoji,
+                  style: const TextStyle(fontSize: 24),
+                ),
+              ),
+            );
+          }),
+          GestureDetector(
             onTap: () {
               Navigator.pop(context);
-              onReaction(emoji);
+              showModalBottomSheet(
+                context: context,
+                backgroundColor: Colors.transparent,
+                isScrollControlled: true,
+                builder: (context) => ReactionPickerSheet(
+                  onEmojiSelected: onReaction,
+                ),
+              );
             },
             child: Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: isSelected
-                    ? const Color(FlickoColors.blurple).withValues(alpha: 0.3)
-                    : const Color(FlickoColors.bgTertiary),
+                color: const Color(FlickoColors.bgTertiary),
                 borderRadius: BorderRadius.circular(20),
-                border: isSelected
-                    ? Border.all(color: const Color(FlickoColors.blurple))
-                    : null,
               ),
-              child: Text(
-                emoji,
-                style: const TextStyle(fontSize: 24),
-              ),
+              child: const Icon(Icons.add_reaction_outlined, color: Colors.white70, size: 22),
             ),
-          );
-        }).toList(),
+          ),
+        ],
       ),
     );
   }
