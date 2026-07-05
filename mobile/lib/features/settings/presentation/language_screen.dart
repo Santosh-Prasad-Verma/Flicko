@@ -320,7 +320,7 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
             child: Column(
               children: [
                 Image.asset(
-                  'assets/branding/Flicko-for-black-background.png',
+                  'assets/images/Flicko-for-black-background.png',
                   height: 32,
                   color: Colors.white.withValues(alpha: 0.1),
                   errorBuilder: (context, error, stackTrace) =>

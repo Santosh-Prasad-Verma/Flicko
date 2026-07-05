@@ -36,6 +36,9 @@ import 'package:mobile/features/sonic_music/Services/yt_music.dart';
 import 'package:mobile/features/sonic_music/Services/youtube_services.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/services.dart';
+import 'package:mobile/core/router/app_router.dart';
+import 'package:mobile/features/sonic_music/CustomWidgets/snackbar.dart';
+import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:just_audio/just_audio.dart';
@@ -253,7 +256,8 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
         _recentSubject.add([item]);
         _prefetchAndCacheSong(item);
 
-        if (recommend && item.extras!['autoplay'] as bool) {
+        final bool isAutoplayEnabled = item.extras?['autoplay'] as bool? ?? true;
+        if (recommend && isAutoplayEnabled) {
           final List<MediaItem> mediaQueue = queue.value;
           final int index = mediaQueue.indexOf(item);
           final int queueLength = mediaQueue.length;
@@ -554,7 +558,7 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
           if (mediaItem.genre == 'YouTube') {
             final rawUrl = mediaItem.extras?['url']?.toString();
             final int expiredAt =
-                int.parse((mediaItem.extras!['expire_at'] ?? '0').toString());
+                int.tryParse((mediaItem.extras?['expire_at'] ?? '0').toString()) ?? 0;
             if (!_isPlayableRemoteUrl(rawUrl) ||
                 (DateTime.now().millisecondsSinceEpoch ~/ 1000) + 350 >
                     expiredAt) {
@@ -592,7 +596,9 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
                         Uri.parse(cachedUrl!),
                         headers: _youtubeStreamHeaders,
                       );
-                      mediaItem.extras!['url'] = cachedUrl;
+                      if (mediaItem.extras != null) {
+                        mediaItem.extras!['url'] = cachedUrl;
+                      }
                       _mediaItemExpando[audioSource] = mediaItem;
                       return audioSource;
                     }
@@ -1218,6 +1224,16 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
     }
   }
 
+  void _showPlaybackFailedSnackBar(MediaItem item) {
+    final context = rootNavigatorKey.currentContext;
+    if (context != null && context.mounted) {
+      ShowSnackBar().showSnackBar(
+        context,
+        'Failed to load: "${item.title}" is not available.',
+      );
+    }
+  }
+
   Future<void> fallbackToYouTube(MediaItem item) async {
     Logger.root.info('Fallback to YouTube triggered for song: ${item.title}');
     try {
@@ -1226,14 +1242,23 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
           await YtMusicService().search(query, filter: 'songs');
       final items =
           searchResults.isEmpty ? const [] : searchResults[0]['items'] as List?;
-      if (items == null || items.isEmpty) return;
+      if (items == null || items.isEmpty) {
+        _showPlaybackFailedSnackBar(item);
+        return;
+      }
 
       final Map firstResult = items[0] as Map;
       final String videoId = firstResult['id'].toString();
-      if (videoId.isEmpty || videoId == 'null') return;
+      if (videoId.isEmpty || videoId == 'null') {
+        _showPlaybackFailedSnackBar(item);
+        return;
+      }
 
       final Map? ytData = await YouTubeServices.instance.refreshLink(videoId);
-      if (!_hasPlayableRemoteUrl(ytData)) return;
+      if (!_hasPlayableRemoteUrl(ytData)) {
+        _showPlaybackFailedSnackBar(item);
+        return;
+      }
 
       final MediaItem fallbackItem = MediaItem(
         id: videoId,
@@ -1260,6 +1285,7 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
       );
     } catch (e) {
       Logger.root.severe('Error in fallbackToYouTube: $e');
+      _showPlaybackFailedSnackBar(item);
     }
   }
 
@@ -1271,10 +1297,16 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
         count: 5,
       );
       final songs = searchResults['songs'];
-      if (songs is! List || songs.isEmpty) return;
+      if (songs is! List || songs.isEmpty) {
+        _showPlaybackFailedSnackBar(item);
+        return;
+      }
 
       final Map firstSong = songs[0] as Map;
-      if (!_hasPlayableRemoteUrl(firstSong)) return;
+      if (!_hasPlayableRemoteUrl(firstSong)) {
+        _showPlaybackFailedSnackBar(item);
+        return;
+      }
       final MediaItem saavnItem = MediaItemConverter.mapToMediaItem(firstSong);
 
       final index = queue.value.indexWhere((qItem) => qItem.id == item.id);
@@ -1285,6 +1317,7 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
       );
     } catch (e) {
       Logger.root.severe('Error in fallbackToSaavn: $e');
+      _showPlaybackFailedSnackBar(item);
     }
   }
 
@@ -1307,7 +1340,10 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
       final Map? ytData = await YouTubeServices.instance.refreshLink(
         item.id,
       );
-      if (!_hasPlayableRemoteUrl(ytData)) return;
+      if (!_hasPlayableRemoteUrl(ytData)) {
+        _showPlaybackFailedSnackBar(item);
+        return;
+      }
 
       final MediaItem updatedItem = MediaItem(
         id: item.id,
@@ -1333,6 +1369,7 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
       );
     } catch (e) {
       Logger.root.severe('Error in retryYouTubeSong: $e');
+      _showPlaybackFailedSnackBar(item);
     } finally {
       _retryingIds.remove(item.id);
     }

@@ -20,6 +20,7 @@
 import 'package:mobile/features/sonic_music/CustomWidgets/copy_clipboard.dart';
 import 'package:mobile/features/sonic_music/CustomWidgets/gradient_containers.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mobile/features/sonic_music/localization/app_localizations.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -59,10 +60,12 @@ class _AboutScreenState extends State<AboutScreen> {
             top: MediaQuery.sizeOf(context).width / 5,
             child: SizedBox(
               width: MediaQuery.sizeOf(context).width,
-              child: const Image(
+              child: Image(
                 fit: BoxFit.fill,
                 image: AssetImage(
-                  'assets/images/Flicko-for-black-background.png',
+                  Theme.of(context).brightness == Brightness.dark
+                      ? 'assets/images/Flicko-for-black-background.png'
+                      : 'assets/images/Flicko-for-white-background.png',
                 ),
               ),
             ),
@@ -96,16 +99,14 @@ class _AboutScreenState extends State<AboutScreen> {
                       const SizedBox(
                         height: 20,
                       ),
-                      Card(
-                        elevation: 15,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(100.0),
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        child: const SizedBox(
-                          width: 150,
-                          child: Image(
-                            image: AssetImage('assets/images/Flicko-for-black-background.png'),
+                      SizedBox(
+                        width: 150,
+                        height: 150,
+                        child: Image(
+                          image: AssetImage(
+                            Theme.of(context).brightness == Brightness.dark
+                                ? 'assets/images/Flicko-for-black-background.png'
+                                : 'assets/images/Flicko-for-white-background.png',
                           ),
                         ),
                       ),
@@ -141,17 +142,16 @@ class _AboutScreenState extends State<AboutScreen> {
                               mode: LaunchMode.externalApplication,
                             );
                           },
-                          child: SizedBox(
-                            width: MediaQuery.sizeOf(context).width / 4,
-                            child: Image(
-                              image: Theme.of(context).brightness ==
-                                      Brightness.dark
-                                  ? const AssetImage(
-                                      'assets/GitHub_Logo_White.png',
-                                    )
-                                  : const AssetImage('assets/GitHub_Logo.png'),
+                            child: SvgPicture.asset(
+                              'assets/icons/github.svg',
+                              width: MediaQuery.sizeOf(context).width / 4,
+                              colorFilter: ColorFilter.mode(
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.white
+                                    : Colors.black,
+                                BlendMode.srcIn,
+                              ),
                             ),
-                          ),
                         ),
                         Text(
                           AppLocalizations.of(context)!.aboutLine2,
@@ -166,10 +166,15 @@ class _AboutScreenState extends State<AboutScreen> {
                   ),
                   Column(
                     children: [
-                      TextButton(
-                        style: TextButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          foregroundColor: Colors.transparent,
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFFFDD00),
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 2,
                         ),
                         onPressed: () {
                           launchUrl(
@@ -179,23 +184,48 @@ class _AboutScreenState extends State<AboutScreen> {
                             mode: LaunchMode.externalApplication,
                           );
                         },
-                        child: SizedBox(
-                          width: MediaQuery.sizeOf(context).width / 2,
-                          child: const Image(
-                            image: AssetImage('assets/black-button.png'),
-                          ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.coffee_rounded,
+                              color: Colors.black,
+                              size: 20,
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              "Buy Me A Coffee",
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
+                      const SizedBox(height: 12),
                       Text(
                         AppLocalizations.of(context)!.or,
                         textAlign: TextAlign.center,
                         style: const TextStyle(fontSize: 12),
                       ),
-                      TextButton(
-                        style: TextButton.styleFrom(
-                          padding: EdgeInsets.zero,
-                          backgroundColor: Colors.transparent,
-                          foregroundColor: Colors.transparent,
+                      const SizedBox(height: 12),
+                      OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white.withValues(alpha: 0.08)
+                              : Colors.white,
+                          side: BorderSide(
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white.withValues(alpha: 0.15)
+                                : Colors.black12,
+                            width: 1,
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                         onPressed: () {
                           const String upiUrl =
@@ -215,15 +245,28 @@ class _AboutScreenState extends State<AboutScreen> {
                                 .upiCopied,
                           );
                         },
-                        child: SizedBox(
-                          width: MediaQuery.sizeOf(context).width / 2,
-                          child: Image(
-                            image: AssetImage(
-                              Theme.of(context).brightness == Brightness.dark
-                                  ? 'assets/gpay-white.png'
-                                  : 'assets/gpay-white.png',
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.payment_rounded,
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.white
+                                  : Colors.black,
+                              size: 20,
                             ),
-                          ),
+                            const SizedBox(width: 8),
+                            Text(
+                              "Sponsor via UPI / GPay",
+                              style: TextStyle(
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.white
+                                    : Colors.black87,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       Text(

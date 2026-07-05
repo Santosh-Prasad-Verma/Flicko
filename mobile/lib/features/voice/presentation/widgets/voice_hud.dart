@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/voice/presentation/controllers/voice_controller.dart';
 import 'package:mobile/features/voice/presentation/controllers/voice_state.dart';
@@ -146,36 +147,53 @@ class _VoiceHUDState extends ConsumerState<VoiceHUD> {
 
   /// Full expanded HUD controls
   Widget _buildExpandedHud(BuildContext context, WidgetRef ref, VoiceState voiceState) {
+    final activeServerId = ref.read(voiceControllerProvider.notifier).activeServerId;
+    final activeChannelId = voiceState.activeChannelId;
+
     return Row(
       children: [
-        _buildStatusIndicator(voiceState),
-        const SizedBox(width: 8),
         Expanded(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                voiceState.isConnecting ? 'Connecting...' : 'Voice Connected',
-                style: GoogleFonts.spaceMono(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              if (voiceState.isConnected)
-                Text(
-                  '${voiceState.participants.length} in call',
-                  style: GoogleFonts.inter(
-                    color: const Color(FlickoColors.textMuted),
-                    fontSize: 11,
+          child: GestureDetector(
+            onTap: () {
+              if (activeServerId != null && activeChannelId != null) {
+                context.push('/server/$activeServerId/channel/$activeChannelId/voice');
+              }
+            },
+            behavior: HitTestBehavior.opaque,
+            child: Row(
+              children: [
+                _buildStatusIndicator(voiceState),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        voiceState.isConnecting ? 'Connecting...' : 'Voice Connected',
+                        style: GoogleFonts.spaceMono(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (voiceState.isConnected)
+                        Text(
+                          '${voiceState.participants.length} in call',
+                          style: GoogleFonts.inter(
+                            color: const Color(FlickoColors.textMuted),
+                            fontSize: 11,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                    ],
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
-            ],
+              ],
+            ),
           ),
         ),
         _buildActionButtons(context, ref, voiceState),

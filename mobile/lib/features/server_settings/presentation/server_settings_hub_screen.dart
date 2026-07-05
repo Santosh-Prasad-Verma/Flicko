@@ -233,7 +233,7 @@ class _ServerSettingsHubScreenState
                                   child: Column(
                                     children: [
                                       Image.asset(
-                                        'assets/branding/Flicko-for-black-background.png',
+                                        'assets/images/Flicko-for-black-background.png',
                                         height: 32,
                                         errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                                       ),

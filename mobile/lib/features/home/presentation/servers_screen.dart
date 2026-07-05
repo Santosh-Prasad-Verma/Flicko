@@ -725,10 +725,13 @@ class ServersScreen extends ConsumerWidget {
     WidgetRef? ref,
   }) {
     return GestureDetector(
-      onTap: () {
+      onTap: () async {
         if (isVoice && ref != null) {
-          // Join voice channel in the background — the floating VoiceHUD appears.
-          ref.read(voiceControllerProvider.notifier).joinChannel(channelId, serverId);
+          // Join voice channel and navigate to voice screen
+          await ref.read(voiceControllerProvider.notifier).joinChannel(channelId, serverId);
+          if (context.mounted) {
+            context.push('/server/$serverId/channel/$channelId/voice');
+          }
         } else {
           context.push('/server/$serverId/channel/$channelId');
         }

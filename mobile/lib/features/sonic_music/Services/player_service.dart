@@ -30,6 +30,8 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:logging/logging.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:mobile/core/router/app_router.dart';
+import 'package:mobile/features/sonic_music/CustomWidgets/snackbar.dart';
 
 // ignore: avoid_classes_with_only_static_members
 class PlayerInvoke {
@@ -68,6 +70,30 @@ class PlayerInvoke {
       }
     }
 
+    if (!_hasPlayableRemoteUrl(refreshed)) {
+      final query =
+          '${playItem['title'] ?? ''} ${playItem['artist'] ?? ''}'.trim();
+      if (query.isNotEmpty) {
+        try {
+          final ytSearch = await YouTubeServices.instance.yt.search.search(query);
+          if (ytSearch.isNotEmpty) {
+            final bestMatch = ytSearch.first;
+            final Map? ytFormatted = await YouTubeServices.instance.formatVideo(
+              video: bestMatch,
+              quality: Hive.box('settings').get('ytQuality', defaultValue: 'Low').toString(),
+              getUrl: true,
+            );
+            if (ytFormatted != null && _hasPlayableRemoteUrl(ytFormatted)) {
+              refreshed = ytFormatted;
+              refreshed['genre'] = 'YouTube';
+            }
+          }
+        } catch (e) {
+          Logger.root.severe('YouTube fallback search failed: $e');
+        }
+      }
+    }
+
     if (_hasPlayableRemoteUrl(refreshed)) {
       playItem
         ..['id'] = refreshed['id']
@@ -100,9 +126,41 @@ class PlayerInvoke {
     bool shuffle = false,
     String? playlistBox,
   }) async {
-    final int globalIndex = index < 0 ? 0 : index;
+    // Check if the clicked item itself is unplayable
+    if (index >= 0 && index < songsList.length) {
+      final clickedItem = songsList[index];
+      if (clickedItem is Map && (clickedItem.containsKey('Error') || (clickedItem['url'] == null && clickedItem['path'] == null && clickedItem['id'] == null))) {
+        Logger.root.severe('Clicked song is unplayable: ${clickedItem['Error'] ?? 'Missing playable source'}');
+        final context = rootNavigatorKey.currentContext;
+        if (context != null && context.mounted) {
+          ShowSnackBar().showSnackBar(
+            context,
+            'Failed to load: This track is not playable.',
+          );
+        }
+        return;
+      }
+    }
+
+    final List finalList = [];
+    int globalIndex = index;
+
+    for (int i = 0; i < songsList.length; i++) {
+      final item = songsList[i];
+      if (item is Map && (item.containsKey('Error') || (item['url'] == null && item['path'] == null && item['id'] == null))) {
+        if (i < index) {
+          globalIndex--;
+        }
+      } else {
+        finalList.add(item);
+      }
+    }
+
+    if (finalList.isEmpty) return;
+    if (globalIndex < 0) globalIndex = 0;
+    if (globalIndex >= finalList.length) globalIndex = finalList.length - 1;
+
     bool? offline = isOffline;
-    final List finalList = songsList.toList();
     if (shuffle) finalList.shuffle();
     if (offline == null) {
       if (audioHandler.mediaItem.value?.extras!['url'].startsWith('http')

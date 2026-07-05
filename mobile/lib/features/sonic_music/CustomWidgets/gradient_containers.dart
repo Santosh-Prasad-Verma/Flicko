@@ -52,6 +52,15 @@ class _GradientContainerState extends State<GradientContainer> {
 
   @override
   Widget build(BuildContext context) {
+    final Color baseColor = Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFF07040A)
+        : Colors.white;
+    final Color topColor = Color.lerp(
+      currentTheme.currentColor(),
+      baseColor,
+      Theme.of(context).brightness == Brightness.dark ? 0.92 : 0.90,
+    )!;
+
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -59,12 +68,12 @@ class _GradientContainerState extends State<GradientContainer> {
           end: Alignment.bottomRight,
           colors: Theme.of(context).brightness == Brightness.dark
               ? [
-                  currentTheme.currentColor().withValues(alpha: 0.08),
+                  topColor,
                   const Color(0xFF07040A),
                   const Color(0xFF07040A),
                 ]
               : [
-                  currentTheme.currentColor().withValues(alpha: 0.1),
+                  topColor,
                   Colors.white,
                 ],
         ),

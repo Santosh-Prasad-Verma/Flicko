@@ -144,7 +144,7 @@ class _DraggableGlassPlayerState extends State<DraggableGlassPlayer> {
                   height: 240,
                   width: 280,
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.35),
+                    color: Colors.black.withOpacity(0.92),
                     borderRadius: BorderRadius.circular(24.0),
                     border: Border.all(color: Colors.white.withOpacity(0.08), width: 1.0),
                     boxShadow: const [
@@ -176,7 +176,7 @@ class _DraggableGlassPlayerState extends State<DraggableGlassPlayer> {
                           child: BackdropFilter(
                             filter: ui.ImageFilter.blur(sigmaX: 25.0, sigmaY: 25.0),
                             child: Container(
-                              color: Colors.black.withOpacity(0.45),
+                              color: Colors.black.withOpacity(0.85),
                             ),
                           ),
                         ),

@@ -215,7 +215,7 @@ class _SaavnHomePageState extends State<SaavnHomePage>
                     color: Colors.white.withOpacity(0.03),
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(
-                      color: const Color(0xFFC0EC54).withOpacity(0.15),
+                      color: Theme.of(context).colorScheme.secondary.withOpacity(0.15),
                       width: 1,
                     ),
                   ),
@@ -289,9 +289,9 @@ class _SaavnHomePageState extends State<SaavnHomePage>
                                     child: Container(
                                       width: 44,
                                       height: 44,
-                                      decoration: const BoxDecoration(
+                                      decoration: BoxDecoration(
                                         shape: BoxShape.circle,
-                                        color: Color(0xFFC0EC54),
+                                        color: Theme.of(context).colorScheme.secondary,
                                       ),
                                       child: const Icon(Icons.play_arrow_rounded, color: Colors.black, size: 24),
                                     ),
@@ -399,7 +399,7 @@ class _SaavnHomePageState extends State<SaavnHomePage>
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.04),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFC0EC54).withOpacity(0.12), width: 1),
+                    border: Border.all(color: Theme.of(context).colorScheme.secondary.withOpacity(0.12), width: 1),
                   ),
                   child: Row(
                     children: [
@@ -448,7 +448,7 @@ class _SaavnHomePageState extends State<SaavnHomePage>
                           ],
                         ),
                       ),
-                      const Icon(Icons.play_arrow_rounded, color: Color(0xFFC0EC54), size: 20),
+                      Icon(Icons.play_arrow_rounded, color: Theme.of(context).colorScheme.secondary, size: 20),
                     ],
                   ),
                 ),
@@ -524,11 +524,11 @@ class _SaavnHomePageState extends State<SaavnHomePage>
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: Colors.black.withOpacity(0.65),
-                                border: Border.all(color: const Color(0xFFC0EC54).withOpacity(0.3), width: 1),
+                                border: Border.all(color: Theme.of(context).colorScheme.secondary.withOpacity(0.3), width: 1),
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.play_arrow_rounded,
-                                color: Color(0xFFC0EC54),
+                                color: Theme.of(context).colorScheme.secondary,
                                 size: 16,
                               ),
                             ),
@@ -622,11 +622,11 @@ class _SaavnHomePageState extends State<SaavnHomePage>
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: Colors.black.withOpacity(0.65),
-                                border: Border.all(color: const Color(0xFFC0EC54).withOpacity(0.3), width: 1),
+                                border: Border.all(color: Theme.of(context).colorScheme.secondary.withOpacity(0.3), width: 1),
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.play_arrow_rounded,
-                                color: Color(0xFFC0EC54),
+                                color: Theme.of(context).colorScheme.secondary,
                                 size: 16,
                               ),
                             ),
@@ -719,11 +719,11 @@ class _SaavnHomePageState extends State<SaavnHomePage>
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: Colors.black.withOpacity(0.65),
-                                border: Border.all(color: const Color(0xFFC0EC54).withOpacity(0.3), width: 1),
+                                border: Border.all(color: Theme.of(context).colorScheme.secondary.withOpacity(0.3), width: 1),
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.play_arrow_rounded,
-                                color: Color(0xFFC0EC54),
+                                color: Theme.of(context).colorScheme.secondary,
                                 size: 16,
                               ),
                             ),
@@ -821,11 +821,11 @@ class _SaavnHomePageState extends State<SaavnHomePage>
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: Colors.black.withOpacity(0.65),
-                                border: Border.all(color: const Color(0xFFC0EC54).withOpacity(0.3), width: 1),
+                                border: Border.all(color: Theme.of(context).colorScheme.secondary.withOpacity(0.3), width: 1),
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.play_arrow_rounded,
-                                color: Color(0xFFC0EC54),
+                                color: Theme.of(context).colorScheme.secondary,
                                 size: 16,
                               ),
                             ),
@@ -921,11 +921,11 @@ class _SaavnHomePageState extends State<SaavnHomePage>
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: Colors.black.withOpacity(0.65),
-                                border: Border.all(color: const Color(0xFFC0EC54).withOpacity(0.3), width: 1),
+                                border: Border.all(color: Theme.of(context).colorScheme.secondary.withOpacity(0.3), width: 1),
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.play_arrow_rounded,
-                                color: Color(0xFFC0EC54),
+                                color: Theme.of(context).colorScheme.secondary,
                                 size: 16,
                               ),
                             ),
@@ -1018,11 +1018,11 @@ class _SaavnHomePageState extends State<SaavnHomePage>
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: Colors.black.withOpacity(0.65),
-                                border: Border.all(color: const Color(0xFFC0EC54).withOpacity(0.3), width: 1),
+                                border: Border.all(color: Theme.of(context).colorScheme.secondary.withOpacity(0.3), width: 1),
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.play_arrow_rounded,
-                                color: Color(0xFFC0EC54),
+                                color: Theme.of(context).colorScheme.secondary,
                                 size: 16,
                               ),
                             ),
@@ -1093,7 +1093,7 @@ class _SaavnHomePageState extends State<SaavnHomePage>
         : RefreshIndicator(
             onRefresh: _handleRefresh,
             backgroundColor: const Color(0xFF13101C),
-            color: const Color(0xFFC0EC54),
+            color: Theme.of(context).colorScheme.secondary,
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(
                 parent: BouncingScrollPhysics(),

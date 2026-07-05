@@ -36,6 +36,9 @@ import 'package:mobile/features/sonic_music/Screens/LocalMusic/downed_songs.dart
 import 'package:mobile/features/sonic_music/Screens/LocalMusic/downed_songs_desktop.dart';
 import 'package:mobile/features/sonic_music/Screens/Player/audioplayer.dart';
 import 'package:mobile/features/sonic_music/Screens/Settings/new_settings_page.dart';
+import 'package:mobile/features/sonic_music/Screens/Library/downloads.dart';
+import 'package:mobile/features/sonic_music/Screens/Library/playlists.dart';
+import 'package:mobile/features/sonic_music/Screens/About/about.dart';
 import 'package:mobile/features/sonic_music/Screens/YouTube/youtube_home.dart';
 import 'package:mobile/features/sonic_music/Services/ext_storage_provider.dart';
 import 'package:device_info_plus/device_info_plus.dart';
@@ -383,7 +386,12 @@ class _HomePageState extends State<HomePage> {
                                 ),
                                 onTap: () {
                                   Navigator.pop(context);
-                                  Navigator.pushNamed(context, '/downloads');
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => const Downloads(),
+                                    ),
+                                  );
                                 },
                               ),
                               ListTile(
@@ -399,7 +407,12 @@ class _HomePageState extends State<HomePage> {
                                 ),
                                 onTap: () {
                                   Navigator.pop(context);
-                                  Navigator.pushNamed(context, '/playlists');
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => PlaylistScreen(),
+                                    ),
+                                  );
                                 },
                               ),
                               ListTile(
@@ -446,7 +459,12 @@ class _HomePageState extends State<HomePage> {
                                 ),
                                 onTap: () {
                                   Navigator.pop(context);
-                                  Navigator.pushNamed(context, '/about');
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => AboutScreen(),
+                                    ),
+                                  );
                                 },
                               ),
                             ],

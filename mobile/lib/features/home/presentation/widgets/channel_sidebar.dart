@@ -232,7 +232,12 @@ class _VoiceChannelRow extends ConsumerWidget {
     final participants = voiceState.participants;
 
     return InkWell(
-      onTap: () => ref.read(voiceControllerProvider.notifier).joinChannel(channel.id, channel.serverId),
+      onTap: () async {
+        await ref.read(voiceControllerProvider.notifier).joinChannel(channel.id, channel.serverId);
+        if (context.mounted) {
+          context.push('/server/${channel.serverId}/channel/${channel.id}/voice');
+        }
+      },
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         child: Column(

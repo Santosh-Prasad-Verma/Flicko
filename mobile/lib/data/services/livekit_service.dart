@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:livekit_client/livekit_client.dart';
 import 'package:mobile/core/config/app_config.dart';
@@ -88,11 +90,42 @@ class LiveKitService {
     await _room!.localParticipant!.setCameraEnabled(!isEnabled);
   }
 
+  static const _screenCaptureChannel =
+      MethodChannel('tech.focko.flicko/screen_capture');
+
   /// Toggle screen share
   Future<void> toggleScreenShare() async {
     if (_room == null || _room!.localParticipant == null) return;
     final isEnabled = _room!.localParticipant!.isScreenShareEnabled();
-    await _room!.localParticipant!.setScreenShareEnabled(!isEnabled);
+
+    if (!isEnabled && Platform.isAndroid) {
+      // Android 14+ requires a foreground service before MediaProjection
+      try {
+        await _screenCaptureChannel.invokeMethod('startService');
+        await Future.delayed(const Duration(milliseconds: 300));
+      } catch (e) {
+        debugPrint('Failed to start screen capture service: $e');
+      }
+    }
+
+    try {
+      await _room!.localParticipant!.setScreenShareEnabled(!isEnabled);
+    } catch (e) {
+      // Stop service on failure
+      if (Platform.isAndroid) {
+        try { await _screenCaptureChannel.invokeMethod('stopService'); } catch (_) {}
+      }
+      rethrow;
+    }
+
+    if (isEnabled && Platform.isAndroid) {
+      // Screen share was disabled — stop foreground service
+      try {
+        await _screenCaptureChannel.invokeMethod('stopService');
+      } catch (e) {
+        debugPrint('Failed to stop screen capture service: $e');
+      }
+    }
   }
 
   /// Toggle deafen mode (mute/unmute incoming audio from all remote participants)

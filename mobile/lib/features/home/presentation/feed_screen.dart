@@ -114,11 +114,14 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     }
   }
 
-  void _handleChannelPress(String channelId, String channelType) {
+  Future<void> _handleChannelPress(String channelId, String channelType) async {
     if (channelType == 'voice' || channelType == 'stage') {
       // Join voice channel in the background — the floating VoiceHUD appears
       // automatically. Users can tap the HUD to navigate to the full voice screen.
-      ref.read(voiceControllerProvider.notifier).joinChannel(channelId, _selectedServerId ?? '');
+      await ref.read(voiceControllerProvider.notifier).joinChannel(channelId, _selectedServerId ?? '');
+      if (mounted) {
+        context.push('/server/$_selectedServerId/channel/$channelId/voice');
+      }
     } else {
       context.push('/server/$_selectedServerId/channel/$channelId');
     }

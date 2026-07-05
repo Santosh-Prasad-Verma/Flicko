@@ -1,4 +1,6 @@
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart' hide ConnectionState;
+import 'package:flutter/services.dart';
 import 'package:livekit_client/livekit_client.dart';
 import 'package:mobile/core/config/app_config.dart';
 
@@ -245,7 +247,22 @@ class _LiveKitSpikeScreenState extends State<LiveKitSpikeScreen> {
             icon: const Icon(Icons.screen_share),
             onPressed: () async {
               final isScreenShareEnabled = localParticipant?.isScreenShareEnabled() ?? false;
-              await localParticipant?.setScreenShareEnabled(!isScreenShareEnabled);
+              const channel = MethodChannel('tech.focko.flicko/screen_capture');
+              if (!isScreenShareEnabled && Platform.isAndroid) {
+                try {
+                  await channel.invokeMethod('startService');
+                  await Future.delayed(const Duration(milliseconds: 300));
+                } catch (_) {}
+              }
+              try {
+                await localParticipant?.setScreenShareEnabled(!isScreenShareEnabled);
+              } catch (e) {
+                if (Platform.isAndroid) { try { await channel.invokeMethod('stopService'); } catch (_) {} }
+                return;
+              }
+              if (isScreenShareEnabled && Platform.isAndroid) {
+                try { await channel.invokeMethod('stopService'); } catch (_) {}
+              }
             },
           ),
           ElevatedButton(

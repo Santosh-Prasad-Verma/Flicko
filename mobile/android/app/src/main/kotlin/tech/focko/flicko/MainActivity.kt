@@ -1,5 +1,29 @@
 package tech.focko.flicko
 
 import com.ryanheise.audioservice.AudioServiceActivity
+import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.MethodChannel
 
-class MainActivity : AudioServiceActivity()
+class MainActivity : AudioServiceActivity() {
+
+    private val CHANNEL = "tech.focko.flicko/screen_capture"
+
+    override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
+        super.configureFlutterEngine(flutterEngine)
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "startService" -> {
+                        ScreenCaptureService.start(this)
+                        result.success(true)
+                    }
+                    "stopService" -> {
+                        ScreenCaptureService.stop(this)
+                        result.success(true)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+    }
+}

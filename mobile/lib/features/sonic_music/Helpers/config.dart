@@ -190,7 +190,7 @@ class MyTheme with ChangeNotifier {
       case 'Red':
         return Colors.redAccent[hue]!;
       case 'Teal':
-        return Colors.tealAccent[hue]!;
+        return const Color(0xFF52B788);
       case 'Light Blue':
         return Colors.lightBlueAccent[hue]!;
       case 'Yellow':
@@ -206,7 +206,7 @@ class MyTheme with ChangeNotifier {
       case 'Pink':
         return Colors.pinkAccent[hue]!;
       case 'Green':
-        return Colors.greenAccent[hue]!;
+        return const Color(0xFF52B788);
       case 'Amber':
         return Colors.amberAccent[hue]!;
       case 'Indigo':
@@ -223,7 +223,7 @@ class MyTheme with ChangeNotifier {
         return Colors.white;
 
       default:
-        return _isDark ? Colors.tealAccent[400]! : Colors.lightBlueAccent[400]!;
+        return _isDark ? const Color(0xFF52B788) : Colors.lightBlueAccent[400]!;
     }
   }
 
@@ -278,7 +278,7 @@ class MyTheme with ChangeNotifier {
       case 'Red':
         return Colors.redAccent[currentHue()]!;
       case 'Teal':
-        return Colors.tealAccent[currentHue()]!;
+        return const Color(0xFF52B788);
       case 'Light Blue':
         return Colors.lightBlueAccent[currentHue()]!;
       case 'Yellow':
@@ -294,7 +294,7 @@ class MyTheme with ChangeNotifier {
       case 'Pink':
         return Colors.pinkAccent[currentHue()]!;
       case 'Green':
-        return Colors.greenAccent[currentHue()]!;
+        return const Color(0xFF52B788);
       case 'Amber':
         return Colors.amberAccent[currentHue()]!;
       case 'Indigo':
@@ -311,7 +311,7 @@ class MyTheme with ChangeNotifier {
         return Colors.white;
 
       default:
-        return _isDark ? Colors.tealAccent[400]! : Colors.lightBlueAccent[400]!;
+        return _isDark ? const Color(0xFF52B788) : Colors.lightBlueAccent[400]!;
     }
   }
 

@@ -78,12 +78,12 @@ class MainNavigationShell extends ConsumerWidget {
             left: 12,
             right: 12,
             top: (activeLocation.contains('/voice') || activeLocation.contains('/stage'))
-                ? -160.0
+                ? -120.0
                 : showNavBar
                     ? null
                     : (MediaQuery.of(context).padding.top + 54.0),
             bottom: (activeLocation.contains('/voice') || activeLocation.contains('/stage'))
-                ? -160.0
+                ? null
                 : showNavBar
                     ? (navBarHeight + 8.0)
                     : null,

@@ -101,7 +101,7 @@ class _AppearanceSettingsScreenState
               child: Opacity(
                 opacity: 0.1,
                 child: Image.asset(
-                  'assets/branding/Flicko-for-black-background.png',
+                  'assets/images/Flicko-for-black-background.png',
                   height: 30,
                   errorBuilder: (c, e, s) => const SizedBox(),
                 ),

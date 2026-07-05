@@ -279,7 +279,7 @@ class _PlayScreenState extends State<PlayScreen> {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 10, vertical: 6),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFC0EC54),
+                                color: Theme.of(context).colorScheme.secondary,
                                 borderRadius: BorderRadius.circular(20.0),
                               ),
                               child: const Row(
@@ -1061,9 +1061,21 @@ class NowPlayingStream extends StatelessWidget {
           shrinkWrap: true,
           itemCount: queue.length - queueStateIndex,
           itemBuilder: (context, index) {
-            return Dismissible(
+            final currentItem = queue[queueStateIndex + index];
+            final bool isRecommended = currentItem.extras?['addedByAutoplay'] as bool? ?? false;
+            
+            bool isFirstRecommendation = false;
+            if (isRecommended && index > 0) {
+              final prevItem = queue[queueStateIndex + index - 1];
+              final bool prevRecommended = prevItem.extras?['addedByAutoplay'] as bool? ?? false;
+              if (!prevRecommended) {
+                isFirstRecommendation = true;
+              }
+            }
+
+            final Widget tile = Dismissible(
               key: ValueKey(
-                '${queue[queueStateIndex + index].id}#${queueStateIndex + index}',
+                '${currentItem.id}#${queueStateIndex + index}',
               ),
               direction: (queueStateIndex + index) == queueState.queueIndex
                   ? DismissDirection.none
@@ -1314,6 +1326,53 @@ class NowPlayingStream extends StatelessWidget {
                 ),
               ),
             );
+            if (isFirstRecommendation) {
+              return Column(
+                key: ValueKey('rec_header_wrapper_${currentItem.id}'),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Divider(color: Colors.white10),
+                        SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.auto_awesome_rounded,
+                              color: Color(0xFF52B788),
+                              size: 18,
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              "You Might Also Like",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          "Recommended based on your queue",
+                          style: TextStyle(
+                            color: Colors.white60,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  tile,
+                ],
+              );
+            }
+            return tile;
           },
         );
       },
@@ -1528,11 +1587,11 @@ class _RelatedSongsSectionState extends State<RelatedSongsSection> {
   @override
   Widget build(BuildContext context) {
     if (loading) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 40.0),
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 40.0),
         child: Center(
           child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFC0EC54)),
+            valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.secondary),
           ),
         ),
       );
@@ -1568,9 +1627,9 @@ class _RelatedSongsSectionState extends State<RelatedSongsSection> {
                         Container(
                           height: 18,
                           width: 3.5,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFC0EC54),
-                            borderRadius: BorderRadius.all(Radius.circular(2)),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.secondary,
+                            borderRadius: const BorderRadius.all(Radius.circular(2)),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -1824,7 +1883,7 @@ class _ArtWorkWidgetState extends State<ArtWorkWidget> {
                 filter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.55),
+                    color: Colors.black.withOpacity(0.90),
                     borderRadius: BorderRadius.circular(24.0),
                     border: Border.all(
                       color: Colors.white.withOpacity(0.08),
@@ -2205,28 +2264,7 @@ class _ArtWorkWidgetState extends State<ArtWorkWidget> {
                                   width: widget.width * 0.85,
                                 ),
                         ),
-                        Positioned(
-                          bottom: 0,
-                          width: widget.width * 0.85,
-                          child: IgnorePointer(
-                            child: StreamBuilder<PlaybackState>(
-                              stream: widget.audioHandler.playbackState,
-                              builder: (context, snapshot) {
-                                final isPlaying = snapshot.data?.playing ?? false;
-                                return ClipRRect(
-                                  borderRadius: const BorderRadius.only(
-                                    bottomLeft: Radius.circular(15.0),
-                                    bottomRight: Radius.circular(15.0),
-                                  ),
-                                  child: AudioVisualizerWidget(
-                                    isPlaying: isPlaying,
-                                    color: Theme.of(context).colorScheme.primary,
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        ),
+
                         Visibility(
                           visible: value,
                           child: child!,
@@ -2567,7 +2605,7 @@ class _NameNControlsState extends State<NameNControls> {
                                     color: Colors.white.withOpacity(0.04),
                                     borderRadius: BorderRadius.circular(6),
                                     border: Border.all(
-                                      color: const Color(0xFFC0EC54).withOpacity(0.2),
+                                      color: Theme.of(context).colorScheme.secondary.withOpacity(0.2),
                                       width: 1,
                                     ),
                                   ),
@@ -2577,7 +2615,7 @@ class _NameNControlsState extends State<NameNControls> {
                                       Icon(
                                         widget.offline ? Icons.download_done_rounded : Icons.music_note_rounded,
                                         size: 12,
-                                        color: const Color(0xFFC0EC54),
+                                        color: Theme.of(context).colorScheme.secondary,
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
@@ -2878,7 +2916,7 @@ class _NameNControlsState extends State<NameNControls> {
                                     width: 70,
                                     child: CircularProgressIndicator(
                                       valueColor: AlwaysStoppedAnimation<Color>(
-                                          Color(0xFFC0EC54)),
+                                          Theme.of(context).colorScheme.secondary),
                                       strokeWidth: 3.0,
                                     ),
                                   ),
@@ -2889,15 +2927,15 @@ class _NameNControlsState extends State<NameNControls> {
                                   child: Container(
                                     height: 64,
                                     width: 64,
-                                    decoration: const BoxDecoration(
-                                      color: Color(0xFFC0EC54),
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(context).colorScheme.secondary,
                                       shape: BoxShape.circle,
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Color(0x55C0EC54),
+                                          color: Theme.of(context).colorScheme.secondary.withOpacity(0.33),
                                           blurRadius: 16.0,
                                           spreadRadius: 2.0,
-                                          offset: Offset(0, 0),
+                                          offset: const Offset(0, 0),
                                         ),
                                       ],
                                     ),
@@ -3016,7 +3054,7 @@ class _NameNControlsState extends State<NameNControls> {
                     sigmaY: 20.0,
                   ),
                   child: Container(
-                    color: const Color(0xFF150807).withOpacity(0.85),
+                    color: const Color(0xFF0A0A0A),
                     child: Column(
                       children: [
                         const SizedBox(height: 10),

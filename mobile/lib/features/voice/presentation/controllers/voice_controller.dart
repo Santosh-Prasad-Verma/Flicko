@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:developer' as developer;
+import 'dart:io' show Platform;
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:livekit_client/livekit_client.dart';
 import 'package:audio_session/audio_session.dart';
@@ -27,6 +29,9 @@ class VoiceController extends Notifier<VoiceState> {
   EventsListener<RoomEvent>? _listener;
   late final AudioPlayer _audioPlayer;
   Room? _room;
+  String? _activeServerId;
+
+  String? get activeServerId => _activeServerId;
 
   @override
   VoiceState build() {
@@ -37,6 +42,7 @@ class VoiceController extends Notifier<VoiceState> {
       _listener?.dispose();
       _room?.disconnect();
       _room = null;
+      _activeServerId = null;
     });
 
     return const VoiceState();
@@ -52,6 +58,7 @@ class VoiceController extends Notifier<VoiceState> {
       return;
     }
 
+    _activeServerId = serverId;
     state = state.copyWith(isConnecting: true, error: null, activeChannelId: channelId);
 
     try {
@@ -246,6 +253,9 @@ class VoiceController extends Notifier<VoiceState> {
     _updateParticipants();
   }
 
+  static const _screenCaptureChannel =
+      MethodChannel('tech.focko.flicko/screen_capture');
+
   Future<void> toggleScreenShare() async {
     final room = state.room;
     if (room == null) return;
@@ -255,16 +265,55 @@ class VoiceController extends Notifier<VoiceState> {
 
     try {
       final isScreenShareEnabled = localParticipant.isScreenShareEnabled();
+
+      if (!isScreenShareEnabled && Platform.isAndroid) {
+        // Android 14+ requires a foreground service of type mediaProjection
+        // to be active BEFORE MediaProjection.getMediaProjection() is called.
+        try {
+          await _screenCaptureChannel.invokeMethod('startService');
+          // Small delay to ensure the service is fully started
+          await Future.delayed(const Duration(milliseconds: 300));
+        } catch (e) {
+          developer.log(
+            'Failed to start screen capture service',
+            name: 'VoiceController',
+            error: e,
+          );
+          // Continue anyway — may work on older Android versions
+        }
+      }
+
       await localParticipant.setScreenShareEnabled(!isScreenShareEnabled);
       _updateParticipants();
+
+      if (isScreenShareEnabled && Platform.isAndroid) {
+        // Screen share was just disabled — stop the foreground service
+        try {
+          await _screenCaptureChannel.invokeMethod('stopService');
+        } catch (e) {
+          developer.log(
+            'Failed to stop screen capture service',
+            name: 'VoiceController',
+            error: e,
+          );
+        }
+      }
     } catch (e) {
       developer.log('Error toggling screen share', name: 'VoiceController', error: e);
       state = state.copyWith(error: 'Failed to share screen: ${e.toString()}');
+
+      // Stop the service if we started it but screen share failed
+      if (Platform.isAndroid) {
+        try {
+          await _screenCaptureChannel.invokeMethod('stopService');
+        } catch (_) {}
+      }
     }
   }
 
   Future<void> leaveChannel() async {
     await state.room?.disconnect();
+    _activeServerId = null;
     state = const VoiceState();
     final session = await ref.read(audioSessionProvider);
     await session.setActive(false);

@@ -104,7 +104,7 @@ class _MiniPlayerState extends State<MiniPlayer> {
                   vertical: 8.0,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.55),
+                  color: Colors.black.withOpacity(0.92),
                   borderRadius: BorderRadius.circular(28.0),
                   border: Border.all(
                     color: Colors.white.withOpacity(0.08),
