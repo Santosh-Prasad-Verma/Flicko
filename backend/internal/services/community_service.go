@@ -96,7 +96,6 @@ func (s *communityService) UpdateCommunity(ctx context.Context, serverID, execut
 	if isDiscoverable != nil {
 		setClauses = append(setClauses, fmt.Sprintf("is_discoverable = $%d", argID))
 		args = append(args, *isDiscoverable)
-		argID++
 	}
 
 	query := fmt.Sprintf(`

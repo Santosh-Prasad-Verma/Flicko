@@ -83,7 +83,6 @@ func (s *searchService) SearchMessages(ctx context.Context, userID, query string
 		}
 		whereClauses = append(whereClauses, fmt.Sprintf("m.author_id = $%d", argID))
 		args = append(args, authUUID)
-		argID++
 	}
 
 	if hasLink != nil && *hasLink {
@@ -158,7 +157,6 @@ func (s *searchService) SearchCommunities(ctx context.Context, query string, cat
 	if strings.TrimSpace(query) != "" {
 		rankExpr = fmt.Sprintf("ts_rank(to_tsvector('english', s.name || ' ' || COALESCE(s.description, '')), websearch_to_tsquery('english', $%d))", argID)
 		args = append(args, query)
-		argID++
 	}
 
 	sqlQuery := fmt.Sprintf(`

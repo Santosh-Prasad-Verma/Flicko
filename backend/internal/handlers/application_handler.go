@@ -280,7 +280,6 @@ func (h *ApplicationHandler) Update(w http.ResponseWriter, r *http.Request) {
 	if req.IsPublic != nil {
 		setClauses = append(setClauses, fmt.Sprintf("is_public = $%d", argIdx))
 		args = append(args, *req.IsPublic)
-		argIdx++
 	}
 
 	if len(setClauses) == 0 {

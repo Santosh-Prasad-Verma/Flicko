@@ -88,10 +88,7 @@ func (s *rateLimitService) Allow(ctx context.Context, key string, limit int, win
 	}
 
 	// Set TTL on the key
-	err = s.redis.Expire(ctx, cleanKey, window+time.Second)
-	if err != nil {
-		// Non-fatal
-	}
+	_ = s.redis.Expire(ctx, cleanKey, window+time.Second)
 
 	return true, 0, nil
 }
