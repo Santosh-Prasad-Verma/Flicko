@@ -31,8 +31,8 @@ class _DMListScreenState extends ConsumerState<DMListScreen> {
 
     final filteredConversations = state.conversations.where((conv) {
       if (_searchQuery.isEmpty) return true;
-      final name = (conv.recipientName ?? conv.recipientUsername ?? '').toLowerCase();
-      final lastMsg = (conv.lastMessage?.content ?? '').toLowerCase();
+      final name = (conv.participant.displayName ?? conv.participant.username).toLowerCase();
+      final lastMsg = conv.lastMessage.toLowerCase();
       final q = _searchQuery.toLowerCase();
       return name.contains(q) || lastMsg.contains(q);
     }).toList();
