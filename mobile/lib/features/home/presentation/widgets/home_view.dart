@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/data/models/server_model.dart';
+import 'package:mobile/features/shared/presentation/widgets/skeleton_loader.dart';
 
 class HomeView extends StatelessWidget {
   final String username;
@@ -42,9 +43,32 @@ class HomeView extends StatelessWidget {
                 const SizedBox(height: 8),
                 ...servers.map((s) => _ServerListRow(server: s)),
               ] else if (isLoading) ...[
-                const Center(
-                  child: CircularProgressIndicator(color: Color(FlickoColors.blurple)),
-                ),
+                ...List.generate(3, (index) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(FlickoColors.bgPrimary),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        const Skeleton(width: 40, height: 40, borderRadius: 8),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Skeleton(width: 120, height: 14),
+                              SizedBox(height: 6),
+                              Skeleton(width: 180, height: 12),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )),
               ] else ...[
                 const Center(
                   child: Text(

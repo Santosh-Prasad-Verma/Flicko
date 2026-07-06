@@ -9,6 +9,7 @@ import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/data/models/user_model.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
+import 'package:mobile/features/shared/presentation/widgets/skeleton_loader.dart';
 
 /// Unified Profile Screen — Flicko's Ultimate Profile Experience
 /// Handles both current user (Self) and other users (Public) with
@@ -696,10 +697,10 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return Scaffold(
-        backgroundColor: const Color(FlickoColors.bgTertiary),
-        body: Center(
-          child: CircularProgressIndicator(color: _accentColor),
+      return const Scaffold(
+        backgroundColor: Color(FlickoColors.bgTertiary),
+        body: SafeArea(
+          child: ProfileSkeleton(),
         ),
       );
     }

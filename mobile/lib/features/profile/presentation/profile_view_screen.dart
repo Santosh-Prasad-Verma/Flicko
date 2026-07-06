@@ -13,6 +13,7 @@ import 'package:mobile/features/profile/presentation/widgets/gava_now_playing_ba
 import 'package:mobile/features/voice/application/sonic_drip_notifier.dart';
 import 'package:mobile/features/voice/domain/music_models.dart' show PlaybackStatus;
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
+import 'package:mobile/features/shared/presentation/widgets/skeleton_loader.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -424,25 +425,8 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
     if (_isLoading) {
       return Scaffold(
         backgroundColor: _bg,
-        body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                width: 48,
-                height: 48,
-                child: CircularProgressIndicator(
-                  color: _accent,
-                  strokeWidth: 2.5,
-                  strokeCap: StrokeCap.round,
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text('Loading profile...',
-                  style: GoogleFonts.inter(
-                      color: _muted, fontSize: 13, fontWeight: FontWeight.w500)),
-            ],
-          ),
+        body: const SafeArea(
+          child: ProfileSkeleton(),
         ),
       );
     }

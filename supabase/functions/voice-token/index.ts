@@ -192,10 +192,8 @@ serve(async (req: Request) => {
     // 8. Build LiveKit room name
     const roomName = isDm ? channelId : `channel_${channelId}`;
 
-    // 9. Build video grant with granular permissions
-    const canPublishSources = ['microphone'];
-    if (video) canPublishSources.push('camera');
-    if (screenShare) canPublishSources.push('screen_share', 'screen_share_audio');
+    // 9. Build video grant with granular permissions (grant all to avoid TrackPublishException on dynamic toggles)
+    const canPublishSources = ['microphone', 'camera', 'screen_share', 'screen_share_audio'];
 
     // 10. Generate LiveKit-compatible JWT
     const key = await crypto.subtle.importKey(

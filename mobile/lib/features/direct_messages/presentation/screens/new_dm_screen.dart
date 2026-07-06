@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/data/models/user_model.dart';
+import 'package:mobile/features/shared/presentation/widgets/skeleton_loader.dart';
 import 'package:mobile/features/direct_messages/data/dm_repository.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/shared/presentation/widgets/pill_search_bar.dart';
@@ -106,12 +107,7 @@ class _NewDMScreenState extends ConsumerState<NewDMScreen> {
             // ── RESULTS ──
             Expanded(
               child: _isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(
-                        color: Color(FlickoColors.emeraldGreen),
-                        strokeWidth: 2.5,
-                      ),
-                    )
+                  ? const DMListSkeleton(count: 6)
                   : _hasSearched && _results.isEmpty
                       ? _buildEmptyResults()
                       : !_hasSearched

@@ -38,6 +38,9 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
   Map<String, dynamic>? _channel;
   bool _isLoading = false;
   bool _showWhiteboard = false;
+  bool _isWhiteboardActiveRemotely = false;
+  String? _whiteboardHostId;
+  RealtimeChannel? _whiteboardStatusChannel;
   
   // ── Lazy Profile Cache ─────────────────────────────────────────────────────
   final Map<String, Map<String, dynamic>> _profilesCache = {};
@@ -95,13 +98,207 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat();
+
+    _setupWhiteboardStatusChannel();
   }
 
   @override
   void dispose() {
+    if (_showWhiteboard && !_isWhiteboardActiveRemotely) {
+      final currentUserId = ref.read(authNotifierProvider).maybeWhen(
+            authenticated: (user, _) => user.id,
+            orElse: () => '',
+          );
+      try {
+        _whiteboardStatusChannel?.sendBroadcastMessage(
+          event: 'status',
+          payload: {
+            'active': false,
+            'userId': currentUserId,
+          },
+        );
+      } catch (_) {}
+    }
+    _whiteboardStatusChannel?.unsubscribe();
     _orbController.dispose();
     _pulseController.dispose();
     super.dispose();
+  }
+
+  void _setupWhiteboardStatusChannel() {
+    final currentUserId = ref.read(authNotifierProvider).maybeWhen(
+          authenticated: (user, _) => user.id,
+          orElse: () => '',
+        );
+
+    _whiteboardStatusChannel = Supabase.instance.client.channel(
+      'whiteboard_status:${widget.channelId}',
+    );
+
+    _whiteboardStatusChannel!
+      ..onBroadcast(
+        event: 'status',
+        callback: (payload) {
+          if (!mounted) return;
+          final data = payload['payload'] as Map<String, dynamic>;
+          final hostId = data['userId'] as String?;
+          if (hostId == currentUserId) return;
+
+          final isActive = data['active'] as bool? ?? false;
+          setState(() {
+            if (isActive) {
+              if (!_showWhiteboard) {
+                _isWhiteboardActiveRemotely = true;
+                _whiteboardHostId = hostId;
+              }
+            } else {
+              if (hostId == _whiteboardHostId) {
+                _isWhiteboardActiveRemotely = false;
+                _whiteboardHostId = null;
+                _showWhiteboard = false;
+              }
+            }
+          });
+        },
+      )
+      ..onBroadcast(
+        event: 'request_status',
+        callback: (payload) {
+          if (!mounted) return;
+          final data = payload['payload'] as Map<String, dynamic>;
+          final senderId = data['userId'] as String?;
+          if (senderId == currentUserId) return;
+
+          if (_showWhiteboard) {
+            _whiteboardStatusChannel?.sendBroadcastMessage(
+              event: 'status',
+              payload: {
+                'active': true,
+                'userId': currentUserId,
+              },
+            );
+          }
+        },
+      )
+      ..subscribe((status, [error]) {
+        if (status == RealtimeSubscribeStatus.subscribed) {
+          _whiteboardStatusChannel?.sendBroadcastMessage(
+            event: 'request_status',
+            payload: {
+              'userId': currentUserId,
+            },
+          );
+        }
+      });
+  }
+
+  void _toggleWhiteboard(bool show) {
+    setState(() {
+      _showWhiteboard = show;
+      if (show) {
+        _isWhiteboardActiveRemotely = false;
+      }
+    });
+
+    final currentUserId = ref.read(authNotifierProvider).maybeWhen(
+          authenticated: (user, _) => user.id,
+          orElse: () => '',
+        );
+
+    _whiteboardStatusChannel?.sendBroadcastMessage(
+      event: 'status',
+      payload: {
+        'active': show,
+        'userId': currentUserId,
+      },
+    );
+  }
+
+  Widget _buildWhiteboardBanner() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: _neonCyan.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: _neonCyan.withValues(alpha: 0.25),
+          width: 1,
+        ),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: _neonCyan.withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.brush_rounded,
+                    color: _neonCyan,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Active Whiteboard',
+                        style: GoogleFonts.outfit(
+                          color: _white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'A shared canvas session has started.',
+                        style: GoogleFonts.inter(
+                          color: _white.withValues(alpha: 0.6),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _showWhiteboard = true;
+                      _isWhiteboardActiveRemotely = false;
+                    });
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _neonCyan,
+                    foregroundColor: Colors.black,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                  child: Text(
+                    'Join',
+                    style: GoogleFonts.outfit(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   // ── Data Loading ──────────────────────────────────────────────────────────
@@ -216,7 +413,7 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
                               fontSize: 13)),
                       onTap: () {
                         Navigator.pop(context);
-                        setState(() => _showWhiteboard = true);
+                        _toggleWhiteboard(true);
                       },
                     ),
                     ListTile(
@@ -284,6 +481,7 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
                 children: [
                   _buildGlassHeader(voiceState),
                   if (voiceState.error != null) _buildErrorBanner(voiceState),
+                  if (_isWhiteboardActiveRemotely) _buildWhiteboardBanner(),
                   Expanded(
                     child: _isLoading
                         ? Center(
@@ -301,8 +499,7 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
                                       authenticated: (user, _) => user.id,
                                       orElse: () => '',
                                     ),
-                                onClose: () =>
-                                    setState(() => _showWhiteboard = false),
+                                onClose: () => _toggleWhiteboard(false),
                               )
                             : _buildParticipantsGrid(voiceState),
                   ),
@@ -1175,7 +1372,7 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
                             isActive: _showWhiteboard,
                             onTap: () {
                               Navigator.pop(context);
-                              setState(() => _showWhiteboard = !_showWhiteboard);
+                              _toggleWhiteboard(!_showWhiteboard);
                             },
                           ),
                           _moreSheetBtn(

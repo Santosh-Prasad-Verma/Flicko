@@ -359,7 +359,7 @@ class _CreateServerScreenState extends ConsumerState<CreateServerScreen> {
           ),
           const SizedBox(height: 12),
           GestureDetector(
-            onTap: () => context.push('/discover'),
+            onTap: () => context.go('/discover'),
             child: Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 16),

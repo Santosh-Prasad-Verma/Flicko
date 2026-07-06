@@ -143,27 +143,79 @@ class ServerSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        color: const Color(FlickoColors.bgSecondary),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(FlickoColors.border), width: 1),
+      ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Skeleton(width: double.infinity, height: 100, borderRadius: 12),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              const Skeleton(width: 48, height: 48, borderRadius: 24),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Skeleton(width: 140, height: 16),
-                    SizedBox(height: 6),
-                    Skeleton(width: 80, height: 12),
-                  ],
+          // Banner skeleton
+          ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+            child: const Skeleton(
+              width: double.infinity,
+              height: 120,
+              borderRadius: 0,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Icon avatar skeleton
+                const Skeleton(
+                  width: 48,
+                  height: 48,
+                  borderRadius: 24,
                 ),
-              ),
-            ],
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Name skeleton
+                      const Skeleton(
+                        width: 160,
+                        height: 16,
+                      ),
+                      const SizedBox(height: 6),
+                      // Member count skeleton
+                      const Skeleton(
+                        width: 90,
+                        height: 12,
+                      ),
+                      const SizedBox(height: 12),
+                      // Description skeleton line 1
+                      const Skeleton(
+                        width: double.infinity,
+                        height: 12,
+                      ),
+                      const SizedBox(height: 6),
+                      // Description skeleton line 2
+                      const Skeleton(
+                        width: 200,
+                        height: 12,
+                      ),
+                      const SizedBox(height: 16),
+                      // Button skeleton aligned to right
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: const Skeleton(
+                          width: 110,
+                          height: 36,
+                          borderRadius: 8,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -325,6 +377,47 @@ class SettingsSkeleton extends StatelessWidget {
             ),
             const SizedBox(height: 16),
           ],
+        );
+      },
+    );
+  }
+}
+
+class DMListSkeleton extends StatelessWidget {
+  final int count;
+
+  const DMListSkeleton({super.key, this.count = 8});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      padding: const EdgeInsets.only(top: 16),
+      itemCount: count,
+      itemBuilder: (context, index) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              const Skeleton(width: 48, height: 48, borderRadius: 24),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Skeleton(width: 100, height: 14),
+                        const Skeleton(width: 40, height: 10),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Skeleton(width: double.infinity, height: 12),
+                  ],
+                ),
+              ),
+            ],
+          ),
         );
       },
     );

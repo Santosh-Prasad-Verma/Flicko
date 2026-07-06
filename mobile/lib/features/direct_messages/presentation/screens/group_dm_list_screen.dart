@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
+import 'package:mobile/features/shared/presentation/widgets/skeleton_loader.dart';
 
 class GroupDM {
   final String id;
@@ -175,10 +176,8 @@ class _GroupDMListScreenState extends ConsumerState<GroupDMListScreen> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(
-          color: Color(FlickoColors.blurple),
-        ),
+      return const SafeArea(
+        child: DMListSkeleton(count: 6),
       );
     }
 

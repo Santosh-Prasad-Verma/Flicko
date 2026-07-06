@@ -19,6 +19,7 @@ import 'package:mobile/features/server_channels/chat/presentation/widgets/poll_c
 import 'package:mobile/core/widgets/particle_fx_engine.dart';
 import 'package:mobile/features/store/data/warp_service.dart';
 import 'package:mobile/features/shared/presentation/widgets/entrance_warp_overlay.dart';
+import 'package:mobile/features/shared/presentation/widgets/skeleton_loader.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   final String serverId;
@@ -214,7 +215,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 ),
                 Expanded(
                   child: chatState.isLoading
-                      ? const Center(child: CircularProgressIndicator())
+                      ? const MessageListSkeleton(count: 6)
                       : Builder(
                           builder: (context) {
                             // Check if new messages arrived and contain trigger words

@@ -4,6 +4,7 @@ import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/direct_messages/presentation/controllers/dm_controller.dart';
 import 'package:mobile/features/direct_messages/presentation/widgets/dm_row.dart';
 import 'package:mobile/features/shared/presentation/widgets/shared_widgets.dart';
+import 'package:mobile/features/shared/presentation/widgets/skeleton_loader.dart';
 import 'package:go_router/go_router.dart';
 
 class DMListScreen extends ConsumerWidget {
@@ -83,7 +84,7 @@ class DMListScreen extends ConsumerWidget {
             // ── CONVERSATIONS ──
             Expanded(
               child: state.isLoading && state.conversations.isEmpty
-                  ? const LoadingSpinner(message: 'Loading messages...')
+                  ? const DMListSkeleton(count: 7)
                   : state.error != null
                       ? _buildErrorState(
                           context,
