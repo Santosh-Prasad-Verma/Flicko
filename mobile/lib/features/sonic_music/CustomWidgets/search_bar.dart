@@ -105,6 +105,10 @@ class _SearchBarState extends State<SearchBar> {
                   child: TextField(
                     controller: widget.controller,
                     textAlignVertical: TextAlignVertical.center,
+                    cursorColor: const Color(0xFF52B788),
+                    cursorWidth: 2.2,
+                    cursorHeight: 20,
+                    style: const TextStyle(color: Color(0xFFF4F4F5), fontSize: 15),
                     decoration: InputDecoration(
                       focusedBorder: const UnderlineInputBorder(
                         borderSide: BorderSide(
@@ -114,7 +118,7 @@ class _SearchBarState extends State<SearchBar> {
                       ),
                       fillColor: Colors.transparent,
                       filled: true,
-                      prefixIcon: widget.leading,
+                      prefixIcon: widget.leading ?? const Icon(Icons.search_rounded, color: Color(0xFF52B788), size: 20),
                       suffixIcon: widget.showClose
                           ? ValueListenableBuilder(
                               valueListenable: hide,
@@ -126,7 +130,7 @@ class _SearchBarState extends State<SearchBar> {
                                 return Visibility(
                                   visible: !hidden,
                                   child: IconButton(
-                                    icon: const Icon(Icons.close_rounded),
+                                    icon: const Icon(Icons.close_rounded, color: Color(0xFFA1A1AA)),
                                     onPressed: () {
                                       widget.controller.text = '';
                                       hide.value = true;
@@ -142,6 +146,7 @@ class _SearchBarState extends State<SearchBar> {
                           : null,
                       border: InputBorder.none,
                       hintText: widget.hintText,
+                      hintStyle: const TextStyle(color: Color(0x4DFFFFFF), fontSize: 15),
                     ),
                     autofocus: widget.autofocus,
                     keyboardType: TextInputType.text,

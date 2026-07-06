@@ -81,6 +81,16 @@ class VoiceController extends Notifier<VoiceState> {
           defaultAudioPublishOptions: AudioPublishOptions(
             dtx: true,
           ),
+          defaultVideoPublishOptions: VideoPublishOptions(
+            videoEncoding: VideoEncoding(
+              maxBitrate: 1700000,
+              maxFramerate: 30,
+            ),
+          ),
+          defaultCameraCaptureOptions: CameraCaptureOptions(
+            maxFrameRate: 30,
+            params: VideoParametersPresets.h720_169,
+          ),
         ),
       );
 
@@ -129,6 +139,18 @@ class VoiceController extends Notifier<VoiceState> {
         state = state.copyWith(
           speakingParticipants: event.speakers.map((p) => p.sid).toSet(),
         );
+      })
+      ..on<TrackPublishedEvent>((_) {
+        _updateParticipants();
+      })
+      ..on<TrackUnpublishedEvent>((_) {
+        _updateParticipants();
+      })
+      ..on<TrackSubscribedEvent>((_) {
+        _updateParticipants();
+      })
+      ..on<TrackUnsubscribedEvent>((_) {
+        _updateParticipants();
       })
       ..on<DataReceivedEvent>((event) {
         final decoded = utf8.decode(event.data);
@@ -241,9 +263,16 @@ class VoiceController extends Notifier<VoiceState> {
     state = state.copyWith(isDeafened: newDeafen, isMuted: newMute);
   }
 
-  Future<void> toggleVideo() async {
+      Future<void> toggleVideo() async {
     final room = state.room;
     if (room == null) return;
+
+    // Request camera permission before toggling
+    final camStatus = await Permission.camera.request();
+    if (camStatus != PermissionStatus.granted) {
+      state = state.copyWith(error: 'Camera permission denied');
+      return;
+    }
 
     final localParticipant = room.localParticipant;
     if (localParticipant == null) return;

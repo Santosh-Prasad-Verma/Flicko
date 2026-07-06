@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
+import 'package:mobile/features/shared/presentation/widgets/pill_search_bar.dart';
 
 class AdvancedSearchScreen extends ConsumerStatefulWidget {
   final String? serverId;
@@ -76,26 +77,39 @@ class _AdvancedSearchScreenState extends ConsumerState<AdvancedSearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(FlickoColors.bgPrimary),
-      appBar: AppBar(
-        backgroundColor: const Color(FlickoColors.bgPrimary),
-        elevation: 0,
-        title: Text(
-          'Search Messages',
-          style: GoogleFonts.inter(
-            color: const Color(FlickoColors.textPrimary),
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-          ),
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFF0A0A0A),
+            Color(0xFF0F0F12),
+            Color(0xFF060608),
+          ],
         ),
       ),
-      body: Column(
-        children: [
-          _buildSearchBar(),
-          const SizedBox(height: 16),
-          Expanded(child: _buildResults()),
-        ],
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          title: Text(
+            'Search Messages',
+            style: GoogleFonts.inter(
+              color: const Color(FlickoColors.textPrimary),
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        body: Column(
+          children: [
+            _buildSearchBar(),
+            const SizedBox(height: 16),
+            Expanded(child: _buildResults()),
+          ],
+        ),
       ),
     );
   }
@@ -103,36 +117,27 @@ class _AdvancedSearchScreenState extends ConsumerState<AdvancedSearchScreen> {
   Widget _buildSearchBar() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: TextField(
+      child: PillSearchBar(
         controller: _searchController,
+        hintText: 'Search messages...',
+        showBackArrow: false,
+        showSearchIcon: true,
         onChanged: (value) {
           if (value.length >= 2) {
             _performSearch(value);
+          } else if (value.isEmpty) {
+            setState(() {
+              _results = [];
+              _errorMessage = null;
+            });
           }
         },
-        decoration: InputDecoration(
-          hintText: 'Search messages...',
-          hintStyle: GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
-          prefixIcon: const Icon(Icons.search, color: Color(FlickoColors.textMuted)),
-          suffixIcon: _searchController.text.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.clear, color: Color(FlickoColors.textMuted)),
-                  onPressed: () {
-                    _searchController.clear();
-                    setState(() {
-                      _results = [];
-                      _errorMessage = null;
-                    });
-                  },
-                )
-              : null,
-          filled: true,
-          fillColor: const Color(FlickoColors.bgSecondary),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide.none,
-          ),
-        ),
+        onClear: () {
+          setState(() {
+            _results = [];
+            _errorMessage = null;
+          });
+        },
       ),
     );
   }
@@ -140,7 +145,7 @@ class _AdvancedSearchScreenState extends ConsumerState<AdvancedSearchScreen> {
   Widget _buildResults() {
     if (_isSearching) {
       return const Center(
-        child: CircularProgressIndicator(color: Color(FlickoColors.blurple)),
+        child: CircularProgressIndicator(color: Color(0xFF52B788)),
       );
     }
 
@@ -187,7 +192,7 @@ class _AdvancedSearchScreenState extends ConsumerState<AdvancedSearchScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.search, size: 48, color: Color(FlickoColors.textMuted)),
+            const Icon(Icons.search, size: 48, color: Color(0xFF52B788)),
             const SizedBox(height: 16),
             Text(
               'Search for messages',
@@ -222,8 +227,12 @@ class _AdvancedSearchScreenState extends ConsumerState<AdvancedSearchScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(FlickoColors.bgSecondary),
+        color: Colors.white.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.05),
+          width: 0.5,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

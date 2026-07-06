@@ -5,14 +5,37 @@ import 'package:mobile/features/direct_messages/presentation/controllers/dm_cont
 import 'package:mobile/features/direct_messages/presentation/widgets/dm_row.dart';
 import 'package:mobile/features/shared/presentation/widgets/shared_widgets.dart';
 import 'package:mobile/features/shared/presentation/widgets/skeleton_loader.dart';
+import 'package:mobile/features/shared/presentation/widgets/pill_search_bar.dart';
 import 'package:go_router/go_router.dart';
 
-class DMListScreen extends ConsumerWidget {
+class DMListScreen extends ConsumerStatefulWidget {
   const DMListScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DMListScreen> createState() => _DMListScreenState();
+}
+
+class _DMListScreenState extends ConsumerState<DMListScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(dmControllerProvider);
+
+    final filteredConversations = state.conversations.where((conv) {
+      if (_searchQuery.isEmpty) return true;
+      final name = (conv.recipientName ?? conv.recipientUsername ?? '').toLowerCase();
+      final lastMsg = (conv.lastMessage?.content ?? '').toLowerCase();
+      final q = _searchQuery.toLowerCase();
+      return name.contains(q) || lastMsg.contains(q);
+    }).toList();
 
     return Scaffold(
       backgroundColor: const Color(FlickoColors.bgPrimary),
@@ -50,7 +73,7 @@ class DMListScreen extends ConsumerWidget {
                     fit: BoxFit.contain,
                   ),
                   const Spacer(),
-                  // Search button
+                  // Search button for global user search
                   _HeaderIconButton(
                     icon: Icons.search_rounded,
                     onTap: () => context.push('/search'),
@@ -59,7 +82,7 @@ class DMListScreen extends ConsumerWidget {
               ),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
 
             // ── TITLE ──
             const Padding(
@@ -79,7 +102,30 @@ class DMListScreen extends ConsumerWidget {
               ),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
+
+            // ── INLINE SEARCH BAR ──
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: PillSearchBar(
+                controller: _searchController,
+                hintText: 'Filter conversations...',
+                showBackArrow: false,
+                showSearchIcon: true,
+                onChanged: (val) {
+                  setState(() {
+                    _searchQuery = val;
+                  });
+                },
+                onClear: () {
+                  setState(() {
+                    _searchQuery = '';
+                  });
+                },
+              ),
+            ),
+
+            const SizedBox(height: 12),
 
             // ── CONVERSATIONS ──
             Expanded(
@@ -92,7 +138,7 @@ class DMListScreen extends ConsumerWidget {
                           () => ref
                               .read(dmControllerProvider.notifier)
                               .fetchConversations())
-                      : state.conversations.isEmpty
+                      : filteredConversations.isEmpty
                           ? _buildEmptyState()
                           : RefreshIndicator(
                               onRefresh: () => ref
@@ -103,10 +149,10 @@ class DMListScreen extends ConsumerWidget {
                                   const Color(FlickoColors.bgSecondary),
                               child: ListView.builder(
                                 padding: const EdgeInsets.fromLTRB(0, 4, 0, 100),
-                                itemCount: state.conversations.length,
+                                itemCount: filteredConversations.length,
                                 itemBuilder: (context, index) {
                                   final conversation =
-                                      state.conversations[index];
+                                      filteredConversations[index];
                                   return DMRow(
                                     conversation: conversation,
                                     onTap: () => context
@@ -143,19 +189,21 @@ class DMListScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
-              'No messages yet',
-              style: TextStyle(
+            Text(
+              _searchQuery.isNotEmpty ? 'No matching messages' : 'No messages yet',
+              style: const TextStyle(
                 color: Color(FlickoColors.textPrimary),
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Start a conversation with a friend\nand it will show up here',
+            Text(
+              _searchQuery.isNotEmpty
+                  ? 'Try searching with a different term'
+                  : 'Start a conversation with a friend\nand it will show up here',
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 color: Color(FlickoColors.textMuted),
                 fontSize: 14,
                 height: 1.5,

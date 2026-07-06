@@ -144,7 +144,7 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen>
     setState(() {
       _isMuted = rtc.isMuted;
       _isSpeaker = rtc.speakerEnabled;
-      _isVideoOn = widget.isVideo && rtc.cameraEnabled;
+      _isVideoOn = rtc.cameraEnabled;
     });
     if (!_endingCall && rtc.phase == WebRtcCallPhase.ended) {
       _endingCall = true;
@@ -229,18 +229,18 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen>
             ),
 
           // 2. Video Mode: Remote Live Video Stage
-          if (widget.isVideo) _buildRemoteVideoStage(),
-          if (!widget.isVideo) _buildHiddenRemoteAudioRenderer(),
+          if (widget.isVideo || _isVideoOn) _buildRemoteVideoStage(),
+          if (!widget.isVideo && !_isVideoOn) _buildHiddenRemoteAudioRenderer(),
 
           // 3. Frosted Backdrop Blur overlay
           Positioned.fill(
             child: BackdropFilter(
               filter: ImageFilter.blur(
-                  sigmaX: widget.isVideo ? 5 : 45,
-                  sigmaY: widget.isVideo ? 5 : 45),
+                  sigmaX: (widget.isVideo || _isVideoOn) ? 5 : 45,
+                  sigmaY: (widget.isVideo || _isVideoOn) ? 5 : 45),
               child: Container(
                 color: Colors.black
-                    .withValues(alpha: widget.isVideo ? 0.35 : 0.45),
+                    .withValues(alpha: (widget.isVideo || _isVideoOn) ? 0.35 : 0.45),
               ),
             ),
           ),
@@ -257,7 +257,7 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen>
                   const SizedBox(height: 12),
                   _buildConnectionStats(),
                   const Spacer(),
-                  if (!widget.isVideo) _buildVoiceVisualizer(),
+                  if (!widget.isVideo && !_isVideoOn) _buildVoiceVisualizer(),
                   const Spacer(),
                   _buildControls(),
                   const SizedBox(height: 18),
@@ -269,7 +269,7 @@ class _ActiveCallScreenState extends ConsumerState<ActiveCallScreen>
           ),
 
           // 5. PiP Self camera view (video mode only)
-          if (widget.isVideo) _buildPiPView(),
+          if (widget.isVideo || _isVideoOn) _buildPiPView(),
         ],
       ),
     );
