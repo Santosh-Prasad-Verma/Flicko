@@ -379,7 +379,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
                       color: _lime.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.check_circle, color: _lime),
+                    child: Icon(Icons.check_circle, color: _lime),
                   ),
                   title: Text('Equip', style: GoogleFonts.inter(color: _white, fontWeight: FontWeight.w600)),
                   subtitle: Text('Use this ${item.productType.toLowerCase()}', style: GoogleFonts.inter(color: _muted)),
@@ -412,14 +412,14 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
                     color: _neon.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.card_giftcard, color: _neon),
+                  child: Icon(Icons.card_giftcard, color: _neon),
                 ),
                 title: Text('Gift to Friend', style: GoogleFonts.inter(color: _white, fontWeight: FontWeight.w600)),
                 subtitle: const Text('Coming soon', style: TextStyle(color: _muted)),
                 onTap: () {
                   Navigator.pop(ctx);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Gifting coming soon!'), backgroundColor: _neon),
+                    SnackBar(content: const Text('Gifting coming soon!'), backgroundColor: _neon),
                   );
                 },
               ),
