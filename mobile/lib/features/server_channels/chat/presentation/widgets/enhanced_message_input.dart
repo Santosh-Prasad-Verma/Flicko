@@ -565,10 +565,6 @@ class _EnhancedMessageInputState extends ConsumerState<EnhancedMessageInput> {
                       decoration: BoxDecoration(
                         color: _showExtras ? _neonGreen.withOpacity(0.2) : Colors.white.withOpacity(0.05),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: _showExtras ? _neonGreen : _textWhite.withOpacity(0.1),
-                          width: 1,
-                        ),
                       ),
                       child: AnimatedRotation(
                         turns: _showExtras ? 0.125 : 0,
@@ -587,10 +583,6 @@ class _EnhancedMessageInputState extends ConsumerState<EnhancedMessageInput> {
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.05),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: const Color(FlickoColors.brandLime).withOpacity(0.2),
-                          width: 1.2,
-                        ),
                       ),
                       padding: const EdgeInsets.symmetric(horizontal: 14),
                       child: TextField(
@@ -626,10 +618,6 @@ class _EnhancedMessageInputState extends ConsumerState<EnhancedMessageInput> {
                       decoration: BoxDecoration(
                         color: _isEmpty ? Colors.white.withOpacity(0.05) : _neonGreen,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: _isEmpty ? _textWhite.withOpacity(0.1) : _neonGreen,
-                          width: 1,
-                        ),
                         boxShadow: _isEmpty ? null : [
                           BoxShadow(
                             color: _neonGreen.withOpacity(0.3),

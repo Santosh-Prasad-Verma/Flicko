@@ -384,10 +384,6 @@ class _DMChatInputState extends State<DMChatInput> {
                       decoration: BoxDecoration(
                         color: _bgBlack,
                         borderRadius: BorderRadius.circular(24),
-                        border: Border.all(
-                          color: _textWhite.withValues(alpha: 0.08),
-                          width: 1,
-                        ),
                       ),
                       padding: const EdgeInsets.symmetric(horizontal: 4),
                       child: Row(
@@ -471,13 +467,9 @@ class _DMChatInputState extends State<DMChatInput> {
                             child: Container(
                               width: 44,
                               height: 44,
-                              decoration: BoxDecoration(
+                              decoration: const BoxDecoration(
                                 color: _bgBlack,
                                 shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: _textWhite.withValues(alpha: 0.08),
-                                  width: 1,
-                                ),
                               ),
                               child: Icon(
                                 Icons.mic_rounded,

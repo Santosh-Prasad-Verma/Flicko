@@ -40,10 +40,7 @@ class PillSearchBar extends StatelessWidget {
       decoration: BoxDecoration(
         color: _barBg.withValues(alpha: 0.95),
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.10),
-          width: 1.0,
-        ),
+
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.35),
