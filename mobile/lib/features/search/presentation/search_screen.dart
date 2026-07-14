@@ -69,6 +69,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     }
   }
 
+  void _onHistoryTapped(String query) {
+    _searchController.text = query;
+    ref.read(userSearchQueryProvider.notifier).state = query;
+    _addToHistory(query);
+    setState(() {});
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -245,7 +252,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   Widget _buildHistoryChip(String query) {
     return GestureDetector(
-      onTap: () => _onTagTapped(query),
+      onTap: () => _onHistoryTapped(query),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
