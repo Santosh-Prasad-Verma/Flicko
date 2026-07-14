@@ -22,11 +22,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   static const String _historyKey = 'flicko_search_history';
   static const int _maxHistory = 10;
 
-  static const List<String> _trendingTags = [
-    'Gaming', 'Music', 'Art', 'Coding', 'Anime',
-    'Movies', 'Sports', 'Tech', 'Memes', 'Photography',
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -72,13 +67,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     if (query.trim().isNotEmpty) {
       _addToHistory(query.trim());
     }
-  }
-
-  void _onTagTapped(String tag) {
-    _searchController.text = tag;
-    ref.read(userSearchQueryProvider.notifier).state = tag;
-    _addToHistory(tag);
-    setState(() {});
   }
 
   @override
@@ -172,33 +160,22 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   Widget _buildSearchLanding() {
+    if (_searchHistory.isEmpty) {
+      return const SizedBox.shrink();
+    }
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (_searchHistory.isNotEmpty) ...[
-            _buildSectionHeader('Recent Searches', onClear: _clearHistory),
-            const SizedBox(height: 12),
-            _buildGlassCard(
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: _searchHistory.map((query) {
-                  return _buildHistoryChip(query);
-                }).toList(),
-              ),
-            ),
-            const SizedBox(height: 28),
-          ],
-          _buildSectionHeader('Trending'),
+          _buildSectionHeader('Recent Searches', onClear: _clearHistory),
           const SizedBox(height: 12),
           _buildGlassCard(
             child: Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: _trendingTags.map((tag) {
-                return _buildTrendingChip(tag);
+              children: _searchHistory.map((query) {
+                return _buildHistoryChip(query);
               }).toList(),
             ),
           ),
@@ -311,41 +288,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     );
   }
 
-  Widget _buildTrendingChip(String tag) {
-    return GestureDetector(
-      onTap: () => _onTagTapped(tag),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: const Color(0xFF52B788).withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: const Color(0xFF52B788).withValues(alpha: 0.12),
-            width: 0.5,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.trending_up_rounded,
-              color: const Color(0xFF52B788).withValues(alpha: 0.6),
-              size: 14,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              tag,
-              style: GoogleFonts.inter(
-                color: const Color(0xFF52B788).withValues(alpha: 0.8),
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+
 
   Widget _buildEmptyResults() {
     return Center(
