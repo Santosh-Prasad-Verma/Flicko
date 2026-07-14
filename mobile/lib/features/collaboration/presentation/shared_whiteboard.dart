@@ -104,7 +104,61 @@ class _SharedWhiteboardState extends State<SharedWhiteboard> {
       });
     });
 
-    _channel!.subscribe();
+    _channel!.onBroadcast(event: 'request_history', callback: (payload) {
+      if (!mounted) return;
+      final data = payload['payload'] as Map<String, dynamic>;
+      final requesterId = data['userId'] as String;
+      if (requesterId == widget.currentUserId) return;
+
+      if (_paths.isNotEmpty) {
+        _channel?.sendBroadcastMessage(
+          event: 'history',
+          payload: {
+            'targetUserId': requesterId,
+            'paths': _paths.map((path) => {
+              'id': path.id,
+              'points': path.points.map((p) => {'x': p.dx, 'y': p.dy}).toList(),
+              'color': path.color.value,
+              'strokeWidth': path.strokeWidth,
+              'userId': path.userId,
+            }).toList(),
+          },
+        );
+      }
+    });
+
+    _channel!.onBroadcast(event: 'history', callback: (payload) {
+      if (!mounted) return;
+      final data = payload['payload'] as Map<String, dynamic>;
+      final targetUserId = data['targetUserId'] as String;
+      if (targetUserId != widget.currentUserId) return;
+
+      final rawPaths = data['paths'] as List;
+      setState(() {
+        _paths.clear();
+        for (final rawPath in rawPaths) {
+          final dynamicPoints = rawPath['points'] as List;
+          final points = dynamicPoints.map((p) => Offset((p['x'] as num).toDouble(), (p['y'] as num).toDouble())).toList();
+          
+          _paths.add(PathData(
+            id: rawPath['id'] as String,
+            points: points,
+            color: Color(rawPath['color'] as int),
+            strokeWidth: (rawPath['strokeWidth'] as num).toDouble(),
+            userId: rawPath['userId'] as String,
+          ));
+        }
+      });
+    });
+
+    _channel!.subscribe((status, [error]) {
+      if (status == RealtimeSubscribeStatus.subscribed) {
+        _channel?.sendBroadcastMessage(
+          event: 'request_history',
+          payload: {'userId': widget.currentUserId},
+        );
+      }
+    });
   }
 
   @override

@@ -14,6 +14,11 @@ import 'voice_state.dart';
 
 final audioPlayerProvider = Provider.autoDispose<AudioPlayer>((ref) {
   final player = AudioPlayer();
+  // Configure audio attributes to play mixed with voice call audio on voice stream
+  player.setAndroidAudioAttributes(const AndroidAudioAttributes(
+    contentType: AndroidAudioContentType.speech,
+    usage: AndroidAudioUsage.voiceCommunication,
+  ));
   ref.onDispose(() => player.dispose());
   return player;
 });

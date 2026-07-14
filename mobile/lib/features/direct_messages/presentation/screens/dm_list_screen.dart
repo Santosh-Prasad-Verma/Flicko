@@ -61,7 +61,6 @@ class _DMListScreenState extends ConsumerState<DMListScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // ── HEADER ──
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 12, 16, 0),
               child: Row(
@@ -71,12 +70,6 @@ class _DMListScreenState extends ConsumerState<DMListScreen> {
                     'assets/images/Flicko-for-black-background.png',
                     height: 28,
                     fit: BoxFit.contain,
-                  ),
-                  const Spacer(),
-                  // Search button for global user search
-                  _HeaderIconButton(
-                    icon: Icons.search_rounded,
-                    onTap: () => context.push('/search'),
                   ),
                 ],
               ),
