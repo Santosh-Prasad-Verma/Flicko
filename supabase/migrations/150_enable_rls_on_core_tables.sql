@@ -4,6 +4,11 @@
 -- 1. channels
 ALTER TABLE public.channels ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "select_channels" ON public.channels;
+DROP POLICY IF EXISTS "insert_channels" ON public.channels;
+DROP POLICY IF EXISTS "update_channels" ON public.channels;
+DROP POLICY IF EXISTS "delete_channels" ON public.channels;
+
 CREATE POLICY "select_channels" ON public.channels FOR SELECT TO authenticated
 USING (
   EXISTS (
@@ -42,6 +47,9 @@ USING (
 -- 2. roles
 ALTER TABLE public.roles ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "select_roles" ON public.roles;
+DROP POLICY IF EXISTS "manage_roles" ON public.roles;
+
 CREATE POLICY "select_roles" ON public.roles FOR SELECT TO authenticated
 USING (
   EXISTS (
@@ -60,6 +68,10 @@ USING (
 
 -- 3. server_members
 ALTER TABLE public.server_members ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "select_server_members" ON public.server_members;
+DROP POLICY IF EXISTS "insert_server_members" ON public.server_members;
+DROP POLICY IF EXISTS "manage_server_members" ON public.server_members;
 
 CREATE POLICY "select_server_members" ON public.server_members FOR SELECT TO authenticated
 USING (
@@ -88,6 +100,10 @@ USING (
 
 -- 4. reactions
 ALTER TABLE public.reactions ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "select_reactions" ON public.reactions;
+DROP POLICY IF EXISTS "insert_reactions" ON public.reactions;
+DROP POLICY IF EXISTS "delete_reactions" ON public.reactions;
 
 CREATE POLICY "select_reactions" ON public.reactions FOR SELECT TO authenticated
 USING (
@@ -129,6 +145,8 @@ USING (
 -- 5. server_bans
 ALTER TABLE public.server_bans ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "manage_server_bans" ON public.server_bans;
+
 CREATE POLICY "manage_server_bans" ON public.server_bans FOR ALL TO authenticated
 USING (
   EXISTS (
@@ -138,6 +156,10 @@ USING (
 
 -- 6. custom_emojis & server_emojis
 ALTER TABLE public.custom_emojis ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "select_custom_emojis" ON public.custom_emojis;
+DROP POLICY IF EXISTS "manage_custom_emojis" ON public.custom_emojis;
+
 CREATE POLICY "select_custom_emojis" ON public.custom_emojis FOR SELECT TO authenticated USING (true);
 CREATE POLICY "manage_custom_emojis" ON public.custom_emojis FOR ALL TO authenticated
 USING (
@@ -147,6 +169,10 @@ USING (
 );
 
 ALTER TABLE public.server_emojis ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "select_server_emojis" ON public.server_emojis;
+DROP POLICY IF EXISTS "manage_server_emojis" ON public.server_emojis;
+
 CREATE POLICY "select_server_emojis" ON public.server_emojis FOR SELECT TO authenticated USING (true);
 CREATE POLICY "manage_server_emojis" ON public.server_emojis FOR ALL TO authenticated
 USING (
@@ -157,6 +183,9 @@ USING (
 
 -- 7. music_queues
 ALTER TABLE public.music_queues ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "select_music_queues" ON public.music_queues;
+DROP POLICY IF EXISTS "manage_music_queues" ON public.music_queues;
 
 CREATE POLICY "select_music_queues" ON public.music_queues FOR SELECT TO authenticated
 USING (
@@ -179,17 +208,23 @@ USING (
 -- 8. notifications
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "manage_own_notifications" ON public.notifications;
+
 CREATE POLICY "manage_own_notifications" ON public.notifications FOR ALL TO authenticated
 USING (user_id = auth.uid());
 
 -- 9. creator_media_uploads
 ALTER TABLE public.creator_media_uploads ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "manage_own_creator_media" ON public.creator_media_uploads;
+
 CREATE POLICY "manage_own_creator_media" ON public.creator_media_uploads FOR ALL TO authenticated
 USING (creator_id = auth.uid());
 
 -- 10. external_bot_events
 ALTER TABLE public.external_bot_events ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "manage_bot_events" ON public.external_bot_events;
 
 CREATE POLICY "manage_bot_events" ON public.external_bot_events FOR ALL TO authenticated
 USING (
