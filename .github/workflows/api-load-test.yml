@@ -1,0 +1,26 @@
+name: Automated API Performance & Load Testing
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: 'Target API Gateway URL to run performance test against'
+        required: true
+        default: 'https://flicko.focko.tech'
+
+jobs:
+  load-test:
+    name: Execute Load Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup k6 Load Testing CLI
+        uses: grafana/setup-k6-action@v1
+
+      - name: Run k6 Load Test
+        run: |
+          k6 run scripts/k6-load-test.js
+        env:
+          API_TARGET_URL: ${{ github.event.inputs.target_url }}

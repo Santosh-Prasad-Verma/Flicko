@@ -1,0 +1,62 @@
+name: Database Schema Drift Detection
+
+on:
+  schedule:
+    - cron: '0 0 * * 0' # Every Sunday at 00:00 UTC
+  workflow_dispatch:
+
+env:
+  SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+  SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+  PROJECT_REF: 'zliclxzqkopxgnlwlqsu'
+
+jobs:
+  drift-check:
+    name: Schema Drift Detection
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link Remote Project
+        run: |
+          supabase link --project-ref "$PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
+
+      - name: Check Schema Drift
+        id: drift
+        run: |
+          # Run supabase db diff to check for schema changes
+          # Output is saved to a file. If file is non-empty, drift exists.
+          supabase db diff --use-migra --linked > drift.sql || true
+          
+          if [ -s drift.sql ]; then
+            echo "DRIFT_DETECTED=true" >> $GITHUB_ENV
+            echo "=== Schema Drift Detected ==="
+            cat drift.sql
+          else
+            echo "DRIFT_DETECTED=false" >> $GITHUB_ENV
+            echo "No schema drift detected."
+          fi
+
+      - name: Raise Drift Alert Issue
+        if: env.DRIFT_DETECTED == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const driftSql = fs.readFileSync('drift.sql', 'utf8');
+            const title = '⚠️ Supabase Production Database Drift Detected';
+            const body = `### Database Schema Drift Detected\n\nThe weekly automated schema drift checker has detected differences between your local migration files and your Supabase Cloud production database.\n\n#### Detected Differences (SQL):\n\`\`\`sql\n${driftSql}\n\`\`\`\n\n**Action Required**: Please investigate this drift. Either create a new local migration matching these changes or revert the changes from the remote console.`;
+            
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: title,
+              body: body,
+              labels: ['database', 'bug']
+            });
