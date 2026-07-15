@@ -223,6 +223,12 @@ func (h *BotHandler) GetBotSettings(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	serverID := vars["serverId"]
 	botName := vars["botName"]
+	userID, _ := r.Context().Value(middleware.GetUserIDKey()).(string)
+
+	if !h.isMember(r.Context(), serverID, userID) {
+		writeJSON(w, http.StatusForbidden, map[string]string{"error": "user is not a member of this server"})
+		return
+	}
 
 	var query string
 	switch botName {
@@ -321,6 +327,12 @@ func (h *BotHandler) UpdateBotSettings(w http.ResponseWriter, r *http.Request) {
 func (h *BotHandler) GetLeaderboard(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	serverID := vars["serverId"]
+	userID, _ := r.Context().Value(middleware.GetUserIDKey()).(string)
+
+	if !h.isMember(r.Context(), serverID, userID) {
+		writeJSON(w, http.StatusForbidden, map[string]string{"error": "user is not a member of this server"})
+		return
+	}
 
 	rows, err := h.db.Query(r.Context(),
 		`SELECT ux.user_id, u.username, u.avatar_url, ux.xp, ux.level, ux.message_count
@@ -366,6 +378,12 @@ func (h *BotHandler) GetUserRank(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	serverID := vars["serverId"]
 	userID := vars["userId"]
+	authUserID, _ := r.Context().Value(middleware.GetUserIDKey()).(string)
+
+	if !h.isMember(r.Context(), serverID, authUserID) {
+		writeJSON(w, http.StatusForbidden, map[string]string{"error": "user is not a member of this server"})
+		return
+	}
 
 	var xp, level, messageCount int
 	err := h.db.QueryRow(r.Context(),
@@ -397,6 +415,13 @@ func (h *BotHandler) GetUserRank(w http.ResponseWriter, r *http.Request) {
 func (h *BotHandler) GetServerTickets(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	serverID := vars["serverId"]
+	userID, _ := r.Context().Value(middleware.GetUserIDKey()).(string)
+
+	if !h.isMember(r.Context(), serverID, userID) {
+		writeJSON(w, http.StatusForbidden, map[string]string{"error": "user is not a member of this server"})
+		return
+	}
+
 	status := r.URL.Query().Get("status")
 	if status == "" {
 		status = "open"
@@ -447,6 +472,12 @@ func (h *BotHandler) GetServerTickets(w http.ResponseWriter, r *http.Request) {
 func (h *BotHandler) GetActivePolls(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	serverID := vars["serverId"]
+	userID, _ := r.Context().Value(middleware.GetUserIDKey()).(string)
+
+	if !h.isMember(r.Context(), serverID, userID) {
+		writeJSON(w, http.StatusForbidden, map[string]string{"error": "user is not a member of this server"})
+		return
+	}
 
 	rows, err := h.db.Query(r.Context(),
 		`SELECT p.id, p.question, p.creator_id, p.anonymous, p.multi_vote,
@@ -544,6 +575,12 @@ func (h *BotHandler) VotePoll(w http.ResponseWriter, r *http.Request) {
 func (h *BotHandler) GetStarboardEntries(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	serverID := vars["serverId"]
+	userID, _ := r.Context().Value(middleware.GetUserIDKey()).(string)
+
+	if !h.isMember(r.Context(), serverID, userID) {
+		writeJSON(w, http.StatusForbidden, map[string]string{"error": "user is not a member of this server"})
+		return
+	}
 
 	rows, err := h.db.Query(r.Context(),
 		`SELECT se.id, se.original_message_id, se.original_channel_id,
@@ -1019,4 +1056,15 @@ func (h *BotHandler) rateLimitOK(ctx context.Context, userID, command string) bo
 		_ = rdb.Expire(ctx, key, time.Minute).Err()
 	}
 	return int(count) <= limit
+}
+
+func (h *BotHandler) isMember(ctx context.Context, serverID, userID string) bool {
+	if serverID == "" || userID == "" {
+		return false
+	}
+	var exists bool
+	err := h.db.QueryRow(ctx,
+		`SELECT EXISTS(SELECT 1 FROM server_members WHERE server_id = $1::uuid AND user_id = $2::uuid)`,
+		serverID, userID).Scan(&exists)
+	return err == nil && exists
 }

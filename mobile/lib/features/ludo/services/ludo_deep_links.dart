@@ -52,6 +52,10 @@ class LudoDeepLinks {
     if (!_isLudoLink(uri)) return;
 
     final path = uri.path.isEmpty ? '/ludo' : uri.path;
+    if (!path.startsWith('/ludo')) {
+      return; // Block arbitrary app navigation
+    }
+
     final query = uri.queryParameters.isEmpty
         ? ''
         : '?${Uri(queryParameters: uri.queryParameters).query}';

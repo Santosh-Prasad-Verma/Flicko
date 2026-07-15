@@ -12,6 +12,7 @@ import (
 	"github.com/flicko-org/flicko-backend/internal/middleware"
 	"github.com/flicko-org/flicko-backend/internal/services"
 	"github.com/flicko-org/flicko-backend/internal/services/ai/moderation"
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
@@ -103,10 +104,29 @@ func (h *MessageHandler) CreateMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 0.5. Verify user has permission to write in this channel
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		http.Error(w, "invalid user id", http.StatusBadRequest)
+		return
+	}
+	channelUUID, err := uuid.Parse(channelID)
+	if err != nil {
+		http.Error(w, "invalid channel id", http.StatusBadRequest)
+		return
+	}
+
+	var hasSendPerm bool
+	err = h.db.QueryRow(ctx, "SELECT public.has_permission($1, $2, 'SEND_MESSAGES')", userUUID, channelUUID).Scan(&hasSendPerm)
+	if err != nil || !hasSendPerm {
+		http.Error(w, "You do not have permission to send messages in this channel", http.StatusForbidden)
+		return
+	}
+
 	// 1. Fetch channel and server details
 	var serverID string
 	var slowmodeSeconds int
-	err := h.db.QueryRow(ctx, "SELECT server_id, COALESCE(slowmode_seconds, 0) FROM channels WHERE id = $1", channelID).Scan(&serverID, &slowmodeSeconds)
+	err = h.db.QueryRow(ctx, "SELECT server_id, COALESCE(slowmode_seconds, 0) FROM channels WHERE id = $1", channelID).Scan(&serverID, &slowmodeSeconds)
 	if err != nil {
 		h.logger.Error("failed to find channel", zap.Error(err))
 		http.Error(w, "channel not found", http.StatusNotFound)

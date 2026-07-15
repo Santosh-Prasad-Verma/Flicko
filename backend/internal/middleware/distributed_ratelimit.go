@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -50,6 +51,33 @@ func NewDistributedRateLimiter(
 	}
 }
 
+// NewStrictRateLimiter creates a Redis-backed rate limiter for a specific window limit
+func NewStrictRateLimiter(
+	rdb redis.Cmdable,
+	limitPerWindow int64,
+	window time.Duration,
+	logger *zap.Logger,
+	name string,
+) *DistributedRateLimiter {
+	if limitPerWindow <= 0 {
+		limitPerWindow = 5
+	}
+	if window <= 0 {
+		window = 1 * time.Minute
+	}
+
+	return &DistributedRateLimiter{
+		rdb:                 rdb,
+		requestsPerSecond:   limitPerWindow,
+		window:              window,
+		logger:              logger,
+		name:                name,
+		cleanupInterval:     15 * time.Minute,
+		maxClientsTracked:   10000,
+		blacklistExpiration: 1 * time.Hour,
+	}
+}
+
 // Limit is middleware that enforces distributed rate limiting
 func (drl *DistributedRateLimiter) Limit(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -80,11 +108,19 @@ func (drl *DistributedRateLimiter) Limit(next http.Handler) http.Handler {
 				zap.String("ip", clientIP),
 				zap.Int64("limit", drl.requestsPerSecond),
 			)
+			
+			var msg string
+			if drl.window == 1*time.Minute && (drl.name == "api" || strings.HasPrefix(drl.name, "creator:")) {
+				msg = fmt.Sprintf("Too many requests (limit: %d/sec). Please retry after 60 seconds.", drl.requestsPerSecond)
+			} else {
+				msg = fmt.Sprintf("Too many requests (limit: %d per %s). Please try again later.", drl.requestsPerSecond, drl.window)
+			}
+			
 			writeJSONError(
 				w,
 				http.StatusTooManyRequests,
 				"RATE_LIMITED",
-				fmt.Sprintf("Too many requests (limit: %d/sec). Please retry after 60 seconds.", drl.requestsPerSecond),
+				msg,
 			)
 			return
 		}
@@ -135,7 +171,11 @@ func (drl *DistributedRateLimiter) checkRateLimit(ctx context.Context, clientIP 
 	}
 
 	// Check if limit exceeded
-	limitPerWindow := drl.requestsPerSecond * int64(drl.window.Seconds())
+	limitPerWindow := drl.requestsPerSecond
+	if drl.name == "api" || strings.HasPrefix(drl.name, "creator:") {
+		// Legacy compatibility: requestsPerSecond interpreted as per-second limit in a 1-minute window
+		limitPerWindow = drl.requestsPerSecond * int64(drl.window.Seconds())
+	}
 	return count >= limitPerWindow, nil
 }
 

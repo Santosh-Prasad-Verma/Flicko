@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:sentry_logging/sentry_logging.dart';
 import 'package:audio_service/audio_service.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'core/config/env.dart';
 import 'core/config/app_config.dart';
@@ -70,6 +71,9 @@ Future<void> _initializeApp() async {
   await Supabase.initialize(
     url: AppConfig.supabaseUrl,
     anonKey: AppConfig.supabaseAnonKey,
+    authOptions: const FlutterAuthClientOptions(
+      localStorage: SecureSupabaseStorage(),
+    ),
   );
 
   // Initialize Firebase before any FCM call. Wrapped in try/catch so the app
@@ -260,5 +264,35 @@ class ConfigErrorApp extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class SecureSupabaseStorage extends LocalStorage {
+  const SecureSupabaseStorage();
+
+  static const _storage = FlutterSecureStorage();
+
+  @override
+  Future<void> initialize() async {}
+
+  @override
+  Future<bool> hasAccessToken() async {
+    final token = await accessToken();
+    return token != null;
+  }
+
+  @override
+  Future<String?> accessToken() async {
+    return _storage.read(key: 'supabase_session');
+  }
+
+  @override
+  Future<void> removePersistedSession() async {
+    await _storage.delete(key: 'supabase_session');
+  }
+
+  @override
+  Future<void> persistSession(String persistSessionString) async {
+    await _storage.write(key: 'supabase_session', value: persistSessionString);
   }
 }

@@ -6,6 +6,7 @@ import (
 
 	"github.com/flicko-org/flicko-backend/internal/middleware"
 	"github.com/flicko-org/flicko-backend/internal/services"
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 )
@@ -275,36 +276,55 @@ func getVideoUserID(r *http.Request) string {
 // ── LiveKit JWT Token ──
 
 func (h *VideoHandler) GenerateLiveKitToken(w http.ResponseWriter, r *http.Request) {
-userID := getVideoUserID(r)
-if userID == "" {
-writeError(w, http.StatusUnauthorized, "unauthorized")
-return
-}
+	userID := getVideoUserID(r)
+	if userID == "" {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
 
-channelID := r.URL.Query().Get("channel_id")
-if channelID == "" {
-writeError(w, http.StatusBadRequest, "channel_id is required")
-return
-}
+	channelID := r.URL.Query().Get("channel_id")
+	if channelID == "" {
+		writeError(w, http.StatusBadRequest, "channel_id is required")
+		return
+	}
 
-// Default flags
-canPublish := true
-canPublishData := true
+	// 0.5. Verify user has CONNECT permission to join this channel
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid user_id")
+		return
+	}
+	channelUUID, err := uuid.Parse(channelID)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid channel_id")
+		return
+	}
 
-// In a real scenario, you could verify user permissions to establish whether they can speak/publish video
-// For example:
-// hasPerm, _ := h.permSvc.HasPermission(r.Context(), userID, channelID, "SPEAK")
-// canPublish = hasPerm
+	hasConnectPerm, err := h.permSvc.HasPermission(r.Context(), userUUID, channelUUID, "CONNECT")
+	if err != nil || !hasConnectPerm {
+		writeError(w, http.StatusForbidden, "missing CONNECT permission for this channel")
+		return
+	}
 
-token, err := h.liveKitSvc.GenerateToken(channelID, userID, userID, canPublish, canPublishData)
-if err != nil {
-h.logger.Error("failed to generate livekit token", zap.Error(err))
-writeError(w, http.StatusInternalServerError, "failed to generate vc token")
-return
-}
+	// Default flags
+	canPublish := true
+	canPublishData := true
 
-w.Header().Set("Content-Type", "application/json")
-json.NewEncoder(w).Encode(map[string]string{
-"token": token,
-})
+	// Check if user has SPEAK permission to publish audio/video
+	hasSpeakPerm, err := h.permSvc.HasPermission(r.Context(), userUUID, channelUUID, "SPEAK")
+	if err == nil {
+		canPublish = hasSpeakPerm
+	}
+
+	token, err := h.liveKitSvc.GenerateToken(channelID, userID, userID, canPublish, canPublishData)
+	if err != nil {
+		h.logger.Error("failed to generate livekit token", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to generate vc token")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"token": token,
+	})
 }

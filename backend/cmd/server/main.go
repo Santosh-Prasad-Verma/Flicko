@@ -199,8 +199,9 @@ func main() {
 	// 4. Setup Router
 	r := mux.NewRouter()
 
-	// Apply request ID middleware before all other middleware
+	// Apply request ID and security headers middleware before all other middleware
 	r.Use(middleware.RequestID)
+	r.Use(middleware.SecurityHeaders)
 	r.Use(middleware.Tracing)
 
 	api := r.PathPrefix("/api/v1").Subrouter()
@@ -226,6 +227,10 @@ func main() {
 	// CRIT-002: Replace memory-based rate limiter with distributed Redis-backed limiter
 	apiLimiter := middleware.NewDistributedRateLimiter(redisCache.GetRedisClient(), 50, logger, "api")
 	// 50 requests per second per IP for general API endpoints
+
+	// Strict limiters for high-risk endpoints (MFA and Account Deletion)
+	mfaRateLimiter := middleware.NewStrictRateLimiter(redisCache.GetRedisClient(), 5, 1*time.Minute, logger, "mfa")
+	deleteAccountLimiter := middleware.NewStrictRateLimiter(redisCache.GetRedisClient(), 3, 10*time.Minute, logger, "delete-account")
 
 	protected := api.PathPrefix("/").Subrouter()
 	protected.Use(apiLimiter.Limit)
@@ -437,15 +442,15 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status": "delivered"}`))
 	}).Methods("POST")
-	protected.HandleFunc("/auth/mfa/enroll", mfaHandler.Enroll).Methods("POST")
-	protected.HandleFunc("/auth/mfa/verify", mfaHandler.Verify).Methods("POST")
-	protected.HandleFunc("/auth/mfa/disable", mfaHandler.Disable).Methods("POST")
+	protected.Handle("/auth/mfa/enroll", mfaRateLimiter.Limit(http.HandlerFunc(mfaHandler.Enroll))).Methods("POST")
+	protected.Handle("/auth/mfa/verify", mfaRateLimiter.Limit(http.HandlerFunc(mfaHandler.Verify))).Methods("POST")
+	protected.Handle("/auth/mfa/disable", mfaRateLimiter.Limit(http.HandlerFunc(mfaHandler.Disable))).Methods("POST")
 	protected.HandleFunc("/auth/devices", authSecurityHandler.ListTrustedDevices).Methods("GET")
 	protected.HandleFunc("/auth/devices/{id}", authSecurityHandler.RevokeTrustedDevice).Methods("DELETE")
 	protected.HandleFunc("/auth/login-events", authSecurityHandler.ListLoginEvents).Methods("GET")
 	protected.HandleFunc("/privacy/export", privacyHandler.RequestExport).Methods("POST")
 	protected.HandleFunc("/privacy/export/{jobId}", privacyHandler.GetExportStatus).Methods("GET")
-	protected.HandleFunc("/privacy/delete-account", privacyHandler.RequestAccountDeletion).Methods("POST")
+	protected.Handle("/privacy/delete-account", deleteAccountLimiter.Limit(http.HandlerFunc(privacyHandler.RequestAccountDeletion))).Methods("POST")
 	protected.HandleFunc("/privacy/delete-account/{jobId}", privacyHandler.GetAccountDeletionStatus).Methods("GET")
 	protected.HandleFunc("/servers/{id}/reaction-roles", reactionRoleHandler.CreateReactionRole).Methods("POST")
 	protected.HandleFunc("/servers/{id}/reaction-roles/{mappingId}", reactionRoleHandler.DeleteReactionRole).Methods("DELETE")
