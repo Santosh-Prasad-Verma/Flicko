@@ -140,6 +140,7 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro          # Origin cert + key
+      - ./nginx/html:/usr/share/nginx/html:ro
     deploy:
       resources:
         limits:
