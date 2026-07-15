@@ -16,6 +16,7 @@ jobs:
   drift-check:
     name: Schema Drift Detection
     runs-on: ubuntu-latest
+    if: ${{ secrets.SUPABASE_ACCESS_TOKEN != '' && secrets.SUPABASE_DB_PASSWORD != '' }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
