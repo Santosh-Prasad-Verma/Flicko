@@ -257,7 +257,7 @@ BEGIN
     DROP POLICY IF EXISTS "manage_own_creator_media" ON public.creator_media_uploads;
 
     CREATE POLICY "manage_own_creator_media" ON public.creator_media_uploads FOR ALL TO authenticated
-    USING (creator_id = auth.uid());
+    USING (user_id = auth.uid());
   END IF;
 END $$;
 
