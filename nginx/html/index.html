@@ -8,7 +8,7 @@
   <!-- Modern Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
   <style>
     /* Reset & Root Variables */
@@ -19,16 +19,14 @@
     }
     
     :root {
-      --bg-color: #030303;
+      --bg-color: #050508;
       --card-bg: rgba(255, 255, 255, 0.02);
       --card-border: rgba(255, 255, 255, 0.05);
       --primary: #7D39EB;
-      --primary-glow: rgba(125, 57, 235, 0.3);
-      --accent: #52B788;
-      --accent-glow: rgba(82, 183, 136, 0.3);
+      --accent: #84CC16; /* Lime Green */
       --text: #ffffff;
       --text-muted: rgba(255, 255, 255, 0.6);
-      --text-dim: rgba(255, 255, 255, 0.35);
+      --text-dim: rgba(255, 255, 255, 0.4);
     }
 
     body {
@@ -48,31 +46,31 @@
       content: '';
       position: absolute;
       top: -10%;
-      left: 30%;
-      width: 600px;
-      height: 600px;
-      background: radial-gradient(circle, var(--primary-glow) 0%, transparent 70%);
+      left: 20%;
+      width: 800px;
+      height: 800px;
+      background: radial-gradient(circle, rgba(125, 57, 235, 0.08) 0%, transparent 70%);
       pointer-events: none;
       z-index: 1;
-      filter: blur(80px);
+      filter: blur(100px);
     }
 
     body::after {
       content: '';
       position: absolute;
       bottom: -10%;
-      right: 20%;
-      width: 500px;
-      height: 500px;
-      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+      right: 10%;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(82, 183, 136, 0.05) 0%, transparent 70%);
       pointer-events: none;
       z-index: 1;
-      filter: blur(80px);
+      filter: blur(100px);
     }
 
     /* Layout Wrapper */
     .container {
-      max-width: 1200px;
+      max-width: 1000px;
       width: 100%;
       margin: 0 auto;
       padding: 40px 24px;
@@ -81,103 +79,92 @@
       flex-grow: 1;
       display: flex;
       flex-direction: column;
-      justify-content: center;
+      gap: 24px;
     }
 
     /* Header styling */
     header {
-      text-align: center;
-      margin-bottom: 60px;
+      display: flex;
+      justify-content: center;
+      margin-bottom: 8px;
     }
 
     .logo-container {
-      display: inline-flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 24px;
-    }
-
-    .logo-icon {
-      width: 48px;
-      height: 48px;
-      background: linear-gradient(135deg, var(--primary) 0%, #a855f7 100%);
-      border-radius: 14px;
       display: flex;
       align-items: center;
-      justify-content: center;
-      box-shadow: 0 8px 24px var(--primary-glow);
+      gap: 10px;
     }
 
-    .logo-icon svg {
-      width: 24px;
-      height: 24px;
-      fill: #ffffff;
-    }
-
-    .logo-text {
-      font-family: 'Outfit', sans-serif;
-      font-weight: 900;
-      font-size: 28px;
-      letter-spacing: -0.5px;
-      background: linear-gradient(135deg, #ffffff 0%, #d1d5db 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+    .logo-img {
+      height: 28px;
+      width: auto;
+      object-fit: contain;
     }
 
     .logo-badge {
-      background: rgba(125, 57, 235, 0.15);
-      border: 1px solid rgba(125, 57, 235, 0.3);
-      color: #c084fc;
+      background: rgba(132, 204, 22, 0.1);
+      border: 1px solid rgba(132, 204, 22, 0.2);
+      color: #84CC16;
       font-family: 'Outfit', sans-serif;
       font-weight: 600;
-      font-size: 11px;
-      padding: 2px 10px;
+      font-size: 10px;
+      padding: 2px 8px;
       border-radius: 99px;
       letter-spacing: 0.5px;
       text-transform: uppercase;
     }
 
-    /* Status Hero Card */
-    .status-hero {
-      background: var(--card-bg);
+    /* Banner Container */
+    .banner-card {
+      width: 100%;
+      border-radius: 20px;
+      overflow: hidden;
       border: 1px solid var(--card-border);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border-radius: 28px;
-      padding: 40px;
-      text-align: center;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-      margin-bottom: 48px;
-      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
     }
 
-    .status-hero:hover {
-      border-color: rgba(82, 183, 136, 0.2);
-      box-shadow: 0 20px 50px rgba(82, 183, 136, 0.05);
+    .banner-img {
+      width: 100%;
+      display: block;
+      object-fit: cover;
+    }
+
+    /* Status Hero Card */
+    .status-hero {
+      background: rgba(255, 255, 255, 0.01);
+      border: 1px solid var(--card-border);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 20px;
+      padding: 36px 24px;
+      text-align: center;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
     }
 
     .status-badge {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      background: rgba(82, 183, 136, 0.1);
-      border: 1px solid rgba(82, 183, 136, 0.25);
-      color: var(--accent);
+      background: rgba(132, 204, 22, 0.06);
+      border: 1px solid rgba(132, 204, 22, 0.15);
+      color: #a3e635;
       font-family: 'Outfit', sans-serif;
       font-weight: 600;
-      font-size: 14px;
-      padding: 6px 16px;
+      font-size: 11px;
+      padding: 4px 12px;
       border-radius: 99px;
-      margin-bottom: 24px;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      box-shadow: 0 4px 12px rgba(82, 183, 136, 0.05);
+      letter-spacing: 0.8px;
     }
 
     .status-dot {
-      width: 8px;
-      height: 8px;
-      background-color: var(--accent);
+      width: 6px;
+      height: 6px;
+      background-color: #84CC16;
       border-radius: 50%;
       display: inline-block;
       animation: pulse 2s infinite;
@@ -186,181 +173,242 @@
     @keyframes pulse {
       0% {
         transform: scale(0.9);
-        box-shadow: 0 0 0 0 rgba(82, 183, 136, 0.7);
+        box-shadow: 0 0 0 0 rgba(132, 204, 22, 0.7);
       }
       70% {
         transform: scale(1.1);
-        box-shadow: 0 0 0 8px rgba(82, 183, 136, 0);
+        box-shadow: 0 0 0 6px rgba(132, 204, 22, 0);
       }
       100% {
         transform: scale(0.9);
-        box-shadow: 0 0 0 0 rgba(82, 183, 136, 0);
+        box-shadow: 0 0 0 0 rgba(132, 204, 22, 0);
       }
     }
 
     .status-message {
       font-family: 'Outfit', sans-serif;
-      font-size: 32px;
-      font-weight: 800;
+      font-size: 28px;
+      font-weight: 700;
       letter-spacing: -0.5px;
-      margin-bottom: 12px;
-      background: linear-gradient(to right, #ffffff 30%, #e2e8f0 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      color: #ffffff;
     }
 
     .status-sub {
       color: var(--text-muted);
-      font-size: 16px;
-      max-width: 600px;
-      margin: 0 auto 32px auto;
-      line-height: 1.6;
+      font-size: 14px;
+      max-width: 500px;
+      line-height: 1.5;
     }
 
     .cta-button {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       background: #ffffff;
       color: #000000;
       text-decoration: none;
       font-weight: 600;
-      font-size: 15px;
-      padding: 14px 28px;
-      border-radius: 12px;
-      transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
-      box-shadow: 0 4px 15px rgba(255, 255, 255, 0.1);
+      font-size: 14px;
+      padding: 12px 24px;
+      border-radius: 99px;
+      transition: background-color 0.2s ease, transform 0.2s ease;
+      margin-top: 8px;
     }
 
     .cta-button:hover {
       background-color: #f3f4f6;
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(255, 255, 255, 0.15);
+      transform: translateY(-1px);
     }
 
     .cta-button svg {
-      width: 16px;
-      height: 16px;
+      width: 14px;
+      height: 14px;
       transition: transform 0.2s ease;
     }
 
     .cta-button:hover svg {
-      transform: translateX(3px);
+      transform: translateX(2px);
     }
 
     /* Grid of microservices status */
     .services-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 24px;
-      margin-bottom: 40px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
     }
 
     .service-card {
-      background: var(--card-bg);
+      background: rgba(255, 255, 255, 0.01);
       border: 1px solid var(--card-border);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
-      border-radius: 20px;
-      padding: 24px;
+      border-radius: 16px;
+      padding: 20px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      height: 160px;
-      transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+      height: 154px;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+      position: relative;
+      text-decoration: none;
+      text-align: left;
     }
 
     .service-card:hover {
-      transform: translateY(-4px);
-      border-color: rgba(255, 255, 255, 0.08);
-      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+      transform: translateY(-2px);
+      border-color: rgba(255, 255, 255, 0.1);
     }
 
     .service-header {
       display: flex;
-      justify-content: space-between;
       align-items: flex-start;
+      gap: 14px;
+    }
+
+    .service-icon-wrapper {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* Custom Border Colors for Icon Boxes */
+    .ws-icon-box {
+      background: rgba(132, 204, 22, 0.04);
+      border: 1px solid rgba(132, 204, 22, 0.2);
+      color: #84CC16;
+    }
+    .msg-icon-box {
+      background: rgba(59, 130, 246, 0.04);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      color: #3B82F6;
+    }
+    .media-icon-box {
+      background: rgba(139, 92, 246, 0.04);
+      border: 1px solid rgba(139, 92, 246, 0.2);
+      color: #8B5CF6;
+    }
+    .mail-icon-box {
+      background: rgba(245, 158, 11, 0.04);
+      border: 1px solid rgba(245, 158, 11, 0.2);
+      color: #F59E0B;
+    }
+
+    .service-icon-wrapper svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .service-info {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
     }
 
     .service-title {
       font-family: 'Outfit', sans-serif;
-      font-size: 18px;
+      font-size: 16px;
       font-weight: 600;
       color: #ffffff;
-      margin-bottom: 4px;
     }
 
     .service-desc {
-      font-size: 13px;
-      color: var(--text-muted);
+      font-size: 12px;
+      color: var(--text-dim);
       line-height: 1.4;
+    }
+
+    .service-chevron {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      color: rgba(255, 255, 255, 0.2);
+    }
+    
+    .service-chevron svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* Bottom Telemetry Info */
+    .telemetry {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
+      padding-top: 14px;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 500;
     }
 
     .service-status {
       display: flex;
       align-items: center;
       gap: 6px;
-      font-family: 'Outfit', sans-serif;
-      font-weight: 600;
-      font-size: 11px;
-      letter-spacing: 0.5px;
       text-transform: uppercase;
-      color: var(--accent);
-      background: rgba(82, 183, 136, 0.08);
-      border: 1px solid rgba(82, 183, 136, 0.15);
-      padding: 2px 8px;
-      border-radius: 99px;
+      letter-spacing: 0.5px;
     }
 
-    .service-status.standby {
-      color: #fbbf24;
-      background: rgba(251, 191, 36, 0.08);
-      border: 1px solid rgba(251, 191, 36, 0.15);
+    .status-dot-small {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
     }
 
-    .service-icon {
-      width: 36px;
-      height: 36px;
-      border-radius: 10px;
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid rgba(255, 255, 255, 0.04);
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    /* Status Color Rules */
+    .status-humming {
+      color: #84CC16;
+    }
+    .status-humming .status-dot-small {
+      background-color: #84CC16;
+    }
+    
+    .status-healthy {
+      color: #3B82F6;
+    }
+    .status-healthy .status-dot-small {
+      background-color: #3B82F6;
+    }
+
+    .status-active {
+      color: #8B5CF6;
+    }
+    .status-active .status-dot-small {
+      background-color: #8B5CF6;
+    }
+
+    .status-standby {
+      color: #F59E0B;
+    }
+    .status-standby .status-dot-small {
+      background-color: #F59E0B;
+    }
+
+    .telemetry-val {
       color: var(--text-muted);
-      transition: color 0.2s ease, border-color 0.2s ease;
     }
 
-    .service-card:hover .service-icon {
-      color: #ffffff;
-      border-color: rgba(255, 255, 255, 0.1);
-    }
-
-    .service-icon svg {
-      width: 18px;
-      height: 18px;
-    }
-
-    /* Live Telemetry Indicator Bar */
-    .telemetry {
-      display: flex;
-      justify-content: space-between;
-      font-size: 12px;
-      color: var(--text-dim);
-      border-top: 1px solid var(--card-border);
-      padding-top: 16px;
-      margin-top: 16px;
+    /* Custom Row for mail-gateway (offsetting to fit the grid nicely) */
+    .second-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
     }
 
     /* Footer */
     footer {
-      border-top: 1px solid var(--card-border);
-      padding: 24px;
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
+      padding: 24px 0;
       text-align: center;
-      font-size: 13px;
+      font-size: 12px;
       color: var(--text-dim);
       z-index: 10;
       position: relative;
+      margin-top: 40px;
     }
 
     footer a {
@@ -373,75 +421,47 @@
       color: #ffffff;
     }
 
-    /* Responsive scaling */
-    @media (max-width: 640px) {
-      .status-hero {
-        padding: 32px 20px;
+    /* Responsive Design */
+    @media (max-width: 900px) {
+      .services-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .second-row {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 600px) {
+      .services-grid {
+        grid-template-columns: 1fr;
+      }
+      .second-row {
+        grid-template-columns: 1fr;
       }
       .status-message {
-        font-size: 26px;
+        font-size: 24px;
       }
-      .service-card {
-        height: auto;
-        min-height: 150px;
-        gap: 16px;
+      .banner-card {
+        border-radius: 12px;
       }
-    }
-
-    /* Banner Styling */
-    .banner-container {
-      width: 100%;
-      height: 240px;
-      position: relative;
-      overflow: hidden;
-      border-radius: 28px;
-      border: 1px solid var(--card-border);
-      margin-bottom: 40px;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
-    }
-
-    .banner-img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transition: transform 0.8s ease;
-    }
-
-    .banner-container:hover .banner-img {
-      transform: scale(1.03);
-    }
-
-    .banner-overlay {
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(to bottom, rgba(3, 3, 3, 0.2) 0%, rgba(3, 3, 3, 0.8) 100%);
-      pointer-events: none;
-    }
-
-    /* Logo Image Style */
-    .logo-img {
-      height: 48px;
-      width: auto;
-      object-fit: contain;
     }
   </style>
 </head>
 <body>
 
   <div class="container">
-    
+
     <!-- Header -->
     <header>
       <div class="logo-container">
         <img src="/Flicko-for-black-background.png" alt="Flicko Logo" class="logo-img" />
-        <span class="logo-badge" style="margin-left: 8px;">API</span>
+        <span class="logo-badge">API</span>
       </div>
     </header>
 
     <!-- Banner Section -->
-    <div class="banner-container">
+    <div class="banner-card">
       <img src="/Flicko-banner-poster.png" alt="Flicko Banner" class="banner-img" />
-      <div class="banner-overlay"></div>
     </div>
 
     <!-- Main Hero Card -->
@@ -450,8 +470,8 @@
         <span class="status-dot"></span>
         Operational
       </div>
-      <h1 class="status-message">The backend is humming!</h1>
-      <p class="status-sub">Welcome to the Flicko API gateway. All services are healthy and running with full performance capabilities.</p>
+      <h2 class="status-message">The backend is humming!</h2>
+      <p class="status-sub">All systems are healthy and running with full performance capabilities.</p>
       
       <a href="https://docs.flicko.dev" class="cta-button" target="_blank">
         Explore API Documentation
@@ -462,96 +482,135 @@
       </a>
     </section>
 
-    <!-- Services Grid -->
+    <!-- Services Grid (Row 1) -->
     <section class="services-grid">
-      
+
       <!-- WS Gateway -->
-      <div class="service-card">
+      <a href="/health" class="service-card">
+        <div class="service-chevron">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </div>
         <div class="service-header">
-          <div>
+          <div class="service-icon-wrapper ws-icon-box">
+            <!-- Pulse Icon -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+            </svg>
+          </div>
+          <div class="service-info">
             <h3 class="service-title">ws-gateway</h3>
             <p class="service-desc">WebSocket Connection Hub</p>
           </div>
-          <div class="service-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M5 12h14M12 5l7 7-7 7"/>
-            </svg>
-          </div>
         </div>
         <div class="telemetry">
-          <span class="service-status">Humming</span>
-          <span>99.98% Uptime</span>
+          <span class="service-status status-humming">
+            <span class="status-dot-small"></span>
+            Humming
+          </span>
+          <span class="telemetry-val">99.98% Uptime</span>
         </div>
-      </div>
+      </a>
 
       <!-- REST Msg Service -->
-      <div class="service-card">
+      <a href="/health" class="service-card">
+        <div class="service-chevron">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </div>
         <div class="service-header">
-          <div>
-            <h3 class="service-title">msg-service</h3>
-            <p class="service-desc">REST Database CRUD Engine</p>
-          </div>
-          <div class="service-icon">
+          <div class="service-icon-wrapper msg-icon-box">
+            <!-- Database Icon -->
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
               <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
               <path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"></path>
             </svg>
           </div>
+          <div class="service-info">
+            <h3 class="service-title">msg-service</h3>
+            <p class="service-desc">REST Database CRUD Engine</p>
+          </div>
         </div>
         <div class="telemetry">
-          <span class="service-status">Healthy</span>
-          <span>&lt; 12ms Latency</span>
+          <span class="service-status status-healthy">
+            <span class="status-dot-small"></span>
+            Healthy
+          </span>
+          <span class="telemetry-val">&lt; 12ms Latency</span>
         </div>
-      </div>
+      </a>
 
       <!-- LiveKit Service -->
-      <div class="service-card">
+      <a href="/health" class="service-card">
+        <div class="service-chevron">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </div>
         <div class="service-header">
-          <div>
-            <h3 class="service-title">media-sfu</h3>
-            <p class="service-desc">LiveKit Voice & Video SFU</p>
-          </div>
-          <div class="service-icon">
+          <div class="service-icon-wrapper media-icon-box">
+            <!-- Video Camera Icon -->
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polygon points="23 7 16 12 23 17 23 7"></polygon>
+              <path d="M23 7l-7 5 7 5V7z"></path>
               <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
             </svg>
           </div>
+          <div class="service-info">
+            <h3 class="service-title">media-sfu</h3>
+            <p class="service-desc">LiveKit Voice & Video SFU</p>
+          </div>
         </div>
         <div class="telemetry">
-          <span class="service-status">Active</span>
-          <span>0% Loss Rate</span>
+          <span class="service-status status-active">
+            <span class="status-dot-small"></span>
+            Active
+          </span>
+          <span class="telemetry-val">0% Loss Rate</span>
         </div>
-      </div>
+      </a>
 
+    </section>
+
+    <!-- Services Grid (Row 2) -->
+    <section class="second-row">
       <!-- Mail Gateway -->
-      <div class="service-card">
+      <a href="/health" class="service-card">
+        <div class="service-chevron">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </div>
         <div class="service-header">
-          <div>
-            <h3 class="service-title">mail-gateway</h3>
-            <p class="service-desc">SMTP Branded Notifications</p>
-          </div>
-          <div class="service-icon">
+          <div class="service-icon-wrapper mail-icon-box">
+            <!-- Mail Icon -->
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
               <polyline points="22,6 12,13 2,6"></polyline>
             </svg>
           </div>
+          <div class="service-info">
+            <h3 class="service-title">mail-gateway</h3>
+            <p class="service-desc">SMTP Branded Notifications</p>
+          </div>
         </div>
         <div class="telemetry">
-          <span class="service-status standby">Standby</span>
-          <span>Queue Empty</span>
+          <span class="service-status status-standby">
+            <span class="status-dot-small"></span>
+            Standby
+          </span>
+          <span class="telemetry-val">Queue Empty</span>
         </div>
-      </div>
-
+      </a>
     </section>
 
   </div>
 
   <!-- Footer -->
   <footer>
-    <p>&copy; 2026 Flicko. All rights reserved. &middot; <a href="https://docs.flicko.dev" target="_blank">Developer Center</a> &middot; <a href="/health">Gateway Health</a></p>
+    <p>&copy; 2026 Flicko. All rights reserved. &nbsp;&middot;&nbsp; <a href="https://docs.flicko.dev" target="_blank">Developer Center</a> &nbsp;&middot;&nbsp; <a href="/health">Gateway Health</a></p>
   </footer>
 
 </body>
