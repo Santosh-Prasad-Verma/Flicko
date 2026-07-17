@@ -501,6 +501,23 @@ services:
         condition: service_healthy
 
   # ──────────────────────────────────────────────────────────────────────────
+  # POSTGRES EXPORTER — Scraping PostgreSQL metrics for Prometheus
+  # ──────────────────────────────────────────────────────────────────────────
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: flicko-postgres-exporter
+    <<: [*restart-policy, *default-logging]
+    environment:
+      - DATA_SOURCE_NAME=${DATABASE_URL}
+    networks:
+      - flicko_monitor               # Prometheus scrapes this
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: "0.1"
+
+  # ──────────────────────────────────────────────────────────────────────────
   # PROMTAIL — Log Collector for Loki
   # ──────────────────────────────────────────────────────────────────────────
   # Scrapes Docker container logs and ships them to Loki for centralized logging.

@@ -323,7 +323,7 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "pg_stat_database_numbackends{datname=\"flickodb\"}",
+          "expr": "pg_stat_database_numbackends{datname=\"postgres\"}",
           "instant": true,
           "legendFormat": "Connections",
           "range": false,
@@ -423,7 +423,7 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "sum(rate(http_requests_total[5m])) by (method, status)",
+          "expr": "sum(rate(flicko_http_request_duration_seconds_count[5m])) by (method, status)",
           "legendFormat": "{{method}} - {{status}}",
           "range": true,
           "refId": "A"
@@ -510,7 +510,7 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(flicko_http_request_duration_seconds_bucket[5m])) by (le))",
           "legendFormat": "p95 latency",
           "range": true,
           "refId": "A"
