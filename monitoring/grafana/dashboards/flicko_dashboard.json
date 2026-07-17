@@ -90,7 +90,7 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "up{job=\"flicko-backend\"}",
+          "expr": "up{job=\"backend\"}",
           "instant": true,
           "legendFormat": "Backend Status",
           "range": false,
@@ -258,7 +258,7 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "redis_used_memory",
+          "expr": "redis_memory_used_bytes",
           "legendFormat": "Used Memory",
           "range": true,
           "refId": "A"
