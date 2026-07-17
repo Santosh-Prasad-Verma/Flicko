@@ -76,6 +76,15 @@ scrape_configs:
           service: node
           env: production
 
+  # ── Postgres Exporter ────────────────────────────────────────────────────
+  - job_name: "postgres"
+    scrape_interval: 15s
+    static_configs:
+      - targets: ["postgres-exporter:9187"]
+        labels:
+          service: postgres
+          env: production
+
   # ── Storage — Using Cloudinary (cloud), no local storage to scrape
 
   # ── Prometheus self-monitoring ───────────────────────────────────────────

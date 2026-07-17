@@ -37,8 +37,10 @@ Map<String, dynamic> _$SubscriptionModelToJson(_SubscriptionModel instance) =>
 const _$SubscriptionPlanEnumMap = {
   SubscriptionPlan.basic: 'basic',
   SubscriptionPlan.plus: 'plus',
+  SubscriptionPlan.pro: 'pro',
   SubscriptionPlan.basicYearly: 'basic_yearly',
   SubscriptionPlan.plusYearly: 'plus_yearly',
+  SubscriptionPlan.proYearly: 'pro_yearly',
 };
 
 const _$SubscriptionStatusEnumMap = {

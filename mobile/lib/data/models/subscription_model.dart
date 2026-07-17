@@ -9,10 +9,14 @@ enum SubscriptionPlan {
   basic,
   @JsonValue('plus')
   plus,
+  @JsonValue('pro')
+  pro,
   @JsonValue('basic_yearly')
   basicYearly,
   @JsonValue('plus_yearly')
   plusYearly,
+  @JsonValue('pro_yearly')
+  proYearly,
 }
 
 /// Billing cadence.

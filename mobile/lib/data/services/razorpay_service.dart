@@ -22,6 +22,8 @@ class RazorpayService {
         return 'nitro_basic';
       case SubscriptionPlan.plus:
       case SubscriptionPlan.plusYearly:
+      case SubscriptionPlan.pro:
+      case SubscriptionPlan.proYearly:
         return 'nitro_full';
     }
   }

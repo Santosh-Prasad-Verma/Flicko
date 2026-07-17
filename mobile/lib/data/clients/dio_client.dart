@@ -71,16 +71,7 @@ final dioProvider = Provider<Dio>((ref) {
 
   // 5. Logging interceptor for debug builds
   if (AppConfig.isDebug) {
-    dio.interceptors.add(
-      LogInterceptor(
-        requestHeader: false,
-        requestBody: false,
-        responseHeader: false,
-        responseBody: false,
-        error: true,
-        logPrint: (obj) => AppLogger.debug(obj.toString()),
-      ),
-    );
+    dio.interceptors.add(_DioLogInterceptor());
   }
 
   return dio;
@@ -273,5 +264,30 @@ class _ErrorMappingInterceptor extends Interceptor {
       if (data['message'] is String) return data['message'];
     }
     return null;
+  }
+}
+
+class _DioLogInterceptor extends Interceptor {
+  @override
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    // Avoid double printing for prekey polling to keep log readable
+    if (!options.path.contains('one-time-prekeys/count')) {
+      print('🌐 [HTTP] ${options.method} -> ${options.uri}');
+    }
+    handler.next(options);
+  }
+
+  @override
+  void onResponse(Response response, ResponseInterceptorHandler handler) {
+    if (!response.requestOptions.path.contains('one-time-prekeys/count')) {
+      print('✅ [HTTP] ${response.statusCode} <- ${response.requestOptions.uri}');
+    }
+    handler.next(response);
+  }
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) {
+    print('❌ [HTTP] ${err.response?.statusCode ?? 'unknown'} <- ${err.requestOptions.uri} | ${err.message}');
+    handler.next(err);
   }
 }

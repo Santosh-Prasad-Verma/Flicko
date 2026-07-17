@@ -19,6 +19,7 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen>
   final _expiryController = TextEditingController();
   final _cvvController = TextEditingController();
   final _nameController = TextEditingController();
+  final _cvvFocusNode = FocusNode();
 
   bool _isSaving = false;
   bool _showBack = false;
@@ -52,6 +53,10 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen>
     _expiryController.addListener(_updateExpiry);
     _cvvController.addListener(_updateCvv);
     _nameController.addListener(_updateName);
+
+    _cvvFocusNode.addListener(() {
+      _flipCard(_cvvFocusNode.hasFocus);
+    });
   }
 
   @override
@@ -61,6 +66,7 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen>
     _expiryController.dispose();
     _cvvController.dispose();
     _nameController.dispose();
+    _cvvFocusNode.dispose();
     super.dispose();
   }
 
@@ -119,8 +125,8 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen>
 
   String _formatExpiry(String input) {
     final digits = input.replaceAll(RegExp(r'\D'), '');
-    if (digits.length >= 2) {
-      return '${digits.substring(0, 2)}/${digits.length > 4 ? digits.substring(2, 4) : digits.substring(2)}';
+    if (digits.length > 2) {
+      return '${digits.substring(0, 2)}/${digits.substring(2, digits.length > 4 ? 4 : digits.length)}';
     }
     return digits;
   }
@@ -456,8 +462,7 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen>
                 keyboardType: TextInputType.number,
                 maxLength: 4,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                onTap: () => _flipCard(true),
-                onFocusLost: () => _flipCard(false),
+                focusNode: _cvvFocusNode,
                 validator: (v) {
                   if (v == null || v.isEmpty) return 'CVV required';
                   if (v.length < 3) return 'Invalid CVV';
@@ -491,8 +496,7 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen>
     int? maxLength,
     List<TextInputFormatter>? inputFormatters,
     TextCapitalization textCapitalization = TextCapitalization.none,
-    VoidCallback? onTap,
-    VoidCallback? onFocusLost,
+    FocusNode? focusNode,
     String? Function(String?)? validator,
   }) {
     return Column(
@@ -509,11 +513,11 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen>
         const SizedBox(height: 8),
         TextFormField(
           controller: controller,
+          focusNode: focusNode,
           keyboardType: keyboardType,
           textCapitalization: textCapitalization,
           inputFormatters: inputFormatters,
           maxLength: maxLength,
-          onTap: onTap,
           validator: validator,
           style: GoogleFonts.spaceGrotesk(color: white, fontSize: 16),
           decoration: InputDecoration(

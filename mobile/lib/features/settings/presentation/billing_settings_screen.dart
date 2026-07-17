@@ -578,27 +578,30 @@ class _BillingSettingsScreenState extends ConsumerState<BillingSettingsScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'CARDHOLDER',
-                        style: GoogleFonts.spaceGrotesk(
-                          color: white.withValues(alpha: 0.5),
-                          fontSize: 9,
-                          fontWeight: FontWeight.bold,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'CARDHOLDER',
+                          style: GoogleFonts.spaceGrotesk(
+                            color: white.withValues(alpha: 0.5),
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        method.cardholderName ?? 'CARDHOLDER',
-                        style: GoogleFonts.spaceGrotesk(
-                          color: white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
+                        const SizedBox(height: 2),
+                        Text(
+                          method.cardholderName ?? 'CARDHOLDER',
+                          style: GoogleFonts.spaceGrotesk(
+                            color: white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
