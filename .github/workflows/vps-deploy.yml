@@ -14,6 +14,9 @@ on:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  AZURE_RESOURCE_GROUP: 'Flicko'
+  AZURE_NSG_NAME: 'Flicko-Server-nsg'
+  AZURE_RULE_NAME: 'SSH'
 
 jobs:
   deploy:
@@ -21,6 +24,31 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Whitelist Runner IP in Azure NSG
+        id: nsg-ip
+        run: |
+          RUNNER_IP=$(curl -s https://api.ipify.org)
+          echo "runner_ip=$RUNNER_IP" >> $GITHUB_OUTPUT
+          
+          ORIGINAL_IP=$(az network nsg rule show \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --nsg-name ${{ env.AZURE_NSG_NAME }} \
+            --name ${{ env.AZURE_RULE_NAME }} \
+            --query "sourceAddressPrefix" -o tsv)
+          echo "orig_ip=$ORIGINAL_IP" >> $GITHUB_OUTPUT
+          
+          echo "Whitelisting runner IP: $RUNNER_IP (original IP: $ORIGINAL_IP)"
+          az network nsg rule update \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --nsg-name ${{ env.AZURE_NSG_NAME }} \
+            --name ${{ env.AZURE_RULE_NAME }} \
+            --source-address-prefixes "$RUNNER_IP"
 
       - name: Install Doppler CLI
         uses: dopplerhq/cli-action@v3
@@ -109,3 +137,13 @@ jobs:
                 docker logs --tail=50 $container_name 2>&1 || true
               fi
             done
+
+      - name: Restore Original SSH Rule in Azure NSG
+        if: always()
+        run: |
+          echo "Restoring original NSG IP: ${{ steps.nsg-ip.outputs.orig_ip }}"
+          az network nsg rule update \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --nsg-name ${{ env.AZURE_NSG_NAME }} \
+            --name ${{ env.AZURE_RULE_NAME }} \
+            --source-address-prefixes "${{ steps.nsg-ip.outputs.orig_ip }}"
