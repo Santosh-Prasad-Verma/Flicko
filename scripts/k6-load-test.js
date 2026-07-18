@@ -3,6 +3,7 @@ import { check, sleep } from 'k6';
 
 // k6 Load Test Configuration
 export const options = {
+  insecureSkipTLSVerify: true,
   stages: [
     { duration: '10s', target: 10 }, // Ramp up to 10 users
     { duration: '15s', target: 10 }, // Stay at 10 users
