@@ -49,7 +49,10 @@ jobs:
             --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
             --nsg-name ${{ env.AZURE_NSG_NAME }} \
             --name ${{ env.AZURE_RULE_NAME }} \
-            --source-address-prefixes "$RUNNER_IP"
+            --source-address-prefixes "$RUNNER_IP" \
+            --no-wait
+          echo "Waiting 15 seconds for Azure NSG update to propagate..."
+          sleep 15
 
       - name: Install Doppler CLI
         uses: dopplerhq/cli-action@v3
@@ -148,4 +151,5 @@ jobs:
             --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
             --nsg-name ${{ env.AZURE_NSG_NAME }} \
             --name ${{ env.AZURE_RULE_NAME }} \
-            --source-address-prefixes "${{ steps.nsg-ip.outputs.orig_ip }}"
+            --source-address-prefixes "${{ steps.nsg-ip.outputs.orig_ip }}" \
+            --no-wait
