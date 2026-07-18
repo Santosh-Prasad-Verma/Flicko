@@ -55,7 +55,7 @@ jobs:
           sleep 15
 
       - name: Install Doppler CLI
-        uses: dopplerhq/cli-action@v3
+        uses: dopplerhq/cli-action@v4
 
       - name: Fetch Secrets from Doppler
         run: doppler secrets download --no-file --format env > .env.production
