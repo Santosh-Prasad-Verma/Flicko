@@ -581,8 +581,11 @@ class _HomePageState extends State<HomePage> {
                         Navigator.of(ctx).pop();
                         return false;
                       }
-                      Navigator.of(context).pop();
-                      return false;
+                      if (Navigator.of(context).canPop()) {
+                        Navigator.of(context).pop();
+                        return false;
+                      }
+                      return true;
                     },
                     navBarHeight: rotated ? 0.0 : 60.0,
                     bottomScreenMargin: 60.0 +

@@ -154,25 +154,49 @@ class _HomeScreenState extends State<HomeScreen> {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                   GestureDetector(
-                                     onTap: () {
-                                       Scaffold.of(context).openDrawer();
-                                     },
-                                     child: Container(
-                                       width: 42,
-                                       height: 42,
-                                       decoration: BoxDecoration(
-                                         shape: BoxShape.circle,
-                                         color: Colors.white.withOpacity(0.04),
-                                         border: Border.all(color: Colors.white.withOpacity(0.12), width: 1.2),
-                                       ),
-                                       child: const Icon(
-                                         Icons.menu_rounded,
-                                         color: Colors.white,
-                                         size: 22,
-                                       ),
-                                     ),
-                                   ),
+                                  Row(
+                                    children: [
+                                      if (Navigator.of(context).canPop()) ...[
+                                        GestureDetector(
+                                          onTap: () => Navigator.of(context).pop(),
+                                          child: Container(
+                                            width: 42,
+                                            height: 42,
+                                            margin: const EdgeInsets.only(right: 12),
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              color: Colors.white.withOpacity(0.04),
+                                              border: Border.all(color: Colors.white.withOpacity(0.12), width: 1.2),
+                                            ),
+                                            child: const Icon(
+                                              Icons.arrow_back_ios_new_rounded,
+                                              color: Colors.white,
+                                              size: 18,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                      GestureDetector(
+                                        onTap: () {
+                                          Scaffold.of(context).openDrawer();
+                                        },
+                                        child: Container(
+                                          width: 42,
+                                          height: 42,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: Colors.white.withOpacity(0.04),
+                                            border: Border.all(color: Colors.white.withOpacity(0.12), width: 1.2),
+                                          ),
+                                          child: const Icon(
+                                            Icons.menu_rounded,
+                                            color: Colors.white,
+                                            size: 22,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                   Row(
                                     children: [
                                       _buildOutlinedHeaderButton(
