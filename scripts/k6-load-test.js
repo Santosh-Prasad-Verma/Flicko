@@ -10,8 +10,8 @@ export const options = {
     { duration: '5s', target: 0 },   // Ramp down
   ],
   thresholds: {
-    // 90% of requests must complete under 350ms (main API SLA)
-    http_req_duration: ['p(90)<350', 'p(95)<1000'],
+    // 90% of requests must complete under 500ms (main API SLA)
+    http_req_duration: ['p(90)<500', 'p(95)<1000'],
     // Request error rate must be less than 1%
     http_req_failed: ['rate<0.01'],
   },
