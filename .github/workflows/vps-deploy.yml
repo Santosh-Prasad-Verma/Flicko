@@ -33,6 +33,7 @@ jobs:
       - name: Whitelist Runner IP in Azure NSG
         id: nsg-ip
         run: |
+          az config set core.collect_telemetry=false
           RUNNER_IP=$(curl -s https://api.ipify.org)
           echo "runner_ip=$RUNNER_IP" >> $GITHUB_OUTPUT
           
@@ -141,6 +142,7 @@ jobs:
       - name: Restore Original SSH Rule in Azure NSG
         if: always()
         run: |
+          az config set core.collect_telemetry=false
           echo "Restoring original NSG IP: ${{ steps.nsg-ip.outputs.orig_ip }}"
           az network nsg rule update \
             --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
