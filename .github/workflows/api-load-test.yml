@@ -8,7 +8,7 @@ on:
       target_url:
         description: 'Target API Gateway URL to run performance test against'
         required: true
-        default: 'https://flicko.focko.tech'
+        default: 'https://flicko.southeastasia.cloudapp.azure.com'
 
 jobs:
   load-test:
@@ -25,4 +25,4 @@ jobs:
         run: |
           k6 run scripts/k6-load-test.js
         env:
-          API_TARGET_URL: ${{ github.event.inputs.target_url || 'https://flicko.focko.tech' }}
+          API_TARGET_URL: ${{ github.event.inputs.target_url || 'https://flicko.southeastasia.cloudapp.azure.com' }}
