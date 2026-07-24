@@ -7,6 +7,8 @@ name: Mobile E2E (Patrol on Android Emulator)
 # Heavier than the unit/widget suite, so it is NOT a per-PR gate: it runs on
 # merge to main and on-demand. flutter-ci.yml stays the fast per-PR gate.
 on:
+  # NOT a per-PR gate: the emulator job is heavy (~10-15 min) and E2E tests
+  # write real rows, so it runs only on merge to main and on-demand.
   push:
     branches: ['main']
     paths:
