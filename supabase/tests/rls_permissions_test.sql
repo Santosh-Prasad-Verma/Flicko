@@ -108,6 +108,15 @@ INSERT INTO public.messages (id, channel_id, author_id, content) VALUES
 -- superuser can reset this; once we login_as authenticated we cannot).
 SET session_replication_role = DEFAULT;
 
+-- Ensure the authenticated/anon roles hold base table privileges. On a clean
+-- CI build from committed migrations these GRANTs may be missing (prod has them
+-- from out-of-band setup), which surfaces as "permission denied for table"
+-- rather than an RLS decision. Granting here (as superuser, rolled back with
+-- the txn) lets RLS — not missing privileges — be what the assertions measure.
+GRANT USAGE ON SCHEMA public TO authenticated, anon;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO authenticated;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO anon;
+
 -- ===========================================================================
 -- SCENARIO A: A member can read their guild's channels (no recursion).
 -- ===========================================================================
