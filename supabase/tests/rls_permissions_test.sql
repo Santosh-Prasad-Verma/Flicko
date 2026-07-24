@@ -48,7 +48,17 @@ $$ LANGUAGE plpgsql;
 -- ---------------------------------------------------------------------------
 -- Seed fixtures as superuser (RLS is bypassed for the table owner here).
 -- profiles.id -> auth.users, so auth.users rows must exist first.
+--
+-- session_replication_role = replica disables ALL triggers for the seed phase.
+-- The schema fires triggers on insert (e.g. on_auth_user_created auto-creates a
+-- profiles row from auth.users; other tables may auto-populate members, etc.),
+-- which collide with our explicit fixture rows. Suppressing them for seeding
+-- lets us insert exactly the rows we want; we restore DEFAULT before the
+-- assertions so RLS and real behaviour are exercised normally.
+-- (Allowed here because pgTAP runs the test as superuser.)
 -- ---------------------------------------------------------------------------
+SET session_replication_role = replica;
+
 INSERT INTO auth.users (instance_id, id, aud, role, email, encrypted_password,
                         email_confirmed_at, created_at, updated_at,
                         raw_app_meta_data, raw_user_meta_data)
@@ -62,10 +72,17 @@ VALUES
 
 -- discriminator is provided explicitly rather than relying on a column default,
 -- so the seed is self-contained regardless of which migration adds that default.
+-- ON CONFLICT: the on_auth_user_created trigger (migration 017) auto-inserts a
+-- profiles row when we seed auth.users above, so the row already exists. Upsert
+-- to force our known username/discriminator regardless of what the trigger set.
 INSERT INTO public.profiles (id, username, discriminator, email) VALUES
   ('11111111-1111-1111-1111-111111111111', 'owner',    '0001', 'owner@test.dev'),
   ('22222222-2222-2222-2222-222222222222', 'member',   '0002', 'member@test.dev'),
-  ('33333333-3333-3333-3333-333333333333', 'outsider', '0003', 'outsider@test.dev');
+  ('33333333-3333-3333-3333-333333333333', 'outsider', '0003', 'outsider@test.dev')
+ON CONFLICT (id) DO UPDATE
+  SET username = EXCLUDED.username,
+      discriminator = EXCLUDED.discriminator,
+      email = EXCLUDED.email;
 
 INSERT INTO public.servers (id, name, owner_id) VALUES
   ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Test Guild',
@@ -86,6 +103,10 @@ INSERT INTO public.messages (id, channel_id, author_id, content) VALUES
   ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee',
    'cccccccc-cccc-cccc-cccc-cccccccccccc',
    '22222222-2222-2222-2222-222222222222', 'member message');
+
+-- Seed phase complete. Restore triggers BEFORE switching roles (only the
+-- superuser can reset this; once we login_as authenticated we cannot).
+SET session_replication_role = DEFAULT;
 
 -- ===========================================================================
 -- SCENARIO A: A member can read their guild's channels (no recursion).
