@@ -60,10 +60,12 @@ VALUES
   ('00000000-0000-0000-0000-000000000000', '33333333-3333-3333-3333-333333333333',
    'authenticated', 'authenticated', 'outsider@test.dev', '', now(), now(), now(), '{}', '{}');
 
-INSERT INTO public.profiles (id, username, email) VALUES
-  ('11111111-1111-1111-1111-111111111111', 'owner',    'owner@test.dev'),
-  ('22222222-2222-2222-2222-222222222222', 'member',   'member@test.dev'),
-  ('33333333-3333-3333-3333-333333333333', 'outsider', 'outsider@test.dev');
+-- discriminator is provided explicitly rather than relying on a column default,
+-- so the seed is self-contained regardless of which migration adds that default.
+INSERT INTO public.profiles (id, username, discriminator, email) VALUES
+  ('11111111-1111-1111-1111-111111111111', 'owner',    '0001', 'owner@test.dev'),
+  ('22222222-2222-2222-2222-222222222222', 'member',   '0002', 'member@test.dev'),
+  ('33333333-3333-3333-3333-333333333333', 'outsider', '0003', 'outsider@test.dev');
 
 INSERT INTO public.servers (id, name, owner_id) VALUES
   ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Test Guild',
