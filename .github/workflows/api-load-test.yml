@@ -26,3 +26,24 @@ jobs:
           k6 run scripts/k6-load-test.js
         env:
           API_TARGET_URL: ${{ github.event.inputs.target_url || 'https://flicko.southeastasia.cloudapp.azure.com' }}
+
+  realtime-ws-test:
+    name: Realtime WebSocket Fan-out Load Test
+    runs-on: ubuntu-latest
+    # Only run when realtime creds are configured (on-demand / scheduled), so a
+    # normal push isn't blocked by a missing secret. Point secrets at a
+    # DEDICATED TEST/STAGING Supabase project, never production.
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup k6 Load Testing CLI
+        uses: grafana/setup-k6-action@v1
+
+      - name: Run k6 Realtime WebSocket Test
+        run: |
+          k6 run scripts/k6-realtime-ws-test.js
+        env:
+          SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY }}

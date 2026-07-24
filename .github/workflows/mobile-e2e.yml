@@ -1,0 +1,81 @@
+name: Mobile E2E (Patrol on Android Emulator)
+
+# On-device E2E via an Android EMULATOR booted inside the GitHub-hosted runner.
+# No device farm, no GCP, no cloud account — the emulated phone talks to your
+# Azure-hosted backend over the network like any real device would.
+#
+# Heavier than the unit/widget suite, so it is NOT a per-PR gate: it runs on
+# merge to main and on-demand. flutter-ci.yml stays the fast per-PR gate.
+on:
+  push:
+    branches: ['main']
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/mobile-e2e.yml'
+  workflow_dispatch:
+    inputs:
+      api_level:
+        description: 'Android API level to emulate'
+        required: true
+        default: '30'  # Android 11
+
+jobs:
+  patrol-e2e:
+    name: Patrol E2E on Android Emulator
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      - name: Enable KVM hardware acceleration
+        # The emulator needs KVM to run at usable speed on the runner.
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+        working-directory: .
+
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Install Patrol CLI
+        run: dart pub global activate patrol_cli
+
+      - name: Run Patrol E2E on emulator
+        # android-emulator-runner boots the AVD, then runs `script` once it is
+        # ready. `patrol test` builds the app + instrumentation and drives the
+        # integration_test/*.dart suites on the emulator, including native OS
+        # dialogs (mic permission, deep links).
+        #
+        # Dart-defines feed the app's AppConfig (String.fromEnvironment). These
+        # MUST point at a DEDICATED TEST/STAGING project — never prod — because
+        # E2E tests create and mutate real rows. Only non-GCP secrets remain.
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ github.event.inputs.api_level || '30' }}
+          arch: x86_64
+          profile: pixel_5
+          working-directory: mobile
+          script: |
+            patrol test \
+              --dart-define=FLICKO_SUPABASE_URL=${{ secrets.E2E_SUPABASE_URL }} \
+              --dart-define=FLICKO_SUPABASE_ANON_KEY=${{ secrets.E2E_SUPABASE_ANON_KEY }} \
+              --dart-define=FLICKO_API_BASE_URL=${{ secrets.E2E_API_BASE_URL }} \
+              --dart-define=FLICKO_LIVEKIT_URL=${{ secrets.E2E_LIVEKIT_URL }}
