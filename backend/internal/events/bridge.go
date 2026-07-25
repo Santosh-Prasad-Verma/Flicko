@@ -82,7 +82,7 @@ func (b *Bridge) handleClientEvent(evt Event) error {
 
 	_, err = b.db.Exec(context.Background(),
 		`INSERT INTO bot_events (server_id, bot_name, event_type, data) VALUES ($1, $2, $3, $4)`,
-		evt.ServerID, botName, string(evt.Type), dataJSON)
+		evt.ServerID, botName, string(evt.Type), string(dataJSON))
 	if err != nil {
 		b.logger.Error("failed to persist bot event", zap.Error(err))
 		return err

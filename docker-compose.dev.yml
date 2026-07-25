@@ -53,6 +53,37 @@ services:
       - "host.docker.internal:host-gateway"
 
   # ----------------------------------------------------------
+  # MEILISEARCH — Message search index
+  #
+  # msg-service (internal/search/meilisearch.go) defaults to
+  # http://localhost:7700 and syncs messages via its CDC worker. Without this
+  # running, search indexing is degraded and the service logs
+  # "could not connect or initialize Meilisearch index" on startup.
+  #
+  # Override with MEILISEARCH_HOST / MEILISEARCH_API_KEY in .env if you point at
+  # a hosted instance instead.
+  #
+  # SECURITY: MEILI_ENV=development disables master-key enforcement, so this
+  # instance is UNAUTHENTICATED. The port is therefore published on the loopback
+  # interface only (127.0.0.1:7700) so it is not reachable from the network. For
+  # any shared or production deployment, set MEILI_ENV=production and supply
+  # MEILI_MASTER_KEY, then set MEILISEARCH_API_KEY to match.
+  # ----------------------------------------------------------
+  meilisearch:
+    image: getmeili/meilisearch:v1.6
+    container_name: flicko-meilisearch-dev
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:7700:7700"
+    environment:
+      MEILI_ENV: development
+      MEILI_NO_ANALYTICS: "true"
+    volumes:
+      - meili_dev_data:/meili_data
+    networks:
+      - flicko_dev
+
+  # ----------------------------------------------------------
   # GRAFANA — Dashboards
   # ----------------------------------------------------------
   grafana:
@@ -87,3 +118,4 @@ networks:
 volumes:
   prometheus_dev_data:
   grafana_dev_data:
+  meili_dev_data:

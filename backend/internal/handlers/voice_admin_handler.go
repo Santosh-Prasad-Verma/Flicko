@@ -320,6 +320,6 @@ func (h *VoiceAdminHandler) insertVoiceAdminAction(
 			server_id, channel_id, actor_id, target_user_id, action_type, action_metadata
 		)
 		VALUES ($1, $2, $3, $4, $5, $6::jsonb)
-	`, serverID, channelID, actorID, targetUserID, actionType, raw)
+	`, serverID, channelID, actorID, targetUserID, actionType, string(raw))
 	return err
 }

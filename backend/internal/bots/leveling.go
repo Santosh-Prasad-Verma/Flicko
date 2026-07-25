@@ -2,11 +2,14 @@ package bots
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"math/rand"
 	"strings"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 
 	"github.com/flicko-org/flicko-backend/internal/commands"
 	"github.com/flicko-org/flicko-backend/internal/events"
@@ -434,7 +437,20 @@ func (b *LevelingBot) onMessageCreate(evt events.Event) error {
 		&settings.Enabled, &settings.XPMin, &settings.XPMax, &settings.Cooldown,
 		&settings.Message, &settings.NoXPChannels, &settings.StackRoles, &settings.LevelUpChannelID,
 	)
-	if err != nil || !settings.Enabled {
+	if err != nil {
+		// No row means leveling was never configured for this server — that is a
+		// normal, silent no-op. Any other error is a real fault and must not be
+		// swallowed: it previously looked identical to "leveling disabled", which
+		// made a broken query indistinguishable from an intentional opt-out.
+		if !errors.Is(err, pgx.ErrNoRows) {
+			b.logger.Error("load level settings failed",
+				zap.String("server_id", evt.ServerID),
+				zap.Error(err),
+			)
+		}
+		return nil
+	}
+	if !settings.Enabled {
 		return nil
 	}
 
@@ -458,8 +474,23 @@ func (b *LevelingBot) onMessageCreate(evt events.Event) error {
 		return nil // on cooldown
 	}
 
-	// Calculate XP with multipliers
-	baseXP := settings.XPMin + rand.Intn(settings.XPMax-settings.XPMin+1)
+	// Calculate XP with multipliers.
+	//
+	// rand.Intn panics when its argument is <= 0, which happens whenever
+	// xp_max <= xp_min - 1 (e.g. a server that sets xp_max below xp_min, or both
+	// to 0). That panic would propagate through the event bus on every message in
+	// that server, so clamp the span to a safe minimum first.
+	xpMin, xpMax := settings.XPMin, settings.XPMax
+	if xpMin < 0 {
+		xpMin = 0
+	}
+	if xpMax < xpMin {
+		xpMax = xpMin
+	}
+	baseXP := xpMin
+	if span := xpMax - xpMin + 1; span > 1 {
+		baseXP = xpMin + rand.Intn(span)
+	}
 	multiplier := b.getMultiplier(evt.ServerID, authorID, evt.ChannelID)
 	xpGain := int(float64(baseXP) * multiplier)
 

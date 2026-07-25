@@ -57,6 +57,59 @@ jobs:
       - name: Create dummy .env for asset bundling
         run: touch .env
 
+      - name: Materialize google-services.json
+        # android/app/build.gradle.kts applies com.google.gms.google-services,
+        # and that plugin FAILS THE BUILD outright when google-services.json is
+        # absent (":app:processDebugGoogleServices > File google-services.json is
+        # missing"). The real file is gitignored (it carries a Firebase API key),
+        # so a fresh CI checkout never has one and the Patrol build dies before a
+        # single test runs.
+        #
+        # If ANDROID_GOOGLE_SERVICES_JSON is configured, use it. Otherwise fall
+        # back to a structurally valid placeholder: the plugin only needs the file
+        # to parse and to contain a client entry whose package_name matches
+        # applicationId (tech.focko.flicko). Push notifications won't work against
+        # a placeholder, but main.dart already wraps Firebase.initializeApp() in
+        # try/catch ("Firebase init skipped"), so the app still launches — which is
+        # all app_launch_test.dart exercises.
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.ANDROID_GOOGLE_SERVICES_JSON }}
+        run: |
+          set -euo pipefail
+          target="android/app/google-services.json"
+          if [ -n "${GOOGLE_SERVICES_JSON:-}" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON" > "$target"
+            echo "Wrote google-services.json from ANDROID_GOOGLE_SERVICES_JSON secret."
+          else
+            echo "::warning::ANDROID_GOOGLE_SERVICES_JSON secret is not set; using a placeholder google-services.json. Firebase/FCM will be inert in this run."
+            cat > "$target" <<'JSON'
+          {
+            "project_info": {
+              "project_number": "000000000000",
+              "project_id": "flicko-ci-placeholder",
+              "storage_bucket": "flicko-ci-placeholder.appspot.com"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+                  "android_client_info": {
+                    "package_name": "tech.focko.flicko"
+                  }
+                },
+                "api_key": [
+                  { "current_key": "AIzaSyA0000000000000000000000000000000000" }
+                ]
+              }
+            ],
+            "configuration_version": "1"
+          }
+          JSON
+          fi
+          # Fail loudly here rather than 2.5 minutes into a Gradle build.
+          python3 -c "import json,sys; json.load(open('$target'))"
+          echo "google-services.json is present and parses as JSON."
+
       - name: Install Dependencies
         run: flutter pub get
 

@@ -13,7 +13,7 @@ services:
     restart: unless-stopped
     network_mode: "host"
     volumes:
-      - ./livekit.yaml:/etc/livekit.yaml
+      - ./livekit.yaml:/etc/livekit.yaml:z
     depends_on:
       - redis
     environment:

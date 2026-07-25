@@ -237,10 +237,11 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       final now = DateTime.now();
       final diffInSeconds = (now.difference(date).inSeconds);
 
-      if (diffInSeconds < 60) return '${diffInSeconds}s ago';
-      if (diffInSeconds < 3600) return '${(diffInSeconds / 60).floor()}m ago';
-      if (diffInSeconds < 86400) return '${(diffInSeconds / 3600).floor()}h ago';
-      return '${(diffInSeconds / 86400).floor()}d ago';
+      if (diffInSeconds < 60) return 'Just now';
+      if (diffInSeconds < 3600) return '${(diffInSeconds / 60).floor()}m';
+      if (diffInSeconds < 86400) return '${(diffInSeconds / 3600).floor()}h';
+      if (diffInSeconds < 2592000) return '${(diffInSeconds / 86400).floor()}d';
+      return '${(diffInSeconds / 2592000).floor()}mo';
     } catch (_) {
       return 'Just now';
     }
@@ -331,50 +332,52 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
               ],
             ),
           ),
-          // Sub-tabs — dark styled
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            child: Row(
-              children: _tabs.map((tab) {
+          // Sub-tabs — horizontal scrollable pill chips
+          SizedBox(
+            height: 38,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              itemCount: _tabs.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final tab = _tabs[index];
                 final active = _activeTab == tab;
-                return Expanded(
-                  child: GestureDetector(
-                    onTap: () => setState(() => _activeTab = tab),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-                      decoration: BoxDecoration(
-                        color: active ? _greenPunch : Colors.white.withValues(alpha: 0.02),
-                        border: Border.all(
-                          color: active ? _greenPunch : Colors.white.withValues(alpha: 0.06),
-                          width: 1.0,
-                        ),
-                        borderRadius: BorderRadius.circular(30),
-                        boxShadow: active
-                            ? [
-                                BoxShadow(
-                                  color: _greenPunch.withValues(alpha: 0.25),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                )
-                              ]
-                            : null,
+                return GestureDetector(
+                  onTap: () => setState(() => _activeTab = tab),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: active ? _greenPunch : const Color(0xFF14141A),
+                      border: Border.all(
+                        color: active ? _greenPunch : Colors.white.withValues(alpha: 0.1),
+                        width: 1.2,
                       ),
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: active
+                          ? [
+                              BoxShadow(
+                                color: _greenPunch.withValues(alpha: 0.3),
+                                blurRadius: 10,
+                                offset: const Offset(0, 2),
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: Center(
                       child: Text(
-                        tab.toUpperCase(),
-                        textAlign: TextAlign.center,
+                        tab,
                         style: GoogleFonts.outfit(
                           color: active ? Colors.black : _textSecondary,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.5,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
                   ),
                 );
-              }).toList(),
+              },
             ),
           ),
           const SizedBox(height: 12),
@@ -574,13 +577,16 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
   Widget _buildNotificationItem(Notification notification) {
     final meta = notification.content ?? {};
-    final userName = meta['userName'] as String? ?? 'Someone';
+    final senderId = meta['userId'] as String? ?? meta['senderId'] as String? ?? meta['sender_id'] as String?;
+    final senderProfile = senderId != null ? _senderProfiles[senderId] : null;
+    final userName = (senderProfile?.displayName != null && senderProfile!.displayName.isNotEmpty)
+        ? senderProfile.displayName
+        : ((senderProfile?.username != null && senderProfile!.username.isNotEmpty)
+            ? senderProfile.username
+            : (meta['userName'] as String? ?? 'Someone'));
     var content = meta['content'] as String? ?? 'sent a notification';
     final preview = meta['preview'] as String?;
     final accentColor = _getTypeAccentColor(notification.type);
-
-    final senderId = meta['userId'] as String? ?? meta['senderId'] as String? ?? meta['sender_id'] as String?;
-    final senderProfile = senderId != null ? _senderProfiles[senderId] : null;
 
     if (content == 'sent you a direct message' && _isMediaUrl(preview)) {
       final mediaType = _getMediaType(preview!);
