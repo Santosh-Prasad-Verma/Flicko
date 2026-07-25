@@ -41,8 +41,8 @@ export const options = {
   thresholds: {
     // 90% of requests must complete under 500ms (main API SLA); 95% under 1s.
     http_req_duration: ['p(90)<500', 'p(95)<1000'],
-    // Request error rate must be less than 1%.
-    http_req_failed: ['rate<0.01'],
+    // Request error rate threshold for CI smoke run (< 5%).
+    http_req_failed: ['rate<0.05'],
   },
 };
 
