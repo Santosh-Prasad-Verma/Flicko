@@ -73,6 +73,9 @@ class AppConfig {
   static const String _definedLegacySupabaseAnonKey = String.fromEnvironment(
     'SUPABASE_ANON_KEY',
   );
+  static const String _definedLegacySupabaseRealtimeUrl = String.fromEnvironment(
+    'SUPABASE_REALTIME_URL',
+  );
   static const String _definedLegacyLivekitUrl = String.fromEnvironment(
     'LIVEKIT_URL',
   );
