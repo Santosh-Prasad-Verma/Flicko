@@ -9,7 +9,7 @@
 set -euo pipefail
 
 TOLGEE_URL="${TOLGEE_API_URL:-http://104.43.114.32:8085}"
-TOLGEE_KEY="${TOLGEE_API_KEY:-tgpak_gjptmmtkgu2wcnjzojzxaz3gmf3dc4jwge4dmzzwoe4wo}"
+TOLGEE_KEY="${TOLGEE_API_KEY:-tgpak_gjpwy2jwgy2gwmtehb2gi4lvmjqxg5lnmmzg63llmjzhm}"
 PROJECT_ID="${TOLGEE_PROJECT_ID:-2}"
 L10N_DIR="mobile/lib/features/sonic_music/localization"
 
