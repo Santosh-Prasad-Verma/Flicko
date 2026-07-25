@@ -1,0 +1,36 @@
+name: Tolgee Localization Sync
+
+on:
+  schedule:
+    - cron: '0 2 * * *' # Run nightly at 02:00 UTC
+  workflow_dispatch:
+
+jobs:
+  sync-translations:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y curl unzip
+
+      - name: Sync Translations from Tolgee Server
+        env:
+          TOLGEE_API_URL: ${{ secrets.TOLGEE_API_URL }}
+          TOLGEE_API_KEY: ${{ secrets.TOLGEE_API_KEY }}
+          TOLGEE_PROJECT_ID: ${{ secrets.TOLGEE_PROJECT_ID }}
+        run: |
+          chmod +x ./scripts/sync-l10n.sh
+          ./scripts/sync-l10n.sh
+
+      - name: Create Pull Request with Translation Updates
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore(l10n): sync latest translations from Tolgee"
+          title: "chore(l10n): sync latest translations from Tolgee"
+          body: "Automated nightly translation synchronization from self-hosted Tolgee platform."
+          branch: "auto/l10n-sync"
+          delete-branch: true
