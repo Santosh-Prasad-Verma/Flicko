@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -46,7 +47,10 @@ class _AccessibilitySettingsScreenState
     ref.read(userSettingsNotifierProvider.notifier).setDouble('appearance_font_scale', value);
   }
 
-  void _setBool(String key, bool value) {
+  Future<void> _setBool(String key, bool value) async {
+    HapticFeedback.lightImpact();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(key, value);
     ref.read(userSettingsNotifierProvider.notifier).setBool(key, value);
   }
 
@@ -368,6 +372,15 @@ class _AccessibilitySettingsScreenState
           title: 'HAPTIC FEEDBACK',
           subtitle: 'Sensory tactile responses during app navigation.',
           badge: 'VIBRATION',
+          toggleWidget: _buildHardwareToggle(ref.watch(userSettingsNotifierProvider).hapticFeedback, (val) {
+            _setBool('access_haptic_feedback', val);
+          }),
+        ),
+        const SizedBox(height: 14),
+        _buildAccessCard(
+          title: 'SCREEN READER / LARGE TEXT',
+          subtitle: 'Optimize font scaling and screen reader accessibility labels.',
+          badge: 'A11Y',
           toggleWidget: _buildHardwareToggle(ref.watch(userSettingsNotifierProvider).largeText, (val) {
             _setBool('access_large_text', val);
           }),

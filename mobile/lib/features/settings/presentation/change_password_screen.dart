@@ -343,47 +343,43 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
       children: [
         Text(
           label,
-          style: GoogleFonts.spaceGrotesk(
-            color: _neonGreen,
-            fontSize: 10,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 1.5,
+          style: GoogleFonts.epilogue(
+            color: _textWhite,
+            fontSize: 14,
+            fontWeight: FontWeight.w800,
+            fontStyle: FontStyle.italic,
           ),
         ),
         const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: _surfaceContainer,
-            border: Border.all(
-              color: _textWhite.withValues(alpha: 0.1),
-              width: 1,
+        TextField(
+          controller: controller,
+          obscureText: obscure,
+          style: GoogleFonts.spaceMono(color: _textWhite, fontSize: 14),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: GoogleFonts.spaceMono(color: _textMuted, fontSize: 12),
+            filled: true,
+            fillColor: _bgBlack,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.zero,
+              borderSide: BorderSide(color: _textWhite.withValues(alpha: 0.1)),
             ),
-          ),
-          child: TextField(
-            controller: controller,
-            obscureText: obscure,
-            style: GoogleFonts.inter(
-              color: _textWhite,
-              fontSize: 14,
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.zero,
+              borderSide: BorderSide(color: _textWhite.withValues(alpha: 0.1)),
             ),
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: GoogleFonts.inter(
-                color: _textMuted.withValues(alpha: 0.5),
-                fontSize: 14,
-              ),
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 14,
-              ),
-              suffixIcon: GestureDetector(
-                onTap: onToggle,
-                child: Icon(
-                  obscure ? Icons.visibility_off : Icons.visibility,
-                  color: _textMuted,
-                  size: 20,
-                ),
+            focusedBorder: const OutlineInputBorder(
+              borderRadius: BorderRadius.zero,
+              borderSide: BorderSide(color: _neonGreen, width: 1.5),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            prefixIcon: const Icon(Icons.lock_outline_rounded, size: 18, color: _neonGreen),
+            suffixIcon: GestureDetector(
+              onTap: onToggle,
+              child: Icon(
+                obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                color: _textMuted,
+                size: 20,
               ),
             ),
           ),
@@ -400,31 +396,24 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
           color: _neonGreen,
-          boxShadow: [
-            BoxShadow(
-              color: _neonGreen.withValues(alpha: 0.3),
-              blurRadius: 20,
-              spreadRadius: 2,
-            ),
-          ],
+          border: Border.all(color: _neonGreen),
         ),
-        child: Center(
-          child: _isLoading
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
-                )
-              : Text(
-                  'UPDATE PASSWORD',
-                  style: GoogleFonts.spaceGrotesk(
-                    color: Colors.black,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.5,
-                  ),
+        alignment: Alignment.center,
+        child: _isLoading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+              )
+            : Text(
+                'UPDATE PASSWORD',
+                style: GoogleFonts.spaceGrotesk(
+                  color: Colors.black,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.0,
                 ),
-        ),
+              ),
       ),
     );
   }

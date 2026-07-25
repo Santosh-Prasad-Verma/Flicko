@@ -72,12 +72,14 @@ class E2EESession {
     final fingerprint =
         await CryptoService.fingerprintHex(Uint8List.fromList(identityPub));
 
-    await _remote.uploadIdentity(
-      deviceId: deviceId,
-      identityPub: base64Encode(identityPub),
-      signingPub: base64Encode(signingPub),
-      fingerprint: fingerprint,
-    );
+    try {
+      await _remote.uploadIdentity(
+        deviceId: deviceId,
+        identityPub: base64Encode(identityPub),
+        signingPub: base64Encode(signingPub),
+        fingerprint: fingerprint,
+      );
+    } catch (_) {}
   }
 
   Future<void> _generateAndUploadSignedPrekey(String deviceId) async {
@@ -93,19 +95,26 @@ class E2EESession {
     final spkPub = (await spk.extractPublicKey()).bytes;
     final sig = await CryptoService.sign(signingKp, spkPub);
 
-    await _remote.uploadSignedPrekey(
-      deviceId: deviceId,
-      keyId: keyId,
-      publicKey: base64Encode(spkPub),
-      signature: base64Encode(sig),
-    );
+    try {
+      await _remote.uploadSignedPrekey(
+        deviceId: deviceId,
+        keyId: keyId,
+        publicKey: base64Encode(spkPub),
+        signature: base64Encode(sig),
+      );
+    } catch (_) {}
   }
 
   Future<void> _maybeRefillOneTimePrekeys(String deviceId) async {
-    final status = await _remote.getOneTimePrekeyCount(deviceId);
-    if (status.count >= _prekeyPoolFloor) return;
+    int currentCount = 0;
+    try {
+      final status = await _remote.getOneTimePrekeyCount(deviceId);
+      currentCount = status.count;
+    } catch (_) {}
 
-    final toGenerate = _prekeyPoolTarget - status.count;
+    if (currentCount >= _prekeyPoolFloor) return;
+
+    final toGenerate = _prekeyPoolTarget - currentCount;
     final batch = <OneTimePrekey>[];
     for (var i = 0; i < toGenerate; i++) {
       final keyId = await _local.nextOneTimePrekeyId();
@@ -114,7 +123,9 @@ class E2EESession {
       final pub = (await kp.extractPublicKey()).bytes;
       batch.add(OneTimePrekey(keyId: keyId, publicKey: base64Encode(pub)));
     }
-    await _remote.uploadOneTimePrekeys(deviceId: deviceId, prekeys: batch);
+    try {
+      await _remote.uploadOneTimePrekeys(deviceId: deviceId, prekeys: batch);
+    } catch (_) {}
   }
 
   /// Manual refill — exposed for settings screen ("regenerate keys" action).

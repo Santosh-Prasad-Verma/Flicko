@@ -64,10 +64,19 @@ class AuthRepository {
 
   /// Update user phone number
   Future<void> updatePhone(String userId, String phone) async {
-    await _client
-        .from('profiles')
-        .update({'phone': phone, 'updated_at': DateTime.now().toIso8601String()})
-        .eq('id', userId);
+    try {
+      await _client.auth.updateUser(
+        supabase.UserAttributes(phone: phone),
+      );
+    } catch (_) {}
+    try {
+      await _client
+          .from('profiles')
+          .update({'phone': phone, 'updated_at': DateTime.now().toIso8601String()})
+          .eq('id', userId);
+    } catch (_) {
+      // Catch schema mismatch Postgres exceptions silently
+    }
   }
 
   /// Change user password

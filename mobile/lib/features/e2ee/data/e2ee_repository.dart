@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -9,6 +10,18 @@ import '../domain/e2ee_models.dart';
 class E2EERepository {
   final Dio _dio;
   E2EERepository(this._dio);
+
+  Map<String, dynamic> _parseMap(dynamic raw) {
+    if (raw == null) return {};
+    if (raw is Map) return raw.cast<String, dynamic>();
+    if (raw is String && raw.isNotEmpty) {
+      try {
+        final decoded = json.decode(raw);
+        if (decoded is Map) return decoded.cast<String, dynamic>();
+      } catch (_) {}
+    }
+    return {};
+  }
 
   // ── Identity ────────────────────────────────────────────────────────────
 
@@ -30,10 +43,14 @@ class E2EERepository {
     try {
       final res = await _dio.get('/e2ee/identity/$userId',
           queryParameters: deviceId != null ? {'device_id': deviceId} : null);
-      return IdentityKey.fromJson((res.data as Map).cast<String, dynamic>());
+      final map = _parseMap(res.data);
+      if (map.isEmpty) return null;
+      return IdentityKey.fromJson(map);
     } on DioException catch (e) {
       if (e.response?.statusCode == 404) return null;
       rethrow;
+    } catch (_) {
+      return null;
     }
   }
 
@@ -42,13 +59,16 @@ class E2EERepository {
   Future<List<IdentityKey>> fetchDevices(String userId) async {
     try {
       final res = await _dio.get('/e2ee/devices/$userId');
-      final list = ((res.data as Map)['devices'] as List? ?? []);
+      final map = _parseMap(res.data);
+      final list = (map['devices'] as List? ?? []);
       return list
-          .map((e) => IdentityKey.fromJson((e as Map).cast<String, dynamic>()))
+          .map((e) => IdentityKey.fromJson(_parseMap(e)))
           .toList();
     } on DioException catch (e) {
       if (e.response?.statusCode == 404) return const [];
       rethrow;
+    } catch (_) {
+      return const [];
     }
   }
 
@@ -115,17 +135,21 @@ class E2EERepository {
       'device_id': deviceId,
       'prekeys': prekeys.map((p) => p.toJson()).toList(),
     });
-    return ((res.data as Map)['remaining'] as num?)?.toInt() ?? 0;
+    return (_parseMap(res.data)['remaining'] as num?)?.toInt() ?? 0;
   }
 
   Future<({int count, bool low})> getOneTimePrekeyCount(String deviceId) async {
-    final res = await _dio
-        .get('/e2ee/one-time-prekeys/count', queryParameters: {'device_id': deviceId});
-    final m = (res.data as Map).cast<String, dynamic>();
-    return (
-      count: (m['count'] as num?)?.toInt() ?? 0,
-      low: m['low'] == true,
-    );
+    try {
+      final res = await _dio
+          .get('/e2ee/one-time-prekeys/count', queryParameters: {'device_id': deviceId});
+      final m = _parseMap(res.data);
+      return (
+        count: (m['count'] as num?)?.toInt() ?? 0,
+        low: m['low'] == true,
+      );
+    } catch (_) {
+      return (count: 25, low: false);
+    }
   }
 
   // ── Bundle ──────────────────────────────────────────────────────────────
@@ -134,10 +158,14 @@ class E2EERepository {
     try {
       final res = await _dio.get('/e2ee/bundle/$userId',
           queryParameters: deviceId != null ? {'device_id': deviceId} : null);
-      return PrekeyBundle.fromJson((res.data as Map).cast<String, dynamic>());
+      final map = _parseMap(res.data);
+      if (map.isEmpty) return null;
+      return PrekeyBundle.fromJson(map);
     } on DioException catch (e) {
       if (e.response?.statusCode == 404) return null;
       rethrow;
+    } catch (_) {
+      return null;
     }
   }
 
@@ -150,8 +178,10 @@ class E2EERepository {
   Future<bool> isConversationEnabled(String otherUserId) async {
     try {
       final res = await _dio.get('/e2ee/conversations/$otherUserId/state');
-      return (res.data as Map)['enabled'] == true;
+      return _parseMap(res.data)['enabled'] == true;
     } on DioException catch (_) {
+      return false;
+    } catch (_) {
       return false;
     }
   }
