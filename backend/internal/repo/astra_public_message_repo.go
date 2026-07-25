@@ -46,6 +46,10 @@ func (r *astraPublicMessageRepo) InsertPublicMessage(ctx context.Context, msg *m
 		"updated_at":    msg.UpdatedAt.Format(time.RFC3339),
 	}
 
+	if msg.Vectorize != "" {
+		doc["$vectorize"] = msg.Vectorize
+	}
+
 	if len(msg.Vector) > 0 {
 		doc["$vector"] = msg.Vector
 	}
