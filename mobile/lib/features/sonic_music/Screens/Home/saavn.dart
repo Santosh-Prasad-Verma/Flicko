@@ -286,21 +286,28 @@ class _SaavnHomePageState extends State<SaavnHomePage>
                                   GestureDetector(
                                     onTap: () => _playPlaylistOrAlbum(item),
                                     child: Container(
-                                      width: 44,
-                                      height: 44,
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                                       decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
+                                        borderRadius: BorderRadius.circular(22),
                                         color: Theme.of(context).colorScheme.secondary,
                                       ),
-                                      child: const Icon(Icons.play_arrow_rounded, color: Colors.black, size: 24),
+                                      child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.play_arrow_rounded, color: Colors.black, size: 20),
+                                          SizedBox(width: 6),
+                                          Text(
+                                            'Play All',
+                                            style: TextStyle(
+                                              color: Colors.black,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
-                                  const SizedBox(width: 16),
-                                  Icon(Icons.favorite_border_rounded, color: Colors.white.withOpacity(0.6), size: 20),
-                                  const SizedBox(width: 16),
-                                  Icon(Icons.download_outlined, color: Colors.white.withOpacity(0.6), size: 20),
-                                  const SizedBox(width: 16),
-                                  Icon(Icons.more_horiz_rounded, color: Colors.white.withOpacity(0.6), size: 20),
                                 ],
                               ),
                             ],

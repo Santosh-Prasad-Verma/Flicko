@@ -255,70 +255,7 @@ class _PlayScreenState extends State<PlayScreen> {
                       Navigator.pop(context);
                     },
                   ),
-                  title: ClipRRect(
-                    borderRadius: BorderRadius.circular(24.0),
-                    child: BackdropFilter(
-                      filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 4, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.06),
-                          borderRadius: BorderRadius.circular(24.0),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.08),
-                            width: 1.0,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.secondary,
-                                borderRadius: BorderRadius.circular(20.0),
-                              ),
-                              child: const Row(
-                                children: [
-                                  Icon(Icons.music_note_rounded,
-                                      size: 16, color: Colors.black),
-                                  SizedBox(width: 4),
-                                  Text("Song",
-                                      style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.black)),
-                                ],
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 6),
-                              decoration: const BoxDecoration(
-                                color: Colors.transparent,
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(Icons.play_circle_outline_rounded,
-                                      size: 16,
-                                      color: Colors.white.withOpacity(0.6)),
-                                  const SizedBox(width: 4),
-                                  Text("Video",
-                                      style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.normal,
-                                          color:
-                                              Colors.white.withOpacity(0.6))),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
+                  title: const Text(''),
                   actions: [
                     IconButton(
                       icon: const Icon(Icons.cast_rounded),
@@ -1426,7 +1363,7 @@ class _RelatedSongsSectionState extends State<RelatedSongsSection> {
       if (widget.mediaItem.genre != 'YouTube') {
         // JioSaavn
         final searchRes = await SaavnAPI()
-            .fetchSongSearchResults(searchQuery: artist, count: 5);
+            .fetchSongSearchResults(searchQuery: artist, count: 25);
         if (searchRes['songs'] != null) {
           topList = List<Map>.from(searchRes['songs'] as List);
         }
@@ -1459,7 +1396,7 @@ class _RelatedSongsSectionState extends State<RelatedSongsSection> {
       final seenIds = <String>{};
       final seenTitles = <String>{};
       final List<Map> merged = [];
-      for (final song in [...topList, ...similarList]) {
+      for (final song in [...similarList, ...topList]) {
         final songId = song['id']?.toString() ?? '';
         final title = (song['title'] ?? song['name'] ?? '').toString().toLowerCase().trim();
         final artist = (song['artist'] ?? song['artistName'] ?? song['subtitle'] ?? '').toString().toLowerCase().trim();
@@ -1470,7 +1407,7 @@ class _RelatedSongsSectionState extends State<RelatedSongsSection> {
             merged.add(song);
           }
         }
-        if (merged.length >= 8) break;
+        if (merged.length >= 50) break;
       }
 
       if (mounted) {
@@ -2659,151 +2596,71 @@ class _NameNControlsState extends State<NameNControls> {
                   ),
                 ),
 
-                /// Premium Reaction Pills Row
+                /// Action Buttons Row (Download & Lyrics)
                 Padding(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 24.0, vertical: 8.0),
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    physics: const BouncingScrollPhysics(),
-                    child: Row(
-                      children: [
-                        // Combined Like/Dislike Pill
-                        Container(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Download Button replacing Like Button
+                      Container(
+                        height: 38,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            DownloadButton(
+                              data: MediaItemConverter.mediaItemToMap(widget.mediaItem),
+                              icon: 'download',
+                              size: 18.0,
+                            ),
+                            const Text(
+                              "Download",
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.white70,
+                                  fontWeight: FontWeight.w600),
+                            ),
+                            const SizedBox(width: 8),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      // Lyrics Button
+                      GestureDetector(
+                        onTap: () =>
+                            widget.cardKey.currentState!.toggleCard(),
+                        child: Container(
                           height: 38,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 8),
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.08),
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          child: Row(
+                          child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              ValueListenableBuilder(
-                                valueListenable:
-                                    Hive.box('Favorite Songs').listenable(),
-                                builder: (BuildContext context, Box box,
-                                    Widget? child) {
-                                  final bool liked = checkPlaylist(
-                                      'Favorite Songs', widget.mediaItem.id);
-                                  return GestureDetector(
-                                    onTap: () {
-                                      liked
-                                          ? removeLiked(widget.mediaItem.id)
-                                          : addItemToPlaylist('Favorite Songs',
-                                              widget.mediaItem);
-                                    },
-                                    child: Padding(
-                                      padding: const EdgeInsets.only(
-                                          left: 12, right: 8),
-                                      child: Row(
-                                        children: [
-                                          Icon(
-                                            liked
-                                                ? Icons.thumb_up_rounded
-                                                : Icons.thumb_up_outlined,
-                                            size: 18,
-                                            color: liked
-                                                ? Colors.white
-                                                : Colors.white70,
-                                          ),
-                                          const SizedBox(width: 6),
-                                          Text(
-                                            liked ? "Liked" : "2.8L",
-                                            style: const TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.white70,
-                                                fontWeight: FontWeight.w600),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                              Container(
-                                height: 16,
-                                width: 1,
-                                color: Colors.white24,
-                              ),
-                              GestureDetector(
-                                onTap: () {
-                                  ShowSnackBar().showSnackBar(
-                                      context, "Feedback recorded.");
-                                },
-                                child: const Padding(
-                                  padding: EdgeInsets.only(left: 8, right: 12),
-                                  child: Icon(
-                                    Icons.thumb_down_outlined,
-                                    size: 18,
+                              Icon(Icons.notes_rounded,
+                                  size: 18, color: Colors.white70),
+                              SizedBox(width: 6),
+                              Text(
+                                "Lyrics",
+                                style: TextStyle(
+                                    fontSize: 12,
                                     color: Colors.white70,
-                                  ),
-                                ),
+                                    fontWeight: FontWeight.w600),
                               ),
                             ],
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        // Lyrics Pill
-                        GestureDetector(
-                          onTap: () =>
-                              widget.cardKey.currentState!.toggleCard(),
-                          child: Container(
-                            height: 38,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.08),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: const Row(
-                              children: [
-                                Icon(Icons.notes_rounded,
-                                    size: 18, color: Colors.white70),
-                                SizedBox(width: 6),
-                                Text(
-                                  "Lyrics",
-                                  style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.white70,
-                                      fontWeight: FontWeight.w600),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        // Comments Pill
-                        GestureDetector(
-                          onTap: () {
-                            ShowSnackBar()
-                                .showSnackBar(context, "Comments coming soon!");
-                          },
-                          child: Container(
-                            height: 38,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.08),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: const Row(
-                              children: [
-                                Icon(Icons.comment_outlined,
-                                    size: 18, color: Colors.white70),
-                                SizedBox(width: 6),
-                                Text(
-                                  "6.7K",
-                                  style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.white70,
-                                      fontWeight: FontWeight.w600),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
 

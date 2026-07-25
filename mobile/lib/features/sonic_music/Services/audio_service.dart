@@ -330,8 +330,38 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
     _loopModeSubject
         .listen((event) => _broadcastState(_player!.playbackEvent));
 
-    _processingStateSubject.listen((state) {
+    _processingStateSubject.listen((state) async {
       if (state == ProcessingState.completed) {
+        final item = mediaItem.value;
+        final isAutoplayEnabled = recommend && (item?.extras?['autoplay'] as bool? ?? true);
+        if (isAutoplayEnabled && item != null) {
+          try {
+            List<Map> reco = [];
+            if (item.genre != 'YouTube') {
+              reco = List<Map>.from(await SaavnAPI().getReco(item.id));
+            } else {
+              final ytSongs = await YtMusicService().getWatchPlaylist(videoId: item.id, limit: 15);
+              reco = List<Map>.from(ytSongs);
+            }
+            if (reco.isNotEmpty) {
+              final newItems = <MediaItem>[];
+              for (final s in reco) {
+                final elem = MediaItemConverter.mapToMediaItem(s, addedByAutoplay: true);
+                if (!queue.value.contains(elem)) {
+                  newItems.add(elem);
+                }
+              }
+              if (newItems.isNotEmpty) {
+                await addQueueItems(newItems);
+                await skipToNext();
+                play();
+                return;
+              }
+            }
+          } catch (e) {
+            Logger.root.severe('Autoplay on completion error: $e');
+          }
+        }
         stop();
         _player!.seek(Duration.zero, index: 0);
       }
