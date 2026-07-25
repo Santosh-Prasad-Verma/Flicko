@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide MultipartFile;
 import 'package:mobile/core/config/app_config.dart';
 import 'package:mobile/features/channel_backgrounds/domain/channel_background.dart';
@@ -21,6 +22,30 @@ class ChannelBackgroundRepository {
       final response = await dio.get('channels/$channelId/background');
       if (response.statusCode == 200) {
         return ChannelBackground.fromJson(response.data as Map<String, dynamic>);
+      }
+    } catch (_) {}
+    // Check local fallback file
+    try {
+      final appDir = await getApplicationDocumentsDirectory();
+      final localFile = File('${appDir.path}/channel_bg_$channelId.png');
+      if (localFile.existsSync()) {
+        return ChannelBackground(
+          id: 'local_$channelId',
+          channelId: channelId,
+          serverId: '',
+          fileIdOriginal: localFile.path,
+          blurhash: '',
+          widthPx: 1080,
+          heightPx: 1920,
+          bytesOriginal: localFile.lengthSync(),
+          mimeType: 'image/png',
+          sha256: '',
+          dominantColor: '#000000',
+          meanLuminance: 0.5,
+          focalX: 0.5,
+          focalY: 0.5,
+          status: 'ready',
+        );
       }
     } catch (_) {}
     return null;
@@ -53,16 +78,48 @@ class ChannelBackgroundRepository {
         return ChannelBackground.fromJson(response.data as Map<String, dynamic>);
       }
     } catch (_) {}
-    return null;
+
+    // Fallback: Copy file locally
+    try {
+      final appDir = await getApplicationDocumentsDirectory();
+      final localFile = File('${appDir.path}/channel_bg_$channelId.png');
+      await File(filePath).copy(localFile.path);
+
+      return ChannelBackground(
+        id: 'local_$channelId',
+        channelId: channelId,
+        serverId: '',
+        fileIdOriginal: localFile.path,
+        blurhash: '',
+        widthPx: 1080,
+        heightPx: 1920,
+        bytesOriginal: localFile.lengthSync(),
+        mimeType: 'image/png',
+        sha256: '',
+        dominantColor: '#000000',
+        meanLuminance: 0.5,
+        focalX: 0.5,
+        focalY: 0.5,
+        status: 'ready',
+      );
+    } catch (e) {
+      return null;
+    }
   }
 
   Future<bool> deleteBackground(String channelId) async {
     try {
       final dio = _getDio();
-      final response = await dio.delete('channels/$channelId/background');
-      return response.statusCode == 204;
+      await dio.delete('channels/$channelId/background');
     } catch (_) {}
-    return false;
+    try {
+      final appDir = await getApplicationDocumentsDirectory();
+      final localFile = File('${appDir.path}/channel_bg_$channelId.png');
+      if (localFile.existsSync()) {
+        localFile.deleteSync();
+      }
+    } catch (_) {}
+    return true;
   }
 
   Future<ChannelBackgroundUserOverride?> fetchOverride(String channelId) async {

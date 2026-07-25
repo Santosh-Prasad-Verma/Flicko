@@ -851,7 +851,8 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
   }
 
   @override
-  Future<void> updateQueue(List<MediaItem> newQueue) async {
+  Future<void> updateQueue(List<MediaItem> queue) async {
+    final newQueue = queue;
     try {
       await _playlist.clear();
     } catch (e) {
@@ -1127,7 +1128,8 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
   }
 
   @override
-  Future<void> setShuffleMode(AudioServiceShuffleMode mode) async {
+  Future<void> setShuffleMode(AudioServiceShuffleMode shuffleMode) async {
+    final mode = shuffleMode;
     final enabled = mode == AudioServiceShuffleMode.all;
     if (enabled) {
       await _player!.shuffle();

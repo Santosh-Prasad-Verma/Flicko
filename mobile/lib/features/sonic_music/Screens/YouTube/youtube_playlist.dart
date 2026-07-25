@@ -51,7 +51,7 @@ class YouTubePlaylist extends StatefulWidget {
   });
 
   @override
-  _YouTubePlaylistState createState() => _YouTubePlaylistState();
+  State<YouTubePlaylist> createState() => _YouTubePlaylistState();
 }
 
 class _YouTubePlaylistState extends State<YouTubePlaylist> {
@@ -167,6 +167,7 @@ class _YouTubePlaylistState extends State<YouTubePlaylist> {
                       if (!isSharePopupShown) {
                         isSharePopupShown = true;
 
+                        // ignore: deprecated_member_use
                         Share.share(
                           'https://youtube.com/playlist?list=${widget.playlistId}',
                         ).whenComplete(() {

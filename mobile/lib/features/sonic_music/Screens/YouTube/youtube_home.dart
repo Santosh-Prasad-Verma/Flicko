@@ -37,7 +37,7 @@ class YouTube extends StatefulWidget {
   const YouTube({super.key});
 
   @override
-  _YouTubeState createState() => _YouTubeState();
+  State<YouTube> createState() => _YouTubeState();
 }
 
 class _YouTubeState extends State<YouTube>
@@ -166,8 +166,8 @@ class _YouTubeState extends State<YouTube>
                             elevation: 5.0,
                             margin: EdgeInsets.zero,
                             gradientColors: [
-                              Colors.white.withOpacity(0.08),
-                              Colors.white.withOpacity(0.02),
+                              Colors.white.withValues(alpha: 0.08),
+                              Colors.white.withValues(alpha: 0.02),
                             ],
                             child: CachedNetworkImage(
                               fit: BoxFit.cover,
@@ -340,7 +340,7 @@ class _YouTubeState extends State<YouTube>
                                                           Alignment.centerRight,
                                                       child: Container(
                                                         color: Colors.black
-                                                            .withOpacity(0.75),
+                                                            .withValues(alpha: 0.75),
                                                         width: (boxSize - 30) *
                                                             (16 / 9) /
                                                             2.5,
@@ -476,8 +476,8 @@ class _YouTubeState extends State<YouTube>
                   elevation: 0.0,
                   margin: EdgeInsets.zero,
                   gradientColors: [
-                    Colors.white.withOpacity(0.08),
-                    Colors.white.withOpacity(0.02),
+                    Colors.white.withValues(alpha: 0.08),
+                    Colors.white.withValues(alpha: 0.02),
                   ],
                   child: SizedBox(
                     height: 55.0,

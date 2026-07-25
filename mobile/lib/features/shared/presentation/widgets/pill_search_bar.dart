@@ -35,17 +35,28 @@ class PillSearchBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final isFocused = focusNode?.hasFocus ?? false;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
       height: 48,
       decoration: BoxDecoration(
-        color: _barBg.withValues(alpha: 0.95),
-        borderRadius: BorderRadius.circular(28),
-
+        color: const Color(0xFF14141A).withValues(alpha: 0.95),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isFocused
+              ? _brandGreen.withValues(alpha: 0.6)
+              : Colors.white.withValues(alpha: 0.08),
+          width: isFocused ? 1.5 : 1.0,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.35),
-            blurRadius: 14,
-            offset: const Offset(0, 4),
+            color: isFocused
+                ? _brandGreen.withValues(alpha: 0.15)
+                : Colors.black.withValues(alpha: 0.3),
+            blurRadius: isFocused ? 16 : 10,
+            spreadRadius: isFocused ? 1 : 0,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -65,13 +76,13 @@ class PillSearchBar extends StatelessWidget {
               ),
             ),
           ] else
-            const SizedBox(width: 16),
+            const SizedBox(width: 14),
           if (showSearchIcon)
             Padding(
-              padding: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.only(right: 10),
               child: Icon(
                 Icons.search_rounded,
-                color: _brandGreen,
+                color: isFocused ? _brandGreen : _brandGreen.withValues(alpha: 0.7),
                 size: 20,
               ),
             ),
@@ -82,18 +93,18 @@ class PillSearchBar extends StatelessWidget {
               autofocus: autofocus,
               onChanged: onChanged,
               cursorColor: _brandGreen,
-              cursorWidth: 2.2,
-              cursorHeight: 20,
-              style: GoogleFonts.inter(
+              cursorWidth: 2.0,
+              cursorHeight: 18,
+              style: GoogleFonts.outfit(
                 color: _textColor,
                 fontSize: 15,
-                fontWeight: FontWeight.w400,
+                fontWeight: FontWeight.w500,
               ),
               decoration: InputDecoration(
                 hintText: hintText,
-                hintStyle: GoogleFonts.inter(
-                  color: _hintColor,
-                  fontSize: 15,
+                hintStyle: GoogleFonts.outfit(
+                  color: Colors.white.withValues(alpha: 0.35),
+                  fontSize: 14,
                   fontWeight: FontWeight.w400,
                 ),
                 border: InputBorder.none,
@@ -102,29 +113,32 @@ class PillSearchBar extends StatelessWidget {
               ),
             ),
           ),
-          if (controller.text.isNotEmpty)
-            GestureDetector(
-              onTap: () {
-                controller.clear();
-                onClear?.call();
-              },
-              child: Container(
-                width: 22,
-                height: 22,
-                margin: const EdgeInsets.only(right: 14),
-                decoration: BoxDecoration(
-                  color: _clearBg,
-                  shape: BoxShape.circle,
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: controller,
+            builder: (context, value, child) {
+              if (value.text.isEmpty) return const SizedBox(width: 14);
+              return GestureDetector(
+                onTap: () {
+                  controller.clear();
+                  onClear?.call();
+                },
+                child: Container(
+                  width: 22,
+                  height: 22,
+                  margin: const EdgeInsets.only(right: 14),
+                  decoration: BoxDecoration(
+                    color: _clearBg,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.close_rounded,
+                    color: _clearIcon,
+                    size: 13,
+                  ),
                 ),
-                child: const Icon(
-                  Icons.close_rounded,
-                  color: _clearIcon,
-                  size: 13,
-                ),
-              ),
-            )
-          else
-            const SizedBox(width: 14),
+              );
+            },
+          ),
         ],
       ),
     );

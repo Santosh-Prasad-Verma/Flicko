@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -211,7 +212,9 @@ class _ChannelBackgroundCustomizerDialogState
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: white.withValues(alpha: 0.1)),
                         image: DecorationImage(
-                          image: NetworkImage(bg.fileIdMobile ?? bg.fileIdOriginal),
+                          image: (bg.fileIdOriginal.startsWith('http') || (bg.fileIdMobile?.startsWith('http') ?? false))
+                              ? NetworkImage(bg.fileIdMobile ?? bg.fileIdOriginal)
+                              : FileImage(File(bg.fileIdOriginal)) as ImageProvider,
                           fit: BoxFit.cover,
                         ),
                       ),

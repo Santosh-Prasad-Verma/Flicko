@@ -45,13 +45,15 @@ class MainNavigationShell extends ConsumerWidget {
       activeLocation = currentLocation;
     }
 
-    // Only show the bottom navigation bar on top-level root pages of each tab.
+    final bool isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
+
+    // Only show the bottom navigation bar on top-level root pages of each tab when keyboard is not open.
     final bool showNavBar = const [
       '/',
       '/dms',
       '/notifications',
       '/profile',
-    ].contains(activeLocation);
+    ].contains(activeLocation) && !isKeyboardOpen;
 
     final bottomPadding = MediaQuery.of(context).padding.bottom;
     final navBarHeight = 64.0 + bottomPadding;
@@ -152,7 +154,7 @@ class MainNavigationShell extends ConsumerWidget {
                   activeIndex: currentIndex,
                   icon: Icons.notifications_none_rounded,
                   activeIcon: Icons.notifications_rounded,
-                  label: 'Alerts',
+                  label: 'Notifications',
                   badgeCount: unreadCount,
                   onTap: onTabSelected,
                 ),

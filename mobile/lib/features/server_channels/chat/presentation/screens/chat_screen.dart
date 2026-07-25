@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'dart:ui';
 
@@ -184,10 +185,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             Positioned.fill(
               child: Opacity(
                 opacity: opacity,
-                child: Image.network(
-                  bg.fileIdMobile ?? bg.fileIdOriginal,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => const SizedBox(),
+                child: Builder(
+                  builder: (context) {
+                    final path = bg.fileIdMobile ?? bg.fileIdOriginal;
+                    final isNetwork = path.startsWith('http://') || path.startsWith('https://');
+                    return Image(
+                      image: isNetwork
+                          ? NetworkImage(path)
+                          : FileImage(File(path)) as ImageProvider,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => const SizedBox(),
+                    );
+                  },
                 ),
               ),
             ),

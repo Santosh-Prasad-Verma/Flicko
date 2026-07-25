@@ -160,6 +160,7 @@ class Download with ChangeNotifier {
           case 0:
             lastDownloadId = data['id'].toString();
           case 1:
+            if (!context.mounted) return;
             downloadSong(context, dlPath, filename, data);
           case 2:
             while (await File('$dlPath/$filename').exists()) {
@@ -170,6 +171,7 @@ class Download with ChangeNotifier {
             break;
         }
       } else {
+        if (!context.mounted) return;
         showDialog(
           context: context,
           builder: (BuildContext context) {
@@ -276,6 +278,7 @@ class Download with ChangeNotifier {
                                     filename.replaceAll('.m4a', ' (1).m4a');
                               }
                               rememberOption = 2;
+                              if (!context.mounted) return;
                               downloadSong(context, dlPath, filename, data);
                             },
                             child: Text(
@@ -301,6 +304,7 @@ class Download with ChangeNotifier {
         );
       }
     } else {
+      if (!context.mounted) return;
       downloadSong(context, dlPath, filename, data);
     }
   }
@@ -468,7 +472,9 @@ class Download with ChangeNotifier {
         },
         onError: (err) {
           Logger.root.severe('Stream error during download: $err');
-          _handleDownloadError(context, filepath, filepath2, err.toString());
+          if (context.mounted) {
+            _handleDownloadError(context, filepath, filepath2, err.toString());
+          }
         },
         onDone: () async {
           try {
@@ -600,13 +606,17 @@ class Download with ChangeNotifier {
             }
           } catch (e) {
             Logger.root.severe('Error finalizing download: $e');
-            _handleDownloadError(context, filepath, filepath2, e.toString());
+            if (context.mounted) {
+              _handleDownloadError(context, filepath, filepath2, e.toString());
+            }
           }
         },
       );
     } catch (e) {
       Logger.root.severe('Error setting up download: $e');
-      _handleDownloadError(context, filepath, filepath2, e.toString());
+      if (context.mounted) {
+        _handleDownloadError(context, filepath, filepath2, e.toString());
+      }
     }
   }
 

@@ -13,6 +13,7 @@ import 'core/config/app_config.dart';
 import 'core/router/app_router.dart';
 import 'core/services/push_notification_service.dart';
 import 'core/theme/theme_provider.dart';
+import 'features/settings/application/user_settings_notifier.dart';
 import 'core/services/translation_service.dart';
 import 'features/ludo/services/ludo_deep_links.dart';
 import 'package:mobile/features/sonic_music/localization/app_localizations.dart';
@@ -203,6 +204,7 @@ class _FlickoAppState extends ConsumerState<FlickoApp> {
     final router = ref.watch(appRouterProvider);
     final activeTheme = ref.watch(themeDataProvider);
     final fontScale = ref.watch(userSettingsNotifierProvider).fontScale;
+    final locale = ref.watch(appLocaleProvider);
 
     return MaterialApp.router(
       title: 'Flicko',

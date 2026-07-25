@@ -308,10 +308,10 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'ACTIVITY',
+                  'NOTIFICATIONS',
                   style: GoogleFonts.outfit(
                     color: _textPrimary,
-                    fontSize: 40,
+                    fontSize: 34,
                     fontWeight: FontWeight.w900,
                     letterSpacing: -0.5,
                   ),
@@ -547,6 +547,31 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     );
   }
 
+  void _handleNotificationTap(Notification notification) {
+    _markAsRead(notification.id);
+    final meta = notification.content ?? {};
+    final channelId = meta['channelId'] as String? ?? meta['channel_id'] as String?;
+    final serverId = meta['serverId'] as String? ?? meta['server_id'] as String?;
+    final dmId = meta['dmId'] as String? ?? meta['dm_id'] as String?;
+    final senderId = meta['userId'] as String? ?? meta['senderId'] as String? ?? meta['sender_id'] as String?;
+
+    if (dmId != null && dmId.isNotEmpty) {
+      context.push('/dm/$dmId');
+    } else if (serverId != null && serverId.isNotEmpty && channelId != null && channelId.isNotEmpty) {
+      context.push('/server/$serverId/channel/$channelId');
+    } else if (channelId != null && channelId.isNotEmpty) {
+      context.push('/dm/$channelId');
+    } else if (notification.type == 'dm' && senderId != null) {
+      context.push('/dm/$senderId');
+    } else if (notification.type == 'friend_request' || notification.type == 'friend') {
+      context.push('/dms');
+    } else if (senderId != null) {
+      context.push('/dm/$senderId');
+    } else {
+      context.push('/dms');
+    }
+  }
+
   Widget _buildNotificationItem(Notification notification) {
     final meta = notification.content ?? {};
     final userName = meta['userName'] as String? ?? 'Someone';
@@ -571,7 +596,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     }
 
     return GestureDetector(
-      onTap: () => _markAsRead(notification.id),
+      onTap: () => _handleNotificationTap(notification),
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 6),
         padding: const EdgeInsets.all(16),
