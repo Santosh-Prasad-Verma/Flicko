@@ -602,3 +602,39 @@ services:
       timeout: 5s
       retries: 3
       start_period: 5s
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # SUPABASE REALTIME — Self-Hosted Realtime Engine
+  # ──────────────────────────────────────────────────────────────────────────
+  realtime:
+    image: supabase/realtime:v2.33.58
+    container_name: flicko-realtime
+    <<: [*restart-policy, *default-logging]
+    networks:
+      - flicko_internal
+    environment:
+      PORT: "4000"
+      DB_HOST: "aws-1-ap-south-1.pooler.supabase.com"
+      DB_PORT: "5432"
+      DB_NAME: "postgres"
+      DB_USER: "postgres.zliclxzqkopxgnlwlqsu"
+      DB_PASSWORD: "RpS@9958@Tarun"
+      DB_SSL: "true"
+      JWT_SECRET: "1QWpAVYKqbP++Kf6qVZ+VbKyo5Y6pCIDdohDzTvziA71BgLLp3Wgv4NUAZ6KnQj7BDL3YqxRXbBiAI6NOwcXog=="
+      REPLICATION_MODE: "RLS"
+      SECURE_CHANNELS: "true"
+      API_JWT_SECRET: "1QWpAVYKqbP++Kf6qVZ+VbKyo5Y6pCIDdohDzTvziA71BgLLp3Wgv4NUAZ6KnQj7BDL3YqxRXbBiAI6NOwcXog=="
+      SLOT_NAME: "supabase_realtime_rls"
+      TEMPORAL_CONTROL_PORT: "4006"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
