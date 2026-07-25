@@ -107,6 +107,16 @@ func main() {
 	defer redisCache.Close()
 	logger.Info("redis connection established")
 
+	// 3b. Setup Astra DB
+	var astraClient database.AstraClient
+	if cfg.AstraDBEndpoint != "" && cfg.AstraDBToken != "" {
+		astraClient = database.NewAstraClient(cfg.AstraDBEndpoint, cfg.AstraDBToken, logger)
+		logger.Info("Astra DB client initialized")
+		defer astraClient.Close()
+	} else {
+		logger.Info("Astra DB configuration not provided, running without Astra DB features")
+	}
+
 	// 3c. Setup Bot System (Event Bus, Command Router, Bot Registry)
 	eventBus := events.NewEventBus(logger)
 	eventBus.Use(events.RecoveryMiddleware(logger))
@@ -520,6 +530,15 @@ func main() {
 	soundboardRepo := repo.NewSoundboardRepo(db)
 	soundboardHandler := handlers.NewSoundboardHandler(db.Pool(), soundboardRepo, gamingPublisher, cfg, logger)
 	soundboardHandler.RegisterRoutes(protected)
+
+	// ── AI Aura Conversation Log Endpoints (Astra DB) ──────────────────────
+	if astraClient != nil {
+		auraLogRepo := repo.NewAuraLogRepo(astraClient)
+		auraLogSvc := services.NewAuraLogService(auraLogRepo, logger)
+		auraLogHandler := handlers.NewAuraLogHandler(auraLogSvc, logger)
+		auraLogHandler.RegisterRoutes(protected)
+		logger.Info("Aura conversation log endpoints registered")
+	}
 
 	// ── Music Party Module Initialization ────────────────────────────────────
 	if cfg.ActivitiesMusicPartyEnabled {

@@ -55,6 +55,10 @@ type Config struct {
 	LibreTranslateBaseURL string // default http://libretranslate:5000
 	LibreTranslateAPIKey  string // optional
 	DeepLAPIKey           string // optional fallback
+
+	// Astra DB
+	AstraDBEndpoint string
+	AstraDBToken    string
 }
 
 func Load() (*Config, error) {
@@ -161,6 +165,8 @@ func Load() (*Config, error) {
 		CentrifugoAPIKey:   os.Getenv("CENTRIFUGO_API_KEY"),
 		E2EEV2Enabled:      parseBoolEnv("E2EE_V2_ENABLED", false),
 		E2EEV2RolloutPercent: parseIntEnv("E2EE_V2_ROLLOUT_PERCENT", 0, 0, 100),
+		AstraDBEndpoint:    envOr("ASTRA_DB_API_ENDPOINT", ""),
+		AstraDBToken:       envOr("ASTRA_DB_APPLICATION_TOKEN", ""),
 	}
 
 	groqKey := os.Getenv("GROQ_API_KEY")
