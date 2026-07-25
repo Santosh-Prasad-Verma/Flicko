@@ -98,6 +98,8 @@ volumes:
     driver: local              # Failed message batches (JSONL files)
   redis_data:
     driver: local
+  tolgee_data:
+    driver: local
 
 
 
@@ -679,8 +681,4 @@ services:
       timeout: 5s
       retries: 3
       start_period: 15s
-
-volumes:
-  tolgee_data:
-    driver: local
 
