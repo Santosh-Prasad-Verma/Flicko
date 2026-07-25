@@ -373,6 +373,8 @@ services:
       TOLGEE_AUTHENTICATION_NEEDS_EMAIL_VERIFICATION: "false"
       TOLGEE_AUTHENTICATION_JWT_SECRET: "${JWT_SECRET}"
       JAVA_TOOL_OPTIONS: "-Xms256m -Xmx768m"
+    volumes:
+      - tolgee_data:/var/lib/tolgee
     deploy:
       resources:
         limits:
@@ -677,4 +679,8 @@ services:
       timeout: 5s
       retries: 3
       start_period: 15s
+
+volumes:
+  tolgee_data:
+    driver: local
 
