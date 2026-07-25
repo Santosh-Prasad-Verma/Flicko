@@ -42,4 +42,4 @@ jobs:
           k6 run scripts/k6-realtime-ws-test.js
         env:
           SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL || 'https://flicko.southeastasia.cloudapp.azure.com' }}
-          SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsaWNseHpxa29weGdubHdscXN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3MTcyNTMsImV4cCI6MjA4NjI5MzI1M30.ie7AmYReG2oZ0jKnzfE013390ZSR0AAsyljCAOSxU64' }}
+          SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY }}
