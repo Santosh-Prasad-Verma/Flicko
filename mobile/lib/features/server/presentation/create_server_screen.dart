@@ -213,7 +213,7 @@ class _CreateServerScreenState extends ConsumerState<CreateServerScreen> {
       }
 
       final channels = (_templateChannels[_selectedTemplate] ?? [])
-          .where((ch) => ch['name'] != 'general')
+          .where((ch) => ch['name'] != 'general' && ch['name'] != 'welcome')
           .toList();
 
       for (int i = 0; i < channels.length; i++) {

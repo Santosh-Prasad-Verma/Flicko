@@ -160,7 +160,7 @@ class _BotWelcomeSettingsScreenState extends ConsumerState<BotWelcomeSettingsScr
           _autoRoles = List<String>.from(settingsResponse['auto_roles'] ?? []);
         } else {
           // Initialize default templates
-          _botEnabled = false;
+          _botEnabled = true;
           _welcomeMsgController.text = 'Welcome {{user}} to **{{server}}**! 🎉';
           _welcomeBannerController.text = '';
           _welcomeGifController.text = '';
@@ -169,9 +169,17 @@ class _BotWelcomeSettingsScreenState extends ConsumerState<BotWelcomeSettingsScr
           _welcomeChannelId = null;
           _leaveChannelId = null;
           _dmEnabled = false;
-          _welcomeCardEnabled = false;
+          _welcomeCardEnabled = true;
           _leaveEnabled = false;
           _autoRoles = [];
+        }
+
+        if (_welcomeChannelId == null && _channels.isNotEmpty) {
+          final welcomeChan = _channels.firstWhere(
+            (c) => (c['name'] as String? ?? '').toLowerCase() == 'welcome',
+            orElse: () => _channels.first,
+          );
+          _welcomeChannelId = welcomeChan['id'] as String?;
         }
 
         _hasChanges = false;
