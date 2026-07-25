@@ -312,6 +312,19 @@ class VoiceController extends Notifier<VoiceState> {
     try {
       final isScreenShareEnabled = localParticipant.isScreenShareEnabled();
 
+      if (!isScreenShareEnabled && Platform.isAndroid) {
+        // MUST start Android foreground service BEFORE launching MediaProjection screen capture
+        try {
+          await _screenCaptureChannel.invokeMethod('startService');
+        } catch (e) {
+          developer.log(
+            'Failed to start screen capture foreground service',
+            name: 'VoiceController',
+            error: e,
+          );
+        }
+      }
+
       await localParticipant.setScreenShareEnabled(!isScreenShareEnabled);
       _updateParticipants();
 
@@ -331,7 +344,7 @@ class VoiceController extends Notifier<VoiceState> {
       developer.log('Error toggling screen share', name: 'VoiceController', error: e);
       state = state.copyWith(error: 'Failed to share screen: ${e.toString()}');
 
-      // Stop the service if we started it but screen share failed
+      // Stop the service if we started it but screen share failed or was cancelled
       if (Platform.isAndroid) {
         try {
           await _screenCaptureChannel.invokeMethod('stopService');

@@ -98,10 +98,18 @@ class LiveKitService {
     if (_room == null || _room!.localParticipant == null) return;
     final isEnabled = _room!.localParticipant!.isScreenShareEnabled();
 
+    if (!isEnabled && Platform.isAndroid) {
+      try {
+        await _screenCaptureChannel.invokeMethod('startService');
+      } catch (e) {
+        debugPrint('Failed to start screen capture foreground service: $e');
+      }
+    }
+
     try {
       await _room!.localParticipant!.setScreenShareEnabled(!isEnabled);
     } catch (e) {
-      // Stop service on failure
+      // Stop service on failure or cancel
       if (Platform.isAndroid) {
         try { await _screenCaptureChannel.invokeMethod('stopService'); } catch (_) {}
       }
