@@ -348,6 +348,37 @@ services:
       interval: 10s
       timeout: 3s
       retries: 3
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # TOLGEE — Self-Hosted Localization & Translation Platform
+  # ──────────────────────────────────────────────────────────────────────────
+  # Manages in-context app translations, multi-language string keys, and
+  # localization for Flutter mobile + Web apps.
+  tolgee:
+    image: tolgee/tolgee:latest
+    container_name: flicko-tolgee
+    <<: [*restart-policy, *default-logging]
+    networks:
+      - flicko_internal
+    env_file:
+      - .env.prod
+    environment:
+      TOLGEE_PORT: "8085"
+      TOLGEE_AUTHENTICATION_ENABLED: "true"
+      TOLGEE_AUTHENTICATION_JWT_SECRET: "${JWT_SECRET}"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.50"
+        reservations:
+          memory: 128M
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO /dev/null http://localhost:8085/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
       start_period: 10s
 
   # ──────────────────────────────────────────────────────────────────────────
