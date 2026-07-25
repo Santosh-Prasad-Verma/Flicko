@@ -24,6 +24,7 @@ import 'package:mobile/features/store/data/warp_service.dart';
 import 'package:mobile/features/shared/presentation/widgets/entrance_warp_overlay.dart';
 import 'package:dio/dio.dart';
 import 'package:mobile/core/config/app_config.dart';
+import 'package:mobile/data/models/flicko_message.dart';
 import 'package:mobile/features/server_channels/chat/presentation/widgets/pinned_messages_sheet.dart';
 
 class DMChatScreen extends ConsumerStatefulWidget {
@@ -941,12 +942,11 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
                       _AppBarAction(
                         icon: Icons.push_pin_outlined,
                         onTap: () {
-                          final messages = ref.read(dmChatControllerProvider(ids.join('_'))).messages;
+                          final messages = ref.read(dmChatControllerProvider(conversationIdStr)).messages;
                           final pinned = messages
                               .where((m) => m.reactions.any((r) => r.emoji == '📌'))
                               .map((m) => FlickoMessage(
                                     id: m.id,
-                                    channelId: m.conversationId,
                                     authorId: m.senderId,
                                     author: m.sender,
                                     content: m.content,

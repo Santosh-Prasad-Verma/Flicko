@@ -55,6 +55,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   void dispose() {
     _searchController.dispose();
     _scrollController.dispose();
+    _particleController.dispose();
     super.dispose();
   }
 
@@ -324,7 +325,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                             }
 
                             final filteredMessages = _isSearching && _searchController.text.trim().isNotEmpty
-                                ? chatState.messages.where((m) => m.content.toLowerCase().contains(_searchController.text.trim().toLowerCase()) || m.authorName.toLowerCase().contains(_searchController.text.trim().toLowerCase())).toList()
+                                ? chatState.messages.where((m) => m.content.toLowerCase().contains(_searchController.text.trim().toLowerCase()) || (m.author?.displayName ?? m.author?.username ?? '').toLowerCase().contains(_searchController.text.trim().toLowerCase())).toList()
                                 : chatState.messages;
 
                             return ListView.builder(
@@ -451,12 +452,5 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       ],
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    _particleController.dispose();
-    super.dispose();
   }
 }

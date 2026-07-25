@@ -67,5 +67,5 @@ void main() {
       print(st);
       rethrow;
     }
-  });
+  }, skip: 'Requires live Supabase connection');
 }
