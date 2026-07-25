@@ -88,8 +88,8 @@ class _BotWelcomeSettingsScreenState extends ConsumerState<BotWelcomeSettingsScr
 
       setState(() {
         _settings = settingsResponse;
-        _channels = List<Map<String, dynamic>>.from(channelsResponse ?? []);
-        _roles = List<Map<String, dynamic>>.from(rolesResponse ?? []);
+        _channels = List<Map<String, dynamic>>.from((channelsResponse as List?) ?? []);
+        _roles = List<Map<String, dynamic>>.from((rolesResponse as List?) ?? []);
 
         if (settingsResponse != null) {
           _botEnabled = settingsResponse['enabled'] ?? false;

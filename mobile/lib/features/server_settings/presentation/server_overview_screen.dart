@@ -26,7 +26,6 @@ class ServerOverviewScreen extends ConsumerStatefulWidget {
 class _ServerOverviewScreenState extends ConsumerState<ServerOverviewScreen> {
   static const Color _neonGreen = Color(FlickoColors.brandLime);
   static const Color _bgBlack = Color(FlickoColors.bgPrimary);
-  static const Color _surfaceContainer = Color(FlickoColors.bgSecondary);
   static const Color _textWhite = Color(FlickoColors.textPrimary);
   static const Color _textMuted = Color(FlickoColors.textMuted);
 

@@ -27,7 +27,6 @@ class _TemplatesSettingsScreenState extends ConsumerState<TemplatesSettingsScree
   bool _isLoading = true;
   List<Map<String, dynamic>> _templates = [];
   String? _errorMessage;
-  bool _showCreateModal = false;
   final _nameController = TextEditingController();
   final _descController = TextEditingController();
   bool _isCreating = false;
@@ -202,7 +201,6 @@ class _TemplatesSettingsScreenState extends ConsumerState<TemplatesSettingsScree
 
       setState(() {
         _templates.insert(0, response);
-        _showCreateModal = false;
         _nameController.clear();
         _descController.clear();
         _isCreating = false;
@@ -561,7 +559,6 @@ class _TemplatesSettingsScreenState extends ConsumerState<TemplatesSettingsScree
       builder: (context) => Modal(
         visible: true,
         onClose: () {
-          setState(() => _showCreateModal = false);
           Navigator.of(context).pop();
         },
         title: 'Create Template',
