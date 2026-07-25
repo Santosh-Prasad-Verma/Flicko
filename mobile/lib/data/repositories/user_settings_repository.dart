@@ -32,6 +32,15 @@ class UserSettingsRepository {
     // Cache locally first (instant)
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_prefsKey, jsonEncode(map));
+    for (final entry in map.entries) {
+      if (entry.value is bool) {
+        await prefs.setBool(entry.key, entry.value as bool);
+      } else if (entry.value is String) {
+        await prefs.setString(entry.key, entry.value as String);
+      } else if (entry.value is double) {
+        await prefs.setDouble(entry.key, entry.value as double);
+      }
+    }
 
     // Persist to Supabase
     try {

@@ -86,8 +86,9 @@ class E2EERepository {
         '/e2ee/identity/attestation/$userId',
         queryParameters: {'new_pub': newIdentityPub},
       );
-      return RemoteIdentityAttestation.fromJson(
-          (res.data as Map).cast<String, dynamic>());
+      final map = _parseMap(res.data);
+      if (map.isEmpty) return null;
+      return RemoteIdentityAttestation.fromJson(map);
     } on DioException catch (e) {
       if (e.response?.statusCode == 404) return null;
       rethrow;

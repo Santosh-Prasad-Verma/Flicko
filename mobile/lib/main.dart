@@ -202,7 +202,7 @@ class _FlickoAppState extends ConsumerState<FlickoApp> {
   Widget build(BuildContext context) {
     final router = ref.watch(appRouterProvider);
     final activeTheme = ref.watch(themeDataProvider);
-    final locale = ref.watch(appLocaleProvider);
+    final fontScale = ref.watch(userSettingsNotifierProvider).fontScale;
 
     return MaterialApp.router(
       title: 'Flicko',
@@ -215,6 +215,15 @@ class _FlickoAppState extends ConsumerState<FlickoApp> {
       locale: locale,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
+      builder: (context, child) {
+        if (child == null) return const SizedBox.shrink();
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.linear(fontScale),
+          ),
+          child: child,
+        );
+      },
     );
   }
 }

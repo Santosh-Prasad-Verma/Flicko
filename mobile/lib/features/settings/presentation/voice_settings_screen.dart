@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile/features/settings/application/user_settings_notifier.dart';
 
 /// Voice & Video Settings Screen (Sleek Brutalist Black/Neon Theme)
@@ -22,7 +24,10 @@ class _VoiceSettingsScreenState
   static const Color _textWhite = Color(0xFFFBF9FA);
   static const Color _textMuted = Color(0xFF71717A);
 
-  void _setBool(String key, bool value) {
+  Future<void> _setBool(String key, bool value) async {
+    HapticFeedback.lightImpact();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(key, value);
     ref.read(userSettingsNotifierProvider.notifier).setBool(key, value);
   }
 

@@ -20,7 +20,8 @@ class ThemeNotifier extends Notifier<String> {
   @override
   String build() {
     _loadTheme();
-    return 'dark';
+    final settingsTheme = ref.watch(userSettingsNotifierProvider).themeMode;
+    return settingsTheme.isNotEmpty ? settingsTheme : 'dark';
   }
 
   static const String _themeKey = 'selected_theme';
@@ -28,7 +29,7 @@ class ThemeNotifier extends Notifier<String> {
   Future<void> _loadTheme() async {
     final prefs = await SharedPreferences.getInstance();
     final savedTheme = prefs.getString(_themeKey);
-    if (savedTheme != null) {
+    if (savedTheme != null && state != savedTheme) {
       state = savedTheme;
     }
   }
@@ -38,6 +39,7 @@ class ThemeNotifier extends Notifier<String> {
       state = theme;
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_themeKey, theme);
+      ref.read(userSettingsNotifierProvider.notifier).setString('appearance_theme', theme);
     }
   }
 

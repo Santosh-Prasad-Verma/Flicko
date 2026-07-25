@@ -789,7 +789,7 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
     Participant? screenSharingParticipant;
     VideoTrack? screenShareTrack;
     for (final p in voiceState.participants) {
-      final pubs = p.videoTrackPublications.where((pub) => pub.track != null && (pub.isScreenShare || pub.source == TrackSource.screenShare)).toList();
+      final pubs = p.videoTrackPublications.where((pub) => pub.track != null && pub.isScreenShare).toList();
       if (pubs.isNotEmpty) {
         screenSharingParticipant = p;
         screenShareTrack = pubs.first.track as VideoTrack?;
@@ -940,13 +940,13 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
 
     // Detect if participant has an active screen share track
     final screenShareTrack = participant.videoTrackPublications
-        .where((pub) => pub.track != null && (pub.isScreenShare || pub.source == TrackSource.screenShare))
+        .where((pub) => pub.track != null && pub.isScreenShare)
         .toList();
     final hasScreenShare = !ignoreScreenShare && screenShareTrack.isNotEmpty;
 
     // Detect if participant has an active video track
     final videoTrack = participant.videoTrackPublications
-        .where((pub) => pub.track != null && !(pub.isScreenShare || pub.source == TrackSource.screenShare))
+        .where((pub) => pub.track != null && !pub.isScreenShare)
         .toList();
     final hasVideo = videoTrack.isNotEmpty;
 

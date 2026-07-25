@@ -343,17 +343,16 @@ class _VoiceActivitiesScreenState extends ConsumerState<VoiceActivitiesScreen> {
                 );
 
                 // Push WatchTogetherScreen
-                if (mounted) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => WatchTogetherScreen(
-                        serverId: widget.serverId,
-                        channelId: widget.channelId,
-                      ),
+                if (!mounted) return;
+                Navigator.push(
+                  this.context,
+                  MaterialPageRoute(
+                    builder: (context) => WatchTogetherScreen(
+                      serverId: widget.serverId,
+                      channelId: widget.channelId,
                     ),
-                  );
-                }
+                  ),
+                );
               },
               child: Text(
                 'Launch',

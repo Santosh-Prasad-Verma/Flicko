@@ -187,7 +187,7 @@ class _SoundboardCreatorStudioState extends ConsumerState<SoundboardCreatorStudi
                               height: 12,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: Colors.red.withOpacity(_recordingFlashController.value),
+                                color: Colors.red.withValues(alpha: _recordingFlashController.value),
                               ),
                             ),
                           ),
@@ -222,7 +222,7 @@ class _SoundboardCreatorStudioState extends ConsumerState<SoundboardCreatorStudi
                               ? null
                               : [
                                   BoxShadow(
-                                    color: Colors.red.withOpacity(0.4),
+                                    color: Colors.red.withValues(alpha: 0.4),
                                     blurRadius: 15,
                                     spreadRadius: 2,
                                   ),
@@ -266,7 +266,7 @@ class _SoundboardCreatorStudioState extends ConsumerState<SoundboardCreatorStudi
                         });
                       },
                       activeColor: _lime,
-                      inactiveColor: _muted.withOpacity(0.3),
+                      inactiveColor: _muted.withValues(alpha: 0.3),
                     ),
                   ),
                   Text('End: ${(_endTrim * 100).toInt()}%', style: GoogleFonts.inter(color: _muted, fontSize: 10)),
@@ -407,7 +407,7 @@ class WaveformPainter extends CustomPainter {
       final bool inTrim = progress >= startTrim && progress <= endTrim;
 
       final paint = Paint()
-        ..color = (isTrimming && !inTrim) ? Colors.grey.withOpacity(0.3) : neonColor
+        ..color = (isTrimming && !inTrim) ? Colors.grey.withValues(alpha: 0.3) : neonColor
         ..strokeWidth = math.max(1.5, widthBetweenPoints - 1)
         ..strokeCap = StrokeCap.round;
 

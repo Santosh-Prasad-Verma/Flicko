@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile/features/settings/application/user_settings_notifier.dart';
 import 'package:mobile/features/store/data/notification_sound_service.dart';
 
@@ -24,7 +26,10 @@ class _NotificationsSettingsScreenState
   static const Color _textMuted = Color(0xFF71717A);
   static const Color _neon = Color(0xFF9B84EE);
 
-  void _setBool(String key, bool value) {
+  Future<void> _setBool(String key, bool value) async {
+    HapticFeedback.lightImpact();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(key, value);
     ref.read(userSettingsNotifierProvider.notifier).setBool(key, value);
   }
 

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:mobile/features/settings/application/user_settings_notifier.dart';
 
 /// Data & Storage Settings Screen (Sleek Brutalist Black/Neon Theme)
 class StorageSettingsScreen extends ConsumerStatefulWidget {
@@ -48,10 +50,12 @@ class _StorageSettingsScreenState
   }
 
   Future<void> _saveSetting(String key, bool value) async {
+    HapticFeedback.lightImpact();
     final messenger = ScaffoldMessenger.of(context);
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(key, value);
+      ref.read(userSettingsNotifierProvider.notifier).setBool(key, value);
     } catch (e) {
       if (context.mounted) {
         messenger.showSnackBar(

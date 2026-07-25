@@ -224,7 +224,7 @@ class VideoGrid extends StatelessWidget {
 
   GridLayoutConfig _calculateGridLayout(int count) {
     const gap = 4.0;
-    final screenSize = MediaQueryData.fromView(WidgetsBinding.instance.window);
+    final screenSize = MediaQueryData.fromView(WidgetsBinding.instance.platformDispatcher.views.first);
     final availableWidth = screenSize.size.width - gap * 2;
     final availableHeight = screenSize.size.height - 200;
 

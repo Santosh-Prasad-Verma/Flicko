@@ -55,7 +55,6 @@ class _E2EEDevicesScreenState extends ConsumerState<E2EEDevicesScreen> {
       if (devices.isEmpty && myIdentityPub != null) {
         devices = [
           IdentityKey(
-            userId: userId,
             deviceId: myDeviceId,
             identityPub: base64Encode(myIdentityPub),
             signingPub: '',

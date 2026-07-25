@@ -106,7 +106,7 @@ class IdentityAttestation {
     required this.attestedAt,
   });
 
-  /// Create an attestation: old signing key signs "rotate:<oldPub>:<newPub>".
+  /// Create an attestation: old signing key signs `"rotate:<oldPub>:<newPub>"`.
   static Future<IdentityAttestation> create({
     required SimpleKeyPair oldSigningKeyPair,
     required Uint8List oldIdentityPub,

@@ -1036,11 +1036,16 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
                 ],
               ),
             ),
-            Radio<int>(
-              value: index,
-              groupValue: _selectedPaymentMethod,
-              onChanged: (v) => setState(() => _selectedPaymentMethod = v!),
-              activeColor: _kNeon,
+            Container(
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected ? _kNeon : _kMuted,
+                  width: isSelected ? 6 : 2,
+                ),
+              ),
             ),
           ],
         ),
@@ -1170,8 +1175,9 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
             );
 
             if (!result.success) {
+              if (!mounted) return;
               // Offer sandbox fallback if live payment fails
-              final confirmed = await _showSandboxConfirmationDialog(context, finalAmount);
+              final confirmed = await _showSandboxConfirmationDialog(finalAmount);
               if (confirmed == true) {
                 useSandbox = true;
               } else {
@@ -1180,7 +1186,8 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
               }
             }
           } else {
-            final confirmed = await _showSandboxConfirmationDialog(context, finalAmount);
+            if (!mounted) return;
+            final confirmed = await _showSandboxConfirmationDialog(finalAmount);
             if (confirmed == true) {
               useSandbox = true;
             } else {
@@ -1233,7 +1240,7 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
     }
   }
 
-  Future<bool?> _showSandboxConfirmationDialog(BuildContext context, double amount) async {
+  Future<bool?> _showSandboxConfirmationDialog(double amount) async {
     return showDialog<bool>(
       context: context,
       barrierDismissible: false,

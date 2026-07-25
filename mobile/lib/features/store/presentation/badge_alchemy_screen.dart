@@ -151,7 +151,7 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Si
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: _cardBg,
-        border: Border.all(color: Colors.white.withOpacity(0.04), width: 1.5),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.04), width: 1.5),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -213,7 +213,7 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Si
         decoration: BoxDecoration(
           color: _cardBg,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withOpacity(0.03)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.03)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -267,7 +267,7 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Si
               border: Border.all(
                 color: isEquipped
                     ? _lime
-                    : Colors.white.withOpacity(0.04),
+                    : Colors.white.withValues(alpha: 0.04),
                 width: isEquipped ? 2.0 : 1.2,
               ),
               borderRadius: BorderRadius.circular(16),
@@ -363,10 +363,10 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Si
         color: _cardBg,
         border: Border.all(
           color: isClaimed
-              ? Colors.white.withOpacity(0.02)
+              ? Colors.white.withValues(alpha: 0.02)
               : isCompleted
                   ? _lime
-                  : Colors.white.withOpacity(0.04),
+                  : Colors.white.withValues(alpha: 0.04),
           width: isCompleted && !isClaimed ? 1.5 : 1.0,
         ),
         borderRadius: BorderRadius.circular(16),
@@ -405,8 +405,8 @@ class _BadgeAlchemyScreenState extends ConsumerState<BadgeAlchemyScreen> with Si
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: rewardBadge.primaryColor.withOpacity(0.05),
-                    border: Border.all(color: rewardBadge.primaryColor.withOpacity(0.2), width: 1.2),
+                    color: rewardBadge.primaryColor.withValues(alpha: 0.05),
+                    border: Border.all(color: rewardBadge.primaryColor.withValues(alpha: 0.2), width: 1.2),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(

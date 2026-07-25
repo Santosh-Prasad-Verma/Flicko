@@ -344,7 +344,7 @@ class _MyInstantsExplorerScreenState extends ConsumerState<MyInstantsExplorerScr
         return Container(
           decoration: BoxDecoration(
             color: _cardBg,
-            border: Border.all(color: _muted.withOpacity(0.3), width: 1.5),
+            border: Border.all(color: _muted.withValues(alpha: 0.3), width: 1.5),
           ),
         ).animate(onPlay: (controller) => controller.repeat(reverse: true))
          .shimmer(duration: 1.seconds, color: Colors.white10);
@@ -418,7 +418,7 @@ class _MyInstantsExplorerScreenState extends ConsumerState<MyInstantsExplorerScr
                 if (isPlaying)
                   Positioned.fill(
                     child: Container(
-                      color: _neonPink.withOpacity(0.05),
+                      color: _neonPink.withValues(alpha: 0.05),
                     ).animate(onPlay: (c) => c.repeat(reverse: true))
                      .fadeIn(duration: 300.ms),
                   ),
@@ -435,7 +435,7 @@ class _MyInstantsExplorerScreenState extends ConsumerState<MyInstantsExplorerScr
                           Container(
                             padding: const EdgeInsets.all(6),
                             decoration: BoxDecoration(
-                              color: isPlaying ? _neonPink.withOpacity(0.2) : Colors.black,
+                              color: isPlaying ? _neonPink.withValues(alpha: 0.2) : Colors.black,
                               shape: BoxShape.circle,
                             ),
                             child: Text(
@@ -478,7 +478,7 @@ class _MyInstantsExplorerScreenState extends ConsumerState<MyInstantsExplorerScr
                               padding: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
                                 color: isDownloaded
-                                    ? _neonGreen.withOpacity(0.15)
+                                    ? _neonGreen.withValues(alpha: 0.15)
                                     : Colors.black,
                                 border: Border.all(
                                   color: isDownloaded ? _neonGreen : Colors.white24,
