@@ -151,10 +151,22 @@ class VoiceController extends Notifier<VoiceState> {
       ..on<TrackUnpublishedEvent>((_) {
         _updateParticipants();
       })
+      ..on<LocalTrackPublishedEvent>((_) {
+        _updateParticipants();
+      })
+      ..on<LocalTrackUnpublishedEvent>((_) {
+        _updateParticipants();
+      })
       ..on<TrackSubscribedEvent>((_) {
         _updateParticipants();
       })
       ..on<TrackUnsubscribedEvent>((_) {
+        _updateParticipants();
+      })
+      ..on<TrackMutedEvent>((_) {
+        _updateParticipants();
+      })
+      ..on<TrackUnmutedEvent>((_) {
         _updateParticipants();
       })
       ..on<DataReceivedEvent>((event) {
