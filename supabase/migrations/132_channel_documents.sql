@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS public.channel_documents (
     title VARCHAR(255) NOT NULL DEFAULT 'Untitled Document',
     state_vector BYTEA,
     ydoc_binary BYTEA,
-    created_by UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    created_by UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -21,17 +21,23 @@ ALTER TABLE public.channel_documents ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view documents in channels they belong to"
     ON public.channel_documents FOR SELECT
     USING (auth.uid() IN (
-        SELECT user_id FROM public.channel_members WHERE channel_id = public.channel_documents.channel_id
+        SELECT sm.user_id FROM public.server_members sm
+        JOIN public.channels c ON c.server_id = sm.server_id
+        WHERE c.id = public.channel_documents.channel_id
     ));
 
 CREATE POLICY "Users can update documents in channels they belong to"
     ON public.channel_documents FOR UPDATE
     USING (auth.uid() IN (
-        SELECT user_id FROM public.channel_members WHERE channel_id = public.channel_documents.channel_id
+        SELECT sm.user_id FROM public.server_members sm
+        JOIN public.channels c ON c.server_id = sm.server_id
+        WHERE c.id = public.channel_documents.channel_id
     ));
 
 CREATE POLICY "Users can create documents in channels they belong to"
     ON public.channel_documents FOR INSERT
     WITH CHECK (auth.uid() IN (
-        SELECT user_id FROM public.channel_members WHERE channel_id = public.channel_documents.channel_id
+        SELECT sm.user_id FROM public.server_members sm
+        JOIN public.channels c ON c.server_id = sm.server_id
+        WHERE c.id = public.channel_documents.channel_id
     ));
