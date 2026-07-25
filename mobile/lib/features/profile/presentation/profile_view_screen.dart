@@ -948,7 +948,7 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
     if (entries.isEmpty) return const SizedBox.shrink();
 
     return SizedBox(
-      height: 72,
+      height: 76,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
@@ -961,7 +961,7 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
             onTap: e.onTap,
             child: Container(
               width: 68,
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 6),
               decoration: BoxDecoration(
                 color: _surface,
                 borderRadius: BorderRadius.circular(14),
@@ -969,16 +969,17 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(6),
+                    padding: const EdgeInsets.all(5),
                     decoration: BoxDecoration(
                       color: _accent.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(e.icon, color: _accent, size: 18),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 4),
                   Text(
                     e.label,
                     style: GoogleFonts.inter(
