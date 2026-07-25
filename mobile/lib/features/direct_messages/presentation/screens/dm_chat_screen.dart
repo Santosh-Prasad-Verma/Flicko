@@ -948,10 +948,9 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
                                     id: m.id,
                                     channelId: m.conversationId,
                                     authorId: m.senderId,
-                                    authorName: m.sender?.displayName ?? 'User',
-                                    authorAvatar: m.sender?.avatarUrl,
+                                    author: m.sender,
                                     content: m.content,
-                                    timestamp: m.createdAt,
+                                    createdAt: m.createdAt,
                                     pinned: true,
                                   ))
                               .toList();

@@ -143,7 +143,7 @@ class PinnedMessagesSheet extends StatelessWidget {
                           Row(
                             children: [
                               Text(
-                                message.authorName,
+                                message.author?.displayName ?? message.author?.username ?? 'User',
                                 style: GoogleFonts.inter(
                                   color: const Color(FlickoColors.brandLime),
                                   fontSize: 14,
@@ -152,7 +152,7 @@ class PinnedMessagesSheet extends StatelessWidget {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                _formatTime(message.timestamp),
+                                _formatTime(message.createdAt),
                                 style: GoogleFonts.inter(
                                   color: const Color(FlickoColors.textMuted),
                                   fontSize: 11,
