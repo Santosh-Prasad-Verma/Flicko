@@ -321,9 +321,13 @@ class AppConfig {
   static String _normalizeBaseUrl(String value) {
     final trimmed = value.trim();
     if (trimmed.isEmpty) return '';
-    return trimmed.endsWith('/')
+    var url = trimmed.endsWith('/')
         ? trimmed.substring(0, trimmed.length - 1)
         : trimmed;
+    if (!url.endsWith('/api/v1') && !url.contains('/api/v1')) {
+      url = '$url/api/v1';
+    }
+    return url;
   }
 }
 
