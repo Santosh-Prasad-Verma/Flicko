@@ -70,6 +70,12 @@ func NewCDCWorker(redisURL string, meili *MeiliSearchClient, log *zap.Logger) *C
 			Queues: map[string]int{
 				"default": 1,
 			},
+			ErrorHandler: asynq.ErrorHandlerFunc(func(ctx context.Context, task *asynq.Task, err error) {
+				log.Error("[DLQ] Search sync task failed all retries",
+					zap.String("task_type", task.Type()),
+					zap.Error(err),
+				)
+			}),
 		},
 	)
 

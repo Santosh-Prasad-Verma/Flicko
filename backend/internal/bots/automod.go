@@ -133,23 +133,22 @@ func (b *AutoModBot) handleAutomodExempt(ctx commands.CommandContext) (*commands
 	target, _ := ctx.Options["target"].(string)
 	remove, _ := ctx.Options["remove"].(bool)
 
-	var column string
-	switch exemptType {
-	case "role":
-		column = "exempt_roles"
-	case "channel":
-		column = "exempt_channels"
-	case "user":
-		column = "exempt_users"
+	var query string
+	switch {
+	case exemptType == "role" && !remove:
+		query = `UPDATE automod_settings SET exempt_roles = array_append(exempt_roles, $2::uuid) WHERE server_id = $1`
+	case exemptType == "role" && remove:
+		query = `UPDATE automod_settings SET exempt_roles = array_remove(exempt_roles, $2::uuid) WHERE server_id = $1`
+	case exemptType == "channel" && !remove:
+		query = `UPDATE automod_settings SET exempt_channels = array_append(exempt_channels, $2::uuid) WHERE server_id = $1`
+	case exemptType == "channel" && remove:
+		query = `UPDATE automod_settings SET exempt_channels = array_remove(exempt_channels, $2::uuid) WHERE server_id = $1`
+	case exemptType == "user" && !remove:
+		query = `UPDATE automod_settings SET exempt_users = array_append(exempt_users, $2::uuid) WHERE server_id = $1`
+	case exemptType == "user" && remove:
+		query = `UPDATE automod_settings SET exempt_users = array_remove(exempt_users, $2::uuid) WHERE server_id = $1`
 	default:
 		return &commands.CommandResponse{Content: "❌ Type must be: role, channel, or user", Ephemeral: true}, nil
-	}
-
-	var query string
-	if remove {
-		query = fmt.Sprintf(`UPDATE automod_settings SET %s = array_remove(%s, $2::uuid) WHERE server_id = $1`, column, column)
-	} else {
-		query = fmt.Sprintf(`UPDATE automod_settings SET %s = array_append(%s, $2::uuid) WHERE server_id = $1`, column, column)
 	}
 
 	if _, err := b.ctx.DB.Exec(reqCtx, query, ctx.ServerID, target); err != nil {

@@ -1209,10 +1209,9 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
       ref.read(activeCouponProvider.notifier).state = null;
       ref.invalidate(userPurchasesProvider);
 
-      if (mounted) {
-        Navigator.pop(context);
-        _showSuccessDialog(context);
-      }
+      if (!mounted) return;
+      Navigator.pop(context);
+      _showSuccessDialog(context);
     } catch (e) {
       _showError(e.toString());
     } finally {

@@ -73,14 +73,27 @@ func NewWSHandler(
 }
 
 // checkOrigin validates the request origin against the allowed list.
-// Returns true if no allowed origins are configured (dev mode) or if
-// the request origin matches one of the allowed origins.
+// Native mobile clients, local dev environments, and allowed production domains are accepted.
 func (h *WSHandler) checkOrigin(r *http.Request) bool {
+	origin := strings.TrimSpace(strings.ToLower(r.Header.Get("Origin")))
+	if origin == "" || origin == "file://" || strings.HasPrefix(origin, "capacitor://") || strings.HasPrefix(origin, "app://") {
+		return true // Allow native mobile app clients and non-browser clients
+	}
+
 	if len(h.allowedOrigins) == 0 {
 		return true // dev mode: allow all
 	}
-	origin := strings.ToLower(r.Header.Get("Origin"))
-	return h.allowedOrigins[origin]
+
+	if h.allowedOrigins[origin] {
+		return true
+	}
+
+	// Check if origin matches default production domains
+	if strings.HasSuffix(origin, ".flicko.tech") || strings.HasSuffix(origin, ".flicko.dev") || origin == "https://flicko.tech" || origin == "https://flicko.dev" {
+		return true
+	}
+
+	return false
 }
 
 // ServeHTTP upgrades the connection and runs the identify flow.
