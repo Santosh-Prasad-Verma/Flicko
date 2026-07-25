@@ -1,8 +1,9 @@
 name: Automated API Performance & Load Testing
 
 on:
-  push:
-    branches: ['main']
+  workflow_run:
+    workflows: ['Deploy Flicko to VPS']
+    types: [completed]
   workflow_dispatch:
     inputs:
       target_url:
@@ -13,6 +14,7 @@ on:
 jobs:
   load-test:
     name: Execute Load Test
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
