@@ -613,6 +613,7 @@ services:
     networks:
       - flicko_internal
     environment:
+      APP_NAME: "realtime"
       RLIMIT_NOFILE: "65536"
       PORT: "4000"
       DB_HOST: "aws-1-ap-south-1.pooler.supabase.com"
