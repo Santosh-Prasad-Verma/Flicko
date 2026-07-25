@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/services.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 
@@ -130,8 +131,13 @@ class _InvitesScreenState extends ConsumerState<InvitesScreen> {
   }
 
   void _shareInvite(_Invite invite) {
+    final link = 'https://flicko.app/invite/${invite.code}';
+    Clipboard.setData(ClipboardData(text: link));
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('flicko.app/invite/${invite.code}')),
+      SnackBar(
+        content: Text('Invite link copied: $link'),
+        backgroundColor: const Color(FlickoColors.success),
+      ),
     );
   }
 

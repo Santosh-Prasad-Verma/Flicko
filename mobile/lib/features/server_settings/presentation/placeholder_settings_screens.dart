@@ -164,9 +164,32 @@ class DeleteServerScreen extends StatelessWidget {
                           ),
                         ),
                         ElevatedButton(
-                          onPressed: () {
+                          onPressed: () async {
                             Navigator.pop(context);
-                            context.go('/');
+                            try {
+                              await Supabase.instance.client
+                                  .from('servers')
+                                  .delete()
+                                  .eq('id', serverId);
+                              if (context.mounted) {
+                                context.go('/');
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Server deleted successfully'),
+                                    backgroundColor: Color(FlickoColors.success),
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Failed to delete server: $e'),
+                                    backgroundColor: const Color(FlickoColors.danger),
+                                  ),
+                                );
+                              }
+                            }
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(FlickoColors.danger),

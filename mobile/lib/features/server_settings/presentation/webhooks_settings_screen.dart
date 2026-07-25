@@ -80,6 +80,19 @@ class _WebhooksSettingsScreenState extends ConsumerState<WebhooksSettingsScreen>
       return;
     }
 
+    if (!webhookUrl.startsWith('http://') && !webhookUrl.startsWith('https://')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Webhook URL must start with http:// or https://',
+            style: GoogleFonts.inter(),
+          ),
+          backgroundColor: const Color(FlickoColors.danger),
+        ),
+      );
+      return;
+    }
+
     setState(() => _isCreating = true);
 
     try {

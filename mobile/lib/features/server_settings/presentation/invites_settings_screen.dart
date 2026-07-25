@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
@@ -247,6 +248,19 @@ class _InvitesSettingsScreenState extends ConsumerState<InvitesSettingsScreen> {
                 ),
               ),
               const Spacer(),
+              IconButton(
+                icon: const Icon(Icons.copy, color: Color(FlickoColors.brandLime)),
+                onPressed: () {
+                  final link = 'https://flicko.app/invite/$code';
+                  Clipboard.setData(ClipboardData(text: link));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Invite link copied: $link'),
+                      backgroundColor: const Color(FlickoColors.success),
+                    ),
+                  );
+                },
+              ),
               IconButton(
                 icon: const Icon(Icons.delete_outline, color: Color(FlickoColors.danger)),
                 onPressed: () => _deleteInvite(invite['id'] as String),
