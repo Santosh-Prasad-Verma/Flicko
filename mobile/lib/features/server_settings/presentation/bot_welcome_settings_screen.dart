@@ -1,9 +1,12 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
+import 'package:mobile/data/services/appwrite_storage_service.dart';
 
 class BotWelcomeSettingsScreen extends ConsumerStatefulWidget {
   final String serverId;
@@ -40,6 +43,57 @@ class _BotWelcomeSettingsScreenState extends ConsumerState<BotWelcomeSettingsScr
   bool _welcomeCardEnabled = false;
   bool _leaveEnabled = false;
   List<String> _autoRoles = [];
+
+  bool _isUploadingBanner = false;
+  bool _isUploadingGif = false;
+
+  Future<void> _pickBanner() async {
+    if (_isUploadingBanner) return;
+    final picker = ImagePicker();
+    final image = await picker.pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      setState(() => _isUploadingBanner = true);
+      try {
+        final url = await AppwriteStorageService.instance.uploadImage(File(image.path));
+        setState(() {
+          _welcomeBannerController.text = url;
+          _isUploadingBanner = false;
+          _hasChanges = true;
+        });
+      } catch (e) {
+        setState(() => _isUploadingBanner = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error uploading banner: $e'), backgroundColor: const Color(FlickoColors.danger)),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _pickGif() async {
+    if (_isUploadingGif) return;
+    final picker = ImagePicker();
+    final image = await picker.pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      setState(() => _isUploadingGif = true);
+      try {
+        final url = await AppwriteStorageService.instance.uploadImage(File(image.path));
+        setState(() {
+          _welcomeGifController.text = url;
+          _isUploadingGif = false;
+          _hasChanges = true;
+        });
+      } catch (e) {
+        setState(() => _isUploadingGif = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error uploading GIF: $e'), backgroundColor: const Color(FlickoColors.danger)),
+          );
+        }
+      }
+    }
+  }
 
   @override
   void initState() {
@@ -367,25 +421,53 @@ class _BotWelcomeSettingsScreenState extends ConsumerState<BotWelcomeSettingsScr
             ),
             const SizedBox(height: 16),
 
-            // Welcome banner URL
-            _buildSectionHeader('WELCOME BANNER URL'),
+            // Welcome banner URL & Upload
+            _buildSectionHeader('WELCOME BANNER'),
             const SizedBox(height: 8),
-            TextField(
-              controller: _welcomeBannerController,
-              style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary)),
-              decoration: _inputDecoration('https://example.com/banner.png'),
-              onChanged: (_) => _markChanged(),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _welcomeBannerController,
+                    style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary)),
+                    decoration: _inputDecoration('https://example.com/banner.png or upload'),
+                    onChanged: (_) => _markChanged(),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton.filledTonal(
+                  onPressed: _isUploadingBanner ? null : _pickBanner,
+                  icon: _isUploadingBanner
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Icons.upload_file_rounded, color: Color(FlickoColors.brandLime)),
+                  tooltip: 'Upload Banner Image',
+                ),
+              ],
             ),
             const SizedBox(height: 16),
 
-            // Welcome GIF URL
-            _buildSectionHeader('WELCOME GIF URL'),
+            // Welcome GIF URL & Upload
+            _buildSectionHeader('WELCOME GIF'),
             const SizedBox(height: 8),
-            TextField(
-              controller: _welcomeGifController,
-              style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary)),
-              decoration: _inputDecoration('https://example.com/welcome.gif'),
-              onChanged: (_) => _markChanged(),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _welcomeGifController,
+                    style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary)),
+                    decoration: _inputDecoration('https://example.com/welcome.gif or upload'),
+                    onChanged: (_) => _markChanged(),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton.filledTonal(
+                  onPressed: _isUploadingGif ? null : _pickGif,
+                  icon: _isUploadingGif
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Icons.gif_box_rounded, color: Color(FlickoColors.brandLime)),
+                  tooltip: 'Upload GIF Image',
+                ),
+              ],
             ),
             const SizedBox(height: 16),
 
