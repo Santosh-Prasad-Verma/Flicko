@@ -23,8 +23,7 @@
 //
 // !!! Point this at a DEDICATED TEST/STAGING project, never production. !!!
 // =============================================================================
-import { WebSocket } from 'k6/experimental/websockets';
-import { setInterval, clearInterval, setTimeout } from 'k6/experimental/timers';
+import { WebSocket } from 'k6/websockets';
 import { Trend, Counter } from 'k6/metrics';
 import { check } from 'k6';
 
