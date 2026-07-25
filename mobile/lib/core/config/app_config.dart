@@ -9,6 +9,9 @@ class AppConfig {
   static const String _definedSupabaseAnonKey = String.fromEnvironment(
     'FLICKO_SUPABASE_ANON_KEY',
   );
+  static const String _definedSupabaseRealtimeUrl = String.fromEnvironment(
+    'FLICKO_SUPABASE_REALTIME_URL',
+  );
   static const String _definedLivekitUrl = String.fromEnvironment(
     'FLICKO_LIVEKIT_URL',
   );
@@ -125,6 +128,7 @@ class AppConfig {
 
   static late final String supabaseUrl;
   static late final String supabaseAnonKey;
+  static late final String supabaseRealtimeUrl;
   static late final String livekitUrl;
   static late final String apiBaseUrl;
   static late final String giphyApiKey;
@@ -159,6 +163,12 @@ class AppConfig {
       'FLICKO_SUPABASE_ANON_KEY',
       'SUPABASE_ANON_KEY',
     );
+    final definedRealtime = _read(
+      _definedSupabaseRealtimeUrl,
+      _definedLegacySupabaseRealtimeUrl,
+      'FLICKO_SUPABASE_REALTIME_URL',
+      'SUPABASE_REALTIME_URL',
+    );
     livekitUrl = _read(
       _definedLivekitUrl,
       _definedLegacyLivekitUrl,
@@ -173,6 +183,21 @@ class AppConfig {
         'API_BASE_URL',
       ),
     );
+
+    if (definedRealtime.isNotEmpty) {
+      supabaseRealtimeUrl = definedRealtime;
+    } else if (apiBaseUrl.isNotEmpty) {
+      final host = apiBaseUrl.replaceAll(RegExp(r'/api/v1/?$'), '');
+      final wsHost = host.startsWith('https://')
+          ? host.replaceFirst('https://', 'wss://')
+          : host.replaceFirst('http://', 'ws://');
+      supabaseRealtimeUrl = '$wsHost/realtime/v1/websocket';
+    } else {
+      final wsHost = supabaseUrl.startsWith('https://')
+          ? supabaseUrl.replaceFirst('https://', 'wss://')
+          : supabaseUrl.replaceFirst('http://', 'ws://');
+      supabaseRealtimeUrl = '$wsHost/realtime/v1/websocket';
+    }
     giphyApiKey = _read(
       _definedGiphyApiKey,
       _definedLegacyGiphyApiKey,

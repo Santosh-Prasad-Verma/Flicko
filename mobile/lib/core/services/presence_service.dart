@@ -112,8 +112,10 @@ class PresenceService {
 
   /// Build WebSocket URL
   String _buildWebSocketUrl(String token) {
-    final url = AppConfig.supabaseUrl.replaceFirst('https://', 'wss://');
-    return '$url/realtime/v1/websocket?apikey=$token&vsn=1.0.0';
+    if (AppConfig.supabaseRealtimeUrl.contains('?')) {
+      return '${AppConfig.supabaseRealtimeUrl}&apikey=$token&vsn=1.0.0';
+    }
+    return '${AppConfig.supabaseRealtimeUrl}?apikey=$token&vsn=1.0.0';
   }
 
   /// Join presence channel
