@@ -30,10 +30,7 @@ jobs:
   realtime-ws-test:
     name: Realtime WebSocket Fan-out Load Test
     runs-on: ubuntu-latest
-    # Only run when realtime creds are configured (on-demand / scheduled), so a
-    # normal push isn't blocked by a missing secret. Point secrets at a
-    # DEDICATED TEST/STAGING Supabase project, never production.
-    if: ${{ github.event_name == 'workflow_dispatch' }}
+    if: ${{ secrets.E2E_SUPABASE_URL != '' }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
