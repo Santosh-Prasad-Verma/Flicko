@@ -18,6 +18,8 @@ class WatchTogetherState {
   final int lastPositionMs;
   final bool lastPlaying;
   final int seq;
+  final Map<String, String> availableQualities;
+  final String selectedQuality;
 
   const WatchTogetherState({
     this.session,
@@ -28,6 +30,8 @@ class WatchTogetherState {
     this.lastPositionMs = 0,
     this.lastPlaying = false,
     this.seq = 0,
+    this.availableQualities = const {},
+    this.selectedQuality = 'Auto',
   });
 
   WatchTogetherState copyWith({
@@ -39,6 +43,8 @@ class WatchTogetherState {
     int? lastPositionMs,
     bool? lastPlaying,
     int? seq,
+    Map<String, String>? availableQualities,
+    String? selectedQuality,
   }) {
     return WatchTogetherState(
       session: session ?? this.session,
@@ -49,6 +55,8 @@ class WatchTogetherState {
       lastPositionMs: lastPositionMs ?? this.lastPositionMs,
       lastPlaying: lastPlaying ?? this.lastPlaying,
       seq: seq ?? this.seq,
+      availableQualities: availableQualities ?? this.availableQualities,
+      selectedQuality: selectedQuality ?? this.selectedQuality,
     );
   }
 }
@@ -159,21 +167,59 @@ class WatchTogetherController extends Notifier<WatchTogetherState> {
       try {
         final video = await _ytExplode.videos.get(url);
         final manifest = await _ytExplode.videos.streamsClient.getManifest(video.id);
+
+        final Map<String, String> qualities = {};
+        String defaultUrl = url;
+
         if (manifest.muxed.isNotEmpty) {
-          final streamInfo = manifest.muxed.first;
-          state = state.copyWith(resolvedStreamUrl: streamInfo.url.toString());
+          defaultUrl = manifest.muxed.first.url.toString();
+          for (var stream in manifest.muxed) {
+            final label = stream.videoQuality.name;
+            if (!qualities.containsKey(label)) {
+              qualities[label] = stream.url.toString();
+            }
+          }
         } else if (manifest.video.isNotEmpty) {
-          final streamInfo = manifest.video.first;
-          state = state.copyWith(resolvedStreamUrl: streamInfo.url.toString());
-        } else {
-          state = state.copyWith(resolvedStreamUrl: url);
+          defaultUrl = manifest.video.first.url.toString();
+          for (var stream in manifest.video) {
+            final label = stream.videoQuality.name;
+            if (!qualities.containsKey(label)) {
+              qualities[label] = stream.url.toString();
+            }
+          }
         }
+
+        qualities['Auto'] = defaultUrl;
+
+        state = state.copyWith(
+          resolvedStreamUrl: defaultUrl,
+          availableQualities: qualities,
+          selectedQuality: 'Auto',
+        );
       } catch (e) {
         debugPrint('Error resolving YouTube URL: $e');
-        state = state.copyWith(resolvedStreamUrl: url); // fallback to original
+        state = state.copyWith(
+          resolvedStreamUrl: url,
+          availableQualities: {'Auto': url},
+          selectedQuality: 'Auto',
+        );
       }
     } else {
-      state = state.copyWith(resolvedStreamUrl: url);
+      state = state.copyWith(
+        resolvedStreamUrl: url,
+        availableQualities: {'Auto': url},
+        selectedQuality: 'Auto',
+      );
+    }
+  }
+
+  void selectQuality(String qualityLabel) {
+    final targetUrl = state.availableQualities[qualityLabel];
+    if (targetUrl != null) {
+      state = state.copyWith(
+        selectedQuality: qualityLabel,
+        resolvedStreamUrl: targetUrl,
+      );
     }
   }
 

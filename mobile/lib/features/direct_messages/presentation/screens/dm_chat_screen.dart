@@ -24,6 +24,7 @@ import 'package:mobile/features/store/data/warp_service.dart';
 import 'package:mobile/features/shared/presentation/widgets/entrance_warp_overlay.dart';
 import 'package:dio/dio.dart';
 import 'package:mobile/core/config/app_config.dart';
+import 'package:mobile/features/server_channels/chat/presentation/widgets/pinned_messages_sheet.dart';
 
 class DMChatScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -45,6 +46,8 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
   String? _participantName;
   String? _participantAvatarUrl;
   bool _showEntranceWarp = true;
+  bool _isSearching = false;
+  final TextEditingController _searchController = TextEditingController();
 
   bool _isSummarizing = false;
   String? _chatSummary;
@@ -342,6 +345,7 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
 
   @override
   void dispose() {
+    _searchController.dispose();
     _signalSub?.cancel();
     _scrollController.dispose();
     super.dispose();
@@ -854,58 +858,124 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
                             color: Color(FlickoColors.textPrimary), size: 22),
                       ),
 
-                      // Tappable avatar + name + status
+                      // Tappable avatar + name + status / Search field
                       Expanded(
-                        child: GestureDetector(
-                          onTap: () => _showProfileOptions(
-                            participant?.id,
-                            participantName,
-                            participant?.avatarUrl,
-                            onlineStatus,
-                          ),
-                          child: Row(
-                            children: [
-                              if (participant != null)
-                                UserAvatar(
-                                  imageUrl: participant.avatarUrl,
-                                  name: participantName,
-                                  size: 36,
-                                  status: onlineStatus,
-                                  showStatus: true,
-                                  userId: participant.id,
+                        child: _isSearching
+                            ? TextField(
+                                controller: _searchController,
+                                autofocus: true,
+                                onChanged: (_) => setState(() {}),
+                                style: GoogleFonts.inter(color: Colors.white, fontSize: 15),
+                                decoration: InputDecoration(
+                                  hintText: 'Search DM messages...',
+                                  hintStyle: GoogleFonts.inter(color: const Color(FlickoColors.textMuted), fontSize: 14),
+                                  border: InputBorder.none,
                                 ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
+                              )
+                            : GestureDetector(
+                                onTap: () => _showProfileOptions(
+                                  participant?.id,
+                                  participantName,
+                                  participant?.avatarUrl,
+                                  onlineStatus,
+                                ),
+                                child: Row(
                                   children: [
-                                    Text(
-                                      participantName,
-                                      style: const TextStyle(
-                                        color: Color(FlickoColors.textPrimary),
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w700,
-                                        letterSpacing: 0.1,
+                                    if (participant != null)
+                                      UserAvatar(
+                                        imageUrl: participant.avatarUrl,
+                                        name: participantName,
+                                        size: 36,
+                                        status: onlineStatus,
+                                        showStatus: true,
+                                        userId: participant.id,
                                       ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 1),
-                                    Text(
-                                      _getStatusLabel(onlineStatus),
-                                      style: TextStyle(
-                                        color: _getStatusColor(onlineStatus),
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w500,
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            participantName,
+                                            style: const TextStyle(
+                                              color: Color(FlickoColors.textPrimary),
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w700,
+                                              letterSpacing: 0.1,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: 1),
+                                          Text(
+                                            _getStatusLabel(onlineStatus),
+                                            style: TextStyle(
+                                              color: _getStatusColor(onlineStatus),
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
-                            ],
-                          ),
-                        ),
                       ),
+
+                      // Search action
+                      _AppBarAction(
+                        icon: _isSearching ? Icons.close : Icons.search_rounded,
+                        onTap: () {
+                          setState(() {
+                            _isSearching = !_isSearching;
+                            if (!_isSearching) {
+                              _searchController.clear();
+                            }
+                          });
+                        },
+                      ),
+                      const SizedBox(width: 4),
+
+                      // Pinned messages action
+                      _AppBarAction(
+                        icon: Icons.push_pin_outlined,
+                        onTap: () {
+                          final messages = ref.read(dmChatControllerProvider(ids.join('_'))).messages;
+                          final pinned = messages
+                              .where((m) => m.reactions.any((r) => r.emoji == '📌'))
+                              .map((m) => FlickoMessage(
+                                    id: m.id,
+                                    channelId: m.conversationId,
+                                    authorId: m.senderId,
+                                    authorName: m.sender?.displayName ?? 'User',
+                                    authorAvatar: m.sender?.avatarUrl,
+                                    content: m.content,
+                                    timestamp: m.createdAt,
+                                    pinned: true,
+                                  ))
+                              .toList();
+                          showModalBottomSheet(
+                            context: context,
+                            backgroundColor: Colors.transparent,
+                            isScrollControlled: true,
+                            builder: (ctx) => PinnedMessagesSheet(
+                              pinnedMessages: pinned,
+                              onJumpToMessage: (msg) {
+                                final idx = messages.indexWhere((m) => m.id == msg.id);
+                                if (idx >= 0 && _scrollController.hasClients) {
+                                  _scrollController.animateTo(
+                                    idx * 80.0,
+                                    duration: const Duration(milliseconds: 300),
+                                    curve: Curves.easeOut,
+                                  );
+                                }
+                              },
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(width: 4),
 
                       // Voice call button
                       _AppBarAction(
@@ -956,36 +1026,43 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
               Expanded(
                 child: state.isLoading && state.messages.isEmpty
                     ? const MessageListSkeleton(count: 6)
-                    : ListView.builder(
-                        controller: _scrollController,
-                        padding: const EdgeInsets.fromLTRB(0, 12, 0, 20),
-                        reverse: true,
-                        itemCount:
-                            state.messages.length + (state.hasMore ? 1 : 0),
-                        itemBuilder: (context, index) {
-                          if (index == state.messages.length) {
-                            return const Center(
-                              child: Padding(
-                                padding: EdgeInsets.all(8.0),
-                                child: CircularProgressIndicator(
-                                  color: Color(FlickoColors.emeraldGreen),
-                                  strokeWidth: 2,
-                                ),
-                              ),
-                            );
-                          }
-                          final message = state.messages[index];
-                          final senderName = message.sender?.displayName ??
-                              message.sender?.username ??
-                              'Unknown';
-                          return MessageBubble(
-                            message: message,
-                            onTapProfile: () {
-                              _showProfileOptions(
-                                message.sender?.id,
-                                senderName,
-                                message.sender?.avatarUrl,
-                                message.sender?.onlineStatus ?? 'offline',
+                    : Builder(
+                        builder: (context) {
+                          final filteredDMMessages = _isSearching && _searchController.text.trim().isNotEmpty
+                              ? state.messages.where((m) => m.content.toLowerCase().contains(_searchController.text.trim().toLowerCase())).toList()
+                              : state.messages;
+
+                          return ListView.builder(
+                            controller: _scrollController,
+                            padding: const EdgeInsets.fromLTRB(0, 12, 0, 20),
+                            reverse: true,
+                            itemCount: filteredDMMessages.length + (state.hasMore ? 1 : 0),
+                            itemBuilder: (context, index) {
+                              if (index == filteredDMMessages.length) {
+                                return const Center(
+                                  child: Padding(
+                                    padding: EdgeInsets.all(8.0),
+                                    child: CircularProgressIndicator(
+                                      color: Color(FlickoColors.emeraldGreen),
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
+                                );
+                              }
+                              final message = filteredDMMessages[index];
+                              final senderName = message.sender?.displayName ??
+                                  message.sender?.username ??
+                                  'Unknown';
+                              return MessageBubble(
+                                message: message,
+                                onTapProfile: () {
+                                  _showProfileOptions(
+                                    message.sender?.id,
+                                    senderName,
+                                    message.sender?.avatarUrl,
+                                    message.sender?.onlineStatus ?? 'offline',
+                                  );
+                                },
                               );
                             },
                           );

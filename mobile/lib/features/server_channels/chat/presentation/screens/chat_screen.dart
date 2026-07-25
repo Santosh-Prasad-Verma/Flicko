@@ -15,6 +15,7 @@ import 'package:mobile/features/server_channels/chat/application/scroll_to_messa
 import 'package:mobile/features/server_channels/chat/presentation/widgets/enhanced_message_item.dart';
 import 'package:mobile/features/server_channels/chat/presentation/widgets/message_actions.dart';
 import 'package:mobile/features/server_channels/chat/presentation/widgets/enhanced_message_input.dart';
+import 'package:mobile/features/server_channels/chat/presentation/widgets/pinned_messages_sheet.dart';
 import 'package:mobile/features/server_channels/chat/presentation/widgets/poll_creator_modal.dart';
 
 import 'package:mobile/core/widgets/particle_fx_engine.dart';
@@ -47,6 +48,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   String? _editingMessageId;
   int _lastMessageCount = 0;
   bool _showEntranceWarp = true;
+  bool _isSearching = false;
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -202,21 +212,68 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             ),
           ),
           titleSpacing: 0,
-          title: Row(
-            children: [
-              const Icon(Icons.tag, color: Color(FlickoColors.brandLime), size: 20),
-              const SizedBox(width: 8),
-              Text(
-                widget.channelName ?? 'Channel',
-                style: GoogleFonts.inter(
-                  color: const Color(FlickoColors.textPrimary),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+          title: _isSearching
+              ? TextField(
+                  controller: _searchController,
+                  autofocus: true,
+                  onChanged: (_) => setState(() {}),
+                  style: GoogleFonts.inter(color: Colors.white, fontSize: 15),
+                  decoration: InputDecoration(
+                    hintText: 'Search channel messages...',
+                    hintStyle: GoogleFonts.inter(color: const Color(FlickoColors.textMuted), fontSize: 14),
+                    border: InputBorder.none,
+                  ),
+                )
+              : Row(
+                  children: [
+                    const Icon(Icons.tag, color: Color(FlickoColors.brandLime), size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      widget.channelName ?? 'Channel',
+                      style: GoogleFonts.inter(
+                        color: const Color(FlickoColors.textPrimary),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
-          ),
           actions: [
+            IconButton(
+              icon: Icon(
+                _isSearching ? Icons.close : Icons.search_rounded,
+                color: const Color(FlickoColors.brandLime),
+              ),
+              onPressed: () {
+                setState(() {
+                  _isSearching = !_isSearching;
+                  if (!_isSearching) {
+                    _searchController.clear();
+                  }
+                });
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.push_pin_outlined, color: Color(FlickoColors.brandLime)),
+              onPressed: () {
+                final pinned = chatState.messages.where((m) => m.pinned).toList();
+                showModalBottomSheet(
+                  context: context,
+                  backgroundColor: Colors.transparent,
+                  isScrollControlled: true,
+                  builder: (ctx) => PinnedMessagesSheet(
+                    pinnedMessages: pinned,
+                    onJumpToMessage: (msg) => _jumpToMessage(msg.id),
+                    onUnpinMessage: (msg) {
+                      ref
+                          .read(chatNotifierProvider(widget.channelId).notifier)
+                          .togglePinMessage(msg.id, false);
+                      Navigator.pop(ctx);
+                    },
+                  ),
+                );
+              },
+            ),
             IconButton(
               icon: const Icon(Icons.image_outlined, color: Color(FlickoColors.brandLime)),
               onPressed: () {
@@ -266,21 +323,25 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                               }
                             }
 
+                            final filteredMessages = _isSearching && _searchController.text.trim().isNotEmpty
+                                ? chatState.messages.where((m) => m.content.toLowerCase().contains(_searchController.text.trim().toLowerCase()) || m.authorName.toLowerCase().contains(_searchController.text.trim().toLowerCase())).toList()
+                                : chatState.messages;
+
                             return ListView.builder(
                               controller: _scrollController,
                               reverse: true, // Discord style lists newest at bottom
                               padding: const EdgeInsets.symmetric(vertical: 16),
-                              itemCount: chatState.messages.length + (chatState.isFetchingMore ? 1 : 0),
+                              itemCount: filteredMessages.length + (chatState.isFetchingMore ? 1 : 0),
                               itemBuilder: (context, index) {
-                                if (index == chatState.messages.length) {
+                                if (index == filteredMessages.length) {
                                   return const Padding(
                                     padding: EdgeInsets.all(8.0),
                                     child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
                                   );
                                 }
 
-                                final message = chatState.messages[index];
-                                final nextMessage = index > 0 ? chatState.messages[index - 1] : null;
+                                final message = filteredMessages[index];
+                                final nextMessage = index > 0 ? filteredMessages[index - 1] : null;
 
                                 // Grouping logic: Same author and within 5 minutes
                                 bool isContinuation = false;

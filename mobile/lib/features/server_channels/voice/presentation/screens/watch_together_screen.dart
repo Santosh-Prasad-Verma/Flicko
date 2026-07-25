@@ -279,6 +279,12 @@ class _WatchTogetherScreenState extends ConsumerState<WatchTogetherScreen> {
                     ],
                   ),
                 ),
+                IconButton(
+                  icon: const Icon(Icons.hd_outlined, color: Color(FlickoColors.brandLime), size: 22),
+                  tooltip: 'Video Quality (${state.selectedQuality})',
+                  onPressed: () => _showQualitySelectorSheet(context, state),
+                ),
+                const SizedBox(width: 4),
                 if (state.isHost) ...[
                   IconButton(
                     icon: const Icon(Icons.edit_outlined, color: Color(FlickoColors.brandLime), size: 20),
@@ -306,6 +312,79 @@ class _WatchTogetherScreenState extends ConsumerState<WatchTogetherScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  void _showQualitySelectorSheet(BuildContext context, WatchTogetherState state) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: BoxDecoration(
+            color: const Color(FlickoColors.bgSecondary),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  const Icon(Icons.hd_outlined, color: Color(FlickoColors.brandLime), size: 20),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Select Stream Quality',
+                    style: GoogleFonts.inter(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              if (state.availableQualities.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(
+                    'Auto Quality Only',
+                    style: GoogleFonts.inter(color: Colors.white70),
+                  ),
+                )
+              else
+                ...state.availableQualities.keys.map((quality) {
+                  final isSelected = state.selectedQuality == quality;
+                  return ListTile(
+                    title: Text(
+                      quality,
+                      style: GoogleFonts.inter(
+                        color: isSelected ? const Color(FlickoColors.brandLime) : Colors.white,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    ),
+                    trailing: isSelected
+                        ? const Icon(Icons.check_circle, color: Color(FlickoColors.brandLime))
+                        : null,
+                    onTap: () {
+                      Navigator.pop(context);
+                      ref.read(watchTogetherControllerProvider.notifier).selectQuality(quality);
+                    },
+                  );
+                }),
+            ],
+          ),
+        );
+      },
     );
   }
 
