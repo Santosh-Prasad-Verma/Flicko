@@ -358,6 +358,8 @@ services:
     image: tolgee/tolgee:latest
     container_name: flicko-tolgee
     <<: [*restart-policy, *default-logging]
+    ports:
+      - "8085:8080"
     networks:
       - flicko_internal
     env_file:
