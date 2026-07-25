@@ -25,10 +25,8 @@ class PillSearchBar extends StatelessWidget {
     this.showBackArrow = true,
   });
 
-  static const Color _barBg = Color(0xFF111116);
   static const Color _brandGreen = Color(0xFF52B788);
   static const Color _textColor = Color(0xFFF4F4F5);
-  static const Color _hintColor = Color(0x4DFFFFFF); // white at 0.3
   static const Color _iconColor = Color(0xE6E4E4E7); // 0xFFE4E4E7 at 0.9
   static const Color _clearBg = Color(0x1AFFFFFF); // white at 0.1
   static const Color _clearIcon = Color(0xFFA1A1AA);

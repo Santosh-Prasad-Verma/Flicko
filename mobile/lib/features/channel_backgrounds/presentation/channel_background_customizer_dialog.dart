@@ -29,7 +29,6 @@ class _ChannelBackgroundCustomizerDialogState
   static const Color lime = Color(0xFF52B788);
   static const Color black = Color(0xFF000000);
   static const Color white = Color(0xFFFFFFFF);
-  static const Color grey = Color(0xFF1E1E24);
 
   Future<void> _pickAndUploadImage() async {
     final picker = ImagePicker();

@@ -89,17 +89,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
   }
 
-  void _showComingSoon(String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$feature coming soon!'),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-        backgroundColor: const Color(FlickoColors.bgTertiary),
-      ),
-    );
-  }
-
   void _onMessageLongPress(FlickoMessage message) {
     final currentUserId = ref.read(authNotifierProvider).maybeWhen(
       authenticated: (user, _) => user.id,

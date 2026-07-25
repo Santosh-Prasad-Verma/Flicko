@@ -345,16 +345,16 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                       margin: const EdgeInsets.symmetric(horizontal: 4),
                       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
                       decoration: BoxDecoration(
-                        color: active ? _greenPunch : Colors.white.withOpacity(0.02),
+                        color: active ? _greenPunch : Colors.white.withValues(alpha: 0.02),
                         border: Border.all(
-                          color: active ? _greenPunch : Colors.white.withOpacity(0.06),
+                          color: active ? _greenPunch : Colors.white.withValues(alpha: 0.06),
                           width: 1.0,
                         ),
                         borderRadius: BorderRadius.circular(30),
                         boxShadow: active
                             ? [
                                 BoxShadow(
-                                  color: _greenPunch.withOpacity(0.25),
+                                  color: _greenPunch.withValues(alpha: 0.25),
                                   blurRadius: 8,
                                   offset: const Offset(0, 2),
                                 )
