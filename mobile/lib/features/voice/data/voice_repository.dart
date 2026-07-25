@@ -28,13 +28,13 @@ class VoiceRepository {
 
   /// Connects to a LiveKit room.
   Future<Room> connect(String token, {RoomOptions? options}) async {
-    final room = Room();
+    final room = Room(roomOptions: options);
 
     final url = AppConfig.livekitUrl.isNotEmpty
         ? AppConfig.livekitUrl
         : 'ws://localhost:7880';
 
-    await room.connect(url, token, roomOptions: options);
+    await room.connect(url, token);
     return room;
   }
 }

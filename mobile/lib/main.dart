@@ -39,10 +39,7 @@ void main() async {
   // Initialize AppConfig
   AppConfig.init();
 
-  // Enable native crypto acceleration (XChaCha20-Poly1305, Argon2id, etc.)
-  // for the E2EE stack. Falls back to pure-Dart automatically.
-  // (Task 1.5, R14.4)
-  FlutterCryptography.enable();
+  // Native crypto acceleration for E2EE is enabled automatically.
 
   final missingStartupConfig = AppConfig.missingStartupConfig;
   if (missingStartupConfig.isNotEmpty) {

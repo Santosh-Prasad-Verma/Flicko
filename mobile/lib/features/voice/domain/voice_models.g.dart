@@ -37,7 +37,7 @@ _VoiceParticipant _$VoiceParticipantFromJson(Map<String, dynamic> json) =>
       isSpeaking: json['isSpeaking'] as bool? ?? false,
       isDeafened: json['isDeafened'] as bool? ?? false,
       isLocal: json['isLocal'] as bool? ?? false,
-      isVideoEnabled: json['isVideoEnabled'] as bool? ?? null,
+      isVideoEnabled: json['isVideoEnabled'] as bool? ?? false,
       joinedAt: DateTime.parse(json['joinedAt'] as String),
       avatarUrl: json['avatarUrl'] as String?,
       displayName: json['displayName'] as String?,

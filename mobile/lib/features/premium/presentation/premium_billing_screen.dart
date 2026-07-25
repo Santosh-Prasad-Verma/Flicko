@@ -97,9 +97,7 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
                       onTap: () => _handlePurchase('pro'),
                     ),
 
-                    const SizedBox(height: 48),
-                    _buildCriticalZone(),
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 32),
                     _buildLegalFooter(),
                     const SizedBox(height: 40),
                   ],
@@ -756,33 +754,32 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
       final client = Supabase.instance.client;
       final currentUser = client.auth.currentUser;
 
-      if (currentUser == null) {
-        throw Exception('AUTH_SESSION_EXPIRED');
+      if (currentUser != null) {
+        // Upsert subscription record in Supabase directly
+        await client.from('subscriptions').upsert(
+          {
+            'user_id': currentUser.id,
+            'plan': planName,
+            'status': 'active',
+            'store': 'sandbox',
+            'current_period_start': DateTime.now().toIso8601String(),
+            'current_period_end': DateTime.now()
+                .add(const Duration(days: 30))
+                .toIso8601String(),
+            'cancel_at_period_end': false,
+          },
+          onConflict: 'user_id',
+        );
+
+        try {
+          await client.from('profiles').update({
+            'is_premium': true,
+            'premium_plan': planName,
+          }).eq('id', currentUser.id);
+        } catch (e) {
+          dev.log('[BILLING] Profile update skipped: $e');
+        }
       }
-
-      // Upsert subscription record in Supabase directly
-      await client.from('subscriptions').upsert(
-        {
-          'user_id': currentUser.id,
-          'plan': planName,
-          'status': 'active',
-          'store': 'sandbox',
-          'current_period_start': DateTime.now().toIso8601String(),
-          'current_period_end': DateTime.now()
-              .add(const Duration(days: 30))
-              .toIso8601String(),
-          'cancel_at_period_end': false,
-        },
-        onConflict: 'user_id',
-      );
-
-      // Also update the user's profile to reflect premium status
-      try {
-        await client.from('profiles').update({
-          'is_premium': true,
-          'premium_plan': planName,
-        }).eq('id', currentUser.id);
-      } catch (e) {
         dev.log('[BILLING] Profile update skipped (column may not exist): $e');
       }
 

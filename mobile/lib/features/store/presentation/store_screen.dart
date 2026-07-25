@@ -1172,15 +1172,14 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
               onTap: () async {
                 FlickoHaptics.light();
                 await ref.read(wishlistProvider.notifier).toggle(product.id);
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(inWishlist ? 'Removed from wishlist' : 'Added to wishlist'),
-                      backgroundColor: inWishlist ? Colors.red : _lime,
-                      duration: const Duration(milliseconds: 800),
-                    ),
-                  );
-                }
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(inWishlist ? 'Removed from wishlist' : 'Added to wishlist'),
+                    backgroundColor: inWishlist ? Colors.red : _lime,
+                    duration: const Duration(milliseconds: 800),
+                  ),
+                );
               },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),

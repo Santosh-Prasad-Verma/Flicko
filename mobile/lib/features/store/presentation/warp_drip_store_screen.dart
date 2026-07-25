@@ -221,7 +221,7 @@ class _WarpDripStoreScreenState extends ConsumerState<WarpDripStoreScreen> with 
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: _getRarityColor(product.rarity).withOpacity(0.2),
+                      color: _getRarityColor(product.rarity).withValues(alpha: 0.2),
                       blurRadius: 12,
                       spreadRadius: 1,
                     ),
@@ -273,7 +273,7 @@ class _WarpDripStoreScreenState extends ConsumerState<WarpDripStoreScreen> with 
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: _getRarityColor(product.rarity).withOpacity(0.5),
+                    color: _getRarityColor(product.rarity).withValues(alpha: 0.5),
                     width: 1.5,
                   ),
                 ),
@@ -414,7 +414,7 @@ class _WarpDripStoreScreenState extends ConsumerState<WarpDripStoreScreen> with 
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: borderCol.withOpacity(0.1),
+                  color: borderCol.withValues(alpha: 0.1),
                   border: Border.all(color: borderCol),
                 ),
                 child: Text(
@@ -502,7 +502,7 @@ class _WarpDripStoreScreenState extends ConsumerState<WarpDripStoreScreen> with 
           },
           child: Container(
             decoration: BoxDecoration(
-              color: isSelected ? borderCol.withOpacity(0.08) : Colors.black,
+              color: isSelected ? borderCol.withValues(alpha: 0.08) : Colors.black,
               border: Border.all(
                 color: isSelected ? borderCol : const Color(0xFF1E1E24),
                 width: isSelected ? 2.0 : 1.5,
