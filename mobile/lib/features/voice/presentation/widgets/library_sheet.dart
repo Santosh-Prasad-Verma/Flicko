@@ -548,7 +548,8 @@ class _PlaylistDetailSheet extends ConsumerWidget {
                 : ReorderableListView.builder(
                     padding: const EdgeInsets.all(12),
                     itemCount: tracks.length,
-                    onReorderItem: (oldIndex, newIndex) {
+                    // ignore: deprecated_member_use
+                    onReorder: (oldIndex, newIndex) {
                       ref.read(musicLibraryProvider.notifier)
                           .reorderPlaylist(playlist.id, oldIndex, newIndex);
                     },

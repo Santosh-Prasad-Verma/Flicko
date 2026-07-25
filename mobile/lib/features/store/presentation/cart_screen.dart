@@ -1210,7 +1210,9 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
       ref.invalidate(userPurchasesProvider);
 
       if (!mounted) return;
+      // ignore: use_build_context_synchronously
       Navigator.pop(context);
+      // ignore: use_build_context_synchronously
       _showSuccessDialog(context);
     } catch (e) {
       _showError(e.toString());

@@ -28,7 +28,7 @@ class VoiceRepository {
 
   /// Connects to a LiveKit room.
   Future<Room> connect(String token, {RoomOptions? options}) async {
-    final room = Room(roomOptions: options);
+    final room = Room(roomOptions: options ?? const RoomOptions());
 
     final url = AppConfig.livekitUrl.isNotEmpty
         ? AppConfig.livekitUrl
