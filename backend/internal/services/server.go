@@ -14,6 +14,14 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+// ServerService is NOT wired into the HTTP router (cmd/server/main.go): as of
+// the Supabase-direct architecture, server CRUD is served by Supabase
+// (PostgREST + RLS) and the mobile client hits it directly via
+// data/repositories/server_repository.dart. This service (and its _test.go) is
+// retained as a reference / ready-made backend-owned path if privileged
+// server operations ever need to move server-side. NewServerService has no
+// callers today — verified unused, not accidentally orphaned. Do not delete
+// without confirming the Supabase-direct path still owns this domain.
 type ServerService interface {
 	CreateServer(ctx context.Context, ownerID, name, description, icon string) (*models.Server, error)
 	GetServer(ctx context.Context, serverID string) (*models.Server, error)

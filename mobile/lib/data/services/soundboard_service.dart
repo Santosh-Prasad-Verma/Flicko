@@ -1,32 +1,66 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide MultipartFile;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/data/models/soundboard_model.dart';
+import 'package:mobile/data/clients/dio_client.dart';
+import 'package:mobile/core/config/app_config.dart';
 import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:io';
 
 final soundboardServiceProvider = Provider<SoundboardService>((ref) {
-  return SoundboardService(Supabase.instance.client);
+  return SoundboardService(
+    Supabase.instance.client,
+    ref.watch(dioProvider),
+  );
 });
 
 class SoundboardService {
   final SupabaseClient _supabase;
+  final Dio _dio;
 
-  SoundboardService(this._supabase);
+  SoundboardService(this._supabase, this._dio);
+
+  SoundboardSound _parseSoundJson(Map<String, dynamic> json) {
+    return SoundboardSound(
+      id: json['id'] as String? ?? '',
+      serverId: (json['server_id'] ?? json['serverId'] ?? '') as String,
+      name: json['name'] as String? ?? '',
+      emoji: json['emoji'] as String? ?? '🔊',
+      url: (json['sound_url'] ?? json['url'] ?? '') as String,
+      duration: (json['duration'] as num?)?.toInt() ?? 3,
+      isFavorite: (json['is_favorite'] ?? json['isFavorite'] ?? false) as bool,
+      creatorId: (json['uploaded_by'] ?? json['uploadedBy'] ?? json['creatorId'] ?? '') as String,
+      createdAt: json['created_at'] != null 
+          ? DateTime.parse(json['created_at'] as String) 
+          : (json['createdAt'] != null 
+              ? DateTime.parse(json['createdAt'] as String) 
+              : DateTime.now()),
+    );
+  }
 
   Future<List<SoundboardSound>> getServerSounds(String serverId) async {
-    // If global/trending sounds are requested via serverId, return trending sounds
     if (serverId == 'global' || serverId == 'trending') {
       return getTrendingSounds();
     }
     
     try {
+      if (AppConfig.hasApiBaseUrl) {
+        final response = await _dio.get('/servers/$serverId/soundboard');
+        if (response.statusCode == 200) {
+          final list = response.data as List;
+          return list.map((json) => _parseSoundJson(Map<String, dynamic>.from(json as Map))).toList();
+        }
+      }
+      
+      // Fallback to Supabase if API URL is not configured
       final response = await _supabase
           .from('soundboard_sounds')
           .select()
           .eq('server_id', serverId)
           .order('created_at', ascending: false);
 
-      return (response as List).map((json) => SoundboardSound.fromJson(json)).toList();
+      return (response as List).map((json) => _parseSoundJson(Map<String, dynamic>.from(json as Map))).toList();
     } catch (e) {
       debugPrint('Error getting server sounds: $e');
       return [];
@@ -38,13 +72,21 @@ class SoundboardService {
     if (userId == null) return [];
 
     try {
+      if (AppConfig.hasApiBaseUrl) {
+        final response = await _dio.get('/soundboard/favorites');
+        if (response.statusCode == 200) {
+          final list = response.data as List;
+          return list.map((json) => _parseSoundJson(Map<String, dynamic>.from(json as Map))).toList();
+        }
+      }
+
       final response = await _supabase
           .from('soundboard_favorites')
           .select('sound:sound_id(*)')
           .eq('user_id', userId);
 
       return (response as List)
-          .map((json) => SoundboardSound.fromJson(json['sound'] as Map<String, dynamic>))
+          .map((json) => _parseSoundJson(Map<String, dynamic>.from(json['sound'] as Map)))
           .toList();
     } catch (e) {
       debugPrint('Error getting favorite sounds: $e');
@@ -65,31 +107,88 @@ class SoundboardService {
           .maybeSingle();
 
       if (existing != null) {
-        await _supabase
-            .from('soundboard_favorites')
-            .delete()
-            .eq('user_id', userId)
-            .eq('sound_id', soundId);
+        if (AppConfig.hasApiBaseUrl) {
+          await _dio.delete('/soundboard/sounds/$soundId/favorite');
+        } else {
+          await _supabase
+              .from('soundboard_favorites')
+              .delete()
+              .eq('user_id', userId)
+              .eq('sound_id', soundId);
+        }
       } else {
-        await _supabase.from('soundboard_favorites').insert({
-          'user_id': userId,
-          'sound_id': soundId,
-        });
+        if (AppConfig.hasApiBaseUrl) {
+          await _dio.post('/soundboard/sounds/$soundId/favorite');
+        } else {
+          await _supabase.from('soundboard_favorites').insert({
+            'user_id': userId,
+            'sound_id': soundId,
+          });
+        }
       }
     } catch (e) {
       debugPrint('Error toggling favorite sound: $e');
     }
   }
 
-  Future<void> playSound(String soundId) async {
+  Future<void> playSound(String soundId, {String? serverId, String? channelId}) async {
     try {
-      // Analytics tracking for trending sounds (only if it exists in DB)
-      if (!soundId.startsWith('myinstants_')) {
-        await _supabase.rpc('increment_sound_plays', params: {'sound_id': soundId});
+      if (AppConfig.hasApiBaseUrl && serverId != null && channelId != null) {
+        await _dio.post('/servers/$serverId/soundboard/play', data: {
+          'sound_id': soundId,
+          'channel_id': channelId,
+        });
+      } else {
+        // Fallback to local RPC
+        if (!soundId.startsWith('myinstants_')) {
+          await _supabase.rpc('increment_sound_plays', params: {'sound_id': soundId});
+        }
       }
     } catch (e) {
       debugPrint('Error incrementing play count: $e');
     }
+  }
+
+  Future<SoundboardSound?> uploadSound(String serverId, String name, String emoji, File file) async {
+    try {
+      if (AppConfig.hasApiBaseUrl) {
+        final filename = file.path.split('/').last;
+        final formData = FormData.fromMap({
+          'name': name,
+          'emoji': emoji,
+          'file': await MultipartFile.fromFile(file.path, filename: filename),
+        });
+
+        final response = await _dio.post(
+          '/servers/$serverId/soundboard',
+          data: formData,
+          options: Options(
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          ),
+        );
+
+        if (response.statusCode == 200) {
+          return _parseSoundJson(Map<String, dynamic>.from(response.data as Map));
+        }
+      }
+    } catch (e) {
+      debugPrint('Error uploading sound: $e');
+    }
+    return null;
+  }
+
+  Future<bool> deleteSound(String soundId) async {
+    try {
+      if (AppConfig.hasApiBaseUrl) {
+        final response = await _dio.delete('/soundboard/sounds/$soundId');
+        return response.statusCode == 200 || response.statusCode == 204;
+      }
+    } catch (e) {
+      debugPrint('Error deleting sound: $e');
+    }
+    return false;
   }
 
   Future<List<SoundboardSound>> getTrendingSounds() async {
@@ -142,14 +241,12 @@ class SoundboardService {
     for (int i = 1; i < divs.length; i++) {
       final segment = divs[i];
       
-      // Extract title/name
       final linkRegex = RegExp(r'class="instant-link"[^>]*>([^<]+)</a>|class=\x27instant-link\x27[^>]*>([^<]+)</a>');
       final linkMatch = linkRegex.firstMatch(segment);
       if (linkMatch == null) continue;
       final name = (linkMatch.group(1) ?? linkMatch.group(2) ?? '').trim();
       if (name.isEmpty) continue;
       
-      // Extract mp3 URL
       final playRegex = RegExp(r'onclick="play\(\x27([^\x27]+)\x27\)"|onclick=\x27play\((?:"|\x27)([^"\x27]+)(?:"|\x27)\)\x27');
       final playMatch = playRegex.firstMatch(segment);
       if (playMatch == null) continue;
@@ -339,4 +436,3 @@ class SoundboardService {
         ),
       ];
 }
-

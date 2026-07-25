@@ -4,7 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/data/clients/dio_client.dart';
-import 'package:mobile/features/auth/application/auth_notifier.dart';
+import 'package:mobile/features/server_channels/voice/presentation/screens/watch_together_screen.dart';
+import 'package:mobile/features/server_channels/voice/presentation/controllers/watch_together_controller.dart';
 
 class PublicLobbiesScreen extends ConsumerStatefulWidget {
   const PublicLobbiesScreen({super.key});
@@ -79,29 +80,30 @@ class _PublicLobbiesScreenState extends ConsumerState<PublicLobbiesScreen> {
   Future<void> _joinLobby(String sessionId) async {
     final scaffoldMessenger = ScaffoldMessenger.of(context);
     try {
-      final dio = ref.read(dioProvider);
-      final currentUserId = ref.read(currentUserIdProvider);
-      
       scaffoldMessenger.showSnackBar(
         SnackBar(content: Text('Joining lobby $sessionId...')),
       );
 
-      await dio.post(
-        '/api/v1/wt/sessions/$sessionId/join',
-        data: {
-          'user_id': currentUserId,
-          'user_name': 'User_${currentUserId?.substring(0, 5)}',
-        },
-      );
+      await ref.read(watchTogetherControllerProvider.notifier).joinSession(sessionId);
 
       scaffoldMessenger.showSnackBar(
         SnackBar(
-          content: Text('Joined successfully! Token acquired.'),
+          content: const Text('Joined successfully!'),
           backgroundColor: const Color(FlickoColors.success),
         ),
       );
-      
-      // In production we would navigate to the player screen passing the token and session info
+
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const WatchTogetherScreen(
+              serverId: '',
+              channelId: '',
+            ),
+          ),
+        );
+      }
     } catch (e) {
       scaffoldMessenger.showSnackBar(
         SnackBar(

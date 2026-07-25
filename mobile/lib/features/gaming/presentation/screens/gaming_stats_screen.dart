@@ -1,11 +1,11 @@
 import 'dart:math';
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
+import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/gaming/providers/gaming_stats_provider.dart';
 
 // ---------------------------------------------------------------------------
@@ -19,35 +19,27 @@ class GamingStatsScreen extends ConsumerStatefulWidget {
   ConsumerState<GamingStatsScreen> createState() => _GamingStatsScreenState();
 }
 
-class _GamingStatsScreenState extends ConsumerState<GamingStatsScreen>
-    with SingleTickerProviderStateMixin {
-  // ── palette ──────────────────────────────────────────────────────────────
-  static const _bgDark = Color(0xFF050507);
-  static const _bgMid = Color(0xFF0B0B0F);
+class _GamingStatsScreenState extends ConsumerState<GamingStatsScreen> {
+  // ── Color Palette (Flat Minimalist Theme) ─────────────────────────────
+  static const _bgDark = Color(0xFF0C0C0F);
+  static const _bgMid = Color(0xFF17171C);
+  static const _border = Color(0xFF25252E);
   static const _brandLime = Color(0xFF52B788); // Neon Lime
   static const _emeraldGreen = Color(0xFF10B981); // Emerald Green
-  static const _dimmedGreen = Color(0xFF2D6A4F); // Dimmed Green
 
   // heatmap intensity palette
-  static const _heatEmpty = Color(0xFF16161A);
+  static const _heatEmpty = Color(0xFF17171C);
   static const _heatLow = Color(0xFF133A27);
   static const _heatMed = Color(0xFF1F5F3E);
   static const _heatHigh = Color(0xFF52B788);
 
-  late final AnimationController _rotationController;
-
   @override
   void initState() {
     super.initState();
-    _rotationController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 16),
-    )..repeat();
   }
 
   @override
   void dispose() {
-    _rotationController.dispose();
     super.dispose();
   }
 
@@ -168,10 +160,10 @@ class _GamingStatsScreenState extends ConsumerState<GamingStatsScreen>
         const SizedBox(width: 8),
       ],
       bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(1.5),
+        preferredSize: const Size.fromHeight(1.0),
         child: Container(
-          color: const Color(0xFF1E293B),
-          height: 1.5,
+          color: _border,
+          height: 1.0,
         ),
       ),
     );
@@ -186,28 +178,10 @@ class _GamingStatsScreenState extends ConsumerState<GamingStatsScreen>
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // Rotating dashed HUD outline ring
-            RotationTransition(
-              turns: _rotationController,
-              child: const CustomPaint(
-                size: Size(220, 220),
-                painter: DashedHudPainter(color: Color(0xFF1E293B)),
-              ),
-            ),
-            // Background ambient aura glow
-            Container(
-              width: 150,
-              height: 150,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: _brandLime.withOpacity(0.12),
-                    blurRadius: 50,
-                    spreadRadius: 8,
-                  ),
-                ],
-              ),
+            // Static clean flat outline ring
+            const CustomPaint(
+              size: Size(220, 220),
+              painter: DashedHudPainter(color: _border),
             ),
             // Solid donut ring sweep
             const CustomPaint(
@@ -241,10 +215,10 @@ class _GamingStatsScreenState extends ConsumerState<GamingStatsScreen>
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: _brandLime.withOpacity(0.15),
+                    color: _brandLime.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: _brandLime.withOpacity(0.4),
+                      color: _brandLime.withValues(alpha: 0.4),
                       width: 1.0,
                     ),
                   ),
@@ -314,11 +288,11 @@ class _GamingStatsScreenState extends ConsumerState<GamingStatsScreen>
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF0F0F12),
+        color: _bgMid,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFF1E293B),
-          width: 1.5,
+          color: _border,
+          width: 1.0,
         ),
       ),
       child: Stack(
@@ -331,14 +305,14 @@ class _GamingStatsScreenState extends ConsumerState<GamingStatsScreen>
               width: 24,
               height: 24,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 borderRadius: const BorderRadius.only(
                   topRight: Radius.circular(14),
                   bottomLeft: Radius.circular(8),
                 ),
                 border: Border(
-                  bottom: BorderSide(color: color.withOpacity(0.3), width: 1.5),
-                  left: BorderSide(color: color.withOpacity(0.3), width: 1.5),
+                  bottom: BorderSide(color: color.withValues(alpha: 0.3), width: 1.0),
+                  left: BorderSide(color: color.withValues(alpha: 0.3), width: 1.0),
                 ),
               ),
               child: Center(
@@ -405,11 +379,11 @@ class _GamingStatsScreenState extends ConsumerState<GamingStatsScreen>
             margin: const EdgeInsets.only(bottom: 12),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFF0F0F12),
+              color: _bgMid,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: const Color(0xFF1E293B),
-                width: 1.5,
+                color: _border,
+                width: 1.0,
               ),
             ),
             child: Row(
@@ -420,8 +394,8 @@ class _GamingStatsScreenState extends ConsumerState<GamingStatsScreen>
                   height: 48,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
-                    color: color.withOpacity(0.1),
-                    border: Border.all(color: color.withOpacity(0.4), width: 1.5),
+                    color: color.withValues(alpha: 0.1),
+                    border: Border.all(color: color.withValues(alpha: 0.4), width: 1.0),
                   ),
                   child: Center(
                     child: Text(
@@ -515,11 +489,11 @@ class _GamingStatsScreenState extends ConsumerState<GamingStatsScreen>
             margin: const EdgeInsets.only(bottom: 12),
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFF0F0F12),
+              color: _bgMid,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: const Color(0xFF1E293B),
-                width: 1.5,
+                color: _border,
+                width: 1.0,
               ),
             ),
             child: Column(
@@ -543,10 +517,10 @@ class _GamingStatsScreenState extends ConsumerState<GamingStatsScreen>
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: _brandLime.withOpacity(0.1),
+                        color: _brandLime.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: _brandLime.withOpacity(0.3),
+                          color: _brandLime.withValues(alpha: 0.3),
                           width: 1.0,
                         ),
                       ),
@@ -616,11 +590,11 @@ class _GamingStatsScreenState extends ConsumerState<GamingStatsScreen>
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFF0F0F12),
+            color: _bgMid,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: const Color(0xFF1E293B),
-              width: 1.5,
+              color: _border,
+              width: 1.0,
             ),
           ),
           child: Column(
@@ -637,15 +611,7 @@ class _GamingStatsScreenState extends ConsumerState<GamingStatsScreen>
                     decoration: BoxDecoration(
                       color: color,
                       borderRadius: BorderRadius.circular(4),
-                      boxShadow: i >= 2
-                          ? [
-                              BoxShadow(
-                                color: color.withOpacity(0.3),
-                                blurRadius: 4,
-                                spreadRadius: 0.5,
-                              ),
-                            ]
-                          : null,
+                      boxShadow: null,
                     ),
                   );
                 }).toList(),
@@ -702,59 +668,51 @@ class _GamingStatsScreenState extends ConsumerState<GamingStatsScreen>
       _NavItem(Icons.person_rounded, 'Profile'),
     ];
 
-    return ClipRRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-        child: Container(
-          height: 72,
-          decoration: BoxDecoration(
-            color: _bgDark.withOpacity(0.85),
-            border: Border(
-                top: BorderSide(color: Colors.white.withOpacity(0.06))),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: List.generate(items.length, (idx) {
-              final isActive = idx == activeIndex;
-              final item = items[idx];
-              return GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  if (idx == 0) context.go('/');
-                  if (idx == 1) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Explore is coming soon!'),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  }
-                  if (idx == 2) context.go('/gaming');
-                  if (idx == 4) context.go('/profile');
-                },
-                child: SizedBox(
-                  width: 60,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+    return Container(
+      height: 72,
+      decoration: const BoxDecoration(
+        color: _bgMid,
+        border: Border(
+          top: BorderSide(color: _border, width: 1.0),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: List.generate(items.length, (idx) {
+          final isActive = idx == activeIndex;
+          final item = items[idx];
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              if (idx == 0) context.go('/');
+              if (idx == 1) {
+                context.push('/discover');
+              }
+              if (idx == 2) context.go('/gaming');
+              if (idx == 4) {
+                final userId = ref.read(currentUserIdProvider);
+                if (userId != null) {
+                  context.push('/profile/$userId');
+                }
+              }
+            },
+            child: SizedBox(
+              width: 60,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Stack(
+                    alignment: Alignment.center,
                     children: [
-                      Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          if (isActive)
-                            Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: _brandLime.withOpacity(0.18),
-                                boxShadow: [
-                                  BoxShadow(
-                                      color: _brandLime.withOpacity(0.4),
-                                      blurRadius: 14,
-                                      spreadRadius: 1),
-                                ],
-                              ),
-                            ),
+                      if (isActive)
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: _brandLime.withValues(alpha: 0.15),
+                          ),
+                        ),
                           Icon(
                             item.icon,
                             color: isActive ? _brandLime : Colors.white38,
@@ -762,23 +720,22 @@ class _GamingStatsScreenState extends ConsumerState<GamingStatsScreen>
                           ),
                         ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        item.label,
-                        style: GoogleFonts.inter(
-                          color: isActive ? _brandLime : Colors.white38,
-                          fontSize: 10,
-                          fontWeight:
-                              isActive ? FontWeight.w600 : FontWeight.w400,
-                        ),
-                      ),
-                    ],
+
+                  const SizedBox(height: 4),
+                  Text(
+                    item.label,
+                    style: GoogleFonts.inter(
+                      color: isActive ? _brandLime : Colors.white38,
+                      fontSize: 10,
+                      fontWeight:
+                          isActive ? FontWeight.w600 : FontWeight.w400,
+                    ),
                   ),
-                ),
-              );
-            }),
-          ),
-        ),
+                ],
+              ),
+            ),
+          );
+        }),
       ),
     );
   }

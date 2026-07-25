@@ -300,23 +300,6 @@ class VoiceController extends Notifier<VoiceState> {
     try {
       final isScreenShareEnabled = localParticipant.isScreenShareEnabled();
 
-      if (!isScreenShareEnabled && Platform.isAndroid) {
-        // Android 14+ requires a foreground service of type mediaProjection
-        // to be active BEFORE MediaProjection.getMediaProjection() is called.
-        try {
-          await _screenCaptureChannel.invokeMethod('startService');
-          // Small delay to ensure the service is fully started
-          await Future.delayed(const Duration(milliseconds: 300));
-        } catch (e) {
-          developer.log(
-            'Failed to start screen capture service',
-            name: 'VoiceController',
-            error: e,
-          );
-          // Continue anyway — may work on older Android versions
-        }
-      }
-
       await localParticipant.setScreenShareEnabled(!isScreenShareEnabled);
       _updateParticipants();
 

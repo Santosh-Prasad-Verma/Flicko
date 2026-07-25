@@ -11,6 +11,12 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// DMReactionService is NOT wired into the HTTP router (cmd/server/main.go): DM
+// reactions are served by Supabase (PostgREST + RLS) and the mobile client hits
+// it directly. It references DMMessageService (also unwired). Retained as a
+// reference / ready-made backend-owned path. NewDMReactionService has no callers
+// today — verified unused, not accidentally orphaned. Do not delete without
+// confirming the Supabase-direct path still owns this domain.
 type DMReactionService interface {
 	AddReaction(ctx context.Context, channelID, messageID, userID, emoji string) (*models.Reaction, error)
 	RemoveReaction(ctx context.Context, channelID, messageID, userID, emoji string) error

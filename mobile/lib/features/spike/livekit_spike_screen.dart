@@ -248,12 +248,6 @@ class _LiveKitSpikeScreenState extends State<LiveKitSpikeScreen> {
             onPressed: () async {
               final isScreenShareEnabled = localParticipant?.isScreenShareEnabled() ?? false;
               const channel = MethodChannel('tech.focko.flicko/screen_capture');
-              if (!isScreenShareEnabled && Platform.isAndroid) {
-                try {
-                  await channel.invokeMethod('startService');
-                  await Future.delayed(const Duration(milliseconds: 300));
-                } catch (_) {}
-              }
               try {
                 await localParticipant?.setScreenShareEnabled(!isScreenShareEnabled);
               } catch (e) {

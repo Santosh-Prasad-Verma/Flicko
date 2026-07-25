@@ -118,6 +118,7 @@ import 'package:mobile/features/server_channels/voice/presentation/screens/voice
 import 'package:mobile/features/server_channels/voice/presentation/screens/voice_channel_screen.dart';
 import 'package:mobile/features/activities/watch_together/presentation/standalone_room_screen.dart';
 import 'package:mobile/features/activities/watch_together/presentation/public_lobbies_screen.dart';
+import 'package:mobile/features/activities/music_party/presentation/music_party_screen.dart';
 import 'package:mobile/features/sonic_music/Screens/Home/home.dart' as sonic_music;
 import 'package:mobile/features/sonic_music/theme/app_theme.dart' as sonic_theme;
 
@@ -565,6 +566,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // Watch Together
       GoRoute(path: '/watch-together/standalone', builder: (context, state) => const StandaloneRoomScreen()),
       GoRoute(path: '/watch-together/lobbies', builder: (context, state) => const PublicLobbiesScreen()),
+
+      // Music Party
+      GoRoute(
+        path: '/music-party',
+        builder: (context, state) {
+          final roomId = state.uri.queryParameters['roomId'] ?? '';
+          final sessionId = state.uri.queryParameters['sessionId'];
+          return MusicPartyScreen(roomId: roomId, sessionId: sessionId);
+        },
+      ),
 
       // Store & Creator
       GoRoute(

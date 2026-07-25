@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/flicko-org/flicko-backend/internal/activities/musicparty"
 	"github.com/flicko-org/flicko-backend/internal/activities/watchtogether"
 	"github.com/flicko-org/flicko-backend/internal/bots"
 	"github.com/flicko-org/flicko-backend/internal/bots/gateway"
@@ -338,6 +339,12 @@ func main() {
 	forumHandler := handlers.NewForumHandler(db.Pool(), logger)
 	insightsHandler := handlers.NewInsightsHandler(db.Pool(), logger)
 
+	// Channel Backgrounds
+	channelBgRepo := repo.NewChannelBackgroundRepo(db)
+	channelBgService := services.NewChannelBackgroundService(cfg, channelBgRepo)
+	channelBgHandler := handlers.NewChannelBackgroundHandler(db.Pool(), channelBgService, logger)
+	channelBgHandler.RegisterRoutes(protected)
+
 	// AI Catch-Me-Up summary
 	llmClient := llm.New(llm.Config{
 		GroqAPIKey:    cfg.GroqAPIKey,
@@ -508,6 +515,28 @@ func main() {
 			logger.Fatal("failed to initialize watch together module", zap.Error(err))
 		}
 	}
+
+	// Soundboard Module
+	soundboardRepo := repo.NewSoundboardRepo(db)
+	soundboardHandler := handlers.NewSoundboardHandler(db.Pool(), soundboardRepo, gamingPublisher, cfg, logger)
+	soundboardHandler.RegisterRoutes(protected)
+
+	// ── Music Party Module Initialization ────────────────────────────────────
+	if cfg.ActivitiesMusicPartyEnabled {
+		_, err := musicparty.Initialize(
+			context.Background(),
+			logger,
+			db.Pool(),
+			redisCache,
+			liveKitService,
+			protected,
+			gamingPublisher,
+		)
+		if err != nil {
+			logger.Fatal("failed to initialize music party module", zap.Error(err))
+		}
+	}
+
 
 
 	// CRIT-9: Register Asynq worker server for ludo_bot:move tasks.

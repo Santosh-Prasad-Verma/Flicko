@@ -95,8 +95,9 @@ class _SoundboardSheetState extends ConsumerState<SoundboardSheet> with SingleTi
     // Play and broadcast via VoiceController
     await ref.read(voiceControllerProvider.notifier).sendSoundboardSound(sound);
 
-    // Track play count in Supabase
-    await ref.read(soundboardServiceProvider).playSound(sound.id);
+    // Track play count in backend
+    final activeChannelId = ref.read(voiceControllerProvider).activeChannelId ?? '';
+    await ref.read(soundboardServiceProvider).playSound(sound.id, serverId: widget.serverId, channelId: activeChannelId);
 
     // Increment alchemy stat
     ref.read(badgeAlchemyProvider.notifier).incrementSoundsPlayed();

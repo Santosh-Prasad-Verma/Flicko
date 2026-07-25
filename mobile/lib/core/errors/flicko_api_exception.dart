@@ -9,21 +9,21 @@ sealed class FlickoApiException implements Exception {
 
   const FlickoApiException(this.message, {this.requestId, this.statusCode});
 
-  factory FlickoApiException.timeout({String? requestId}) = TimeoutApiException;
+  const factory FlickoApiException.timeout({String? requestId}) = TimeoutApiException;
 
-  factory FlickoApiException.noConnection({String? requestId}) = NoConnectionApiException;
+  const factory FlickoApiException.noConnection({String? requestId}) = NoConnectionApiException;
 
-  factory FlickoApiException.serverError(String message, {String? requestId, int? statusCode}) = ServerErrorApiException;
+  const factory FlickoApiException.serverError(String message, {String? requestId, int? statusCode}) = ServerErrorApiException;
 
-  factory FlickoApiException.unauthorized({String? requestId}) = UnauthorizedApiException;
+  const factory FlickoApiException.unauthorized({String? requestId}) = UnauthorizedApiException;
 
-  factory FlickoApiException.forbidden({String? requestId}) = ForbiddenApiException;
+  const factory FlickoApiException.forbidden({String? requestId}) = ForbiddenApiException;
 
-  factory FlickoApiException.notFound({String? requestId}) = NotFoundApiException;
+  const factory FlickoApiException.notFound({String? requestId}) = NotFoundApiException;
 
-  factory FlickoApiException.rateLimited(Duration retryAfter, {String? requestId}) = RateLimitedApiException;
+  const factory FlickoApiException.rateLimited(Duration retryAfter, {String? requestId}) = RateLimitedApiException;
 
-  factory FlickoApiException.validation(Map<String, String> fieldErrors, {String? requestId}) = ValidationApiException;
+  const factory FlickoApiException.validation(Map<String, String> fieldErrors, {String? requestId}) = ValidationApiException;
 
   @override
   String toString() => 'FlickoApiException: $message (statusCode: $statusCode, requestId: $requestId)';
@@ -80,7 +80,7 @@ class NotFoundApiException extends FlickoApiException {
 class RateLimitedApiException extends FlickoApiException {
   final Duration retryAfter;
 
-  RateLimitedApiException(this.retryAfter, {super.requestId})
+  const RateLimitedApiException(this.retryAfter, {super.requestId})
       : super(
           'Too many requests. Please try again later.',
           statusCode: 429,

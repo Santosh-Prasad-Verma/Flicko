@@ -1,17 +1,19 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/data/services/soundboard_service.dart';
 import 'package:mobile/data/models/soundboard_model.dart';
+import 'package:mobile/data/clients/dio_client.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Soundboard Widget
 ///
 /// Discord-style soundboard for playing sound effects in voice channels.
 /// Loads trending sounds from MyInstants and supports live search.
-class Soundboard extends StatefulWidget {
+class Soundboard extends ConsumerStatefulWidget {
   final String serverId;
   final String channelId;
 
@@ -22,10 +24,10 @@ class Soundboard extends StatefulWidget {
   });
 
   @override
-  State<Soundboard> createState() => _SoundboardState();
+  ConsumerState<Soundboard> createState() => _SoundboardState();
 }
 
-class _SoundboardState extends State<Soundboard> {
+class _SoundboardState extends ConsumerState<Soundboard> {
   final TextEditingController _searchController = TextEditingController();
   final AudioPlayer _audioPlayer = AudioPlayer();
   late final SoundboardService _soundboardService;
@@ -45,7 +47,10 @@ class _SoundboardState extends State<Soundboard> {
   @override
   void initState() {
     super.initState();
-    _soundboardService = SoundboardService(Supabase.instance.client);
+    _soundboardService = SoundboardService(
+      Supabase.instance.client,
+      ref.read(dioProvider),
+    );
     _loadSounds();
   }
 

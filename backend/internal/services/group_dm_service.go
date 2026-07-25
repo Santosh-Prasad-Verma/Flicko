@@ -10,6 +10,12 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// GroupDMService is NOT wired into the HTTP router (cmd/server/main.go): group
+// DMs are served by Supabase (PostgREST + RLS) and the mobile client hits it
+// directly. Retained as a reference / ready-made backend-owned path.
+// NewGroupDMService has no callers today — verified unused, not accidentally
+// orphaned. Do not delete without confirming the Supabase-direct path still
+// owns this domain.
 type GroupDMService interface {
 	CreateGroupDM(ctx context.Context, creatorID string, participantIDs []string) (*models.GroupDM, error)
 	UpdateGroupDM(ctx context.Context, userID, groupID string, name, icon *string) (*models.GroupDM, error)

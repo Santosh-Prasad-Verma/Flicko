@@ -208,19 +208,17 @@ SELECT is(
 -- ===========================================================================
 -- OUTSIDER cannot post into a channel they cannot view (WITH CHECK blocks it).
 --
--- !!! KNOWN-FAILING UNTIL THE SLOWMODE POLICY IS FIXED !!!
--- messages has TWO permissive INSERT policies:
---   * "Users can send messages in accessible channels"  (access control)
+-- REGRESSION GUARD for the slowmode INSERT bypass (fixed in migration 161):
+-- messages has TWO INSERT policies:
+--   * "Users can send messages in accessible channels"  (access control, PERMISSIVE)
 --   * "enforce_slowmode_on_send"                         (rate limit)
--- Permissive policies are OR'd. check_slowmode_allowed() returns TRUE for any
--- channel with slowmode_seconds = 0 (the default), so the effective check
--- collapses to `(access control) OR TRUE` = TRUE and this INSERT SUCCEEDS,
--- letting a non-member post into a private channel (and spoof author_id).
---
--- FIX: make the slowmode policy RESTRICTIVE so it ANDs instead of ORs:
---   ALTER POLICY enforce_slowmode_on_send ON public.messages AS RESTRICTIVE;
--- After that fix, this test passes. It is intentionally left asserting the
--- CORRECT behavior so CI stays red until the bypass is closed.
+-- If the slowmode policy is PERMISSIVE, PostgreSQL OR's the two together. Because
+-- check_slowmode_allowed() returns TRUE for any channel with slowmode_seconds = 0
+-- (the default), the effective check would collapse to `(access control) OR TRUE`
+-- = TRUE, letting a non-member post into a private channel (and spoof author_id).
+-- Migration 161 makes enforce_slowmode_on_send RESTRICTIVE so it is AND'ed:
+-- `(access control) AND (slowmode)`. This test asserts the OUTSIDER is blocked;
+-- it fails loudly if that policy ever regresses to PERMISSIVE again.
 SELECT pg_temp.login_as('33333333-3333-3333-3333-333333333333');
 
 SELECT throws_ok(

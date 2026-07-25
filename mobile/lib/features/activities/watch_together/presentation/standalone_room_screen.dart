@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/data/clients/dio_client.dart';
+import 'package:mobile/features/server_channels/voice/presentation/screens/watch_together_screen.dart';
+import 'package:mobile/features/server_channels/voice/presentation/controllers/watch_together_controller.dart';
 
 class StandaloneRoomScreen extends ConsumerStatefulWidget {
   const StandaloneRoomScreen({super.key});
@@ -15,11 +17,11 @@ class StandaloneRoomScreen extends ConsumerStatefulWidget {
 
 class _StandaloneRoomScreenState extends ConsumerState<StandaloneRoomScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _mediaUrlController = TextEditingController();
+  final _mediaTitleController = TextEditingController();
   
   bool _isPublic = false;
   String _lobbyName = '';
-  String _mediaUrl = '';
-  String _mediaTitle = '';
   String _mediaKind = 'youtube';
   int _maxViewers = 12;
   bool _allowSeek = true;
@@ -31,13 +33,43 @@ class _StandaloneRoomScreenState extends ConsumerState<StandaloneRoomScreen> {
   String? _createdSessionId;
   bool _isCreated = false;
 
-  final List<Map<String, String>> _mediaKinds = [
+  final List<Map<String, String>> _mediaKinds = const [
     {'value': 'youtube', 'label': 'YouTube Video'},
     {'value': 'vimeo', 'label': 'Vimeo Stream'},
     {'value': 'mp4', 'label': 'Direct MP4 Link'},
     {'value': 'hls', 'label': 'HLS Stream (m3u8)'},
     {'value': 'appwrite', 'label': 'Appwrite Storage File'},
   ];
+
+  final List<Map<String, String>> _presets = const [
+    {
+      'title': 'Big Buck Bunny (MP4)',
+      'url': 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+      'kind': 'mp4'
+    },
+    {
+      'title': 'Sintel Trailer (HLS)',
+      'url': 'https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8',
+      'kind': 'hls'
+    },
+    {
+      'title': 'Elephants Dream (MP4)',
+      'url': 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+      'kind': 'mp4'
+    },
+    {
+      'title': 'Flicko Promo (YT)',
+      'url': 'https://www.youtube.com/watch?v=aqz-KE-bpKQ',
+      'kind': 'youtube'
+    }
+  ];
+
+  @override
+  void dispose() {
+    _mediaUrlController.dispose();
+    _mediaTitleController.dispose();
+    super.dispose();
+  }
 
   Future<void> _createRoom() async {
     if (!_formKey.currentState!.validate()) return;
@@ -57,8 +89,10 @@ class _StandaloneRoomScreenState extends ConsumerState<StandaloneRoomScreen> {
           'room_id': '', // empty string represents standalone session
           'media': {
             'kind': _mediaKind,
-            'url': _mediaUrl,
-            'title': _mediaTitle.isNotEmpty ? _mediaTitle : 'Watch Together Room',
+            'url': _mediaUrlController.text.trim(),
+            'title': _mediaTitleController.text.trim().isNotEmpty
+                ? _mediaTitleController.text.trim()
+                : 'Watch Together Room',
           },
           'settings': {
             'max_viewers': _maxViewers,
@@ -302,6 +336,7 @@ class _StandaloneRoomScreenState extends ConsumerState<StandaloneRoomScreen> {
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
+                    controller: _mediaUrlController,
                     style: GoogleFonts.inter(color: Colors.white),
                     decoration: _inputDecoration('Media URL (e.g. YouTube video URL)'),
                     validator: (value) {
@@ -314,13 +349,51 @@ class _StandaloneRoomScreenState extends ConsumerState<StandaloneRoomScreen> {
                       }
                       return null;
                     },
-                    onSaved: (value) => _mediaUrl = value ?? '',
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
+                    controller: _mediaTitleController,
                     style: GoogleFonts.inter(color: Colors.white),
                     decoration: _inputDecoration('Media Title (optional)'),
-                    onSaved: (value) => _mediaTitle = value ?? '',
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'QUICK PRESETS',
+                    style: GoogleFonts.inter(
+                      color: const Color(FlickoColors.textMuted),
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _presets.map((preset) {
+                      return ActionChip(
+                        backgroundColor: const Color(FlickoColors.bgTertiary),
+                        side: const BorderSide(color: Color(0xFF222222)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        label: Text(
+                          preset['title']!,
+                          style: GoogleFonts.inter(
+                            color: const Color(FlickoColors.brandLime),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _mediaKind = preset['kind']!;
+                            _mediaUrlController.text = preset['url']!;
+                            _mediaTitleController.text = preset['title']!;
+                          });
+                        },
+                      );
+                    }).toList(),
                   ),
                 ],
               ),
@@ -647,13 +720,22 @@ class _StandaloneRoomScreenState extends ConsumerState<StandaloneRoomScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Launching Watch Room $_createdSessionId...'),
-                    ),
-                  );
-                  context.pop();
+                onPressed: () async {
+                  if (_createdSessionId == null) return;
+                  await ref
+                      .read(watchTogetherControllerProvider.notifier)
+                      .joinSession(_createdSessionId!);
+                  if (mounted) {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const WatchTogetherScreen(
+                          serverId: '',
+                          channelId: '',
+                        ),
+                      ),
+                    );
+                  }
                 },
                 child: Text(
                   'Launch Stream Room',

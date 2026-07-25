@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/direct_messages/presentation/controllers/dm_controller.dart';
 import 'package:mobile/features/direct_messages/presentation/widgets/dm_row.dart';
-import 'package:mobile/features/shared/presentation/widgets/shared_widgets.dart';
 import 'package:mobile/features/shared/presentation/widgets/skeleton_loader.dart';
 import 'package:mobile/features/shared/presentation/widgets/pill_search_bar.dart';
 import 'package:go_router/go_router.dart';

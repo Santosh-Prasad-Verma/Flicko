@@ -17,7 +17,6 @@
  * Copyright (c) 2021-2023, Ankit Sangwan
  */
 
-import 'dart:math';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:mobile/features/sonic_music/APIs/api.dart';

@@ -336,7 +336,7 @@ class _BotWelcomeSettingsScreenState extends ConsumerState<BotWelcomeSettingsScr
             _buildSectionHeader('WELCOME CHANNEL'),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              value: _welcomeChannelId,
+              initialValue: _welcomeChannelId,
               dropdownColor: const Color(FlickoColors.bgSecondary),
               style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary)),
               decoration: _inputDecoration('Select a welcome channel'),
@@ -447,7 +447,7 @@ class _BotWelcomeSettingsScreenState extends ConsumerState<BotWelcomeSettingsScr
               _buildSectionHeader('LEAVE MESSAGE CHANNEL'),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: _leaveChannelId,
+                initialValue: _leaveChannelId,
                 dropdownColor: const Color(FlickoColors.bgSecondary),
                 style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary)),
                 decoration: _inputDecoration('Select leave message channel'),

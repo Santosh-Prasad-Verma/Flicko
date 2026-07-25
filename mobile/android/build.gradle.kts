@@ -66,3 +66,13 @@ subprojects {
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }
+
+subprojects {
+    configurations.all {
+        resolutionStrategy.eachDependency {
+            if (requested.group == "com.razorpay" && requested.name == "standard-core") {
+                useVersion("1.7.15")
+            }
+        }
+    }
+}
