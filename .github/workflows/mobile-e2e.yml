@@ -77,7 +77,9 @@ jobs:
           working-directory: mobile
           script: |
             patrol test \
-              --target integration_test \
+              integration_test/app_launch_test.dart \
+              integration_test/deep_link_test.dart \
+              integration_test/voice_permission_test.dart \
               --dart-define=FLICKO_SUPABASE_URL=${{ secrets.E2E_SUPABASE_URL }} \
               --dart-define=FLICKO_SUPABASE_ANON_KEY=${{ secrets.E2E_SUPABASE_ANON_KEY }} \
               --dart-define=FLICKO_API_BASE_URL=${{ secrets.E2E_API_BASE_URL }} \
