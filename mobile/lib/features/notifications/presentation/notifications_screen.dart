@@ -579,10 +579,10 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     final meta = notification.content ?? {};
     final senderId = meta['userId'] as String? ?? meta['senderId'] as String? ?? meta['sender_id'] as String?;
     final senderProfile = senderId != null ? _senderProfiles[senderId] : null;
-    final userName = (senderProfile?.displayName != null && senderProfile!.displayName.isNotEmpty)
-        ? senderProfile.displayName
-        : ((senderProfile?.username != null && senderProfile!.username.isNotEmpty)
-            ? senderProfile.username
+    final String userName = (senderProfile?.displayName?.isNotEmpty == true)
+        ? senderProfile!.displayName!
+        : ((senderProfile?.username.isNotEmpty == true)
+            ? senderProfile!.username
             : (meta['userName'] as String? ?? 'Someone'));
     var content = meta['content'] as String? ?? 'sent a notification';
     final preview = meta['preview'] as String?;
