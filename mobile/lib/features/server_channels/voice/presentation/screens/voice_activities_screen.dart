@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/server_channels/voice/presentation/widgets/activity_picker.dart';
+import 'package:mobile/features/server_channels/voice/presentation/screens/watch_together_screen.dart';
+import 'package:mobile/features/server_channels/voice/presentation/controllers/watch_together_controller.dart';
 
 /// Voice Activities Screen
 ///
@@ -51,42 +53,6 @@ class _VoiceActivitiesScreenState extends ConsumerState<VoiceActivitiesScreen> {
   Widget _buildActivityGrid() {
     // Use the same activities from ActivityPicker
     final activities = [
-      // Games
-      VoiceActivity(
-        id: '1',
-        name: 'Ludo Royale',
-        category: ActivityCategory.games,
-        description: 'Play ludo with friends',
-        maxPlayers: 4,
-      ),
-      VoiceActivity(
-        id: '2',
-        name: 'Poker Night',
-        category: ActivityCategory.games,
-        description: "Texas Hold'em poker",
-        maxPlayers: 8,
-      ),
-      VoiceActivity(
-        id: '3',
-        name: 'Sketch Heads',
-        category: ActivityCategory.games,
-        description: 'Draw and guess game',
-        maxPlayers: 8,
-      ),
-      VoiceActivity(
-        id: '4',
-        name: 'Blazing 8s',
-        category: ActivityCategory.games,
-        description: 'Card matching game',
-        maxPlayers: 8,
-      ),
-      VoiceActivity(
-        id: '5',
-        name: 'Letter League',
-        category: ActivityCategory.games,
-        description: 'Word puzzle game',
-        maxPlayers: 6,
-      ),
       // Watch Together
       VoiceActivity(
         id: '6',
@@ -102,38 +68,13 @@ class _VoiceActivitiesScreenState extends ConsumerState<VoiceActivitiesScreen> {
         description: 'Stream content together',
         maxPlayers: 50,
       ),
-      // Premium
-      VoiceActivity(
-        id: '8',
-        name: 'Putt Party',
-        category: ActivityCategory.premium,
-        description: 'Mini golf game',
-        maxPlayers: 8,
-        isPremium: true,
-      ),
-      VoiceActivity(
-        id: '9',
-        name: 'Bobble League',
-        category: ActivityCategory.premium,
-        description: 'Soccer strategy game',
-        maxPlayers: 8,
-        isPremium: true,
-      ),
     ];
 
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        // Games Section
-        _buildCategorySection('Games', Icons.videogame_asset, activities.where((a) => a.category == ActivityCategory.games).toList()),
-        const SizedBox(height: 24),
-
         // Watch Together Section
-        _buildCategorySection('Watch Together', Icons.tv, activities.where((a) => a.category == ActivityCategory.watchTogether).toList()),
-        const SizedBox(height: 24),
-
-        // Premium Section
-        _buildCategorySection('Premium', Icons.diamond, activities.where((a) => a.category == ActivityCategory.premium).toList()),
+        _buildCategorySection('Watch Together', Icons.tv, activities),
       ],
     );
   }
@@ -176,9 +117,13 @@ class _VoiceActivitiesScreenState extends ConsumerState<VoiceActivitiesScreen> {
   Widget _buildActivityCard(VoiceActivity activity) {
     return GestureDetector(
       onTap: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Launching ${activity.name}...')),
-        );
+        if (activity.category == ActivityCategory.watchTogether) {
+          _showLaunchWatchTogetherDialog(activity);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Launching ${activity.name}...')),
+          );
+        }
       },
       child: Container(
         decoration: BoxDecoration(
@@ -270,6 +215,154 @@ class _VoiceActivitiesScreenState extends ConsumerState<VoiceActivitiesScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  void _showLaunchWatchTogetherDialog(VoiceActivity activity) {
+    final controller = TextEditingController();
+    final List<Map<String, String>> presets = activity.name.toLowerCase() == 'youtube'
+        ? const [
+            {
+              'title': 'Flicko Promo (YT)',
+              'url': 'https://www.youtube.com/watch?v=aqz-KE-bpKQ'
+            },
+            {
+              'title': 'Flutter Intro (YT)',
+              'url': 'https://www.youtube.com/watch?v=fq4N0pxg5_s'
+            }
+          ]
+        : const [
+            {
+              'title': 'Big Buck Bunny (MP4)',
+              'url': 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
+            },
+            {
+              'title': 'Sintel Trailer (HLS)',
+              'url': 'https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8'
+            }
+          ];
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(FlickoColors.bgSecondary),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(
+            'Launch ${activity.name}',
+            style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Enter the video or YouTube URL you want to watch together:',
+                style: GoogleFonts.inter(color: const Color(FlickoColors.textSecondary), fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                autofocus: true,
+                style: GoogleFonts.inter(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'https://...',
+                  hintStyle: GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
+                  filled: true,
+                  fillColor: const Color(FlickoColors.bgTertiary),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'QUICK PRESETS',
+                style: GoogleFonts.inter(
+                  color: const Color(FlickoColors.textMuted),
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.0,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: presets.map((preset) {
+                  return ActionChip(
+                    backgroundColor: const Color(FlickoColors.bgTertiary),
+                    side: const BorderSide(color: Color(0xFF222222)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    label: Text(
+                      preset['title']!,
+                      style: GoogleFonts.inter(
+                        color: const Color(FlickoColors.brandLime),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    onPressed: () {
+                      controller.text = preset['url']!;
+                    },
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'Cancel',
+                style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(FlickoColors.blurple),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: () async {
+                final url = controller.text.trim();
+                if (url.isEmpty) return;
+
+                Navigator.pop(context); // Close dialog
+
+                final kind = activity.name.toLowerCase() == 'youtube' ? 'youtube' : 'mp4';
+                
+                // Start Session via WatchTogetherController
+                await ref.read(watchTogetherControllerProvider.notifier).startSession(
+                  roomId: widget.channelId,
+                  url: url,
+                  title: '${activity.name} Session',
+                  kind: kind,
+                );
+
+                // Push WatchTogetherScreen
+                if (mounted) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => WatchTogetherScreen(
+                        serverId: widget.serverId,
+                        channelId: widget.channelId,
+                      ),
+                    ),
+                  );
+                }
+              },
+              child: Text(
+                'Launch',
+                style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

@@ -25,73 +25,21 @@ class ActivityPicker extends StatefulWidget {
 
 class _ActivityPickerState extends State<ActivityPicker> {
   final TextEditingController _searchController = TextEditingController();
-  ActivityCategory _selectedCategory = ActivityCategory.games;
+  ActivityCategory _selectedCategory = ActivityCategory.watchTogether;
   final bool _isLoading = false;
   String? _error;
 
   // Activity categories with icons
   final List<ActivityCategoryData> _categories = [
     ActivityCategoryData(
-      category: ActivityCategory.games,
-      label: 'Games',
-      icon: Icons.gamepad,
-    ),
-    ActivityCategoryData(
       category: ActivityCategory.watchTogether,
       label: 'Watch',
       icon: Icons.tv,
-    ),
-    ActivityCategoryData(
-      category: ActivityCategory.premium,
-      label: 'Premium',
-      icon: Icons.diamond,
     ),
   ];
 
   // Mock activities (in production, fetch from API)
   final List<VoiceActivity> _activities = [
-    // Games
-    VoiceActivity(
-      id: '1',
-      name: 'Ludo Royale',
-      category: ActivityCategory.games,
-      description: 'Play ludo with friends',
-      maxPlayers: 4,
-      iconUrl: null,
-    ),
-    VoiceActivity(
-      id: '2',
-      name: 'Poker Night',
-      category: ActivityCategory.games,
-      description: 'Texas Hold\'em poker',
-      maxPlayers: 8,
-      iconUrl: null,
-    ),
-    VoiceActivity(
-      id: '3',
-      name: 'Sketch Heads',
-      category: ActivityCategory.games,
-      description: 'Draw and guess game',
-      maxPlayers: 8,
-      iconUrl: null,
-    ),
-    VoiceActivity(
-      id: '4',
-      name: 'Blazing 8s',
-      category: ActivityCategory.games,
-      description: 'Card matching game',
-      maxPlayers: 8,
-      iconUrl: null,
-    ),
-    VoiceActivity(
-      id: '5',
-      name: 'Letter League',
-      category: ActivityCategory.games,
-      description: 'Word puzzle game',
-      maxPlayers: 6,
-      iconUrl: null,
-    ),
-
     // Watch Together
     VoiceActivity(
       id: '6',
@@ -108,26 +56,6 @@ class _ActivityPickerState extends State<ActivityPicker> {
       description: 'Stream content together',
       maxPlayers: 50,
       iconUrl: null,
-    ),
-
-    // Premium
-    VoiceActivity(
-      id: '8',
-      name: 'Putt Party',
-      category: ActivityCategory.premium,
-      description: 'Mini golf game',
-      maxPlayers: 8,
-      iconUrl: null,
-      isPremium: true,
-    ),
-    VoiceActivity(
-      id: '9',
-      name: 'Bobble League',
-      category: ActivityCategory.premium,
-      description: 'Soccer strategy game',
-      maxPlayers: 8,
-      iconUrl: null,
-      isPremium: true,
     ),
   ];
 

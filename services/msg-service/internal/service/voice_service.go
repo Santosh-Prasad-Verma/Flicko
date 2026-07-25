@@ -36,22 +36,21 @@ func NewVoiceService(log *zap.Logger) *VoiceService {
 	}
 }
 
-// GenerateToken creates a LiveKit JWT access token for the user.
+// GenerateToken creates a LiveKit JWT access token for the user using the
+// official livekit/protocol auth package (auth.NewAccessToken + VideoGrant).
+// The returned token is a real, signed LiveKit JWT — not a placeholder.
 //
-// The room name follows the convention: "voice-{channelID}" so all
-// participants in the same channel join the same LiveKit room.
+// The room name follows the convention "voice-{channelID}" so all participants
+// in the same channel join the same LiveKit room.
 //
-// Note: Uses a simple HMAC-based JWT since the livekit-server-sdk-go
-// dependency would add weight. For production you'd use:
-//
-//	import "github.com/livekit/protocol/auth"
-//	at := auth.NewAccessToken(apiKey, apiSecret)
-//	at.AddGrant(&auth.VideoGrant{RoomJoin: true, Room: roomName})
-//	at.SetIdentity(userID)
-//	token, _ := at.ToJWT()
-//
-// For now the handler returns a placeholder to be swapped with the
-// real LiveKit SDK when ready.
+// NOTE: The production voice-token issuer is the Supabase edge function
+// (supabase/functions/voice-token), which the mobile client calls via
+// voice_repository.dart. That function additionally enforces membership,
+// channel type, user limits and screen-share slots, and uses the room-name
+// convention "channel_{channelId}". This msg-service /v1/voice/token route is
+// wired (handler/router.go) but currently has no client caller. If it is ever
+// put on the hot path, reconcile the room-name convention with the edge
+// function above or voice participants will be split across two rooms.
 func (s *VoiceService) GenerateToken(ctx context.Context, in VoiceTokenInput) (string, error) {
 	if s.apiKey == "" || s.apiSecret == "" {
 		return "", fkerr.ErrInternal(fmt.Errorf("voice service not configured: missing LIVEKIT credentials"))

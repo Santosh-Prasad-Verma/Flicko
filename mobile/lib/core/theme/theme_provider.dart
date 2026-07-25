@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile/features/store/data/store_theme_service.dart';
+import 'package:mobile/features/settings/application/user_settings_notifier.dart';
 import 'app_theme.dart';
 
 /// Available theme IDs matching AppTheme definitions
@@ -60,12 +61,50 @@ class ThemeNotifier extends Notifier<String> {
 final themeDataProvider = Provider<ThemeData>((ref) {
   ref.watch(themeProvider);
   final storeTheme = ref.watch(activeStoreThemeProvider);
+  final settings = ref.watch(userSettingsNotifierProvider);
 
+  ThemeData baseTheme;
   if (storeTheme != null) {
-    return ref.read(storeThemeDataProvider) ?? ref.read(themeProvider.notifier).currentTheme;
+    baseTheme = ref.read(storeThemeDataProvider) ?? ref.read(themeProvider.notifier).currentTheme;
+  } else {
+    baseTheme = ref.read(themeProvider.notifier).currentTheme;
   }
 
-  return ref.read(themeProvider.notifier).currentTheme;
+  // Parse accent color from settings
+  final accentHex = settings.accentColor;
+  final cleaned = accentHex.replaceAll('#', '');
+  final value = int.tryParse(
+    cleaned.length == 6 ? 'FF$cleaned' : cleaned,
+    radix: 16,
+  );
+  final accentColor = value != null ? Color(value) : const Color(0xFF52B788);
+
+  // Apply accent overrides to baseTheme
+  return baseTheme.copyWith(
+    primaryColor: accentColor,
+    colorScheme: baseTheme.colorScheme.copyWith(
+      primary: accentColor,
+      secondary: accentColor,
+    ),
+    textSelectionTheme: baseTheme.textSelectionTheme.copyWith(
+      cursorColor: accentColor,
+      selectionColor: accentColor.withValues(alpha: 0.25),
+      selectionHandleColor: accentColor,
+    ),
+    appBarTheme: baseTheme.appBarTheme.copyWith(
+      iconTheme: baseTheme.appBarTheme.iconTheme?.copyWith(color: accentColor) ?? IconThemeData(color: accentColor),
+    ),
+    bottomNavigationBarTheme: baseTheme.bottomNavigationBarTheme.copyWith(
+      selectedItemColor: accentColor,
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: baseTheme.elevatedButtonTheme.style?.copyWith(
+        backgroundColor: WidgetStateProperty.all(accentColor),
+      ) ?? ElevatedButton.styleFrom(
+        backgroundColor: accentColor,
+      ),
+    ),
+  );
 });
 
 /// Locale provider — persists selected language and drives MaterialApp.locale.

@@ -242,9 +242,11 @@ mail-gateway/.env
 trash/
 TRAP/
 
-# VS Code MCP Config
+# VS Code# IDE / Editor
+.idea/
+.vscode/
+.zed/
 mcp.json
-.vscode/mcp.json
 dump.rdb
 backend/test_output.txt
 backend/flicko-backend

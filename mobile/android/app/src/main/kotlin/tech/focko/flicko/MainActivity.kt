@@ -1,5 +1,7 @@
 package tech.focko.flicko
 
+import android.app.Activity
+import android.content.Intent
 import com.ryanheise.audioservice.AudioServiceActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -25,5 +27,13 @@ class MainActivity : AudioServiceActivity() {
                     else -> result.notImplemented()
                 }
             }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        // Request code 1 matches CAPTURE_PERMISSION_REQUEST_CODE in flutter_webrtc
+        if (requestCode == 1 && resultCode == Activity.RESULT_OK) {
+            ScreenCaptureService.start(this)
+        }
     }
 }

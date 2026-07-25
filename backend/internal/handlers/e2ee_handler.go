@@ -223,7 +223,11 @@ func (h *E2EEHandler) PutOneTimePrekeys(w http.ResponseWriter, r *http.Request) 
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	count, _ := h.keys.CountOneTimePrekeys(r.Context(), uid, body.DeviceID)
+	count, err := h.keys.CountOneTimePrekeys(r.Context(), uid, body.DeviceID)
+	if err != nil {
+		h.logger.Warn("count one time prekeys failed after insertion", zap.Error(err))
+		count = 0
+	}
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "remaining": count})
 }
 

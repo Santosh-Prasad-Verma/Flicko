@@ -1,12 +1,12 @@
 # Caddyfile configuration for LiveKit Production Setup
 # Replace "livekit.yourdomain.com" and "turn.yourdomain.com" with your actual subdomains.
 
-livekit.yourdomain.com {
+livekit.flicko.dev {
     # Reverse proxy signaling traffic (HTTP & WebSockets) to the LiveKit server container
-    reverse_proxy livekit:7880
+    reverse_proxy localhost:7880
 }
 
-turn.yourdomain.com {
+turn.flicko.dev {
     # Dummy handler so Caddy initiates ACME challenge and provisions certificates
     # for the TURN domain. LiveKit server will read these certificates directly
     # from the shared Docker volume.

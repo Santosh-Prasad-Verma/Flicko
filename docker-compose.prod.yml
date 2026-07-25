@@ -356,7 +356,12 @@ services:
   redis:
     image: redis:7-alpine
     container_name: flicko-redis
-    command: ["redis-server", "--maxmemory", "200mb", "--maxmemory-policy", "allkeys-lru"]
+    # volatile-lru (not allkeys-lru): only keys WITH a TTL are evictable. All
+    # cache/presence/lock writes set a TTL, so they remain evictable under memory
+    # pressure — but Asynq queue keys and the Ludo bot-move tasks carry NO TTL, so
+    # they are never silently dropped. (Asynq requires a non-allkeys policy.)
+    # appendonly yes: AOF persistence so durable jobs actually survive a restart.
+    command: ["redis-server", "--maxmemory", "200mb", "--maxmemory-policy", "volatile-lru", "--appendonly", "yes"]
     <<: [*restart-policy, *default-logging]
     networks:
       - flicko_internal

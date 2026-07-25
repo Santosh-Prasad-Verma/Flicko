@@ -20,6 +20,8 @@ import 'package:mobile/core/widgets/particle_fx_engine.dart';
 import 'package:mobile/features/store/data/warp_service.dart';
 import 'package:mobile/features/shared/presentation/widgets/entrance_warp_overlay.dart';
 import 'package:mobile/features/shared/presentation/widgets/skeleton_loader.dart';
+import 'package:mobile/features/channel_backgrounds/application/channel_background_provider.dart';
+import 'package:mobile/features/channel_backgrounds/presentation/channel_background_customizer_dialog.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   final String serverId;
@@ -155,6 +157,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     });
     final chatState = ref.watch(chatNotifierProvider(widget.channelId));
     final equippedWarp = ref.watch(equippedWarpProvider).value;
+    final bgState = ref.watch(channelBackgroundProvider(widget.channelId));
+    final overrideState = ref.watch(channelBackgroundOverrideProvider(widget.channelId));
+
+    final bg = bgState.value;
+    final userOverride = overrideState.value;
+    final opacity = userOverride?.enabled == true ? userOverride!.opacity : 0.3;
+    final bgEnabled = userOverride?.enabled ?? true;
 
     return Container(
       decoration: const BoxDecoration(
@@ -169,8 +178,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           stops: [0.0, 0.5, 1.0],
         ),
       ),
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
+      child: Stack(
+        children: [
+          if (bg != null && bgEnabled)
+            Positioned.fill(
+              child: Opacity(
+                opacity: opacity,
+                child: Image.network(
+                  bg.fileIdMobile ?? bg.fileIdOriginal,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => const SizedBox(),
+                ),
+              ),
+            ),
+          Scaffold(
+            backgroundColor: Colors.transparent,
         extendBodyBehindAppBar: true,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
@@ -197,6 +219,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             ],
           ),
           actions: [
+            IconButton(
+              icon: const Icon(Icons.image_outlined, color: Color(FlickoColors.brandLime)),
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  barrierColor: Colors.black.withValues(alpha: 0.65),
+                  builder: (ctx) => ChannelBackgroundCustomizerDialog(
+                    channelId: widget.channelId,
+                  ),
+                );
+              },
+            ),
             IconButton(
               icon: const Icon(Icons.people_outline, color: Color(FlickoColors.brandLime)),
               onPressed: () => context.push('/server/${widget.serverId}/members'),
@@ -354,6 +388,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             ),
         ],
       ),
+      ),
+      ],
       ),
     );
   }

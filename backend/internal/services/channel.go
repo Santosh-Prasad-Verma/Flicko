@@ -14,6 +14,13 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+// ChannelService is NOT wired into the HTTP router (cmd/server/main.go):
+// channel CRUD is served by Supabase (PostgREST + RLS) and the mobile client
+// hits it directly. This service (and its _test.go) is retained as a reference
+// / ready-made backend-owned path if privileged channel operations ever need
+// to move server-side. NewChannelService has no callers today — verified
+// unused, not accidentally orphaned. Do not delete without confirming the
+// Supabase-direct path still owns this domain.
 type ChannelService interface {
 	CreateChannel(ctx context.Context, serverID, name string, channelType models.ChannelType, parentID *string, executorID string) (*models.Channel, error)
 	GetChannel(ctx context.Context, channelID string) (*models.Channel, error)

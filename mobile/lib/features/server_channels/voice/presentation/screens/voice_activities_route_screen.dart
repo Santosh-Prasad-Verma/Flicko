@@ -65,13 +65,6 @@ class _VoiceActivitiesRouteScreenState extends ConsumerState<VoiceActivitiesRout
   Widget _buildActivityPicker() {
     final activities = [
       {'name': 'Watch Together', 'icon': Icons.play_circle_outline, 'color': Colors.red},
-      {'name': 'Poker Night', 'icon': Icons.casino, 'color': Colors.purple},
-      {'name': 'Fishington', 'icon': Icons.set_meal, 'color': Colors.blue},
-      {'name': 'Ludo Royale', 'icon': Icons.casino, 'color': Colors.amber},
-      {'name': 'Letter Tile', 'icon': Icons.text_fields, 'color': Colors.orange},
-      {'name': 'Word Snacks', 'icon': Icons.restaurant, 'color': Colors.green},
-      {'name': 'Doodle Crew', 'icon': Icons.brush, 'color': Colors.pink},
-      {'name': 'Spell Cast', 'icon': Icons.auto_fix_high, 'color': Colors.indigo},
     ];
 
     return GridView.builder(

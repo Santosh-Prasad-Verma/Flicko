@@ -43,7 +43,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.logger.Warn("registration failed", zap.String("email", req.Email), zap.Error(err))
 		// Don't reveal whether email/username already exists
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeError(w, http.StatusBadRequest, "Registration failed. Please check your details and try again.")
 		return
 	}
 

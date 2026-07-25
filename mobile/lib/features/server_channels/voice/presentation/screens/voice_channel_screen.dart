@@ -9,6 +9,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:livekit_client/livekit_client.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:go_router/go_router.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/collaboration/presentation/shared_whiteboard.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
@@ -442,6 +443,28 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
                           builder: (context) =>
                               SoundboardSheet(serverId: widget.serverId),
                         );
+                      },
+                    ),
+                    ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.purple.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.movie_creation_outlined, color: Colors.purpleAccent),
+                      ),
+                      title: Text('Watch Together & Games',
+                          style: GoogleFonts.inter(
+                              color: _white, fontWeight: FontWeight.w500)),
+                      subtitle: Text('Co-watch videos and play games',
+                          style: GoogleFonts.inter(
+                              color: _white.withValues(alpha: 0.45),
+                              fontSize: 13)),
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.push(
+                            '/server/${widget.serverId}/channel/${widget.channelId}/activities');
                       },
                     ),
                   ],

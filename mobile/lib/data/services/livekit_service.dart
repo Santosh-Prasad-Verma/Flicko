@@ -98,16 +98,6 @@ class LiveKitService {
     if (_room == null || _room!.localParticipant == null) return;
     final isEnabled = _room!.localParticipant!.isScreenShareEnabled();
 
-    if (!isEnabled && Platform.isAndroid) {
-      // Android 14+ requires a foreground service before MediaProjection
-      try {
-        await _screenCaptureChannel.invokeMethod('startService');
-        await Future.delayed(const Duration(milliseconds: 300));
-      } catch (e) {
-        debugPrint('Failed to start screen capture service: $e');
-      }
-    }
-
     try {
       await _room!.localParticipant!.setScreenShareEnabled(!isEnabled);
     } catch (e) {

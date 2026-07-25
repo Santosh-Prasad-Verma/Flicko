@@ -141,7 +141,12 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
-  
+
+  # E2E / on-device integration testing
+  integration_test:
+    sdk: flutter
+  patrol: ^3.13.0
+
   # Code Generation
   build_runner: ^2.4.9
   mockito: ^5.4.4
@@ -151,6 +156,15 @@ dev_dependencies:
   riverpod_generator: ^4.0.3
   sqflite_common: ^2.5.4
   sqflite_common_ffi: ^2.4.0+3
+
+# Patrol native-automation config. app_name is cosmetic; the two IDs must match
+# the Android applicationId / iOS bundle id so Patrol can drive the real app.
+patrol:
+  app_name: Flicko
+  android:
+    package_name: tech.focko.flicko
+  ios:
+    bundle_id: tech.focko.flicko
 
 flutter:
   uses-material-design: true

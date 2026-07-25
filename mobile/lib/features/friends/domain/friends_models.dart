@@ -3,6 +3,7 @@
 /// These models are used across the data, application, and presentation layers.
 /// They map directly to the Supabase `friends`, `friend_requests`, and
 /// `friendships` tables combined with profile joins.
+library;
 
 class Friend {
   final String id;

@@ -582,10 +582,12 @@ class Download with ChangeNotifier {
               Hive.box('downloads').put(songData['id'].toString(), songData);
 
               Logger.root.info('Everything done, showing snackbar');
-              ShowSnackBar().showSnackBar(
-                context,
-                '"${data['title']}" ${AppLocalizations.of(context)!.downed}',
-              );
+              if (context.mounted) {
+                ShowSnackBar().showSnackBar(
+                  context,
+                  '"${data['title']}" ${AppLocalizations.of(context)!.downed}',
+                );
+              }
             } else {
               download = true;
               progress = 0.0;
@@ -595,7 +597,7 @@ class Download with ChangeNotifier {
               }
               final file2 = File(filepath2);
               if (file2.existsSync()) file2.deleteSync();
-                        }
+            }
           } catch (e) {
             Logger.root.severe('Error finalizing download: $e');
             _handleDownloadError(context, filepath, filepath2, e.toString());
@@ -626,9 +628,11 @@ class Download with ChangeNotifier {
         }
       }
     } catch (_) {}
-    ShowSnackBar().showSnackBar(
-      context,
-      'Download Failed: $errorMsg',
-    );
+    if (context.mounted) {
+      ShowSnackBar().showSnackBar(
+        context,
+        'Download Failed: $errorMsg',
+      );
+    }
   }
 }
