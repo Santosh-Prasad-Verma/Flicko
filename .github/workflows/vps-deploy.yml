@@ -30,30 +30,6 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Whitelist Runner IP in Azure NSG
-        id: nsg-ip
-        run: |
-          az config set core.collect_telemetry=false
-          RUNNER_IP=$(curl -s https://api.ipify.org)
-          echo "runner_ip=$RUNNER_IP" >> $GITHUB_OUTPUT
-          
-          ORIGINAL_IP=$(az network nsg rule show \
-            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-            --nsg-name ${{ env.AZURE_NSG_NAME }} \
-            --name ${{ env.AZURE_RULE_NAME }} \
-            --query "sourceAddressPrefix" -o tsv)
-          echo "orig_ip=$ORIGINAL_IP" >> $GITHUB_OUTPUT
-          
-          echo "Whitelisting runner IP: $RUNNER_IP (original IP: $ORIGINAL_IP)"
-          az network nsg rule update \
-            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-            --nsg-name ${{ env.AZURE_NSG_NAME }} \
-            --name ${{ env.AZURE_RULE_NAME }} \
-            --source-address-prefixes "$RUNNER_IP" \
-            --no-wait
-          echo "Waiting 15 seconds for Azure NSG update to propagate..."
-          sleep 15
-
       - name: Install Doppler CLI
         uses: dopplerhq/cli-action@v3
 
@@ -141,15 +117,3 @@ jobs:
                 docker logs --tail=50 $container_name 2>&1 || true
               fi
             done
-
-      - name: Restore Original SSH Rule in Azure NSG
-        if: always()
-        run: |
-          az config set core.collect_telemetry=false
-          echo "Restoring original NSG IP: ${{ steps.nsg-ip.outputs.orig_ip }}"
-          az network nsg rule update \
-            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-            --nsg-name ${{ env.AZURE_NSG_NAME }} \
-            --name ${{ env.AZURE_RULE_NAME }} \
-            --source-address-prefixes "${{ steps.nsg-ip.outputs.orig_ip }}" \
-            --no-wait
