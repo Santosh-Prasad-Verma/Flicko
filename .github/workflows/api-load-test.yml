@@ -30,7 +30,6 @@ jobs:
   realtime-ws-test:
     name: Realtime WebSocket Fan-out Load Test
     runs-on: ubuntu-latest
-    if: ${{ secrets.E2E_SUPABASE_URL != '' }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4

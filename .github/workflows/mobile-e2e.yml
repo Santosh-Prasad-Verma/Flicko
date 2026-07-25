@@ -58,7 +58,7 @@ jobs:
         run: flutter pub get
 
       - name: Install Patrol CLI
-        run: dart pub global activate patrol_cli
+        run: dart pub global activate patrol_cli 3.11.0
 
       - name: Run Patrol E2E on emulator
         # android-emulator-runner boots the AVD, then runs `script` once it is
@@ -75,4 +75,4 @@ jobs:
           arch: x86_64
           profile: pixel_5
           working-directory: mobile
-          script: patrol test -t integration_test/app_launch_test.dart -t integration_test/deep_link_test.dart -t integration_test/voice_permission_test.dart --dart-define=FLICKO_SUPABASE_URL=${{ secrets.E2E_SUPABASE_URL }} --dart-define=FLICKO_SUPABASE_ANON_KEY=${{ secrets.E2E_SUPABASE_ANON_KEY }} --dart-define=FLICKO_API_BASE_URL=${{ secrets.E2E_API_BASE_URL }} --dart-define=FLICKO_LIVEKIT_URL=${{ secrets.E2E_LIVEKIT_URL }}
+          script: patrol test --no-check-compatibility -t integration_test/app_launch_test.dart -t integration_test/deep_link_test.dart -t integration_test/voice_permission_test.dart --dart-define=FLICKO_SUPABASE_URL=${{ secrets.E2E_SUPABASE_URL }} --dart-define=FLICKO_SUPABASE_ANON_KEY=${{ secrets.E2E_SUPABASE_ANON_KEY }} --dart-define=FLICKO_API_BASE_URL=${{ secrets.E2E_API_BASE_URL }} --dart-define=FLICKO_LIVEKIT_URL=${{ secrets.E2E_LIVEKIT_URL }}
