@@ -48,6 +48,7 @@ import 'package:mobile/features/sonic_music/localization/app_localizations.dart'
 import 'package:flutter_lyric/lyric_ui/lyric_ui.dart';
 import 'package:mobile/features/sonic_music/APIs/api.dart';
 import 'package:mobile/features/sonic_music/Helpers/extensions.dart';
+import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/sonic_music/Services/yt_music.dart';
 import 'package:mobile/features/sonic_music/Services/player_service.dart';
 import 'package:mobile/features/sonic_music/Models/song_item.dart';

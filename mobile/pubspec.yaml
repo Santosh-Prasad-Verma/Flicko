@@ -104,7 +104,7 @@ dependencies:
 
   # Ludo (animations + sfx)
   lottie: ^3.1.2
-  audioplayers: ^6.8.1
+  audioplayers: ^6.0.0
   
   # BlackHole Dependencies
   app_links: ^3.5.0
