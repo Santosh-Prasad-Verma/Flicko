@@ -30,7 +30,6 @@ import 'package:mobile/features/sonic_music/CustomWidgets/download_button.dart';
 import 'package:mobile/features/sonic_music/CustomWidgets/empty_screen.dart';
 import 'package:mobile/features/sonic_music/CustomWidgets/equalizer.dart';
 import 'package:mobile/features/sonic_music/CustomWidgets/like_button.dart';
-import 'package:mobile/features/sonic_music/Helpers/playlist.dart';
 import 'package:mobile/features/sonic_music/CustomWidgets/seek_bar.dart';
 import 'package:mobile/features/sonic_music/CustomWidgets/snackbar.dart';
 import 'package:mobile/features/sonic_music/CustomWidgets/textinput_dialog.dart';
