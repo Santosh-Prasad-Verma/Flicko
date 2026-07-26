@@ -344,4 +344,57 @@ class AppTheme {
       ),
     );
   }
+
+  // ──────────────────────────────────────────────────────────
+  // High Contrast Theme (Accessibility)
+  // ──────────────────────────────────────────────────────────
+
+  static ThemeData get highContrastTheme {
+    const primary = Color(0xFFFFFF00); // High visibility yellow
+    const bgPrimary = Color(0xFF000000); // Pure black
+    const textPrimary = Color(0xFFFFFFFF); // Pure white
+
+    return ThemeData(
+      brightness: Brightness.dark,
+      primaryColor: primary,
+      scaffoldBackgroundColor: bgPrimary,
+      colorScheme: const ColorScheme.dark(
+        primary: primary,
+        secondary: primary,
+        surface: Color(0xFF121212),
+        error: Color(0xFFFF0000),
+        onPrimary: Colors.black,
+        onSurface: textPrimary,
+      ),
+      textTheme: _buildTextTheme(textPrimary, const Color(0xFFCCCCCC)),
+      cardColor: const Color(0xFF121212),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: bgPrimary,
+        foregroundColor: textPrimary,
+      ),
+    );
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // OpenDyslexic Theme (Accessibility Font & High Legibility)
+  // ──────────────────────────────────────────────────────────
+
+  static ThemeData get openDyslexicTheme {
+    final base = darkTheme;
+    // Uses Lexend font for maximum dyslexia reading comfort & letter differentiation
+    final dyslexicTextTheme = TextTheme(
+      headlineLarge: GoogleFonts.lexend(fontSize: 28, fontWeight: FontWeight.w700, letterSpacing: 0.8),
+      headlineMedium: GoogleFonts.lexend(fontSize: 24, fontWeight: FontWeight.w700, letterSpacing: 0.8),
+      headlineSmall: GoogleFonts.lexend(fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: 0.6),
+      titleLarge: GoogleFonts.lexend(fontSize: 18, fontWeight: FontWeight.w700, letterSpacing: 0.6),
+      titleMedium: GoogleFonts.lexend(fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: 0.5),
+      bodyLarge: GoogleFonts.lexend(fontSize: 16, fontWeight: FontWeight.w400, height: 1.6, letterSpacing: 0.5),
+      bodyMedium: GoogleFonts.lexend(fontSize: 14, fontWeight: FontWeight.w400, height: 1.6, letterSpacing: 0.4),
+      bodySmall: GoogleFonts.lexend(fontSize: 12, fontWeight: FontWeight.w400, height: 1.5, letterSpacing: 0.4),
+    );
+
+    return base.copyWith(
+      textTheme: dyslexicTextTheme,
+    );
+  }
 }

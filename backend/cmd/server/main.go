@@ -690,6 +690,8 @@ func main() {
 	protected.HandleFunc("/e2ee/audit/{subjectId}", e2eeHandler.ListAuditLogs).Methods("GET")
 	protected.HandleFunc("/e2ee/handoff", e2eeHandler.CreateHandoff).Methods("POST")
 	protected.HandleFunc("/e2ee/handoff/{requestId}/approve", e2eeHandler.ApproveHandoff).Methods("POST")
+	protected.HandleFunc("/e2ee/sfu/key-exchange", e2eeHandler.PostSFUKeyExchange).Methods("POST")
+	protected.HandleFunc("/e2ee/sfu/keys/{channelId}", e2eeHandler.GetSFUKeys).Methods("GET")
 
 	// Per-user feature flags (E2EE v2 rollout)
 	flagsHandler := handlers.NewFeatureFlagsHandler(logger, cfg.E2EEV2Enabled, cfg.E2EEV2RolloutPercent)

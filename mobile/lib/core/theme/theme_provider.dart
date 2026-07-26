@@ -11,6 +11,8 @@ enum AppThemeMode {
   light,
   amoled,
   plus,
+  highContrast,
+  openDyslexic,
 }
 
 /// Theme provider using SharedPreferences for persistence
@@ -51,6 +53,10 @@ class ThemeNotifier extends Notifier<String> {
         return AppTheme.amoledTheme;
       case 'plus':
         return AppTheme.plusTheme;
+      case 'highContrast':
+        return AppTheme.highContrastTheme;
+      case 'openDyslexic':
+        return AppTheme.openDyslexicTheme;
       case 'dark':
       default:
         return AppTheme.darkTheme;

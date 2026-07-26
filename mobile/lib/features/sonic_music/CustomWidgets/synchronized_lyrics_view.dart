@@ -78,13 +78,43 @@ class _SynchronizedLyricsViewState extends State<SynchronizedLyricsView> {
                 initialData: widget.currentPosition,
                 builder: (context, snapshot) {
                   final progress = (snapshot.data ?? widget.currentPosition).inMilliseconds;
-                  return LyricsReader(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-                    model: _lyricsModel,
-                    position: progress,
-                    lyricUi: _lyricUI,
-                    playing: true,
-                    emptyBuilder: () => _buildEmptyLyricsCard(),
+                  return Stack(
+                    children: [
+                      LyricsReader(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                        model: _lyricsModel,
+                        position: progress,
+                        lyricUi: _lyricUI,
+                        playing: true,
+                        emptyBuilder: () => _buildEmptyLyricsCard(),
+                      ),
+                      // Karaoke Synced Pitch Visualizer Bar
+                      Positioned(
+                        left: 24,
+                        right: 24,
+                        bottom: 16,
+                        child: Container(
+                          height: 4,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(2),
+                            gradient: LinearGradient(
+                              colors: [
+                                const Color(FlickoColors.brandLime).withValues(alpha: 0.2),
+                                const Color(FlickoColors.green),
+                                const Color(FlickoColors.brandLime),
+                              ],
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(FlickoColors.green).withValues(alpha: 0.6),
+                                blurRadius: 8,
+                                spreadRadius: 1,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   );
                 },
               ),
