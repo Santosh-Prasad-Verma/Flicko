@@ -131,7 +131,6 @@ dependencies:
   package_info_plus: any
   palette_generator: ^0.3.3+3
   persistent_bottom_nav_bar: ^6.2.1
-  receive_sharing_intent_plus: ^1.0.1
   sizer: ^2.0.15
   sliding_up_panel: any
   uuid: any
