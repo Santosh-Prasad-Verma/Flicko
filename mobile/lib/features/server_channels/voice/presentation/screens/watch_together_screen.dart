@@ -21,12 +21,29 @@ class WatchTogetherScreen extends ConsumerStatefulWidget {
   ConsumerState<WatchTogetherScreen> createState() => _WatchTogetherScreenState();
 }
 
+enum WatchTogetherAspectRatio {
+  auto('Auto Fit', null, Icons.aspect_ratio_rounded, 'Original video aspect ratio'),
+  sixteenNine('16:9 Widescreen', 16 / 9, Icons.crop_16_9_rounded, 'Standard horizontal video format'),
+  fourThree('4:3 Classic', 4 / 3, Icons.crop_5_4_rounded, 'Classic 4:3 TV format'),
+  nineSixteen('9:16 Vertical', 9 / 16, Icons.stay_current_portrait_rounded, 'Vertical Shorts & Reels format'),
+  oneOne('1:1 Square', 1.0, Icons.crop_square_rounded, 'Square video format'),
+  fill('Fill Screen', null, Icons.fullscreen_rounded, 'Zoom and fill entire viewport');
+
+  final String label;
+  final double? ratio;
+  final IconData icon;
+  final String description;
+
+  const WatchTogetherAspectRatio(this.label, this.ratio, this.icon, this.description);
+}
+
 class _WatchTogetherScreenState extends ConsumerState<WatchTogetherScreen> {
   VideoPlayerController? _playerController;
   bool _isPlayerInitialized = false;
   bool _showControls = true;
   Timer? _hideControlsTimer;
   bool _isSeeking = false;
+  WatchTogetherAspectRatio _aspectRatioMode = WatchTogetherAspectRatio.auto;
 
   String? _currentUrl;
 
@@ -196,12 +213,7 @@ class _WatchTogetherScreenState extends ConsumerState<WatchTogetherScreen> {
           if (hasVideo)
             GestureDetector(
               onTap: _toggleControls,
-              child: Center(
-                child: AspectRatio(
-                  aspectRatio: _playerController!.value.aspectRatio,
-                  child: VideoPlayer(_playerController!),
-                ),
-              ),
+              child: _buildVideoStage(),
             )
           else
             const Center(
@@ -280,6 +292,12 @@ class _WatchTogetherScreenState extends ConsumerState<WatchTogetherScreen> {
                   ),
                 ),
                 IconButton(
+                  icon: const Icon(Icons.aspect_ratio_rounded, color: Color(FlickoColors.brandLime), size: 22),
+                  tooltip: 'Screen Orientation & Aspect Ratio',
+                  onPressed: () => _showAspectRatioSheet(context),
+                ),
+                const SizedBox(width: 4),
+                IconButton(
                   icon: const Icon(Icons.hd_outlined, color: Color(FlickoColors.brandLime), size: 22),
                   tooltip: 'Video Quality (${state.selectedQuality})',
                   onPressed: () => _showQualitySelectorSheet(context, state),
@@ -312,6 +330,110 @@ class _WatchTogetherScreenState extends ConsumerState<WatchTogetherScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildVideoStage() {
+    if (_playerController == null || !_isPlayerInitialized) return const SizedBox();
+
+    if (_aspectRatioMode == WatchTogetherAspectRatio.fill) {
+      return SizedBox.expand(
+        child: FittedBox(
+          fit: BoxFit.cover,
+          clipBehavior: Clip.hardEdge,
+          child: SizedBox(
+            width: _playerController!.value.size.width > 0 ? _playerController!.value.size.width : 1280,
+            height: _playerController!.value.size.height > 0 ? _playerController!.value.size.height : 720,
+            child: VideoPlayer(_playerController!),
+          ),
+        ),
+      );
+    }
+
+    final ratio = _aspectRatioMode.ratio ?? _playerController!.value.aspectRatio;
+    return Center(
+      child: AspectRatio(
+        aspectRatio: ratio,
+        child: VideoPlayer(_playerController!),
+      ),
+    );
+  }
+
+  void _showAspectRatioSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: BoxDecoration(
+            color: const Color(FlickoColors.bgSecondary),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  const Icon(Icons.aspect_ratio_rounded, color: Color(FlickoColors.brandLime), size: 22),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Screen Orientation & Aspect Ratio',
+                    style: GoogleFonts.inter(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              ...WatchTogetherAspectRatio.values.map((mode) {
+                final isSelected = _aspectRatioMode == mode;
+                return ListTile(
+                  leading: Icon(
+                    mode.icon,
+                    color: isSelected ? const Color(FlickoColors.brandLime) : Colors.white70,
+                  ),
+                  title: Text(
+                    mode.label,
+                    style: GoogleFonts.inter(
+                      color: isSelected ? const Color(FlickoColors.brandLime) : Colors.white,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                  subtitle: Text(
+                    mode.description,
+                    style: GoogleFonts.inter(
+                      color: Colors.white38,
+                      fontSize: 12,
+                    ),
+                  ),
+                  trailing: isSelected
+                      ? const Icon(Icons.check_circle, color: Color(FlickoColors.brandLime))
+                      : null,
+                  onTap: () {
+                    setState(() {
+                      _aspectRatioMode = mode;
+                    });
+                    Navigator.pop(context);
+                  },
+                );
+              }),
+            ],
+          ),
+        );
+      },
     );
   }
 
