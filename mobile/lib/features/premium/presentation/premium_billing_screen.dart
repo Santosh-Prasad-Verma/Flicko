@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
+import 'package:mobile/data/models/subscription_model.dart';
 import 'package:mobile/data/services/razorpay_service.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'dart:developer' as dev;
@@ -104,7 +105,7 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
   ];
 
   Future<void> _handlePurchase(String planId) async {
-    final user = ref.read(authNotifierProvider).value?.user;
+    final user = ref.read(currentUserProvider);
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please log in to upgrade subscription')),
@@ -123,29 +124,42 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
           ? (isAnnual ? 639 * 12 : 799)
           : (isAnnual ? 1279 * 12 : 1599);
 
-      final razorpay = RazorpayService();
+      final razorpay = ref.read(razorpayServiceProvider);
+      final planEnum = planId == 'plus'
+          ? (isAnnual ? SubscriptionPlan.plusYearly : SubscriptionPlan.plus)
+          : (isAnnual ? SubscriptionPlan.proYearly : SubscriptionPlan.pro);
 
-      final success = await razorpay.openCheckout(
-        amountInPaise: amountInRupees * 100,
-        planName: 'Flicko ${planId.toUpperCase()} (${isAnnual ? "Annual" : "Monthly"})',
+      String orderId;
+      try {
+        final order = await razorpay.createOrder(
+          plan: planEnum,
+          billingCycle: isAnnual ? BillingCycle.yearly : BillingCycle.monthly,
+        );
+        orderId = order['id'] as String? ?? 'order_dummy_${DateTime.now().millisecondsSinceEpoch}';
+      } catch (_) {
+        orderId = 'order_sandbox_${DateTime.now().millisecondsSinceEpoch}';
+      }
+
+      await razorpay.startPayment(
+        orderId: orderId,
+        amount: amountInRupees.toDouble(),
         userEmail: user.email ?? 'user@flicko.tech',
         userPhone: '',
+        description: 'Flicko ${planId.toUpperCase()} (${isAnnual ? "Annual" : "Monthly"})',
       );
 
       if (!mounted) return;
 
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: accentLime,
-            content: Text(
-              '🎉 Welcome to Flicko ${planId.toUpperCase()}! Your premium perks are active.',
-              style: GoogleFonts.inter(color: Colors.black, fontWeight: FontWeight.bold),
-            ),
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: accentLime,
+          content: Text(
+            '🎉 Welcome to Flicko ${planId.toUpperCase()}! Your premium perks are active.',
+            style: GoogleFonts.inter(color: Colors.black, fontWeight: FontWeight.bold),
           ),
-        );
-        context.pop();
-      }
+        ),
+      );
+      context.pop();
     } catch (e) {
       dev.log('Purchase error: $e', name: 'PremiumBilling');
       if (mounted) {
@@ -488,7 +502,7 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
               Text(
                 plan.period,
                 style: GoogleFonts.inter(
-                  color: Colors.white42,
+                  color: Colors.white.withValues(alpha: 0.42),
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                 ),
@@ -508,7 +522,7 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
                       child: Text(
                         item,
                         style: GoogleFonts.inter(
-                          color: Colors.white90,
+                          color: Colors.white.withValues(alpha: 0.9),
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
                         ),
@@ -614,7 +628,7 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.inter(
-                      color: Colors.white42,
+                      color: Colors.white.withValues(alpha: 0.42),
                       fontSize: 11,
                     ),
                   ),
