@@ -342,7 +342,17 @@ class VoiceController extends Notifier<VoiceState> {
       }
     } catch (e) {
       developer.log('Error toggling screen share', name: 'VoiceController', error: e);
-      state = state.copyWith(error: 'Failed to share screen: ${e.toString()}');
+      final String userMsg = e.toString().contains('TrackPublishException')
+          ? 'Screen sharing cancelled or unavailable'
+          : 'Failed to share screen: ${e.toString()}';
+      state = state.copyWith(error: userMsg);
+
+      // Auto-clear error toast after 3 seconds so banner does not stay on screen
+      Future.delayed(const Duration(seconds: 3), () {
+        if (state.error == userMsg) {
+          state = state.copyWith(error: null);
+        }
+      });
 
       // Stop the service if we started it but screen share failed or was cancelled
       if (Platform.isAndroid) {

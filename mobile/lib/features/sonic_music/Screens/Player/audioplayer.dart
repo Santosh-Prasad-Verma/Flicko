@@ -1534,70 +1534,58 @@ class _RelatedSongsSectionState extends State<RelatedSongsSection> {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 80.0, top: 10.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Single consolidated "Related Songs" card
-          ClipRRect(
-            borderRadius: BorderRadius.circular(24.0),
-            child: BackdropFilter(
-              filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16.0),
-                padding: const EdgeInsets.all(16.0),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.03),
-                  borderRadius: BorderRadius.circular(24.0),
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.07),
-                    width: 1.0,
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16.0),
+        padding: const EdgeInsets.all(16.0),
+        decoration: BoxDecoration(
+          color: const Color(FlickoColors.bgSecondary).withOpacity(0.4),
+          borderRadius: BorderRadius.circular(20.0),
+          border: Border.all(
+            color: Colors.white.withOpacity(0.08),
+            width: 1.0,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Container(
+                  height: 18,
+                  width: 3.5,
+                  decoration: const BoxDecoration(
+                    color: Color(FlickoColors.brandLime),
+                    borderRadius: BorderRadius.all(Radius.circular(2)),
                   ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          height: 18,
-                          width: 3.5,
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.secondary,
-                            borderRadius: const BorderRadius.all(Radius.circular(2)),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          "Related Songs",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.3,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Padding(
-                      padding: const EdgeInsets.only(left: 11.5),
-                      child: Text(
-                        "Based on your listening choices",
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.4),
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildSongList(relatedSongs),
-                  ],
+                const SizedBox(width: 8),
+                const Text(
+                  "Related Songs",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Padding(
+              padding: const EdgeInsets.only(left: 11.5),
+              child: Text(
+                "Based on your listening choices",
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.4),
+                  fontSize: 12,
                 ),
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: 12),
+            _buildSongList(relatedSongs),
+          ],
+        ),
       ),
     );
   }

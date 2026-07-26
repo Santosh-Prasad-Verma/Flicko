@@ -373,22 +373,22 @@ class _DownloadedSongsDesktopState extends State<DownloadedSongsDesktop>
                       songs: _songs,
                       playlistId: widget.playlistId,
                       playlistName: widget.title,
-                      tempPath: tempPath!,
+                      tempPath: tempPath ?? '',
                     ),
                     AlbumsTabDesktop(
                       albums: _albums,
                       albumsList: _sortedAlbumKeysList,
-                      tempPath: tempPath!,
+                      tempPath: tempPath ?? '',
                     ),
                     AlbumsTabDesktop(
                       albums: _artists,
                       albumsList: _sortedArtistKeysList,
-                      tempPath: tempPath!,
+                      tempPath: tempPath ?? '',
                     ),
                     AlbumsTabDesktop(
                       albums: _genres,
                       albumsList: _sortedGenreKeysList,
-                      tempPath: tempPath!,
+                      tempPath: tempPath ?? '',
                     ),
                     // if (widget.showPlaylists)
                     //   LocalPlaylists(

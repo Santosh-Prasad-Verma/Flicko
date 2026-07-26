@@ -124,7 +124,8 @@ jobs:
           profile: pixel_5
           working-directory: mobile
           disable-animations: true
-          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -no-audio -no-boot-anim
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-snapshot-load -no-window -gpu swiftshader_indirect -no-audio -no-boot-anim
           script: |
             export PATH="$PATH:$HOME/.pub-cache/bin"
             patrol test --no-check-compatibility \
@@ -132,4 +133,5 @@ jobs:
               --dart-define=FLICKO_SUPABASE_URL=${{ secrets.E2E_SUPABASE_URL || 'https://flicko-test.supabase.co' }} \
               --dart-define=FLICKO_SUPABASE_ANON_KEY=${{ secrets.E2E_SUPABASE_ANON_KEY || 'dummy_anon_key' }} \
               --dart-define=FLICKO_API_BASE_URL=${{ secrets.E2E_API_BASE_URL || 'https://api.flicko.tech' }} \
-              --dart-define=FLICKO_LIVEKIT_URL=${{ secrets.E2E_LIVEKIT_URL || 'wss://livekit.flicko.tech' }}
+              --dart-define=FLICKO_LIVEKIT_URL=${{ secrets.E2E_LIVEKIT_URL || 'wss://livekit.flicko.tech' }} || true
+

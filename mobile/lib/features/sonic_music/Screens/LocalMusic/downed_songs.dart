@@ -336,7 +336,7 @@ class _DownloadedSongsState extends State<DownloadedSongs>
                     context: context,
                     delegate: DataSearch(
                       data: _songs,
-                      tempPath: tempPath!,
+                      tempPath: tempPath ?? '',
                     ),
                   );
                 },
@@ -453,28 +453,28 @@ class _DownloadedSongsState extends State<DownloadedSongs>
                       songs: _songs,
                       playlistId: widget.playlistId,
                       playlistName: widget.title,
-                      tempPath: tempPath!,
+                      tempPath: tempPath ?? '',
                       deleteSong: deleteSong,
                     ),
                     AlbumsTab(
                       albums: _albums,
                       albumsList: _sortedAlbumKeysList,
-                      tempPath: tempPath!,
+                      tempPath: tempPath ?? '',
                     ),
                     AlbumsTab(
                       albums: _artists,
                       albumsList: _sortedArtistKeysList,
-                      tempPath: tempPath!,
+                      tempPath: tempPath ?? '',
                     ),
                     AlbumsTab(
                       albums: _genres,
                       albumsList: _sortedGenreKeysList,
-                      tempPath: tempPath!,
+                      tempPath: tempPath ?? '',
                     ),
                     AlbumsTab(
                       albums: _folders,
                       albumsList: _sortedFolderKeysList,
-                      tempPath: tempPath!,
+                      tempPath: tempPath ?? '',
                       isFolder: true,
                     ),
                     if (widget.showPlaylists)

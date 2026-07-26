@@ -130,7 +130,11 @@ class Download with ChangeNotifier {
         dirName: 'Music',
         writeAccess: true,
       );
-      dlPath = temp!;
+      if (temp != null && temp.isNotEmpty) {
+        dlPath = temp;
+      } else {
+        dlPath = (await getApplicationDocumentsDirectory()).path;
+      }
       Hive.box('settings').put('downloadPath', dlPath);
     }
     Logger.root.info('New Download path: $dlPath');
