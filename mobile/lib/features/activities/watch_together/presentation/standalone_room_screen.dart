@@ -84,7 +84,7 @@ class _StandaloneRoomScreenState extends ConsumerState<StandaloneRoomScreen> {
       final dio = ref.read(dioProvider);
       
       final response = await dio.post(
-        '/api/v1/wt/sessions',
+        '/wt/sessions',
         data: {
           'room_id': '', // empty string represents standalone session
           'media': {

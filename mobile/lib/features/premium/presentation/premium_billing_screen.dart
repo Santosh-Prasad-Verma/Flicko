@@ -376,34 +376,37 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen>
                         ]
                       : [],
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Annual Billing',
-                      style: GoogleFonts.outfit(
-                        color: _isAnnual ? Colors.black : textWhite.withValues(alpha: 0.5),
-                        fontWeight: FontWeight.w800,
-                        fontSize: 13,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: _isAnnual ? Colors.black : limePrimary,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        'SAVE 20%',
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Annual Billing',
                         style: GoogleFonts.outfit(
-                          color: _isAnnual ? limePrimary : Colors.black,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w900,
+                          color: _isAnnual ? Colors.black : textWhite.withValues(alpha: 0.5),
+                          fontWeight: FontWeight.w800,
+                          fontSize: 12,
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: _isAnnual ? Colors.black : limePrimary,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          'SAVE 20%',
+                          style: GoogleFonts.outfit(
+                            color: _isAnnual ? limePrimary : Colors.black,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

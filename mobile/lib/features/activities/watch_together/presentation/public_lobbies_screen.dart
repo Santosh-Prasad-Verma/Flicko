@@ -42,7 +42,7 @@ class _PublicLobbiesScreenState extends ConsumerState<PublicLobbiesScreen> {
 
     try {
       final dio = ref.read(dioProvider);
-      final response = await dio.get('/api/v1/wt/lobbies');
+      final response = await dio.get('/wt/lobbies');
       final List<dynamic> data = response.data ?? [];
       
       setState(() {

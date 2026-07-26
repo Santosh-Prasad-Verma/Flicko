@@ -26,7 +26,7 @@ class WatchTogetherService {
       if (!AppConfig.hasApiBaseUrl) return null;
 
       final response = await _dio.post(
-        '/api/v1/wt/sessions',
+        '/wt/sessions',
         data: {
           'room_id': roomId,
           'media': {
@@ -58,7 +58,7 @@ class WatchTogetherService {
       if (!AppConfig.hasApiBaseUrl) return null;
 
       final response = await _dio.post(
-        '/api/v1/wt/sessions/$sessionId/join',
+        '/wt/sessions/$sessionId/join',
         queryParameters: {'username': username},
       );
 
@@ -74,7 +74,7 @@ class WatchTogetherService {
   Future<bool> leaveSession(String sessionId) async {
     try {
       if (!AppConfig.hasApiBaseUrl) return false;
-      final response = await _dio.post('/api/v1/wt/sessions/$sessionId/leave');
+      final response = await _dio.post('/wt/sessions/$sessionId/leave');
       return response.statusCode == 200 || response.statusCode == 204;
     } catch (e) {
       debugPrint('Error leaving watch together session: $e');
@@ -85,7 +85,7 @@ class WatchTogetherService {
   Future<bool> endSession(String sessionId) async {
     try {
       if (!AppConfig.hasApiBaseUrl) return false;
-      final response = await _dio.delete('/api/v1/wt/sessions/$sessionId');
+      final response = await _dio.delete('/wt/sessions/$sessionId');
       return response.statusCode == 200 || response.statusCode == 204;
     } catch (e) {
       debugPrint('Error ending watch together session: $e');
@@ -102,7 +102,7 @@ class WatchTogetherService {
     try {
       if (!AppConfig.hasApiBaseUrl) return false;
       final response = await _dio.post(
-        '/api/v1/wt/sessions/$sessionId/anchor',
+        '/wt/sessions/$sessionId/anchor',
         data: {
           'position_ms': positionMs,
           'playing': playing,
@@ -119,7 +119,7 @@ class WatchTogetherService {
   Future<Map<String, dynamic>?> getAnchor(String sessionId) async {
     try {
       if (!AppConfig.hasApiBaseUrl) return null;
-      final response = await _dio.get('/api/v1/wt/sessions/$sessionId/anchor');
+      final response = await _dio.get('/wt/sessions/$sessionId/anchor');
       if (response.statusCode == 200) {
         return Map<String, dynamic>.from(response.data as Map);
       }
@@ -133,7 +133,7 @@ class WatchTogetherService {
     try {
       if (!AppConfig.hasApiBaseUrl) return false;
       final response = await _dio.post(
-        '/api/v1/wt/sessions/$sessionId/host',
+        '/wt/sessions/$sessionId/host',
         data: {
           'to_user_id': toUserId,
         },

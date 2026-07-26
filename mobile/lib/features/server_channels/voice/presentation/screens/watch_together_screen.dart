@@ -671,8 +671,9 @@ class _WatchTogetherScreenState extends ConsumerState<WatchTogetherScreen> {
                     IconButton(
                       iconSize: 32,
                       icon: const Icon(Icons.replay_10, color: Colors.white),
-                      onPressed: canControl
+                      onPressed: canControl && _playerController != null
                           ? () async {
+                              if (_playerController == null) return;
                               final newPos = position - const Duration(seconds: 10);
                               await _playerController!.seekTo(
                                 newPos < Duration.zero ? Duration.zero : newPos,
@@ -684,7 +685,7 @@ class _WatchTogetherScreenState extends ConsumerState<WatchTogetherScreen> {
                     const SizedBox(width: 16),
                     CircleAvatar(
                       radius: 28,
-                      backgroundColor: canControl
+                      backgroundColor: canControl && _playerController != null
                           ? const Color(FlickoColors.blurple)
                           : Colors.grey.withValues(alpha: 0.3),
                       child: IconButton(
@@ -695,15 +696,16 @@ class _WatchTogetherScreenState extends ConsumerState<WatchTogetherScreen> {
                               : Icons.play_arrow,
                           color: Colors.white,
                         ),
-                        onPressed: canControl ? _playPause : null,
+                        onPressed: canControl && _playerController != null ? _playPause : null,
                       ),
                     ),
                     const SizedBox(width: 16),
                     IconButton(
                       iconSize: 32,
                       icon: const Icon(Icons.forward_10, color: Colors.white),
-                      onPressed: canControl
+                      onPressed: canControl && _playerController != null
                           ? () async {
+                              if (_playerController == null) return;
                               final newPos = position + const Duration(seconds: 10);
                               await _playerController!.seekTo(
                                 newPos > duration ? duration : newPos,
