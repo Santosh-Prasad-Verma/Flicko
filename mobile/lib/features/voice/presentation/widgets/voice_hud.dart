@@ -2,10 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/voice/presentation/controllers/voice_controller.dart';
-import 'package:mobile/features/voice/presentation/controllers/voice_state.dart';
-import 'voice_synth_board_sheet.dart';
 
 /// Discord-style Draggable Floating Voice Box Widget
 /// Displayed when connected to a voice channel while navigating elsewhere in the app.
