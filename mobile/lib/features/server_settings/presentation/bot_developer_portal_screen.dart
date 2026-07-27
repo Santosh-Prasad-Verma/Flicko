@@ -88,7 +88,7 @@ class _BotDeveloperPortalScreenState extends ConsumerState<BotDeveloperPortalScr
       final prefix = '${rawSecret.substring(0, 12)}...';
 
       await Supabase.instance.client.from('bot_tokens').insert({
-        'bot_id': botId,
+        'application_id': botId,
         'token_prefix': prefix,
         'token_hash': tokenHash,
       });
