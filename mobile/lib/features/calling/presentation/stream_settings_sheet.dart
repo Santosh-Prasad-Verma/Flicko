@@ -34,9 +34,9 @@ class _StreamSettingsSheetState extends State<StreamSettingsSheet> {
 
   @override
   Widget build(BuildContext context) {
-    const bgDark = Color(0FF111214);
-    const cardBg = Color(0FF1E1F22);
-    const accentGreen = Color(0FF23A55A);
+    const bgDark = Color(0xFF111214);
+    const cardBg = Color(0xFF1E1F22);
+    const accentGreen = Color(0xFF23A55A);
     const accentBlurple = Color(FlickoColors.blurple);
 
     return ClipRRect(
