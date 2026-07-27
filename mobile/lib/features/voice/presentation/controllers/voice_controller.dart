@@ -118,12 +118,29 @@ class VoiceController extends Notifier<VoiceState> {
         error: micPublishFailed ? 'Failed to publish audio track (joined in listen-only mode)' : null,
         participants: [room.localParticipant!, ...room.remoteParticipants.values],
       );
+
+      _playDiscordJoinSound();
     } catch (e) {
       state = state.copyWith(
         isConnecting: false,
         error: e.toString(),
         activeChannelId: null,
       );
+    }
+  }
+
+  Future<void> _playDiscordJoinSound() async {
+    try {
+      final sfxPlayer = AudioPlayer();
+      await sfxPlayer.setAsset('assets/sounds/discord_join.mp3');
+      await sfxPlayer.play();
+      sfxPlayer.playerStateStream.listen((playerState) {
+        if (playerState.processingState == ProcessingState.completed) {
+          sfxPlayer.dispose();
+        }
+      });
+    } catch (e) {
+      developer.log('Error playing Discord join sound effect', name: 'VoiceController', error: e);
     }
   }
 
@@ -136,6 +153,7 @@ class VoiceController extends Notifier<VoiceState> {
       })
       ..on<ParticipantConnectedEvent>((event) {
         _updateParticipants();
+        _playDiscordJoinSound();
       })
       ..on<ParticipantDisconnectedEvent>((event) {
         _updateParticipants();
