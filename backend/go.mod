@@ -1,6 +1,6 @@
 module github.com/flicko-org/flicko-backend
 
-go 1.25.12
+go 1.26
 
 require (
 	github.com/golang-jwt/jwt/v5 v5.3.1
@@ -10,7 +10,7 @@ require (
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/livekit/protocol v1.45.6
 	github.com/prometheus/client_golang v1.23.2
-	github.com/razorpay/razorpay-go v1.3.4
+	github.com/razorpay/razorpay-go v1.4.1
 	github.com/redis/go-redis/v9 v9.21.0
 	github.com/stretchr/testify v1.11.1
 	github.com/supabase-community/storage-go v0.8.1
