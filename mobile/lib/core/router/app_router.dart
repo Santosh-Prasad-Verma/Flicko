@@ -113,6 +113,13 @@ import 'package:mobile/features/server_settings/presentation/onboarding_settings
 import 'package:mobile/features/server_settings/presentation/stickers_management_screen.dart';
 import 'package:mobile/features/server_settings/presentation/bot_marketplace_screen.dart';
 import 'package:mobile/features/server_settings/presentation/bot_developer_portal_screen.dart';
+import 'package:mobile/features/server_settings/presentation/server_analytics_screen.dart';
+import 'package:mobile/features/server_settings/presentation/server_subscriptions_settings_screen.dart';
+import 'package:mobile/features/server/presentation/member_subscriptions_checkout_screen.dart';
+import 'package:mobile/features/settings/presentation/activity_settings_screen.dart';
+import 'package:mobile/features/store/presentation/global_app_directory_screen.dart';
+import 'package:mobile/features/server_settings/presentation/bot_oauth2_consent_screen.dart';
+import 'package:mobile/features/server_settings/presentation/server_soundboard_manager_screen.dart';
 
 // Voice
 import 'package:mobile/features/server_channels/voice/presentation/screens/voice_activities_screen.dart';
@@ -418,6 +425,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(path: 'invites', builder: (context, state) => InvitesSettingsScreen(serverId: state.pathParameters['serverId']!)),
               GoRoute(path: 'leaderboard', builder: (context, state) => LeaderboardSettingsScreen(serverId: state.pathParameters['serverId']!)),
               GoRoute(path: 'developer-portal', builder: (context, state) => BotDeveloperPortalScreen(serverId: state.pathParameters['serverId']!)),
+              GoRoute(path: 'analytics', builder: (context, state) => ServerAnalyticsScreen(serverId: state.pathParameters['serverId']!)),
+              GoRoute(path: 'subscriptions', builder: (context, state) => ServerSubscriptionsSettingsScreen(serverId: state.pathParameters['serverId']!)),
+              GoRoute(
+                path: 'subscriptions/:tierId',
+                builder: (context, state) => MemberSubscriptionsCheckoutScreen(
+                  serverId: state.pathParameters['serverId']!,
+                  tierId: state.pathParameters['tierId']!,
+                ),
+              ),
+              GoRoute(path: 'soundboard', builder: (context, state) => ServerSoundboardManagerScreen(serverId: state.pathParameters['serverId']!)),
+              GoRoute(path: 'oauth2', builder: (context, state) => BotOAuth2ConsentScreen(serverId: state.pathParameters['serverId']!, botId: state.uri.queryParameters['botId'] ?? '')),
             ],
           ),
           GoRoute(
@@ -466,6 +484,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(path: 'notifications', builder: (context, state) => const NotificationsSettingsScreen()),
           GoRoute(path: 'voice', builder: (context, state) => const VoiceSettingsScreen()),
           GoRoute(path: 'accessibility', builder: (context, state) => const AccessibilitySettingsScreen()),
+          GoRoute(path: 'activity-privacy', builder: (context, state) => const ActivitySettingsScreen()),
           GoRoute(
             path: 'help',
             builder: (context, state) => const HelpScreen(),
@@ -670,6 +689,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           data: sonic_theme.AppTheme.darkTheme(context: context),
           child: const BadgeAlchemyScreen(),
         ),
+      ),
+      GoRoute(
+        path: '/store/apps',
+        builder: (context, state) => const GlobalAppDirectoryScreen(),
       ),
       GoRoute(
         path: '/store/product/:productId',

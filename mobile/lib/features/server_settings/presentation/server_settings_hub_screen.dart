@@ -619,6 +619,14 @@ class _ServerSettingsHubScreenState
             requiredPermission: 'MANAGE_GUILD',
           ),
           SettingsItem(
+            id: 'analytics',
+            icon: Icons.bar_chart_rounded,
+            label: 'Analytics & Insights',
+            route: '/server/$serverId/settings/analytics',
+            description: 'Member growth, DAU & chat engagement',
+            requiredPermission: 'MANAGE_GUILD',
+          ),
+          SettingsItem(
             id: 'channels',
             icon: Icons.folder_outlined,
             label: 'Channels',
@@ -714,6 +722,22 @@ class _ServerSettingsHubScreenState
             label: 'Bot Developer Portal',
             route: '/server/$serverId/settings/developer-portal',
             description: 'Create custom bots & generate SHA-256 tokens',
+            requiredPermission: 'MANAGE_GUILD',
+          ),
+          SettingsItem(
+            id: 'soundboard',
+            icon: Icons.volume_up_rounded,
+            label: 'Soundboard Studio',
+            route: '/server/$serverId/settings/soundboard',
+            description: 'Manage custom sound clips & emoji triggers',
+            requiredPermission: 'MANAGE_GUILD',
+          ),
+          SettingsItem(
+            id: 'subscriptions',
+            icon: Icons.card_membership_rounded,
+            label: 'Server Subscriptions',
+            route: '/server/$serverId/settings/subscriptions',
+            description: 'Monetize server with paid membership tiers',
             requiredPermission: 'MANAGE_GUILD',
           ),
           SettingsItem(
