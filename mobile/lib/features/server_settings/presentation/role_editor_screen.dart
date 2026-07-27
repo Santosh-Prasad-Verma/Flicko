@@ -44,9 +44,12 @@ class _RoleEditorScreenState extends ConsumerState<RoleEditorScreen> {
 
   String _name = '';
   String? _roleColor;
+  String? _iconUrl;
   bool _hoist = false;
   bool _mentionable = false;
   Map<String, bool> _permissions = {};
+
+  final List<String> _presetIcons = ['👑', '⭐', '🔥', '🛡️', '⚡', '💎', '🚀', '🎯', '🎨', '🎮', '🎧', '🏆'];
 
   final _client = Supabase.instance.client;
 
@@ -296,40 +299,41 @@ class _RoleEditorScreenState extends ConsumerState<RoleEditorScreen> {
             ),
           ),
 
-          // Role Color
+          // Role Icon Badge
           _buildSection(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('ROLE COLOR', style: _sectionLabelStyle()),
+                Text('ROLE ICON / EMOJI BADGE', style: _sectionLabelStyle()),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    ..._colorPresets.map((c) => GestureDetector(
-                      onTap: () => setState(() { _roleColor = c; _dirty = true; }),
+                    ..._presetIcons.map((emoji) => GestureDetector(
+                      onTap: () => setState(() { _iconUrl = emoji; _dirty = true; }),
                       child: Container(
-                        width: 32,
-                        height: 32,
+                        width: 38,
+                        height: 38,
                         decoration: BoxDecoration(
-                          color: Color(int.parse(c.replaceFirst('#', '0xFF'))),
-                          shape: BoxShape.circle,
-                          border: _roleColor == c ? Border.all(color: Colors.white, width: 3) : null,
+                          color: const Color(FlickoColors.bgTertiary),
+                          borderRadius: BorderRadius.circular(10),
+                          border: _iconUrl == emoji ? Border.all(color: const Color(FlickoColors.brandLime), width: 2) : null,
                         ),
+                        child: Center(child: Text(emoji, style: const TextStyle(fontSize: 20))),
                       ),
                     )),
                     GestureDetector(
-                      onTap: () => setState(() { _roleColor = null; _dirty = true; }),
+                      onTap: () => setState(() { _iconUrl = null; _dirty = true; }),
                       child: Container(
-                        width: 32,
-                        height: 32,
+                        width: 38,
+                        height: 38,
                         decoration: BoxDecoration(
                           color: const Color(FlickoColors.bgTertiary),
-                          shape: BoxShape.circle,
+                          borderRadius: BorderRadius.circular(10),
                           border: Border.all(color: const Color(FlickoColors.textMuted)),
                         ),
-                        child: const Icon(Icons.close, size: 14, color: Color(FlickoColors.textMuted)),
+                        child: const Icon(Icons.close, size: 16, color: Color(FlickoColors.textMuted)),
                       ),
                     ),
                   ],

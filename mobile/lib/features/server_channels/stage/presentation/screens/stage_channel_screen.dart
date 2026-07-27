@@ -361,6 +361,50 @@ class _StageChannelScreenState extends ConsumerState<StageChannelScreen> {
 
   bool get _handRaised => _currentUserParticipant?.handRaised ?? false;
 
+  void _showStartStageModal() {
+    final topicController = TextEditingController(text: _channel?['topic'] ?? '');
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(FlickoColors.bgSecondary),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text('Start Stage Session', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: TextField(
+          controller: topicController,
+          style: GoogleFonts.inter(color: Colors.white),
+          decoration: InputDecoration(
+            hintText: 'What is this stage about?',
+            hintStyle: GoogleFonts.inter(color: Colors.white38),
+            filled: true,
+            fillColor: Colors.black,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel', style: GoogleFonts.inter(color: Colors.white54)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final newTopic = topicController.text.trim();
+              if (newTopic.isNotEmpty) {
+                await Supabase.instance.client
+                    .from('channels')
+                    .update({'topic': newTopic})
+                    .eq('id', widget.channelId);
+                _loadChannel();
+              }
+              if (mounted) Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(FlickoColors.brandLime), foregroundColor: Colors.black),
+            child: const Text('Start Stage'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final voiceState = ref.watch(voiceControllerProvider);
@@ -432,6 +476,11 @@ class _StageChannelScreenState extends ConsumerState<StageChannelScreen> {
                   ),
               ],
             ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.edit_note_rounded, color: Color(FlickoColors.brandLime)),
+            onPressed: _showStartStageModal,
+            tooltip: 'Set Stage Topic',
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

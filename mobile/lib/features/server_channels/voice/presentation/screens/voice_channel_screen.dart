@@ -729,41 +729,86 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
                     final profile = _profilesCache[p.sid];
                     final name = profile?['display_name'] ?? profile?['username'] ?? p.identity ?? 'Member ${index + 1}';
                     final avatar = profile?['avatar'];
-                    return ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: p.isSpeaking ? Color(FlickoColors.brandLime) : Colors.transparent,
-                            width: 2,
-                          ),
-                        ),
-                        child: CircleAvatar(
-                          radius: 20,
-                          backgroundColor: Color(FlickoColors.bgTertiary),
-                          backgroundImage: (avatar != null && (avatar.startsWith('http://') || avatar.startsWith('https://'))) ? NetworkImage(avatar) : null,
-                          child: (avatar == null || (!avatar.startsWith('http://') && !avatar.startsWith('https://'))) ? const Icon(Icons.person, color: Colors.white70) : null,
-                        ),
-                      ),
-                      title: Text(
-                        name,
-                        style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600),
-                      ),
-                      subtitle: Text(
-                        p.isSpeaking ? 'Speaking' : (p.isMuted ? 'Muted' : 'Connected'),
-                        style: GoogleFonts.inter(
-                          color: p.isSpeaking ? Color(FlickoColors.brandLime) : Colors.white38,
-                          fontSize: 12,
-                        ),
-                      ),
-                      trailing: Row(
+                      final currentVol = voiceState.participantVolumes[p.sid] ?? 1.0;
+                    return Container(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          if (p.isMuted)
-                            const Icon(Icons.mic_off_rounded, color: Colors.redAccent, size: 18)
-                          else
-                            Icon(Icons.mic_rounded, color: Color(FlickoColors.brandLime), size: 18),
+                          ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: p.isSpeaking ? Color(FlickoColors.brandLime) : Colors.transparent,
+                                  width: 2,
+                                ),
+                              ),
+                              child: CircleAvatar(
+                                radius: 20,
+                                backgroundColor: Color(FlickoColors.bgTertiary),
+                                backgroundImage: (avatar != null && (avatar.startsWith('http://') || avatar.startsWith('https://'))) ? NetworkImage(avatar) : null,
+                                child: (avatar == null || (!avatar.startsWith('http://') && !avatar.startsWith('https://'))) ? const Icon(Icons.person, color: Colors.white70) : null,
+                              ),
+                            ),
+                            title: Text(
+                              name,
+                              style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600),
+                            ),
+                            subtitle: Text(
+                              p.isSpeaking ? 'Speaking' : (p.isMuted ? 'Muted' : 'Connected'),
+                              style: GoogleFonts.inter(
+                                color: p.isSpeaking ? Color(FlickoColors.brandLime) : Colors.white38,
+                                fontSize: 12,
+                              ),
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (p.isMuted)
+                                  const Icon(Icons.mic_off_rounded, color: Colors.redAccent, size: 18)
+                                else
+                                  Icon(Icons.mic_rounded, color: Color(FlickoColors.brandLime), size: 18),
+                              ],
+                            ),
+                          ),
+                          // Per-User Volume Control Slider (0% - 200%)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 48, right: 8, bottom: 4),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.volume_down_rounded, color: Colors.white38, size: 16),
+                                Expanded(
+                                  child: SliderTheme(
+                                    data: const SliderThemeData(
+                                      thumbShape: RoundSliderThumbShape(enabledThumbRadius: 6),
+                                      overlayShape: RoundSliderOverlayShape(overlayRadius: 10),
+                                      trackHeight: 3,
+                                    ),
+                                    child: Slider(
+                                      value: currentVol,
+                                      min: 0.0,
+                                      max: 2.0,
+                                      activeColor: Color(FlickoColors.brandLime),
+                                      inactiveColor: Colors.white12,
+                                      onChanged: (val) {
+                                        ref.read(voiceControllerProvider.notifier).setParticipantVolume(p.sid, val);
+                                      },
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  '${(currentVol * 100).toInt()}%',
+                                  style: GoogleFonts.spaceMono(
+                                    color: Color(FlickoColors.brandLime),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
                     );

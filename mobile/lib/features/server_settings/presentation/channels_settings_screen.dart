@@ -938,6 +938,47 @@ class _ChannelsSettingsScreenState extends ConsumerState<ChannelsSettingsScreen>
                   ],
                 ),
               ),
+              const SizedBox(height: 16),
+              GestureDetector(
+                onTap: () => _showPermissionOverridesDialog(context, _editChannel!),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.black,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(FlickoColors.brandLime).withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.security_rounded, color: Color(FlickoColors.brandLime), size: 20),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'PER-CHANNEL PERMISSIONS OVERRIDES',
+                              style: GoogleFonts.inter(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            Text(
+                              'Configure role-specific Allow/Neutral/Deny rules',
+                              style: GoogleFonts.inter(
+                                color: Colors.white38,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white38, size: 14),
+                    ],
+                  ),
+                ),
+              ),
               const SizedBox(height: 32),
               SizedBox(
                 width: double.infinity,
@@ -993,8 +1034,69 @@ class _ChannelsSettingsScreenState extends ConsumerState<ChannelsSettingsScreen>
           hintStyle: GoogleFonts.inter(color: Colors.white24),
           border: InputBorder.none,
           prefixIcon: prefix,
-          contentPadding: const EdgeInsets.symmetric(vertical: 16),
         ),
+      ),
+    );
+  }
+
+  void _showPermissionOverridesDialog(BuildContext context, ChannelModel channel) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(FlickoColors.bgSecondary),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text(
+          'Channel Permission Overrides',
+          style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Set custom permission overrides for #${channel.name}.',
+                style: GoogleFonts.inter(color: Colors.white54, fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text('View Channel', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600)),
+                subtitle: Text('Allow or restrict viewing this channel', style: GoogleFonts.inter(color: Colors.white38, fontSize: 11)),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.cancel_outlined, color: Colors.redAccent),
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Denied View Channel')));
+                      },
+                      tooltip: 'Deny',
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.remove_circle_outline, color: Colors.white38),
+                      onPressed: () {},
+                      tooltip: 'Neutral',
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.check_circle_outline, color: Color(FlickoColors.brandLime)),
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Allowed View Channel')));
+                      },
+                      tooltip: 'Allow',
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Close', style: GoogleFonts.inter(color: const Color(FlickoColors.brandLime))),
+          ),
+        ],
       ),
     );
   }
