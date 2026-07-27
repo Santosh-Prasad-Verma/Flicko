@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
+import 'package:mobile/core/utils/error_sanitizer.dart';
 
 class ServerSettingsHubScreen extends ConsumerStatefulWidget {
   final String serverId;
@@ -94,7 +95,7 @@ class _ServerSettingsHubScreenState
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = e.toString();
+          _errorMessage = ErrorSanitizer.sanitize(e);
           _isLoading = false;
         });
       }

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
+import 'package:mobile/core/services/connectivity_provider.dart';
 import 'package:mobile/features/calling/presentation/call_signal_listener.dart';
 import 'package:mobile/features/voice/presentation/widgets/voice_hud.dart';
 import 'package:mobile/features/notifications/application/unread_notifications_provider.dart';
@@ -33,6 +34,10 @@ class MainNavigationShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Watch real-time network connectivity status
+    final networkStatus = ref.watch(connectivityProvider);
+    final isOffline = networkStatus == NetworkStatus.offline;
+
     // Watch unread notifications count in real-time
     final unreadCountAsync = ref.watch(unreadNotificationsCountProvider);
     final unreadCount = unreadCountAsync.value ?? 0;
@@ -76,6 +81,34 @@ class MainNavigationShell extends ConsumerWidget {
           if (!activeLocation.contains('/voice') && !activeLocation.contains('/stage'))
             const Positioned.fill(
               child: VoiceHUD(),
+            ),
+
+          // Offline Connection Warning Banner
+          if (isOffline)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 8,
+              left: 16,
+              right: 16,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.redAccent.withValues(alpha: 0.95),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 10)],
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.wifi_off_rounded, color: Colors.white, size: 18),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'You are offline. Features may be limited.',
+                        style: GoogleFonts.inter(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
 
           // Pinned rectangular glassmorphic navbar
