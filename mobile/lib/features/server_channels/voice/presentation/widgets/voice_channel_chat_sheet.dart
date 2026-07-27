@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
+import 'package:mobile/features/auth/application/auth_notifier.dart';
+import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-class VoiceChannelChatSheet extends StatefulWidget {
+class VoiceChannelChatSheet extends ConsumerStatefulWidget {
   final String channelName;
   const VoiceChannelChatSheet({
     super.key,
@@ -22,12 +26,61 @@ class VoiceChannelChatSheet extends StatefulWidget {
   }
 
   @override
-  State<VoiceChannelChatSheet> createState() => _VoiceChannelChatSheetState();
+  ConsumerState<VoiceChannelChatSheet> createState() => _VoiceChannelChatSheetState();
 }
 
-class _VoiceChannelChatSheetState extends State<VoiceChannelChatSheet> {
+class _VoiceChannelChatSheetState extends ConsumerState<VoiceChannelChatSheet> {
   final TextEditingController _msgController = TextEditingController();
   final List<Map<String, String>> _messages = [];
+  bool _isInputEmpty = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _msgController.addListener(() {
+      final textEmpty = _msgController.text.trim().isEmpty;
+      if (textEmpty != _isInputEmpty) {
+        setState(() {
+          _isInputEmpty = textEmpty;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _msgController.dispose();
+    super.dispose();
+  }
+
+  void _sendMessage() {
+    final text = _msgController.text.trim();
+    if (text.isEmpty) return;
+
+    final currentAuthUser = ref.read(authNotifierProvider).maybeWhen(
+      authenticated: (user, _) => user,
+      orElse: () => null,
+    );
+
+    final String username = currentAuthUser?.userMetadata?['username'] as String? ?? 
+                           currentAuthUser?.userMetadata?['display_name'] as String? ?? 
+                           currentAuthUser?.email?.split('@').first ?? 'User';
+    final String? avatarUrl = currentAuthUser?.userMetadata?['avatar_url'] as String? ?? 
+                             currentAuthUser?.userMetadata?['avatar'] as String?;
+    final String userId = currentAuthUser?.id ?? '';
+
+    setState(() {
+      _messages.add({
+        'user': username,
+        'avatar': avatarUrl ?? '',
+        'userId': userId,
+        'text': text,
+        'time': 'Just now',
+      });
+      _msgController.clear();
+      _isInputEmpty = true;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,6 +88,15 @@ class _VoiceChannelChatSheetState extends State<VoiceChannelChatSheet> {
     const bgSecondary = Color(FlickoColors.bgSecondary);
     const bgTertiary = Color(FlickoColors.bgTertiary);
     const brandGreen = Color(FlickoColors.brandLime);
+
+    final currentAuthUser = ref.watch(authNotifierProvider).maybeWhen(
+      authenticated: (user, _) => user,
+      orElse: () => null,
+    );
+    final String currentUserId = currentAuthUser?.id ?? '';
+    final String currentAvatarUrl = currentAuthUser?.userMetadata?['avatar_url'] as String? ?? 
+                                   currentAuthUser?.userMetadata?['avatar'] as String? ?? '';
+    final String currentUsername = currentAuthUser?.userMetadata?['username'] as String? ?? 'User';
 
     return DraggableScrollableSheet(
       initialChildSize: 0.88,
@@ -48,201 +110,207 @@ class _VoiceChannelChatSheetState extends State<VoiceChannelChatSheet> {
             color: bgSecondary,
             borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
           ),
-          child: Stack(
+          child: Column(
             children: [
-              Column(
-                children: [
-                  const SizedBox(height: 12),
-                  Center(
-                    child: Container(
-                      width: 36,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.white24,
-                        borderRadius: BorderRadius.circular(2),
+              const SizedBox(height: 12),
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Header with Title and Close Button
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Chat',
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 14),
-
-                  Text(
-                    'Chat',
-                    style: GoogleFonts.inter(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, color: Colors.white70, size: 22),
+                      onPressed: () => Navigator.pop(context),
                     ),
-                  ),
-                  const SizedBox(height: 16),
+                  ],
+                ),
+              ),
+              const Divider(color: Colors.white10, height: 1),
+              const SizedBox(height: 8),
 
-                  Expanded(
-                    child: ListView(
-                      controller: scrollController,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      children: [
-                        Container(
-                          width: 56,
-                          height: 56,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: bgTertiary,
-                          ),
-                          child: const Icon(Icons.tag_rounded, color: brandGreen, size: 32),
+              // Messages List
+              Expanded(
+                child: ListView(
+                  controller: scrollController,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 56,
+                        height: 56,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: bgTertiary,
                         ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Welcome to ${widget.channelName}!',
-                          style: GoogleFonts.inter(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'This is the start of the ${widget.channelName} channel.',
-                          style: GoogleFonts.inter(
-                            color: Colors.white54,
-                            fontSize: 14,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            const Icon(Icons.edit_rounded, color: brandGreen, size: 16),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Edit channel',
-                              style: GoogleFonts.inter(
-                                color: brandGreen,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-                        const Divider(color: Colors.white10),
-
-                        ..._messages.map((m) => Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 6),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const CircleAvatar(
-                                    radius: 18,
-                                    backgroundColor: brandGreen,
-                                    child: Icon(Icons.face_rounded, color: Colors.black, size: 20),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          m['user'] ?? 'Tarun_ OP',
-                                          style: GoogleFonts.inter(
-                                            color: Colors.white,
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          m['text'] ?? '',
-                                          style: GoogleFonts.inter(
-                                            color: Colors.white70,
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            )),
-                      ],
+                        child: const Icon(Icons.tag_rounded, color: brandGreen, size: 32),
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 14),
+                    Center(
+                      child: Text(
+                        'Welcome to ${widget.channelName}!',
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Center(
+                      child: Text(
+                        'This is the start of the ${widget.channelName} channel.',
+                        style: GoogleFonts.inter(
+                          color: Colors.white54,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Divider(color: Colors.white10),
+                    const SizedBox(height: 8),
 
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                    color: bgSecondary,
-                    child: Row(
-                      children: [
-                        _buildInputIcon(Icons.add_rounded, () {}),
-                        const SizedBox(width: 4),
-                        _buildInputIcon(Icons.widgets_rounded, () {}),
-                        const SizedBox(width: 4),
-                        _buildInputIcon(Icons.card_giftcard_rounded, () {}),
-                        const SizedBox(width: 6),
-
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14),
-                            decoration: BoxDecoration(
-                              color: bgTertiary,
-                              borderRadius: BorderRadius.circular(22),
-                            ),
-                            child: Row(
+                    ..._messages.map((m) => Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          UserAvatar(
+                            imageUrl: (m['avatar'] != null && m['avatar']!.isNotEmpty) ? m['avatar'] : null,
+                            name: m['user'] ?? 'User',
+                            size: 36,
+                            userId: m['userId'],
+                            showStatus: false,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Expanded(
-                                  child: TextField(
-                                    controller: _msgController,
-                                    style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
-                                    decoration: InputDecoration(
-                                      hintText: 'Message ${widget.channelName}...',
-                                      hintStyle: GoogleFonts.inter(color: Colors.white38, fontSize: 14),
-                                      border: InputBorder.none,
+                                Row(
+                                  children: [
+                                    Text(
+                                      m['user'] ?? 'User',
+                                      style: GoogleFonts.inter(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
-                                    onSubmitted: (val) {
-                                      if (val.trim().isNotEmpty) {
-                                        setState(() {
-                                          _messages.add({'user': 'Tarun_ OP', 'text': val.trim()});
-                                          _msgController.clear();
-                                        });
-                                      }
-                                    },
-                                  ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      m['time'] ?? '',
+                                      style: GoogleFonts.inter(
+                                        color: Colors.white38,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                GestureDetector(
-                                  onTap: () {},
-                                  child: const Icon(Icons.sentiment_satisfied_alt_rounded, color: Colors.white54, size: 20),
+                                const SizedBox(height: 4),
+                                Text(
+                                  m['text'] ?? '',
+                                  style: GoogleFonts.inter(
+                                    color: Colors.white.withValues(alpha: 0.9),
+                                    fontSize: 14,
+                                    height: 1.35,
+                                  ),
                                 ),
                               ],
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 6),
-
-                        _buildInputIcon(Icons.mic_rounded, () {}),
-                      ],
-                    ),
-                  ),
-                ],
+                        ],
+                      ),
+                    )),
+                  ],
+                ),
               ),
 
-              Positioned(
-                bottom: 60,
-                right: 16,
-                child: GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Container(
-                    width: 44,
-                    height: 44,
-                    decoration: const BoxDecoration(
-                      color: brandGreen,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black45,
-                          blurRadius: 10,
-                          offset: Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(Icons.close_rounded, color: Colors.black, size: 24),
+              // Bottom Input Bar
+              Container(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+                decoration: BoxDecoration(
+                  color: bgSecondary,
+                  border: Border(
+                    top: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
                   ),
+                ),
+                child: Row(
+                  children: [
+                    _buildInputIcon(Icons.add_rounded, () {}),
+                    const SizedBox(width: 6),
+
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        decoration: BoxDecoration(
+                          color: bgTertiary,
+                          borderRadius: BorderRadius.circular(22),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _msgController,
+                                style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                                decoration: InputDecoration(
+                                  hintText: 'Message ${widget.channelName}...',
+                                  hintStyle: GoogleFonts.inter(color: Colors.white38, fontSize: 14),
+                                  border: InputBorder.none,
+                                  isDense: true,
+                                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                                ),
+                                textInputAction: TextInputAction.send,
+                                onSubmitted: (_) => _sendMessage(),
+                              ),
+                            ),
+                            const Icon(Icons.sentiment_satisfied_alt_rounded, color: Colors.white54, size: 20),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+
+                    // Dynamic Send / Mic Action Button
+                    GestureDetector(
+                      onTap: _isInputEmpty ? null : _sendMessage,
+                      child: Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          color: _isInputEmpty ? bgTertiary : brandGreen,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          _isInputEmpty ? Icons.mic_rounded : Icons.send_rounded,
+                          color: _isInputEmpty ? Colors.white54 : Colors.black,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

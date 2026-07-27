@@ -316,8 +316,32 @@ class VoiceController extends Notifier<VoiceState> {
 
     try {
       final isVideoEnabled = localParticipant.isCameraEnabled();
-      await localParticipant.setCameraEnabled(!isVideoEnabled);
+      if (isVideoEnabled) {
+        await localParticipant.setCameraEnabled(false);
+      } else {
+        // Try publishing camera with 540p preset for universal hardware compatibility
+        try {
+          await localParticipant.setCameraEnabled(
+            true,
+            cameraCaptureOptions: const CameraCaptureOptions(
+              params: VideoParametersPresets.h540_169,
+              maxFrameRate: 30,
+            ),
+          );
+        } catch (e1) {
+          // Fallback to 360p if 540p fails on device hardware
+          developer.log('540p camera publish failed, trying 360p fallback', name: 'VoiceController', error: e1);
+          await localParticipant.setCameraEnabled(
+            true,
+            cameraCaptureOptions: const CameraCaptureOptions(
+              params: VideoParametersPresets.h360_169,
+              maxFrameRate: 24,
+            ),
+          );
+        }
+      }
       _updateParticipants();
+      state = state.copyWith(error: null);
     } catch (e) {
       developer.log('Failed to toggle camera video', name: 'VoiceController', error: e);
       state = state.copyWith(error: 'Camera track publish failed: ${e.toString()}');
@@ -341,6 +365,8 @@ class VoiceController extends Notifier<VoiceState> {
         // MUST start Android foreground service BEFORE launching MediaProjection screen capture
         try {
           await _screenCaptureChannel.invokeMethod('startService');
+          // Allow Android OS time to bind foreground service
+          await Future.delayed(const Duration(milliseconds: 150));
         } catch (e) {
           developer.log(
             'Failed to start screen capture foreground service',
@@ -352,6 +378,7 @@ class VoiceController extends Notifier<VoiceState> {
 
       await localParticipant.setScreenShareEnabled(!isScreenShareEnabled);
       _updateParticipants();
+      state = state.copyWith(error: null);
 
       if (isScreenShareEnabled && Platform.isAndroid) {
         // Screen share was just disabled — stop the foreground service
@@ -367,7 +394,7 @@ class VoiceController extends Notifier<VoiceState> {
       }
     } catch (e) {
       developer.log('Error toggling screen share', name: 'VoiceController', error: e);
-      final String userMsg = e.toString().contains('TrackPublishException')
+      final String userMsg = e.toString().contains('TrackPublishException') || e.toString().contains('cancelled')
           ? 'Screen sharing cancelled or unavailable'
           : 'Failed to share screen: ${e.toString()}';
       state = state.copyWith(error: userMsg);

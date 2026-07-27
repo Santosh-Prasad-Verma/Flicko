@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:livekit_client/livekit_client.dart';
+import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
 import 'package:mobile/features/voice/presentation/controllers/voice_controller.dart';
+import 'package:mobile/features/auth/application/auth_notifier.dart';
 
 /// Discord-style Draggable Floating Voice Box Widget
 /// Displayed when connected to a voice channel while navigating elsewhere in the app.
@@ -15,6 +19,31 @@ class VoiceHUD extends ConsumerStatefulWidget {
 
 class _VoiceHUDState extends ConsumerState<VoiceHUD> {
   Offset? _position;
+  final Map<String, Map<String, dynamic>> _profilesCache = {};
+  final Set<String> _fetchingProfileIds = {};
+
+  void _fetchProfile(String userId) async {
+    if (userId.isEmpty || _profilesCache.containsKey(userId) || _fetchingProfileIds.contains(userId)) {
+      return;
+    }
+    _fetchingProfileIds.add(userId);
+    try {
+      final profile = await Supabase.instance.client
+          .from('profiles')
+          .select('username, display_name, avatar')
+          .eq('id', userId)
+          .maybeSingle();
+      if (profile != null && mounted) {
+        setState(() {
+          _profilesCache[userId] = profile;
+        });
+      }
+    } catch (_) {
+      // Fail silently
+    } finally {
+      _fetchingProfileIds.remove(userId);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,6 +59,34 @@ class _VoiceHUDState extends ConsumerState<VoiceHUD> {
     final activeServerId = ref.read(voiceControllerProvider.notifier).activeServerId;
     final activeChannelId = voiceState.activeChannelId;
     final controller = ref.read(voiceControllerProvider.notifier);
+
+    // Identify active speaker or local participant for avatar display
+    Participant? activeSpeakerParticipant;
+    if (voiceState.speakingParticipants.isNotEmpty) {
+      final speakingSid = voiceState.speakingParticipants.first;
+      for (final p in voiceState.participants) {
+        if (p.sid == speakingSid) {
+          activeSpeakerParticipant = p;
+          break;
+        }
+      }
+    }
+    activeSpeakerParticipant ??= voiceState.participants.isNotEmpty ? voiceState.participants.first : null;
+
+    final String? speakerUserId = activeSpeakerParticipant?.identity;
+    if (speakerUserId != null && speakerUserId.isNotEmpty) {
+      _fetchProfile(speakerUserId);
+    }
+
+    final currentAuthUser = ref.watch(authNotifierProvider).maybeWhen(
+      authenticated: (user, _) => user,
+      orElse: () => null,
+    );
+
+    final cachedProfile = speakerUserId != null ? _profilesCache[speakerUserId] : null;
+    final String avatarUrl = cachedProfile?['avatar'] as String? ?? currentAuthUser?.userMetadata?['avatar_url'] as String? ?? '';
+    final String displayName = cachedProfile?['display_name'] as String? ?? cachedProfile?['username'] as String? ?? currentAuthUser?.userMetadata?['username'] as String? ?? 'User';
+    final bool isSpeaking = activeSpeakerParticipant != null && voiceState.speakingParticipants.contains(activeSpeakerParticipant.sid);
 
     return Positioned(
       left: _position!.dx,
@@ -51,20 +108,22 @@ class _VoiceHUDState extends ConsumerState<VoiceHUD> {
         child: Material(
           color: Colors.transparent,
           child: Container(
-            width: 135,
+            width: 140,
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
             decoration: BoxDecoration(
               color: const Color(0xFF1E1F22).withValues(alpha: 0.95),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: voiceState.isConnected ? const Color(0xFF43B581) : Colors.amber,
-                width: 2,
+                color: isSpeaking
+                    ? const Color(0xFF52B788)
+                    : (voiceState.isConnected ? const Color(0xFF52B788).withValues(alpha: 0.5) : Colors.amber),
+                width: isSpeaking ? 2.5 : 1.5,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.6),
-                  blurRadius: 16,
-                  spreadRadius: 2,
+                  color: isSpeaking ? const Color(0xFF52B788).withValues(alpha: 0.4) : Colors.black.withValues(alpha: 0.6),
+                  blurRadius: isSpeaking ? 16 : 12,
+                  spreadRadius: isSpeaking ? 2 : 1,
                   offset: const Offset(0, 4),
                 ),
               ],
@@ -79,7 +138,7 @@ class _VoiceHUDState extends ConsumerState<VoiceHUD> {
                       width: 8,
                       height: 8,
                       decoration: BoxDecoration(
-                        color: voiceState.isConnected ? const Color(0xFF43B581) : Colors.amber,
+                        color: voiceState.isConnected ? const Color(0xFF52B788) : Colors.amber,
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -102,17 +161,23 @@ class _VoiceHUDState extends ConsumerState<VoiceHUD> {
                 ),
                 const SizedBox(height: 8),
 
-                // Center Icon / Tap to open voice room
+                // Center User Avatar with pulsating green speaking ring
                 Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(2),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.08),
                     shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isSpeaking ? const Color(0xFF52B788) : Colors.transparent,
+                      width: 2,
+                    ),
                   ),
-                  child: const Icon(
-                    Icons.volume_up_rounded,
-                    color: Color(0xFF43B581),
-                    size: 22,
+                  child: UserAvatar(
+                    imageUrl: avatarUrl.isNotEmpty ? avatarUrl : null,
+                    name: displayName,
+                    size: 38,
+                    userId: speakerUserId,
+                    showStatus: true,
+                    status: isSpeaking ? UserStatus.online : UserStatus.offline,
                   ),
                 ),
                 const SizedBox(height: 8),
