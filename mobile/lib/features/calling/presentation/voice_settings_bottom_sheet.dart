@@ -72,7 +72,7 @@ class _VoiceSettingsBottomSheetState extends State<VoiceSettingsBottomSheet> {
   late bool _isVideoOn;
   late bool _isDeafened;
   bool _onlyShowVideos = false;
-  bool _showOwnCamera = true;
+  final bool _showOwnCamera = true;
   String _noiseSuppression = 'Krisp'; // Krisp, Standard, None
 
   @override

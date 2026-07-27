@@ -102,7 +102,7 @@ class _RoleEditorScreenState extends ConsumerState<RoleEditorScreen> {
     _loadRole();
   }
 
-  /// Decode a bigint bitmask into a Map<String, bool> of permission states.
+  /// Decode a bigint bitmask into a Map of permission states.
   Map<String, bool> _decodeBitmask(int bitmask) {
     final result = <String, bool>{};
     for (final p in _allPermissions) {
@@ -111,7 +111,7 @@ class _RoleEditorScreenState extends ConsumerState<RoleEditorScreen> {
     return result;
   }
 
-  /// Encode a Map<String, bool> of permission states into a bigint bitmask.
+  /// Encode a Map of permission states into a bigint bitmask.
   int _encodeBitmask(Map<String, bool> permissions) {
     int bitmask = 0;
     for (final p in _allPermissions) {
