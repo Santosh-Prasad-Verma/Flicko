@@ -368,18 +368,6 @@ class VoiceController extends Notifier<VoiceState> {
     final updatedVolumes = Map<String, double>.from(state.participantVolumes);
     updatedVolumes[participantSid] = volume.clamp(0.0, 2.0);
     state = state.copyWith(participantVolumes: updatedVolumes);
-
-    // Apply volume level to RemoteParticipant audio tracks if available
-    final room = state.room;
-    if (room != null) {
-      for (final participant in room.remoteParticipants.values) {
-        if (participant.sid == participantSid || participant.identity == participantSid) {
-          for (final pub in participant.audioTrackPublications) {
-            pub.track?.setVolume(volume);
-          }
-        }
-      }
-    }
   }
 
   Future<void> leaveChannel() async {
