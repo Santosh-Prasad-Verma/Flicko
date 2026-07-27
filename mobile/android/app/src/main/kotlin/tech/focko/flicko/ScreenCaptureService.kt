@@ -13,7 +13,7 @@ import androidx.core.app.NotificationCompat
 
 /**
  * Foreground service required by Android 14+ (API 34) to allow
- * MediaProjection (screen sharing).  Must be started BEFORE
+ * MediaProjection (screen sharing). Must be started BEFORE
  * MediaProjectionManager.getMediaProjection() is called.
  */
 class ScreenCaptureService : Service() {
@@ -28,10 +28,14 @@ class ScreenCaptureService : Service() {
             val intent = Intent(context, ScreenCaptureService::class.java).apply {
                 action = ACTION_START
             }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    context.startForegroundService(intent)
+                } else {
+                    context.startService(intent)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
 
@@ -39,7 +43,11 @@ class ScreenCaptureService : Service() {
             val intent = Intent(context, ScreenCaptureService::class.java).apply {
                 action = ACTION_STOP
             }
-            context.startService(intent)
+            try {
+                context.startService(intent)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 
@@ -53,19 +61,37 @@ class ScreenCaptureService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_STOP -> {
-                stopForeground(STOP_FOREGROUND_REMOVE)
-                stopSelf()
+                try {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                        stopForeground(STOP_FOREGROUND_REMOVE)
+                    } else {
+                        @Suppress("DEPRECATION")
+                        stopForeground(true)
+                    }
+                    stopSelf()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
             }
             else -> {
                 val notification = createNotification()
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    startForeground(
-                        NOTIFICATION_ID,
-                        notification,
-                        ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
-                    )
-                } else {
-                    startForeground(NOTIFICATION_ID, notification)
+                try {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        startForeground(
+                            NOTIFICATION_ID,
+                            notification,
+                            ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
+                        )
+                    } else {
+                        startForeground(NOTIFICATION_ID, notification)
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    try {
+                        startForeground(NOTIFICATION_ID, notification)
+                    } catch (e2: Exception) {
+                        e2.printStackTrace()
+                    }
                 }
             }
         }

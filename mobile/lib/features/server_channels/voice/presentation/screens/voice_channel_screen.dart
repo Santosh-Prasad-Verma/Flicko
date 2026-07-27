@@ -348,8 +348,13 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
       ref.read(voiceControllerProvider.notifier).toggleDeafen();
   void _handleToggleVideo() =>
       ref.read(voiceControllerProvider.notifier).toggleVideo();
-  void _handleToggleScreenShare() =>
-      ref.read(voiceControllerProvider.notifier).toggleScreenShare();
+  void _handleToggleScreenShare() async {
+    try {
+      await ref.read(voiceControllerProvider.notifier).toggleScreenShare();
+    } catch (e) {
+      debugPrint('Screen share toggle exception: $e');
+    }
+  }
 
   void _handleActivities() {
     showModalBottomSheet(

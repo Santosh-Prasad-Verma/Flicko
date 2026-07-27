@@ -17,12 +17,20 @@ class MainActivity : AudioServiceActivity() {
             .setMethodCallHandler { call, result ->
                 when (call.method) {
                     "startService" -> {
-                        ScreenCaptureService.start(this)
-                        result.success(true)
+                        try {
+                            ScreenCaptureService.start(this)
+                            result.success(true)
+                        } catch (e: Exception) {
+                            result.error("FGS_ERROR", e.message, null)
+                        }
                     }
                     "stopService" -> {
-                        ScreenCaptureService.stop(this)
-                        result.success(true)
+                        try {
+                            ScreenCaptureService.stop(this)
+                            result.success(true)
+                        } catch (e: Exception) {
+                            result.error("FGS_ERROR", e.message, null)
+                        }
                     }
                     else -> result.notImplemented()
                 }
