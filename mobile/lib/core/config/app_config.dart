@@ -379,8 +379,11 @@ class AppConfig {
   }
 
   static String _normalizeBaseUrl(String value) {
-    final trimmed = value.trim();
+    var trimmed = value.trim();
     if (trimmed.isEmpty) return '';
+    if (trimmed.startsWith('http://flicko.') || trimmed.startsWith('http://api.flicko.')) {
+      trimmed = trimmed.replaceFirst('http://', 'https://');
+    }
     var url = trimmed.endsWith('/')
         ? trimmed.substring(0, trimmed.length - 1)
         : trimmed;
