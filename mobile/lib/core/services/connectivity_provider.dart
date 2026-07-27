@@ -4,12 +4,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 enum NetworkStatus { online, offline }
 
-class ConnectivityNotifier extends StateNotifier<NetworkStatus> {
+class ConnectivityNotifier extends Notifier<NetworkStatus> {
   final Connectivity _connectivity = Connectivity();
-  late StreamSubscription<List<ConnectivityResult>> _subscription;
+  StreamSubscription<List<ConnectivityResult>>? _subscription;
 
-  ConnectivityNotifier() : super(NetworkStatus.online) {
+  @override
+  NetworkStatus build() {
     _init();
+    ref.onDispose(() {
+      _subscription?.cancel();
+    });
+    return NetworkStatus.online;
   }
 
   void _init() async {
@@ -31,14 +36,8 @@ class ConnectivityNotifier extends StateNotifier<NetworkStatus> {
     final results = await _connectivity.checkConnectivity();
     _updateStatus(results);
   }
-
-  @override
-  void dispose() {
-    _subscription.cancel();
-    super.dispose();
-  }
 }
 
-final connectivityProvider = StateNotifierProvider<ConnectivityNotifier, NetworkStatus>((ref) {
+final connectivityProvider = NotifierProvider<ConnectivityNotifier, NetworkStatus>(() {
   return ConnectivityNotifier();
 });
