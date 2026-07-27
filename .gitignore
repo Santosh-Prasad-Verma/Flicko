@@ -324,3 +324,6 @@ BoxBox/
 
 # Monitoring secrets
 monitoring/agent_token
+
+# Reference repos
+references/
