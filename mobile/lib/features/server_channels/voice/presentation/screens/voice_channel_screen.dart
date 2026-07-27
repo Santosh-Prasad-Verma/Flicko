@@ -588,22 +588,26 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
             },
           ),
           const SizedBox(width: 4),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                _channel?['name'] ?? 'General',
-                style: GoogleFonts.inter(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+          Expanded(
+            child: Row(
+              children: [
+                Flexible(
+                  child: Text(
+                    _channel?['name'] ?? 'General',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.inter(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 4),
-              const Icon(Icons.chevron_right_rounded, color: Colors.white70, size: 20),
-            ],
+                const SizedBox(width: 4),
+                const Icon(Icons.chevron_right_rounded, color: Colors.white70, size: 20),
+              ],
+            ),
           ),
-          const Spacer(),
           // Speaker Audio Mode Button (White Pill Circle)
           GestureDetector(
             onTap: () {

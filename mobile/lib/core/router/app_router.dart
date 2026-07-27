@@ -195,6 +195,7 @@ final profileNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'profile');
 
 /// Provides the [GoRouter] instance to the entire app via Riverpod.
 final appRouterProvider = Provider<GoRouter>((ref) {
+  ref.keepAlive();
   final listenable = RiverpodRefreshListenable(ref);
 
   return GoRouter(

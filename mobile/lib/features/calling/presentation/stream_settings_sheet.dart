@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
@@ -15,9 +16,9 @@ class StreamSettingsSheet extends StatefulWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(FlickoColors.bgSecondary),
+      backgroundColor: Colors.transparent,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
       ),
       builder: (context) => StreamSettingsSheet(onStartStreaming: onStartStreaming),
     );
@@ -33,216 +34,433 @@ class _StreamSettingsSheetState extends State<StreamSettingsSheet> {
 
   @override
   Widget build(BuildContext context) {
-    const bgSecondary = Color(FlickoColors.bgSecondary);
-    const bgTertiary = Color(FlickoColors.bgTertiary);
+    const bgDark = Color(0FF111214);
+    const cardBg = Color(0FF1E1F22);
+    const accentGreen = Color(0FF23A55A);
     const accentBlurple = Color(FlickoColors.blurple);
 
-    return DraggableScrollableSheet(
-      initialChildSize: 0.85,
-      minChildSize: 0.5,
-      maxChildSize: 0.95,
-      expand: false,
-      builder: (context, scrollController) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: bgSecondary,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
+        child: Container(
+          decoration: BoxDecoration(
+            color: bgDark.withValues(alpha: 0.95),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
           ),
-          child: SingleChildScrollView(
-            controller: scrollController,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 36,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.white24,
-                      borderRadius: BorderRadius.circular(2),
+          child: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Drag indicator handle
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(2.5),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
+                  const SizedBox(height: 18),
 
-                Center(
-                  child: Text(
-                    'Stream Settings',
-                    style: GoogleFonts.inter(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                Text(
-                  'Stream Mode',
-                  style: GoogleFonts.inter(
-                    color: Colors.white70,
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 10),
-
-                Container(
-                  decoration: BoxDecoration(
-                    color: bgTertiary,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
+                  // Sheet Header
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      RadioListTile<String>(
-                        secondary: const Icon(Icons.phone_android_rounded, color: Colors.white70),
-                        title: Text('Default', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold)),
-                        subtitle: Text('Balanced quality and performance (720p, 30 fps)', style: GoogleFonts.inter(color: Colors.white38, fontSize: 12)),
-                        value: 'Default',
-                        groupValue: _selectedMode,
-                        activeColor: accentBlurple,
-                        onChanged: (val) => setState(() => _selectedMode = val!),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: accentGreen.withValues(alpha: 0.15),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.screen_share_rounded,
+                              color: accentGreen,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            'Stream Settings',
+                            style: GoogleFonts.outfit(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
-                      const Divider(height: 1, color: Colors.white10),
-
-                      RadioListTile<String>(
-                        secondary: const Icon(Icons.speed_rounded, color: Colors.white70),
-                        title: Text('Performance', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold)),
-                        subtitle: Text('Optimised for slower devices (480p, 30 fps)', style: GoogleFonts.inter(color: Colors.white38, fontSize: 12)),
-                        value: 'Performance',
-                        groupValue: _selectedMode,
-                        activeColor: accentBlurple,
-                        onChanged: (val) => setState(() => _selectedMode = val!),
-                      ),
-                      const Divider(height: 1, color: Colors.white10),
-
-                      RadioListTile<String>(
-                        secondary: const Icon(Icons.auto_awesome_rounded, color: Colors.white70),
-                        title: Row(
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: accentGreen.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: accentGreen.withValues(alpha: 0.3)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text('High Quality', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold)),
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: const BoxDecoration(
+                                color: accentGreen,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
                             const SizedBox(width: 6),
-                            const Icon(Icons.bolt_rounded, color: accentBlurple, size: 16),
+                            Text(
+                              'READY',
+                              style: GoogleFonts.inter(
+                                color: accentGreen,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
                           ],
                         ),
-                        subtitle: Text('For video and gaming (1080p, 60 fps)', style: GoogleFonts.inter(color: Colors.white38, fontSize: 12)),
-                        value: 'High Quality',
-                        groupValue: _selectedMode,
-                        activeColor: accentBlurple,
-                        onChanged: (val) => setState(() => _selectedMode = val!),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 16),
+                  const SizedBox(height: 22),
 
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: bgTertiary,
-                    borderRadius: BorderRadius.circular(18),
+                  // Section 1: Stream Mode Selection
+                  Text(
+                    'STREAM QUALITY',
+                    style: GoogleFonts.inter(
+                      color: Colors.white.withValues(alpha: 0.45),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.0,
+                    ),
                   ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.bolt_rounded, color: accentBlurple, size: 22),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'Stream in HD resolution with Flicko Plus',
-                          style: GoogleFonts.inter(
-                            color: accentBlurple,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                  const SizedBox(height: 10),
+
+                  _buildModeCard(
+                    title: 'Default',
+                    subtitle: 'Balanced quality and performance',
+                    resolutionBadge: '720p 30fps',
+                    icon: Icons.phone_android_rounded,
+                    modeKey: 'Default',
+                    cardBg: cardBg,
+                    accentColor: accentGreen,
+                  ),
+                  const SizedBox(height: 8),
+
+                  _buildModeCard(
+                    title: 'Performance',
+                    subtitle: 'Optimised for slower networks & devices',
+                    resolutionBadge: '480p 30fps',
+                    icon: Icons.speed_rounded,
+                    modeKey: 'Performance',
+                    cardBg: cardBg,
+                    accentColor: accentGreen,
+                  ),
+                  const SizedBox(height: 8),
+
+                  _buildModeCard(
+                    title: 'High Quality',
+                    subtitle: 'Crystal clear gaming & video playback',
+                    resolutionBadge: '1080p 60fps',
+                    icon: Icons.auto_awesome_rounded,
+                    modeKey: 'High Quality',
+                    cardBg: cardBg,
+                    accentColor: accentBlurple,
+                    isPro: true,
+                  ),
+                  const SizedBox(height: 18),
+
+                  // HD Resolution Banner
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          accentGreen.withValues(alpha: 0.15),
+                          accentBlurple.withValues(alpha: 0.15),
+                        ],
                       ),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.pop(context);
-                          context.push('/premium/plus');
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: accentGreen.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: accentBlurple,
-                            borderRadius: BorderRadius.circular(16),
+                            color: accentGreen.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(10),
                           ),
-                          child: Row(
+                          child: const Icon(Icons.bolt_rounded, color: accentGreen, size: 20),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Icon(Icons.bolt_rounded, color: Colors.white, size: 14),
-                              const SizedBox(width: 4),
                               Text(
-                                'Get Plus',
+                                'Flicko Plus HD Streaming',
                                 style: GoogleFonts.inter(
                                   color: Colors.white,
-                                  fontSize: 12,
+                                  fontSize: 13,
                                   fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                'Unlock 60 FPS & 1080p resolution',
+                                style: GoogleFonts.inter(
+                                  color: Colors.white.withValues(alpha: 0.6),
+                                  fontSize: 11,
                                 ),
                               ),
                             ],
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                Text(
-                  'Stream Audio',
-                  style: GoogleFonts.inter(
-                    color: Colors.white70,
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 10),
-
-                Container(
-                  decoration: BoxDecoration(
-                    color: bgTertiary,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: SwitchListTile(
-                    title: Text('Share App Audio', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold)),
-                    value: _shareAppAudio,
-                    activeColor: accentBlurple,
-                    onChanged: (val) => setState(() => _shareAppAudio = val),
-                  ),
-                ),
-                const SizedBox(height: 28),
-
-                GestureDetector(
-                  onTap: () {
-                    Navigator.pop(context);
-                    widget.onStartStreaming?.call();
-                  },
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    decoration: BoxDecoration(
-                      color: accentBlurple,
-                      borderRadius: BorderRadius.circular(24),
+                        InkWell(
+                          onTap: () {
+                            Navigator.pop(context);
+                            context.push('/premium/plus');
+                          },
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                            decoration: BoxDecoration(
+                              color: accentGreen,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              'Get Plus',
+                              style: GoogleFonts.inter(
+                                color: Colors.black,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    child: Center(
-                      child: Text(
-                        'Start Streaming',
+                  ),
+                  const SizedBox(height: 22),
+
+                  // Section 2: Audio Settings
+                  Text(
+                    'AUDIO PREFERENCES',
+                    style: GoogleFonts.inter(
+                      color: Colors.white.withValues(alpha: 0.45),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: cardBg,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.volume_up_rounded, color: Colors.white70, size: 20),
+                            const SizedBox(width: 12),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Share Device & App Audio',
+                                  style: GoogleFonts.inter(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                Text(
+                                  'Includes system sound & media playback',
+                                  style: GoogleFonts.inter(
+                                    color: Colors.white.withValues(alpha: 0.4),
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        Switch(
+                          value: _shareAppAudio,
+                          activeColor: accentGreen,
+                          activeTrackColor: accentGreen.withValues(alpha: 0.3),
+                          inactiveThumbColor: Colors.white38,
+                          inactiveTrackColor: Colors.white10,
+                          onChanged: (val) => setState(() => _shareAppAudio = val),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 26),
+
+                  // Start Streaming Action Button
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      widget.onStartStreaming?.call();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: accentGreen,
+                      foregroundColor: Colors.black,
+                      minimumSize: const Size(double.infinity, 54),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      elevation: 4,
+                      shadowColor: accentGreen.withValues(alpha: 0.4),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.cast_connected_rounded, size: 22),
+                        const SizedBox(width: 10),
+                        Text(
+                          'Start Streaming',
+                          style: GoogleFonts.outfit(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModeCard({
+    required String title,
+    required String subtitle,
+    required String resolutionBadge,
+    required IconData icon,
+    required String modeKey,
+    required Color cardBg,
+    required Color accentColor,
+    bool isPro = false,
+  }) {
+    final isSelected = _selectedMode == modeKey;
+
+    return InkWell(
+      onTap: () => setState(() => _selectedMode = modeKey),
+      borderRadius: BorderRadius.circular(16),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: isSelected ? accentColor.withValues(alpha: 0.12) : cardBg,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? accentColor : Colors.white.withValues(alpha: 0.05),
+            width: isSelected ? 1.5 : 1.0,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? accentColor : Colors.white60,
+              size: 22,
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        title,
                         style: GoogleFonts.inter(
                           color: Colors.white,
-                          fontSize: 16,
+                          fontSize: 14,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+                      if (isPro) ...[
+                        const SizedBox(width: 6),
+                        Icon(Icons.bolt_rounded, color: accentColor, size: 14),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: GoogleFonts.inter(
+                      color: Colors.white.withValues(alpha: 0.45),
+                      fontSize: 11,
                     ),
                   ),
-                ),
-                const SizedBox(height: 24),
-              ],
+                ],
+              ),
             ),
-          ),
-        );
-      },
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                resolutionBadge,
+                style: GoogleFonts.inter(
+                  color: isSelected ? accentColor : Colors.white60,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Container(
+              width: 18,
+              height: 18,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected ? accentColor : Colors.white38,
+                  width: 2,
+                ),
+              ),
+              child: isSelected
+                  ? Center(
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: accentColor,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    )
+                  : null,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
