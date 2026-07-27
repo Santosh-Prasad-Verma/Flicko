@@ -709,6 +709,14 @@ class _ServerSettingsHubScreenState
             requiredPermission: 'MANAGE_GUILD',
           ),
           SettingsItem(
+            id: 'developer-portal',
+            icon: Icons.terminal_rounded,
+            label: 'Bot Developer Portal',
+            route: '/server/$serverId/settings/developer-portal',
+            description: 'Create custom bots & generate SHA-256 tokens',
+            requiredPermission: 'MANAGE_GUILD',
+          ),
+          SettingsItem(
             id: 'webhooks',
             icon: Icons.code_rounded,
             label: 'Webhooks',

@@ -112,6 +112,7 @@ import 'package:mobile/features/server_settings/presentation/templates_settings_
 import 'package:mobile/features/server_settings/presentation/onboarding_settings_screen.dart';
 import 'package:mobile/features/server_settings/presentation/stickers_management_screen.dart';
 import 'package:mobile/features/server_settings/presentation/bot_marketplace_screen.dart';
+import 'package:mobile/features/server_settings/presentation/bot_developer_portal_screen.dart';
 
 // Voice
 import 'package:mobile/features/server_channels/voice/presentation/screens/voice_activities_screen.dart';
@@ -416,6 +417,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(path: 'boosts', builder: (context, state) => BoostsSettingsScreen(serverId: state.pathParameters['serverId']!)),
               GoRoute(path: 'invites', builder: (context, state) => InvitesSettingsScreen(serverId: state.pathParameters['serverId']!)),
               GoRoute(path: 'leaderboard', builder: (context, state) => LeaderboardSettingsScreen(serverId: state.pathParameters['serverId']!)),
+              GoRoute(path: 'developer-portal', builder: (context, state) => BotDeveloperPortalScreen(serverId: state.pathParameters['serverId']!)),
             ],
           ),
           GoRoute(

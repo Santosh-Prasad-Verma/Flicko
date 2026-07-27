@@ -21,6 +21,8 @@ mixin _$VoiceState {
   bool get isDeafened;
   List<Participant> get participants;
   Set<String> get speakingParticipants; // Set of sids who are speaking
+  Map<String, double>
+      get participantVolumes; // Map of sid/identity -> volume (0.0 to 2.0)
   String? get error;
   String? get activeChannelId;
 
@@ -48,6 +50,8 @@ mixin _$VoiceState {
                 .equals(other.participants, participants) &&
             const DeepCollectionEquality()
                 .equals(other.speakingParticipants, speakingParticipants) &&
+            const DeepCollectionEquality()
+                .equals(other.participantVolumes, participantVolumes) &&
             (identical(other.error, error) || other.error == error) &&
             (identical(other.activeChannelId, activeChannelId) ||
                 other.activeChannelId == activeChannelId));
@@ -63,12 +67,13 @@ mixin _$VoiceState {
       isDeafened,
       const DeepCollectionEquality().hash(participants),
       const DeepCollectionEquality().hash(speakingParticipants),
+      const DeepCollectionEquality().hash(participantVolumes),
       error,
       activeChannelId);
 
   @override
   String toString() {
-    return 'VoiceState(room: $room, isConnected: $isConnected, isConnecting: $isConnecting, isMuted: $isMuted, isDeafened: $isDeafened, participants: $participants, speakingParticipants: $speakingParticipants, error: $error, activeChannelId: $activeChannelId)';
+    return 'VoiceState(room: $room, isConnected: $isConnected, isConnecting: $isConnecting, isMuted: $isMuted, isDeafened: $isDeafened, participants: $participants, speakingParticipants: $speakingParticipants, participantVolumes: $participantVolumes, error: $error, activeChannelId: $activeChannelId)';
   }
 }
 
@@ -86,6 +91,7 @@ abstract mixin class $VoiceStateCopyWith<$Res> {
       bool isDeafened,
       List<Participant> participants,
       Set<String> speakingParticipants,
+      Map<String, double> participantVolumes,
       String? error,
       String? activeChannelId});
 }
@@ -109,6 +115,7 @@ class _$VoiceStateCopyWithImpl<$Res> implements $VoiceStateCopyWith<$Res> {
     Object? isDeafened = null,
     Object? participants = null,
     Object? speakingParticipants = null,
+    Object? participantVolumes = null,
     Object? error = freezed,
     Object? activeChannelId = freezed,
   }) {
@@ -141,6 +148,10 @@ class _$VoiceStateCopyWithImpl<$Res> implements $VoiceStateCopyWith<$Res> {
           ? _self.speakingParticipants
           : speakingParticipants // ignore: cast_nullable_to_non_nullable
               as Set<String>,
+      participantVolumes: null == participantVolumes
+          ? _self.participantVolumes
+          : participantVolumes // ignore: cast_nullable_to_non_nullable
+              as Map<String, double>,
       error: freezed == error
           ? _self.error
           : error // ignore: cast_nullable_to_non_nullable
@@ -254,6 +265,7 @@ extension VoiceStatePatterns on VoiceState {
             bool isDeafened,
             List<Participant> participants,
             Set<String> speakingParticipants,
+            Map<String, double> participantVolumes,
             String? error,
             String? activeChannelId)?
         $default, {
@@ -270,6 +282,7 @@ extension VoiceStatePatterns on VoiceState {
             _that.isDeafened,
             _that.participants,
             _that.speakingParticipants,
+            _that.participantVolumes,
             _that.error,
             _that.activeChannelId);
       case _:
@@ -300,6 +313,7 @@ extension VoiceStatePatterns on VoiceState {
             bool isDeafened,
             List<Participant> participants,
             Set<String> speakingParticipants,
+            Map<String, double> participantVolumes,
             String? error,
             String? activeChannelId)
         $default,
@@ -315,6 +329,7 @@ extension VoiceStatePatterns on VoiceState {
             _that.isDeafened,
             _that.participants,
             _that.speakingParticipants,
+            _that.participantVolumes,
             _that.error,
             _that.activeChannelId);
       case _:
@@ -344,6 +359,7 @@ extension VoiceStatePatterns on VoiceState {
             bool isDeafened,
             List<Participant> participants,
             Set<String> speakingParticipants,
+            Map<String, double> participantVolumes,
             String? error,
             String? activeChannelId)?
         $default,
@@ -359,6 +375,7 @@ extension VoiceStatePatterns on VoiceState {
             _that.isDeafened,
             _that.participants,
             _that.speakingParticipants,
+            _that.participantVolumes,
             _that.error,
             _that.activeChannelId);
       case _:
@@ -378,10 +395,12 @@ class _VoiceState implements VoiceState {
       this.isDeafened = false,
       final List<Participant> participants = const [],
       final Set<String> speakingParticipants = const {},
+      final Map<String, double> participantVolumes = const {},
       this.error,
       this.activeChannelId})
       : _participants = participants,
-        _speakingParticipants = speakingParticipants;
+        _speakingParticipants = speakingParticipants,
+        _participantVolumes = participantVolumes;
 
   @override
   final Room? room;
@@ -417,6 +436,18 @@ class _VoiceState implements VoiceState {
   }
 
 // Set of sids who are speaking
+  final Map<String, double> _participantVolumes;
+// Set of sids who are speaking
+  @override
+  @JsonKey()
+  Map<String, double> get participantVolumes {
+    if (_participantVolumes is EqualUnmodifiableMapView)
+      return _participantVolumes;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_participantVolumes);
+  }
+
+// Map of sid/identity -> volume (0.0 to 2.0)
   @override
   final String? error;
   @override
@@ -447,6 +478,8 @@ class _VoiceState implements VoiceState {
                 .equals(other._participants, _participants) &&
             const DeepCollectionEquality()
                 .equals(other._speakingParticipants, _speakingParticipants) &&
+            const DeepCollectionEquality()
+                .equals(other._participantVolumes, _participantVolumes) &&
             (identical(other.error, error) || other.error == error) &&
             (identical(other.activeChannelId, activeChannelId) ||
                 other.activeChannelId == activeChannelId));
@@ -462,12 +495,13 @@ class _VoiceState implements VoiceState {
       isDeafened,
       const DeepCollectionEquality().hash(_participants),
       const DeepCollectionEquality().hash(_speakingParticipants),
+      const DeepCollectionEquality().hash(_participantVolumes),
       error,
       activeChannelId);
 
   @override
   String toString() {
-    return 'VoiceState(room: $room, isConnected: $isConnected, isConnecting: $isConnecting, isMuted: $isMuted, isDeafened: $isDeafened, participants: $participants, speakingParticipants: $speakingParticipants, error: $error, activeChannelId: $activeChannelId)';
+    return 'VoiceState(room: $room, isConnected: $isConnected, isConnecting: $isConnecting, isMuted: $isMuted, isDeafened: $isDeafened, participants: $participants, speakingParticipants: $speakingParticipants, participantVolumes: $participantVolumes, error: $error, activeChannelId: $activeChannelId)';
   }
 }
 
@@ -487,6 +521,7 @@ abstract mixin class _$VoiceStateCopyWith<$Res>
       bool isDeafened,
       List<Participant> participants,
       Set<String> speakingParticipants,
+      Map<String, double> participantVolumes,
       String? error,
       String? activeChannelId});
 }
@@ -510,6 +545,7 @@ class __$VoiceStateCopyWithImpl<$Res> implements _$VoiceStateCopyWith<$Res> {
     Object? isDeafened = null,
     Object? participants = null,
     Object? speakingParticipants = null,
+    Object? participantVolumes = null,
     Object? error = freezed,
     Object? activeChannelId = freezed,
   }) {
@@ -542,6 +578,10 @@ class __$VoiceStateCopyWithImpl<$Res> implements _$VoiceStateCopyWith<$Res> {
           ? _self._speakingParticipants
           : speakingParticipants // ignore: cast_nullable_to_non_nullable
               as Set<String>,
+      participantVolumes: null == participantVolumes
+          ? _self._participantVolumes
+          : participantVolumes // ignore: cast_nullable_to_non_nullable
+              as Map<String, double>,
       error: freezed == error
           ? _self.error
           : error // ignore: cast_nullable_to_non_nullable
