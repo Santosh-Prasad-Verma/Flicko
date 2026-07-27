@@ -12,6 +12,14 @@ import (
 	fkerr "github.com/flicko-org/flicko/services/shared/errors"
 )
 
+// tokenTTL bounds the lifetime of an issued LiveKit access token.
+//
+// LiveKit has no server-side revocation, so a leaked token is valid for its
+// whole window. The token is only checked at join/reconnect time, so a short
+// TTL does not interrupt an established session — but clients must request a
+// fresh token when reconnecting instead of replaying the original.
+const tokenTTL = 15 * time.Minute
+
 // VoiceTokenInput is the input for generating a voice token.
 type VoiceTokenInput struct {
 	UserID    string
@@ -62,7 +70,7 @@ func (s *VoiceService) GenerateToken(ctx context.Context, in VoiceTokenInput) (s
 
 	at := lkauth.NewAccessToken(s.apiKey, s.apiSecret)
 	grant := &lkauth.VideoGrant{RoomJoin: true, Room: "voice-" + in.ChannelID}
-	at.SetVideoGrant(grant).SetIdentity(in.UserID).SetValidFor(2 * time.Hour)
+	at.SetVideoGrant(grant).SetIdentity(in.UserID).SetValidFor(tokenTTL)
 	token, err := at.ToJWT()
 	if err != nil {
 		s.log.Error("failed to generate livekit token", zap.Error(err))

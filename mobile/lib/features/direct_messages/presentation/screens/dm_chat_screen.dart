@@ -91,7 +91,7 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
       ));
 
       final response = await dio.post(
-        'api/v1/ai/summary/chat',
+        'ai/summary/chat',
         data: {'messages': messagesJson},
       );
 
@@ -938,56 +938,130 @@ class _DMChatScreenState extends ConsumerState<DMChatScreen> {
                       ),
                       const SizedBox(width: 4),
 
-                      // Pinned messages action
-                      _AppBarAction(
-                        icon: Icons.push_pin_outlined,
-                        onTap: () {
-                          final messages = ref.read(dmChatControllerProvider(conversationIdStr)).messages;
-                          final pinned = messages
-                              .where((m) => m.reactions.any((r) => r.emoji == '📌'))
-                              .map((m) => FlickoMessage(
-                                    id: m.id,
-                                    authorId: m.senderId,
-                                    author: m.sender,
-                                    content: m.content,
-                                    createdAt: m.createdAt,
-                                    pinned: true,
-                                  ))
-                              .toList();
-                          showModalBottomSheet(
-                            context: context,
-                            backgroundColor: Colors.transparent,
-                            isScrollControlled: true,
-                            builder: (ctx) => PinnedMessagesSheet(
-                              pinnedMessages: pinned,
-                              onJumpToMessage: (msg) {
-                                final idx = messages.indexWhere((m) => m.id == msg.id);
-                                if (idx >= 0 && _scrollController.hasClients) {
-                                  _scrollController.animateTo(
-                                    idx * 80.0,
-                                    duration: const Duration(milliseconds: 300),
-                                    curve: Curves.easeOut,
-                                  );
-                                }
-                              },
-                            ),
-                          );
+                      PopupMenuButton<String>(
+                        icon: const Icon(Icons.more_vert_rounded, color: Color(FlickoColors.brandLime)),
+                        color: const Color(FlickoColors.bgSecondary),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        onSelected: (value) {
+                          switch (value) {
+                            case 'pins':
+                              final messages = ref.read(dmChatControllerProvider(conversationIdStr)).messages;
+                              final pinned = messages
+                                  .where((m) => m.reactions.any((r) => r.emoji == '📌'))
+                                  .map((m) => FlickoMessage(
+                                        id: m.id,
+                                        authorId: m.senderId,
+                                        author: m.sender,
+                                        content: m.content,
+                                        createdAt: m.createdAt,
+                                        pinned: true,
+                                      ))
+                                  .toList();
+                              showModalBottomSheet(
+                                context: context,
+                                backgroundColor: Colors.transparent,
+                                isScrollControlled: true,
+                                builder: (ctx) => PinnedMessagesSheet(
+                                  pinnedMessages: pinned,
+                                  onJumpToMessage: (msg) {
+                                    final idx = messages.indexWhere((m) => m.id == msg.id);
+                                    if (idx >= 0 && _scrollController.hasClients) {
+                                      _scrollController.animateTo(
+                                        idx * 80.0,
+                                        duration: const Duration(milliseconds: 300),
+                                        curve: Curves.easeOut,
+                                      );
+                                    }
+                                  },
+                                ),
+                              );
+                              break;
+                            case 'profile':
+                              context.push('/profile/${widget.userId}');
+                              break;
+                            case 'voice_call':
+                              _startVoiceCall(participantName, participant?.avatarUrl);
+                              break;
+                            case 'video_call':
+                              _startVideoCall(participantName, participant?.avatarUrl);
+                              break;
+                            case 'mute':
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Notifications Muted for this DM')),
+                              );
+                              break;
+                            case 'block':
+                              _showProfileOptions(
+                                participant?.id,
+                                participantName,
+                                participant?.avatarUrl,
+                                onlineStatus,
+                              );
+                              break;
+                          }
                         },
-                      ),
-                      const SizedBox(width: 4),
-
-                      // Voice call button
-                      _AppBarAction(
-                        icon: Icons.call_rounded,
-                        onTap: () => _startVoiceCall(
-                            participantName, participant?.avatarUrl),
-                      ),
-                      const SizedBox(width: 4),
-                      // Video call button
-                      _AppBarAction(
-                        icon: Icons.videocam_rounded,
-                        onTap: () => _startVideoCall(
-                            participantName, participant?.avatarUrl),
+                        itemBuilder: (context) => [
+                          PopupMenuItem(
+                            value: 'pins',
+                            child: Row(
+                              children: [
+                                const Icon(Icons.push_pin_outlined, color: Color(FlickoColors.brandLime), size: 20),
+                                const SizedBox(width: 12),
+                                Text('Pinned Messages', style: GoogleFonts.inter(color: Colors.white, fontSize: 14)),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'profile',
+                            child: Row(
+                              children: [
+                                const Icon(Icons.person_outline_rounded, color: Color(FlickoColors.brandLime), size: 20),
+                                const SizedBox(width: 12),
+                                Text('View Profile', style: GoogleFonts.inter(color: Colors.white, fontSize: 14)),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'voice_call',
+                            child: Row(
+                              children: [
+                                const Icon(Icons.call_rounded, color: Color(FlickoColors.brandLime), size: 20),
+                                const SizedBox(width: 12),
+                                Text('Voice Call', style: GoogleFonts.inter(color: Colors.white, fontSize: 14)),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'video_call',
+                            child: Row(
+                              children: [
+                                const Icon(Icons.videocam_rounded, color: Color(FlickoColors.brandLime), size: 20),
+                                const SizedBox(width: 12),
+                                Text('Video Call', style: GoogleFonts.inter(color: Colors.white, fontSize: 14)),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'mute',
+                            child: Row(
+                              children: [
+                                const Icon(Icons.notifications_off_outlined, color: Colors.white70, size: 20),
+                                const SizedBox(width: 12),
+                                Text('Mute Notifications', style: GoogleFonts.inter(color: Colors.white, fontSize: 14)),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'block',
+                            child: Row(
+                              children: [
+                                const Icon(Icons.block_rounded, color: Color(FlickoColors.red), size: 20),
+                                const SizedBox(width: 12),
+                                Text('Block / Options', style: GoogleFonts.inter(color: const Color(FlickoColors.red), fontSize: 14)),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),

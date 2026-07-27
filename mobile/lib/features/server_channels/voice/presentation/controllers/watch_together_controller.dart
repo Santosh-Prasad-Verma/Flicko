@@ -262,6 +262,7 @@ class WatchTogetherController extends Notifier<WatchTogetherState> {
           }
         });
 
+      AppConfig.requireLivekitUrl();
       await room.connect(AppConfig.livekitUrl, token);
     } catch (e) {
       debugPrint('Failed to connect to watch together sync room: $e');

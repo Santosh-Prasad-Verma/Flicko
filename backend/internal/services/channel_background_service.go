@@ -105,8 +105,13 @@ func (s *channelBackgroundService) UploadBackground(ctx context.Context, channel
 		return nil, fmt.Errorf("failed to seek file: %w", err)
 	}
 
-	// Create unique folder/file path
-	filePath := fmt.Sprintf("%s/bg_%s_%s", channelID, hashStr, header.Filename)
+	// Create unique folder/file path. The client-supplied name must be reduced
+	// to a single safe path segment or it could escape the channel prefix.
+	safeName := SanitizeUploadFilename(header.Filename)
+	if safeName == "" {
+		return nil, fmt.Errorf("invalid filename")
+	}
+	filePath := fmt.Sprintf("%s/bg_%s_%s", channelID, hashStr, safeName)
 
 	// Upload to Supabase Storage
 	_, err = s.storage.UploadFile("channel-backgrounds", filePath, file)

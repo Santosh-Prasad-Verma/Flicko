@@ -104,7 +104,7 @@ class _InvitesSettingsScreenState extends ConsumerState<InvitesSettingsScreen> {
       await Supabase.instance.client
           .from('invites')
           .delete()
-          .eq('id', inviteId);
+          .or('id.eq.$inviteId,code.eq.$inviteId');
 
       await _loadInvites();
 

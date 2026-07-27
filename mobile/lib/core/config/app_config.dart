@@ -129,6 +129,15 @@ class AppConfig {
     'CURRENTS_API_KEY',
   );
 
+  /// Centrifugo websocket endpoint used by realtime gaming (Ludo board sync).
+  /// Expected form: `wss://host/connection/websocket`.
+  static const String _definedCentrifugoUrl = String.fromEnvironment(
+    'FLICKO_CENTRIFUGO_URL',
+  );
+  static const String _definedLegacyCentrifugoUrl = String.fromEnvironment(
+    'CENTRIFUGO_URL',
+  );
+
   static late final String supabaseUrl;
   static late final String supabaseAnonKey;
   static late final String supabaseRealtimeUrl;
@@ -152,6 +161,11 @@ class AppConfig {
   static late final String rtcTurnUsername;
   static late final String rtcTurnCredential;
   static late final String currentsApiKey;
+
+  /// Centrifugo websocket URL for realtime gaming. Empty when unconfigured —
+  /// callers must check [hasCentrifugoUrl] and degrade to offline/local play
+  /// rather than dialing a hardcoded host.
+  static late final String centrifugoUrl;
 
   static void init() {
     supabaseUrl = _read(
@@ -301,6 +315,14 @@ class AppConfig {
       'FLICKO_CURRENTS_API_KEY',
       'CURRENTS_API_KEY',
     );
+    centrifugoUrl = _normalizeCentrifugoUrl(
+      _read(
+        _definedCentrifugoUrl,
+        _definedLegacyCentrifugoUrl,
+        'FLICKO_CENTRIFUGO_URL',
+        'CENTRIFUGO_URL',
+      ),
+    );
   }
 
   static List<String> get missingStartupConfig {
@@ -315,6 +337,16 @@ class AppConfig {
   }
 
   static bool get hasApiBaseUrl => apiBaseUrl.isNotEmpty;
+
+  static bool get hasCentrifugoUrl => centrifugoUrl.isNotEmpty;
+
+  static bool get hasLivekitUrl => livekitUrl.isNotEmpty;
+
+  static void requireLivekitUrl() {
+    if (!hasLivekitUrl) {
+      throw const LivekitConfigurationException();
+    }
+  }
 
   static void requireBackendBaseUrl() {
     if (!hasApiBaseUrl) {
@@ -357,6 +389,34 @@ class AppConfig {
     }
     return url;
   }
+
+  /// Coerces a configured Centrifugo value into a websocket URL.
+  ///
+  /// Accepts an http(s) origin, a ws(s) origin, or a full endpoint, so the
+  /// deploy can set `CENTRIFUGO_URL=https://rt.flicko.tech` and still get
+  /// `wss://rt.flicko.tech/connection/websocket`. Returns '' when unset so
+  /// callers can detect "not configured" instead of dialing a bad host.
+  static String _normalizeCentrifugoUrl(String value) {
+    var url = value.trim();
+    if (url.isEmpty) return '';
+
+    if (url.startsWith('https://')) {
+      url = url.replaceFirst('https://', 'wss://');
+    } else if (url.startsWith('http://')) {
+      url = url.replaceFirst('http://', 'ws://');
+    } else if (!url.startsWith('ws://') && !url.startsWith('wss://')) {
+      // Bare host — assume TLS.
+      url = 'wss://$url';
+    }
+
+    if (url.endsWith('/')) {
+      url = url.substring(0, url.length - 1);
+    }
+    if (!url.endsWith('/connection/websocket')) {
+      url = '$url/connection/websocket';
+    }
+    return url;
+  }
 }
 
 class BackendConfigurationException implements Exception {
@@ -364,6 +424,16 @@ class BackendConfigurationException implements Exception {
 
   String get message =>
       'Backend URL is not configured. Set FLICKO_API_URL or API_BASE_URL to your backend URL, for example http://<your-computer-lan-ip>:8090 when running on a physical phone.';
+
+  @override
+  String toString() => message;
+}
+
+class LivekitConfigurationException implements Exception {
+  const LivekitConfigurationException();
+
+  String get message =>
+      'Voice server URL is not configured. Set FLICKO_LIVEKIT_URL or LIVEKIT_URL to your LiveKit URL, for example ws://<your-computer-lan-ip>:7880 when running on a physical phone.';
 
   @override
   String toString() => message;

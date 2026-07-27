@@ -5,6 +5,7 @@ import 'dart:ui';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/data/models/flicko_message.dart';
 import 'package:mobile/features/ai_assistant/summary/presentation/catch_me_up_pill.dart';
@@ -49,7 +50,38 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   int _lastMessageCount = 0;
   bool _showEntranceWarp = true;
   bool _isSearching = false;
+  bool _isAdmin = false;
   final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _checkServerAdminStatus();
+    _scrollController.addListener(_onScroll);
+  }
+
+  Future<void> _checkServerAdminStatus() async {
+    try {
+      final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+      if (currentUserId == null) return;
+
+      final response = await Supabase.instance.client
+          .from('server_members')
+          .select('role')
+          .eq('server_id', widget.serverId)
+          .eq('user_id', currentUserId)
+          .maybeSingle();
+
+      if (response != null) {
+        final role = response['role'] as String? ?? 'member';
+        if (mounted) {
+          setState(() {
+            _isAdmin = (role == 'owner' || role == 'admin');
+          });
+        }
+      }
+    } catch (_) {}
+  }
 
   @override
   void dispose() {
@@ -57,12 +89,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     _scrollController.dispose();
     _particleController.dispose();
     super.dispose();
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _scrollController.addListener(_onScroll);
   }
 
   void _onScroll() {
@@ -254,42 +280,103 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 });
               },
             ),
-            IconButton(
-              icon: const Icon(Icons.push_pin_outlined, color: Color(FlickoColors.brandLime)),
-              onPressed: () {
-                final pinned = chatState.messages.where((m) => m.pinned).toList();
-                showModalBottomSheet(
-                  context: context,
-                  backgroundColor: Colors.transparent,
-                  isScrollControlled: true,
-                  builder: (ctx) => PinnedMessagesSheet(
-                    pinnedMessages: pinned,
-                    onJumpToMessage: (msg) => _jumpToMessage(msg.id),
-                    onUnpinMessage: (msg) {
-                      ref
-                          .read(chatNotifierProvider(widget.channelId).notifier)
-                          .togglePinMessage(msg.id, false);
-                      Navigator.pop(ctx);
-                    },
-                  ),
-                );
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert_rounded, color: Color(FlickoColors.brandLime)),
+              color: const Color(FlickoColors.bgSecondary),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              onSelected: (value) {
+                switch (value) {
+                  case 'pins':
+                    final pinned = chatState.messages.where((m) => m.pinned).toList();
+                    showModalBottomSheet(
+                      context: context,
+                      backgroundColor: Colors.transparent,
+                      isScrollControlled: true,
+                      builder: (ctx) => PinnedMessagesSheet(
+                        pinnedMessages: pinned,
+                        onJumpToMessage: (msg) => _jumpToMessage(msg.id),
+                        onUnpinMessage: (msg) {
+                          ref
+                              .read(chatNotifierProvider(widget.channelId).notifier)
+                              .togglePinMessage(msg.id, false);
+                          Navigator.pop(ctx);
+                        },
+                      ),
+                    );
+                    break;
+                  case 'background':
+                    showDialog(
+                      context: context,
+                      barrierColor: Colors.black.withValues(alpha: 0.65),
+                      builder: (ctx) => ChannelBackgroundCustomizerDialog(
+                        channelId: widget.channelId,
+                      ),
+                    );
+                    break;
+                  case 'members':
+                    context.push('/server/${widget.serverId}/members');
+                    break;
+                  case 'notifications':
+                    _showNotificationSettingsSheet(context);
+                    break;
+                  case 'settings':
+                    context.push('/server/${widget.serverId}/settings');
+                    break;
+                }
               },
-            ),
-            IconButton(
-              icon: const Icon(Icons.image_outlined, color: Color(FlickoColors.brandLime)),
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  barrierColor: Colors.black.withValues(alpha: 0.65),
-                  builder: (ctx) => ChannelBackgroundCustomizerDialog(
-                    channelId: widget.channelId,
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: 'pins',
+                  child: Row(
+                    children: [
+                      const Icon(Icons.push_pin_outlined, color: Color(FlickoColors.brandLime), size: 20),
+                      const SizedBox(width: 12),
+                      Text('Pinned Messages', style: GoogleFonts.inter(color: Colors.white, fontSize: 14)),
+                    ],
                   ),
-                );
-              },
-            ),
-            IconButton(
-              icon: const Icon(Icons.people_outline, color: Color(FlickoColors.brandLime)),
-              onPressed: () => context.push('/server/${widget.serverId}/members'),
+                ),
+                PopupMenuItem(
+                  value: 'notifications',
+                  child: Row(
+                    children: [
+                      const Icon(Icons.notifications_none_rounded, color: Color(FlickoColors.brandLime), size: 20),
+                      const SizedBox(width: 12),
+                      Text('Notification Settings', style: GoogleFonts.inter(color: Colors.white, fontSize: 14)),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'members',
+                  child: Row(
+                    children: [
+                      const Icon(Icons.people_outline, color: Color(FlickoColors.brandLime), size: 20),
+                      const SizedBox(width: 12),
+                      Text('Channel Members', style: GoogleFonts.inter(color: Colors.white, fontSize: 14)),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'background',
+                  child: Row(
+                    children: [
+                      const Icon(Icons.image_outlined, color: Color(FlickoColors.brandLime), size: 20),
+                      const SizedBox(width: 12),
+                      Text('Channel Background', style: GoogleFonts.inter(color: Colors.white, fontSize: 14)),
+                    ],
+                  ),
+                ),
+                if (_isAdmin)
+                  PopupMenuItem(
+                    value: 'settings',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.settings_outlined, color: Color(FlickoColors.brandLime), size: 20),
+                        const SizedBox(width: 12),
+                        Text('Server Settings', style: GoogleFonts.inter(color: Colors.white, fontSize: 14)),
+                      ],
+                    ),
+                  ),
+              ],
             ),
           ],
         ),
@@ -451,6 +538,85 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       ),
       ],
       ),
+    );
+  }
+
+  void _showNotificationSettingsSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          decoration: BoxDecoration(
+            color: const Color(FlickoColors.bgSecondary),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  const Icon(Icons.notifications_none_rounded, color: Color(FlickoColors.brandLime), size: 22),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Channel Notification Settings',
+                    style: GoogleFonts.inter(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: const Icon(Icons.notifications_active_rounded, color: Color(FlickoColors.brandLime)),
+                title: Text('All Messages', style: GoogleFonts.inter(color: Colors.white)),
+                subtitle: Text('Get notified for all channel activity', style: GoogleFonts.inter(color: Colors.white38, fontSize: 12)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Notifications set to All Messages')),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.alternate_email_rounded, color: Color(FlickoColors.brandLime)),
+                title: Text('@Mentions Only', style: GoogleFonts.inter(color: Colors.white)),
+                subtitle: Text('Get notified only when mentioned', style: GoogleFonts.inter(color: Colors.white38, fontSize: 12)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Notifications set to @Mentions Only')),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.notifications_off_outlined, color: Colors.white54),
+                title: Text('Mute Channel', style: GoogleFonts.inter(color: Colors.white)),
+                subtitle: Text('Suppress all notifications for this channel', style: GoogleFonts.inter(color: Colors.white38, fontSize: 12)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Channel Muted')),
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

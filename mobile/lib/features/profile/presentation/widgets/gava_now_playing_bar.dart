@@ -163,12 +163,12 @@ class _GavaNowPlayingBarState extends State<GavaNowPlayingBar>
       decoration: BoxDecoration(
         color: const Color(0xFF1A1A1D),
         borderRadius: BorderRadius.circular(8),
-        image: (url != null && url.isNotEmpty)
+        image: (url != null && url.isNotEmpty && (url.startsWith('http://') || url.startsWith('https://')))
             ? DecorationImage(image: NetworkImage(url), fit: BoxFit.cover)
             : null,
       ),
       alignment: Alignment.center,
-      child: (url == null || url.isEmpty)
+      child: (url == null || url.isEmpty || (!url.startsWith('http://') && !url.startsWith('https://')))
           ? Icon(Icons.music_note_rounded,
               color: widget.accent.withValues(alpha: 0.7), size: 22)
           : null,

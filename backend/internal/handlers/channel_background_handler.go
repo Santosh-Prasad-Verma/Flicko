@@ -5,12 +5,17 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/flicko-org/flicko-backend/internal/middleware"
 	"github.com/flicko-org/flicko-backend/internal/services"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 )
+
+// maxBackgroundUploadBytes caps a single channel-background upload. Shared by
+// the validation middleware and the handler so the two cannot drift apart.
+const maxBackgroundUploadBytes = 10 * 1024 * 1024 // 10MB
 
 type ChannelBackgroundHandler struct {
 	db     *pgxpool.Pool
@@ -27,7 +32,13 @@ func NewChannelBackgroundHandler(db *pgxpool.Pool, svc services.ChannelBackgroun
 }
 
 func (h *ChannelBackgroundHandler) RegisterRoutes(r *mux.Router) {
-	r.HandleFunc("/channels/{channelId}/background", h.UploadBackground).Methods(http.MethodPost)
+	// Backgrounds land in a public bucket, so the magic bytes — not the
+	// client-supplied Content-Type or extension — decide what is accepted.
+	imageValidation := middleware.FileUploadValidationMiddleware(
+		maxBackgroundUploadBytes, middleware.AllowedImageUploadTypes, h.logger)
+
+	r.Handle("/channels/{channelId}/background",
+		imageValidation(http.HandlerFunc(h.UploadBackground))).Methods(http.MethodPost)
 	r.HandleFunc("/channels/{channelId}/background", h.GetBackground).Methods(http.MethodGet)
 	r.HandleFunc("/channels/{channelId}/background", h.DeleteBackground).Methods(http.MethodDelete)
 	r.HandleFunc("/channels/{channelId}/background/override", h.SetOverride).Methods(http.MethodPut)
@@ -72,7 +83,7 @@ func (h *ChannelBackgroundHandler) UploadBackground(w http.ResponseWriter, r *ht
 	}
 
 	// Parse file from request body
-	err = r.ParseMultipartForm(10 * 1024 * 1024) // 10MB limit
+	err = r.ParseMultipartForm(maxBackgroundUploadBytes)
 	if err != nil {
 		http.Error(w, "failed to parse multipart form", http.StatusBadRequest)
 		return

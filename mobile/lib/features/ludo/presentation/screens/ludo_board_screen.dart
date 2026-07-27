@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../auth/application/auth_notifier.dart';
+import '../../../gaming/data/game_api_client.dart';
 import '../../domain/ludo_state.dart';
 import '../../domain/plot_data.dart';
 import '../../services/ludo_bot_brain.dart';
@@ -43,6 +44,11 @@ class _LudoBoardScreenState extends ConsumerState<LudoBoardScreen>
   bool _showStartImage = true;
   late final LudoBotBrain _brain;
 
+  /// When the current match started. Used to report real playtime instead of
+  /// crediting every finished match with a flat 15 minutes. Restarted on
+  /// rematch, since the winner modal resets the engine in place.
+  DateTime? _matchStartedAt;
+
   @override
   void initState() {
     super.initState();
@@ -69,6 +75,7 @@ class _LudoBoardScreenState extends ConsumerState<LudoBoardScreen>
       );
       _brain = LudoBotBrain(notifier);
       notifier.onBotTurn = _brain.takeTurn;
+      _matchStartedAt = DateTime.now();
       LudoSoundService.instance.play('game_start');
 
       // Online modes: subscribe to authoritative game channel.
@@ -123,10 +130,15 @@ class _LudoBoardScreenState extends ConsumerState<LudoBoardScreen>
             state.mode != LudoMode.onlineRandom &&
             state.mode != LudoMode.onlineFriends;
 
+    final startedAt = _matchStartedAt;
     submitLudoScore(
+      api: ref.read(gameApiProvider),
       winnerId: winnerId,
       loserIds: losers,
       isBotGame: isBotGame,
+      duration: startedAt == null
+          ? Duration.zero
+          : DateTime.now().difference(startedAt),
       gameId: state.gameId,
       currentUserId: myUserId,
     );
@@ -142,6 +154,11 @@ class _LudoBoardScreenState extends ConsumerState<LudoBoardScreen>
 
     // Winner modal trigger.
     ref.listen<LudoState>(ludoNotifierProvider, (prev, next) {
+      // Rematch: the winner modal resets the engine in place rather than
+      // rebuilding this screen, so restart the playtime clock here.
+      if (prev?.winner != null && next.winner == null) {
+        _matchStartedAt = DateTime.now();
+      }
       if (next.winner != null && (prev?.winner == null)) {
         _onWinAnnounced(next);
         WidgetsBinding.instance.addPostFrameCallback((_) {

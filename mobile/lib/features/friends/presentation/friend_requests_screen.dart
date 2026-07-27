@@ -1,14 +1,23 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
+import 'package:mobile/features/friends/data/friends_repository.dart';
+import 'package:mobile/features/friends/domain/friends_models.dart';
 
 /// Friend Requests Screen
-/// 
-/// Manage friend requests - view incoming, outgoing, and add new friends.
-/// Mirrors the React Native friends management screen.
+///
+/// Manage friend requests — view incoming, outgoing, and add new friends.
+///
+/// Incoming/outgoing lists come from [pendingRequestsProvider], split on
+/// `isIncoming`. The Add Friend tab searches `profiles` through
+/// [FriendsRepository.searchUsers]. Accept/decline/cancel/send all write to
+/// Supabase and then invalidate the provider, so what you see is what was
+/// actually persisted.
 class FriendRequestsScreen extends ConsumerStatefulWidget {
   const FriendRequestsScreen({super.key});
 
@@ -19,78 +28,68 @@ class FriendRequestsScreen extends ConsumerStatefulWidget {
 class _FriendRequestsScreenState extends ConsumerState<FriendRequestsScreen> {
   final _searchController = TextEditingController();
   FriendTab _activeTab = FriendTab.incoming;
-  final bool _isLoading = false;
 
-  // Mock data
-  final List<FriendRequest> _incomingRequests = [
-    FriendRequest(
-      id: 'req1',
-      user: FriendUser(
-        id: 'user2',
-        username: 'bob',
-        displayName: 'Bob',
-        avatarUrl: null,
-        status: 'online',
-      ),
-      createdAt: DateTime.now().subtract(const Duration(hours: 2)),
-      status: 'pending',
-    ),
-    FriendRequest(
-      id: 'req2',
-      user: FriendUser(
-        id: 'user3',
-        username: 'charlie',
-        displayName: 'Charlie',
-        avatarUrl: null,
-        status: 'offline',
-      ),
-      createdAt: DateTime.now().subtract(const Duration(days: 1)),
-      status: 'pending',
-    ),
-  ];
+  /// Ids currently mid-mutation, so their buttons can show progress and not be
+  /// double-tapped into duplicate writes.
+  final Set<String> _busyIds = {};
 
-  final List<FriendRequest> _outgoingRequests = [
-    FriendRequest(
-      id: 'req3',
-      user: FriendUser(
-        id: 'user4',
-        username: 'dave',
-        displayName: 'Dave',
-        avatarUrl: null,
-        status: 'idle',
-      ),
-      createdAt: DateTime.now().subtract(const Duration(hours: 5)),
-      status: 'pending',
-    ),
-  ];
-
-  final List<FriendUser> _suggestedFriends = [
-    FriendUser(
-      id: 'user5',
-      username: 'eve',
-      displayName: 'Eve',
-      avatarUrl: null,
-      status: 'online',
-      mutualFriends: 3,
-    ),
-    FriendUser(
-      id: 'user6',
-      username: 'frank',
-      displayName: 'Frank',
-      avatarUrl: null,
-      status: 'dnd',
-      mutualFriends: 1,
-    ),
-  ];
+  // Search state for the Add Friend tab.
+  Timer? _debounce;
+  List<FriendUser> _searchResults = [];
+  bool _isSearching = false;
+  String _lastQuery = '';
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
+  void _onSearchChanged(String value) {
+    setState(() {});
+    if (_activeTab != FriendTab.add) return;
+
+    // Debounce so typing doesn't fire a query per keystroke.
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 350), () => _runSearch(value));
+  }
+
+  Future<void> _runSearch(String query) async {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) {
+      if (!mounted) return;
+      setState(() {
+        _searchResults = [];
+        _isSearching = false;
+        _lastQuery = '';
+      });
+      return;
+    }
+
+    setState(() {
+      _isSearching = true;
+      _lastQuery = trimmed;
+    });
+
+    final results = await ref.read(friendsRepositoryProvider).searchUsers(trimmed);
+
+    if (!mounted) return;
+    // Ignore results from a query the user has already typed past.
+    if (_lastQuery != trimmed) return;
+    setState(() {
+      _searchResults = results;
+      _isSearching = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    final requestsAsync = ref.watch(pendingRequestsProvider);
+    final all = requestsAsync.value ?? const <FriendRequest>[];
+    final incoming = all.where((r) => r.isIncoming).toList();
+    final outgoing = all.where((r) => !r.isIncoming).toList();
+
     return Scaffold(
       backgroundColor: const Color(FlickoColors.bgPrimary),
       appBar: AppBar(
@@ -110,7 +109,7 @@ class _FriendRequestsScreenState extends ConsumerState<FriendRequestsScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.person_add, color: Color(FlickoColors.textPrimary)),
-            onPressed: _showAddFriendDialog,
+            onPressed: () => setState(() => _activeTab = FriendTab.add),
           ),
         ],
       ),
@@ -120,13 +119,17 @@ class _FriendRequestsScreenState extends ConsumerState<FriendRequestsScreen> {
           _buildSearchBar(),
 
           // Tab bar
-          _buildTabBar(),
+          _buildTabBar(incoming.length, outgoing.length),
 
           // Content
           Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _buildContent(),
+            child: requestsAsync.when(
+              loading: () => const Center(
+                child: CircularProgressIndicator(color: Color(FlickoColors.blurple)),
+              ),
+              error: (err, _) => _buildErrorState(),
+              data: (_) => _buildContent(incoming, outgoing),
+            ),
           ),
         ],
       ),
@@ -139,14 +142,16 @@ class _FriendRequestsScreenState extends ConsumerState<FriendRequestsScreen> {
       color: const Color(FlickoColors.bgSecondary),
       child: TextField(
         controller: _searchController,
-        onChanged: (_) => setState(() {}),
+        onChanged: _onSearchChanged,
+        onSubmitted: _runSearch,
+        textInputAction: TextInputAction.search,
         style: GoogleFonts.inter(
           color: const Color(FlickoColors.textPrimary),
         ),
         decoration: InputDecoration(
           hintText: _activeTab == FriendTab.add
-              ? 'Search by username (e.g., username#1234)'
-              : 'Search friends...',
+              ? 'Search by username or display name'
+              : 'Search requests...',
           hintStyle: GoogleFonts.inter(
             color: const Color(FlickoColors.textMuted),
           ),
@@ -156,7 +161,7 @@ class _FriendRequestsScreenState extends ConsumerState<FriendRequestsScreen> {
                   icon: const Icon(Icons.clear, color: Color(FlickoColors.textMuted)),
                   onPressed: () {
                     _searchController.clear();
-                    setState(() {});
+                    _onSearchChanged('');
                   },
                 )
               : null,
@@ -171,10 +176,10 @@ class _FriendRequestsScreenState extends ConsumerState<FriendRequestsScreen> {
     );
   }
 
-  Widget _buildTabBar() {
+  Widget _buildTabBar(int incomingCount, int outgoingCount) {
     final tabs = [
-      (FriendTab.incoming, 'Incoming', _incomingRequests.length),
-      (FriendTab.outgoing, 'Outgoing', _outgoingRequests.length),
+      (FriendTab.incoming, 'Incoming', incomingCount),
+      (FriendTab.outgoing, 'Outgoing', outgoingCount),
       (FriendTab.add, 'Add Friend', null),
     ];
 
@@ -196,7 +201,14 @@ class _FriendRequestsScreenState extends ConsumerState<FriendRequestsScreen> {
           final isActive = _activeTab == tab;
 
           return GestureDetector(
-            onTap: () => setState(() => _activeTab = tab),
+            onTap: () {
+              setState(() => _activeTab = tab);
+              // Entering Add Friend with text already in the box should show
+              // results rather than an empty list.
+              if (tab == FriendTab.add && _searchController.text.trim().isNotEmpty) {
+                _runSearch(_searchController.text);
+              }
+            },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
@@ -230,7 +242,7 @@ class _FriendRequestsScreenState extends ConsumerState<FriendRequestsScreen> {
                       child: Text(
                         '$count',
                         style: GoogleFonts.inter(
-                          color: isActive ? Colors.white : Colors.white,
+                          color: Colors.white,
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
                         ),
@@ -246,154 +258,142 @@ class _FriendRequestsScreenState extends ConsumerState<FriendRequestsScreen> {
     );
   }
 
-  Widget _buildContent() {
+  Widget _buildContent(List<FriendRequest> incoming, List<FriendRequest> outgoing) {
     switch (_activeTab) {
       case FriendTab.incoming:
-        return _buildIncomingRequests();
+        return _buildRequestList(_filterRequests(incoming), isIncoming: true);
       case FriendTab.outgoing:
-        return _buildOutgoingRequests();
+        return _buildRequestList(_filterRequests(outgoing), isIncoming: false);
       case FriendTab.add:
         return _buildAddFriend();
     }
   }
 
-  Widget _buildIncomingRequests() {
-    if (_incomingRequests.isEmpty) {
-      return _buildEmptyState(
-        icon: Icons.inbox,
-        title: 'No pending requests',
-        subtitle: 'When someone sends you a friend request, it will appear here',
-      );
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(8),
-      itemCount: _incomingRequests.length,
-      itemBuilder: (context, index) {
-        final request = _incomingRequests[index];
-        return _buildRequestTile(request, isIncoming: true);
-      },
-    );
+  /// Applies the search box to a request list (matches username/display name).
+  List<FriendRequest> _filterRequests(List<FriendRequest> requests) {
+    final query = _searchController.text.trim().toLowerCase();
+    if (query.isEmpty) return requests;
+    return requests
+        .where((r) =>
+            r.user.username.toLowerCase().contains(query) ||
+            (r.user.displayName?.toLowerCase().contains(query) ?? false))
+        .toList();
   }
 
-  Widget _buildOutgoingRequests() {
-    if (_outgoingRequests.isEmpty) {
+  Widget _buildRequestList(List<FriendRequest> requests, {required bool isIncoming}) {
+    if (requests.isEmpty) {
       return _buildEmptyState(
-        icon: Icons.send,
-        title: 'No outgoing requests',
-        subtitle: 'Friend requests you send will appear here',
+        icon: isIncoming ? Icons.inbox : Icons.send,
+        title: isIncoming ? 'No pending requests' : 'No outgoing requests',
+        subtitle: isIncoming
+            ? 'When someone sends you a friend request, it will appear here'
+            : 'Friend requests you send will appear here',
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(8),
-      itemCount: _outgoingRequests.length,
-      itemBuilder: (context, index) {
-        final request = _outgoingRequests[index];
-        return _buildRequestTile(request, isIncoming: false);
-      },
+    return RefreshIndicator(
+      color: const Color(FlickoColors.blurple),
+      onRefresh: () async => ref.invalidate(pendingRequestsProvider),
+      child: ListView.builder(
+        padding: const EdgeInsets.all(8),
+        itemCount: requests.length,
+        itemBuilder: (context, index) =>
+            _buildRequestTile(requests[index], isIncoming: isIncoming),
+      ),
     );
   }
 
   Widget _buildAddFriend() {
-    final query = _searchController.text.toLowerCase();
-    final filteredSuggestions = query.isEmpty
-        ? _suggestedFriends
-        : _suggestedFriends.where((f) =>
-            f.username.toLowerCase().contains(query) ||
-            (f.displayName?.toLowerCase().contains(query) ?? false)
-          ).toList();
+    final query = _searchController.text.trim();
 
-    return ListView(
+    if (query.isEmpty) {
+      return _buildEmptyState(
+        icon: Icons.person_search,
+        title: 'Find people',
+        subtitle: 'Search for someone by username or display name',
+      );
+    }
+
+    if (_isSearching) {
+      return const Center(
+        child: CircularProgressIndicator(color: Color(FlickoColors.blurple)),
+      );
+    }
+
+    if (_searchResults.isEmpty) {
+      return _buildEmptyState(
+        icon: Icons.person_off,
+        title: 'No users found',
+        subtitle: 'Nobody matches "$query"',
+      );
+    }
+
+    return ListView.builder(
       padding: const EdgeInsets.all(8),
-      children: [
-        if (_searchController.text.isNotEmpty)
-          _buildSearchResult(),
-        
-        if (filteredSuggestions.isNotEmpty) ...[
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Text(
-              'Suggested Friends',
-              style: GoogleFonts.inter(
-                color: const Color(FlickoColors.textSecondary),
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ),
-          ...filteredSuggestions.map((user) => _buildSuggestedUserTile(user)),
-        ],
-      ],
+      itemCount: _searchResults.length,
+      itemBuilder: (context, index) => _buildSearchResultTile(_searchResults[index]),
     );
   }
 
-  Widget _buildSearchResult() {
-    return Card(
-      color: const Color(FlickoColors.bgSecondary),
-      margin: const EdgeInsets.all(8),
+  Widget _buildSearchResultTile(FriendUser user) {
+    final busy = _busyIds.contains(user.id);
+
+    return InkWell(
+      onTap: () => context.push('/profile/${user.id}'),
+      borderRadius: BorderRadius.circular(8),
       child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(
           children: [
-            Text(
-              'Search Result',
-              style: GoogleFonts.inter(
-                color: const Color(FlickoColors.textSecondary),
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
+            UserAvatar(
+              imageUrl: user.avatarUrl,
+              size: 48,
+              status: user.status,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    user.displayName ?? user.username,
+                    style: GoogleFonts.inter(
+                      color: const Color(FlickoColors.textPrimary),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    '@${user.username}',
+                    style: GoogleFonts.inter(
+                      color: const Color(FlickoColors.textMuted),
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                const UserAvatar(size: 48, status: 'online'),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _searchController.text,
-                        style: GoogleFonts.inter(
-                          color: const Color(FlickoColors.textPrimary),
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
+            ElevatedButton(
+              onPressed: busy ? null : () => _sendRequest(user),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(FlickoColors.blurple),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ),
+              child: busy
+                  ? const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
                       ),
-                      Text(
-                        'Found user',
-                        style: GoogleFonts.inter(
-                          color: const Color(FlickoColors.textMuted),
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Friend request sent!',
-                          style: GoogleFonts.inter(),
-                        ),
-                        backgroundColor: const Color(FlickoColors.success),
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(FlickoColors.blurple),
-                  ),
-                  child: Text(
-                    'Add Friend',
-                    style: GoogleFonts.inter(color: Colors.white),
-                  ),
-                ),
-              ],
+                    )
+                  : Text(
+                      'Add',
+                      style: GoogleFonts.inter(color: Colors.white, fontSize: 12),
+                    ),
             ),
           ],
         ),
@@ -402,6 +402,8 @@ class _FriendRequestsScreenState extends ConsumerState<FriendRequestsScreen> {
   }
 
   Widget _buildRequestTile(FriendRequest request, {required bool isIncoming}) {
+    final busy = _busyIds.contains(request.id);
+
     return InkWell(
       onTap: () => context.push('/profile/${request.user.id}'),
       borderRadius: BorderRadius.circular(8),
@@ -426,6 +428,8 @@ class _FriendRequestsScreenState extends ConsumerState<FriendRequestsScreen> {
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   Text(
                     '@${request.user.username}',
@@ -445,7 +449,19 @@ class _FriendRequestsScreenState extends ConsumerState<FriendRequestsScreen> {
                 ],
               ),
             ),
-            if (isIncoming) ...[
+            if (busy)
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12),
+                child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Color(FlickoColors.blurple),
+                  ),
+                ),
+              )
+            else if (isIncoming) ...[
               // Accept button
               ElevatedButton(
                 onPressed: () => _acceptRequest(request),
@@ -504,77 +520,6 @@ class _FriendRequestsScreenState extends ConsumerState<FriendRequestsScreen> {
     );
   }
 
-  Widget _buildSuggestedUserTile(FriendUser user) {
-    return InkWell(
-      onTap: () => context.push('/profile/${user.id}'),
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        child: Row(
-          children: [
-            UserAvatar(
-              imageUrl: user.avatarUrl,
-              size: 48,
-              status: user.status,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    user.displayName ?? user.username,
-                    style: GoogleFonts.inter(
-                      color: const Color(FlickoColors.textPrimary),
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  Text(
-                    '@${user.username}',
-                    style: GoogleFonts.inter(
-                      color: const Color(FlickoColors.textMuted),
-                      fontSize: 13,
-                    ),
-                  ),
-                  if (user.mutualFriends != null)
-                    Text(
-                      '${user.mutualFriends} mutual friend${user.mutualFriends == 1 ? '' : 's'}',
-                      style: GoogleFonts.inter(
-                        color: const Color(FlickoColors.textMuted),
-                        fontSize: 12,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Friend request sent to ${user.username}!',
-                      style: GoogleFonts.inter(),
-                    ),
-                    backgroundColor: const Color(FlickoColors.success),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(FlickoColors.blurple),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              ),
-              child: Text(
-                'Add',
-                style: GoogleFonts.inter(color: Colors.white, fontSize: 12),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildEmptyState({
     required IconData icon,
     required String title,
@@ -599,122 +544,147 @@ class _FriendRequestsScreenState extends ConsumerState<FriendRequestsScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          Text(
-            subtitle,
-            style: GoogleFonts.inter(
-              color: const Color(FlickoColors.textMuted),
-              fontSize: 14,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Text(
+              subtitle,
+              style: GoogleFonts.inter(
+                color: const Color(FlickoColors.textMuted),
+                fontSize: 14,
+              ),
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
           ),
         ],
       ),
     );
   }
 
-  void _showAddFriendDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(FlickoColors.bgSecondary),
-        title: Text(
-          'Add Friend',
-          style: GoogleFonts.inter(
-            color: const Color(FlickoColors.textPrimary),
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        content: TextField(
-          controller: _searchController,
-          autofocus: true,
-          decoration: InputDecoration(
-            hintText: 'Enter username#1234',
-            hintStyle: GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
-            filled: true,
-            fillColor: const Color(FlickoColors.bgTertiary),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide.none,
+  Widget _buildErrorState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.cloud_off, size: 64, color: Color(FlickoColors.textMuted)),
+          const SizedBox(height: 16),
+          Text(
+            'Could not load requests',
+            style: GoogleFonts.inter(
+              color: const Color(FlickoColors.textPrimary),
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
             ),
           ),
-          style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary)),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              setState(() => _activeTab = FriendTab.add);
-            },
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: () => ref.invalidate(pendingRequestsProvider),
+            icon: const Icon(Icons.refresh),
+            label: Text('Retry', style: GoogleFonts.inter()),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(FlickoColors.blurple),
             ),
-            child: Text(
-              'Search',
-              style: GoogleFonts.inter(color: Colors.white),
-            ),
           ),
         ],
       ),
     );
   }
 
-  void _acceptRequest(FriendRequest request) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Accepted friend request from ${request.user.username}',
-          style: GoogleFonts.inter(),
-        ),
-        backgroundColor: const Color(FlickoColors.success),
-      ),
-    );
-    setState(() {
-      _incomingRequests.remove(request);
-    });
+  // ─── Mutations ────────────────────────────────────────────────────────
+
+  /// Runs [action] with [id] marked busy, then refreshes and reports.
+  ///
+  /// Errors are surfaced to the user rather than swallowed — a failed accept
+  /// used to still show "Accepted!" and drop the row from the list.
+  Future<void> _mutate(
+    String id,
+    Future<void> Function() action, {
+    required String successMessage,
+    required String failurePrefix,
+  }) async {
+    if (_busyIds.contains(id)) return;
+    setState(() => _busyIds.add(id));
+
+    try {
+      await action();
+      if (!mounted) return;
+      ref.invalidate(pendingRequestsProvider);
+      ref.invalidate(friendsListProvider);
+      _showSnack(successMessage, const Color(FlickoColors.success));
+    } catch (e) {
+      if (!mounted) return;
+      _showSnack('$failurePrefix: $e', const Color(FlickoColors.red));
+    } finally {
+      if (mounted) setState(() => _busyIds.remove(id));
+    }
   }
 
-  void _declineRequest(FriendRequest request) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Declined friend request from ${request.user.username}',
-          style: GoogleFonts.inter(),
-        ),
-        backgroundColor: const Color(FlickoColors.bgSecondary),
+  Future<void> _acceptRequest(FriendRequest request) async {
+    final repo = ref.read(friendsRepositoryProvider);
+    final userId = repo.currentUserId;
+    if (userId == null) return;
+
+    await _mutate(
+      request.id,
+      () => repo.acceptFriendRequest(
+        requestId: request.id,
+        // The request is incoming, so the other user sent it and the signed-in
+        // user is the receiver.
+        senderId: request.user.id,
+        receiverId: userId,
       ),
+      successMessage: 'You are now friends with ${request.user.username}',
+      failurePrefix: 'Could not accept request',
     );
-    setState(() {
-      _incomingRequests.remove(request);
-    });
   }
 
-  void _cancelRequest(FriendRequest request) {
+  Future<void> _declineRequest(FriendRequest request) async {
+    final repo = ref.read(friendsRepositoryProvider);
+    await _mutate(
+      request.id,
+      () => repo.declineFriendRequest(request.id),
+      successMessage: 'Declined request from ${request.user.username}',
+      failurePrefix: 'Could not decline request',
+    );
+  }
+
+  Future<void> _cancelRequest(FriendRequest request) async {
+    final repo = ref.read(friendsRepositoryProvider);
+    await _mutate(
+      request.id,
+      () => repo.cancelFriendRequest(request.id),
+      successMessage: 'Cancelled request to ${request.user.username}',
+      failurePrefix: 'Could not cancel request',
+    );
+  }
+
+  Future<void> _sendRequest(FriendUser user) async {
+    final repo = ref.read(friendsRepositoryProvider);
+    final userId = repo.currentUserId;
+    if (userId == null) return;
+
+    await _mutate(
+      user.id,
+      () => repo.sendFriendRequest(senderId: userId, receiverId: user.id),
+      successMessage: 'Friend request sent to ${user.username}',
+      failurePrefix: 'Could not send request',
+    );
+  }
+
+  void _showSnack(String message, Color background) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          'Cancelled friend request to ${request.user.username}',
-          style: GoogleFonts.inter(),
-        ),
-        backgroundColor: const Color(FlickoColors.bgSecondary),
+        content: Text(message, style: GoogleFonts.inter()),
+        backgroundColor: background,
       ),
     );
-    setState(() {
-      _outgoingRequests.remove(request);
-    });
   }
 
   String _formatTime(DateTime date) {
-    final now = DateTime.now();
-    final diff = now.difference(date);
+    final diff = DateTime.now().difference(date);
 
-    if (diff.inMinutes < 60) {
+    if (diff.inMinutes < 1) {
+      return 'just now';
+    } else if (diff.inMinutes < 60) {
       return '${diff.inMinutes}m ago';
     } else if (diff.inHours < 24) {
       return '${diff.inHours}h ago';
@@ -729,38 +699,4 @@ enum FriendTab {
   incoming,
   outgoing,
   add,
-}
-
-/// Friend request model
-class FriendRequest {
-  final String id;
-  final FriendUser user;
-  final DateTime createdAt;
-  final String status;
-
-  FriendRequest({
-    required this.id,
-    required this.user,
-    required this.createdAt,
-    required this.status,
-  });
-}
-
-/// Friend user model
-class FriendUser {
-  final String id;
-  final String username;
-  final String? displayName;
-  final String? avatarUrl;
-  final String status;
-  final int? mutualFriends;
-
-  FriendUser({
-    required this.id,
-    required this.username,
-    this.displayName,
-    this.avatarUrl,
-    required this.status,
-    this.mutualFriends,
-  });
 }

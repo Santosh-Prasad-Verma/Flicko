@@ -29,7 +29,15 @@ type RouterDeps struct {
 	Idempotency *flickoredis.IdempotencyStore
 
 	IdempotencyTTL time.Duration
-	Log            *zap.Logger
+
+	// CORSOrigins is a comma-separated browser origin allowlist. Empty allows
+	// all origins in development; in production it allows none (config
+	// validation refuses to boot with it unset).
+	CORSOrigins string
+	// IsProd disables the permissive CORS fallback.
+	IsProd bool
+
+	Log *zap.Logger
 }
 
 // NewRouter builds the chi router with all routes and middleware.
@@ -46,7 +54,7 @@ func NewRouter(deps RouterDeps) *chi.Mux {
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Logger(deps.Log))
 	r.Use(middleware.Recovery(deps.Log))
-	r.Use(middleware.CORS(middleware.DefaultCORSConfig()))
+	r.Use(middleware.CORS(middleware.NewCORSConfig(deps.CORSOrigins, deps.IsProd)))
 
 	// ── Public routes (no auth) ─────────────────────────────
 	r.Get("/healthz", deps.Health.Healthz)

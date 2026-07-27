@@ -49,6 +49,10 @@ class LiveKitService {
       typingNoiseDetection: true,
     );
 
+    // Fail with a named cause rather than dialing an empty URL and surfacing a
+    // generic connection timeout.
+    AppConfig.requireLivekitUrl();
+
     await _room!.connect(
       AppConfig.livekitUrl,
       token,

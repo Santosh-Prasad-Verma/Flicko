@@ -23,7 +23,7 @@ class TranslateRepository {
   }) async {
     try {
       final res = await _dio.post<Map<String, dynamic>>(
-        'api/v1/ai/translate',
+        'ai/translate',
         data: {
           'text': text,
           'target_lang': target,
@@ -54,7 +54,7 @@ class TranslateRepository {
   /// for fresh accounts.
   Future<TranslateUserSettings> getSettings() async {
     final res = await _dio.get<Map<String, dynamic>>(
-      'api/v1/ai/translate/settings',
+      'ai/translate/settings',
     );
     return TranslateUserSettings.fromJson(res.data ?? const {});
   }
@@ -64,7 +64,7 @@ class TranslateRepository {
     TranslateUserSettingsPatch patch,
   ) async {
     final res = await _dio.patch<Map<String, dynamic>>(
-      'api/v1/ai/translate/settings',
+      'ai/translate/settings',
       data: patch.toJson(),
     );
     return TranslateUserSettings.fromJson(res.data ?? const {});

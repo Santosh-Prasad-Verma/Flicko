@@ -27,14 +27,18 @@ class VoiceRepository {
   }
 
   /// Connects to a LiveKit room.
+  ///
+  /// Throws [LivekitConfigurationException] when no voice server URL is
+  /// configured. This previously fell back to `ws://localhost:7880`, which only
+  /// ever resolved on the developer's own machine — on a real device it
+  /// produced an opaque connection timeout instead of naming the missing
+  /// setting. A voice call has no useful degraded mode, so failing with an
+  /// actionable message is better than dialing an address that cannot work.
   Future<Room> connect(String token, {RoomOptions? options}) async {
+    AppConfig.requireLivekitUrl();
+
     final room = Room(roomOptions: options ?? const RoomOptions());
-
-    final url = AppConfig.livekitUrl.isNotEmpty
-        ? AppConfig.livekitUrl
-        : 'ws://localhost:7880';
-
-    await room.connect(url, token);
+    await room.connect(AppConfig.livekitUrl, token);
     return room;
   }
 }

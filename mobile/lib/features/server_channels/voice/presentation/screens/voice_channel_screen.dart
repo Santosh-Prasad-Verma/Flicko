@@ -16,6 +16,10 @@ import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
 import 'package:mobile/features/voice/presentation/controllers/voice_controller.dart';
 import 'package:mobile/features/voice/presentation/controllers/voice_state.dart' as voice_state;
 import 'package:mobile/features/voice/presentation/soundboard_sheet.dart';
+import 'package:mobile/core/constants/flicko_colors.dart';
+import 'package:mobile/features/calling/presentation/voice_settings_bottom_sheet.dart';
+import 'package:mobile/features/calling/presentation/invite_friends_bottom_sheet.dart';
+import 'package:mobile/features/calling/presentation/floating_call_pip_overlay.dart';
 
 /// Premium Glassmorphic Voice/Video Channel Screen
 /// Features shifting radial orb backgrounds, frosted glass participant cards,
@@ -586,7 +590,17 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
               IconButton(
                 icon: Icon(Icons.arrow_back_ios_new_rounded,
                     color: _white.withValues(alpha: 0.8), size: 20),
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: () {
+                  FloatingCallPipOverlay.show(
+                    context,
+                    userName: _channel?['name'] ?? 'Voice Channel',
+                    isSpeaking: true,
+                    onTapExpand: () {
+                      context.push('/server/${widget.serverId}/channel/${widget.channelId}/voice');
+                    },
+                  );
+                  Navigator.of(context).pop();
+                },
               ),
               const SizedBox(width: 4),
               Icon(Icons.volume_up_rounded,
@@ -630,31 +644,168 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
                   ],
                 ),
               ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: _white.withValues(alpha: 0.06),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.people_rounded,
-                        color: _white.withValues(alpha: 0.5), size: 15),
-                    const SizedBox(width: 5),
-                    Text(
-                      '${voiceState.participants.length}',
-                      style: GoogleFonts.inter(
-                        color: _white.withValues(alpha: 0.7),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
+              IconButton(
+                icon: Icon(Icons.person_add_rounded, color: _white.withValues(alpha: 0.8), size: 20),
+                onPressed: () => InviteFriendsBottomSheet.show(context),
+              ),
+              GestureDetector(
+                onTap: () => _showMembersBottomSheet(context, voiceState),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: _white.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.people_rounded,
+                          color: _white.withValues(alpha: 0.5), size: 15),
+                      const SizedBox(width: 5),
+                      Text(
+                        '${voiceState.participants.length}',
+                        style: GoogleFonts.inter(
+                          color: _white.withValues(alpha: 0.7),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  void _showMembersBottomSheet(BuildContext context, voice_state.VoiceState voiceState) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Color(FlickoColors.bgSecondary),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        decoration: BoxDecoration(
+          color: Color(FlickoColors.bgSecondary),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Channel Members (${voiceState.participants.length})',
+                  style: GoogleFonts.inter(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    InviteFriendsBottomSheet.show(context);
+                  },
+                  icon: Icon(Icons.person_add_rounded, color: Color(FlickoColors.brandLime), size: 18),
+                  label: Text(
+                    'Invite',
+                    style: GoogleFonts.inter(
+                      color: Color(FlickoColors.brandLime),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (voiceState.participants.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Center(
+                  child: Text(
+                    'No members in channel',
+                    style: GoogleFonts.inter(color: Colors.white54),
+                  ),
+                ),
+              )
+            else
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.45,
+                ),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: voiceState.participants.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1, color: Colors.white10),
+                  itemBuilder: (context, index) {
+                    final p = voiceState.participants[index];
+                    final profile = _profilesCache[p.sid];
+                    final name = profile?['display_name'] ?? profile?['username'] ?? p.identity ?? 'Member ${index + 1}';
+                    final avatar = profile?['avatar'];
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: p.isSpeaking ? Color(FlickoColors.brandLime) : Colors.transparent,
+                            width: 2,
+                          ),
+                        ),
+                        child: CircleAvatar(
+                          radius: 20,
+                          backgroundColor: Color(FlickoColors.bgTertiary),
+                          backgroundImage: (avatar != null && (avatar.startsWith('http://') || avatar.startsWith('https://'))) ? NetworkImage(avatar) : null,
+                          child: (avatar == null || (!avatar.startsWith('http://') && !avatar.startsWith('https://'))) ? const Icon(Icons.person, color: Colors.white70) : null,
+                        ),
+                      ),
+                      title: Text(
+                        name,
+                        style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: Text(
+                        p.isSpeaking ? 'Speaking' : (p.isMuted ? 'Muted' : 'Connected'),
+                        style: GoogleFonts.inter(
+                          color: p.isSpeaking ? Color(FlickoColors.brandLime) : Colors.white38,
+                          fontSize: 12,
+                        ),
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (p.isMuted)
+                            const Icon(Icons.mic_off_rounded, color: Colors.redAccent, size: 18)
+                          else
+                            Icon(Icons.mic_rounded, color: Color(FlickoColors.brandLime), size: 18),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            const SizedBox(height: 16),
+          ],
         ),
       ),
     );
@@ -1309,122 +1460,15 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
   }
 
   void _showMoreOptionsSheet(voice_state.VoiceState voiceState) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (context) => ClipRRect(
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.65),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-              border: Border.all(
-                color: _white.withValues(alpha: 0.08),
-                width: 1,
-              ),
-            ),
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 20),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Handle line
-                    Container(
-                      width: 40,
-                      height: 4,
-                      margin: const EdgeInsets.only(bottom: 24),
-                      decoration: BoxDecoration(
-                        color: _white.withValues(alpha: 0.25),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          _moreSheetBtn(
-                            icon: Icons.videocam_rounded,
-                            label: 'Camera',
-                            activeColor: _neonGreen,
-                            isActive: voiceState.room?.localParticipant?.isCameraEnabled() ?? false,
-                            onTap: () {
-                              Navigator.pop(context);
-                              _handleToggleVideo();
-                            },
-                          ),
-                          _moreSheetBtn(
-                            icon: Icons.desktop_windows_rounded,
-                            label: 'Share Screen',
-                            activeColor: _neonCyan,
-                            isActive: voiceState.room?.localParticipant?.isScreenShareEnabled() ?? false,
-                            onTap: () {
-                              Navigator.pop(context);
-                              _handleToggleScreenShare();
-                            },
-                          ),
-                          _moreSheetBtn(
-                            icon: Icons.sports_esports_rounded,
-                            label: 'Activities',
-                            activeColor: _neonCyan,
-                            isActive: false,
-                            onTap: () {
-                              Navigator.pop(context);
-                              _handleActivities();
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          _moreSheetBtn(
-                            icon: Icons.brush_rounded,
-                            label: 'Whiteboard',
-                            activeColor: _neonCyan,
-                            isActive: _showWhiteboard,
-                            onTap: () {
-                              Navigator.pop(context);
-                              _toggleWhiteboard(!_showWhiteboard);
-                            },
-                          ),
-                          _moreSheetBtn(
-                            icon: Icons.music_note_rounded,
-                            label: 'Soundboard',
-                            activeColor: _neonGreen,
-                            isActive: false,
-                            onTap: () {
-                              Navigator.pop(context);
-                              showModalBottomSheet(
-                                context: context,
-                                isScrollControlled: true,
-                                backgroundColor: Colors.transparent,
-                                builder: (context) => SoundboardSheet(serverId: widget.serverId),
-                              );
-                            },
-                          ),
-                          // Placeholder to keep spacing alignment neat
-                          const SizedBox(width: 80),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
+    VoiceSettingsBottomSheet.show(
+      context,
+      isMuted: voiceState.isMuted,
+      isVideoOn: voiceState.room?.localParticipant?.isCameraEnabled() ?? false,
+      isDeafened: voiceState.isDeafened,
+      onMuteChanged: (_) => _handleToggleMute(),
+      onVideoChanged: (_) => _handleToggleVideo(),
+      onDeafenChanged: (_) => _handleToggleDeafen(),
+      onEndCall: _handleDisconnect,
     );
   }
 

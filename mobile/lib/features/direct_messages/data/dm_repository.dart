@@ -115,7 +115,11 @@ class DMRepository {
     if (finalContent.isEmpty) {
       if (attachments != null && attachments.isNotEmpty) {
         final firstType = attachments.first.type.toLowerCase();
-        if (firstType.contains('image') || firstType.startsWith('image/')) {
+        if (firstType.contains('sticker') || firstType == 'sticker') {
+          finalContent = '👾 Sticker';
+        } else if (firstType.contains('gif')) {
+          finalContent = '👾 GIF';
+        } else if (firstType.contains('image') || firstType.startsWith('image/')) {
           finalContent = '📷 Photo';
         } else if (firstType.contains('video') || firstType.startsWith('video/')) {
           finalContent = '🎥 Video';

@@ -8,6 +8,7 @@ import '../../shared/presentation/widgets/user_avatar.dart';
 import '../../shared/presentation/widgets/skeleton_loader.dart';
 import '../../shared/presentation/widgets/flicko_error_state.dart';
 import '../../../data/models/user_model.dart';
+import 'package:mobile/features/direct_messages/presentation/screens/dm_chat_screen.dart';
 
 class Notification {
   final String id;
@@ -558,20 +559,19 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     final dmId = meta['dmId'] as String? ?? meta['dm_id'] as String?;
     final senderId = meta['userId'] as String? ?? meta['senderId'] as String? ?? meta['sender_id'] as String?;
 
-    if (dmId != null && dmId.isNotEmpty) {
-      context.push('/dm/$dmId');
-    } else if (serverId != null && serverId.isNotEmpty && channelId != null && channelId.isNotEmpty) {
+    if (serverId != null && serverId.isNotEmpty && channelId != null && channelId.isNotEmpty) {
       context.push('/server/$serverId/channel/$channelId');
-    } else if (channelId != null && channelId.isNotEmpty) {
-      context.push('/dm/$channelId');
-    } else if (notification.type == 'dm' && senderId != null) {
-      context.push('/dm/$senderId');
-    } else if (notification.type == 'friend_request' || notification.type == 'friend') {
-      context.push('/dms');
-    } else if (senderId != null) {
-      context.push('/dm/$senderId');
     } else {
-      context.push('/dms');
+      final targetUserId = dmId ?? senderId ?? channelId;
+      if (targetUserId != null && targetUserId.isNotEmpty) {
+        Navigator.of(context, rootNavigator: true).push(
+          MaterialPageRoute(
+            builder: (context) => DMChatScreen(userId: targetUserId),
+          ),
+        );
+      } else {
+        context.push('/dms');
+      }
     }
   }
 

@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,39 +21,56 @@ class WebhooksSettingsScreen extends ConsumerStatefulWidget {
 class _WebhooksSettingsScreenState extends ConsumerState<WebhooksSettingsScreen> {
   bool _isLoading = true;
   List<Map<String, dynamic>> _webhooks = [];
+  List<Map<String, dynamic>> _channels = [];
+  String? _selectedChannelId;
   String? _errorMessage;
   final _nameController = TextEditingController();
-  final _urlController = TextEditingController();
   bool _isCreating = false;
+  bool _isTesting = false;
 
   @override
   void initState() {
     super.initState();
-    _loadWebhooks();
+    _loadData();
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _urlController.dispose();
     super.dispose();
   }
 
-  Future<void> _loadWebhooks() async {
+  Future<void> _loadData() async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      final response = await Supabase.instance.client
+      // 1. Load Channels
+      final channelsResp = await Supabase.instance.client
+          .from('channels')
+          .select('id, name, type')
+          .eq('server_id', widget.serverId)
+          .order('name');
+
+      final loadedChannels = (channelsResp as List).cast<Map<String, dynamic>>();
+
+      // 2. Load Webhooks
+      final webhooksResp = await Supabase.instance.client
           .from('external_bots')
           .select('*')
           .eq('server_id', widget.serverId)
           .order('created_at', ascending: false);
 
+      final loadedWebhooks = (webhooksResp as List).cast<Map<String, dynamic>>();
+
       setState(() {
-        _webhooks = (response as List).cast<Map<String, dynamic>>();
+        _channels = loadedChannels;
+        _webhooks = loadedWebhooks;
+        if (_channels.isNotEmpty && _selectedChannelId == null) {
+          _selectedChannelId = _channels.first['id'] as String;
+        }
         _isLoading = false;
       });
     } catch (e) {
@@ -65,28 +83,21 @@ class _WebhooksSettingsScreenState extends ConsumerState<WebhooksSettingsScreen>
 
   Future<void> _createWebhook() async {
     final name = _nameController.text.trim();
-    final webhookUrl = _urlController.text.trim();
 
-    if (name.isEmpty || webhookUrl.isEmpty) {
+    if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'Name and Webhook URL are required',
-            style: GoogleFonts.inter(),
-          ),
+          content: Text('Please enter a Webhook Name', style: GoogleFonts.inter()),
           backgroundColor: const Color(FlickoColors.danger),
         ),
       );
       return;
     }
 
-    if (!webhookUrl.startsWith('http://') && !webhookUrl.startsWith('https://')) {
+    if (_selectedChannelId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'Webhook URL must start with http:// or https://',
-            style: GoogleFonts.inter(),
-          ),
+          content: Text('Please select a target channel', style: GoogleFonts.inter()),
           backgroundColor: const Color(FlickoColors.danger),
         ),
       );
@@ -96,13 +107,19 @@ class _WebhooksSettingsScreenState extends ConsumerState<WebhooksSettingsScreen>
     setState(() => _isCreating = true);
 
     try {
+      final token = 'wh_${DateTime.now().millisecondsSinceEpoch.toRadixString(36)}_${Random().nextInt(100000)}';
+      final generatedUrl = 'https://api.flicko.app/v1/webhooks/$token';
+      final currentUser = Supabase.instance.client.auth.currentUser;
+
       final response = await Supabase.instance.client
           .from('external_bots')
           .insert({
             'name': name,
-            'webhook_url': webhookUrl,
+            'token': token,
+            'webhook_url': generatedUrl,
             'server_id': widget.serverId,
-            'creator_id': Supabase.instance.client.auth.currentUser?.id,
+            'channel_id': _selectedChannelId,
+            'creator_id': currentUser?.id,
             'is_active': true,
           })
           .select()
@@ -111,7 +128,6 @@ class _WebhooksSettingsScreenState extends ConsumerState<WebhooksSettingsScreen>
       setState(() {
         _webhooks.insert(0, response);
         _nameController.clear();
-        _urlController.clear();
         _isCreating = false;
       });
 
@@ -119,10 +135,7 @@ class _WebhooksSettingsScreenState extends ConsumerState<WebhooksSettingsScreen>
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'Webhook created successfully',
-              style: GoogleFonts.inter(),
-            ),
+            content: Text('Webhook created successfully!', style: GoogleFonts.inter()),
             backgroundColor: const Color(FlickoColors.success),
           ),
         );
@@ -132,10 +145,55 @@ class _WebhooksSettingsScreenState extends ConsumerState<WebhooksSettingsScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'Failed to create webhook: ${e.toString()}',
-              style: GoogleFonts.inter(),
-            ),
+            content: Text('Failed to create webhook: ${e.toString()}', style: GoogleFonts.inter()),
+            backgroundColor: const Color(FlickoColors.danger),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _sendTestEvent(Map<String, dynamic> webhook) async {
+    final channelId = webhook['channel_id'] as String?;
+    final webhookName = webhook['name'] as String? ?? 'External Bot';
+
+    if (channelId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('No target channel configured for this webhook', style: GoogleFonts.inter()),
+          backgroundColor: const Color(FlickoColors.danger),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isTesting = true);
+
+    try {
+      final currentUser = Supabase.instance.client.auth.currentUser;
+      await Supabase.instance.client.from('messages').insert({
+        'channel_id': channelId,
+        'user_id': currentUser?.id,
+        'content': '🤖 **[Webhook Test]** Webhook "$webhookName" is active and working properly!',
+        'created_at': DateTime.now().toIso8601String(),
+      });
+
+      setState(() => _isTesting = false);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Test message posted to channel!', style: GoogleFonts.inter()),
+            backgroundColor: const Color(FlickoColors.success),
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() => _isTesting = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Test event failed: ${e.toString()}', style: GoogleFonts.inter()),
             backgroundColor: const Color(FlickoColors.danger),
           ),
         );
@@ -148,50 +206,24 @@ class _WebhooksSettingsScreenState extends ConsumerState<WebhooksSettingsScreen>
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(FlickoColors.bgSecondary),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'Delete Webhook',
-          style: GoogleFonts.inter(
-            color: const Color(FlickoColors.textPrimary),
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
+          style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary), fontSize: 18, fontWeight: FontWeight.w600),
         ),
         content: Text(
-          'Are you sure you want to delete this webhook? This action cannot be undone.',
-          style: GoogleFonts.inter(
-            color: const Color(FlickoColors.textSecondary),
-            fontSize: 14,
-          ),
+          'Are you sure you want to delete this webhook? Any external integrations using this URL will stop working.',
+          style: GoogleFonts.inter(color: const Color(FlickoColors.textSecondary), fontSize: 14),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: Text(
-              'Cancel',
-              style: GoogleFonts.inter(
-                color: const Color(FlickoColors.textSecondary),
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+            child: Text('Cancel', style: GoogleFonts.inter(color: const Color(FlickoColors.textSecondary))),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(
-              backgroundColor: const Color(FlickoColors.danger).withValues(alpha: 0.1),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: Text(
-              'Delete',
-              style: GoogleFonts.inter(
-                color: const Color(FlickoColors.danger),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            style: TextButton.styleFrom(backgroundColor: const Color(FlickoColors.danger).withValues(alpha: 0.1)),
+            child: Text('Delete', style: GoogleFonts.inter(color: const Color(FlickoColors.danger), fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -200,36 +232,19 @@ class _WebhooksSettingsScreenState extends ConsumerState<WebhooksSettingsScreen>
     if (confirmed != true) return;
 
     try {
-      await Supabase.instance.client
-          .from('external_bots')
-          .delete()
-          .eq('id', webhookId);
-
+      await Supabase.instance.client.from('external_bots').delete().eq('id', webhookId);
       setState(() {
         _webhooks.removeWhere((w) => w['id'] == webhookId);
       });
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Webhook deleted',
-              style: GoogleFonts.inter(),
-            ),
-            backgroundColor: const Color(FlickoColors.success),
-          ),
+          SnackBar(content: Text('Webhook deleted', style: GoogleFonts.inter()), backgroundColor: const Color(FlickoColors.success)),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Failed to delete: ${e.toString()}',
-              style: GoogleFonts.inter(),
-            ),
-            backgroundColor: const Color(FlickoColors.danger),
-          ),
+          SnackBar(content: Text('Failed to delete: ${e.toString()}', style: GoogleFonts.inter()), backgroundColor: const Color(FlickoColors.danger)),
         );
       }
     }
@@ -237,33 +252,15 @@ class _WebhooksSettingsScreenState extends ConsumerState<WebhooksSettingsScreen>
 
   void _copyWebhookUrl(Map<String, dynamic> webhook) {
     final url = webhook['webhook_url'] as String? ?? '';
-    if (url.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'No webhook URL available',
-            style: GoogleFonts.inter(),
-          ),
-          backgroundColor: const Color(FlickoColors.warning),
-        ),
-      );
-      return;
-    }
+    if (url.isEmpty) return;
     Clipboard.setData(ClipboardData(text: url));
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'URL copied to clipboard',
-          style: GoogleFonts.inter(),
-        ),
-        backgroundColor: const Color(FlickoColors.success),
-      ),
+      SnackBar(content: Text('Webhook URL copied to clipboard', style: GoogleFonts.inter()), backgroundColor: const Color(FlickoColors.success)),
     );
   }
 
   void _openCreateModal() {
     _nameController.clear();
-    _urlController.clear();
 
     showModalBottomSheet(
       context: context,
@@ -290,106 +287,55 @@ class _WebhooksSettingsScreenState extends ConsumerState<WebhooksSettingsScreen>
                   child: Container(
                     width: 40,
                     height: 4,
-                    decoration: BoxDecoration(
-                      color: const Color(FlickoColors.textMuted),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
+                    decoration: BoxDecoration(color: const Color(FlickoColors.textMuted), borderRadius: BorderRadius.circular(2)),
                   ),
                 ),
                 const SizedBox(height: 20),
-                Text(
-                  'New Webhook',
-                  style: GoogleFonts.inter(
-                    color: const Color(FlickoColors.textPrimary),
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                Text('Create Incoming Webhook', style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary), fontSize: 20, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 6),
-                Text(
-                  'Create an external bot webhook for this server.',
-                  style: GoogleFonts.inter(
-                    color: const Color(FlickoColors.textMuted),
-                    fontSize: 13,
-                  ),
-                ),
+                Text('Generate a unique webhook URL to receive messages from GitHub, Twitch, Zapier, etc.', style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted), fontSize: 13)),
                 const SizedBox(height: 24),
-                Text(
-                  'Name',
-                  style: GoogleFonts.inter(
-                    color: const Color(FlickoColors.textSecondary),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+                Text('Webhook Name', style: GoogleFonts.inter(color: const Color(FlickoColors.textSecondary), fontSize: 13, fontWeight: FontWeight.w500)),
                 const SizedBox(height: 8),
                 TextField(
                   controller: _nameController,
-                  style: GoogleFonts.inter(
-                    color: const Color(FlickoColors.textPrimary),
-                    fontSize: 14,
-                  ),
+                  style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary), fontSize: 14),
                   decoration: InputDecoration(
-                    hintText: 'e.g. GitHub Notifications',
-                    hintStyle: GoogleFonts.inter(
-                      color: const Color(FlickoColors.textMuted),
-                      fontSize: 14,
-                    ),
+                    hintText: 'e.g. GitHub Integration',
+                    hintStyle: GoogleFonts.inter(color: const Color(FlickoColors.textMuted), fontSize: 14),
                     filled: true,
                     fillColor: const Color(FlickoColors.bgTertiary),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(FlickoColors.border)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(FlickoColors.border)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(FlickoColors.brandLime), width: 1.5),
-                    ),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(FlickoColors.border))),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   ),
                 ),
                 const SizedBox(height: 16),
-                Text(
-                  'Webhook URL',
-                  style: GoogleFonts.inter(
-                    color: const Color(FlickoColors.textSecondary),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+                Text('Target Channel', style: GoogleFonts.inter(color: const Color(FlickoColors.textSecondary), fontSize: 13, fontWeight: FontWeight.w500)),
                 const SizedBox(height: 8),
-                TextField(
-                  controller: _urlController,
-                  style: GoogleFonts.inter(
-                    color: const Color(FlickoColors.textPrimary),
-                    fontSize: 14,
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: const Color(FlickoColors.bgTertiary),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(FlickoColors.border)),
                   ),
-                  keyboardType: TextInputType.url,
-                  decoration: InputDecoration(
-                    hintText: 'https://example.com/webhook',
-                    hintStyle: GoogleFonts.inter(
-                      color: const Color(FlickoColors.textMuted),
-                      fontSize: 14,
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _selectedChannelId,
+                      isExpanded: true,
+                      dropdownColor: const Color(FlickoColors.bgSecondary),
+                      icon: const Icon(Icons.arrow_drop_down, color: Color(FlickoColors.textMuted)),
+                      items: _channels.map((ch) {
+                        return DropdownMenuItem<String>(
+                          value: ch['id'] as String,
+                          child: Text('# ${ch['name']}', style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary), fontSize: 14)),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        setModalState(() => _selectedChannelId = val);
+                        setState(() => _selectedChannelId = val);
+                      },
                     ),
-                    filled: true,
-                    fillColor: const Color(FlickoColors.bgTertiary),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(FlickoColors.border)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(FlickoColors.border)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(FlickoColors.brandLime), width: 1.5),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   ),
                 ),
                 const SizedBox(height: 28),
@@ -401,38 +347,18 @@ class _WebhooksSettingsScreenState extends ConsumerState<WebhooksSettingsScreen>
                         ? null
                         : () async {
                             setModalState(() => _isCreating = true);
-                            setState(() => _isCreating = true);
                             await _createWebhook();
-                            if (mounted) {
-                              setModalState(() => _isCreating = false);
-                              setState(() => _isCreating = false);
-                            }
+                            if (mounted) setModalState(() => _isCreating = false);
                           },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(FlickoColors.brandLime),
                       foregroundColor: const Color(FlickoColors.bgPrimary),
-                      disabledBackgroundColor: const Color(FlickoColors.brandLimeDim),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       elevation: 0,
                     ),
                     child: _isCreating
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Color(FlickoColors.bgPrimary),
-                            ),
-                          )
-                        : Text(
-                            'Create Webhook',
-                            style: GoogleFonts.inter(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Color(FlickoColors.bgPrimary)))
+                        : Text('Create Webhook', style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w600)),
                   ),
                 ),
               ],
@@ -455,14 +381,7 @@ class _WebhooksSettingsScreenState extends ConsumerState<WebhooksSettingsScreen>
           icon: const Icon(Icons.arrow_back_ios_new, color: Color(FlickoColors.textPrimary), size: 20),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Text(
-          'Webhooks',
-          style: GoogleFonts.inter(
-            color: const Color(FlickoColors.textPrimary),
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        title: Text('Webhooks', style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary), fontSize: 20, fontWeight: FontWeight.w600)),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 8),
@@ -487,73 +406,12 @@ class _WebhooksSettingsScreenState extends ConsumerState<WebhooksSettingsScreen>
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: Color(FlickoColors.brandLime)),
-      );
+      return const Center(child: CircularProgressIndicator(color: Color(FlickoColors.brandLime)));
     }
 
     if (_errorMessage != null) {
       return Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: const Color(FlickoColors.danger).withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.error_outline, size: 32, color: Color(FlickoColors.danger)),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                'Error loading webhooks',
-                style: GoogleFonts.inter(
-                  color: const Color(FlickoColors.textPrimary),
-                  fontSize: 17,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _errorMessage!,
-                style: GoogleFonts.inter(
-                  color: const Color(FlickoColors.textMuted),
-                  fontSize: 13,
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: 140,
-                height: 42,
-                child: ElevatedButton(
-                  onPressed: _loadWebhooks,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(FlickoColors.brandLime),
-                    foregroundColor: const Color(FlickoColors.bgPrimary),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: Text(
-                    'Retry',
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
+        child: Text(_errorMessage!, style: GoogleFonts.inter(color: const Color(FlickoColors.danger))),
       );
     }
 
@@ -565,52 +423,22 @@ class _WebhooksSettingsScreenState extends ConsumerState<WebhooksSettingsScreen>
             Container(
               width: 72,
               height: 72,
-              decoration: BoxDecoration(
-                color: const Color(FlickoColors.bgTertiary),
-                shape: BoxShape.circle,
-              ),
+              decoration: const BoxDecoration(color: Color(FlickoColors.bgTertiary), shape: BoxShape.circle),
               child: const Icon(Icons.webhook_outlined, size: 36, color: Color(FlickoColors.textMuted)),
             ),
             const SizedBox(height: 20),
-            Text(
-              'No webhooks yet',
-              style: GoogleFonts.inter(
-                color: const Color(FlickoColors.textPrimary),
-                fontSize: 17,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            Text('No webhooks yet', style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary), fontSize: 17, fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
-            Text(
-              'Create a webhook to integrate external\nservices with this server.',
-              style: GoogleFonts.inter(
-                color: const Color(FlickoColors.textMuted),
-                fontSize: 13,
-              ),
-              textAlign: TextAlign.center,
-            ),
+            Text('Create a webhook to receive automated messages\nfrom GitHub, Twitch, Zapier, etc.', style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted), fontSize: 13), textAlign: TextAlign.center),
             const SizedBox(height: 24),
-            SizedBox(
-              height: 44,
-              child: ElevatedButton.icon(
-                onPressed: _openCreateModal,
-                icon: const Icon(Icons.add, size: 18),
-                label: Text(
-                  'Create Webhook',
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(FlickoColors.brandLime),
-                  foregroundColor: const Color(FlickoColors.bgPrimary),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                ),
+            ElevatedButton.icon(
+              onPressed: _openCreateModal,
+              icon: const Icon(Icons.add, size: 18),
+              label: Text('Create Webhook', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(FlickoColors.brandLime),
+                foregroundColor: const Color(FlickoColors.bgPrimary),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
           ],
@@ -619,9 +447,8 @@ class _WebhooksSettingsScreenState extends ConsumerState<WebhooksSettingsScreen>
     }
 
     return RefreshIndicator(
-      onRefresh: _loadWebhooks,
+      onRefresh: _loadData,
       color: const Color(FlickoColors.brandLime),
-      backgroundColor: const Color(FlickoColors.bgSecondary),
       child: ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: _webhooks.length,
@@ -632,168 +459,88 @@ class _WebhooksSettingsScreenState extends ConsumerState<WebhooksSettingsScreen>
   }
 
   Widget _buildWebhookCard(Map<String, dynamic> webhook) {
-    final isActive = webhook['is_active'] as bool? ?? false;
-    final description = webhook['description'] as String?;
+    final channelId = webhook['channel_id'] as String?;
+    final channel = _channels.firstWhere((c) => c['id'] == channelId, orElse: () => {'name': 'general'});
+    final url = webhook['webhook_url'] as String? ?? '';
 
     return Container(
       decoration: BoxDecoration(
         color: const Color(FlickoColors.bgSecondary),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(FlickoColors.border),
-          width: 1,
-        ),
+        border: Border.all(color: const Color(FlickoColors.border), width: 1),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: const Color(FlickoColors.brandLime).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.webhook, size: 20, color: Color(FlickoColors.brandLime)),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: const Color(FlickoColors.brandLime).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        webhook['name'] ?? 'Unnamed',
-                        style: GoogleFonts.inter(
-                          color: const Color(FlickoColors.textPrimary),
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Created ${_formatDate(webhook['created_at'])}',
-                        style: GoogleFonts.inter(
-                          color: const Color(FlickoColors.textMuted),
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
+                child: const Icon(Icons.webhook, size: 20, color: Color(FlickoColors.brandLime)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(webhook['name'] ?? 'Unnamed', style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary), fontSize: 15, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 2),
+                    Text('Posts to #${channel['name']}', style: GoogleFonts.inter(color: const Color(FlickoColors.brandLime), fontSize: 12, fontWeight: FontWeight.w500)),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: isActive
-                        ? const Color(FlickoColors.success).withValues(alpha: 0.1)
-                        : const Color(FlickoColors.textMuted).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    isActive ? 'Active' : 'Inactive',
-                    style: GoogleFonts.inter(
-                      color: isActive
-                          ? const Color(FlickoColors.success)
-                          : const Color(FlickoColors.textMuted),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            if (description != null && description.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              Text(
-                description,
-                style: GoogleFonts.inter(
-                  color: const Color(FlickoColors.textSecondary),
-                  fontSize: 13,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
               ),
             ],
-            const SizedBox(height: 14),
-            Container(
-              height: 1,
-              color: const Color(FlickoColors.border),
-            ),
-            const SizedBox(height: 12),
-            Row(
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(color: const Color(FlickoColors.bgTertiary), borderRadius: BorderRadius.circular(8)),
+            child: Row(
               children: [
                 Expanded(
-                  child: SizedBox(
-                    height: 36,
-                    child: TextButton.icon(
-                      onPressed: () => _copyWebhookUrl(webhook),
-                      icon: const Icon(Icons.copy, size: 15),
-                      label: Text(
-                        'Copy URL',
-                        style: GoogleFonts.inter(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      style: TextButton.styleFrom(
-                        foregroundColor: const Color(FlickoColors.brandLime),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                    ),
-                  ),
+                  child: Text(url, style: GoogleFonts.inter(color: const Color(FlickoColors.textSecondary), fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
                 ),
-                const SizedBox(width: 8),
-                SizedBox(
-                  height: 36,
-                  child: TextButton.icon(
-                    onPressed: () => _deleteWebhook(webhook['id']),
-                    icon: const Icon(Icons.delete_outline, size: 15),
-                    label: Text(
-                      'Delete',
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    style: TextButton.styleFrom(
-                      foregroundColor: const Color(FlickoColors.danger),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  ),
+                IconButton(
+                  icon: const Icon(Icons.copy, size: 16, color: Color(FlickoColors.brandLime)),
+                  onPressed: () => _copyWebhookUrl(webhook),
+                  constraints: const BoxConstraints(),
+                  padding: EdgeInsets.zero,
                 ),
               ],
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _isTesting ? null : () => _sendTestEvent(webhook),
+                  icon: const Icon(Icons.send_rounded, size: 14),
+                  label: Text('Send Test Event', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(FlickoColors.brandLime),
+                    side: const BorderSide(color: Color(FlickoColors.brandLime)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              TextButton.icon(
+                onPressed: () => _deleteWebhook(webhook['id']),
+                icon: const Icon(Icons.delete_outline, size: 15),
+                label: Text('Delete', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500)),
+                style: TextButton.styleFrom(foregroundColor: const Color(FlickoColors.danger)),
+              ),
+            ],
+          ),
+        ],
       ),
     );
-  }
-
-  String _formatDate(String? dateString) {
-    if (dateString == null) return 'Unknown';
-    try {
-      final date = DateTime.parse(dateString);
-      final now = DateTime.now();
-      final diff = now.difference(date);
-
-      if (diff.inDays == 0) return 'today';
-      if (diff.inDays == 1) return 'yesterday';
-      if (diff.inDays < 7) return '${diff.inDays}d ago';
-      if (diff.inDays < 30) return '${(diff.inDays / 7).floor()}w ago';
-
-      return '${date.day}/${date.month}/${date.year}';
-    } catch (_) {
-      return 'Unknown';
-    }
   }
 }

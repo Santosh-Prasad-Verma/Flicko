@@ -5,7 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
-import 'package:mobile/features/shared/presentation/widgets/avatar.dart';
+import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
+import 'package:mobile/features/direct_messages/presentation/screens/dm_chat_screen.dart';
 
 /// Notifications Tab Screen
 ///
@@ -162,7 +163,31 @@ class _NotificationsTabScreenState extends ConsumerState<NotificationsTabScreen>
     final meta = (notification['content'] as Map<String, dynamic>?) ?? {};
 
     return InkWell(
-      onTap: () => _markAsRead(notification['id'] as String),
+      onTap: () {
+        final id = notification['id'] as String;
+        _markAsRead(id);
+
+        final serverId = meta['serverId'] as String? ?? notification['server_id'] as String?;
+        final channelId = meta['channelId'] as String? ?? notification['channel_id'] as String?;
+        final channelName = meta['channelName'] as String?;
+        final dmChannelId = meta['dmChannelId'] as String? ?? notification['dm_channel_id'] as String?;
+        final userId = meta['userId'] as String? ?? notification['sender_id'] as String?;
+
+        if (serverId != null && channelId != null) {
+          context.push('/server/$serverId/channel/$channelId', extra: {'channelName': channelName});
+        } else {
+          final targetUserId = dmChannelId ?? userId ?? channelId;
+          if (targetUserId != null && targetUserId.isNotEmpty) {
+            Navigator.of(context, rootNavigator: true).push(
+              MaterialPageRoute(
+                builder: (context) => DMChatScreen(userId: targetUserId),
+              ),
+            );
+          } else {
+            context.push('/dms');
+          }
+        }
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         color: isRead ? null : const Color(FlickoColors.bgSecondary),
@@ -192,7 +217,7 @@ class _NotificationsTabScreenState extends ConsumerState<NotificationsTabScreen>
                 borderRadius: BorderRadius.circular(20),
               ),
               child: meta['userAvatar'] != null
-                  ? Avatar(
+                  ? UserAvatar(
                       name: meta['userName'] as String? ?? 'User',
                       imageUrl: meta['userAvatar'] as String?,
                       size: 40,

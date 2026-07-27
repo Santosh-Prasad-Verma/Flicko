@@ -168,6 +168,7 @@ func main() {
 		cfg.ReadBufferSize,
 		cfg.WriteBufferSize,
 		cfg.CORSOrigins,
+		cfg.IsProd(),
 		log,
 	)
 	healthHandler := handler.NewHealthHandler(rdb, mgr, log)

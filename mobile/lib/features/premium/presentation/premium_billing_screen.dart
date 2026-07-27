@@ -129,26 +129,64 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
           ? (isAnnual ? SubscriptionPlan.plusYearly : SubscriptionPlan.plus)
           : (isAnnual ? SubscriptionPlan.proYearly : SubscriptionPlan.pro);
 
-      String orderId;
-      try {
-        final order = await razorpay.createOrder(
-          plan: planEnum,
-          billingCycle: isAnnual ? BillingCycle.yearly : BillingCycle.monthly,
-        );
-        orderId = order['id'] as String? ?? 'order_dummy_${DateTime.now().millisecondsSinceEpoch}';
-      } catch (_) {
-        orderId = 'order_sandbox_${DateTime.now().millisecondsSinceEpoch}';
+      // Create the order server-side. A failure here must abort the purchase:
+      // this used to fall back to a locally invented id
+      // (`order_dummy_…` / `order_sandbox_…`), which Razorpay rejects because it
+      // never issued it — so the flow could only ever fail later, more
+      // confusingly.
+      final order = await razorpay.createOrder(
+        plan: planEnum,
+        billingCycle: isAnnual ? BillingCycle.yearly : BillingCycle.monthly,
+      );
+
+      // The backend responds with `order_id` (not `id`) — see
+      // premium_handler.go CreateOrder.
+      final orderId = order['order_id'] as String?;
+      if (orderId == null || orderId.isEmpty) {
+        throw Exception('Payment could not be started: no order id returned.');
       }
 
-      await razorpay.startPayment(
+      // The server is the price authority. It computes the charge from the plan
+      // and returns it in paise; using the locally computed figure here would
+      // let the two disagree.
+      final amountPaise = (order['amount'] as num?)?.toDouble();
+      final chargeInRupees =
+          amountPaise != null ? amountPaise / 100.0 : amountInRupees.toDouble();
+
+      final paymentResult = await razorpay.startPayment(
         orderId: orderId,
-        amount: amountInRupees.toDouble(),
+        amount: chargeInRupees,
         userEmail: user.email ?? 'user@flicko.tech',
         userPhone: '',
         description: 'Flicko ${planId.toUpperCase()} (${isAnnual ? "Annual" : "Monthly"})',
       );
 
+      // Verify the signature before telling the user they have premium. The
+      // entitlement is granted by the backend during verification, so skipping
+      // this step showed a success message for an unverified payment.
+      final isVerified = await razorpay.verifyPayment(
+        orderId: orderId,
+        paymentId: paymentResult['paymentId'] as String,
+        signature: paymentResult['signature'] as String,
+        email: user.email ?? '',
+        username: '',
+        amount: '₹${chargeInRupees.toStringAsFixed(0)}',
+        plan: planEnum,
+      );
+
       if (!mounted) return;
+
+      if (!isVerified) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'We could not verify that payment. If you were charged, it will '
+              'be reconciled automatically — please contact support.',
+            ),
+          ),
+        );
+        return;
+      }
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -260,13 +298,16 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
               children: [
                 const Icon(Icons.star_rounded, color: accentLime, size: 14),
                 const SizedBox(width: 6),
-                Text(
-                  'UPGRADE YOUR EXPERIENCE',
-                  style: GoogleFonts.outfit(
-                    color: accentLime,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.2,
+                Flexible(
+                  child: Text(
+                    'UPGRADE YOUR EXPERIENCE',
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.outfit(
+                      color: accentLime,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.2,
+                    ),
                   ),
                 ),
               ],
@@ -350,12 +391,15 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
-                      'Annual',
-                      style: GoogleFonts.inter(
-                        color: _isAnnual ? Colors.black : Colors.white54,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 13,
+                    Flexible(
+                      child: Text(
+                        'Annual',
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.inter(
+                          color: _isAnnual ? Colors.black : Colors.white54,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 6),
@@ -478,9 +522,12 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
                 ),
               ),
               if (_isAnnual && isPaid)
-                Text(
-                  'Billed Annually',
-                  style: GoogleFonts.inter(color: Colors.white38, fontSize: 11),
+                Flexible(
+                  child: Text(
+                    'Billed Annually',
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.inter(color: Colors.white38, fontSize: 11),
+                  ),
                 ),
             ],
           ),
@@ -489,13 +536,16 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
-              Text(
-                priceDisplay,
-                style: GoogleFonts.outfit(
-                  color: Colors.white,
-                  fontSize: 40,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -1,
+              Flexible(
+                child: Text(
+                  priceDisplay,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.outfit(
+                    color: Colors.white,
+                    fontSize: 40,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -1,
+                  ),
                 ),
               ),
               const SizedBox(width: 6),
@@ -597,12 +647,12 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
             crossAxisCount: 2,
             mainAxisSpacing: 12,
             crossAxisSpacing: 12,
-            childAspectRatio: 1.35,
+            childAspectRatio: 1.15,
           ),
           itemBuilder: (context, index) {
             final f = features[index];
             return Container(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
                 color: cardBg,
                 borderRadius: BorderRadius.circular(16),
@@ -612,10 +662,12 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(f.$1, color: accentLime, size: 22),
-                  const SizedBox(height: 8),
+                  Icon(f.$1, color: accentLime, size: 20),
+                  const SizedBox(height: 6),
                   Text(
                     f.$2,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.outfit(
                       color: Colors.white,
                       fontSize: 13,
@@ -623,13 +675,15 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    f.$3,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.inter(
-                      color: Colors.white.withValues(alpha: 0.42),
-                      fontSize: 11,
+                  Expanded(
+                    child: Text(
+                      f.$3,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.inter(
+                        color: Colors.white.withValues(alpha: 0.42),
+                        fontSize: 11,
+                      ),
                     ),
                   ),
                 ],
@@ -647,9 +701,12 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
       children: [
         const Icon(Icons.shield_outlined, color: Colors.white38, size: 16),
         const SizedBox(width: 8),
-        Text(
-          'Encrypted payment via Razorpay. Cancel anytime.',
-          style: GoogleFonts.inter(color: Colors.white38, fontSize: 11),
+        Flexible(
+          child: Text(
+            'Encrypted payment via Razorpay. Cancel anytime.',
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.inter(color: Colors.white38, fontSize: 11),
+          ),
         ),
       ],
     );

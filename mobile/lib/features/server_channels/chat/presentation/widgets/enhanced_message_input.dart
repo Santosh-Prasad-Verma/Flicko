@@ -439,210 +439,265 @@ class _EnhancedMessageInputState extends ConsumerState<EnhancedMessageInput> {
   @override
   Widget build(BuildContext context) {
     if (_isRecording || _isLockedRecording) {
-      return _buildRecordingUI();
+      return buildRecordingUI();
     }
 
-    return ClipRRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFF0D0F0E).withOpacity(0.7),
-            border: Border(
-              top: BorderSide(
-                color: const Color(FlickoColors.brandLime).withOpacity(0.15),
-                width: 1.5,
-              ),
-            ),
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(FlickoColors.bgSecondary).withValues(alpha: 0.85),
+        border: Border(
+          top: BorderSide(
+            color: Colors.white.withValues(alpha: 0.08),
+            width: 1,
           ),
+        ),
+      ),
+      child: ClipRRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
           child: SafeArea(
-        top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Mention autocomplete
-            if (_showMentions)
-              MentionAutocomplete(
-                users: _availableUsers,
-                query: _mentionQuery,
-                onSelect: _insertMention,
-                onDismiss: _dismissMentions,
-              ),
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Mention autocomplete
+                if (_showMentions)
+                  MentionAutocomplete(
+                    users: _availableUsers,
+                    query: _mentionQuery,
+                    onSelect: _insertMention,
+                    onDismiss: _dismissMentions,
+                  ),
 
-            // Command autocomplete
-            if (_showCommands)
-              CommandAutocomplete(
-                commands: _commands,
-                query: _commandQuery,
-                onSelect: _insertCommand,
-                onDismiss: _dismissCommands,
-              ),
-            
-            // Reply bar
-            if (widget.replyToName != null) _buildReplyBar(),
-            
-            // Selected files
-            if (_selectedFiles.isNotEmpty) _buildAttachmentPreview(),
+                // Command autocomplete
+                if (_showCommands)
+                  CommandAutocomplete(
+                    commands: _commands,
+                    query: _commandQuery,
+                    onSelect: _insertCommand,
+                    onDismiss: _dismissCommands,
+                  ),
+                
+                // Reply bar
+                if (widget.replyToName != null) buildReplyBar(),
+                
+                // Selected files preview
+                if (_selectedFiles.isNotEmpty) buildAttachmentPreview(),
 
-            // Extras Drawer
-            if (_showExtras)
-              ClipRRect(
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                // Extras Drawer Sheet
+                if (_showExtras)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF0D0F0E).withOpacity(0.7),
-                      border: Border(bottom: BorderSide(color: _textWhite.withOpacity(0.05))),
+                      color: const Color(FlickoColors.bgTertiary),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
                     ),
                     child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _ExtraButton(
+                            icon: Icons.camera_alt_rounded,
+                            label: 'CAMERA',
+                            onTap: _handlePickCamera,
+                          ),
+                          const SizedBox(width: 16),
+                          _ExtraButton(
+                            icon: Icons.photo_library_rounded,
+                            label: 'GALLERY',
+                            onTap: _handlePickImage,
+                          ),
+                          const SizedBox(width: 16),
+                          _ExtraButton(
+                            icon: Icons.emoji_emotions_rounded,
+                            label: 'EMOJI',
+                            onTap: _showEmojiPicker,
+                          ),
+                          const SizedBox(width: 16),
+                          _ExtraButton(
+                            icon: Icons.gif_box_rounded,
+                            label: 'GIF',
+                            onTap: _showGifPicker,
+                          ),
+                          const SizedBox(width: 16),
+                          _ExtraButton(
+                            icon: Icons.sticky_note_2_rounded,
+                            label: 'STICKER',
+                            onTap: _showStickerPicker,
+                          ),
+                          const SizedBox(width: 16),
+                          if (widget.onPollRequested != null) ...[
+                            _ExtraButton(
+                              icon: Icons.poll_rounded,
+                              label: 'POLL',
+                              onTap: () {
+                                setState(() => _showExtras = false);
+                                widget.onPollRequested!();
+                              },
+                            ),
+                            const SizedBox(width: 16),
+                          ],
+                          _ExtraButton(
+                            icon: Icons.mic_rounded,
+                            label: 'VOICE',
+                            onTap: _startRecording,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                // Main input row
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
                   child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      _ExtraButton(
-                        icon: Icons.emoji_emotions_rounded,
-                        label: 'EMOJI',
-                        onTap: _showEmojiPicker,
-                      ),
-                      const SizedBox(width: 16),
-                      _ExtraButton(
-                        icon: Icons.gif_box_rounded,
-                        label: 'GIF',
-                        onTap: _showGifPicker,
-                      ),
-                      const SizedBox(width: 16),
-                      _ExtraButton(
-                        icon: Icons.sticky_note_2_rounded,
-                        label: 'STICKER',
-                        onTap: _showStickerPicker,
-                      ),
-                      const SizedBox(width: 16),
-                      _ExtraButton(
-                        icon: Icons.camera_alt_rounded,
-                        label: 'CAMERA',
-                        onTap: _handlePickCamera,
-                      ),
-                      const SizedBox(width: 16),
-                      _ExtraButton(
-                        icon: Icons.photo_library_rounded,
-                        label: 'GALLERY',
-                        onTap: _handlePickImage,
-                      ),
-                      const SizedBox(width: 16),
-                      if (widget.onPollRequested != null) ...[
-                        _ExtraButton(
-                          icon: Icons.poll_rounded,
-                          label: 'POLL',
-                          onTap: () {
-                            setState(() => _showExtras = false);
-                            widget.onPollRequested!();
-                          },
+                      // Plus Button
+                      GestureDetector(
+                        onTap: () => setState(() => _showExtras = !_showExtras),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: _showExtras
+                                ? const Color(FlickoColors.brandLime).withValues(alpha: 0.18)
+                                : const Color(FlickoColors.bgTertiary),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: _showExtras
+                                  ? const Color(FlickoColors.brandLime).withValues(alpha: 0.5)
+                                  : Colors.white.withValues(alpha: 0.08),
+                            ),
+                          ),
+                          child: AnimatedRotation(
+                            turns: _showExtras ? 0.125 : 0,
+                            duration: const Duration(milliseconds: 200),
+                            child: Icon(
+                              Icons.add_rounded,
+                              size: 22,
+                              color: _showExtras ? const Color(FlickoColors.brandLime) : Colors.white70,
+                            ),
+                          ),
                         ),
-                        const SizedBox(width: 16),
-                      ],
-                      _ExtraButton(
-                        icon: Icons.mic_rounded,
-                        label: 'VOICE',
-                        onTap: _startRecording,
+                      ),
+                      const SizedBox(width: 8),
+
+                      // Text Field Pill
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: const Color(FlickoColors.bgTertiary),
+                            borderRadius: BorderRadius.circular(22),
+                            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _controller,
+                                  maxLines: 5,
+                                  minLines: 1,
+                                  style: GoogleFonts.inter(
+                                    color: _textWhite,
+                                    fontSize: 15,
+                                    height: 1.35,
+                                  ),
+                                  decoration: InputDecoration(
+                                    hintText: 'Send a message...',
+                                    hintStyle: GoogleFonts.inter(
+                                      color: _textMuted,
+                                      fontSize: 14,
+                                    ),
+                                    border: InputBorder.none,
+                                    isDense: true,
+                                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                                  ),
+                                  textInputAction: TextInputAction.newline,
+                                  onSubmitted: (_) => _handleSend(),
+                                ),
+                              ),
+                              IconButton(
+                                onPressed: _showEmojiPicker,
+                                icon: const Icon(
+                                  Icons.emoji_emotions_outlined,
+                                  size: 22,
+                                  color: _textMuted,
+                                ),
+                                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                                padding: EdgeInsets.zero,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+
+                      // Send or Mic button
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 180),
+                        transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
+                        child: _isEmpty
+                            ? GestureDetector(
+                                key: const ValueKey('mic'),
+                                onTap: _startRecording,
+                                child: Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    color: const Color(FlickoColors.bgTertiary),
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                                  ),
+                                  child: const Icon(
+                                    Icons.mic_rounded,
+                                    size: 22,
+                                    color: Colors.white70,
+                                  ),
+                                ),
+                              )
+                            : GestureDetector(
+                                key: const ValueKey('send'),
+                                onTap: _handleSend,
+                                child: Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    color: const Color(FlickoColors.brandLime),
+                                    borderRadius: BorderRadius.circular(14),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(FlickoColors.brandLime).withValues(alpha: 0.35),
+                                        blurRadius: 12,
+                                        spreadRadius: 1,
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Icon(
+                                    Icons.send_rounded,
+                                    size: 20,
+                                    color: Color(FlickoColors.bgPrimary),
+                                  ),
+                                ),
+                              ),
                       ),
                     ],
                   ),
                 ),
-              ))),
-
-            // Main input row
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  GestureDetector(
-                    onTap: () => setState(() => _showExtras = !_showExtras),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: _showExtras ? _neonGreen.withOpacity(0.2) : Colors.white.withOpacity(0.05),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: AnimatedRotation(
-                        turns: _showExtras ? 0.125 : 0,
-                        duration: const Duration(milliseconds: 200),
-                        child: Icon(
-                          Icons.add_rounded,
-                          size: 22,
-                          color: _showExtras ? _neonGreen : _textWhite,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.05),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                      child: TextField(
-                        controller: _controller,
-                        maxLines: 4,
-                        minLines: 1,
-                        style: GoogleFonts.inter(
-                          color: _textWhite,
-                          fontSize: 15,
-                        ),
-                        decoration: InputDecoration(
-                          hintText: 'Type a message...',
-                          hintStyle: GoogleFonts.spaceMono(
-                            color: _textMuted,
-                            fontSize: 13,
-                          ),
-                          border: InputBorder.none,
-                          enabledBorder: InputBorder.none,
-                          focusedBorder: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                        onSubmitted: (_) => _handleSend(),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: _handleSend,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: _isEmpty ? Colors.white.withOpacity(0.05) : _neonGreen,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: _isEmpty ? null : [
-                          BoxShadow(
-                            color: _neonGreen.withOpacity(0.3),
-                            blurRadius: 10,
-                            spreadRadius: 1,
-                          ),
-                        ],
-                      ),
-                      child: Icon(
-                        Icons.send_rounded,
-                        size: 20, 
-                        color: _isEmpty ? _textMuted : Colors.black,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
-    )));
+    );
   }
 
-  Widget _buildRecordingUI() {
+  Widget buildRecordingUI() {
     return ClipRRect(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
@@ -751,7 +806,7 @@ class _EnhancedMessageInputState extends ConsumerState<EnhancedMessageInput> {
     )));
   }
 
-  Widget _buildAttachmentPreview() {
+  Widget buildAttachmentPreview() {
     return SizedBox(
       height: 80,
       child: ListView.builder(
@@ -803,7 +858,7 @@ class _EnhancedMessageInputState extends ConsumerState<EnhancedMessageInput> {
     );
   }
 
-  Widget _buildReplyBar() {
+  Widget buildReplyBar() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
@@ -849,10 +904,10 @@ class _ExtraButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
 
-  static const Color _neonGreen = Color(0xFF52B788);
-  static const Color _surfaceContainer = Color(0xFF0C0C0E);
-  static const Color _textMuted = Color(0xFF71717A);
-  static const Color _textWhite = Color(0xFFFBF9FA);
+  static const Color neonGreen = Color(0xFF52B788);
+  static const Color surfaceContainer = Color(0xFF0C0C0E);
+  static const Color textMuted = Color(0xFF71717A);
+  static const Color textWhite = Color(0xFFFBF9FA);
 
   const _ExtraButton({
     required this.icon,
@@ -871,17 +926,17 @@ class _ExtraButton extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: _surfaceContainer,
+              color: surfaceContainer,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: _textWhite.withOpacity(0.05)),
+              border: Border.all(color: textWhite.withOpacity(0.05)),
             ),
-            child: Icon(icon, color: _neonGreen, size: 24),
+            child: Icon(icon, color: neonGreen, size: 24),
           ),
           const SizedBox(height: 6),
           Text(
             label,
             style: GoogleFonts.spaceMono(
-              color: _textMuted,
+              color: textMuted,
               fontSize: 9,
               fontWeight: FontWeight.w700,
               letterSpacing: 1.0,

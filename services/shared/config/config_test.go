@@ -54,6 +54,8 @@ func TestLoadGatewayConfig_CustomValues(t *testing.T) {
 	setGatewayEnv(t)
 	t.Setenv("SERVICE_NAME", "custom-gw")
 	t.Setenv("ENVIRONMENT", "production")
+	// Required in production; see TestLoadGatewayConfig_ProdRequiresCORSOrigins.
+	t.Setenv("CORS_ORIGINS", "https://flicko.tech")
 	t.Setenv("WS_PORT", "9090")
 	t.Setenv("MAX_CONNECTIONS", "10000")
 	t.Setenv("RATE_LIMIT_MSG_PER_SEC", "20")
@@ -125,6 +127,30 @@ func TestLoadGatewayConfig_InvalidMaxConnections(t *testing.T) {
 	}
 }
 
+// An empty CORS_ORIGINS puts the WebSocket origin check into permissive dev
+// mode, so production must refuse to start rather than accept upgrades from
+// any origin.
+func TestLoadGatewayConfig_ProdRequiresCORSOrigins(t *testing.T) {
+	setGatewayEnv(t)
+	t.Setenv("ENVIRONMENT", "production")
+	// CORS_ORIGINS deliberately unset.
+
+	if _, err := LoadGatewayConfig(); err == nil {
+		t.Fatal("expected error for missing CORS_ORIGINS in production")
+	}
+}
+
+func TestLoadGatewayConfig_DevAllowsEmptyCORSOrigins(t *testing.T) {
+	setGatewayEnv(t)
+	// ENVIRONMENT defaults to development; CORS_ORIGINS unset.
+
+	cfg, err := LoadGatewayConfig()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	assertEqual(t, "CORSOrigins", cfg.CORSOrigins, "")
+}
+
 // --- MsgServiceConfig tests ---
 
 func TestLoadMsgServiceConfig_Defaults(t *testing.T) {
@@ -165,6 +191,30 @@ func TestLoadMsgServiceConfig_PoolMinExceedsMax(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error when pool min > max")
 	}
+}
+
+// Production must declare its browser origin allowlist rather than falling back
+// to a "*" wildcard.
+func TestLoadMsgServiceConfig_ProdRequiresCORSOrigins(t *testing.T) {
+	setMsgServiceEnv(t)
+	t.Setenv("ENVIRONMENT", "production")
+	// CORS_ORIGINS deliberately unset.
+
+	if _, err := LoadMsgServiceConfig(); err == nil {
+		t.Fatal("expected error for missing CORS_ORIGINS in production")
+	}
+}
+
+func TestLoadMsgServiceConfig_ProdWithCORSOrigins(t *testing.T) {
+	setMsgServiceEnv(t)
+	t.Setenv("ENVIRONMENT", "production")
+	t.Setenv("CORS_ORIGINS", "https://flicko.tech,https://app.flicko.tech")
+
+	cfg, err := LoadMsgServiceConfig()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	assertEqual(t, "CORSOrigins", cfg.CORSOrigins, "https://flicko.tech,https://app.flicko.tech")
 }
 
 func TestLoadMsgServiceConfig_InvalidPort(t *testing.T) {

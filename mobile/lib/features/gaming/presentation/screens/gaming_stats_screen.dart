@@ -71,8 +71,12 @@ class _GamingStatsScreenState extends ConsumerState<GamingStatsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildDonutSection(stats.totalHours, stats.trend),
+                  _buildDonutSection(stats),
                   const SizedBox(height: 32),
+                  if (stats.ludoPlayed == 0) ...[
+                    _buildNoMatchesHint(),
+                    const SizedBox(height: 32),
+                  ],
                   _buildStatsGrid(stats),
                   const SizedBox(height: 32),
                   _buildTopGamesList(stats.topGames),
@@ -127,6 +131,35 @@ class _GamingStatsScreenState extends ConsumerState<GamingStatsScreen> {
     );
   }
 
+  // ── Empty state ─────────────────────────────────────────────────────────
+  /// Shown when no match has been recorded yet, so the all-zero cards below
+  /// read as "nothing played" rather than as a failed load.
+  Widget _buildNoMatchesHint() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _bgMid,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _border, width: 1.0),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.sports_esports_rounded,
+              color: _emeraldGreen.withValues(alpha: 0.8), size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'No matches recorded yet. Finish a game of Ludo and your stats '
+              'will show up here.',
+              style: GoogleFonts.inter(color: Colors.white54, fontSize: 12),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ── AppBar ───────────────────────────────────────────────────────────────
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
@@ -170,7 +203,7 @@ class _GamingStatsScreenState extends ConsumerState<GamingStatsScreen> {
   }
 
   // ── Playtime HUD Donut Ring ───────────────────────────────────────────────
-  Widget _buildDonutSection(String totalHours, String trend) {
+  Widget _buildDonutSection(GamingStats stats) {
     return Center(
       child: SizedBox(
         width: 230,
@@ -183,10 +216,12 @@ class _GamingStatsScreenState extends ConsumerState<GamingStatsScreen> {
               size: Size(220, 220),
               painter: DashedHudPainter(color: _border),
             ),
-            // Solid donut ring sweep
-            const CustomPaint(
-              size: Size(180, 180),
-              painter: DonutRingPainter(value: 0.72),
+            // Solid donut ring sweep, filled to the real win rate. This was
+            // pinned at 0.72 regardless of the data, so the ring read as
+            // "72% of something" for a player who had never won a match.
+            CustomPaint(
+              size: const Size(180, 180),
+              painter: DonutRingPainter(value: stats.winRateFraction),
             ),
             // Inner content panel
             Column(
@@ -203,7 +238,7 @@ class _GamingStatsScreenState extends ConsumerState<GamingStatsScreen> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  totalHours,
+                  stats.totalHours,
                   style: GoogleFonts.orbitron(
                     color: Colors.white,
                     fontSize: 32,
@@ -223,7 +258,7 @@ class _GamingStatsScreenState extends ConsumerState<GamingStatsScreen> {
                     ),
                   ),
                   child: Text(
-                    '$trend win rate',
+                    '${stats.trend} win rate',
                     style: GoogleFonts.spaceMono(
                       color: _brandLime,
                       fontSize: 10,
@@ -426,7 +461,10 @@ class _GamingStatsScreenState extends ConsumerState<GamingStatsScreen> {
                       ClipRRect(
                         borderRadius: BorderRadius.circular(4),
                         child: LinearProgressIndicator(
-                          value: g.hours.contains('0.0') ? 0.05 : 0.85,
+                          // Share of total playtime. This used to check
+                          // whether the hours string contained '0.0' and show
+                          // an 85%-full bar for anything else.
+                          value: g.share.clamp(0.0, 1.0),
                           backgroundColor: const Color(0xFF16161A),
                           valueColor: AlwaysStoppedAnimation<Color>(color),
                           minHeight: 4,

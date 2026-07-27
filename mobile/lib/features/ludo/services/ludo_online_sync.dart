@@ -1,19 +1,35 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer' as developer;
 
 import 'package:centrifuge/centrifuge.dart' as centrifuge;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:http/http.dart' as http;
 
+import 'package:mobile/core/config/app_config.dart';
+
+import '../../gaming/data/game_api_client.dart';
+import '../../gaming/models/game_state.dart';
 import '../domain/ludo_state.dart';
 import '../domain/plot_data.dart';
 import 'ludo_notifier.dart';
 
-/// One Centrifugo client per session. URL ultimately comes from app config.
-final ludoCentrifugoClientProvider = Provider<centrifuge.Client>((ref) {
-  final client = centrifuge.createClient(
-    'ws://localhost:8000/connection/websocket',
-  );
+/// One Centrifugo client per session, dialing [AppConfig.centrifugoUrl].
+///
+/// Returns null when no Centrifugo URL is configured. This used to hardcode
+/// `ws://localhost:8000`, which meant online Ludo could only ever work on the
+/// developer's own machine and failed opaquely everywhere else. Callers must
+/// treat null as "realtime unavailable" and stay in local/offline play.
+final ludoCentrifugoClientProvider = Provider<centrifuge.Client?>((ref) {
+  if (!AppConfig.hasCentrifugoUrl) {
+    developer.log(
+      'Centrifugo URL not configured (set FLICKO_CENTRIFUGO_URL); '
+      'online Ludo sync is disabled.',
+      name: 'LudoOnlineSync',
+    );
+    return null;
+  }
+
+  final client = centrifuge.createClient(AppConfig.centrifugoUrl);
   client.connect();
   ref.onDispose(client.disconnect);
   return client;
@@ -59,6 +75,11 @@ class LudoOnlineSync {
 
   Future<void> connect() async {
     final client = ref.read(ludoCentrifugoClientProvider);
+    if (client == null) {
+      // No Centrifugo configured — the board stays on local play rather than
+      // silently appearing "online" with no event stream behind it.
+      return;
+    }
     final channel = 'game:$gameId';
     _sub = client.newSubscription(channel);
     _events = _sub!.publication.listen(_onEvent);
@@ -143,42 +164,40 @@ class LudoOnlineSync {
   /// re-trigger this on the next gap).
   Future<void> _resync() async {
     try {
-      final uri = Uri.parse(
-          'http://localhost:8080/api/v1/gaming/ludo/state/$gameId');
-      final resp = await http.get(uri).timeout(const Duration(seconds: 4));
-      if (resp.statusCode != 200) return;
-      final data = json.decode(resp.body) as Map<String, dynamic>;
-      final snapshot = _snapshotFromEngineJson(data, notifier.currentState);
-      _localMoveNum = (data['moveNum'] as num?)?.toInt() ?? _localMoveNum;
+      final state = await ref.read(gameApiProvider).getLudoState(gameId);
+      final snapshot = _snapshotFromEngineState(state, notifier.currentState);
+      _localMoveNum = state.moveNum;
       notifier.applySnapshot(snapshot);
-    } catch (_) {
-      // Swallow: another event will retry the resync.
+    } catch (e) {
+      // Best-effort: leave local state alone and let the next gap retry.
+      developer.log('Ludo resync failed for $gameId: $e',
+          name: 'LudoOnlineSync');
     }
   }
 
-  /// Translates an engine `LudoGameState` JSON into the port's `LudoState`.
-  /// Tokens (-1, 0..57) become per-player pieces with absolute board pos and
-  /// travelCount. Active player index becomes `chancePlayer = idx + 1`.
-  static LudoState _snapshotFromEngineJson(
-      Map<String, dynamic> data, LudoState current) {
-    final tokens = (data['tokens'] as List<dynamic>? ?? []);
+  /// Translates an engine [LudoGameState] into the port's `LudoState`.
+  ///
+  /// Token progression (-1, 0..57) becomes per-player pieces with an absolute
+  /// board pos and travelCount. Active player index becomes
+  /// `chancePlayer = idx + 1`.
+  static LudoState _snapshotFromEngineState(
+      LudoGameState data, LudoState current) {
     final players = <int, List<PlayerPiece>>{1: [], 2: [], 3: [], 4: []};
     final plotted = <PlottedPiece>[];
 
-    for (final raw in tokens) {
-      final t = raw as Map<String, dynamic>;
-      final id = (t['ID'] as num?)?.toInt() ?? (t['id'] as num?)?.toInt() ?? 0;
-      final progIdx = (t['ProgressionIndex'] as num?)?.toInt() ??
-          (t['progression_index'] as num?)?.toInt() ??
-          -1;
-      final playerIndex = id ~/ 4;
+    for (final token in data.tokens) {
+      final id = token.id;
+      final progIdx = token.progressionIndex;
+      // Engine assigns tokenId = playerIndex*4 + slot, so integer division
+      // recovers the seat and the remainder recovers the piece within it.
+      final playerIndex = (id ~/ 4).clamp(0, 3);
       final slot = (id % 4) + 1;
-      final letter = ['A', 'B', 'C', 'D'][playerIndex.clamp(0, 3)];
+      final letter = ['A', 'B', 'C', 'D'][playerIndex];
       final pieceId = '$letter$slot';
 
       int pos;
       int travelCount;
-      if (progIdx == -1) {
+      if (progIdx < 0) {
         pos = 0;
         travelCount = 0;
       } else if (progIdx >= 57) {
@@ -195,12 +214,8 @@ class LudoOnlineSync {
       );
     }
 
-    final activeIdx =
-        (data['active_player_index'] as num?)?.toInt() ??
-            (data['ActivePlayerIndex'] as num?)?.toInt() ??
-            0;
-    final status = data['status'] as String? ?? data['Status'] as String? ?? '';
-    final winner = status == 'completed' ? activeIdx + 1 : null;
+    final activeIdx = data.activePlayerIndex;
+    final winner = data.isCompleted ? activeIdx + 1 : null;
 
     // Pad missing player lists to 4 pieces in pocket so the state stays
     // well-formed if the engine reported only some seats.

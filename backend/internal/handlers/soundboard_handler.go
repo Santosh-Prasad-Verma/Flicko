@@ -7,8 +7,10 @@ import (
 	"strings"
 
 	"github.com/flicko-org/flicko-backend/internal/config"
+	"github.com/flicko-org/flicko-backend/internal/middleware"
 	"github.com/flicko-org/flicko-backend/internal/models"
 	"github.com/flicko-org/flicko-backend/internal/repo"
+	"github.com/flicko-org/flicko-backend/internal/services"
 	"github.com/flicko-org/flicko-backend/internal/services/centrifugo"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
@@ -16,6 +18,10 @@ import (
 	storage_go "github.com/supabase-community/storage-go"
 	"go.uber.org/zap"
 )
+
+// maxSoundUploadBytes caps a single soundboard upload. Shared by the validation
+// middleware and the handler so the two cannot drift apart.
+const maxSoundUploadBytes = 5 * 1024 * 1024 // 5MB
 
 type SoundboardHandler struct {
 	db        *pgxpool.Pool
@@ -47,8 +53,13 @@ func NewSoundboardHandler(
 }
 
 func (h *SoundboardHandler) RegisterRoutes(r *mux.Router) {
+	// Sound uploads land in a public bucket, so file contents — not the
+	// client-supplied extension — must decide whether the upload is accepted.
+	audioValidation := middleware.AudioUploadValidationMiddleware(maxSoundUploadBytes, h.logger)
+
 	r.HandleFunc("/servers/{serverId}/soundboard", h.GetSounds).Methods(http.MethodGet)
-	r.HandleFunc("/servers/{serverId}/soundboard", h.UploadSound).Methods(http.MethodPost)
+	r.Handle("/servers/{serverId}/soundboard",
+		audioValidation(http.HandlerFunc(h.UploadSound))).Methods(http.MethodPost)
 	r.HandleFunc("/servers/{serverId}/soundboard/play", h.PlaySound).Methods(http.MethodPost)
 	r.HandleFunc("/soundboard/favorites", h.GetFavorites).Methods(http.MethodGet)
 	r.HandleFunc("/soundboard/sounds/{soundId}/favorite", h.FavoriteSound).Methods(http.MethodPost)
@@ -81,7 +92,7 @@ func (h *SoundboardHandler) UploadSound(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	err := r.ParseMultipartForm(5 * 1024 * 1024) // 5MB limit
+	err := r.ParseMultipartForm(maxSoundUploadBytes)
 	if err != nil {
 		http.Error(w, "failed to parse multipart form", http.StatusBadRequest)
 		return
@@ -104,8 +115,17 @@ func (h *SoundboardHandler) UploadSound(w http.ResponseWriter, r *http.Request) 
 	}
 	defer file.Close()
 
-	// Check file extension
-	filename := header.Filename
+	// Reduce the client-supplied name to a single safe path segment before it
+	// reaches the storage key, then validate the extension on that safe name.
+	filename := services.SanitizeUploadFilename(header.Filename)
+	if filename == "" {
+		http.Error(w, "invalid filename", http.StatusBadRequest)
+		return
+	}
+
+	// Check file extension. This is a convenience filter only — the authoritative
+	// check is the magic-byte validation in the upload middleware, since an
+	// extension is attacker-controlled.
 	if !strings.HasSuffix(strings.ToLower(filename), ".mp3") &&
 		!strings.HasSuffix(strings.ToLower(filename), ".wav") &&
 		!strings.HasSuffix(strings.ToLower(filename), ".ogg") {

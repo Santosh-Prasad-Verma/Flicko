@@ -28,11 +28,17 @@ type WSHandler struct {
 	rateBurst      int
 	maxConns       int64
 	allowedOrigins map[string]bool
+	isProd         bool
 	log            *zap.Logger
 }
 
 // NewWSHandler creates a WSHandler ready to accept connections.
-// corsOrigins is a comma-separated list of allowed origins. Empty = allow all.
+//
+// corsOrigins is a comma-separated list of allowed origins. When it is empty
+// AND isProd is false, the origin check runs in permissive dev mode and accepts
+// any origin. In production an empty list rejects all browser origins rather
+// than falling open; config validation additionally refuses to boot in that
+// state (see config.validateGateway).
 func NewWSHandler(
 	mgr *conn.Manager,
 	keySet *auth.KeySet,
@@ -40,6 +46,7 @@ func NewWSHandler(
 	maxConns int64,
 	readBuf, writeBuf int,
 	corsOrigins string,
+	isProd bool,
 	log *zap.Logger,
 ) *WSHandler {
 	origins := make(map[string]bool)
@@ -59,7 +66,12 @@ func NewWSHandler(
 		rateBurst:      rateBurst,
 		maxConns:       maxConns,
 		allowedOrigins: origins,
+		isProd:         isProd,
 		log:            log.Named("ws"),
+	}
+
+	if len(origins) == 0 && !isProd {
+		h.log.Warn("no CORS_ORIGINS configured; accepting WebSocket upgrades from any origin (dev mode only)")
 	}
 
 	h.upgrader = websocket.Upgrader{
@@ -80,7 +92,9 @@ func (h *WSHandler) checkOrigin(r *http.Request) bool {
 		return true // Allow native mobile app clients and non-browser clients
 	}
 
-	if len(h.allowedOrigins) == 0 {
+	// Fail closed in production: an unset/misparsed CORS_ORIGINS must not
+	// silently disable origin checking. Only dev mode falls open.
+	if len(h.allowedOrigins) == 0 && !h.isProd {
 		return true // dev mode: allow all
 	}
 

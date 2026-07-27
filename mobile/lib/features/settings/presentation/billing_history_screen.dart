@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'invoice_pdf_generator.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
+import 'package:mobile/features/settings/data/billing_history_repository.dart';
 
 class BillingHistoryScreen extends ConsumerWidget {
   const BillingHistoryScreen({super.key});
@@ -19,63 +20,10 @@ class BillingHistoryScreen extends ConsumerWidget {
   static const Color purple = Color(0xFF9B84EE);
   static const Color gold = Color(0xFFFFD700);
 
-  // High-fidelity mockup historical transactions in INR
-  static final List<Map<String, dynamic>> _mockTransactions = [
-    {
-      'id': 'TXN_FLK_9281A4',
-      'productName': 'FLICKO PRO (MONTHLY)',
-      'amount': '₹799.00',
-      'date': DateTime.now().subtract(const Duration(days: 4)),
-      'paymentMethod': 'VISA •••• 4242',
-      'status': 'SUCCESS',
-      'type': 'subscription',
-    },
-    {
-      'id': 'TXN_FLK_8172B8',
-      'productName': 'WARP DRIP COSMETIC FUSION',
-      'amount': '₹399.00',
-      'date': DateTime.now().subtract(const Duration(days: 18)),
-      'paymentMethod': 'VISA •••• 4242',
-      'status': 'SUCCESS',
-      'type': 'purchase',
-    },
-    {
-      'id': 'TXN_FLK_7162C3',
-      'productName': 'AVATAR DECORATION (NEON SHIELD)',
-      'amount': '₹199.00',
-      'date': DateTime.now().subtract(const Duration(days: 32)),
-      'paymentMethod': 'MASTERCARD •••• 9876',
-      'status': 'SUCCESS',
-      'type': 'purchase',
-    },
-    {
-      'id': 'TXN_FLK_6152D4',
-      'productName': 'FLICKO PRO (MONTHLY)',
-      'amount': '₹799.00',
-      'date': DateTime.now().subtract(const Duration(days: 34)),
-      'paymentMethod': 'VISA •••• 4242',
-      'status': 'SUCCESS',
-      'type': 'subscription',
-    },
-    {
-      'id': 'TXN_FLK_5142E9',
-      'productName': 'SOUND STUDIO CREATOR SOUNDPACK',
-      'amount': '₹649.00',
-      'date': DateTime.now().subtract(const Duration(days: 42)),
-      'paymentMethod': 'PAYPAL (clay@flicko.app)',
-      'status': 'SUCCESS',
-      'type': 'purchase',
-    },
-    {
-      'id': 'TXN_FLK_4132F2',
-      'productName': 'FLICKO PLUS (MONTHLY)',
-      'amount': '₹399.00',
-      'date': DateTime.now().subtract(const Duration(days: 64)),
-      'paymentMethod': 'MASTERCARD •••• 9876',
-      'status': 'REFUNDED',
-      'type': 'refund',
-    },
-  ];
+  /// Payments all go through Razorpay, but nothing links an entitlement back to
+  /// a specific saved card, so the card brand and last four are not shown. They
+  /// used to be — as a hardcoded "VISA •••• 4242" printed onto the invoice PDF.
+  static const String _paymentMethodLabel = 'RAZORPAY';
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -88,6 +36,8 @@ class BillingHistoryScreen extends ConsumerWidget {
       authenticated: (authUser, userProfile) => userProfile?.username ?? '',
       orElse: () => '',
     );
+
+    final historyAsync = ref.watch(billingHistoryProvider);
 
     return Scaffold(
       backgroundColor: black,
@@ -126,43 +76,155 @@ class BillingHistoryScreen extends ConsumerWidget {
             ),
           ],
         ),
+        actions: [
+          IconButton(
+            tooltip: 'Refresh',
+            icon: const Icon(Icons.refresh_rounded, color: lime, size: 20),
+            onPressed: () => ref.invalidate(billingHistoryProvider),
+          ),
+        ],
       ),
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+      body: historyAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator(color: lime)),
+        error: (err, _) => _buildErrorState(ref, err.toString()),
+        data: (transactions) => RefreshIndicator(
+          color: lime,
+          backgroundColor: darkGrey,
+          onRefresh: () async => ref.invalidate(billingHistoryProvider),
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildTelemetrySummary(transactions),
+                const SizedBox(height: 28),
+                Text(
+                  '[HISTORY_LOGS]',
+                  style: GoogleFonts.spaceMono(
+                    color: lime,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                if (transactions.isEmpty)
+                  _buildEmptyState()
+                else
+                  ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: transactions.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) => _buildTransactionCard(
+                      context,
+                      transactions[index],
+                      userEmail,
+                      username,
+                    ),
+                  ),
+                const SizedBox(height: 40),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState(WidgetRef ref, String message) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            _buildTelemetrySummary(),
-            const SizedBox(height: 28),
+            const Icon(Icons.error_outline_rounded, color: lime, size: 44),
+            const SizedBox(height: 12),
             Text(
-              '[HISTORY_LOGS]',
-              style: GoogleFonts.spaceMono(
-                color: lime,
-                fontWeight: FontWeight.bold,
-                fontSize: 11,
-                letterSpacing: 1.5,
+              'COULD NOT LOAD TRANSACTIONS',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.spaceGrotesk(
+                color: white,
+                fontWeight: FontWeight.w900,
+                fontSize: 14,
               ),
             ),
-            const SizedBox(height: 12),
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _mockTransactions.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final txn = _mockTransactions[index];
-                return _buildTransactionCard(context, txn, userEmail, username);
-              },
+            const SizedBox(height: 8),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.spaceMono(
+                color: white.withValues(alpha: 0.4),
+                fontSize: 10,
+              ),
             ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: lime,
+                foregroundColor: black,
+                elevation: 0,
+              ),
+              onPressed: () => ref.invalidate(billingHistoryProvider),
+              child: Text(
+                'RETRY',
+                style: GoogleFonts.spaceGrotesk(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 11,
+                ),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildTelemetrySummary() {
+  Widget _buildEmptyState() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        color: darkGrey,
+        border: Border.all(color: borderGrey, width: 1.5),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.receipt_long_outlined,
+              color: white.withValues(alpha: 0.25), size: 44),
+          const SizedBox(height: 12),
+          Text(
+            'NO TRANSACTIONS YET',
+            style: GoogleFonts.spaceGrotesk(
+              color: white.withValues(alpha: 0.6),
+              fontWeight: FontWeight.w900,
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Purchases and gifts will appear here once you make one.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.spaceMono(
+              color: white.withValues(alpha: 0.3),
+              fontSize: 10,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTelemetrySummary(List<BillingTransaction> transactions) {
+    final hasIssue = transactions.any((t) =>
+        t.status == BillingEntryStatus.revoked ||
+        t.status == BillingEntryStatus.refunded);
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -191,14 +253,16 @@ class BillingHistoryScreen extends ConsumerWidget {
                   Container(
                     width: 8,
                     height: 8,
-                    decoration: const BoxDecoration(
-                      color: lime,
+                    decoration: BoxDecoration(
+                      // Was unconditionally lime + "GOOD STANDING", even for an
+                      // account with a refund in the list.
+                      color: hasIssue ? gold : lime,
                       shape: BoxShape.circle,
                     ),
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'GOOD STANDING',
+                    hasIssue ? 'NEEDS REVIEW' : 'GOOD STANDING',
                     style: GoogleFonts.spaceGrotesk(
                       color: white,
                       fontWeight: FontWeight.w900,
@@ -228,7 +292,7 @@ class BillingHistoryScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                '${_mockTransactions.length} ENTRIES',
+                '${transactions.length} ENTRIES',
                 style: GoogleFonts.spaceGrotesk(
                   color: gold,
                   fontWeight: FontWeight.w900,
@@ -244,13 +308,18 @@ class BillingHistoryScreen extends ConsumerWidget {
 
   Widget _buildTransactionCard(
     BuildContext context,
-    Map<String, dynamic> txn,
+    BillingTransaction txn,
     String userEmail,
     String username,
   ) {
-    final status = txn['status'] as String;
-    final isSuccess = status == 'SUCCESS';
-    final statusColor = isSuccess ? lime : Colors.red;
+    final statusColor = switch (txn.status) {
+      BillingEntryStatus.settled => lime,
+      BillingEntryStatus.pendingRedemption => gold,
+      BillingEntryStatus.refunded ||
+      BillingEntryStatus.revoked ||
+      BillingEntryStatus.expired =>
+        Colors.red,
+    };
 
     return Container(
       decoration: BoxDecoration(
@@ -270,7 +339,7 @@ class BillingHistoryScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      txn['productName'].toUpperCase(),
+                      txn.productName.toUpperCase(),
                       style: GoogleFonts.epilogue(
                         color: white,
                         fontSize: 13,
@@ -280,7 +349,9 @@ class BillingHistoryScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      DateFormat('MMM dd, yyyy // HH:mm').format(txn['date']).toUpperCase(),
+                      DateFormat('MMM dd, yyyy // HH:mm')
+                          .format(txn.date)
+                          .toUpperCase(),
                       style: GoogleFonts.spaceMono(
                         color: white.withValues(alpha: 0.4),
                         fontSize: 9,
@@ -295,7 +366,7 @@ class BillingHistoryScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    txn['amount'],
+                    txn.amountLabel,
                     style: GoogleFonts.spaceGrotesk(
                       color: white,
                       fontSize: 15,
@@ -311,7 +382,7 @@ class BillingHistoryScreen extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
-                      status,
+                      txn.statusLabel,
                       style: GoogleFonts.spaceMono(
                         color: statusColor,
                         fontSize: 7.5,
@@ -330,11 +401,38 @@ class BillingHistoryScreen extends ConsumerWidget {
                 children: [
                   Divider(color: borderGrey, height: 1),
                   const SizedBox(height: 12),
-                  _buildDetailRow('TRANSACTION ID', txn['id'], true),
+                  _buildDetailRow(
+                    txn.kind == BillingEntryKind.gift
+                        ? 'GIFT CODE'
+                        : 'PAYMENT ID',
+                    txn.id,
+                    true,
+                  ),
                   const SizedBox(height: 8),
-                  _buildDetailRow('PAYMENT METHOD', txn['paymentMethod'], false),
+                  _buildDetailRow('PAYMENT METHOD', _paymentMethodLabel, false),
                   const SizedBox(height: 8),
-                  _buildDetailRow('STATUS', isSuccess ? 'SETTLED & CAPTURED' : 'REFUNDED TO CARD', false, statusColor),
+                  _buildDetailRow(
+                      'STATUS', txn.statusDetailLabel, false, statusColor),
+                  if (txn.amountIsListPrice) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(Icons.info_outline,
+                            size: 10, color: white.withValues(alpha: 0.3)),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'Amount shown is the current plan price; the '
+                            'charged amount is not stored per grant.',
+                            style: GoogleFonts.spaceMono(
+                              color: white.withValues(alpha: 0.3),
+                              fontSize: 8,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   Row(
                     children: [
@@ -346,6 +444,8 @@ class BillingHistoryScreen extends ConsumerWidget {
                               backgroundColor: lime,
                               foregroundColor: black,
                               elevation: 0,
+                              disabledBackgroundColor:
+                                  lime.withValues(alpha: 0.25),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
@@ -359,40 +459,16 @@ class BillingHistoryScreen extends ConsumerWidget {
                                 letterSpacing: 0.5,
                               ),
                             ),
-                            onPressed: () async {
-                              try {
-                                final savedPath = await InvoicePdfGenerator.generateAndDownloadInvoice(
-                                  txnId: txn['id'],
-                                  productName: txn['productName'],
-                                  amountStr: txn['amount'],
-                                  date: txn['date'],
-                                  paymentMethod: txn['paymentMethod'],
-                                  status: txn['status'],
-                                  userEmail: userEmail,
-                                  username: username,
-                                );
-                                
-                                if (savedPath != null && context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('Downloaded successfully to $savedPath'),
-                                      backgroundColor: lime,
-                                      behavior: SnackBarBehavior.floating,
+                            // No recorded amount means no invoice worth
+                            // generating — the PDF's totals would be blank.
+                            onPressed: txn.amountMinorUnits == null
+                                ? null
+                                : () => _downloadInvoice(
+                                      context,
+                                      txn,
+                                      userEmail,
+                                      username,
                                     ),
-                                  );
-                                }
-                              } catch (e) {
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('Failed to generate PDF: $e'),
-                                      backgroundColor: Colors.red,
-                                      behavior: SnackBarBehavior.floating,
-                                    ),
-                                  );
-                                }
-                              }
-                            },
                           ),
                         ),
                       ),
@@ -418,7 +494,10 @@ class BillingHistoryScreen extends ConsumerWidget {
                               ),
                             ),
                             onPressed: () {
-                              final details = 'Transaction: ${txn['productName']}\nID: ${txn['id']}\nAmount: ${txn['amount']}\nDate: ${txn['date']}';
+                              final details = 'Transaction: ${txn.productName}\n'
+                                  'ID: ${txn.id}\n'
+                                  'Amount: ${txn.amountLabel}\n'
+                                  'Date: ${txn.date}';
                               Clipboard.setData(ClipboardData(text: details));
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
@@ -442,6 +521,45 @@ class BillingHistoryScreen extends ConsumerWidget {
     );
   }
 
+  Future<void> _downloadInvoice(
+    BuildContext context,
+    BillingTransaction txn,
+    String userEmail,
+    String username,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final savedPath = await InvoicePdfGenerator.generateAndDownloadInvoice(
+        txnId: txn.id,
+        productName: txn.productName,
+        amountStr: txn.amountLabel,
+        date: txn.date,
+        paymentMethod: _paymentMethodLabel,
+        status: txn.statusLabel,
+        userEmail: userEmail,
+        username: username,
+      );
+
+      if (savedPath != null) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text('Downloaded successfully to $savedPath'),
+            backgroundColor: lime,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Failed to generate PDF: $e'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
   Widget _buildDetailRow(String label, String value, bool copyable, [Color? valueColor]) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -454,21 +572,27 @@ class BillingHistoryScreen extends ConsumerWidget {
             fontWeight: FontWeight.bold,
           ),
         ),
-        Row(
-          children: [
-            Text(
-              value,
-              style: GoogleFonts.spaceMono(
-                color: valueColor ?? white,
-                fontSize: 9,
-                fontWeight: FontWeight.bold,
+        Flexible(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text(
+                  value,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.spaceMono(
+                    color: valueColor ?? white,
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
-            ),
-            if (copyable) ...[
-              const SizedBox(width: 4),
-              const Icon(Icons.copy, size: 10, color: lime),
+              if (copyable) ...[
+                const SizedBox(width: 4),
+                const Icon(Icons.copy, size: 10, color: lime),
+              ],
             ],
-          ],
+          ),
         ),
       ],
     );

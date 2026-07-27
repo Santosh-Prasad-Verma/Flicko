@@ -108,6 +108,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
         await _checkFriendStatus(currentUser.id);
         // Fetch mutual servers
         await _loadMutualServers(currentUser.id);
+        // Fetch private note
+        await _loadNote(currentUser.id);
       }
 
       // Fetch user roles
@@ -128,6 +130,19 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
 
   Future<void> _checkFriendStatus(String currentUserId) async {
     try {
+      // Check if blocked
+      final blocked = await _client
+          .from('blocked_users')
+          .select('id')
+          .eq('user_id', currentUserId)
+          .eq('blocked_user_id', widget.userId)
+          .maybeSingle();
+
+      if (blocked != null) {
+        setState(() => _friendStatus = 'blocked');
+        return;
+      }
+
       // Check if friends
       final friendship = await _client
           .from('friends')
@@ -484,14 +499,27 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
     try {
       await _client.from('blocked_users').upsert({
         'user_id': currentUser.id,
-        'blocked_id': widget.userId,
+        'blocked_user_id': widget.userId,
       });
+
+      await _client
+          .from('friends')
+          .delete()
+          .or('user_id.eq.${currentUser.id},user_id.eq.${widget.userId}')
+          .or('friend_id.eq.${currentUser.id},friend_id.eq.${widget.userId}');
+
+      await _client
+          .from('friendships')
+          .delete()
+          .or('user_id.eq.${currentUser.id},user_id.eq.${widget.userId}')
+          .or('friend_id.eq.${currentUser.id},friend_id.eq.${widget.userId}');
+
+      setState(() => _friendStatus = 'blocked');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('User blocked')),
         );
-        context.pop();
       }
     } catch (e) {
       if (mounted) {
@@ -499,6 +527,41 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
           SnackBar(content: Text('Error: $e')),
         );
       }
+    }
+  }
+
+  Future<void> _unblockUser() async {
+    final currentUser = ref.read(authNotifierProvider).maybeWhen(
+          authenticated: (user, _) => user,
+          orElse: () => null,
+        );
+
+    if (currentUser == null) return;
+
+    setState(() => _isActionLoading = true);
+
+    try {
+      await _client
+          .from('blocked_users')
+          .delete()
+          .eq('user_id', currentUser.id)
+          .eq('blocked_user_id', widget.userId);
+
+      setState(() => _friendStatus = 'none');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('User unblocked')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    } finally {
+      setState(() => _isActionLoading = false);
     }
   }
 
@@ -542,19 +605,34 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
               },
             ),
             if (!isOwnProfile) ...[
-              ListTile(
-                leading:
-                    const Icon(Icons.block, color: Color(FlickoColors.red)),
-                title: Text(
-                  'Block User',
-                  style:
-                      GoogleFonts.inter(color: const Color(FlickoColors.red)),
+              if (_friendStatus == 'blocked')
+                ListTile(
+                  leading: const Icon(Icons.check_circle_outline,
+                      color: Color(FlickoColors.statusOnline)),
+                  title: Text(
+                    'Unblock User',
+                    style: GoogleFonts.inter(
+                        color: const Color(FlickoColors.textPrimary)),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _unblockUser();
+                  },
+                )
+              else
+                ListTile(
+                  leading:
+                      const Icon(Icons.block, color: Color(FlickoColors.red)),
+                  title: Text(
+                    'Block User',
+                    style:
+                        GoogleFonts.inter(color: const Color(FlickoColors.red)),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _blockUser();
+                  },
                 ),
-                onTap: () {
-                  Navigator.pop(context);
-                  _blockUser();
-                },
-              ),
               ListTile(
                 leading:
                     const Icon(Icons.report, color: Color(FlickoColors.red)),
@@ -621,12 +699,55 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
     );
   }
 
-  void _saveNote() {
+  Future<void> _loadNote(String currentUserId) async {
+    try {
+      final res = await _client
+          .from('user_notes')
+          .select('note')
+          .eq('user_id', currentUserId)
+          .eq('target_user_id', widget.userId)
+          .maybeSingle();
+
+      if (res != null) {
+        setState(() {
+          _note = res['note'] as String? ?? '';
+          _noteController.text = _note;
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _saveNote() async {
+    final currentUser = ref.read(authNotifierProvider).maybeWhen(
+          authenticated: (user, _) => user,
+          orElse: () => null,
+        );
+
+    if (currentUser == null) return;
+
+    final newNote = _noteController.text.trim();
+
     setState(() {
-      _note = _noteController.text;
+      _note = newNote;
       _isEditingNote = false;
     });
-    // In a real app, persist to local storage or Supabase
+
+    try {
+      if (newNote.isEmpty) {
+        await _client
+            .from('user_notes')
+            .delete()
+            .eq('user_id', currentUser.id)
+            .eq('target_user_id', widget.userId);
+      } else {
+        await _client.from('user_notes').upsert({
+          'user_id': currentUser.id,
+          'target_user_id': widget.userId,
+          'note': newNote,
+          'updated_at': DateTime.now().toIso8601String(),
+        });
+      }
+    } catch (_) {}
   }
 
   bool get _isOwnProfile {
@@ -1120,6 +1241,14 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
             label: 'Friends',
             color: const Color(0xFF4E5058),
             onPressed: _isActionLoading ? null : _removeFriend,
+          )
+        else if (_friendStatus == 'blocked')
+          _ActionButton(
+            icon: Icons.block,
+            label: 'Unblock',
+            color: const Color(FlickoColors.red),
+            onPressed: _isActionLoading ? null : _unblockUser,
+            loading: _isActionLoading,
           ),
         const SizedBox(width: 8),
 

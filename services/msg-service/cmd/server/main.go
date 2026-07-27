@@ -199,6 +199,8 @@ func run(log *zap.Logger) error {
 		RateLimiter:    rateLimiter,
 		Idempotency:    idempotencyStore,
 		IdempotencyTTL: cfg.IdempotencyTTL,
+		CORSOrigins:    cfg.CORSOrigins,
+		IsProd:         cfg.IsProd(),
 		Log:            log,
 	})
 

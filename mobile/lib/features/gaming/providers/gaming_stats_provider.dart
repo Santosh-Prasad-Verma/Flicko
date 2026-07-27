@@ -1,9 +1,28 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:mobile/data/clients/supabase_client.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 
-/// Model for Gaming Stats API response
+/// Keys used to persist locally-measured Ludo stats.
+///
+/// Written by `submitLudoScore` when a match finishes. These are the only
+/// gaming numbers this app actually measures, so they are the only ones the
+/// stats dashboard reports.
+class LudoStatKeys {
+  const LudoStatKeys._();
+
+  static const matchesPlayed = 'ludo_stat_matches_played';
+  static const matchesWon = 'ludo_stat_matches_won';
+  static const minutesPlayed = 'ludo_stat_minutes_played';
+
+  /// `yyyy-MM-dd` for each finished match, one entry per match, pruned to the
+  /// last [heatmapDays] days. Backs the activity heatmap.
+  static const matchDates = 'ludo_stat_match_dates';
+
+  /// Days the heatmap covers (10 columns x 6 rows on screen).
+  static const heatmapDays = 60;
+}
+
+/// Gaming statistics for the stats dashboard.
 class GamingStats {
   final String totalHours;
   final String trend;
@@ -25,6 +44,18 @@ class GamingStats {
     required this.ludoMinutes,
   });
 
+  /// Win rate as a 0..1 fraction; 0 when nothing has been played.
+  double get winRateFraction =>
+      ludoPlayed > 0 ? (ludoWon / ludoPlayed).clamp(0.0, 1.0) : 0.0;
+
+  /// Parses the shape returned by `GET /api/v1/gaming/stats`.
+  ///
+  /// Kept for the day that endpoint reports measured values. It is deliberately
+  /// **not** wired up yet: `stats_handler.go` derives `total_hours` from
+  /// `12340 + games*2.5`, hardcodes `trend` to `"+18%"`, and returns a fixed
+  /// three-item `recent_campaigns` list. It also counts a `games` table that
+  /// does not exist in the live database, so the count falls back to 0 and the
+  /// endpoint would report 12,340 hours to a user who has played nothing.
   factory GamingStats.fromJson(Map<String, dynamic> json) {
     return GamingStats(
       totalHours: json['total_hours'] as String? ?? '0h',
@@ -32,36 +63,31 @@ class GamingStats {
       topGames: (json['top_games'] as List<dynamic>?)
               ?.map((e) => TopGame.fromJson(e as Map<String, dynamic>))
               .toList() ??
-          [],
+          const [],
       recentCampaigns: (json['recent_campaigns'] as List<dynamic>?)
               ?.map((e) => Campaign.fromJson(e as Map<String, dynamic>))
               .toList() ??
-          [],
+          const [],
       activityHeatmap: (json['activity_heatmap'] as List<dynamic>?)
               ?.map((e) => (e as num).toInt())
               .toList() ??
-          List.filled(60, 0),
+          List.filled(LudoStatKeys.heatmapDays, 0),
       ludoPlayed: json['ludo_played'] as int? ?? 0,
       ludoWon: json['ludo_won'] as int? ?? 0,
       ludoMinutes: json['ludo_minutes'] as int? ?? 0,
     );
   }
 
-  /// Fallback static data used when the API is unreachable.
-  factory GamingStats.fallback() => GamingStats(
+  /// An all-zero record, used when there is no signed-in user, prefs are
+  /// unreadable, or no match has been played. Lists are empty rather than
+  /// seeded with example games — the screen renders nothing for an empty list,
+  /// which reads correctly as "no data yet".
+  factory GamingStats.empty() => GamingStats(
         totalHours: '0h',
         trend: '+0%',
-        topGames: const [
-          TopGame(name: 'Ludo Royale', hours: '0h', color: '#52B788'),
-          TopGame(name: 'Cyber Arena', hours: '0h', color: '#40916C'),
-        ],
-        recentCampaigns: const [
-          Campaign(
-              name: 'Ludo Championship',
-              progress: 0,
-              cover: '/gaming/armored_warrior.png'),
-        ],
-        activityHeatmap: List.filled(60, 0),
+        topGames: const [],
+        recentCampaigns: const [],
+        activityHeatmap: List.filled(LudoStatKeys.heatmapDays, 0),
         ludoPlayed: 0,
         ludoWon: 0,
         ludoMinutes: 0,
@@ -73,16 +99,23 @@ class TopGame {
   final String hours;
   final String color;
 
+  /// Share of total playtime, 0..1. Drives the progress bar on the stats
+  /// screen, which used to guess by string-matching [hours] for `'0.0'` and
+  /// rendering the bar 85% full for anything else.
+  final double share;
+
   const TopGame({
     required this.name,
     required this.hours,
     required this.color,
+    this.share = 0,
   });
 
   factory TopGame.fromJson(Map<String, dynamic> json) => TopGame(
         name: json['name'] as String? ?? '',
         hours: json['hours'] as String? ?? '0h',
         color: json['color'] as String? ?? '#FFFFFF',
+        share: ((json['share'] as num?)?.toDouble() ?? 0).clamp(0.0, 1.0),
       );
 }
 
@@ -104,146 +137,87 @@ class Campaign {
       );
 }
 
-/// Riverpod FutureProvider that compiles gaming stats from Supabase and SharedPreferences.
+/// Gaming stats compiled from locally-recorded Ludo results.
+///
+/// Every value here is something the app actually measured when a match ended.
+/// Three sources of invented data were removed:
+///
+///   * Channel-message and DM row counts were multiplied by 0.015 and added to
+///     "total playtime", and their timestamps were what filled the activity
+///     heatmap. Sending a message is not playing a game, so the gaming
+///     dashboard was really rendering chat activity.
+///   * A "Cyber Arena" entry always showing `0.0h` and a "Ludo Championship"
+///     campaign whose progress was set to the Ludo win rate. Neither exists in
+///     the app.
+///   * The fallback record seeded those same two entries, so an unauthenticated
+///     or failed load looked like a populated dashboard.
+///
+/// Ludo is the only game with a scoreboard, so it is the only game reported.
 final gamingStatsProvider = FutureProvider<GamingStats>((ref) async {
-  final client = ref.watch(supabaseClientProvider);
   final userId = ref.watch(currentUserIdProvider);
+  if (userId == null) return GamingStats.empty();
 
-  if (userId == null) {
-    return GamingStats.fallback();
-  }
-
-  int ludoPlayed = 0;
-  int ludoWon = 0;
-  int ludoMinutes = 0;
-  int messagesSentCount = 0;
-  int dmsSentCount = 0;
-  List<int> heatmap = List.filled(60, 0);
+  final int played;
+  final int won;
+  final int minutes;
+  final List<String> matchDates;
 
   try {
-    // 1. Fetch Ludo stats from local SharedPreferences
     final prefs = await SharedPreferences.getInstance();
-    ludoPlayed = prefs.getInt('ludo_stat_matches_played') ?? 0;
-    ludoWon = prefs.getInt('ludo_stat_matches_won') ?? 0;
-    ludoMinutes = prefs.getInt('ludo_stat_minutes_played') ?? 0;
-
-    // 2. Query channel messages and DMs counts from Supabase
-    try {
-      final msgRes = await client
-          .from('messages')
-          .select('id')
-          .eq('author_id', userId);
-      messagesSentCount = (msgRes as List).length;
-    } catch (_) {}
-
-    try {
-      final dmRes = await client
-          .from('direct_messages')
-          .select('id')
-          .eq('sender_id', userId);
-      dmsSentCount = (dmRes as List).length;
-    } catch (_) {}
-
-    // 3. Query message timestamps of the last 60 days to build the heatmap
-    final sixtyDaysAgo = DateTime.now().subtract(const Duration(days: 60));
-    List<String> timestamps = [];
-
-    try {
-      final msgTimestamps = await client
-          .from('messages')
-          .select('created_at')
-          .eq('author_id', userId)
-          .gt('created_at', sixtyDaysAgo.toIso8601String());
-      for (var row in (msgTimestamps as List)) {
-        if (row['created_at'] != null) {
-          timestamps.add(row['created_at'].toString());
-        }
-      }
-    } catch (_) {}
-
-    try {
-      final dmTimestamps = await client
-          .from('direct_messages')
-          .select('created_at')
-          .eq('sender_id', userId)
-          .gt('created_at', sixtyDaysAgo.toIso8601String());
-      for (var row in (dmTimestamps as List)) {
-        if (row['created_at'] != null) {
-          timestamps.add(row['created_at'].toString());
-        }
-      }
-    } catch (_) {}
-
-    // Process heatmap counts
-    final now = DateTime.now();
-    final counts = List<int>.filled(60, 0);
-    for (var ts in timestamps) {
-      try {
-        final date = DateTime.parse(ts);
-        final diff = now.difference(date).inDays;
-        if (diff >= 0 && diff < 60) {
-          counts[59 - diff]++;
-        }
-      } catch (_) {}
-    }
-
-    // Map message counts to heatmap levels (0 to 3)
-    heatmap = counts.map((count) {
-      if (count == 0) return 0;
-      if (count <= 2) return 1;
-      if (count <= 5) return 2;
-      return 3;
-    }).toList();
-
-  } catch (e) {
-    // Gracefully handle SharedPreferences or other general exceptions
-    return GamingStats.fallback();
+    played = prefs.getInt(LudoStatKeys.matchesPlayed) ?? 0;
+    won = prefs.getInt(LudoStatKeys.matchesWon) ?? 0;
+    minutes = prefs.getInt(LudoStatKeys.minutesPlayed) ?? 0;
+    matchDates = prefs.getStringList(LudoStatKeys.matchDates) ?? const [];
+  } catch (_) {
+    return GamingStats.empty();
   }
 
-  // Calculate total hours: Ludo play time + conversation hours (approx 1 min / 0.016 hours per sent message)
-  final double ludoHours = ludoMinutes / 60.0;
-  final double chatHours = (messagesSentCount + dmsSentCount) * 0.015;
-  final double totalHoursVal = ludoHours + chatHours;
+  if (played == 0) return GamingStats.empty();
 
-  final String totalHoursStr = totalHoursVal > 0.0 
-      ? '${totalHoursVal.toStringAsFixed(1)}h' 
-      : '0h';
-
-  // Trend: Win rate percentage of Ludo matches
-  final int winRate = ludoPlayed > 0 ? ((ludoWon * 100) ~/ ludoPlayed) : 0;
-  final String trendStr = '+$winRate%';
-
-  // Top Games list (without Chess)
-  final List<TopGame> topGames = [
-    TopGame(
-      name: 'Ludo Royale',
-      hours: '${ludoHours.toStringAsFixed(1)}h',
-      color: '#52B788',
-    ),
-    const TopGame(
-      name: 'Cyber Arena',
-      hours: '0.0h',
-      color: '#40916C',
-    ),
-  ];
-
-  // Campaign progress
-  final List<Campaign> campaigns = [
-    Campaign(
-      name: 'Ludo Championship',
-      progress: ludoPlayed > 0 ? (winRate.clamp(0, 100)) : 0,
-      cover: '/gaming/armored_warrior.png',
-    ),
-  ];
+  final hours = minutes / 60.0;
+  final winRate = (won * 100) ~/ played;
 
   return GamingStats(
-    totalHours: totalHoursStr,
-    trend: trendStr,
-    topGames: topGames,
-    recentCampaigns: campaigns,
-    activityHeatmap: heatmap,
-    ludoPlayed: ludoPlayed,
-    ludoWon: ludoWon,
-    ludoMinutes: ludoMinutes,
+    totalHours: '${hours.toStringAsFixed(1)}h',
+    trend: '+$winRate%',
+    topGames: [
+      TopGame(
+        name: 'Ludo',
+        hours: '${hours.toStringAsFixed(1)}h',
+        color: '#52B788',
+        // The only tracked game, so it accounts for all recorded playtime.
+        share: hours > 0 ? 1.0 : 0.0,
+      ),
+    ],
+    // No campaign system exists in the app; an empty list renders nothing.
+    recentCampaigns: const [],
+    activityHeatmap: heatmapFromMatchDates(matchDates),
+    ludoPlayed: played,
+    ludoWon: won,
+    ludoMinutes: minutes,
   );
 });
+
+/// Buckets `yyyy-MM-dd` match dates into [LudoStatKeys.heatmapDays] cells of
+/// intensity 0..3, oldest first, so the final cell is today.
+List<int> heatmapFromMatchDates(List<String> dates) {
+  final counts = List<int>.filled(LudoStatKeys.heatmapDays, 0);
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+
+  for (final raw in dates) {
+    final date = DateTime.tryParse(raw);
+    if (date == null) continue;
+    final daysAgo =
+        today.difference(DateTime(date.year, date.month, date.day)).inDays;
+    if (daysAgo < 0 || daysAgo >= LudoStatKeys.heatmapDays) continue;
+    counts[LudoStatKeys.heatmapDays - 1 - daysAgo]++;
+  }
+
+  return counts.map((c) {
+    if (c == 0) return 0;
+    if (c <= 2) return 1;
+    if (c <= 5) return 2;
+    return 3;
+  }).toList();
+}

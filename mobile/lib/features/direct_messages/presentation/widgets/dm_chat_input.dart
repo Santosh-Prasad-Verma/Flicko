@@ -9,6 +9,7 @@ import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/server_channels/chat/presentation/widgets/emoji_picker.dart';
 import 'package:mobile/features/server_channels/chat/presentation/widgets/gif_picker.dart';
 import 'package:mobile/features/server_channels/chat/presentation/widgets/sticker_picker.dart';
@@ -30,11 +31,10 @@ class DMChatInput extends StatefulWidget {
 }
 
 class _DMChatInputState extends State<DMChatInput> {
-  static const Color _neonGreen = Color(0xFF52B788);
-  static const Color _bgBlack = Color(0xFF050505);
-  static const Color _surfaceContainer = Color(0xFF0C0C0E);
+  static const Color _neonGreen = Color(FlickoColors.brandLime);
+  static const Color _bgSecondary = Color(FlickoColors.bgSecondary);
   static const Color _textWhite = Color(0xFFFBF9FA);
-  static const Color _textMuted = Color(0xFF71717A);
+  static const Color _textMuted = Color(0xFF8E8E93);
 
   final TextEditingController _controller = TextEditingController();
   final ImagePicker _picker = ImagePicker();
@@ -45,7 +45,6 @@ class _DMChatInputState extends State<DMChatInput> {
 
   // Voice recording state
   bool _isRecording = false;
-  bool _isLockedRecording = false;
   Timer? _recordingTimer;
   int _recordingSeconds = 0;
   String? _recordingPath;
@@ -97,10 +96,10 @@ class _DMChatInputState extends State<DMChatInput> {
   }
 
   void _handlePickImage() async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
+    final List<XFile> images = await _picker.pickMultiImage();
+    if (images.isNotEmpty) {
       setState(() {
-        _selectedFiles.add(image);
+        _selectedFiles.addAll(images);
         _isEmpty = false;
       });
     }
@@ -188,7 +187,6 @@ class _DMChatInputState extends State<DMChatInput> {
 
       setState(() {
         _isRecording = false;
-        _isLockedRecording = false;
         _recordingSeconds = 0;
         _recordingPath = null;
       });
@@ -200,7 +198,7 @@ class _DMChatInputState extends State<DMChatInput> {
   void _showPermissionDenied(String permission) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('$permission permission is required'),
+        content: Text('$permission permission is required', style: GoogleFonts.inter()),
         behavior: SnackBarBehavior.floating,
         action: SnackBarAction(
           label: 'Settings',
@@ -248,267 +246,282 @@ class _DMChatInputState extends State<DMChatInput> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isRecording || _isLockedRecording) {
+    if (_isRecording) {
       return _buildRecordingUI();
     }
 
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-        child: Container(
-          decoration: BoxDecoration(
-            color: _surfaceContainer.withValues(alpha: 0.55),
-            border: Border(
-              top: BorderSide(
-                color: _textWhite.withValues(alpha: 0.06),
-                width: 1,
-              ),
-            ),
+    return Container(
+      decoration: BoxDecoration(
+        color: _bgSecondary.withValues(alpha: 0.85),
+        border: Border(
+          top: BorderSide(
+            color: Colors.white.withValues(alpha: 0.08),
+            width: 1,
           ),
+        ),
+      ),
+      child: ClipRRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
           child: SafeArea(
+            top: false,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // Selected attachments preview
                 if (_selectedFiles.isNotEmpty)
                   SizedBox(
-                    height: 80,
+                    height: 84,
                     child: ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
                       scrollDirection: Axis.horizontal,
-                  itemCount: _selectedFiles.length,
-                  itemBuilder: (context, index) {
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: Stack(
-                        children: [
-                          Container(
-                            decoration: BoxDecoration(
-                              border: Border.all(color: _neonGreen.withValues(alpha: 0.5)),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(7),
-                              child: Image.file(
-                                File(_selectedFiles[index].path),
-                                width: 64,
-                                height: 64,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ),
-                          Positioned(
-                            right: -4,
-                            top: -4,
-                            child: GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _selectedFiles.removeAt(index);
-                                  _isEmpty = _controller.text.trim().isEmpty && _selectedFiles.isEmpty;
-                                });
-                              },
-                              child: Container(
-                                width: 24,
-                                height: 24,
+                      itemCount: _selectedFiles.length,
+                      itemBuilder: (context, index) {
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 10),
+                          child: Stack(
+                            children: [
+                              Container(
                                 decoration: BoxDecoration(
-                                  color: Colors.redAccent,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: _surfaceContainer, width: 2),
+                                  border: Border.all(color: _neonGreen.withValues(alpha: 0.4)),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: const Icon(Icons.close,
-                                    size: 14, color: Colors.white),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-
-            if (_showExtras)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                decoration: BoxDecoration(
-                  color: _bgBlack,
-                  border: Border(
-                    bottom: BorderSide(
-                      color: _textWhite.withValues(alpha: 0.04),
-                    ),
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _ExtraButton(
-                      icon: Icons.emoji_emotions_rounded,
-                      label: 'Emoji',
-                      onTap: _showEmojiPicker,
-                    ),
-                    _ExtraButton(
-                      icon: Icons.gif_box_rounded,
-                      label: 'GIF',
-                      onTap: _showGifPicker,
-                    ),
-                    _ExtraButton(
-                      icon: Icons.sticky_note_2_rounded,
-                      label: 'Sticker',
-                      onTap: _showStickerPicker,
-                    ),
-                    _ExtraButton(
-                      icon: Icons.camera_alt_rounded,
-                      label: 'Camera',
-                      onTap: _handlePickCamera,
-                    ),
-                    _ExtraButton(
-                      icon: Icons.photo_library_rounded,
-                      label: 'Gallery',
-                      onTap: _handlePickImage,
-                    ),
-                    _ExtraButton(
-                      icon: Icons.mic_rounded,
-                      label: 'Voice',
-                      onTap: _startRecording,
-                    ),
-                  ],
-                ),
-              ),
-
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: _bgBlack,
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          // Plus / extras toggle
-                          IconButton(
-                            onPressed: () =>
-                                setState(() => _showExtras = !_showExtras),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(
-                              minWidth: 40,
-                              minHeight: 40,
-                            ),
-                            icon: AnimatedRotation(
-                              turns: _showExtras ? 0.125 : 0,
-                              duration: const Duration(milliseconds: 200),
-                              child: Icon(
-                                Icons.add_rounded,
-                                size: 24,
-                                color: _showExtras ? _neonGreen : _textMuted,
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            child: TextField(
-                              controller: _controller,
-                              maxLines: 5,
-                              minLines: 1,
-                              style: GoogleFonts.inter(
-                                color: _textWhite,
-                                fontSize: 15,
-                                height: 1.35,
-                              ),
-                              decoration: InputDecoration(
-                                hintText: 'Message',
-                                hintStyle: GoogleFonts.inter(
-                                  color: _textMuted,
-                                  fontSize: 15,
-                                ),
-                                border: InputBorder.none,
-                                enabledBorder: InputBorder.none,
-                                focusedBorder: InputBorder.none,
-                                isDense: true,
-                                contentPadding: const EdgeInsets.symmetric(
-                                  vertical: 12,
-                                ),
-                              ),
-                              textInputAction: TextInputAction.newline,
-                              onSubmitted: (_) => _handleSend(),
-                            ),
-                          ),
-                          // Inline emoji shortcut
-                          IconButton(
-                            onPressed: _showEmojiPicker,
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(
-                              minWidth: 40,
-                              minHeight: 40,
-                            ),
-                            icon: Icon(
-                              Icons.emoji_emotions_outlined,
-                              size: 22,
-                              color: _textMuted,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  // Send / mic toggle
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 180),
-                    transitionBuilder: (child, anim) =>
-                        ScaleTransition(scale: anim, child: child),
-                    child: _isEmpty
-                        ? GestureDetector(
-                            key: const ValueKey('mic'),
-                            onTap: _startRecording,
-                            child: Container(
-                              width: 44,
-                              height: 44,
-                              decoration: const BoxDecoration(
-                                color: _bgBlack,
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                Icons.mic_rounded,
-                                size: 22,
-                                color: _textMuted,
-                              ),
-                            ),
-                          )
-                        : GestureDetector(
-                            key: const ValueKey('send'),
-                            onTap: _handleSend,
-                            child: Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                color: _neonGreen,
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: _neonGreen.withValues(alpha: 0.35),
-                                    blurRadius: 14,
-                                    spreadRadius: 1,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(11),
+                                  child: Image.file(
+                                    File(_selectedFiles[index].path),
+                                    width: 64,
+                                    height: 64,
+                                    fit: BoxFit.cover,
                                   ),
-                                ],
+                                ),
                               ),
-                              child: const Icon(
-                                Icons.send_rounded,
-                                size: 20,
-                                color: Colors.black,
+                              Positioned(
+                                right: -2,
+                                top: -2,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedFiles.removeAt(index);
+                                      _isEmpty = _controller.text.trim().isEmpty && _selectedFiles.isEmpty;
+                                    });
+                                  },
+                                  child: Container(
+                                    width: 22,
+                                    height: 22,
+                                    decoration: BoxDecoration(
+                                      color: Colors.redAccent,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: Colors.black, width: 1.5),
+                                    ),
+                                    child: const Icon(Icons.close, size: 13, color: Colors.white),
+                                  ),
+                                ),
                               ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+
+                // Extras drawer sheet
+                if (_showExtras)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(FlickoColors.bgTertiary),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+                    ),
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _ExtraTile(
+                            icon: Icons.camera_alt_rounded,
+                            label: 'Camera',
+                            onTap: _handlePickCamera,
+                          ),
+                          const SizedBox(width: 16),
+                          _ExtraTile(
+                            icon: Icons.photo_library_rounded,
+                            label: 'Gallery',
+                            onTap: _handlePickImage,
+                          ),
+                          const SizedBox(width: 16),
+                          _ExtraTile(
+                            icon: Icons.emoji_emotions_rounded,
+                            label: 'Emoji',
+                            onTap: _showEmojiPicker,
+                          ),
+                          const SizedBox(width: 16),
+                          _ExtraTile(
+                            icon: Icons.gif_box_rounded,
+                            label: 'GIF',
+                            onTap: _showGifPicker,
+                          ),
+                          const SizedBox(width: 16),
+                          _ExtraTile(
+                            icon: Icons.sticky_note_2_rounded,
+                            label: 'Sticker',
+                            onTap: _showStickerPicker,
+                          ),
+                          const SizedBox(width: 16),
+                          _ExtraTile(
+                            icon: Icons.mic_rounded,
+                            label: 'Voice',
+                            onTap: _startRecording,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                // Main Chat Input Row
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      // Extras (+) Button
+                      GestureDetector(
+                        onTap: () => setState(() => _showExtras = !_showExtras),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: _showExtras
+                                ? _neonGreen.withValues(alpha: 0.18)
+                                : const Color(FlickoColors.bgTertiary),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: _showExtras
+                                  ? _neonGreen.withValues(alpha: 0.5)
+                                  : Colors.white.withValues(alpha: 0.08),
                             ),
                           ),
+                          child: AnimatedRotation(
+                            turns: _showExtras ? 0.125 : 0,
+                            duration: const Duration(milliseconds: 200),
+                            child: Icon(
+                              Icons.add_rounded,
+                              size: 22,
+                              color: _showExtras ? _neonGreen : Colors.white70,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+
+                      // Text Field Pill
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: const Color(FlickoColors.bgTertiary),
+                            borderRadius: BorderRadius.circular(22),
+                            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _controller,
+                                  maxLines: 5,
+                                  minLines: 1,
+                                  style: GoogleFonts.inter(
+                                    color: _textWhite,
+                                    fontSize: 15,
+                                    height: 1.35,
+                                  ),
+                                  decoration: InputDecoration(
+                                    hintText: 'Message...',
+                                    hintStyle: GoogleFonts.inter(
+                                      color: _textMuted,
+                                      fontSize: 14,
+                                    ),
+                                    border: InputBorder.none,
+                                    isDense: true,
+                                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                                  ),
+                                  textInputAction: TextInputAction.newline,
+                                  onSubmitted: (_) => _handleSend(),
+                                ),
+                              ),
+                              IconButton(
+                                onPressed: _showEmojiPicker,
+                                icon: const Icon(
+                                  Icons.emoji_emotions_outlined,
+                                  size: 22,
+                                  color: _textMuted,
+                                ),
+                                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                                padding: EdgeInsets.zero,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+
+                      // Send or Voice Mic button
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 180),
+                        transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
+                        child: _isEmpty
+                            ? GestureDetector(
+                                key: const ValueKey('mic'),
+                                onTap: _startRecording,
+                                child: Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    color: const Color(FlickoColors.bgTertiary),
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                                  ),
+                                  child: const Icon(
+                                    Icons.mic_rounded,
+                                    size: 22,
+                                    color: Colors.white70,
+                                  ),
+                                ),
+                              )
+                            : GestureDetector(
+                                key: const ValueKey('send'),
+                                onTap: _handleSend,
+                                child: Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    color: _neonGreen,
+                                    borderRadius: BorderRadius.circular(14),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: _neonGreen.withValues(alpha: 0.35),
+                                        blurRadius: 12,
+                                        spreadRadius: 1,
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Icon(
+                                    Icons.send_rounded,
+                                    size: 20,
+                                    color: Color(FlickoColors.bgPrimary),
+                                  ),
+                                ),
+                              ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
         ),
       ),
     );
@@ -518,65 +531,43 @@ class _DMChatInputState extends State<DMChatInput> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: _surfaceContainer,
-        border: Border(
-          top: BorderSide(
-            color: _textWhite.withValues(alpha: 0.05),
-            width: 1,
-          ),
-        ),
+        color: const Color(FlickoColors.bgSecondary),
+        border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.08))),
       ),
       child: SafeArea(
         top: false,
         child: Row(
           children: [
-            // Cancel button
             IconButton(
               onPressed: () => _stopRecording(cancel: true),
-              icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+              icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 24),
             ),
-
-            // Recording indicator
             Container(
-              width: 12,
-              height: 12,
-              decoration: const BoxDecoration(
-                color: Colors.redAccent,
-                shape: BoxShape.circle,
-              ),
+              width: 10,
+              height: 10,
+              decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle),
             ),
-
-            const SizedBox(width: 12),
-
-            // Recording duration
+            const SizedBox(width: 10),
             Text(
               _formatDuration(_recordingSeconds),
-              style: GoogleFonts.inter(
-                color: _textWhite,
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-              ),
+              style: GoogleFonts.inter(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
             ),
-
             const SizedBox(width: 12),
-
-            // Waveform placeholder
             Expanded(
               child: Container(
-                height: 40,
+                height: 38,
                 decoration: BoxDecoration(
-                  color: _bgBlack,
+                  color: const Color(FlickoColors.bgTertiary),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: _textWhite.withValues(alpha: 0.1)),
                 ),
                 child: Center(
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(20, (index) {
+                    children: List.generate(18, (index) {
                       return Container(
                         margin: const EdgeInsets.symmetric(horizontal: 1.5),
                         width: 3,
-                        height: 10 + (index % 5) * 4.0,
+                        height: 8 + (index % 5) * 4.0,
                         decoration: BoxDecoration(
                           color: _neonGreen,
                           borderRadius: BorderRadius.circular(2),
@@ -587,31 +578,17 @@ class _DMChatInputState extends State<DMChatInput> {
                 ),
               ),
             ),
-
             const SizedBox(width: 12),
-
-            // Send button
             GestureDetector(
               onTap: () => _stopRecording(),
               child: Container(
-                width: 44,
-                height: 44,
+                width: 42,
+                height: 42,
                 decoration: BoxDecoration(
                   color: _neonGreen,
                   borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: _neonGreen.withValues(alpha: 0.3),
-                      blurRadius: 10,
-                      spreadRadius: 1,
-                    ),
-                  ],
                 ),
-                child: const Icon(
-                  Icons.send_rounded,
-                  size: 20, 
-                  color: Colors.black,
-                ),
+                child: const Icon(Icons.send_rounded, size: 18, color: Color(FlickoColors.bgPrimary)),
               ),
             ),
           ],
@@ -621,17 +598,12 @@ class _DMChatInputState extends State<DMChatInput> {
   }
 }
 
-class _ExtraButton extends StatelessWidget {
+class _ExtraTile extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
 
-  static const Color _neonGreen = Color(0xFF52B788);
-  static const Color _surfaceContainer = Color(0xFF0C0C0E);
-  static const Color _textMuted = Color(0xFF71717A);
-  static const Color _textWhite = Color(0xFFFBF9FA);
-
-  const _ExtraButton({
+  const _ExtraTile({
     required this.icon,
     required this.label,
     required this.onTap,
@@ -645,23 +617,21 @@ class _ExtraButton extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 48,
-            height: 48,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
-              color: _surfaceContainer,
+              color: const Color(FlickoColors.brandLime).withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: _textWhite.withValues(alpha: 0.05)),
             ),
-            child: Icon(icon, color: _neonGreen, size: 24),
+            child: Icon(icon, color: const Color(FlickoColors.brandLime), size: 22),
           ),
           const SizedBox(height: 6),
           Text(
             label,
             style: GoogleFonts.inter(
-              color: _textMuted,
+              color: Colors.white70,
               fontSize: 11,
               fontWeight: FontWeight.w500,
-              letterSpacing: 0.1,
             ),
           ),
         ],

@@ -7,6 +7,15 @@ import (
 	"github.com/livekit/protocol/auth"
 )
 
+// TokenTTL bounds the lifetime of an issued LiveKit access token.
+//
+// A leaked token grants room access for its full validity window and LiveKit
+// has no server-side revocation, so this is deliberately short. The token is
+// only checked at join/reconnect time — an established session is unaffected
+// by expiry — so clients MUST request a fresh token before reconnecting after
+// a network drop rather than replaying the original one.
+const TokenTTL = 15 * time.Minute
+
 type LiveKitService interface {
 	GenerateToken(roomName string, participantName string, participantIdentity string, canPublish bool, canPublishData bool) (string, error)
 }
@@ -42,7 +51,7 @@ func (s *livekitService) GenerateToken(roomName string, participantName string, 
 		SetVideoGrant(grant).
 		SetIdentity(participantIdentity).
 		SetName(participantName).
-		SetValidFor(time.Hour * 8)
+		SetValidFor(TokenTTL)
 
 	return at.ToJWT()
 }

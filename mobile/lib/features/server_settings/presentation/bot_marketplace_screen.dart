@@ -428,7 +428,7 @@ class _BotDetailSheetState extends State<_BotDetailSheet> {
 
                   final botId = widget.item.id;
                   await dio.put(
-                    'api/v1/servers/${widget.serverId}/bots/$botId/settings',
+                    'servers/${widget.serverId}/bots/$botId/settings',
                     data: {'enabled': true},
                   );
 

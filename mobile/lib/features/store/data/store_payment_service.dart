@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:mobile/core/config/app_config.dart';
 import 'package:mobile/data/services/razorpay_service.dart';
 import 'package:mobile/features/store/data/store_service.dart';
 import 'package:mobile/features/settings/application/payment_methods_provider.dart';
@@ -53,8 +54,25 @@ class StorePaymentService {
     );
   }
 
-  /// Process payment for store items
-  /// Returns PaymentResult with success status and payment details
+  /// Attempts to charge for store items.
+  ///
+  /// Currently always fails: **there is no store payment path on the backend.**
+  /// A real charge needs two things that do not exist yet:
+  ///
+  ///   1. A server endpoint that creates the Razorpay order. The backend only
+  ///      exposes `/premium/orders` and `/premium/verify`, which are hardcoded
+  ///      to the subscription plans and their prices — they cannot price a cart.
+  ///   2. Server-side price authority. `cosmetic_catalog` has no price column,
+  ///      so item prices are currently invented client-side (see
+  ///      `store_service.dart`). Charging against a client-supplied price is
+  ///      not something to ship.
+  ///
+  /// This method previously fabricated a Razorpay order id locally
+  /// (`order_store_<timestamp>`), skipped signature verification, and — on any
+  /// exception — granted the items anyway with a fake payment id. That meant
+  /// every failure path handed out paid cosmetics for free while reporting
+  /// success. Returning an explicit failure is the honest behaviour until a
+  /// real endpoint exists; the caller decides what to show.
   Future<PaymentResult> processPayment({
     required double amount,
     required String userEmail,
@@ -62,60 +80,37 @@ class StorePaymentService {
     required String description,
     required List<CartItem> items,
   }) async {
-    try {
-      // Create order via backend
-      final orderData = await _razorpayService.createStoreOrder(
-        amount: amount,
-        items: items.map((i) => {
-          'product_id': i.product.id,
-          'quantity': i.quantity,
-          'price': i.product.price,
-        }).toList(),
-      );
+    dev.log(
+      '[STORE_PAYMENT] Refusing to charge ₹${amount.toStringAsFixed(2)}: '
+      'no backend store-order endpoint is configured.',
+    );
+    return PaymentResult(
+      success: false,
+      error: 'Store payments are not available yet.',
+    );
+  }
 
-      final orderId = orderData['id'] as String;
-      final amountPaise = orderData['amount'] as num;
-
-      // Start Razorpay payment
-      final paymentResult = await _razorpayService.startPayment(
-        orderId: orderId,
-        amount: amountPaise / 100.0,
-        userEmail: userEmail,
-        userPhone: userPhone,
-        description: description,
-      );
-
-      // Verify payment
-      final isVerified = await _razorpayService.verifyPayment(
-        orderId: orderId,
-        paymentId: paymentResult['paymentId'] as String,
-        signature: paymentResult['signature'] as String,
-        email: userEmail,
-        username: '',
-        amount: '₹${amount.toStringAsFixed(0)}',
-      );
-
-      if (isVerified) {
-        // Record purchase in Supabase
-        await _recordPurchases(items, paymentResult['paymentId'] as String);
-
-        return PaymentResult(
-          success: true,
-          paymentId: paymentResult['paymentId'] as String,
-          orderId: orderId,
-        );
-      } else {
-        return PaymentResult(
-          success: false,
-          error: 'Payment verification failed',
-        );
-      }
-    } catch (e) {
-      dev.log('[STORE_PAYMENT] Error: $e');
+  /// Grants [items] without payment. Debug builds only.
+  ///
+  /// This backs the "sandbox" checkout used during development. It is guarded
+  /// so a release build can never reach it: previously the same free-grant ran
+  /// whenever the live gateway errored, which turned any payment outage into
+  /// free cosmetics in production.
+  Future<PaymentResult> grantWithoutPaymentForDebug(List<CartItem> items) async {
+    if (!AppConfig.isDebug) {
       return PaymentResult(
         success: false,
-        error: e.toString(),
+        error: 'Sandbox checkout is disabled in release builds.',
       );
+    }
+
+    try {
+      final sandboxPaymentId =
+          'pay_debug_${DateTime.now().millisecondsSinceEpoch}';
+      await _recordPurchases(items, sandboxPaymentId);
+      return PaymentResult(success: true, paymentId: sandboxPaymentId);
+    } catch (e) {
+      return PaymentResult(success: false, error: e.toString());
     }
   }
 
@@ -164,19 +159,9 @@ class StorePaymentService {
   }
 }
 
-/// Extension to RazorpayService for store orders
-extension StoreOrderExtension on RazorpayService {
-  Future<Map<String, dynamic>> createStoreOrder({
-    required double amount,
-    required List<Map<String, dynamic>> items,
-  }) async {
-    // This would typically call your backend endpoint
-    // For now, return a mock order for development
-    return {
-      'id': 'order_store_${DateTime.now().millisecondsSinceEpoch}',
-      'amount': (amount * 100).toInt(),
-      'currency': 'INR',
-      'status': 'created',
-    };
-  }
-}
+// The `StoreOrderExtension.createStoreOrder` that used to live here was removed.
+// It fabricated a Razorpay order id client-side (`order_store_<timestamp>`) and
+// returned it as though the gateway had issued it. Razorpay rejects ids it did
+// not create, so that order could never be charged — it only served to make the
+// checkout flow look wired up. A real implementation belongs on the backend,
+// next to `/premium/orders`, where the price can be trusted.

@@ -48,9 +48,10 @@ func NewEmbedService(db *pgxpool.Pool, redis cache.CacheLayer) EmbedService {
 	return &embedService{
 		db:    db,
 		redis: redis,
-		httpClient: &http.Client{
-			Timeout: 5 * time.Second, // 5 second timeout rule
-		},
+		// User-supplied URLs are fetched here, so the client must refuse to
+		// connect to non-public addresses (cloud metadata, loopback, RFC1918)
+		// and must not follow redirects into them either.
+		httpClient:  NewSSRFSafeClient(5*time.Second, 3),
 		urlRegex:    urlRegex,
 		rateLimiter: rate.NewLimiter(10, 10), // max 10 requests per second
 	}
@@ -95,6 +96,13 @@ func (s *embedService) ProcessMessageForEmbeds(ctx context.Context, messageID st
 }
 
 func (s *embedService) fetchAndCacheEmbed(ctx context.Context, u string) (*Embed, error) {
+	// Reject unsuitable targets before spending a cache lookup or a rate-limit
+	// slot on them. The authoritative address check happens in the client's
+	// dialer, which sees the post-DNS addresses.
+	if err := ValidateOutboundURL(u); err != nil {
+		return nil, err
+	}
+
 	cacheKey := fmt.Sprintf("embed:%s", u)
 
 	// 1. Check Redis Cache

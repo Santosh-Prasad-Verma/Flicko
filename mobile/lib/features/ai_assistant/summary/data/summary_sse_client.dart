@@ -26,7 +26,7 @@ class SummarySseClient {
   /// `event` defaults to `"message"` per spec when the server omits the field.
   Stream<SsePacket> stream(String requestId) async* {
     final session = Supabase.instance.client.auth.currentSession;
-    final url = _base.resolve('api/v1/ai/summary/stream/$requestId');
+    final url = _base.resolve('ai/summary/stream/$requestId');
 
     final req = http.Request('GET', url);
     req.headers['Accept'] = 'text/event-stream';

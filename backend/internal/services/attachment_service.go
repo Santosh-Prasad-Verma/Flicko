@@ -57,8 +57,14 @@ func (s *attachmentService) UploadAttachment(ctx context.Context, file multipart
 		return nil, fmt.Errorf("failed to process file: %w", err)
 	}
 
-	// Create unique filepath (userId/hash_filename)
-	filePath := fmt.Sprintf("%s/%s_%s", userID, hashStr, header.Filename)
+	// Create unique filepath (userId/hash_filename).
+	// The client-supplied name must be reduced to a single safe path segment or
+	// it could escape the caller's own prefix.
+	safeName := SanitizeUploadFilename(header.Filename)
+	if safeName == "" {
+		return nil, fmt.Errorf("invalid filename")
+	}
+	filePath := fmt.Sprintf("%s/%s_%s", userID, hashStr, safeName)
 
 	// Stream file directly to Supabase storage to avoid memory pressure (25MB limit)
 	_, err := s.storage.UploadFile("attachments", filePath, file)

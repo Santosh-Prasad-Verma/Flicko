@@ -1164,6 +1164,10 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
           final bool hasLiveGateway = AppConfig.hasApiBaseUrl && AppConfig.razorpayKeyId.isNotEmpty;
           bool useSandbox = !hasLiveGateway;
 
+          // The sandbox path grants paid items for free, so it is confined to
+          // debug builds. It used to be offered in every build whenever the
+          // gateway failed, which turned any payment outage into free
+          // cosmetics for real users.
           if (hasLiveGateway) {
             final paymentService = ref.read(storePaymentServiceProvider);
             final result = await paymentService.processPayment(
@@ -1176,7 +1180,10 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
 
             if (!result.success) {
               if (!mounted) return;
-              // Offer sandbox fallback if live payment fails
+              if (!AppConfig.isDebug) {
+                _showError(result.error ?? 'Payment failed');
+                return;
+              }
               final confirmed = await _showSandboxConfirmationDialog(finalAmount);
               if (confirmed == true) {
                 useSandbox = true;
@@ -1187,6 +1194,10 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
             }
           } else {
             if (!mounted) return;
+            if (!AppConfig.isDebug) {
+              _showError('Payments are not available right now.');
+              return;
+            }
             final confirmed = await _showSandboxConfirmationDialog(finalAmount);
             if (confirmed == true) {
               useSandbox = true;
@@ -1197,9 +1208,13 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
           }
 
           if (useSandbox) {
-            final storeService = ref.read(storeServiceProvider);
-            for (final item in widget.paidItems) {
-              await storeService.purchaseProduct(item.product);
+            final paymentService = ref.read(storePaymentServiceProvider);
+            final granted = await paymentService
+                .grantWithoutPaymentForDebug(widget.paidItems);
+            if (!granted.success) {
+              if (!mounted) return;
+              _showError(granted.error ?? 'Sandbox checkout failed');
+              return;
             }
           }
         } else if (widget.paidItems.isNotEmpty && finalAmount == 0) {
@@ -1216,10 +1231,8 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
       ref.read(activeCouponProvider.notifier).state = null;
       ref.invalidate(userPurchasesProvider);
 
-      if (!mounted) return;
-      // ignore: use_build_context_synchronously
+      if (!context.mounted) return;
       Navigator.pop(context);
-      // ignore: use_build_context_synchronously
       _showSuccessDialog(context);
     } catch (e) {
       _showError(e.toString());

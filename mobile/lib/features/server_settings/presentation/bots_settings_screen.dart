@@ -182,7 +182,7 @@ class _BotsSettingsScreenState extends ConsumerState<BotsSettingsScreen> {
     }
     final base = AppConfig.apiBaseUrl;
     final uri = Uri.parse(
-      '${base.endsWith('/') ? base : '$base/'}api/v1/servers/${widget.serverId}/bots/${bot.name}/settings',
+      '${base.endsWith('/') ? base : '$base/'}servers/${widget.serverId}/bots/${bot.name}/settings',
     );
     final response = await http.put(
       uri,

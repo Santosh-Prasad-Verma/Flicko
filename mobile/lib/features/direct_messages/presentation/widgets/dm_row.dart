@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/direct_messages/domain/dm_models.dart';
+import 'package:mobile/features/direct_messages/domain/dm_preview_helper.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 class DMRow extends StatelessWidget {
@@ -103,7 +104,7 @@ class DMRow extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    conversation.lastMessage,
+                    formatDMMessagePreview(conversation.lastMessage),
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontSize: 13,
                       color: conversation.unreadCount > 0

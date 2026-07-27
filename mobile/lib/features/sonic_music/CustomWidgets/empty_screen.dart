@@ -50,27 +50,35 @@ Widget emptyScreen(
               ),
             ),
           ),
-          Column(
-            children: [
-              Text(
-                text2,
-                style: TextStyle(
-                  fontSize: size2,
-                  color: useWhite
-                      ? Colors.white
-                      : Theme.of(context).colorScheme.secondary,
-                  fontWeight: FontWeight.w600,
+          Flexible(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  text2,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 2,
+                  style: TextStyle(
+                    fontSize: size2,
+                    color: useWhite
+                        ? Colors.white
+                        : Theme.of(context).colorScheme.secondary,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-              Text(
-                text3,
-                style: TextStyle(
-                  fontSize: size3,
-                  fontWeight: FontWeight.w600,
-                  color: useWhite ? Colors.white : null,
+                Text(
+                  text3,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 2,
+                  style: TextStyle(
+                    fontSize: size3,
+                    fontWeight: FontWeight.w600,
+                    color: useWhite ? Colors.white : null,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),

@@ -334,7 +334,11 @@ class Download with ChangeNotifier {
       appPath ??= (await getTemporaryDirectory()).path;
     } else {
       final Directory? temp = await getDownloadsDirectory();
-      appPath = temp!.path;
+      if (temp == null) {
+        Logger.root.severe('Downloads directory is null');
+        return;
+      }
+      appPath = temp.path;
     }
 
     try {

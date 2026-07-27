@@ -125,6 +125,12 @@ func validateGateway(c *GatewayConfig) error {
 	if c.RateLimitBurst <= 0 {
 		return fmt.Errorf("config: RATE_LIMIT_BURST must be > 0, got %d", c.RateLimitBurst)
 	}
+	// Fail closed: production must declare its allowed browser origins. An empty
+	// list puts the WebSocket origin check into permissive dev mode, which would
+	// accept upgrade requests from any website.
+	if c.IsProd() && strings.TrimSpace(c.CORSOrigins) == "" {
+		return fmt.Errorf("config: CORS_ORIGINS is required when ENVIRONMENT=production")
+	}
 	return nil
 }
 
@@ -143,6 +149,10 @@ type MsgServiceConfig struct {
 	DatabaseURL     string `env:"DATABASE_URL,required"`
 	DatabasePoolMax int    `env:"DATABASE_POOL_MAX" envDefault:"20"`
 	DatabasePoolMin int    `env:"DATABASE_POOL_MIN" envDefault:"5"`
+
+	// CORS allowed origins (comma-separated). Empty = allow all in dev,
+	// allow none in production (see validateMsgService).
+	CORSOrigins string `env:"CORS_ORIGINS"`
 
 	// Idempotency
 	IdempotencyTTL time.Duration `env:"IDEMPOTENCY_TTL" envDefault:"300s"`
@@ -188,6 +198,11 @@ func validateMsgService(c *MsgServiceConfig) error {
 	if c.DatabasePoolMin > c.DatabasePoolMax {
 		return fmt.Errorf("config: DATABASE_POOL_MIN (%d) must be <= DATABASE_POOL_MAX (%d)",
 			c.DatabasePoolMin, c.DatabasePoolMax)
+	}
+	// Fail closed: production must declare its allowed browser origins rather
+	// than falling back to a "*" wildcard.
+	if c.IsProd() && strings.TrimSpace(c.CORSOrigins) == "" {
+		return fmt.Errorf("config: CORS_ORIGINS is required when ENVIRONMENT=production")
 	}
 	if c.BatchInsertSize <= 0 {
 		return fmt.Errorf("config: BATCH_INSERT_SIZE must be > 0, got %d", c.BatchInsertSize)

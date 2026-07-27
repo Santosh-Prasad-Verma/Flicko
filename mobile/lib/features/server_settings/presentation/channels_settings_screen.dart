@@ -26,6 +26,10 @@ class _ChannelsSettingsScreenState extends ConsumerState<ChannelsSettingsScreen>
   bool _showCreate = false;
   bool _isSubmitting = false;
 
+  /// True while a reorder is being written. Blocks a second drag from racing
+  /// the first and writing positions derived from stale state.
+  bool _isSavingOrder = false;
+
   // Form state
   late TextEditingController _nameController;
   late TextEditingController _topicController;
@@ -223,11 +227,121 @@ class _ChannelsSettingsScreenState extends ConsumerState<ChannelsSettingsScreen>
     });
   }
 
-  void _onReorder(int oldIndex, int newIndex) {
-    // Handling generic ReorderableListView reorder visually without true depth logic
-    // for now we just show a slight haptic feedback, a full DB hierarchy save requires
-    // analyzing the flat list's new state.
+  /// Channels in the order they are displayed: ungrouped first, then each
+  /// category followed by its children. `_loadChannels` sorts by `position`,
+  /// so writing sequential positions in this order makes a reload reproduce
+  /// exactly what the user arranged.
+  List<ChannelModel> _displayOrderOf(List<ChannelModel> channels) {
+    final ordered = <ChannelModel>[
+      ...channels.where((c) => c.type != ChannelType.category && c.parentId == null),
+      for (final cat in channels.where((c) => c.type == ChannelType.category)) ...[
+        cat,
+        ...channels.where((c) => c.parentId == cat.id),
+      ],
+    ];
+
+    // A channel whose parent_id points at a row that is not a category here
+    // would otherwise be dropped, leaving it with a stale position that could
+    // collide with a reassigned one. Keep it at the end instead.
+    final seen = ordered.map((c) => c.id).toSet();
+    ordered.addAll(channels.where((c) => !seen.contains(c.id)));
+    return ordered;
+  }
+
+  /// Reorders one group — the ungrouped section, or one category's children —
+  /// and persists the new positions.
+  ///
+  /// Reordering is scoped to a group on purpose. A drag across group boundaries
+  /// would have to decide whether the channel changed category, and a flat
+  /// list gives no way to express "into this category, at the end" versus
+  /// "after this category". Moving a channel between categories is an edit, not
+  /// a drag.
+  ///
+  /// This used to only call [HapticFeedback.lightImpact] — the list snapped back
+  /// on the next load because nothing was written.
+  Future<void> _onReorderGroup(
+    List<ChannelModel> group,
+    int oldIndex,
+    int newIndex,
+  ) async {
+    if (_isSavingOrder) return;
+    if (newIndex > oldIndex) newIndex -= 1;
+    if (newIndex == oldIndex) return;
+
     HapticFeedback.lightImpact();
+
+    final reordered = List<ChannelModel>.of(group);
+    reordered.insert(newIndex, reordered.removeAt(oldIndex));
+
+    // Splice the regrouped members back into the master list, keeping the slots
+    // they already occupied so unrelated rows are untouched.
+    final groupIds = group.map((c) => c.id).toSet();
+    final next = List<ChannelModel>.of(_channels);
+    var slot = 0;
+    for (var i = 0; i < next.length; i++) {
+      if (groupIds.contains(next[i].id)) {
+        next[i] = reordered[slot++];
+      }
+    }
+
+    final ordered = _displayOrderOf(next);
+    final previous = _channels;
+
+    // Show the new order immediately; roll back if the write is rejected.
+    setState(() {
+      _channels = ordered;
+      _isSavingOrder = true;
+    });
+
+    try {
+      await _persistPositions(ordered);
+      if (!mounted) return;
+      setState(() {
+        _channels = [
+          for (var i = 0; i < ordered.length; i++)
+            ordered[i].copyWith(position: i),
+        ];
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _channels = previous);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not save channel order: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _isSavingOrder = false);
+    }
+  }
+
+  /// Writes sequential `position` values for every channel whose position
+  /// changed.
+  ///
+  /// Each update selects the rows it touched. Under the `update_channels` RLS
+  /// policy a user without server ownership or `MANAGE_CHANNELS` matches zero
+  /// rows and PostgREST reports success, so a silent no-op is indistinguishable
+  /// from a save unless the affected count is checked.
+  Future<void> _persistPositions(List<ChannelModel> ordered) async {
+    final changes = <String, int>{};
+    for (var i = 0; i < ordered.length; i++) {
+      if (ordered[i].position != i) changes[ordered[i].id] = i;
+    }
+    if (changes.isEmpty) return;
+
+    var applied = 0;
+    for (final entry in changes.entries) {
+      final rows = await _client
+          .from('channels')
+          .update({'position': entry.value})
+          .eq('id', entry.key)
+          .select('id');
+      applied += (rows as List).length;
+    }
+
+    if (applied < changes.length) {
+      throw Exception(
+        'you do not have permission to reorder channels on this server',
+      );
+    }
   }
 
   @override
@@ -265,16 +379,19 @@ class _ChannelsSettingsScreenState extends ConsumerState<ChannelsSettingsScreen>
           ? const Center(child: CircularProgressIndicator(color: Color(FlickoColors.brandLime)))
           : _channels.isEmpty
               ? _buildEmptyState()
-              : ReorderableListView(
+              // One reorderable list per group rather than a single list over
+              // everything. The old single list mixed headers, spacers and
+              // "Empty category" placeholders in with the channels, so the
+              // reorder indices it reported did not line up with the channel
+              // list — dragging a row moved a different one.
+              : ListView(
                   padding: const EdgeInsets.all(24),
-                  onReorder: _onReorder,
-                  buildDefaultDragHandles: false,
                   children: [
                     // Ungrouped channels
                     if (ungrouped.isNotEmpty) ...[
                       _buildSectionHeader('UNGROUPED', key: const ValueKey('ungrouped_header')),
-                      ...ungrouped.map((ch) => _buildChannelTile(ch, key: ValueKey('channel_${ch.id}'))),
-                      const SizedBox(key: ValueKey('ungrouped_spacer'), height: 32),
+                      _buildReorderableGroup(ungrouped),
+                      const SizedBox(height: 32),
                     ],
 
                     // Grouped by category
@@ -282,7 +399,6 @@ class _ChannelsSettingsScreenState extends ConsumerState<ChannelsSettingsScreen>
                       final children = _channels.where((c) => c.parentId == cat.id).toList();
                       return [
                         _buildCategoryHeader(cat, key: ValueKey('cat_${cat.id}')),
-                        ...children.map((ch) => _buildChannelTile(ch, indent: true, key: ValueKey('channel_${ch.id}'))),
                         if (children.isEmpty)
                           Padding(
                             key: ValueKey('cat_empty_${cat.id}'),
@@ -295,7 +411,9 @@ class _ChannelsSettingsScreenState extends ConsumerState<ChannelsSettingsScreen>
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
-                          ),
+                          )
+                        else
+                          _buildReorderableGroup(children, indent: true),
                         SizedBox(key: ValueKey('cat_spacer_${cat.id}'), height: 24),
                       ];
                     }),
@@ -304,6 +422,25 @@ class _ChannelsSettingsScreenState extends ConsumerState<ChannelsSettingsScreen>
       bottomSheet: _showCreate 
           ? _buildCreateSheet() 
           : (_editChannel != null ? _buildEditSheet() : null),
+    );
+  }
+
+  /// A reorderable run of channel tiles for one group. Indices here are
+  /// positions within [group], which is what [_onReorderGroup] expects.
+  Widget _buildReorderableGroup(List<ChannelModel> group, {bool indent = false}) {
+    return ReorderableListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      buildDefaultDragHandles: false,
+      itemCount: group.length,
+      onReorder: (oldIndex, newIndex) =>
+          _onReorderGroup(group, oldIndex, newIndex),
+      itemBuilder: (context, index) => _buildChannelTile(
+        group[index],
+        index: index,
+        indent: indent,
+        key: ValueKey('channel_${group[index].id}'),
+      ),
     );
   }
 
@@ -357,9 +494,18 @@ class _ChannelsSettingsScreenState extends ConsumerState<ChannelsSettingsScreen>
     );
   }
 
-  Widget _buildChannelTile(ChannelModel channel, {bool indent = false, Key? key}) {
+  /// [index] is the channel's position **within its own group**, matching the
+  /// list that renders it. It used to be `_channels.indexOf(channel)` — an index
+  /// into the full channel list — which did not correspond to the enclosing
+  /// list's item indices at all.
+  Widget _buildChannelTile(
+    ChannelModel channel, {
+    required int index,
+    bool indent = false,
+    Key? key,
+  }) {
     return ReorderableDragStartListener(
-      index: _channels.indexOf(channel),
+      index: index,
       key: key,
       child: Container(
         margin: EdgeInsets.only(bottom: 8, left: indent ? 16 : 0),

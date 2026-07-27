@@ -4,11 +4,19 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:mobile/features/friends/data/friends_repository.dart';
+import 'package:mobile/features/friends/domain/friends_models.dart';
 
 /// Friends List Screen
-/// 
+///
 /// Main friends list with online status and quick actions.
 /// Routes to friend requests management at /friends/requests
+///
+/// Data comes from [friendsListProvider] / [pendingRequestsProvider] /
+/// [blockedUsersProvider], all backed by the Supabase `friends`,
+/// `friend_requests` and `blocked_users` tables. A realtime subscription
+/// invalidates them so the list reflects changes made on other devices.
 class FriendsListScreen extends ConsumerStatefulWidget {
   const FriendsListScreen({super.key});
 
@@ -19,109 +27,91 @@ class FriendsListScreen extends ConsumerStatefulWidget {
 class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
   final _searchController = TextEditingController();
   FriendFilter _activeFilter = FriendFilter.all;
+  RealtimeChannel? _channel;
 
-  // Mock data
-  final List<Friend> _friends = [
-    Friend(
-      id: '1',
-      username: 'alice',
-      displayName: 'Alice',
-      avatarUrl: null,
-      status: 'online',
-      statusMessage: 'Playing Valorant',
-      isOnline: true,
-    ),
-    Friend(
-      id: '2',
-      username: 'bob',
-      displayName: 'Bob',
-      avatarUrl: null,
-      status: 'idle',
-      statusMessage: 'AFK',
-      isOnline: true,
-    ),
-    Friend(
-      id: '3',
-      username: 'charlie',
-      displayName: 'Charlie',
-      avatarUrl: null,
-      status: 'dnd',
-      statusMessage: 'Do Not Disturb',
-      isOnline: true,
-    ),
-    Friend(
-      id: '4',
-      username: 'dave',
-      displayName: 'Dave',
-      avatarUrl: null,
-      status: 'offline',
-      statusMessage: 'Offline',
-      isOnline: false,
-      lastSeen: DateTime.now().subtract(const Duration(hours: 2)),
-    ),
-    Friend(
-      id: '5',
-      username: 'eve',
-      displayName: 'Eve',
-      avatarUrl: null,
-      status: 'offline',
-      statusMessage: 'Offline',
-      isOnline: false,
-      lastSeen: DateTime.now().subtract(const Duration(days: 3)),
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _subscribeToChanges();
+  }
 
-  int get _onlineCount => _friends.where((f) => f.isOnline).length;
-  int get _pendingCount => 2; // Mock pending requests
+  /// Subscribes to `friends` / `friend_requests` changes so an accept, remove
+  /// or block performed elsewhere shows up here without a manual refresh.
+  void _subscribeToChanges() {
+    final repo = ref.read(friendsRepositoryProvider);
+    final userId = repo.currentUserId;
+    if (userId == null) return;
 
-  List<Friend> get _filteredFriends {
-    var result = _friends;
+    _channel = repo.subscribeToFriends(userId, () {
+      if (!mounted) return;
+      ref.invalidate(friendsListProvider);
+      ref.invalidate(pendingRequestsProvider);
+    });
+  }
 
-    // Apply status filter
-    switch (_activeFilter) {
-      case FriendFilter.all:
-        break;
-      case FriendFilter.online:
-        result = result.where((f) => f.isOnline).toList();
-        break;
-      case FriendFilter.pending:
-        // Navigate to requests screen
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          context.push('/friends/requests');
-        });
-        return [];
-      case FriendFilter.blocked:
-        result = []; // Mock: no blocked users
-        break;
+  /// Re-reads every friends-related query. Called after any mutation so the
+  /// UI reflects what actually landed in the database rather than an
+  /// optimistic guess.
+  void _refresh() {
+    ref.invalidate(friendsListProvider);
+    ref.invalidate(pendingRequestsProvider);
+    ref.invalidate(blockedUsersProvider);
+  }
+
+  @override
+  void dispose() {
+    final channel = _channel;
+    if (channel != null) {
+      ref.read(friendsRepositoryProvider).unsubscribe(channel);
+    }
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  /// Applies the search box and the online/all filter, then sorts.
+  ///
+  /// Copies the incoming list before sorting: [friends] is owned by the
+  /// provider's cached AsyncValue, and sorting in place would mutate it.
+  List<Friend> _visibleFriends(List<Friend> friends) {
+    var result = List<Friend>.of(friends);
+
+    if (_activeFilter == FriendFilter.online) {
+      result = result.where((f) => f.isOnline).toList();
     }
 
-    // Apply search filter
-    if (_searchController.text.isNotEmpty) {
-      final query = _searchController.text.toLowerCase();
-      result = result.where((f) =>
-        f.username.toLowerCase().contains(query) ||
-        (f.displayName?.toLowerCase().contains(query) ?? false)
-      ).toList();
+    final query = _searchController.text.trim().toLowerCase();
+    if (query.isNotEmpty) {
+      result = result
+          .where((f) =>
+              f.username.toLowerCase().contains(query) ||
+              (f.displayName?.toLowerCase().contains(query) ?? false))
+          .toList();
     }
 
-    // Sort: online first, then by name
+    // Online first, then alphabetical by the name actually displayed.
     result.sort((a, b) {
       if (a.isOnline && !b.isOnline) return -1;
       if (!a.isOnline && b.isOnline) return 1;
-      return (a.displayName ?? a.username).compareTo(b.displayName ?? b.username);
+      return (a.displayName ?? a.username)
+          .toLowerCase()
+          .compareTo((b.displayName ?? b.username).toLowerCase());
     });
 
     return result;
   }
 
   @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final friendsAsync = ref.watch(friendsListProvider);
+    final requestsAsync = ref.watch(pendingRequestsProvider);
+    final blockedAsync = ref.watch(blockedUsersProvider);
+
+    final friends = friendsAsync.value ?? const <Friend>[];
+    final incomingCount = (requestsAsync.value ?? const <FriendRequest>[])
+        .where((r) => r.isIncoming)
+        .length;
+    final blockedCount = (blockedAsync.value ?? const <FriendUser>[]).length;
+
     return Scaffold(
       backgroundColor: const Color(FlickoColors.bgPrimary),
       appBar: AppBar(
@@ -144,9 +134,9 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
             children: [
               IconButton(
                 icon: const Icon(Icons.person_add, color: Color(FlickoColors.textPrimary)),
-                onPressed: () => context.push('/friends/requests'),
+                onPressed: () => _openRequests(),
               ),
-              if (_pendingCount > 0)
+              if (incomingCount > 0)
                 Positioned(
                   right: 8,
                   top: 8,
@@ -157,7 +147,7 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
-                      '$_pendingCount',
+                      '$incomingCount',
                       style: GoogleFonts.inter(
                         color: Colors.white,
                         fontSize: 10,
@@ -176,19 +166,33 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
           _buildSearchBar(),
 
           // Filter tabs
-          _buildFilterTabs(),
+          _buildFilterTabs(
+            totalCount: friends.length,
+            onlineCount: friends.where((f) => f.isOnline).length,
+            pendingCount: incomingCount,
+            blockedCount: blockedCount,
+          ),
 
           // Online count
           if (_activeFilter == FriendFilter.all)
-            _buildOnlineCount(),
+            _buildOnlineCount(friends.where((f) => f.isOnline).length),
 
-          // Friends list
+          // Body
           Expanded(
-            child: _buildFriendsList(),
+            child: _activeFilter == FriendFilter.blocked
+                ? _buildBlockedList(blockedAsync)
+                : _buildFriendsList(friendsAsync),
           ),
         ],
       ),
     );
+  }
+
+  /// Navigates to the requests screen and refreshes on return, since the user
+  /// may have accepted or declined something while they were there.
+  Future<void> _openRequests() async {
+    await context.push('/friends/requests');
+    if (mounted) _refresh();
   }
 
   Widget _buildSearchBar() {
@@ -227,12 +231,17 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
     );
   }
 
-  Widget _buildFilterTabs() {
+  Widget _buildFilterTabs({
+    required int totalCount,
+    required int onlineCount,
+    required int pendingCount,
+    required int blockedCount,
+  }) {
     final filters = [
-      (FriendFilter.all, 'All', _friends.length),
-      (FriendFilter.online, 'Online', _onlineCount),
-      (FriendFilter.pending, 'Pending', _pendingCount),
-      (FriendFilter.blocked, 'Blocked', 0),
+      (FriendFilter.all, 'All', totalCount),
+      (FriendFilter.online, 'Online', onlineCount),
+      (FriendFilter.pending, 'Pending', pendingCount),
+      (FriendFilter.blocked, 'Blocked', blockedCount),
     ];
 
     return Container(
@@ -253,7 +262,16 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
           final isActive = _activeFilter == filter;
 
           return GestureDetector(
-            onTap: () => setState(() => _activeFilter = filter),
+            // Pending has no inline list of its own — it hands off to the
+            // requests screen. Navigating here (rather than from a filter
+            // getter during build) keeps the side effect out of build().
+            onTap: () {
+              if (filter == FriendFilter.pending) {
+                _openRequests();
+              } else {
+                setState(() => _activeFilter = filter);
+              }
+            },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
@@ -301,7 +319,7 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
     );
   }
 
-  Widget _buildOnlineCount() {
+  Widget _buildOnlineCount(int onlineCount) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       color: const Color(FlickoColors.bgSecondary),
@@ -317,7 +335,7 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
           ),
           const SizedBox(width: 8),
           Text(
-            'ONLINE — $_onlineCount',
+            'ONLINE — $onlineCount',
             style: GoogleFonts.inter(
               color: const Color(FlickoColors.textMuted),
               fontSize: 12,
@@ -330,26 +348,104 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
     );
   }
 
-  Widget _buildFriendsList() {
-    final friends = _filteredFriends;
+  Widget _buildFriendsList(AsyncValue<List<Friend>> async) {
+    return async.when(
+      loading: () => const Center(
+        child: CircularProgressIndicator(color: Color(FlickoColors.blurple)),
+      ),
+      error: (err, _) => _buildErrorState(
+        'Could not load friends',
+        () => ref.invalidate(friendsListProvider),
+      ),
+      data: (allFriends) {
+        final friends = _visibleFriends(allFriends);
+        if (friends.isEmpty) return _buildEmptyState();
 
-    if (friends.isEmpty) {
-      return _buildEmptyState();
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(8),
-      itemCount: friends.length,
-      itemBuilder: (context, index) {
-        final friend = friends[index];
-        return _buildFriendTile(friend);
+        return RefreshIndicator(
+          color: const Color(FlickoColors.blurple),
+          onRefresh: () async => ref.invalidate(friendsListProvider),
+          child: ListView.builder(
+            padding: const EdgeInsets.all(8),
+            itemCount: friends.length,
+            itemBuilder: (context, index) => _buildFriendTile(friends[index]),
+          ),
+        );
       },
+    );
+  }
+
+  Widget _buildBlockedList(AsyncValue<List<FriendUser>> async) {
+    return async.when(
+      loading: () => const Center(
+        child: CircularProgressIndicator(color: Color(FlickoColors.blurple)),
+      ),
+      error: (err, _) => _buildErrorState(
+        'Could not load blocked users',
+        () => ref.invalidate(blockedUsersProvider),
+      ),
+      data: (blocked) {
+        if (blocked.isEmpty) return _buildEmptyState();
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(8),
+          itemCount: blocked.length,
+          itemBuilder: (context, index) => _buildBlockedTile(blocked[index]),
+        );
+      },
+    );
+  }
+
+  Widget _buildBlockedTile(FriendUser user) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      child: Row(
+        children: [
+          UserAvatar(imageUrl: user.avatarUrl, size: 48, status: 'offline'),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  user.displayName ?? user.username,
+                  style: GoogleFonts.inter(
+                    color: const Color(FlickoColors.textPrimary),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  '@${user.username}',
+                  style: GoogleFonts.inter(
+                    color: const Color(FlickoColors.textMuted),
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          OutlinedButton(
+            onPressed: () => _unblockUser(user),
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: Color(FlickoColors.textMuted)),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: Text(
+              'Unblock',
+              style: GoogleFonts.inter(
+                color: const Color(FlickoColors.textPrimary),
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildFriendTile(Friend friend) {
     return InkWell(
-      onTap: () => context.go('/dms/${friend.id}'),
+      onTap: () => _showFriendOptions(friend),
       borderRadius: BorderRadius.circular(8),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -367,12 +463,16 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
                 children: [
                   Row(
                     children: [
-                      Text(
-                        friend.displayName ?? friend.username,
-                        style: GoogleFonts.inter(
-                          color: const Color(FlickoColors.textPrimary),
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                      Flexible(
+                        child: Text(
+                          friend.displayName ?? friend.username,
+                          style: GoogleFonts.inter(
+                            color: const Color(FlickoColors.textPrimary),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       if (!friend.isOnline && friend.lastSeen != null) ...[
@@ -428,6 +528,47 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
     );
   }
 
+  Widget _buildErrorState(String message, VoidCallback onRetry) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.cloud_off,
+            size: 64,
+            color: Color(FlickoColors.textMuted),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            message,
+            style: GoogleFonts.inter(
+              color: const Color(FlickoColors.textPrimary),
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Check your connection and try again',
+            style: GoogleFonts.inter(
+              color: const Color(FlickoColors.textMuted),
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh),
+            label: Text('Retry', style: GoogleFonts.inter()),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(FlickoColors.blurple),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildEmptyState() {
     String title;
     String subtitle;
@@ -446,18 +587,22 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
         subtitle = 'Blocked users will appear here';
         break;
       default:
-        title = 'No friends yet';
-        subtitle = 'Add friends to see them here';
+        title = _searchController.text.trim().isEmpty
+            ? 'No friends yet'
+            : 'No matches';
+        subtitle = _searchController.text.trim().isEmpty
+            ? 'Add friends to see them here'
+            : 'No friends match that search';
     }
 
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
+          const Icon(
             Icons.people_outline,
             size: 64,
-            color: const Color(FlickoColors.textMuted),
+            color: Color(FlickoColors.textMuted),
           ),
           const SizedBox(height: 16),
           Text(
@@ -480,7 +625,7 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
           if (_activeFilter == FriendFilter.all) ...[
             const SizedBox(height: 24),
             ElevatedButton.icon(
-              onPressed: () => context.push('/friends/requests'),
+              onPressed: () => _openRequests(),
               icon: const Icon(Icons.person_add),
               label: Text(
                 'Add Friends',
@@ -567,17 +712,6 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
                 context.push('/profile/${friend.id}');
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.call, color: Color(FlickoColors.textPrimary)),
-              title: Text(
-                'Start Voice Call',
-                style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary)),
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                // Start voice call
-              },
-            ),
             const Divider(color: Color(FlickoColors.bgTertiary)),
             ListTile(
               leading: const Icon(Icons.block, color: Color(FlickoColors.red)),
@@ -610,7 +744,7 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
   void _showBlockConfirmDialog(Friend friend) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: const Color(FlickoColors.bgSecondary),
         title: Text(
           'Block ${friend.displayName ?? friend.username}?',
@@ -625,7 +759,7 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: Text(
               'Cancel',
               style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
@@ -633,16 +767,8 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
           ),
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    '${friend.displayName ?? friend.username} has been blocked',
-                    style: GoogleFonts.inter(),
-                  ),
-                  backgroundColor: const Color(FlickoColors.success),
-                ),
-              );
+              Navigator.pop(dialogContext);
+              _blockUser(friend);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(FlickoColors.red),
@@ -660,7 +786,7 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
   void _showRemoveConfirmDialog(Friend friend) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: const Color(FlickoColors.bgSecondary),
         title: Text(
           'Remove ${friend.displayName ?? friend.username}?',
@@ -675,7 +801,7 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: Text(
               'Cancel',
               style: GoogleFonts.inter(color: const Color(FlickoColors.textMuted)),
@@ -683,19 +809,8 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
           ),
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(context);
-              setState(() {
-                _friends.removeWhere((f) => f.id == friend.id);
-              });
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    '${friend.displayName ?? friend.username} removed from friends',
-                    style: GoogleFonts.inter(),
-                  ),
-                  backgroundColor: const Color(FlickoColors.success),
-                ),
-              );
+              Navigator.pop(dialogContext);
+              _removeFriend(friend);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(FlickoColors.red),
@@ -710,9 +825,81 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
     );
   }
 
+  // ─── Mutations ────────────────────────────────────────────────────────
+  //
+  // Each of these reports the real outcome: the success snackbar only shows
+  // once the write returns, and failures surface instead of being swallowed
+  // behind an optimistic list edit.
+
+  Future<void> _blockUser(Friend friend) async {
+    final repo = ref.read(friendsRepositoryProvider);
+    final userId = repo.currentUserId;
+    if (userId == null) return;
+
+    try {
+      await repo.blockUser(userId, friend.id);
+      if (!mounted) return;
+      _refresh();
+      _showSnack(
+        '${friend.displayName ?? friend.username} has been blocked',
+        const Color(FlickoColors.success),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      _showSnack('Could not block user: $e', const Color(FlickoColors.red));
+    }
+  }
+
+  Future<void> _removeFriend(Friend friend) async {
+    final repo = ref.read(friendsRepositoryProvider);
+    final userId = repo.currentUserId;
+    if (userId == null) return;
+
+    try {
+      await repo.removeFriend(userId, friend.id);
+      if (!mounted) return;
+      _refresh();
+      _showSnack(
+        '${friend.displayName ?? friend.username} removed from friends',
+        const Color(FlickoColors.success),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      _showSnack('Could not remove friend: $e', const Color(FlickoColors.red));
+    }
+  }
+
+  Future<void> _unblockUser(FriendUser user) async {
+    final repo = ref.read(friendsRepositoryProvider);
+    final userId = repo.currentUserId;
+    if (userId == null) return;
+
+    try {
+      await repo.unblockUser(userId, user.id);
+      if (!mounted) return;
+      _refresh();
+      _showSnack(
+        '${user.displayName ?? user.username} unblocked',
+        const Color(FlickoColors.success),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      _showSnack('Could not unblock user: $e', const Color(FlickoColors.red));
+    }
+  }
+
+  void _showSnack(String message, Color background) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: GoogleFonts.inter()),
+        backgroundColor: background,
+      ),
+    );
+  }
+
   String _formatLastSeen(DateTime lastSeen) {
     final diff = DateTime.now().difference(lastSeen);
-    
+
     if (diff.inMinutes < 60) {
       return '${diff.inMinutes}m';
     } else if (diff.inHours < 24) {
@@ -731,27 +918,4 @@ enum FriendFilter {
   online,
   pending,
   blocked,
-}
-
-/// Friend model
-class Friend {
-  final String id;
-  final String username;
-  final String? displayName;
-  final String? avatarUrl;
-  final String status;
-  final String statusMessage;
-  final bool isOnline;
-  final DateTime? lastSeen;
-
-  Friend({
-    required this.id,
-    required this.username,
-    this.displayName,
-    this.avatarUrl,
-    required this.status,
-    required this.statusMessage,
-    required this.isOnline,
-    this.lastSeen,
-  });
 }

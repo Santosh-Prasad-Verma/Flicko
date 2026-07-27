@@ -20,6 +20,7 @@ class ServerOnboardingScreen extends ConsumerStatefulWidget {
 class _ServerOnboardingScreenState extends ConsumerState<ServerOnboardingScreen> {
   bool _isLoading = true;
   Map<String, dynamic>? _config;
+  Map<String, dynamic>? _serverData;
   int _step = 0;
   final Map<String, List<String>> _selectedOptions = {};
   bool _rulesAccepted = false;
@@ -48,21 +49,20 @@ class _ServerOnboardingScreenState extends ConsumerState<ServerOnboardingScreen>
         throw Exception('User not authenticated');
       }
 
+      final serverResp = await Supabase.instance.client
+          .from('servers')
+          .select('name, icon, banner')
+          .eq('id', widget.serverId)
+          .maybeSingle();
+
       final response = await Supabase.instance.client
           .from('onboarding_configs')
           .select('*')
           .eq('server_id', widget.serverId)
           .maybeSingle();
 
-      if (response == null) {
-        setState(() {
-          _isLoading = false;
-          _config = null;
-        });
-        return;
-      }
-
       setState(() {
+        _serverData = serverResp;
         _config = response;
         _isLoading = false;
       });
@@ -235,20 +235,45 @@ class _ServerOnboardingScreenState extends ConsumerState<ServerOnboardingScreen>
   }
 
   Widget _buildWelcomeStep() {
-    final rules = _config!['rules'] as List? ?? [];
-    final requireAcceptance = _config!['require_rules_acceptance'] as bool? ?? false;
+    final rules = _config?['rules'] as List? ?? [];
+    final requireAcceptance = _config?['require_rules_acceptance'] as bool? ?? false;
+    final bannerUrl = _serverData?['banner'] as String?;
+    final iconUrl = _serverData?['icon'] as String?;
+    final serverName = _serverData?['name'] as String? ?? 'this server';
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          const Icon(Icons.auto_awesome, size: 64, color: Color(FlickoColors.blurple)),
-          const SizedBox(height: 24),
+          if (bannerUrl != null && bannerUrl.isNotEmpty) ...[
+            Container(
+              height: 140,
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                image: DecorationImage(
+                  image: NetworkImage(bannerUrl),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+          ],
+          if (iconUrl != null && iconUrl.isNotEmpty) ...[
+            CircleAvatar(
+              radius: 36,
+              backgroundImage: NetworkImage(iconUrl),
+            ),
+            const SizedBox(height: 16),
+          ] else ...[
+            const Icon(Icons.auto_awesome, size: 64, color: Color(FlickoColors.blurple)),
+            const SizedBox(height: 24),
+          ],
           Text(
-            _config!['welcome_title'] ?? 'Welcome!',
+            _config?['welcome_title'] ?? 'Welcome to $serverName!',
             style: GoogleFonts.inter(
               color: const Color(FlickoColors.textPrimary),
-              fontSize: 28,
+              fontSize: 26,
               fontWeight: FontWeight.bold,
             ),
             textAlign: TextAlign.center,
@@ -450,7 +475,7 @@ class _ServerOnboardingScreenState extends ConsumerState<ServerOnboardingScreen>
   }
 
   Widget _buildBottomBar() {
-    final requireAcceptance = _config!['require_rules_acceptance'] as bool? ?? false;
+    final requireAcceptance = _config?['require_rules_acceptance'] as bool? ?? false;
     final canProceed = _step > 0 || !requireAcceptance || _rulesAccepted;
 
     return Padding(

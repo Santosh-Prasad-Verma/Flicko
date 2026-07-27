@@ -578,12 +578,10 @@ class _HomePageState extends State<HomePage> {
                     handleAndroidBackButtonPress: true,
                     onWillPop: (ctx) async {
                       if (ctx != null && Navigator.of(ctx).canPop()) {
-                        Navigator.of(ctx).pop();
-                        return false;
+                        return true;
                       }
                       if (Navigator.of(context).canPop()) {
-                        Navigator.of(context).pop();
-                        return false;
+                        return true;
                       }
                       return true;
                     },

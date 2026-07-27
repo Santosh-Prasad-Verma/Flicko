@@ -89,7 +89,7 @@ class _MiniPlayerState extends State<MiniPlayer> {
                           return Future.value(false);
             },
             child: Dismissible(
-              key: Key(mediaItem.id ?? 'nothingPlaying'),
+              key: Key(mediaItem.id),
               confirmDismiss: (DismissDirection direction) {
                 if (direction == DismissDirection.startToEnd) {
                   audioHandler.skipToPrevious();
@@ -104,10 +104,10 @@ class _MiniPlayerState extends State<MiniPlayer> {
                   vertical: 8.0,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.92),
+                  color: Colors.black.withValues(alpha: 0.92),
                   borderRadius: BorderRadius.circular(28.0),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.08),
+                    color: Colors.white.withValues(alpha: 0.08),
                     width: 1.0,
                   ),
                   boxShadow: const [
@@ -132,14 +132,14 @@ class _MiniPlayerState extends State<MiniPlayer> {
                           context: context,
                           preferredMiniButtons: preferredMiniButtons,
                           useDense: useDense,
-                          title: mediaItem.title ?? '',
+                          title: mediaItem.title,
                           subtitle: mediaItem.artist ?? '',
                           imagePath: (isLocal
                                   ? mediaItem.artUri?.toFilePath()
                                   : mediaItem.artUri?.toString()) ??
                               '',
                           isLocalImage: isLocal,
-                          isDummy: mediaItem == null,
+                          isDummy: false,
                         ),
                         positionSlider(
                           mediaItem.duration?.inSeconds.toDouble(),

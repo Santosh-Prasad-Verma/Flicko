@@ -65,7 +65,7 @@ import 'package:url_launcher/url_launcher.dart';
 class PlayScreen extends StatefulWidget {
   const PlayScreen({super.key});
   @override
-  _PlayScreenState createState() => _PlayScreenState();
+  State<PlayScreen> createState() => _PlayScreenState();
 }
 
 class _PlayScreenState extends State<PlayScreen> {
@@ -1326,7 +1326,7 @@ class RelatedSongsSection extends StatefulWidget {
   });
 
   @override
-  _RelatedSongsSectionState createState() => _RelatedSongsSectionState();
+  State<RelatedSongsSection> createState() => _RelatedSongsSectionState();
 }
 
 class _RelatedSongsSectionState extends State<RelatedSongsSection> {
@@ -1679,7 +1679,7 @@ class ArtWorkWidget extends StatefulWidget {
   });
 
   @override
-  _ArtWorkWidgetState createState() => _ArtWorkWidgetState();
+  State<ArtWorkWidget> createState() => _ArtWorkWidgetState();
 }
 
 class _ArtWorkWidgetState extends State<ArtWorkWidget> {
@@ -2395,7 +2395,7 @@ class NameNControls extends StatefulWidget {
   });
 
   @override
-  _NameNControlsState createState() => _NameNControlsState();
+  State<NameNControls> createState() => _NameNControlsState();
 }
 
 class _NameNControlsState extends State<NameNControls> {
@@ -2483,9 +2483,9 @@ class _NameNControlsState extends State<NameNControls> {
         children: [
           Padding(
             padding: const EdgeInsets.only(
-                bottom: 60.0), // Spacing for sliding panel handle
+                bottom: 50.0), // Spacing for sliding panel handle
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 /// Left-aligned Title & Artist Info Row
                 Padding(

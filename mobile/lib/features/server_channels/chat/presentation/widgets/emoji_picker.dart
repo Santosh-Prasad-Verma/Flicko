@@ -25,8 +25,9 @@ class _EmojiPickerState extends State<EmojiPicker> {
   String _selectedCategory = 'frequently';
   List<String> _filteredEmojis = [];
 
-  // Emoji categories with common Discord emojis
+  // Emoji categories with common Discord & Flicko custom emojis
   final Map<String, List<String>> _emojiCategories = {
+    'flicko': ['⚡', '🤖', '👑', '🎯', '💎', '🔥', '🚀', '🎲', '✨', '🛡️', '🔊', '🎮'],
     'frequently': ['👍', '❤️', '😂', '😮', '😢', '🎉', '🔥', '👏', '🤔', '👌'],
     'people': [
       '😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃',
@@ -325,6 +326,8 @@ class _EmojiPickerState extends State<EmojiPicker> {
 
   String _getCategoryIcon(String category) {
     switch (category) {
+      case 'flicko':
+        return '🔥';
       case 'frequently':
         return '⏰';
       case 'people':

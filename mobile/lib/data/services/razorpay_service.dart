@@ -35,7 +35,7 @@ class RazorpayService {
   }) async {
     final mappedPlan = _mapPlan(plan);
     final response = await _dio.post(
-      '/v1/premium/orders',
+      'premium/orders',
       data: {
         'plan': mappedPlan,
       },
@@ -104,6 +104,14 @@ class RazorpayService {
   }
 
   /// Verify signature on backend.
+  ///
+  /// [plan] is required: the backend computes
+  /// `hmac_sha256(order_id|payment_id, secret)` and grants the entitlement only
+  /// on a match. This used to accept a null plan and return `true` without
+  /// calling the backend at all ("bypass for local store sandbox"), which meant
+  /// any caller passing null got an unconditional "payment verified" — the
+  /// signature was never checked. There is no client-side shortcut to
+  /// verification; a payment is verified by the server or not at all.
   Future<bool> verifyPayment({
     required String orderId,
     required String paymentId,
@@ -111,15 +119,11 @@ class RazorpayService {
     required String email,
     required String username,
     required String amount,
-    SubscriptionPlan? plan,
+    required SubscriptionPlan plan,
   }) async {
-    if (plan == null) {
-      return true; // Bypass backend verification for local store sandbox override
-    }
-
     final mappedPlan = _mapPlan(plan);
     final response = await _dio.post(
-      '/v1/premium/verify',
+      'premium/verify',
       data: {
         'razorpay_order_id': orderId,
         'razorpay_payment_id': paymentId,

@@ -8,12 +8,45 @@ final friendsRepositoryProvider = Provider<FriendsRepository>((ref) {
   return FriendsRepository(ref.watch(supabaseClientProvider));
 });
 
+/// Accepted friends of the signed-in user.
+///
+/// Returns an empty list when nobody is signed in rather than throwing, so the
+/// screens render their empty state instead of an error during sign-out.
+final friendsListProvider = FutureProvider.autoDispose<List<Friend>>((ref) async {
+  final repo = ref.watch(friendsRepositoryProvider);
+  final userId = repo.currentUserId;
+  if (userId == null) return const [];
+  return repo.fetchFriends(userId);
+});
+
+/// Pending friend requests (incoming *and* outgoing) for the signed-in user.
+/// Split by `isIncoming` at the call site.
+final pendingRequestsProvider =
+    FutureProvider.autoDispose<List<FriendRequest>>((ref) async {
+  final repo = ref.watch(friendsRepositoryProvider);
+  final userId = repo.currentUserId;
+  if (userId == null) return const [];
+  return repo.fetchPendingRequests(userId);
+});
+
+/// Users the signed-in user has blocked.
+final blockedUsersProvider =
+    FutureProvider.autoDispose<List<FriendUser>>((ref) async {
+  final repo = ref.watch(friendsRepositoryProvider);
+  final userId = repo.currentUserId;
+  if (userId == null) return const [];
+  return repo.fetchBlockedUsers(userId);
+});
+
 class FriendsRepository {
   final SupabaseClient _client;
 
   FriendsRepository(this._client);
 
-  String? get _currentUserId => _client.auth.currentUser?.id;
+  /// The signed-in user's id, or null when unauthenticated.
+  String? get currentUserId => _client.auth.currentUser?.id;
+
+  String? get _currentUserId => currentUserId;
 
   // ─── Friends list ─────────────────────────────────────────────────────
 
@@ -134,6 +167,59 @@ class FriendsRepository {
         .delete()
         .eq('user_id', userId)
         .eq('friend_id', friendId);
+  }
+
+  /// Blocks a user and removes them from friends/friendships.
+  Future<void> blockUser(String userId, String targetUserId) async {
+    try {
+      await _client.from('blocked_users').upsert({
+        'user_id': userId,
+        'blocked_user_id': targetUserId,
+      });
+    } catch (_) {}
+
+    await removeFriend(userId, targetUserId);
+  }
+
+  /// Unblocks a user.
+  Future<void> unblockUser(String userId, String targetUserId) async {
+    await _client
+        .from('blocked_users')
+        .delete()
+        .eq('user_id', userId)
+        .eq('blocked_user_id', targetUserId);
+  }
+
+  /// Fetches the profiles of everyone [userId] has blocked.
+  ///
+  /// Done as two queries rather than a PostgREST embed on purpose:
+  /// `blocked_users.blocked_user_id` has a foreign key to `auth.users`, not
+  /// `public.profiles`, so `select('*, profiles(*)')` cannot resolve a
+  /// relationship and errors out. Fetch the ids, then the profiles.
+  Future<List<FriendUser>> fetchBlockedUsers(String userId) async {
+    try {
+      final blockRows = await _client
+          .from('blocked_users')
+          .select('blocked_user_id')
+          .eq('user_id', userId);
+
+      final ids = (blockRows as List)
+          .map((r) => (r as Map<String, dynamic>)['blocked_user_id'] as String?)
+          .whereType<String>()
+          .toList();
+
+      if (ids.isEmpty) return [];
+
+      final profiles =
+          await _client.from('profiles').select('*').inFilter('id', ids);
+
+      final rows = (profiles as List).cast<Map<String, dynamic>>();
+      return rows.map((row) => FriendUser.fromJson(row)).toList();
+    } catch (e) {
+      developer.log('Error fetching blocked users: $e',
+          name: 'FriendsRepository');
+      return [];
+    }
   }
 
   // ─── Search users ─────────────────────────────────────────────────────

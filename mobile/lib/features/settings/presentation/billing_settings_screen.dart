@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/features/settings/application/payment_methods_provider.dart';
+import 'package:mobile/features/settings/data/billing_history_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -752,9 +753,14 @@ class _BillingSettingsScreenState extends ConsumerState<BillingSettingsScreen> {
     );
   }
 
+  /// Recent billing entries, newest first.
+  ///
+  /// This section previously rendered an unconditional "No transactions yet"
+  /// card — it never queried anything, so a paying customer saw the same empty
+  /// state as a free account.
   Widget _buildTransactionHistorySection() {
-    // Get real transactions from Supabase in a real app
-    // For now showing placeholder
+    final historyAsync = ref.watch(billingHistoryProvider);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -802,23 +808,174 @@ class _BillingSettingsScreenState extends ConsumerState<BillingSettingsScreen> {
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: white.withValues(alpha: 0.05)),
           ),
-          padding: const EdgeInsets.all(24),
-          child: Center(
-            child: Column(
-              children: [
-                Icon(Icons.receipt_long_outlined, color: white.withValues(alpha: 0.3), size: 48),
-                const SizedBox(height: 12),
-                Text(
-                  'No transactions yet',
-                  style: GoogleFonts.spaceGrotesk(
-                    color: white.withValues(alpha: 0.5),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
+          padding: const EdgeInsets.all(16),
+          child: historyAsync.when(
+            loading: () => const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(color: lime, strokeWidth: 2),
                 ),
-              ],
+              ),
+            ),
+            error: (err, _) => _buildHistoryNotice(
+              icon: Icons.error_outline,
+              title: 'Could not load transactions',
+              subtitle: err.toString(),
+              onRetry: () => ref.invalidate(billingHistoryProvider),
+            ),
+            data: (transactions) {
+              if (transactions.isEmpty) {
+                return _buildHistoryNotice(
+                  icon: Icons.receipt_long_outlined,
+                  title: 'No transactions yet',
+                );
+              }
+              // The full list lives behind "VIEW ALL"; this is a preview.
+              final preview = transactions.take(3).toList();
+              return Column(
+                children: [
+                  for (int i = 0; i < preview.length; i++) ...[
+                    if (i > 0)
+                      Divider(color: white.withValues(alpha: 0.05), height: 20),
+                    _buildTransactionRow(preview[i]),
+                  ],
+                ],
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHistoryNotice({
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    VoidCallback? onRetry,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        children: [
+          Icon(icon, color: white.withValues(alpha: 0.3), size: 40),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.spaceGrotesk(
+              color: white.withValues(alpha: 0.5),
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
             ),
           ),
+          if (subtitle != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.spaceMono(
+                color: white.withValues(alpha: 0.3),
+                fontSize: 10,
+              ),
+            ),
+          ],
+          if (onRetry != null) ...[
+            const SizedBox(height: 10),
+            TextButton(
+              onPressed: onRetry,
+              child: Text(
+                'RETRY',
+                style: GoogleFonts.spaceGrotesk(
+                  color: lime,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTransactionRow(BillingTransaction txn) {
+    final statusColor = txn.isSettled
+        ? lime
+        : (txn.status == BillingEntryStatus.pendingRedemption
+            ? const Color(0xFFFFD700)
+            : Colors.red);
+
+    return Row(
+      children: [
+        Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: statusColor.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(
+            txn.kind == BillingEntryKind.gift
+                ? Icons.card_giftcard
+                : Icons.workspace_premium_outlined,
+            color: statusColor,
+            size: 18,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                txn.productName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.spaceGrotesk(
+                  color: white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                DateFormat('MMM dd, yyyy').format(txn.date),
+                style: GoogleFonts.spaceMono(
+                  color: white.withValues(alpha: 0.4),
+                  fontSize: 9,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              txn.amountLabel,
+              style: GoogleFonts.spaceGrotesk(
+                color: white,
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              txn.statusLabel,
+              style: GoogleFonts.spaceMono(
+                color: statusColor,
+                fontSize: 8,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
         ),
       ],
     );

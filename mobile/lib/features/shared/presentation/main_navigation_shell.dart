@@ -154,7 +154,7 @@ class MainNavigationShell extends ConsumerWidget {
                   activeIndex: currentIndex,
                   icon: Icons.notifications_none_rounded,
                   activeIcon: Icons.notifications_rounded,
-                  label: 'Notifications',
+                  label: 'Alerts',
                   badgeCount: unreadCount,
                   onTap: onTabSelected,
                 ),
