@@ -7,8 +7,8 @@ import 'package:mobile/features/voice/presentation/controllers/voice_controller.
 import 'package:mobile/features/voice/presentation/controllers/voice_state.dart';
 import 'voice_synth_board_sheet.dart';
 
-/// Floating Voice HUD bar displayed when connected to a voice channel in the background.
-/// Features full controls, vocal synthesizer access, tap-to-navigate, and expandable/collapsible pill modes.
+/// Discord-style Draggable Floating Voice Box Widget
+/// Displayed when connected to a voice channel while navigating elsewhere in the app.
 class VoiceHUD extends ConsumerStatefulWidget {
   const VoiceHUD({super.key});
 
@@ -17,13 +17,7 @@ class VoiceHUD extends ConsumerStatefulWidget {
 }
 
 class _VoiceHUDState extends ConsumerState<VoiceHUD> {
-  bool _isMinimized = false;
-
-  void _toggleMinimized() {
-    setState(() {
-      _isMinimized = !_isMinimized;
-    });
-  }
+  Offset? _position;
 
   @override
   Widget build(BuildContext context) {
@@ -33,252 +27,143 @@ class _VoiceHUDState extends ConsumerState<VoiceHUD> {
       return const SizedBox.shrink();
     }
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeOutCubic,
-      margin: const EdgeInsets.symmetric(horizontal: 2),
-      padding: _isMinimized
-          ? const EdgeInsets.symmetric(horizontal: 10, vertical: 8)
-          : const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-      decoration: BoxDecoration(
-        color: const Color(0xFF121215).withValues(alpha: 0.95),
-        borderRadius: BorderRadius.circular(_isMinimized ? 24 : 16),
-        border: Border.all(
-          color: const Color(FlickoColors.green).withValues(alpha: _isMinimized ? 0.4 : 0.25),
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.5),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: _isMinimized
-          ? _buildMinimizedPill(context, ref, voiceState)
-          : _buildExpandedHud(context, ref, voiceState),
-    );
-  }
+    final size = MediaQuery.of(context).size;
+    _position ??= Offset(size.width - 150, size.height - 220);
 
-  /// Compact 1-line pill view when minimized to minimize screen footprint
-  Widget _buildMinimizedPill(BuildContext context, WidgetRef ref, VoiceState voiceState) {
-    final controller = ref.read(voiceControllerProvider.notifier);
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Pulsing active call indicator
-        GestureDetector(
-          onTap: _toggleMinimized,
-          behavior: HitTestBehavior.opaque,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 10,
-                height: 10,
-                decoration: BoxDecoration(
-                  color: voiceState.isConnected ? const Color(FlickoColors.green) : Colors.amber,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: (voiceState.isConnected ? const Color(FlickoColors.green) : Colors.amber)
-                          .withValues(alpha: 0.6),
-                      blurRadius: 6,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                voiceState.isConnecting ? 'Connecting...' : 'Voice (${voiceState.participants.length})',
-                style: GoogleFonts.spaceMono(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const Spacer(),
-        // Quick Mute button
-        IconButton(
-          icon: Icon(
-            voiceState.isMuted ? Icons.mic_off_rounded : Icons.mic_rounded,
-            color: voiceState.isMuted ? Colors.redAccent : const Color(FlickoColors.green),
-            size: 18,
-          ),
-          onPressed: controller.toggleMute,
-          tooltip: voiceState.isMuted ? 'Unmute' : 'Mute',
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-        ),
-        const SizedBox(width: 4),
-        // Expand button
-        IconButton(
-          icon: const Icon(
-            Icons.keyboard_arrow_up_rounded,
-            color: Colors.white70,
-            size: 22,
-          ),
-          onPressed: _toggleMinimized,
-          tooltip: 'Expand Controls',
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-        ),
-        const SizedBox(width: 4),
-        // Leave call button
-        IconButton(
-          icon: const Icon(
-            Icons.call_end_rounded,
-            color: Colors.redAccent,
-            size: 18,
-          ),
-          onPressed: controller.leaveChannel,
-          tooltip: 'Leave Call',
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-        ),
-      ],
-    );
-  }
-
-  /// Full expanded HUD controls
-  Widget _buildExpandedHud(BuildContext context, WidgetRef ref, VoiceState voiceState) {
     final activeServerId = ref.read(voiceControllerProvider.notifier).activeServerId;
     final activeChannelId = voiceState.activeChannelId;
+    final controller = ref.read(voiceControllerProvider.notifier);
 
-    return Row(
-      children: [
-        Expanded(
-          child: GestureDetector(
-            onTap: () {
-              if (activeServerId != null && activeChannelId != null) {
-                context.push('/server/$activeServerId/channel/$activeChannelId/voice');
-              }
-            },
-            behavior: HitTestBehavior.opaque,
-            child: Row(
+    return Positioned(
+      left: _position!.dx,
+      top: _position!.dy,
+      child: GestureDetector(
+        onPanUpdate: (details) {
+          setState(() {
+            _position = Offset(
+              (_position!.dx + details.delta.dx).clamp(8.0, size.width - 145.0),
+              (_position!.dy + details.delta.dy).clamp(50.0, size.height - 180.0),
+            );
+          });
+        },
+        onTap: () {
+          if (activeServerId != null && activeChannelId != null) {
+            context.push('/server/$activeServerId/channel/$activeChannelId/voice');
+          }
+        },
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            width: 135,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E1F22).withValues(alpha: 0.95),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: voiceState.isConnected ? const Color(0xFF43B581) : Colors.amber,
+                width: 2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.6),
+                  blurRadius: 16,
+                  spreadRadius: 2,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                _buildStatusIndicator(voiceState),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        voiceState.isConnecting ? 'Connecting...' : 'Voice Connected',
-                        style: GoogleFonts.spaceMono(
+                // Top status indicator & member count
+                Row(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: voiceState.isConnected ? const Color(0xFF43B581) : Colors.amber,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        voiceState.isConnecting
+                            ? 'Connecting...'
+                            : '${voiceState.participants.length} in Voice',
+                        style: GoogleFonts.inter(
                           color: Colors.white,
+                          fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          fontSize: 13,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      if (voiceState.isConnected)
-                        Text(
-                          '${voiceState.participants.length} in call',
-                          style: GoogleFonts.inter(
-                            color: const Color(FlickoColors.textMuted),
-                            fontSize: 11,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                    ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+
+                // Center Icon / Tap to open voice room
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.08),
+                    shape: BoxShape.circle,
                   ),
+                  child: const Icon(
+                    Icons.volume_up_rounded,
+                    color: Color(0xFF43B581),
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                // Bottom Action Row: Mute & End Call
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    GestureDetector(
+                      onTap: controller.toggleMute,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: voiceState.isMuted
+                              ? const Color(0xFFED4245)
+                              : Colors.white12,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          voiceState.isMuted
+                              ? Icons.mic_off_rounded
+                              : Icons.mic_rounded,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: controller.leaveChannel,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFDA373C),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.call_end_rounded,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
         ),
-        _buildActionButtons(context, ref, voiceState),
-      ],
-    );
-  }
-
-  Widget _buildStatusIndicator(VoiceState voiceState) {
-    return Container(
-      width: 36,
-      height: 36,
-      decoration: const BoxDecoration(
-        color: Color(FlickoColors.bgTertiary),
-        shape: BoxShape.circle,
-      ),
-      child: Icon(
-        voiceState.isConnecting ? Icons.hourglass_empty_rounded : Icons.wifi_calling_3_rounded,
-        color: voiceState.isConnected ? const Color(FlickoColors.green) : const Color(FlickoColors.textMuted),
-        size: 18,
-      ),
-    );
-  }
-
-  Widget _buildActionButtons(BuildContext context, WidgetRef ref, VoiceState voiceState) {
-    final controller = ref.read(voiceControllerProvider.notifier);
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _hudButton(
-          icon: Icons.tune_rounded,
-          color: const Color(FlickoColors.green),
-          tooltip: 'Vocal Synthesizer',
-          onPressed: () {
-            showModalBottomSheet(
-              context: context,
-              isScrollControlled: true,
-              backgroundColor: Colors.transparent,
-              builder: (context) => const VoiceSynthBoardSheet(),
-            );
-          },
-        ),
-        _hudButton(
-          icon: voiceState.isMuted ? Icons.mic_off_rounded : Icons.mic_rounded,
-          color: voiceState.isMuted ? Colors.redAccent : Colors.white,
-          tooltip: voiceState.isMuted ? 'Unmute' : 'Mute',
-          onPressed: controller.toggleMute,
-        ),
-        _hudButton(
-          icon: voiceState.isDeafened ? Icons.headset_off_rounded : Icons.headset_rounded,
-          color: voiceState.isDeafened ? Colors.redAccent : Colors.white,
-          tooltip: voiceState.isDeafened ? 'Undeafen' : 'Deafen',
-          onPressed: controller.toggleDeafen,
-        ),
-        _hudButton(
-          icon: Icons.keyboard_arrow_down_rounded,
-          color: Colors.white70,
-          tooltip: 'Minimize',
-          onPressed: _toggleMinimized,
-        ),
-        _hudButton(
-          icon: Icons.call_end_rounded,
-          color: Colors.redAccent,
-          tooltip: 'Leave Call',
-          onPressed: controller.leaveChannel,
-        ),
-      ],
-    );
-  }
-
-  Widget _hudButton({
-    required IconData icon,
-    required Color color,
-    VoidCallback? onPressed,
-    String? tooltip,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 0.2),
-      child: IconButton(
-        icon: Icon(icon, color: color, size: 18),
-        onPressed: onPressed,
-        tooltip: tooltip,
-        padding: const EdgeInsets.all(3.0),
-        constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-        splashRadius: 14,
       ),
     );
   }

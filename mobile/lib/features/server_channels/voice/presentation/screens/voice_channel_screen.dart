@@ -532,6 +532,7 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
                               )
                             : _buildParticipantsGrid(voiceState),
                   ),
+                  _buildAddPeopleTile(),
                   _buildFloatingGlassControls(voiceState),
                 ],
               ),
@@ -562,104 +563,86 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
   //  FROSTED GLASS HEADER
   // ══════════════════════════════════════════════════════════════════════════
   Widget _buildGlassHeader(voice_state.VoiceState voiceState) {
-    final isConnected = voiceState.isConnected;
-    final connectionLabel = voiceState.isConnecting
-        ? 'Connecting...'
-        : isConnected
-            ? 'Connected'
-            : 'Not connected';
-
-    final statusColor = isConnected
-        ? _neonGreen
-        : voiceState.isConnecting
-            ? _neonCyan
-            : _white.withValues(alpha: 0.35);
-
-    return ClipRRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.3),
-            border: Border(
-              bottom:
-                  BorderSide(color: _white.withValues(alpha: 0.06), width: 1),
-            ),
-          ),
-          child: Row(
-            children: [
-              IconButton(
-                icon: Icon(Icons.arrow_back_ios_new_rounded,
-                    color: _white.withValues(alpha: 0.8), size: 20),
-                onPressed: () {
-                  FloatingCallPipOverlay.show(
-                    context,
-                    userName: _channel?['name'] ?? 'Voice Channel',
-                    isSpeaking: true,
-                    onTapExpand: () {
-                      context.push('/server/${widget.serverId}/channel/${widget.channelId}/voice');
-                    },
-                  );
-                  Navigator.of(context).pop();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      color: Colors.transparent,
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white, size: 28),
+            onPressed: () {
+              FloatingCallPipOverlay.show(
+                context,
+                userName: _channel?['name'] ?? 'Voice Channel',
+                isSpeaking: true,
+                onTapExpand: () {
+                  context.push('/server/${widget.serverId}/channel/${widget.channelId}/voice');
                 },
-              ),
-              const SizedBox(width: 4),
-              Icon(Icons.volume_up_rounded,
-                  color: _neonGreen.withValues(alpha: 0.7), size: 20),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _channel?['name'] ?? 'Voice Channel',
-                      style: GoogleFonts.outfit(
-                        color: _white,
-                        fontSize: 17,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        Container(
-                          width: 7,
-                          height: 7,
-                          decoration: BoxDecoration(
-                            color: statusColor,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          connectionLabel,
-                          style: GoogleFonts.inter(
-                            color: statusColor,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+              );
+              Navigator.of(context).pop();
+            },
+          ),
+          const SizedBox(width: 4),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                _channel?['name'] ?? 'General',
+                style: GoogleFonts.inter(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-              IconButton(
-                icon: Icon(Icons.person_add_rounded, color: _white.withValues(alpha: 0.8), size: 20),
-                onPressed: () => InviteFriendsBottomSheet.show(context),
-              ),
-              IconButton(
-                icon: Icon(Icons.chat_bubble_outline_rounded, color: _white.withValues(alpha: 0.8), size: 20),
-                onPressed: () => VoiceChannelChatSheet.show(
+              const SizedBox(width: 4),
+              const Icon(Icons.chevron_right_rounded, color: Colors.white70, size: 20),
+            ],
+          ),
+          const Spacer(),
+          // Speaker Audio Mode Button (White Pill Circle)
+          GestureDetector(
+            onTap: () {
+              VoiceSettingsBottomSheet.show(
+                context,
+                isMuted: voiceState.isMuted,
+                isVideoOn: voiceState.room?.localParticipant?.isCameraEnabled() ?? false,
+                isDeafened: voiceState.isDeafened,
+                onMuteChanged: (_) => _handleToggleMute(),
+                onVideoChanged: (_) => _handleToggleVideo(),
+                onDeafenChanged: (_) => _handleToggleDeafen(),
+                onStartStreaming: () => _handleToggleScreenShare(),
+                onShowActivities: _handleActivities,
+                onShowChat: () => VoiceChannelChatSheet.show(
                   context,
                   channelName: _channel?['name'] ?? 'Voice Channel',
                 ),
+                onEndCall: _handleDisconnect,
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
               ),
-            ],
+              child: const Icon(Icons.volume_up_rounded, color: Colors.black, size: 20),
+            ),
           ),
-        ),
+          const SizedBox(width: 12),
+          // View Members Button
+          IconButton(
+            icon: const Icon(Icons.group_rounded, color: Colors.white, size: 22),
+            onPressed: () => _showMembersBottomSheet(context, voiceState),
+          ),
+          // Chat Button
+          IconButton(
+            icon: const Icon(Icons.chat_bubble_rounded, color: Colors.white, size: 22),
+            onPressed: () => VoiceChannelChatSheet.show(
+              context,
+              channelName: _channel?['name'] ?? 'Voice Channel',
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1060,7 +1043,7 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  //  FROSTED GLASS PARTICIPANT CARD
+  //  PARTICIPANT CARD (MATCHING SCREENSHOT)
   // ══════════════════════════════════════════════════════════════════════════
   Widget _buildGlassParticipantCard(Participant participant, bool isSpeaking, {bool ignoreScreenShare = false}) {
     final userId = participant.identity;
@@ -1085,54 +1068,51 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
     final hasVideo = videoTrack.isNotEmpty;
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 350),
-          curve: Curves.easeOutCubic,
-          decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(28),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeOutCubic,
+        decoration: BoxDecoration(
+          color: isSpeaking
+              ? const Color(0xFF9E6479)
+              : const Color(0xFF8A5A6D),
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(
             color: isSpeaking
-                ? _neonGreen.withValues(alpha: 0.08)
-                : Colors.black.withValues(alpha: 0.3),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: isSpeaking
-                  ? _neonGreen.withValues(alpha: 0.35)
-                  : _white.withValues(alpha: 0.08),
-              width: isSpeaking ? 1.5 : 1,
-            ),
-            boxShadow: isSpeaking
-                ? [
-                    BoxShadow(
-                      color: _neonGreen.withValues(alpha: 0.15),
-                      blurRadius: 20,
-                      spreadRadius: 2,
-                    )
-                  ]
-                : [],
+                ? _neonGreen
+                : Colors.transparent,
+            width: isSpeaking ? 2 : 0,
           ),
-          child: hasScreenShare
-              ? _buildVideoView(screenShareTrack.first.track as VideoTrack,
-                  participant, '$displayName (Screen)', isSpeaking, isScreenShare: true)
-              : hasVideo
-                  ? _buildVideoView(videoTrack.first.track as VideoTrack,
-                      participant, displayName, isSpeaking)
-                  : _buildAvatarView(
-                      displayName, avatarUrl, participant, isSpeaking),
+          boxShadow: isSpeaking
+              ? [
+                  BoxShadow(
+                    color: _neonGreen.withValues(alpha: 0.3),
+                    blurRadius: 18,
+                    spreadRadius: 2,
+                  )
+                ]
+              : [],
         ),
+        child: hasScreenShare
+            ? _buildVideoView(screenShareTrack.first.track as VideoTrack,
+                participant, '$displayName (Screen)', isSpeaking, isScreenShare: true)
+            : hasVideo
+                ? _buildVideoView(videoTrack.first.track as VideoTrack,
+                    participant, displayName, isSpeaking)
+                : _buildAvatarView(
+                    displayName, avatarUrl, participant, isSpeaking),
       ),
     );
   }
 
-  /// Renders the live video stream inside the frosted card
+  /// Renders the live video stream inside the card
   Widget _buildVideoView(VideoTrack track, Participant participant,
       String displayName, bool isSpeaking, {bool isScreenShare = false}) {
     return Stack(
       fit: StackFit.expand,
       children: [
         ClipRRect(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(28),
           child: VideoTrackRenderer(
             track,
             fit: isScreenShare ? VideoViewFit.contain : VideoViewFit.cover,
@@ -1146,15 +1126,8 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: const Color(0xFFED4245), // Discord/Flicko Red
+                color: const Color(0xFFED4245),
                 borderRadius: BorderRadius.circular(4),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFFED4245).withValues(alpha: 0.4),
-                    blurRadius: 8,
-                    spreadRadius: 1,
-                  )
-                ],
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -1174,48 +1147,41 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
                       color: Colors.white,
                       fontSize: 10,
                       fontWeight: FontWeight.w900,
-                      letterSpacing: 1.0,
                     ),
                   ),
                 ],
               ),
             ),
           ),
-        // Bottom name overlay
+        // Bottom name overlay pill
         Positioned(
           left: 0,
           right: 0,
-          bottom: 0,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.transparent,
-                  Colors.black.withValues(alpha: 0.7),
-                ],
+          bottom: 12,
+          child: Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(16),
               ),
-              borderRadius: const BorderRadius.vertical(
-                  bottom: Radius.circular(20)),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
                     displayName,
                     style: GoogleFonts.inter(
                       color: _white,
                       fontSize: 13,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.w600,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                ),
-                _buildStatusIcons(participant),
-              ],
+                  const SizedBox(width: 4),
+                  _buildStatusIcons(participant),
+                ],
+              ),
             ),
           ),
         ),
@@ -1223,112 +1189,78 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
     );
   }
 
-  /// Renders the avatar-based view (when camera is off)
+  /// Renders the avatar-based view (matching screenshot)
   Widget _buildAvatarView(String displayName, String? avatarUrl,
       Participant participant, bool isSpeaking) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
+    return Stack(
       children: [
-        const Spacer(flex: 2),
-        // ── Avatar with pulsing halo ──
-        AnimatedBuilder(
-          animation: _pulseController,
-          builder: (context, child) {
-            final pulseVal = sin(_pulseController.value * 2 * pi);
-            final outerScale = isSpeaking ? 1.0 + 0.06 * pulseVal : 1.0;
-            final glowAlpha = isSpeaking ? 0.18 + 0.12 * pulseVal : 0.0;
+        // Centered Avatar
+        Center(
+          child: AnimatedBuilder(
+            animation: _pulseController,
+            builder: (context, child) {
+              final pulseVal = sin(_pulseController.value * 2 * pi);
+              final outerScale = isSpeaking ? 1.0 + 0.05 * pulseVal : 1.0;
 
-            return Transform.scale(
-              scale: outerScale,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  // Outer breathing halo ring
-                  if (isSpeaking)
-                    Container(
-                      width: 82,
-                      height: 82,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: _neonGreen.withValues(alpha: glowAlpha),
-                          width: 2.5,
-                        ),
-                      ),
-                    ),
-                  // Middle halo ring
-                  if (isSpeaking)
-                    Container(
-                      width: 76,
-                      height: 76,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color:
-                              _neonGreen.withValues(alpha: glowAlpha * 0.6),
-                          width: 1.5,
-                        ),
-                      ),
-                    ),
-                  // Avatar circle
-                  Container(
-                    width: 64,
-                    height: 64,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: _white.withValues(alpha: 0.06),
-                      border: Border.all(
-                        color: isSpeaking
-                            ? _neonGreen.withValues(alpha: 0.5)
-                            : _white.withValues(alpha: 0.1),
-                        width: 2,
-                      ),
-                      boxShadow: isSpeaking
-                          ? [
-                              BoxShadow(
-                                color: _neonGreen.withValues(alpha: 0.2),
-                                blurRadius: 16,
-                                spreadRadius: 1,
-                              ),
-                            ]
-                          : [],
-                    ),
-                    child: UserAvatar(
-                      imageUrl: avatarUrl,
-                      name: displayName,
-                      size: 64,
-                      userId: participant.identity,
-                      showStatus: false,
-                      showBadge: false,
+              return Transform.scale(
+                scale: outerScale,
+                child: Container(
+                  width: 84,
+                  height: 84,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.black12,
+                    border: Border.all(
+                      color: isSpeaking ? _neonGreen : Colors.white24,
+                      width: isSpeaking ? 3 : 1.5,
                     ),
                   ),
+                  child: UserAvatar(
+                    imageUrl: avatarUrl,
+                    name: displayName,
+                    size: 84,
+                    userId: participant.identity,
+                    showStatus: false,
+                    showBadge: false,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        // Bottom Name Tag Pill (matching screenshot)
+        Positioned(
+          bottom: 14,
+          left: 0,
+          right: 0,
+          child: Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.55),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    displayName,
+                    style: GoogleFonts.inter(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  _buildStatusIcons(participant),
                 ],
               ),
-            );
-          },
-        ),
-        const SizedBox(height: 12),
-        // ── Display name ──
-        Text(
-          displayName,
-          style: GoogleFonts.inter(
-            color: _white.withValues(alpha: 0.85),
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
+            ),
           ),
-          textAlign: TextAlign.center,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
         ),
-        const SizedBox(height: 6),
-        // ── Status icons ──
-        _buildStatusIcons(participant),
-        const Spacer(flex: 1),
       ],
     );
   }
-
-
 
   Widget _buildStatusIcons(Participant participant) {
     return Row(
@@ -1357,159 +1289,98 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
     );
   }
 
+  Widget _buildAddPeopleTile() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: GestureDetector(
+        onTap: () => InviteFriendsBottomSheet.show(context),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E1F22).withValues(alpha: 0.7),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: const BoxDecoration(
+                  color: Colors.white10,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.person_add_rounded, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Add people to Voice Chat',
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Let the group know you are here!',
+                      style: GoogleFonts.inter(
+                        color: Colors.white54,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded, color: Colors.white54, size: 22),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   // ══════════════════════════════════════════════════════════════════════════
-  //  FLOATING FROSTED GLASS CONTROL BAR
+  //  FLOATING CONTROL BAR (MATCHING SCREENSHOT)
   // ══════════════════════════════════════════════════════════════════════════
   Widget _buildFloatingGlassControls(voice_state.VoiceState voiceState) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.4),
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(
-                  color: _white.withValues(alpha: 0.08), width: 1),
-              boxShadow: [
-                BoxShadow(
-                  color: _neonGreen.withValues(alpha: 0.06),
-                  blurRadius: 30,
-                  spreadRadius: 0,
-                  offset: const Offset(0, -4),
-                ),
-              ],
-            ),
-            child: voiceState.isConnected
-                ? _buildConnectedGlassControls(voiceState)
-                : _buildGlassJoinButton(voiceState),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildGlassJoinButton(voice_state.VoiceState voiceState) {
-    return GestureDetector(
-      onTap: voiceState.isConnecting ? null : _handleConnect,
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [_neonGreen, Color(0xFF40916C)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(20),
+          color: const Color(0xFF1E1F22),
+          borderRadius: BorderRadius.circular(36),
           boxShadow: [
             BoxShadow(
-              color: _neonGreen.withValues(alpha: 0.3),
-              blurRadius: 16,
-              spreadRadius: 0,
+              color: Colors.black.withValues(alpha: 0.4),
+              blurRadius: 20,
+              spreadRadius: 2,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (voiceState.isConnecting)
-              const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(_white),
-                ),
-              )
-            else ...[
-              const Icon(Icons.call_rounded, color: _white, size: 20),
-              const SizedBox(width: 10),
-              Text(
-                'Join Voice',
-                style: GoogleFonts.outfit(
-                  color: _white,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showMoreOptionsSheet(voice_state.VoiceState voiceState) {
-    VoiceSettingsBottomSheet.show(
-      context,
-      isMuted: voiceState.isMuted,
-      isVideoOn: voiceState.room?.localParticipant?.isCameraEnabled() ?? false,
-      isDeafened: voiceState.isDeafened,
-      onMuteChanged: (_) => _handleToggleMute(),
-      onVideoChanged: (_) => _handleToggleVideo(),
-      onDeafenChanged: (_) => _handleToggleDeafen(),
-      onStartStreaming: () => _handleToggleScreenShare(),
-      onShowActivities: _handleActivities,
-      onShowChat: () => VoiceChannelChatSheet.show(
-        context,
-        channelName: _channel?['name'] ?? 'Voice Channel',
-      ),
-      onEndCall: _handleDisconnect,
-    );
-  }
-
-  Widget _moreSheetBtn({
-    required IconData icon,
-    required String label,
-    required Color activeColor,
-    required bool isActive,
-    required VoidCallback onTap,
-  }) {
-    final bgColor = isActive ? activeColor.withValues(alpha: 0.18) : _white.withValues(alpha: 0.06);
-    final iconColor = isActive ? activeColor : _white.withValues(alpha: 0.7);
-
-    return GestureDetector(
-      onTap: onTap,
-      child: SizedBox(
-        width: 80,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 54,
-              height: 54,
-              decoration: BoxDecoration(
-                color: bgColor,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isActive ? activeColor.withValues(alpha: 0.2) : _white.withValues(alpha: 0.06),
-                  width: 1,
+            // Top Drag Handle indicator (matching screenshot)
+            Center(
+              child: Container(
+                width: 32,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white30,
+                  borderRadius: BorderRadius.circular(2),
                 ),
-                boxShadow: isActive
-                    ? [
-                        BoxShadow(
-                          color: activeColor.withValues(alpha: 0.15),
-                          blurRadius: 12,
-                          spreadRadius: 0,
-                        )
-                      ]
-                    : [],
               ),
-              child: Icon(icon, color: iconColor, size: 24),
             ),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: GoogleFonts.inter(
-                color: _white.withValues(alpha: 0.7),
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-              ),
-              textAlign: TextAlign.center,
-            ),
+            voiceState.isConnected
+                ? _buildConnectedGlassControls(voiceState)
+                : _buildGlassJoinButton(voiceState),
           ],
         ),
       ),
@@ -1520,155 +1391,112 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
     final isScreenSharing = voiceState.room?.localParticipant?.isScreenShareEnabled() ?? false;
     final isCameraOn = voiceState.room?.localParticipant?.isCameraEnabled() ?? false;
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _glassControlBtn(
-            icon: voiceState.isMuted
-                ? Icons.mic_off_rounded
-                : Icons.mic_rounded,
-            isActive: voiceState.isMuted,
-            activeColor: _red,
-            onTap: _handleToggleMute,
-            label: 'Mute',
-          ),
-          const SizedBox(width: 8),
-          _glassControlBtn(
-            icon: isCameraOn
-                ? Icons.videocam_rounded
-                : Icons.videocam_off_rounded,
-            isActive: isCameraOn,
-            activeColor: _neonGreen,
-            onTap: _handleToggleVideo,
-            label: 'Camera',
-          ),
-          const SizedBox(width: 8),
-          _glassControlBtn(
-            icon: Icons.present_to_all_rounded,
-            isActive: isScreenSharing,
-            activeColor: _neonCyan,
-            onTap: () {
-              if (isScreenSharing) {
-                _handleToggleScreenShare();
-              } else {
-                StreamSettingsSheet.show(
-                  context,
-                  onStartStreaming: () => _handleToggleScreenShare(),
-                );
-              }
-            },
-            label: isScreenSharing ? 'Stop Share' : 'Share',
-          ),
-          const SizedBox(width: 8),
-          _glassControlBtn(
-            icon: Icons.music_note_rounded,
-            isActive: false,
-            activeColor: _neonGreen,
-            onTap: () {
-              showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                backgroundColor: Colors.transparent,
-                builder: (context) => SoundboardSheet(serverId: widget.serverId),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        // 1. Camera Toggle Button
+        _circleControlButton(
+          icon: isCameraOn ? Icons.videocam_rounded : Icons.videocam_off_rounded,
+          bgColor: isCameraOn ? Colors.white24 : Colors.white10,
+          iconColor: Colors.white,
+          onTap: _handleToggleVideo,
+        ),
+        // 2. Microphone Toggle Button
+        _circleControlButton(
+          icon: voiceState.isMuted ? Icons.mic_off_rounded : Icons.mic_rounded,
+          bgColor: voiceState.isMuted ? const Color(0xFFED4245) : Colors.white10,
+          iconColor: Colors.white,
+          onTap: _handleToggleMute,
+        ),
+        // 3. Screen Share Button
+        _circleControlButton(
+          icon: Icons.mobile_screen_share_rounded,
+          bgColor: isScreenSharing ? _neonCyan.withValues(alpha: 0.3) : Colors.white10,
+          iconColor: Colors.white,
+          onTap: () {
+            if (isScreenSharing) {
+              _handleToggleScreenShare();
+            } else {
+              StreamSettingsSheet.show(
+                context,
+                onStartStreaming: () => _handleToggleScreenShare(),
               );
-            },
-            label: 'Soundboard',
-          ),
-          const SizedBox(width: 8),
-          _glassControlBtn(
-            icon: Icons.chat_bubble_outline_rounded,
-            isActive: false,
-            activeColor: _neonCyan,
-            onTap: () => VoiceChannelChatSheet.show(
-              context,
-              channelName: _channel?['name'] ?? 'Voice Channel',
-            ),
-            label: 'Chat',
-          ),
-          const SizedBox(width: 8),
-          _glassControlBtn(
-            icon: Icons.keyboard_arrow_up_rounded,
-            isActive: false,
-            activeColor: _neonCyan,
-            onTap: () => _showMoreOptionsSheet(voiceState),
-            label: 'More',
-          ),
-          const SizedBox(width: 8),
-          _glassControlBtn(
-            icon: Icons.call_end_rounded,
-            isActive: true,
-            activeColor: _red,
-            onTap: _handleDisconnect,
-            label: 'Leave',
-            isDestructive: true,
-          ),
-        ],
+            }
+          },
+        ),
+        // 4. Activities / Soundboard Button
+        _circleControlButton(
+          icon: Icons.auto_awesome_rounded,
+          bgColor: Colors.white10,
+          iconColor: Colors.white,
+          onTap: _handleActivities,
+        ),
+        // 5. End Call Red Circle Button
+        _circleControlButton(
+          icon: Icons.call_end_rounded,
+          bgColor: const Color(0xFFDA373C),
+          iconColor: Colors.white,
+          onTap: _handleDisconnect,
+        ),
+      ],
+    );
+  }
+
+  Widget _circleControlButton({
+    required IconData icon,
+    required Color bgColor,
+    required Color iconColor,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 52,
+        height: 52,
+        decoration: BoxDecoration(
+          color: bgColor,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, color: iconColor, size: 22),
       ),
     );
   }
 
-  Widget _glassControlBtn({
-    required IconData icon,
-    required bool isActive,
-    required Color activeColor,
-    required VoidCallback onTap,
-    required String label,
-    bool isDestructive = false,
-  }) {
-    final bgColor = isDestructive
-        ? _red.withValues(alpha: 0.2)
-        : isActive
-            ? activeColor.withValues(alpha: 0.18)
-            : _white.withValues(alpha: 0.06);
-    final iconColor = isDestructive
-        ? _red
-        : isActive
-            ? activeColor
-            : _white.withValues(alpha: 0.7);
-
+  Widget _buildGlassJoinButton(voice_state.VoiceState voiceState) {
     return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 46,
-            height: 46,
-            decoration: BoxDecoration(
-              color: bgColor,
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: isDestructive
-                    ? _red.withValues(alpha: 0.25)
-                    : isActive
-                        ? activeColor.withValues(alpha: 0.2)
-                        : _white.withValues(alpha: 0.06),
-                width: 1,
-              ),
-              boxShadow: isDestructive || isActive
-                  ? [
-                      BoxShadow(
-                        color: activeColor.withValues(alpha: 0.15),
-                        blurRadius: 12,
-                        spreadRadius: 0,
-                      ),
-                    ]
-                  : [],
-            ),
-            child: Icon(icon, color: iconColor, size: 21),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: GoogleFonts.inter(
-              color: _white.withValues(alpha: 0.4),
-              fontSize: 10,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
+      onTap: voiceState.isConnecting ? null : _handleConnect,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color: _neonGreen,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: voiceState.isConnecting
+              ? const [
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(_white),
+                    ),
+                  ),
+                ]
+              : [
+                  const Icon(Icons.call_rounded, color: Colors.white, size: 20),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Join Voice',
+                    style: GoogleFonts.inter(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+        ),
       ),
     );
   }
