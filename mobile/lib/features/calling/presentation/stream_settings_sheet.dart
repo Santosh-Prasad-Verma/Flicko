@@ -274,32 +274,37 @@ class _StreamSettingsSheetState extends State<StreamSettingsSheet> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.volume_up_rounded, color: Colors.white70, size: 20),
-                            const SizedBox(width: 12),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Share Device & App Audio',
-                                  style: GoogleFonts.inter(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                        Expanded(
+                          child: Row(
+                            children: [
+                              const Icon(Icons.volume_up_rounded, color: Colors.white70, size: 20),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Share Device & App Audio',
+                                      style: GoogleFonts.inter(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Includes system sound & media playback',
+                                      style: GoogleFonts.inter(
+                                        color: Colors.white.withValues(alpha: 0.4),
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                Text(
-                                  'Includes system sound & media playback',
-                                  style: GoogleFonts.inter(
-                                    color: Colors.white.withValues(alpha: 0.4),
-                                    fontSize: 11,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
+                              ),
+                            ],
+                          ),
                         ),
+                        const SizedBox(width: 8),
                         Switch(
                           value: _shareAppAudio,
                           activeColor: accentGreen,

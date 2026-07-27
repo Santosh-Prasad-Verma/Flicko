@@ -80,7 +80,14 @@ class FeatureFlagsRepository {
   /// failures fall back to v1 silently.
   Future<E2EEFlags> fetch() async {
     try {
-      final res = await _dio.get('/users/@me/config');
+      final res = await _dio.get(
+        '/users/@me/config',
+        options: Options(
+          sendTimeout: const Duration(seconds: 3),
+          receiveTimeout: const Duration(seconds: 3),
+          extra: {'no_retry': true},
+        ),
+      );
       final data = (res.data as Map?)?.cast<String, dynamic>() ?? const {};
       return E2EEFlags(
         v2Enabled: data['e2ee_v2_enabled'] == true,

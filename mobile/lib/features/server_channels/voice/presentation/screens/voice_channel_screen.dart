@@ -574,7 +574,9 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white, size: 28),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white, size: 26),
             onPressed: () {
               FloatingCallPipOverlay.show(
                 context,
@@ -587,7 +589,7 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
               Navigator.of(context).pop();
             },
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: 6),
           Expanded(
             child: Row(
               children: [
@@ -598,13 +600,13 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.inter(
                       color: Colors.white,
-                      fontSize: 18,
+                      fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
-                const SizedBox(width: 4),
-                const Icon(Icons.chevron_right_rounded, color: Colors.white70, size: 20),
+                const SizedBox(width: 2),
+                const Icon(Icons.chevron_right_rounded, color: Colors.white70, size: 18),
               ],
             ),
           ),
@@ -629,23 +631,28 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
               );
             },
             child: Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(7),
               decoration: const BoxDecoration(
                 color: Colors.white,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.volume_up_rounded, color: Colors.black, size: 20),
+              child: const Icon(Icons.volume_up_rounded, color: Colors.black, size: 18),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 6),
           // View Members Button
           IconButton(
-            icon: const Icon(Icons.group_rounded, color: Colors.white, size: 22),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            icon: const Icon(Icons.group_rounded, color: Colors.white, size: 20),
             onPressed: () => _showMembersBottomSheet(context, voiceState),
           ),
+          const SizedBox(width: 8),
           // Chat Button
           IconButton(
-            icon: const Icon(Icons.chat_bubble_rounded, color: Colors.white, size: 22),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            icon: const Icon(Icons.chat_bubble_rounded, color: Colors.white, size: 20),
             onPressed: () => VoiceChannelChatSheet.show(
               context,
               channelName: _channel?['name'] ?? 'Voice Channel',

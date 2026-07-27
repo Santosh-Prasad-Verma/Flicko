@@ -79,9 +79,7 @@ class MainNavigationShell extends ConsumerWidget {
 
           // Discord-style Draggable Floating Voice Box Overlay
           if (!activeLocation.contains('/voice') && !activeLocation.contains('/stage'))
-            const Positioned.fill(
-              child: VoiceHUD(),
-            ),
+            const VoiceHUD(),
 
           // Offline Connection Warning Banner
           if (isOffline)

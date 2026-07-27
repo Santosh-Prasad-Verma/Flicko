@@ -231,11 +231,13 @@ class VoiceController extends Notifier<VoiceState> {
 
 
   void _updateParticipants() {
-    if (state.room == null) return;
+    final room = state.room;
+    if (room == null) return;
+    final local = room.localParticipant;
     state = state.copyWith(
       participants: [
-        state.room!.localParticipant!,
-        ...state.room!.remoteParticipants.values,
+        if (local != null) local,
+        ...room.remoteParticipants.values,
       ],
     );
   }
@@ -312,9 +314,14 @@ class VoiceController extends Notifier<VoiceState> {
     final localParticipant = room.localParticipant;
     if (localParticipant == null) return;
 
-    final isVideoEnabled = localParticipant.isCameraEnabled();
-    await localParticipant.setCameraEnabled(!isVideoEnabled);
-    _updateParticipants();
+    try {
+      final isVideoEnabled = localParticipant.isCameraEnabled();
+      await localParticipant.setCameraEnabled(!isVideoEnabled);
+      _updateParticipants();
+    } catch (e) {
+      developer.log('Failed to toggle camera video', name: 'VoiceController', error: e);
+      state = state.copyWith(error: 'Camera track publish failed: ${e.toString()}');
+    }
   }
 
   static const _screenCaptureChannel =

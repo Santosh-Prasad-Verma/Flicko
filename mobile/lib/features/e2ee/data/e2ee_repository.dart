@@ -141,8 +141,15 @@ class E2EERepository {
 
   Future<({int count, bool low})> getOneTimePrekeyCount(String deviceId) async {
     try {
-      final res = await _dio
-          .get('/e2ee/one-time-prekeys/count', queryParameters: {'device_id': deviceId});
+      final res = await _dio.get(
+        '/e2ee/one-time-prekeys/count',
+        queryParameters: {'device_id': deviceId},
+        options: Options(
+          sendTimeout: const Duration(seconds: 3),
+          receiveTimeout: const Duration(seconds: 3),
+          extra: {'no_retry': true},
+        ),
+      );
       final m = _parseMap(res.data);
       return (
         count: (m['count'] as num?)?.toInt() ?? 0,
