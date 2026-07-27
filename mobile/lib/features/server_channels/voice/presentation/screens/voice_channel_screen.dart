@@ -46,6 +46,7 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
   bool _isLoading = false;
   bool _showWhiteboard = false;
   bool _isWhiteboardActiveRemotely = false;
+  bool _isScreenShareMinimized = false;
   String? _whiteboardHostId;
   RealtimeChannel? _whiteboardStatusChannel;
   
@@ -985,107 +986,185 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
 
       return Column(
         children: [
-          // Pinned Screen Share Card
+          // Pinned Screen Share Card (Collapsible & Fullscreenable)
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: AspectRatio(
-              aspectRatio: 16 / 9,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    VideoTrackRenderer(
-                      screenShareTrack,
-                      fit: VideoViewFit.contain,
-                    ),
-                    // Tap to full-screen overlay detector
-                    Positioned.fill(
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () => _showFullScreenVideo(screenShareTrack!, '$displayName\'s Screen'),
-                          child: const SizedBox.expand(),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            child: AnimatedCrossFade(
+              duration: const Duration(milliseconds: 300),
+              crossFadeState: _isScreenShareMinimized ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+              firstChild: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      VideoTrackRenderer(
+                        screenShareTrack,
+                        fit: VideoViewFit.contain,
+                      ),
+                      // Tap overlay detector
+                      Positioned.fill(
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () => _showFullScreenVideo(screenShareTrack!, '$displayName\'s Screen'),
+                            child: const SizedBox.expand(),
+                          ),
                         ),
                       ),
-                    ),
-                    // "LIVE" Badge
-                    Positioned(
-                      top: 12,
-                      left: 12,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFED4245),
-                          borderRadius: BorderRadius.circular(4),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFFED4245).withValues(alpha: 0.4),
-                              blurRadius: 8,
-                              spreadRadius: 1,
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 6,
-                              height: 6,
-                              decoration: const BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
+                      // "LIVE" Badge
+                      Positioned(
+                        top: 12,
+                        left: 12,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFED4245),
+                            borderRadius: BorderRadius.circular(4),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFFED4245).withValues(alpha: 0.4),
+                                blurRadius: 8,
+                                spreadRadius: 1,
                               ),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              'LIVE',
-                              style: GoogleFonts.spaceGrotesk(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 1.0,
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 6,
+                                height: 6,
+                                decoration: const BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    // Bottom Banner Overlay
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.transparent,
-                              Colors.black.withValues(alpha: 0.8),
+                              const SizedBox(width: 6),
+                              Text(
+                                'LIVE',
+                                style: GoogleFonts.spaceGrotesk(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1.0,
+                                ),
+                              ),
                             ],
                           ),
                         ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                '$displayName is sharing their screen',
-                                style: GoogleFonts.inter(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                      ),
+                      // Minimize Button (Top Right)
+                      Positioned(
+                        top: 10,
+                        right: 10,
+                        child: GestureDetector(
+                          onTap: () => setState(() => _isScreenShareMinimized = true),
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.65),
+                              shape: BoxShape.circle,
                             ),
-                            const Icon(Icons.fullscreen_rounded, color: Colors.white, size: 22),
-                          ],
+                            child: const Icon(Icons.keyboard_arrow_up_rounded, color: Colors.white, size: 20),
+                          ),
                         ),
                       ),
+                      // Bottom Banner Overlay with Fullscreen Button
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.transparent,
+                                Colors.black.withValues(alpha: 0.8),
+                              ],
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  '$displayName is sharing screen',
+                                  style: GoogleFonts.inter(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.fullscreen_rounded, color: Colors.white, size: 22),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                                onPressed: () => _showFullScreenVideo(screenShareTrack!, '$displayName\'s Screen'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              secondChild: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFED4245).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFED4245).withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFED4245),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        'LIVE',
+                        style: GoogleFonts.spaceGrotesk(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        '$displayName\'s Screen Share',
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white, size: 22),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () => setState(() => _isScreenShareMinimized = false),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(Icons.fullscreen_rounded, color: Colors.white, size: 20),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () => _showFullScreenVideo(screenShareTrack!, '$displayName\'s Screen'),
                     ),
                   ],
                 ),
@@ -1169,16 +1248,18 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
   /// Renders the live video stream inside the card
   Widget _buildVideoView(VideoTrack track, Participant participant,
       String displayName, bool isSpeaking, {bool isScreenShare = false}) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(28),
-          child: VideoTrackRenderer(
-            track,
-            fit: isScreenShare ? VideoViewFit.contain : VideoViewFit.cover,
+    return GestureDetector(
+      onTap: () => _showFullScreenVideo(track, '$displayName\'s ${isScreenShare ? 'Screen' : 'Camera'}'),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(28),
+            child: VideoTrackRenderer(
+              track,
+              fit: isScreenShare ? VideoViewFit.contain : VideoViewFit.cover,
+            ),
           ),
-        ),
         // Red "LIVE" badge for screen sharing
         if (isScreenShare)
           Positioned(
@@ -1247,6 +1328,7 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
           ),
         ),
       ],
+    ),
     );
   }
 

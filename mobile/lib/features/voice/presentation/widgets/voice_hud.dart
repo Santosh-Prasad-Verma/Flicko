@@ -8,8 +8,8 @@ import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
 import 'package:mobile/features/voice/presentation/controllers/voice_controller.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 
-/// Discord-style Draggable Floating Voice Box Widget
-/// Displayed when connected to a voice channel while navigating elsewhere in the app.
+/// Discord-style Draggable Floating Voice & Video PIP Box Widget
+/// Renders live video/screen-share or speaking avatar when navigating elsewhere in the app.
 class VoiceHUD extends ConsumerStatefulWidget {
   const VoiceHUD({super.key});
 
@@ -54,13 +54,48 @@ class _VoiceHUDState extends ConsumerState<VoiceHUD> {
     }
 
     final size = MediaQuery.of(context).size;
-    _position ??= Offset(size.width - 150, size.height - 220);
 
     final activeServerId = ref.read(voiceControllerProvider.notifier).activeServerId;
     final activeChannelId = voiceState.activeChannelId;
     final controller = ref.read(voiceControllerProvider.notifier);
 
-    // Identify active speaker or local participant for avatar display
+    // 1. Check for active screen share track across all participants
+    Participant? screenSharingParticipant;
+    VideoTrack? screenShareTrack;
+    for (final p in voiceState.participants) {
+      final pubs = p.videoTrackPublications.where((pub) => pub.track != null && pub.isScreenShare && !pub.muted).toList();
+      if (pubs.isNotEmpty) {
+        screenSharingParticipant = p;
+        screenShareTrack = pubs.first.track as VideoTrack?;
+        break;
+      }
+    }
+
+    // 2. Check for active camera video track if no screen share
+    Participant? cameraParticipant;
+    VideoTrack? cameraTrack;
+    if (screenShareTrack == null) {
+      for (final p in voiceState.participants) {
+        final pubs = p.videoTrackPublications.where((pub) => pub.track != null && !pub.isScreenShare && !pub.muted).toList();
+        if (pubs.isNotEmpty) {
+          cameraParticipant = p;
+          cameraTrack = pubs.first.track as VideoTrack?;
+          break;
+        }
+      }
+    }
+
+    final bool hasLiveVideo = screenShareTrack != null || cameraTrack != null;
+    final VideoTrack? activeVideoTrack = screenShareTrack ?? cameraTrack;
+    final bool isScreenShare = screenShareTrack != null;
+
+    // Adjust container dimensions if video stream is active
+    final double boxWidth = hasLiveVideo ? 160 : 140;
+    final double boxHeight = hasLiveVideo ? 120 : 135;
+
+    _position ??= Offset(size.width - boxWidth - 16, size.height - boxHeight - 80);
+
+    // Identify active speaker or local participant for avatar display when video is inactive
     Participant? activeSpeakerParticipant;
     if (voiceState.speakingParticipants.isNotEmpty) {
       final speakingSid = voiceState.speakingParticipants.first;
@@ -95,8 +130,8 @@ class _VoiceHUDState extends ConsumerState<VoiceHUD> {
         onPanUpdate: (details) {
           setState(() {
             _position = Offset(
-              (_position!.dx + details.delta.dx).clamp(8.0, size.width - 145.0),
-              (_position!.dy + details.delta.dy).clamp(50.0, size.height - 180.0),
+              (_position!.dx + details.delta.dx).clamp(8.0, size.width - boxWidth - 8.0),
+              (_position!.dy + details.delta.dy).clamp(40.0, size.height - boxHeight - 20.0),
             );
           });
         },
@@ -108,22 +143,24 @@ class _VoiceHUDState extends ConsumerState<VoiceHUD> {
         child: Material(
           color: Colors.transparent,
           child: Container(
-            width: 140,
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            width: boxWidth,
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: const Color(0xFF1E1F22).withValues(alpha: 0.95),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: isSpeaking
-                    ? const Color(0xFF52B788)
-                    : (voiceState.isConnected ? const Color(0xFF52B788).withValues(alpha: 0.5) : Colors.amber),
-                width: isSpeaking ? 2.5 : 1.5,
+                color: isScreenShare
+                    ? const Color(0xFFED4245)
+                    : (isSpeaking ? const Color(0xFF52B788) : const Color(0xFF52B788).withValues(alpha: 0.4)),
+                width: isSpeaking || isScreenShare ? 2.5 : 1.5,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: isSpeaking ? const Color(0xFF52B788).withValues(alpha: 0.4) : Colors.black.withValues(alpha: 0.6),
-                  blurRadius: isSpeaking ? 16 : 12,
-                  spreadRadius: isSpeaking ? 2 : 1,
+                  color: isScreenShare
+                      ? const Color(0xFFED4245).withValues(alpha: 0.4)
+                      : (isSpeaking ? const Color(0xFF52B788).withValues(alpha: 0.4) : Colors.black.withValues(alpha: 0.6)),
+                  blurRadius: 16,
+                  spreadRadius: 2,
                   offset: const Offset(0, 4),
                 ),
               ],
@@ -131,25 +168,27 @@ class _VoiceHUDState extends ConsumerState<VoiceHUD> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Top status indicator & member count
+                // Header Bar: Member count & LIVE indicator
                 Row(
                   children: [
                     Container(
                       width: 8,
                       height: 8,
                       decoration: BoxDecoration(
-                        color: voiceState.isConnected ? const Color(0xFF52B788) : Colors.amber,
+                        color: isScreenShare
+                            ? const Color(0xFFED4245)
+                            : (voiceState.isConnected ? const Color(0xFF52B788) : Colors.amber),
                         shape: BoxShape.circle,
                       ),
                     ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        voiceState.isConnecting
-                            ? 'Connecting...'
-                            : '${voiceState.participants.length} in Voice',
+                        isScreenShare
+                            ? 'LIVE SCREEN'
+                            : (hasLiveVideo ? 'LIVE VIDEO' : '${voiceState.participants.length} in Voice'),
                         style: GoogleFonts.inter(
-                          color: Colors.white,
+                          color: isScreenShare ? const Color(0xFFED4245) : Colors.white,
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
                         ),
@@ -159,28 +198,42 @@ class _VoiceHUDState extends ConsumerState<VoiceHUD> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
 
-                // Center User Avatar with pulsating green speaking ring
-                Container(
-                  padding: const EdgeInsets.all(2),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: isSpeaking ? const Color(0xFF52B788) : Colors.transparent,
-                      width: 2,
+                // Main Content Body: Render Live Video Stream OR User Avatar
+                if (hasLiveVideo && activeVideoTrack != null)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: SizedBox(
+                      height: 60,
+                      width: double.infinity,
+                      child: VideoTrackRenderer(
+                        activeVideoTrack,
+                        fit: isScreenShare ? VideoViewFit.contain : VideoViewFit.cover,
+                      ),
+                    ),
+                  )
+                else
+                  Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isSpeaking ? const Color(0xFF52B788) : Colors.transparent,
+                        width: 2,
+                      ),
+                    ),
+                    child: UserAvatar(
+                      imageUrl: avatarUrl.isNotEmpty ? avatarUrl : null,
+                      name: displayName,
+                      size: 38,
+                      userId: speakerUserId,
+                      showStatus: true,
+                      status: isSpeaking ? UserStatus.online : UserStatus.offline,
                     ),
                   ),
-                  child: UserAvatar(
-                    imageUrl: avatarUrl.isNotEmpty ? avatarUrl : null,
-                    name: displayName,
-                    size: 38,
-                    userId: speakerUserId,
-                    showStatus: true,
-                    status: isSpeaking ? UserStatus.online : UserStatus.offline,
-                  ),
-                ),
-                const SizedBox(height: 8),
+
+                const SizedBox(height: 6),
 
                 // Bottom Action Row: Mute & End Call
                 Row(
@@ -189,7 +242,7 @@ class _VoiceHUDState extends ConsumerState<VoiceHUD> {
                     GestureDetector(
                       onTap: controller.toggleMute,
                       child: Container(
-                        padding: const EdgeInsets.all(6),
+                        padding: const EdgeInsets.all(5),
                         decoration: BoxDecoration(
                           color: voiceState.isMuted
                               ? const Color(0xFFED4245)
@@ -201,14 +254,14 @@ class _VoiceHUDState extends ConsumerState<VoiceHUD> {
                               ? Icons.mic_off_rounded
                               : Icons.mic_rounded,
                           color: Colors.white,
-                          size: 16,
+                          size: 15,
                         ),
                       ),
                     ),
                     GestureDetector(
                       onTap: controller.leaveChannel,
                       child: Container(
-                        padding: const EdgeInsets.all(6),
+                        padding: const EdgeInsets.all(5),
                         decoration: const BoxDecoration(
                           color: Color(0xFFDA373C),
                           shape: BoxShape.circle,
@@ -216,7 +269,7 @@ class _VoiceHUDState extends ConsumerState<VoiceHUD> {
                         child: const Icon(
                           Icons.call_end_rounded,
                           color: Colors.white,
-                          size: 16,
+                          size: 15,
                         ),
                       ),
                     ),
