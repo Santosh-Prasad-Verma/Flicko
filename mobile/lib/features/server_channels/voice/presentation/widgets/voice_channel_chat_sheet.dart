@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class VoiceChannelChatSheet extends ConsumerStatefulWidget {
   final String channelName;
