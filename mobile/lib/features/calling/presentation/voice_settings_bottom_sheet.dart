@@ -12,6 +12,8 @@ class VoiceSettingsBottomSheet extends StatefulWidget {
   final ValueChanged<bool>? onDeafenChanged;
   final VoidCallback? onEndCall;
   final VoidCallback? onShowChat;
+  final VoidCallback? onStartStreaming;
+  final VoidCallback? onShowActivities;
 
   const VoiceSettingsBottomSheet({
     super.key,
@@ -23,6 +25,8 @@ class VoiceSettingsBottomSheet extends StatefulWidget {
     this.onDeafenChanged,
     this.onEndCall,
     this.onShowChat,
+    this.onStartStreaming,
+    this.onShowActivities,
   });
 
   static void show(BuildContext context, {
@@ -34,6 +38,8 @@ class VoiceSettingsBottomSheet extends StatefulWidget {
     ValueChanged<bool>? onDeafenChanged,
     VoidCallback? onEndCall,
     VoidCallback? onShowChat,
+    VoidCallback? onStartStreaming,
+    VoidCallback? onShowActivities,
   }) {
     showModalBottomSheet(
       context: context,
@@ -51,6 +57,8 @@ class VoiceSettingsBottomSheet extends StatefulWidget {
         onDeafenChanged: onDeafenChanged,
         onEndCall: onEndCall,
         onShowChat: onShowChat,
+        onStartStreaming: onStartStreaming,
+        onShowActivities: onShowActivities,
       ),
     );
   }
@@ -136,7 +144,10 @@ class _VoiceSettingsBottomSheetState extends State<VoiceSettingsBottomSheet> {
                       isActive: false,
                       onTap: () {
                         Navigator.pop(context);
-                        StreamSettingsSheet.show(context);
+                        StreamSettingsSheet.show(
+                          context,
+                          onStartStreaming: widget.onStartStreaming,
+                        );
                       },
                     ),
                     _buildTopCircleAction(
@@ -170,7 +181,10 @@ class _VoiceSettingsBottomSheetState extends State<VoiceSettingsBottomSheet> {
                       _buildMenuTile(
                         icon: Icons.grid_view_rounded,
                         title: 'Activities',
-                        onTap: () {},
+                        onTap: () {
+                          Navigator.pop(context);
+                          widget.onShowActivities?.call();
+                        },
                       ),
                       const Divider(height: 1, color: Colors.white10),
                       _buildMenuTile(
@@ -181,97 +195,6 @@ class _VoiceSettingsBottomSheetState extends State<VoiceSettingsBottomSheet> {
                           widget.onShowChat?.call();
                         },
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Section Label: Voice Settings
-                Text(
-                  'Voice Settings',
-                  style: GoogleFonts.inter(
-                    color: Colors.white54,
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-
-                // Group 2: Voice Toggles Container
-                Container(
-                  decoration: BoxDecoration(
-                    color: bgTertiary,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    children: [
-                      // Deafen
-                      _buildSwitchTile(
-                        icon: Icons.volume_off_rounded,
-                        title: 'Deafen',
-                        subtitle: 'Disables all sound',
-                        value: _isDeafened,
-                        onChanged: (v) {
-                          setState(() => _isDeafened = v);
-                          widget.onDeafenChanged?.call(v);
-                        },
-                      ),
-                      const Divider(height: 1, color: Colors.white10),
-
-                      // Change Audio Output
-                      _buildMenuTile(
-                        icon: Icons.volume_up_rounded,
-                        title: 'Change Audio Output',
-                        onTap: () {},
-                      ),
-                      const Divider(height: 1, color: Colors.white10),
-
-                      // Only Show Videos
-                      _buildSwitchTile(
-                        icon: Icons.videocam_rounded,
-                        title: 'Only Show Videos',
-                        subtitle: "We won't show non-video participants",
-                        value: _onlyShowVideos,
-                        onChanged: (v) => setState(() => _onlyShowVideos = v),
-                      ),
-                      const Divider(height: 1, color: Colors.white10),
-
-                      // Show My Own Camera
-                      _buildSwitchTile(
-                        icon: Icons.person_rounded,
-                        title: 'Show My Own Camera',
-                        value: _showOwnCamera,
-                        onChanged: (v) => setState(() => _showOwnCamera = v),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Section Label: Noise Suppression
-                Text(
-                  'Noise Suppression',
-                  style: GoogleFonts.inter(
-                    color: Colors.white54,
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-
-                // Group 3: Noise Suppression Selectors
-                Container(
-                  decoration: BoxDecoration(
-                    color: bgTertiary,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    children: [
-                      _buildRadioTile('Flicko HD', 'AI-powered noise suppression'),
-                      const Divider(height: 1, color: Colors.white10),
-                      _buildRadioTile('Standard', 'Basic background noise filter'),
-                      const Divider(height: 1, color: Colors.white10),
-                      _buildRadioTile('None', 'Disabled'),
                     ],
                   ),
                 ),

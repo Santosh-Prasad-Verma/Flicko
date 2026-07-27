@@ -20,6 +20,8 @@ import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/calling/presentation/voice_settings_bottom_sheet.dart';
 import 'package:mobile/features/calling/presentation/invite_friends_bottom_sheet.dart';
 import 'package:mobile/features/calling/presentation/floating_call_pip_overlay.dart';
+import 'package:mobile/features/calling/presentation/stream_settings_sheet.dart';
+import 'package:mobile/features/server_channels/voice/presentation/widgets/voice_channel_chat_sheet.dart';
 
 /// Premium Glassmorphic Voice/Video Channel Screen
 /// Features shifting radial orb backgrounds, frosted glass participant cards,
@@ -648,30 +650,11 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
                 icon: Icon(Icons.person_add_rounded, color: _white.withValues(alpha: 0.8), size: 20),
                 onPressed: () => InviteFriendsBottomSheet.show(context),
               ),
-              GestureDetector(
-                onTap: () => _showMembersBottomSheet(context, voiceState),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: _white.withValues(alpha: 0.06),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.people_rounded,
-                          color: _white.withValues(alpha: 0.5), size: 15),
-                      const SizedBox(width: 5),
-                      Text(
-                        '${voiceState.participants.length}',
-                        style: GoogleFonts.inter(
-                          color: _white.withValues(alpha: 0.7),
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
+              IconButton(
+                icon: Icon(Icons.chat_bubble_outline_rounded, color: _white.withValues(alpha: 0.8), size: 20),
+                onPressed: () => VoiceChannelChatSheet.show(
+                  context,
+                  channelName: _channel?['name'] ?? 'Voice Channel',
                 ),
               ),
             ],
@@ -1468,6 +1451,12 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
       onMuteChanged: (_) => _handleToggleMute(),
       onVideoChanged: (_) => _handleToggleVideo(),
       onDeafenChanged: (_) => _handleToggleDeafen(),
+      onStartStreaming: () => _handleToggleScreenShare(),
+      onShowActivities: _handleActivities,
+      onShowChat: () => VoiceChannelChatSheet.show(
+        context,
+        channelName: _channel?['name'] ?? 'Voice Channel',
+      ),
       onEndCall: _handleDisconnect,
     );
   }
@@ -1528,43 +1517,95 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
   }
 
   Widget _buildConnectedGlassControls(voice_state.VoiceState voiceState) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _glassControlBtn(
-          icon: voiceState.isMuted
-              ? Icons.mic_off_rounded
-              : Icons.mic_rounded,
-          isActive: voiceState.isMuted,
-          activeColor: _red,
-          onTap: _handleToggleMute,
-          label: 'Mute',
-        ),
-        _glassControlBtn(
-          icon: voiceState.isDeafened
-              ? Icons.volume_off_rounded
-              : Icons.volume_up_rounded,
-          isActive: voiceState.isDeafened,
-          activeColor: _red,
-          onTap: _handleToggleDeafen,
-          label: 'Deafen',
-        ),
-        _glassControlBtn(
-          icon: Icons.keyboard_arrow_up_rounded,
-          isActive: false,
-          activeColor: _neonCyan,
-          onTap: () => _showMoreOptionsSheet(voiceState),
-          label: 'More',
-        ),
-        _glassControlBtn(
-          icon: Icons.call_end_rounded,
-          isActive: true,
-          activeColor: _red,
-          onTap: _handleDisconnect,
-          label: 'Leave',
-          isDestructive: true,
-        ),
-      ],
+    final isScreenSharing = voiceState.room?.localParticipant?.isScreenShareEnabled() ?? false;
+    final isCameraOn = voiceState.room?.localParticipant?.isCameraEnabled() ?? false;
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _glassControlBtn(
+            icon: voiceState.isMuted
+                ? Icons.mic_off_rounded
+                : Icons.mic_rounded,
+            isActive: voiceState.isMuted,
+            activeColor: _red,
+            onTap: _handleToggleMute,
+            label: 'Mute',
+          ),
+          const SizedBox(width: 8),
+          _glassControlBtn(
+            icon: isCameraOn
+                ? Icons.videocam_rounded
+                : Icons.videocam_off_rounded,
+            isActive: isCameraOn,
+            activeColor: _neonGreen,
+            onTap: _handleToggleVideo,
+            label: 'Camera',
+          ),
+          const SizedBox(width: 8),
+          _glassControlBtn(
+            icon: Icons.present_to_all_rounded,
+            isActive: isScreenSharing,
+            activeColor: _neonCyan,
+            onTap: () {
+              if (isScreenSharing) {
+                _handleToggleScreenShare();
+              } else {
+                StreamSettingsSheet.show(
+                  context,
+                  onStartStreaming: () => _handleToggleScreenShare(),
+                );
+              }
+            },
+            label: isScreenSharing ? 'Stop Share' : 'Share',
+          ),
+          const SizedBox(width: 8),
+          _glassControlBtn(
+            icon: Icons.music_note_rounded,
+            isActive: false,
+            activeColor: _neonGreen,
+            onTap: () {
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (context) => SoundboardSheet(serverId: widget.serverId),
+              );
+            },
+            label: 'Soundboard',
+          ),
+          const SizedBox(width: 8),
+          _glassControlBtn(
+            icon: Icons.chat_bubble_outline_rounded,
+            isActive: false,
+            activeColor: _neonCyan,
+            onTap: () => VoiceChannelChatSheet.show(
+              context,
+              channelName: _channel?['name'] ?? 'Voice Channel',
+            ),
+            label: 'Chat',
+          ),
+          const SizedBox(width: 8),
+          _glassControlBtn(
+            icon: Icons.keyboard_arrow_up_rounded,
+            isActive: false,
+            activeColor: _neonCyan,
+            onTap: () => _showMoreOptionsSheet(voiceState),
+            label: 'More',
+          ),
+          const SizedBox(width: 8),
+          _glassControlBtn(
+            icon: Icons.call_end_rounded,
+            isActive: true,
+            activeColor: _red,
+            onTap: _handleDisconnect,
+            label: 'Leave',
+            isDestructive: true,
+          ),
+        ],
+      ),
     );
   }
 
