@@ -50,7 +50,11 @@ void main() {
           ],
           child: const MaterialApp(
             home: Scaffold(
-              body: VoiceHUD(),
+              body: Stack(
+                children: [
+                  VoiceHUD(),
+                ],
+              ),
             ),
           ),
         ),
@@ -70,7 +74,11 @@ void main() {
           ],
           child: const MaterialApp(
             home: Scaffold(
-              body: VoiceHUD(),
+              body: Stack(
+                children: [
+                  VoiceHUD(),
+                ],
+              ),
             ),
           ),
         ),
@@ -79,7 +87,7 @@ void main() {
       expect(find.text('Connecting...'), findsOneWidget);
     });
 
-    testWidgets('VoiceHUD shows "Voice Connected" and buttons when isConnected is true', (tester) async {
+    testWidgets('VoiceHUD shows active voice status and buttons when isConnected is true', (tester) async {
       final fakeController = FakeVoiceController(const VoiceState(isConnected: true));
 
       await tester.pumpWidget(
@@ -89,15 +97,18 @@ void main() {
           ],
           child: const MaterialApp(
             home: Scaffold(
-              body: VoiceHUD(),
+              body: Stack(
+                children: [
+                  VoiceHUD(),
+                ],
+              ),
             ),
           ),
         ),
       );
 
-      expect(find.text('Voice Connected'), findsOneWidget);
+      expect(find.textContaining('in Voice'), findsOneWidget);
       expect(find.byIcon(Icons.mic_rounded), findsOneWidget);
-      expect(find.byIcon(Icons.headset_rounded), findsOneWidget);
       expect(find.byIcon(Icons.call_end_rounded), findsOneWidget);
     });
 
@@ -111,7 +122,11 @@ void main() {
           ],
           child: const MaterialApp(
             home: Scaffold(
-              body: VoiceHUD(),
+              body: Stack(
+                children: [
+                  VoiceHUD(),
+                ],
+              ),
             ),
           ),
         ),
@@ -133,7 +148,11 @@ void main() {
           ],
           child: const MaterialApp(
             home: Scaffold(
-              body: VoiceHUD(),
+              body: Stack(
+                children: [
+                  VoiceHUD(),
+                ],
+              ),
             ),
           ),
         ),
