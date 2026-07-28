@@ -246,16 +246,30 @@ class _LiveKitSpikeScreenState extends State<LiveKitSpikeScreen> {
           IconButton(
             icon: const Icon(Icons.screen_share),
             onPressed: () async {
-              final isScreenShareEnabled = localParticipant?.isScreenShareEnabled() ?? false;
+              final localParticipant = _room.localParticipant;
+              if (localParticipant == null) return;
+              final isScreenShareEnabled = localParticipant.isScreenShareEnabled();
               const channel = MethodChannel('tech.focko.flicko/screen_capture');
+              if (!isScreenShareEnabled && Platform.isAndroid) {
+                try {
+                  await channel.invokeMethod('startService');
+                  await Future.delayed(const Duration(milliseconds: 300));
+                } catch (_) {}
+              }
               try {
-                await localParticipant?.setScreenShareEnabled(!isScreenShareEnabled);
+                await localParticipant.setScreenShareEnabled(!isScreenShareEnabled);
               } catch (e) {
-                if (Platform.isAndroid) { try { await channel.invokeMethod('stopService'); } catch (_) {} }
+                if (Platform.isAndroid) {
+                  Future.delayed(const Duration(milliseconds: 300), () async {
+                    try { await channel.invokeMethod('stopService'); } catch (_) {}
+                  });
+                }
                 return;
               }
               if (isScreenShareEnabled && Platform.isAndroid) {
-                try { await channel.invokeMethod('stopService'); } catch (_) {}
+                Future.delayed(const Duration(milliseconds: 300), () async {
+                  try { await channel.invokeMethod('stopService'); } catch (_) {}
+                });
               }
             },
           ),

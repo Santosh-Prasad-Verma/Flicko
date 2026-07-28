@@ -1,21 +1,14 @@
-import 'dart:math' as math;
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:get_it/get_it.dart';
-import 'package:mobile/features/sonic_music/Helpers/config.dart';
 import 'package:mobile/features/store/data/store_service.dart';
-import 'package:mobile/features/store/data/equipment_service.dart';
 import 'package:mobile/features/store/data/wishlist_service.dart';
-import 'package:mobile/features/store/data/store_theme_service.dart';
+import 'package:mobile/features/store/data/equipment_service.dart';
 import 'package:mobile/core/services/flicko_haptics.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
-import 'package:mobile/features/shared/presentation/widgets/kinetic_nameplate_text.dart';
-import 'package:mobile/features/voice/data/voice_filter_service.dart';
-import 'package:mobile/features/voice/presentation/widgets/voice_synth_board_sheet.dart';
 
+/// Discord-Style Mobile Shop Screen
 class StoreScreen extends ConsumerStatefulWidget {
   const StoreScreen({super.key});
 
@@ -26,540 +19,473 @@ class StoreScreen extends ConsumerStatefulWidget {
 class _StoreScreenState extends ConsumerState<StoreScreen>
     with TickerProviderStateMixin {
   late TabController _tabController;
-  late AnimationController _visualizerController;
   int _selectedCategory = 0;
-  String _searchQuery = '';
-  bool _showSearch = false;
-  String _sortBy = 'newest'; // newest, price_low, price_high, popular
   final _searchController = TextEditingController();
 
-  static const _bg = Color(0xFF000000); // Pure Black
-  static const _surface = Color(0xFF0C0C0E); // Deep Black-Gray
-  Color get _neon => GetIt.I<MyTheme>().currentColor();
-  static const _white = Color(0xFFFFFFFF);
-  static const _muted = Color(0xFF71717A);
-  Color get _lime => GetIt.I<MyTheme>().currentColor();
-  static const _gold = Color(0xFFFFD700);
+  // Colors matching Discord Mobile Shop Dark Theme
+  static const _bgDark = Color(0xFF111214);
+  static const _cardBg = Color(0xFF1E1F22);
+  static const _cardBgLight = Color(0xFF2B2D31);
+  static const _blurple = Color(0xFF5865F2);
+  static const _greenDiscount = Color(0xFF23A55A);
+  static const _purpleBannerGrad1 = Color(0xFF381F68);
+  static const _purpleBannerGrad2 = Color(0xFF1D1137);
 
-  final _categories = ['ALL', 'THEMES', 'DECORATIONS', 'NAMEPLATES', 'VOICE_SKINS', 'WARP_DRIPS', 'STICKERS', 'SOUNDS', 'BADGES'];
+  final _categories = ['ALL', 'DECORATIONS', 'THEMES', 'NAMEPLATES', 'VOICE_SKINS', 'STICKERS', 'BADGES'];
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _visualizerController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 3),
-    )..repeat();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     _searchController.dispose();
-    _visualizerController.dispose();
     super.dispose();
-  }
-
-  Widget _buildLiquidGlassBackground({required Widget child}) {
-    final currentTheme = GetIt.I<MyTheme>();
-    return Stack(
-      children: [
-        // Dark theme background base
-        Container(color: const Color(0xFF07040A)),
-        // Ambient glow 1 (Dynamic Current Color)
-        Positioned(
-          top: -100,
-          left: -80,
-          child: Container(
-            width: 320,
-            height: 320,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: currentTheme.currentColor().withValues(alpha: 0.18),
-            ),
-          ),
-        ),
-        // Ambient glow 2 (Deep Purple)
-        Positioned(
-          bottom: 200,
-          right: -100,
-          child: Container(
-            width: 380,
-            height: 380,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: const Color(0xFF9B84EE).withValues(alpha: 0.15),
-            ),
-          ),
-        ),
-        // Ambient glow 3 (Cyan/Teal)
-        Positioned(
-          top: 300,
-          right: -50,
-          child: Container(
-            width: 250,
-            height: 250,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: const Color(0xFF00E5FF).withValues(alpha: 0.12),
-            ),
-          ),
-        ),
-        // Backdrop blur overlay to smear the glow into a liquid backdrop
-        Positioned.fill(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 70, sigmaY: 70),
-            child: Container(color: Colors.transparent),
-          ),
-        ),
-        child,
-      ],
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     final cart = ref.watch(cartProvider);
-    
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      extendBodyBehindAppBar: true,
-      appBar: _buildAppBar(cart),
-      body: _buildLiquidGlassBackground(
-        child: SafeArea(
-          bottom: false,
-          child: TabBarView(
-            controller: _tabController,
-            children: [_buildDiscoverTab(), _buildMyItemsTab()],
-          ),
-        ),
-      ),
-      floatingActionButton: cart.isNotEmpty
-          ? _buildCartFAB(cart)
-          : null,
-    );
-  }
-
-  PreferredSizeWidget _buildAppBar(List<CartItem> cart) {
-    return AppBar(
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      scrolledUnderElevation: 0,
-      flexibleSpace: ClipRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-          child: Container(
-            color: Colors.black.withValues(alpha: 0.25),
-          ),
-        ),
-      ),
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: _white),
-        onPressed: () => context.pop(),
-      ),
-      title: _showSearch
-          ? _buildSearchField()
-          : Text(
-              'Flicko Store',
-              style: GoogleFonts.inter(
-                color: _white,
-                fontWeight: FontWeight.w900,
-                fontSize: 22,
-                letterSpacing: 2,
-              ),
-            ),
-      actions: [
-        IconButton(
-          icon: Icon(_showSearch ? Icons.close : Icons.search, color: _white),
-          onPressed: () => setState(() {
-            _showSearch = !_showSearch;
-            if (!_showSearch) {
-              _searchQuery = '';
-              _searchController.clear();
-            }
-          }),
-        ),
-        Stack(
-          alignment: Alignment.center,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.shopping_bag_outlined, color: _white),
-              onPressed: () => context.push('/store/cart'),
-            ),
-            if (cart.isNotEmpty)
-              Positioned(
-                right: 8,
-                top: 8,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: _lime,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Text(
-                    '${cart.length}',
-                    style: GoogleFonts.inter(
-                      color: Colors.black,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ],
-      bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(48),
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(color: Colors.white.withValues(alpha: 0.08), width: 1),
-            ),
-          ),
-          child: TabBar(
-            controller: _tabController,
-            indicatorColor: _neon,
-            indicatorWeight: 2,
-            indicatorSize: TabBarIndicatorSize.label,
-            labelColor: _neon,
-            unselectedLabelColor: _muted,
-            labelStyle: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1.0),
-            tabs: const [
-              Tab(text: 'Discover'),
-              Tab(text: 'My Collection'),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSearchField() {
-    return TextField(
-      controller: _searchController,
-      style: GoogleFonts.inter(color: _white),
-      decoration: InputDecoration(
-        hintText: 'Search products...',
-        hintStyle: GoogleFonts.inter(color: _muted),
-        filled: true,
-        fillColor: _bg,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: _white.withValues(alpha: 0.1)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: _white.withValues(alpha: 0.1)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xFF52B788), width: 1.5),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      ),
-      onChanged: (v) => setState(() => _searchQuery = v),
-    );
-  }
-
-  Widget _buildCollectorXPBar() {
-    final purchasesAsync = ref.watch(userPurchasesProvider);
-    return purchasesAsync.maybeWhen(
-      data: (purchases) {
-        final ownedCount = purchases.length;
-        final xp = ownedCount * 250;
-        final level = (xp / 500).floor() + 1;
-        final currentLevelXp = xp % 500;
-        final double progress = currentLevelXp / 500.0;
-
-        String rank = 'NOVICE DRIPPER';
-        if (level == 2) {
-          rank = 'VINYL SCRATCHER';
-        } else if (level == 3) {
-          rank = 'BADGE COLLECTOR';
-        } else if (level == 4) {
-          rank = 'COSMIC COLLECTOR';
-        } else if (level >= 5) {
-          rank = 'LEGENDARY COSMIC DJ';
-        }
-
-        return Padding(
-          padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 8),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.03),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1.0),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Colors.white.withValues(alpha: 0.04),
-                      Colors.white.withValues(alpha: 0.01),
-                    ],
-                  ),
-                ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: _neon.withValues(alpha: 0.15),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(Icons.stars_rounded, color: _neon, size: 16),
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        'Collector Level $level',
-                        style: GoogleFonts.inter(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: _gold.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: _gold.withValues(alpha: 0.3), width: 1),
-                    ),
-                    child: Text(
-                      rank,
-                      style: GoogleFonts.inter(
-                        color: _gold,
-                        fontSize: 8,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              TweenAnimationBuilder<double>(
-                key: ValueKey('xp_progress_${level}_$progress'),
-                duration: const Duration(milliseconds: 1200),
-                curve: Curves.easeOutCubic,
-                tween: Tween<double>(begin: 0.0, end: progress),
-                builder: (context, animatedProgress, child) {
-                  return Container(
-                    height: 8,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Stack(
-                      children: [
-                        FractionallySizedBox(
-                          alignment: Alignment.centerLeft,
-                          widthFactor: animatedProgress.clamp(0.01, 1.0),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [_neon, _neon.withValues(alpha: 0.7)],
-                              ),
-                              borderRadius: BorderRadius.circular(10),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: _neon.withValues(alpha: 0.3),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 6),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '$currentLevelXp / 500 XP',
-                    style: GoogleFonts.inter(color: _muted, fontSize: 8, fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    '$ownedCount Items Collected',
-                    style: GoogleFonts.inter(color: _muted, fontSize: 8, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    ),
-  );
-      },
-      orElse: () => const SizedBox.shrink(),
-    );
-  }
-
-  Widget _buildDiscoverTab() {
-    final type = _categories[_selectedCategory];
-    final productsAsync = ref.watch(storeProductsProvider((type: type, search: null)));
     final wishlist = ref.watch(wishlistProvider);
 
-    return CustomScrollView(
-      slivers: [
-        SliverToBoxAdapter(child: _buildCollectorXPBar()),
-        SliverToBoxAdapter(child: _buildFeaturedBanner()),
-        SliverToBoxAdapter(child: _buildCategoryChips()),
-        SliverToBoxAdapter(child: _buildSortFilter()),
-        const SliverToBoxAdapter(child: SizedBox(height: 16)),
-        productsAsync.when(
-          data: (products) {
-            // Sort and filter products locally by search query
-            var sorted = List<StoreProduct>.from(products);
-            if (_searchQuery.isNotEmpty) {
-              final query = _searchQuery.toLowerCase();
-              sorted = sorted.where((p) => 
-                p.name.toLowerCase().contains(query) || 
-                p.type.toLowerCase().contains(query) ||
-                p.rarity.toLowerCase().contains(query)
-              ).toList();
-            }
-
-            switch (_sortBy) {
-              case 'price_low':
-                sorted.sort((a, b) => a.price.compareTo(b.price));
-                break;
-              case 'price_high':
-                sorted.sort((a, b) => b.price.compareTo(a.price));
-                break;
-              case 'popular':
-                sorted.sort((a, b) {
-                  if (a.isHot && !b.isHot) return -1;
-                  if (!a.isHot && b.isHot) return 1;
-                  return 0;
-                });
-                break;
-              default:
-                // newest - already sorted by created_at from service
-                break;
-            }
-
-            if (sorted.isEmpty) {
-              return SliverToBoxAdapter(
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(40),
-                    child: Column(
-                      children: [
-                        Icon(Icons.search_off, color: _muted, size: 48),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No products found',
-                          style: GoogleFonts.inter(color: _white, fontWeight: FontWeight.w700),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            }
-
-            return SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              sliver: SliverGrid(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
-                  childAspectRatio: 0.62,
-                ),
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) => _buildProductCard(sorted[index], wishlist, index, sorted.length),
-                  childCount: sorted.length,
-                ),
-              ),
-            );
-          },
-          loading: () => SliverToBoxAdapter(
-            child: Center(child: CircularProgressIndicator(color: _neon)),
-          ),
-          error: (e, _) => SliverToBoxAdapter(
-            child: Center(child: Text('Error: $e', style: TextStyle(color: Colors.red))),
-          ),
-        ),
-        const SliverToBoxAdapter(child: SizedBox(height: 100)),
-      ],
+    return Scaffold(
+      backgroundColor: _bgDark,
+      appBar: _buildDiscordAppBar(cart, wishlist),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildDiscoverShopTab(wishlist),
+          _buildMyItemsCollectionTab(),
+        ],
+      ),
     );
   }
 
-  Widget _buildSortFilter() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
+  /// Top App Bar matching Discord Shop UI (Screenshot 1 & 2)
+  PreferredSizeWidget _buildDiscordAppBar(List<CartItem> cart, List<String> wishlist) {
+    return AppBar(
+      backgroundColor: _bgDark,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      leading: Stack(
+        alignment: Alignment.center,
         children: [
-          // Sort dropdown
-          Expanded(
-            child: GestureDetector(
-              onTap: () => _showSortSheet(),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                decoration: BoxDecoration(
-                  color: _surface,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: _white.withValues(alpha: 0.1)),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.sort, color: _muted, size: 16),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Sort: ${_getSortLabel()}',
-                      style: GoogleFonts.inter(color: _white, fontSize: 12),
-                    ),
-                    const Spacer(),
-                    Icon(Icons.arrow_drop_down, color: _muted, size: 16),
-                  ],
+          IconButton(
+            icon: const Icon(Icons.close_rounded, color: Colors.white, size: 24),
+            onPressed: () => context.pop(),
+          ),
+          // Red Badge Notification (99)
+          Positioned(
+            right: 6,
+            top: 8,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xFFDA373C),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                '99',
+                style: GoogleFonts.inter(
+                  color: Colors.white,
+                  fontSize: 9,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ),
           ),
+        ],
+      ),
+      title: Row(
+        children: [
+          const Icon(Icons.storefront_rounded, color: Colors.white, size: 22),
           const SizedBox(width: 8),
-          // Wishlist button
-          GestureDetector(
-            onTap: () => _showWishlistSheet(),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: _surface,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: _white.withValues(alpha: 0.1)),
+          Text(
+            'Shop',
+            style: GoogleFonts.inter(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        // Orbs Currency Counter Pill (❖ 0)
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.auto_awesome_rounded, color: Colors.white70, size: 14),
+              const SizedBox(width: 4),
+              Text(
+                '0',
+                style: GoogleFonts.inter(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
               ),
-              child: Row(
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        // Wishlist Heart Action
+        GestureDetector(
+          onTap: () => _showWishlistSheet(),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.favorite_border_rounded, color: Colors.white, size: 22),
+                onPressed: () => _showWishlistSheet(),
+              ),
+              if (wishlist.isNotEmpty)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFDA373C),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        // Hamburger Menu Action
+        IconButton(
+          icon: const Icon(Icons.menu_rounded, color: Colors.white, size: 24),
+          onPressed: () {
+            _showCategoryPickerSheet();
+          },
+        ),
+        const SizedBox(width: 4),
+      ],
+      bottom: PreferredSize(
+        preferredSize: const Size.fromHeight(42),
+        child: TabBar(
+          controller: _tabController,
+          indicatorColor: _blurple,
+          indicatorWeight: 3,
+          indicatorSize: TabBarIndicatorSize.tab,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white54,
+          labelStyle: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14),
+          tabs: const [
+            Tab(text: 'Shop Discover'),
+            Tab(text: 'My Inventory'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Main Discover Tab Layout
+  Widget _buildDiscoverShopTab(List<String> wishlist) {
+    final type = _categories[_selectedCategory];
+    final productsAsync = ref.watch(storeProductsProvider((type: type, search: null)));
+
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1. Featured Hero Banner ("FIN." / Shark Theme) (Screenshot 1)
+          _buildHeroFeatureCarousel(),
+
+          const SizedBox(height: 16),
+
+          // 2. Purple Announcement Section ("Frames are new in the Shop...") (Screenshot 1)
+          _buildPurpleFrameAnnouncementSection(wishlist),
+
+          const SizedBox(height: 24),
+
+          // 3. Featured Collection Wide Banner ("NIGHT TERRORS") (Screenshot 2)
+          _buildNightTerrorsBanner(),
+
+          const SizedBox(height: 24),
+
+          // 4. "Summer Bliss" Section Header + Items (Screenshot 2)
+          _buildSectionHeader('Summer Bliss', onShopAll: () {}),
+          const SizedBox(height: 12),
+          _buildHorizontalBundlesRow(wishlist),
+
+          const SizedBox(height: 28),
+
+          // 5. "Find your style" Section Header + Main Grid (Screenshot 2, 3, 4)
+          _buildSectionHeader('Find your style', onShopAll: () {}),
+          const SizedBox(height: 12),
+
+          // Main Product Grid
+          productsAsync.when(
+            data: (products) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    childAspectRatio: 0.72,
+                  ),
+                  itemCount: products.length,
+                  itemBuilder: (context, index) {
+                    return _buildDiscordProductCard(products[index], wishlist);
+                  },
+                ),
+              );
+            },
+            loading: () => const Padding(
+              padding: EdgeInsets.all(40),
+              child: Center(child: CircularProgressIndicator(color: _blurple)),
+            ),
+            error: (e, _) => Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Text('Failed to load shop items: $e', style: const TextStyle(color: Colors.red)),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 100),
+        ],
+      ),
+    );
+  }
+
+  /// Hero Carousel Banner ("FIN.") (Screenshot 1)
+  Widget _buildHeroFeatureCarousel() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      height: 200,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF0F2027),
+            Color(0xFF203A43),
+            Color(0xFF2C5364),
+          ],
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black45,
+            blurRadius: 16,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Dark Overlay Shark Graphic simulation
+            Positioned(
+              right: -20,
+              top: -10,
+              bottom: -10,
+              child: Opacity(
+                opacity: 0.85,
+                child: Icon(
+                  Icons.phishing_rounded,
+                  size: 220,
+                  color: Colors.cyan.withValues(alpha: 0.3),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.favorite_border, color: Colors.red, size: 16),
-                  const SizedBox(width: 6),
                   Text(
-                    '${ref.watch(wishlistProvider).length}',
-                    style: GoogleFonts.inter(color: _white, fontSize: 12),
+                    'FIN.',
+                    style: GoogleFonts.permanentMarker(
+                      color: const Color(0xFFED4245),
+                      fontSize: 52,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Submerge into the dark depths.',
+                    style: GoogleFonts.inter(
+                      color: Colors.white70,
+                      fontSize: 13,
+                    ),
                   ),
                 ],
+              ),
+            ),
+            // Carousel Next Arrow Button
+            Positioned(
+              right: 16,
+              top: 80,
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: const BoxDecoration(
+                  color: Colors.black54,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.chevron_right_rounded, color: Colors.white, size: 24),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Purple Gradient Announcement Banner Section (Screenshot 1)
+  Widget _buildPurpleFrameAnnouncementSection(List<String> wishlist) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 20),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [_purpleBannerGrad1, _purpleBannerGrad2],
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Text(
+              'Frames are new in the Shop. Your profile called, it wants one.',
+              style: GoogleFonts.inter(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                height: 1.3,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Horizontal Frames Row
+          SizedBox(
+            height: 200,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              children: [
+                _buildFrameCard('Miaow Miaow Cat', '₹255.00', ['cat_ears'], wishlist, colorDots: [Colors.pinkAccent, Colors.white, Colors.orangeAccent]),
+                const SizedBox(width: 12),
+                _buildFrameCard('Mariposa', '₹255.00', ['butterfly_wings'], wishlist, colorDots: [Colors.purpleAccent, Colors.lightBlueAccent, Colors.white]),
+                const SizedBox(width: 12),
+                _buildFrameCard('Solar Flare', '₹255.00', ['solar_ring'], wishlist, colorDots: [Colors.amber, Colors.orange]),
+                const SizedBox(width: 12),
+                _buildFrameCard('Fallen Angel', '₹255.00', ['angel_wings'], wishlist, colorDots: [Colors.deepPurpleAccent, Colors.blueAccent]),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Featured Collection Wide Banner ("NIGHT TERRORS") (Screenshot 2)
+  Widget _buildNightTerrorsBanner() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      height: 160,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        color: const Color(0xFF18191C),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        image: const DecorationImage(
+          image: NetworkImage('https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=800&auto=format&fit=crop&q=60'),
+          fit: BoxFit.cover,
+          opacity: 0.35,
+        ),
+      ),
+      child: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'NIGHT TERRORS',
+                  style: GoogleFonts.creepster(
+                    color: Colors.white,
+                    fontSize: 34,
+                    letterSpacing: 2,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.75),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'Exclusive Collection',
+                    style: GoogleFonts.inter(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Section Header Row (Title + Shop All pill)
+  Widget _buildSectionHeader(String title, {required VoidCallback onShopAll}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            title,
+            style: GoogleFonts.inter(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          GestureDetector(
+            onTap: onShopAll,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(
+                color: _blurple,
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Text(
+                'Shop All',
+                style: GoogleFonts.inter(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
@@ -568,23 +494,700 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
     );
   }
 
-  String _getSortLabel() {
-    switch (_sortBy) {
-      case 'price_low':
-        return 'Price: Low';
-      case 'price_high':
-        return 'Price: High';
-      case 'popular':
-        return 'Popular';
-      default:
-        return 'Newest';
-    }
+  /// Horizontal Row of Bundles ("Summer Bliss") (Screenshot 2)
+  Widget _buildHorizontalBundlesRow(List<String> wishlist) {
+    return SizedBox(
+      height: 210,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        children: [
+          _buildBundleCard('the duck bundle', '₹445.00', '-13%', Icons.cruelty_free_rounded, wishlist),
+          const SizedBox(width: 12),
+          _buildBundleCard('Bubble Bundle', '₹445.00', '-13%', Icons.bubble_chart_rounded, wishlist),
+          const SizedBox(width: 12),
+          _buildBundleCard('Stalkers Bundle', '₹569.00', '-26%', Icons.visibility_rounded, wishlist),
+          const SizedBox(width: 12),
+          _buildBundleCard('Spider-Man Bundle', '₹879.00', '-24%', Icons.hub_rounded, wishlist),
+        ],
+      ),
+    );
   }
 
-  void _showSortSheet() {
+  /// Discord Product Card (Matching Screenshot 1, 2, 3, 4)
+  Widget _buildDiscordProductCard(StoreProduct product, List<String> wishlist) {
+    final inWishlist = wishlist.contains(product.id);
+
+    return GestureDetector(
+      onTap: () => _showDiscordProductDetailSheet(product),
+      child: Container(
+        decoration: BoxDecoration(
+          color: _cardBg,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        ),
+        child: Stack(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Top Card Preview Area
+                Expanded(
+                  child: Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: _cardBgLight,
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                    ),
+                    child: Center(
+                      child: product.type.toUpperCase() == 'AVATAR_DECORATION'
+                          ? UserAvatar(
+                              size: 56,
+                              decoration: product.id,
+                              name: product.name,
+                              showStatus: false,
+                              showBadge: false,
+                            )
+                          : Icon(
+                              _iconForType(product.type),
+                              color: Colors.white70,
+                              size: 44,
+                            ),
+                    ),
+                  ),
+                ),
+                // Card Details Footer
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        product.name,
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        product.price == 0 ? 'FREE' : '₹${product.price.toStringAsFixed(2)}',
+                        style: GoogleFonts.inter(
+                          color: Colors.white70,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            // Wishlist Heart Icon (Top Right)
+            Positioned(
+              top: 10,
+              right: 10,
+              child: GestureDetector(
+                onTap: () async {
+                  FlickoHaptics.light();
+                  await ref.read(wishlistProvider.notifier).toggle(product.id);
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: const BoxDecoration(
+                    color: Colors.black45,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    inWishlist ? Icons.favorite : Icons.favorite_border_rounded,
+                    color: inWishlist ? const Color(0xFFED4245) : Colors.white70,
+                    size: 16,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Special Avatar Frame Card (Matching Screenshot 1 & 3)
+  Widget _buildFrameCard(String title, String price, List<String> tags, List<String> wishlist, {List<Color>? colorDots}) {
+    return GestureDetector(
+      onTap: () {
+        _showDiscordProductDetailSheet(StoreProduct(
+          id: title.toLowerCase().replaceAll(' ', '_'),
+          slug: title.toLowerCase().replaceAll(' ', '_'),
+          name: title,
+          description: 'Give your avatar a new look with this exclusive frame.',
+          price: 255.00,
+          rarity: 'Legendary',
+          type: 'AVATAR_DECORATION',
+        ));
+      },
+      child: Container(
+        width: 150,
+        decoration: BoxDecoration(
+          color: _cardBg,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        ),
+        child: Stack(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: _cardBgLight,
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                    ),
+                    child: Center(
+                      child: UserAvatar(
+                        size: 58,
+                        name: title,
+                        showStatus: false,
+                        showBadge: false,
+                      ),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            price,
+                            style: GoogleFonts.inter(
+                              color: Colors.white70,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                            ),
+                          ),
+                          if (colorDots != null)
+                            Row(
+                              children: colorDots.map((c) => Container(
+                                margin: const EdgeInsets.only(left: 2),
+                                width: 8,
+                                height: 8,
+                                decoration: BoxDecoration(color: c, shape: BoxShape.circle),
+                              )).toList(),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            // Top Right Heart
+            Positioned(
+              top: 8,
+              right: 8,
+              child: Container(
+                padding: const EdgeInsets.all(5),
+                decoration: const BoxDecoration(color: Colors.black45, shape: BoxShape.circle),
+                child: const Icon(Icons.favorite_border_rounded, color: Colors.white70, size: 14),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Bundle Card (Matching Screenshot 2 & 4)
+  Widget _buildBundleCard(String title, String price, String discount, IconData icon, List<String> wishlist) {
+    return Container(
+      width: 155,
+      decoration: BoxDecoration(
+        color: _cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Stack(
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: _cardBgLight,
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                  ),
+                  child: Center(
+                    child: Icon(icon, color: Colors.cyanAccent, size: 48),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Text(
+                          price,
+                          style: GoogleFonts.inter(
+                            color: Colors.white70,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          discount,
+                          style: GoogleFonts.inter(
+                            color: _greenDiscount,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          // Top Right Heart
+          Positioned(
+            top: 8,
+            right: 8,
+            child: Container(
+              padding: const EdgeInsets.all(5),
+              decoration: const BoxDecoration(color: Colors.black45, shape: BoxShape.circle),
+              child: const Icon(Icons.favorite_border_rounded, color: Colors.white70, size: 14),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// DISCORD PRODUCT DETAIL MODAL BOTTOM SHEET (Screenshot 1, 2, 5)
+  void _showDiscordProductDetailSheet(StoreProduct product) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: _surface,
+      isScrollControlled: true,
+      backgroundColor: _cardBg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        int selectedTab = 0; // 0: Profile, 1: Decoration, 2: Nameplate
+
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Container(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Top Drag Handle Indicator & Header Icons
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const SizedBox(width: 40),
+                      Container(
+                        width: 36,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.white24,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: const BoxDecoration(
+                              color: Colors.white10,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.remove_red_eye_outlined, color: Colors.white, size: 18),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: const BoxDecoration(
+                              color: Colors.white10,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.favorite_border_rounded, color: Colors.white, size: 18),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Large Interactive Preview Box (Profile / Decoration / Nameplate)
+                  Container(
+                    height: 200,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: _cardBgLight,
+                      borderRadius: BorderRadius.circular(20),
+                      image: selectedTab == 0
+                          ? const DecorationImage(
+                              image: NetworkImage('https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&auto=format&fit=crop&q=60'),
+                              fit: BoxFit.cover,
+                              opacity: 0.45,
+                            )
+                          : null,
+                    ),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        if (selectedTab == 0) ...[
+                          // Full Profile Card Preview (Screenshot 1)
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              UserAvatar(
+                                size: 76,
+                                name: 'Tarun_ OP',
+                                decoration: product.id,
+                                showStatus: true,
+                                status: UserStatus.online,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Tarun_ OP',
+                                style: GoogleFonts.inter(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                'tarun0342',
+                                style: GoogleFonts.inter(
+                                  color: Colors.white60,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ] else if (selectedTab == 1) ...[
+                          // Avatar Decoration Frame Only
+                          UserAvatar(
+                            size: 96,
+                            name: product.name,
+                            decoration: product.id,
+                            showStatus: true,
+                            status: UserStatus.online,
+                          ),
+                        ] else ...[
+                          // Nameplate Member List Preview (Screenshot 2)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF1E1F22),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Row(
+                                children: [
+                                  UserAvatar(
+                                    size: 40,
+                                    name: 'Tarun_ OP',
+                                    decoration: product.id,
+                                    showStatus: true,
+                                    status: UserStatus.online,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          'Tarun_ OP',
+                                          style: GoogleFonts.inter(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 15,
+                                          ),
+                                        ),
+                                        Text(
+                                          'Playing Flicko',
+                                          style: GoogleFonts.inter(
+                                            color: Colors.white54,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Tab Segmented Selector (Profile | Decoration | Nameplate) (Screenshot 1 & 2)
+                  Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      children: [
+                        for (final tab in [
+                          MapEntry('Profile', 0),
+                          MapEntry('Decoration', 1),
+                          MapEntry('Nameplate', 2),
+                        ])
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => setSheetState(() => selectedTab = tab.value),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 180),
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: selectedTab == tab.value ? const Color(0xFF2B2D31) : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(18),
+                                ),
+                                child: Text(
+                                  tab.key,
+                                  style: GoogleFonts.inter(
+                                    color: selectedTab == tab.value ? Colors.white : Colors.white54,
+                                    fontSize: 13,
+                                    fontWeight: selectedTab == tab.value ? FontWeight.bold : FontWeight.normal,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+
+                  // Title & Subtitle
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      product.name,
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      product.description ?? 'Give your avatar a new look.',
+                      style: GoogleFonts.inter(
+                        color: Colors.white60,
+                        fontSize: 13,
+                        height: 1.3,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+              // Pricing Row (₹255.00 & ❖ 4100)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '₹${product.price.toStringAsFixed(2)}',
+                    style: GoogleFonts.inter(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      const Icon(Icons.auto_awesome_rounded, color: Colors.white70, size: 16),
+                      const SizedBox(width: 4),
+                      Text(
+                        '4100',
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // Flicko Nitro Discount Subscribing Row
+              Row(
+                children: [
+                  const Icon(Icons.bolt_rounded, color: Colors.white, size: 18),
+                  const SizedBox(width: 6),
+                  Text(
+                    '₹210.00 with Nitro ',
+                    style: GoogleFonts.inter(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () {},
+                    child: Text(
+                      'subscribe now',
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontSize: 13,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              // Main CTA Button: Buy Decoration + Gift Icon Button
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        ref.read(cartProvider.notifier).add(product);
+                        Navigator.pop(context);
+                        context.push('/store/cart');
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _blurple,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                      ),
+                      child: Text(
+                        'Buy Decoration',
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: _blurple,
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: const Icon(Icons.card_giftcard_rounded, color: Colors.white, size: 22),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // Secondary CTA Button: Redeem ❖ 4100
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: null, // Disabled or active orb redemption
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    side: const BorderSide(color: Colors.white12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Redeem ',
+                        style: GoogleFonts.inter(color: Colors.white54, fontSize: 15, fontWeight: FontWeight.bold),
+                      ),
+                      const Icon(Icons.auto_awesome_rounded, color: Colors.white54, size: 14),
+                      Text(
+                        ' 4100',
+                        style: GoogleFonts.inter(color: Colors.white54, fontSize: 15, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Disclaimer Text
+              Text(
+                'By clicking \'Buy Decoration\', you agree to the Paid Service Terms. Buying an item from the Shop means you\'re buying a limited licence to use this item on Flicko.',
+                style: GoogleFonts.inter(
+                  color: Colors.white38,
+                  fontSize: 10,
+                  height: 1.3,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
+        );
+      },
+    );
+  },
+);
+}
+
+  /// Category Picker Bottom Sheet
+  void _showCategoryPickerSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: _cardBg,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -595,2178 +1198,154 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
             Padding(
               padding: const EdgeInsets.all(16),
               child: Text(
-                'Sort Products',
-                style: GoogleFonts.inter(color: _white, fontWeight: FontWeight.w700, fontSize: 16),
+                'Browse Categories',
+                style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
               ),
             ),
-            ...[
-              ('newest', 'Newest First'),
-              ('popular', 'Most Popular'),
-              ('price_low', 'Price: Low to High'),
-              ('price_high', 'Price: High to Low'),
-            ].map((item) => ListTile(
-              leading: Icon(
-                _sortBy == item.$1 ? Icons.radio_button_checked : Icons.radio_button_off,
-                color: _sortBy == item.$1 ? _neon : _muted,
+            ..._categories.asMap().entries.map((entry) => ListTile(
+              title: Text(
+                entry.value.replaceAll('_', ' '),
+                style: GoogleFonts.inter(
+                  color: _selectedCategory == entry.key ? _blurple : Colors.white,
+                  fontWeight: _selectedCategory == entry.key ? FontWeight.bold : FontWeight.normal,
+                ),
               ),
-              title: Text(item.$2, style: GoogleFonts.inter(color: _white)),
+              trailing: _selectedCategory == entry.key ? const Icon(Icons.check_rounded, color: _blurple) : null,
               onTap: () {
-                setState(() => _sortBy = item.$1);
+                setState(() => _selectedCategory = entry.key);
                 Navigator.pop(ctx);
               },
             )),
-            const SizedBox(height: 16),
           ],
         ),
       ),
     );
   }
 
+  /// Wishlist Sheet
   void _showWishlistSheet() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
+      backgroundColor: _cardBg,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => ClipRRect(
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-          child: DraggableScrollableSheet(
-            initialChildSize: 0.6,
-            minChildSize: 0.4,
-            maxChildSize: 0.9,
-            expand: false,
-            builder: (ctx, scrollController) => Consumer(
-              builder: (context, ref, child) {
-                final wishlistProducts = ref.watch(wishlistProductsProvider);
-                final wishlist = ref.watch(wishlistProvider);
-
-                return Container(
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.55),
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                    border: Border(
-                      top: BorderSide(
-                        color: Colors.white.withValues(alpha: 0.1),
-                        width: 1,
-                      ),
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      Container(
-                        margin: const EdgeInsets.only(top: 10),
-                        height: 4,
-                        width: 40,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'My wishlist',
-                              style: GoogleFonts.inter(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 20,
-                                letterSpacing: 0,
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.redAccent.withValues(alpha: 0.85),
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                              child: Text(
-                                '${wishlist.length}',
-                                style: GoogleFonts.inter(
-                                  color: Colors.white,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: wishlistProducts.when(
-                      data: (products) {
-                        if (products.isEmpty) {
-                          return Center(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.favorite_border, color: _muted, size: 48),
-                                const SizedBox(height: 12),
-                                Text(
-                                  'YOUR_WISHLIST_IS_EMPTY',
-                                  style: GoogleFonts.inter(
-                                    color: _muted,
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        }
-                        return ListView.builder(
-                          controller: scrollController,
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          itemCount: products.length,
-                          itemBuilder: (ctx, index) => _buildWishlistItem(products[index]),
-                        );
-                      },
-                      loading: () => Center(child: CircularProgressIndicator(color: _neon)),
-                      error: (_, __) => const Center(child: Text('Error loading wishlist', style: TextStyle(color: Colors.red))),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
-      ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildWishlistItem(StoreProduct product) {
-    final rarityColor = _getRarityColor(product.rarity);
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.black,
-        border: Border.all(color: rarityColor, width: 1.5),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: rarityColor.withValues(alpha: 0.15),
-              border: Border.all(color: rarityColor, width: 1.5),
-            ),
-            child: Icon(_iconForType(product.type), color: rarityColor, size: 24),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
+      builder: (ctx) => Consumer(
+        builder: (context, ref, _) {
+          final wishlistProducts = ref.watch(wishlistProductsProvider);
+          return Container(
+            padding: const EdgeInsets.all(20),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  product.name.toUpperCase(),
-                  style: GoogleFonts.inter(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 13,
-                    letterSpacing: 0.5,
-                  ),
+                  'My Wishlist',
+                  style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  product.price == 0 ? 'FREE' : '₹${product.price.toStringAsFixed(0)}',
-                  style: GoogleFonts.inter(color: _lime, fontWeight: FontWeight.w900),
+                const SizedBox(height: 16),
+                wishlistProducts.when(
+                  data: (products) {
+                    if (products.isEmpty) {
+                      return const Padding(
+                        padding: EdgeInsets.all(30),
+                        child: Text('Your wishlist is empty.', style: TextStyle(color: Colors.white54)),
+                      );
+                    }
+                    return Column(
+                      children: products.map((p) => ListTile(
+                        title: Text(p.name, style: const TextStyle(color: Colors.white)),
+                        subtitle: Text('₹${p.price.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white70)),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.delete_outline, color: Colors.red),
+                          onPressed: () => ref.read(wishlistProvider.notifier).remove(p.id),
+                        ),
+                      )).toList(),
+                    );
+                  },
+                  loading: () => const CircularProgressIndicator(color: _blurple),
+                  error: (e, _) => Text('Error: $e', style: const TextStyle(color: Colors.red)),
                 ),
               ],
             ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline, color: Colors.red, size: 18),
-            onPressed: () => ref.read(wishlistProvider.notifier).remove(product.id),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFeaturedBanner() {
-    return Container(
-      margin: const EdgeInsets.all(16),
-      height: 160,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF1B4D3E), // Sleek deep emerald
-            Color(0xFF0F1E1A), // Sleek obsidian
-          ],
-        ),
-        border: Border.all(color: _neon.withValues(alpha: 0.25), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: _neon.withValues(alpha: 0.12),
-            blurRadius: 20,
-            spreadRadius: 2,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: Stack(
-          children: [
-            // Abstract decorative ambient glow circle in the corner
-            Positioned(
-              right: -30,
-              top: -30,
-              child: Container(
-                width: 140,
-                height: 140,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: _neon.withValues(alpha: 0.12),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: _neon.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      'FEATURED DROP',
-                      style: GoogleFonts.inter(
-                        color: _neon,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.5,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Sonic Drip Theme',
-                    style: GoogleFonts.inter(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          '₹399',
-                          style: GoogleFonts.inter(
-                            color: Colors.black,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Icon(Icons.arrow_forward, color: _lime, size: 20),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCategoryChips() {
-    return SizedBox(
-      height: 44,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: _categories.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final selected = _selectedCategory == index;
-          return GestureDetector(
-            onTap: () {
-              FlickoHaptics.selection();
-              setState(() => _selectedCategory = index);
-            },
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                child: AnimatedContainer(
-                  key: ValueKey('store_category_chip_${_categories[index]}'),
-                  duration: const Duration(milliseconds: 250),
-                  curve: Curves.easeInOut,
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: selected ? _lime : Colors.white.withValues(alpha: 0.03),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: selected ? _lime : Colors.white.withValues(alpha: 0.08),
-                      width: 1,
-                    ),
-                  ),
-              child: AnimatedScale(
-                duration: const Duration(milliseconds: 250),
-                scale: selected ? 1.05 : 1.0,
-                child: Text(
-                  _categories[index]
-                      .replaceAll('_', ' ')
-                      .toLowerCase()
-                      .split(' ')
-                      .map((s) => s.isNotEmpty ? s[0].toUpperCase() + s.substring(1) : '')
-                      .join(' '),
-                  style: GoogleFonts.inter(
-                    color: selected ? Colors.black : Colors.white.withValues(alpha: 0.7),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
+          );
         },
       ),
     );
   }
 
-  Widget _buildProductCard(StoreProduct product, List<String> wishlist, int index, int totalCount) {
-    final isCrate = product.id == 'mystery-crate';
-    final rarityColor = isCrate ? const Color(0xFFFF007F) : _getRarityColor(product.rarity);
-    final isFree = product.price == 0;
-    final cart = ref.watch(cartProvider);
-    final inCart = cart.any((item) => item.product.id == product.id);
-    final inWishlist = wishlist.contains(product.id);
-
-    final cardWidget = ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.25),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: rarityColor.withValues(alpha: 0.25),
-              width: 1.2,
-            ),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Colors.white.withValues(alpha: 0.04),
-                Colors.white.withValues(alpha: 0.01),
-              ],
-            ),
-          ),
-      child: Stack(
-        children: [
-          // 1. Clickable Card Body
-          Positioned.fill(
-            child: GestureDetector(
-              onTap: () {
-                if (product.id == 'myinstants-trending') {
-                  context.push('/store/myinstants');
-                } else if (product.type.toUpperCase() == 'AVATAR_DECORATION') {
-                  context.push('/store/decorations');
-                } else if (product.type.toUpperCase() == 'NAMEPLATE') {
-                  context.push('/store/nameplates');
-                } else if (product.type.toUpperCase() == 'VOICE_SKIN') {
-                  context.push('/store/voice-skins');
-                } else if (product.type.toUpperCase() == 'ENTRANCE_WARP' || product.type.toUpperCase() == 'DRIP_CARD') {
-                  context.push('/store/warp-drips');
-                } else if (product.type.toUpperCase() == 'BADGE') {
-                  context.push('/store/badge-alchemy');
-                } else {
-                  context.push('/store/product/${product.id}');
-                }
-              },
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Product Image Area
-                    Expanded(
-                      child: Container(
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: rarityColor.withValues(alpha: 0.05),
-                          border: Border(
-                            bottom: BorderSide(
-                              color: rarityColor.withValues(alpha: 0.15),
-                              width: 1,
-                            ),
-                          ),
-                        ),
-                        child: Center(
-                          child: product.type.toUpperCase() == 'AVATAR_DECORATION'
-                              ? UserAvatar(size: 56, decoration: product.id, name: 'PREVIEW', showStatus: false, showBadge: false)
-                              : product.type.toUpperCase() == 'NAMEPLATE'
-                                  ? Center(
-                                      child: KineticNameplateText(
-                                        text: 'DRIP_TAG',
-                                        decorationId: product.id,
-                                        style: GoogleFonts.inter(
-                                          fontWeight: FontWeight.w900,
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                    )
-                                  : product.type.toUpperCase() == 'VOICE_SKIN'
-                                      ? Padding(
-                                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                                          child: AnimatedBuilder(
-                                            animation: _visualizerController,
-                                            builder: (context, _) {
-                                              return CustomPaint(
-                                                size: const Size(double.infinity, 40),
-                                                painter: SynthesizerWavePainter(
-                                                  animationValue: _visualizerController.value,
-                                                  preset: product.id,
-                                                  pitch: 0.0,
-                                                  reverb: 0.0,
-                                                  bitcrush: 0.0,
-                                                  isEnabled: true,
-                                                  neonColor: _neon,
-                                                  goldColor: _gold,
-                                                  skinId: product.id,
-                                                ),
-                                              );
-                                            },
-                                          ),
-                                        )
-                                      : Icon(
-                                          _iconForType(product.type),
-                                          color: rarityColor,
-                                          size: 40,
-                                        ),
-                        ),
-                      ),
-                    ),
-                    // Text Details Area
-                    Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            product.name.toUpperCase(),
-                            style: GoogleFonts.inter(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                              letterSpacing: 0.5,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            product.type.toUpperCase().replaceAll('_', ' '),
-                            style: GoogleFonts.inter(
-                              color: _muted,
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Row(
-                            children: [
-                              Text(
-                                isFree ? 'FREE' : '₹${product.price.toStringAsFixed(0)}',
-                                style: GoogleFonts.robotoMono(
-                                  color: isFree ? _lime : Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          
-          // 2. Hot Tag (top left)
-          if (product.isHot)
-            Positioned(
-              top: 10,
-              left: 10,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.red,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  'HOT',
-                  style: GoogleFonts.inter(
-                    color: _white,
-                    fontSize: 8,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-
-          // 3. Rarity Tag
-          Positioned(
-            top: 10,
-            left: product.isHot ? 48 : 10,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: rarityColor.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: rarityColor.withValues(alpha: 0.4),
-                  width: 1,
-                ),
-              ),
-              child: Text(
-                product.rarity.toUpperCase(),
-                style: GoogleFonts.inter(
-                  color: rarityColor,
-                  fontSize: 8,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-          ),
-
-          // 4. Wishlist heart button (top right overlay)
-          Positioned(
-            top: 10,
-            right: 10,
-            child: GestureDetector(
-              onTap: () async {
-                FlickoHaptics.light();
-                await ref.read(wishlistProvider.notifier).toggle(product.id);
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(inWishlist ? 'Removed from wishlist' : 'Added to wishlist'),
-                    backgroundColor: inWishlist ? Colors.red : _lime,
-                    duration: const Duration(milliseconds: 800),
-                  ),
-                );
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.6),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: inWishlist ? Colors.red.withValues(alpha: 0.5) : Colors.white.withValues(alpha: 0.2),
-                    width: 1,
-                  ),
-                ),
-                child: Icon(
-                  inWishlist ? Icons.favorite : Icons.favorite_border,
-                  color: inWishlist ? Colors.red : Colors.white,
-                  size: 14,
-                ),
-              ),
-            ),
-          ),
-
-          // 5. Add to Cart / Spin button (bottom right overlay)
-          Positioned(
-            bottom: 12,
-            right: 12,
-            child: GestureDetector(
-              onTap: () {
-                if (product.id == 'mystery-crate') {
-                  _showCrateSpinDialog(product);
-                  return;
-                }
-                ref.read(cartProvider.notifier).add(product);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('${product.name} added to cart'),
-                    backgroundColor: _lime,
-                    duration: const Duration(seconds: 1),
-                    action: SnackBarAction(
-                      label: 'VIEW',
-                      textColor: Colors.black,
-                      onPressed: () => context.push('/store/cart'),
-                    ),
-                  ),
-                );
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: (product.id == 'mystery-crate' || inCart) ? _lime : Colors.black.withValues(alpha: 0.6),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: (product.id == 'mystery-crate' || inCart) ? _lime : Colors.white.withValues(alpha: 0.2),
-                    width: 1,
-                  ),
-                  boxShadow: (product.id == 'mystery-crate' || inCart)
-                      ? [
-                          BoxShadow(
-                            color: _lime.withValues(alpha: 0.3),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ]
-                      : [],
-                ),
-                child: Icon(
-                  product.id == 'mystery-crate'
-                      ? Icons.play_arrow_rounded
-                      : (inCart ? Icons.check : Icons.add_shopping_cart),
-                  color: (product.id == 'mystery-crate' || inCart) ? Colors.black : Colors.white,
-                  size: 16,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    ),
-  ),
-);
-
-    // Apply cascading entrance transition
-    return TweenAnimationBuilder<double>(
-      key: ValueKey('store_card_anim_${product.id}'),
-      duration: Duration(milliseconds: 400 + (index * 60).clamp(0, 450)),
-      curve: Curves.easeOutCubic,
-      tween: Tween<double>(begin: 0.0, end: 1.0),
-      builder: (context, value, child) {
-        return Transform.translate(
-          offset: Offset(0, 30 * (1.0 - value)),
-          child: Opacity(
-            opacity: value,
-            child: child,
-          ),
-        );
-      },
-      child: cardWidget,
-    );
-  }
-
-  Widget _buildMyItemsTab() {
+  /// My Items Collection Tab
+  Widget _buildMyItemsCollectionTab() {
     final purchasesAsync = ref.watch(userPurchasesProvider);
     final equippedAsync = ref.watch(equippedItemsProvider);
 
     return purchasesAsync.when(
       data: (purchases) {
         if (purchases.isEmpty) {
-          return _buildEmptyState();
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.inventory_2_outlined, color: Colors.white38, size: 64),
+                const SizedBox(height: 16),
+                Text(
+                  'No Purchased Items',
+                  style: GoogleFonts.inter(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+          );
         }
-
-        return equippedAsync.when(
-          data: (equipped) {
-            final themes = purchases.where((p) {
-              final type = p.productType.toUpperCase();
-              return type.contains('THEME') && !type.contains('DECORATION');
-            }).toList();
-
-            final decorations = purchases.where((p) {
-              final type = p.productType.toUpperCase();
-              return type.contains('DECORATION');
-            }).toList();
-
-            final stickers = purchases.where((p) {
-              final type = p.productType.toUpperCase();
-              return type == 'STICKERS';
-            }).toList();
-
-            final sounds = purchases.where((p) {
-              final type = p.productType.toUpperCase();
-              return type == 'SOUNDS';
-            }).toList();
-
-            final badges = purchases.where((p) {
-              final type = p.productType.toUpperCase();
-              return type.contains('BADGE') && !type.contains('NAMEPLATE');
-            }).toList();
-
-            final nameplates = purchases.where((p) {
-              final type = p.productType.toUpperCase();
-              return type == 'NAMEPLATE';
-            }).toList();
-
-            final voiceSkins = purchases.where((p) {
-              final type = p.productType.toUpperCase();
-              return type == 'VOICE_SKIN';
-            }).toList();
-
-            final warpDrips = purchases.where((p) {
-              final type = p.productType.toUpperCase();
-              return type == 'ENTRANCE_WARP' || type == 'DRIP_CARD';
-            }).toList();
-
-            final crates = purchases.where((p) {
-              final type = p.productType.toUpperCase();
-              return p.productId == 'mystery-crate' || type == 'CRATE';
-            }).toList();
-
-            return SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: purchases.length,
+          itemBuilder: (context, index) {
+            final p = purchases[index];
+            return Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: _cardBg,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Row(
                 children: [
-                  _buildFusionBanner(),
-                  const SizedBox(height: 12),
-                  _buildGachaBanner(crates.length),
-                  const SizedBox(height: 12),
-                  _buildBadgeAlchemyBanner(),
-                  const SizedBox(height: 24),
-                  if (crates.isNotEmpty) ...[
-                    _buildMyItemsSection('MYSTERY_CRATES', crates, equipped, 0),
-                    const SizedBox(height: 24),
-                  ],
-                  _buildMyItemsSection('THEMES', themes, equipped, 1),
-                  const SizedBox(height: 24),
-                  _buildMyItemsSection('AVATAR_DECORATIONS', decorations, equipped, 2),
-                  const SizedBox(height: 24),
-                  _buildMyItemsSection('NAMEPLATES', nameplates, equipped, 3),
-                  const SizedBox(height: 24),
-                  _buildMyItemsSection('VOICE_SKINS', voiceSkins, equipped, 4),
-                  const SizedBox(height: 24),
-                  _buildMyItemsSection('WARP_DRIPS', warpDrips, equipped, 5),
-                  const SizedBox(height: 24),
-                  _buildMyItemsSection('STICKER_PACKS', stickers, equipped, 6),
-                  const SizedBox(height: 24),
-                  _buildMyItemsSection('SOUNDBOARDS', sounds, equipped, 7),
-                  const SizedBox(height: 24),
-                  _buildMyItemsSection('BADGES', badges, equipped, 8),
-                  const SizedBox(height: 80),
+                  Icon(_iconForType(p.productType), color: Colors.white70),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      p.productName,
+                      style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                  ),
                 ],
               ),
             );
           },
-          loading: () => Center(child: CircularProgressIndicator(color: _neon)),
-          error: (_, __) => const Center(child: Text('Error loading equipped items', style: TextStyle(color: Colors.red))),
         );
       },
-      loading: () => Center(child: CircularProgressIndicator(color: _neon)),
-      error: (e, _) => Center(child: Text('Error: $e', style: TextStyle(color: Colors.red))),
+      loading: () => const Center(child: CircularProgressIndicator(color: _blurple)),
+      error: (e, _) => Center(child: Text('Error: $e', style: const TextStyle(color: Colors.red))),
     );
-  }
-
-  Widget _buildFusionBanner() {
-    return GestureDetector(
-      onTap: () {
-        FlickoHaptics.medium();
-        context.push('/store/fusion');
-      },
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: _surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: _neon.withValues(alpha: 0.2), width: 1.5),
-          boxShadow: [
-            BoxShadow(
-              color: _neon.withValues(alpha: 0.05),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.science_outlined, color: _neon, size: 16),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          'Cosmic Fusion Chamber',
-                          style: GoogleFonts.inter(
-                            color: _white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            letterSpacing: 0.5,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Fuse duplicate or unwanted items to synthesize high-rarity premium cosmetics!',
-                    style: GoogleFonts.inter(
-                      color: _muted,
-                      fontSize: 8,
-                      fontWeight: FontWeight.bold,
-                      height: 1.3,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: _neon.withValues(alpha: 0.15),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.bolt, color: _neon, size: 18),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildGachaBanner(int ownedCount) {
-    const Color magenta = Color(0xFFFF007F);
-    return GestureDetector(
-      onTap: () {
-        FlickoHaptics.medium();
-        context.push('/store/gacha');
-      },
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: _surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: magenta.withValues(alpha: 0.2), width: 1.5),
-          boxShadow: [
-            BoxShadow(
-              color: magenta.withValues(alpha: 0.05),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.casino_outlined, color: magenta, size: 16),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          'Mystery Vinyl Deck',
-                          style: GoogleFonts.inter(
-                            color: _white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            letterSpacing: 0.5,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: magenta.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          '$ownedCount Unopened',
-                          style: GoogleFonts.inter(
-                            color: magenta,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 8,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Spin the vinyl record for a chance to unlock legendary cosmetics!',
-                    style: GoogleFonts.inter(
-                      color: _muted,
-                      fontSize: 8,
-                      fontWeight: FontWeight.bold,
-                      height: 1.3,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: magenta.withValues(alpha: 0.15),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.play_arrow, color: magenta, size: 18),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBadgeAlchemyBanner() {
-    const Color gold = Color(0xFFFFD700);
-    return GestureDetector(
-      onTap: () {
-        FlickoHaptics.medium();
-        context.push('/store/badge-alchemy');
-      },
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: _surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: gold.withValues(alpha: 0.2), width: 1.5),
-          boxShadow: [
-            BoxShadow(
-              color: gold.withValues(alpha: 0.05),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.auto_awesome, color: gold, size: 16),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          'Alchemical Crucible',
-                          style: GoogleFonts.inter(
-                            color: _white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            letterSpacing: 0.5,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: gold.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          'Active',
-                          style: GoogleFonts.inter(
-                            color: gold,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 8,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Fuse lower-tier badges to claim high-tier badge rewards!',
-                    style: GoogleFonts.inter(
-                      color: _muted,
-                      fontSize: 8,
-                      fontWeight: FontWeight.bold,
-                      height: 1.3,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: gold.withValues(alpha: 0.15),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.flash_on, color: gold, size: 18),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMyItemsSection(String title, List<UserPurchase> items, Map<String, EquippedItem> equipped, int categoryIndex) {
-    // Format technical titles to beautiful, clean text
-    final formattedTitle = title
-        .replaceAll('_', ' ')
-        .split(' ')
-        .map((str) => str.isNotEmpty ? str[0].toUpperCase() + str.substring(1).toLowerCase() : '')
-        .join(' ');
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Text(
-                formattedTitle,
-                style: GoogleFonts.inter(
-                  color: _lime,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 14,
-                  letterSpacing: 1,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              '${items.length} Owned',
-              style: GoogleFonts.inter(
-                color: _muted,
-                fontWeight: FontWeight.bold,
-                fontSize: 10,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        if (items.isEmpty)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-            decoration: BoxDecoration(
-              color: _surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-            ),
-            child: Column(
-              children: [
-                Text(
-                  'No items owned in this category',
-                  style: GoogleFonts.inter(color: _muted, fontSize: 10, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 12),
-                GestureDetector(
-                  onTap: () {
-                    _tabController.animateTo(0);
-                    setState(() => _selectedCategory = categoryIndex);
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: _lime.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: _lime, width: 1.2),
-                    ),
-                    child: Text(
-                      'Browse Store',
-                      style: GoogleFonts.inter(
-                        color: _lime,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 11,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          )
-        else
-          Column(
-            children: items.map((purchase) => _buildPurchaseItem(purchase, equipped)).toList(),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.shopping_bag_outlined, color: _muted, size: 64),
-          const SizedBox(height: 16),
-          Text(
-            'No Items Yet',
-            style: GoogleFonts.epilogue(
-              color: _white,
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-              fontStyle: FontStyle.italic,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Items you purchase will appear here.',
-            style: GoogleFonts.inter(color: _muted, fontSize: 14),
-          ),
-          const SizedBox(height: 24),
-          GestureDetector(
-            onTap: () => _tabController.animateTo(0),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-              decoration: BoxDecoration(
-                color: _neon,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                'Browse Store',
-                style: GoogleFonts.inter(
-                  color: Colors.black,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPurchaseItem(UserPurchase purchase, Map<String, EquippedItem> equipped) {
-    final typeKey = purchase.productType.toLowerCase();
-    final isEquipped = equipped[typeKey]?.productId == purchase.productId;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: _surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isEquipped ? _lime : Colors.white.withValues(alpha: 0.08),
-          width: isEquipped ? 2.0 : 1.0,
-        ),
-        boxShadow: isEquipped
-            ? [
-                BoxShadow(
-                  color: _lime.withValues(alpha: 0.15),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                )
-              ]
-            : [],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: isEquipped ? _lime.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: isEquipped ? _lime.withValues(alpha: 0.4) : Colors.white.withValues(alpha: 0.08),
-                width: 1,
-              ),
-            ),
-            child: Icon(
-              _iconForType(purchase.productType),
-              color: isEquipped ? _lime : _white.withValues(alpha: 0.6),
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        purchase.productName.toUpperCase(),
-                        style: GoogleFonts.inter(
-                          color: _white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                          letterSpacing: 0.5,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    if (isEquipped) ...[
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: _lime.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: _lime.withValues(alpha: 0.4), width: 1),
-                        ),
-                        child: Text(
-                          'Equipped',
-                          style: GoogleFonts.inter(
-                            color: _lime,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 9,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  purchase.productType.toUpperCase(),
-                  style: GoogleFonts.inter(
-                    color: _muted,
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (purchase.productType.toUpperCase() == 'CRATE')
-            GestureDetector(
-              onTap: () {
-                FlickoHaptics.medium();
-                context.push('/store/gacha');
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFF007F), // Magenta
-                  border: Border.all(color: Colors.black, width: 1.5),
-                  boxShadow: const [
-                    BoxShadow(color: Color(0xFFFF007F),
-                      blurRadius: 14, offset: Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Text(
-                  'Open Crate',
-                  style: GoogleFonts.inter(
-                    color: Colors.black,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 9,
-                  ),
-                ),
-              ),
-            )
-          else
-            IconButton(
-              icon: Icon(Icons.more_vert, color: isEquipped ? _lime : _muted, size: 18),
-              onPressed: () => _showDirectItemOptions(purchase, isEquipped),
-            ),
-        ],
-      ),
-    );
-  }
-
-  void _showDirectItemOptions(UserPurchase item, bool isEquipped) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => ClipRRect(
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.55),
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(24)),
-              border: Border(
-                top: BorderSide(
-                  color: Colors.white.withValues(alpha: 0.1),
-                  width: 1,
-                ),
-              ),
-            ),
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      height: 4,
-                      width: 40,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-              Text(
-                item.productName.toUpperCase(),
-                style: GoogleFonts.inter(
-                  color: _white,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 18,
-                  letterSpacing: 1.5,
-                ),
-              ),
-              const SizedBox(height: 24),
-              if (!isEquipped)
-                ListTile(
-                  leading: Container(
-                    padding: const EdgeInsets.all(8),
-                    color: _lime.withValues(alpha: 0.2),
-                    child: Icon(Icons.check_circle, color: _lime),
-                  ),
-                  title: Text(
-                    'Equip Item',
-                    style: GoogleFonts.inter(color: _white, fontWeight: FontWeight.w900, letterSpacing: 1),
-                  ),
-                  subtitle: Text(
-                    'Activate this ${item.productType.toLowerCase()}',
-                    style: GoogleFonts.inter(color: _muted),
-                  ),
-                  onTap: () async {
-                    Navigator.pop(ctx);
-                    await _equipItemDirect(item);
-                  },
-                ),
-              if (isEquipped)
-                ListTile(
-                  leading: Container(
-                    padding: const EdgeInsets.all(8),
-                    color: Colors.red.withValues(alpha: 0.2),
-                    child: const Icon(Icons.remove_circle_outline, color: Colors.red),
-                  ),
-                  title: Text(
-                    'Unequip Item',
-                    style: GoogleFonts.inter(color: Colors.red, fontWeight: FontWeight.w900, letterSpacing: 1),
-                  ),
-                  subtitle: Text(
-                    'Stop using this ${item.productType.toLowerCase()}',
-                    style: GoogleFonts.inter(color: _muted),
-                  ),
-                  onTap: () async {
-                    Navigator.pop(ctx);
-                    await _unequipItemDirect(item);
-                  },
-                ),
-              ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  color: _white.withValues(alpha: 0.1),
-                  child: const Icon(Icons.card_giftcard, color: Colors.white),
-                ),
-                title: Text(
-                  'Gift to a Friend',
-                  style: GoogleFonts.inter(color: _white, fontWeight: FontWeight.w900, letterSpacing: 1),
-                ),
-                subtitle: Text('Send to another user', style: GoogleFonts.inter(color: _muted)),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Gifting coming soon!'), backgroundColor: _lime),
-                  );
-                },
-              ),
-              const SizedBox(height: 16),
-            ],
-          ),
-        ),
-      ),
-            ),
-          ),
-        ),
-    );
-  }
-
-  Future<void> _equipItemDirect(UserPurchase item) async {
-    final service = ref.read(equipmentServiceProvider);
-    final success = await service.equipItem(item.productId, item.productType);
-    
-    if (success) {
-      ref.invalidate(equippedItemsProvider);
-      ref.invalidate(userPurchasesProvider);
-      ref.invalidate(activeStoreThemeProvider);
-      if (item.productType.toUpperCase() == 'VOICE_SKIN') {
-        ref.invalidate(equippedVoiceSkinProvider);
-        ref.invalidate(voiceFilterProvider);
-      }
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${item.productName} equipped successfully!'),
-            backgroundColor: _lime,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _unequipItemDirect(UserPurchase item) async {
-    final service = ref.read(equipmentServiceProvider);
-    final success = await service.unequipItem(item.productId);
-    
-    if (success) {
-      ref.invalidate(equippedItemsProvider);
-      ref.invalidate(userPurchasesProvider);
-      ref.invalidate(activeStoreThemeProvider);
-      if (item.productType.toUpperCase() == 'VOICE_SKIN') {
-        ref.invalidate(equippedVoiceSkinProvider);
-        ref.invalidate(voiceFilterProvider);
-      }
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${item.productName} unequipped'),
-            backgroundColor: _lime,
-          ),
-        );
-      }
-    }
-  }
-
-  void _showCrateSpinDialog(StoreProduct product) async {
-    FlickoHaptics.medium();
-    // Instantly purchase the crate locally
-    final success = await ref.read(storeServiceProvider).purchaseProduct(product);
-    if (success && mounted) {
-      ref.invalidate(userPurchasesProvider);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('MYSTERY CRATE PURCHASED! ENTERING UNBOXING DECK...'),
-          backgroundColor: Color(0xFFFF007F),
-          duration: Duration(milliseconds: 1500),
-        ),
-      );
-      // Wait a moment and navigate to unboxing arena
-      await Future.delayed(const Duration(milliseconds: 800));
-      if (mounted) {
-        context.push('/store/gacha');
-      }
-    }
-  }
-
-  Widget _buildCartFAB(List<CartItem> cart) {
-    return GestureDetector(
-      onTap: () => context.push('/store/cart'),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        decoration: BoxDecoration(
-          color: _neon,
-          borderRadius: BorderRadius.circular(30),
-          boxShadow: [
-            BoxShadow(
-              color: _neon.withValues(alpha: 0.4),
-              blurRadius: 15,
-              offset: const Offset(0, 5),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.shopping_bag, color: Colors.black),
-            const SizedBox(width: 8),
-            Text(
-              '${cart.length} item${cart.length == 1 ? '' : 's'} • ₹${ref.read(cartProvider.notifier).total.toStringAsFixed(0)}',
-              style: GoogleFonts.inter(
-                color: Colors.black,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Color _getRarityColor(String rarity) {
-    switch (rarity.toLowerCase()) {
-      case 'legendary':
-        return _gold;
-      case 'epic':
-        return _neon;
-      case 'rare':
-        return const Color(0xFF00E5FF);
-      default:
-        return _muted;
-    }
   }
 
   IconData _iconForType(String type) {
     switch (type.toUpperCase()) {
+      case 'AVATAR_DECORATION':
+      case 'DECORATIONS':
+        return Icons.face_retouching_natural_rounded;
       case 'THEME':
+      case 'THEMES':
         return Icons.palette_rounded;
-      case 'STICKERS':
-        return Icons.emoji_emotions_rounded;
-      case 'SOUNDS':
-        return Icons.music_note_rounded;
-      case 'BADGE':
-        return Icons.verified_rounded;
       case 'NAMEPLATE':
+      case 'NAMEPLATES':
         return Icons.badge_rounded;
       case 'VOICE_SKIN':
-      case 'VOICESKIN':
+      case 'VOICE_SKINS':
         return Icons.graphic_eq_rounded;
-      case 'ENTRANCE_WARP':
-        return Icons.blur_on;
-      case 'DRIP_CARD':
-        return Icons.crop_portrait;
-      case 'BUNDLE':
-        return Icons.inventory_2_rounded;
-      case 'CRATE':
-        return Icons.album_rounded;
-      default:
-        return Icons.store_rounded;
-    }
-  }
-}
-
-// ==========================================
-// GACHA CRATE TURNTABLE SPIN DIALOG & WIDGETS
-// ==========================================
-
-class ConfettiParticle {
-  double x;
-  double y;
-  double vx;
-  double vy;
-  Color color;
-  double size;
-  double gravity;
-
-  ConfettiParticle({
-    required this.x,
-    required this.y,
-    required this.vx,
-    required this.vy,
-    required this.color,
-    required this.size,
-    this.gravity = 0.2,
-  });
-
-  void update() {
-    vy += gravity;
-    x += vx;
-    y += vy;
-  }
-}
-
-class GachaSpinDialog extends StatefulWidget {
-  final StoreProduct crateProduct;
-  final StoreService storeService;
-  final VoidCallback onUnlocked;
-
-  const GachaSpinDialog({
-    super.key,
-    required this.crateProduct,
-    required this.storeService,
-    required this.onUnlocked,
-  });
-
-  @override
-  State<GachaSpinDialog> createState() => _GachaSpinDialogState();
-}
-
-class _GachaSpinDialogState extends State<GachaSpinDialog> with TickerProviderStateMixin {
-  late AnimationController _rotationController;
-  late AnimationController _needleController;
-  late AnimationController _confettiController;
-  
-  bool _isSpinning = false;
-  StoreProduct? _reward;
-  final List<ConfettiParticle> _particles = [];
-  final math.Random _random = math.Random();
-  bool _isEquipped = false;
-
-  static const Color _bg = Color(0xFF000000);
-  Color get _neon => GetIt.I<MyTheme>().currentColor();
-  static const Color _white = Color(0xFFFFFFFF);
-  static const Color _muted = Color(0xFF71717A);
-  static const Color _gold = Color(0xFFFFD700);
-
-  Color _getRarityColor(String rarity) {
-    switch (rarity.toLowerCase()) {
-      case 'legendary':
-        return _gold;
-      case 'epic':
-        return _neon;
-      case 'rare':
-        return const Color(0xFF00E5FF);
-      default:
-        return _muted;
-    }
-  }
-
-  IconData _iconForType(String type) {
-    switch (type.toUpperCase()) {
-      case 'THEME':
-        return Icons.palette_rounded;
       case 'STICKERS':
-        return Icons.emoji_emotions_rounded;
-      case 'SOUNDS':
-        return Icons.music_note_rounded;
-      case 'BADGE':
-        return Icons.verified_rounded;
-      case 'NAMEPLATE':
-        return Icons.badge_rounded;
-      case 'VOICE_SKIN':
-      case 'VOICESKIN':
-        return Icons.graphic_eq_rounded;
-      case 'ENTRANCE_WARP':
-        return Icons.blur_on;
-      case 'DRIP_CARD':
-        return Icons.crop_portrait;
-      case 'BUNDLE':
-        return Icons.inventory_2_rounded;
-      case 'CRATE':
-        return Icons.album_rounded;
+        return Icons.sticky_note_2_rounded;
       default:
-        return Icons.store_rounded;
+        return Icons.auto_awesome_rounded;
     }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _rotationController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 4),
-    );
-
-    _needleController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    );
-
-    _confettiController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 3),
-    )..addListener(() {
-        _updateConfetti();
-      });
-  }
-
-  @override
-  void dispose() {
-    _rotationController.dispose();
-    _needleController.dispose();
-    _confettiController.dispose();
-    super.dispose();
-  }
-
-  void _spawnConfetti() {
-    final colors = [
-      _neon,
-      _gold,
-      const Color(0xFF00E5FF),
-      Colors.pinkAccent,
-      Colors.orangeAccent,
-    ];
-    _particles.clear();
-    for (int i = 0; i < 80; i++) {
-      _particles.add(
-        ConfettiParticle(
-          x: 150 + _random.nextDouble() * 100,
-          y: 400,
-          vx: (_random.nextDouble() - 0.5) * 12,
-          vy: -(_random.nextDouble() * 10 + 5),
-          color: colors[_random.nextInt(colors.length)],
-          size: _random.nextDouble() * 6 + 4,
-        ),
-      );
-    }
-  }
-
-  void _updateConfetti() {
-    if (!mounted) return;
-    setState(() {
-      for (final p in _particles) {
-        p.update();
-      }
-    });
-  }
-
-  void _startUnboxing() async {
-    if (_isSpinning) return;
-    setState(() {
-      _isSpinning = true;
-      _reward = null;
-      _isEquipped = false;
-    });
-
-    // 1. Drop the needle arm onto the record
-    await _needleController.forward();
-
-    // 2. Start rapid spinning
-    _rotationController.repeat();
-    
-    // Roll reward from service
-    final reward = widget.storeService.getRandomGachaReward();
-
-    // 3. Spin for 2 seconds
-    await Future.delayed(const Duration(milliseconds: 2000));
-    
-    // Decelerate turntable rotation
-    await _rotationController.animateTo(
-      _rotationController.value + 1.8,
-      duration: const Duration(milliseconds: 1500),
-      curve: Curves.decelerate,
-    );
-    _rotationController.stop();
-
-    // Add purchase to local SharedPreferences database
-    await widget.storeService.purchaseProduct(reward);
-    widget.onUnlocked();
-
-    // 4. Reveal reward & launch confetti shower
-    setState(() {
-      _reward = reward;
-      _isSpinning = false;
-      _spawnConfetti();
-    });
-    _confettiController.repeat();
-  }
-
-  Future<void> _equipRewardDirect(WidgetRef ref, StoreProduct reward) async {
-    final service = ref.read(equipmentServiceProvider);
-    final success = await service.equipItem(reward.id, reward.type);
-    if (success) {
-      ref.invalidate(equippedItemsProvider);
-      ref.invalidate(userPurchasesProvider);
-      ref.invalidate(activeStoreThemeProvider);
-      setState(() {
-        _isEquipped = true;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
-          child: Container(
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: _bg.withValues(alpha: 0.55),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.12), width: 1),
-              boxShadow: [
-                BoxShadow(
-                  color: _neon.withValues(alpha: 0.18),
-                  blurRadius: 32,
-                  spreadRadius: 1,
-                ),
-              ],
-            ),
-            child: Stack(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Title
-                      Text(
-                        'Turntable Gacha',
-                        style: GoogleFonts.inter(
-                          color: _white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Spin the platter to drop a reward.',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.inter(
-                          color: _muted,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                  const SizedBox(height: 24),
-
-                  // The Turntable Deck Area
-                  if (_reward == null)
-                    AnimatedBuilder(
-                      animation: Listenable.merge([_rotationController, _needleController]),
-                      builder: (context, child) {
-                        return Container(
-                          width: 280,
-                          height: 280,
-                          decoration: BoxDecoration(
-                            border: Border.all(color: _neon, width: 2),
-                          ),
-                          child: CustomPaint(
-                            painter: TurntablePainter(
-                              rotationAngle: _rotationController.value,
-                              needleProgress: _needleController.value,
-                              neonColor: _neon,
-                            ),
-                          ),
-                        );
-                      },
-                    )
-                  else
-                    // Reward Reveal Card
-                    _buildRewardCard(_reward!),
-
-                  const SizedBox(height: 24),
-
-                  // Actions
-                  if (_reward == null)
-                    GestureDetector(
-                      onTap: _isSpinning ? null : _startUnboxing,
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        decoration: BoxDecoration(
-                          color: _isSpinning ? const Color(0xFF1A1A1A) : _neon,
-                          borderRadius: BorderRadius.circular(14),
-                          boxShadow: _isSpinning
-                              ? null
-                              : [
-                                  BoxShadow(
-                                    color: _neon.withValues(alpha: 0.35),
-                                    blurRadius: 18,
-                                    spreadRadius: 1,
-                                  ),
-                                ],
-                        ),
-                        child: Center(
-                          child: Text(
-                            _isSpinning ? 'Spinning record…' : 'Drop needle to spin',
-                            style: GoogleFonts.inter(
-                              color: _isSpinning ? _muted : Colors.black,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 14,
-                              letterSpacing: 0.2,
-                            ),
-                          ),
-                        ),
-                      ),
-                    )
-                  else
-                    Consumer(
-                      builder: (context, ref, _) {
-                        return Row(
-                          children: [
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: _isEquipped ? null : () => _equipRewardDirect(ref, _reward!),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                  decoration: BoxDecoration(
-                                    color: _isEquipped ? const Color(0xFF1A1A1A) : _neon,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      _isEquipped ? 'Equipped' : 'Equip now',
-                                      style: GoogleFonts.inter(
-                                        color: _isEquipped ? _neon : Colors.black,
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: () => Navigator.pop(context),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                  decoration: BoxDecoration(
-                                    color: Colors.transparent,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: _white.withValues(alpha: 0.2), width: 1),
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      'Close',
-                                      style: GoogleFonts.inter(
-                                        color: _white,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-                ],
-              ),
-            ),
-            
-            // Confetti canvas overlays
-            if (_reward != null)
-              IgnorePointer(
-                child: SizedBox(
-                  width: double.infinity,
-                  height: size.height * 0.6,
-                  child: CustomPaint(
-                    painter: ConfettiPainter(particles: _particles),
-                  ),
-                ),
-              ),
-          ],
-        ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRewardCard(StoreProduct reward) {
-    final rarityColor = _getRarityColor(reward.rarity);
-    return Container(
-      width: 280,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0A0A0A),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: rarityColor.withValues(alpha: 0.5), width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: rarityColor.withValues(alpha: 0.25),
-            blurRadius: 24,
-            spreadRadius: 1,
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-            decoration: BoxDecoration(
-              color: rarityColor.withValues(alpha: 0.18),
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: rarityColor.withValues(alpha: 0.5), width: 1),
-            ),
-            child: Text(
-              _capitalize(reward.rarity),
-              style: GoogleFonts.inter(
-                color: rarityColor,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.3,
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          Icon(
-            _iconForType(reward.type),
-            color: rarityColor,
-            size: 64,
-          ),
-          const SizedBox(height: 20),
-          Text(
-            reward.name,
-            textAlign: TextAlign.center,
-            style: GoogleFonts.inter(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            _capitalize(reward.type.replaceAll('_', ' ')),
-            style: GoogleFonts.inter(
-              color: _muted,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            reward.description ?? 'A high-fidelity cosmetic unlocked via Gacha Spin.',
-            textAlign: TextAlign.center,
-            style: GoogleFonts.inter(
-              color: _white.withValues(alpha: 0.7),
-              fontSize: 13,
-              height: 1.4,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _capitalize(String s) =>
-      s.isEmpty ? s : s[0].toUpperCase() + s.substring(1).toLowerCase();
-}
-
-class TurntablePainter extends CustomPainter {
-  final double rotationAngle;
-  final double needleProgress;
-  final Color neonColor;
-
-  TurntablePainter({
-    required this.rotationAngle,
-    required this.needleProgress,
-    required this.neonColor,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width * 0.4;
-
-    // 1. Draw Turntable Deck (Brutalist box outline)
-    final deckPaint = Paint()
-      ..color = Colors.black
-      ..style = PaintingStyle.fill;
-    final borderPaint = Paint()
-      ..color = neonColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3;
-
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), deckPaint);
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), borderPaint);
-
-    // 2. Draw Vinyl record body (rotating)
-    canvas.save();
-    canvas.translate(center.dx, center.dy);
-    canvas.rotate(rotationAngle * 2 * math.pi);
-
-    final recordPaint = Paint()
-      ..color = const Color(0xFF111111)
-      ..style = PaintingStyle.fill;
-    canvas.drawCircle(Offset.zero, radius, recordPaint);
-
-    // Draw grooves
-    final groovePaint = Paint()
-      ..color = Colors.grey.withValues(alpha: 0.3)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0;
-    
-    for (double r = radius - 15; r > 10; r -= 15) {
-      canvas.drawCircle(Offset.zero, r, groovePaint);
-    }
-
-    // Draw custom neon center label
-    final labelPaint = Paint()
-      ..color = neonColor
-      ..style = PaintingStyle.fill;
-    canvas.drawCircle(Offset.zero, 18, labelPaint);
-
-    final innerCirclePaint = Paint()
-      ..color = Colors.black
-      ..style = PaintingStyle.fill;
-    canvas.drawCircle(Offset.zero, 5, innerCirclePaint);
-
-    canvas.restore();
-
-    // 3. Draw Turntable Tonearm (Needle arm)
-    final pivot = Offset(size.width - 25, 25);
-    final tonearmPaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 4
-      ..strokeCap = StrokeCap.round;
-
-    final swivelAngle = 0.05 + (0.35 * needleProgress);
-    canvas.save();
-    canvas.translate(pivot.dx, pivot.dy);
-    canvas.rotate(swivelAngle);
-
-    // Draw tonearm segments
-    canvas.drawLine(Offset.zero, const Offset(-10, 80), tonearmPaint);
-    canvas.drawLine(const Offset(-10, 80), const Offset(-30, 140), tonearmPaint);
-    
-    // Draw needle head cartridge
-    final headPaint = Paint()
-      ..color = neonColor
-      ..style = PaintingStyle.fill;
-    canvas.drawRect(
-      Rect.fromCenter(center: const Offset(-30, 140), width: 12, height: 18),
-      headPaint,
-    );
-
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(covariant TurntablePainter oldDelegate) {
-    return oldDelegate.rotationAngle != rotationAngle ||
-        oldDelegate.needleProgress != needleProgress ||
-        oldDelegate.neonColor != neonColor;
   }
 }
-
-class ConfettiPainter extends CustomPainter {
-  final List<ConfettiParticle> particles;
-
-  ConfettiPainter({required this.particles});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    for (final p in particles) {
-      final paint = Paint()
-        ..color = p.color
-        ..style = PaintingStyle.fill;
-      canvas.drawCircle(Offset(p.x, p.y), p.size, paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
-}
-

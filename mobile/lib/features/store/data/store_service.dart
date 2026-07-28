@@ -125,7 +125,7 @@ class StoreService {
         final response = await query.order('created_at', ascending: false);
         products = (response as List).map((j) => StoreProduct.fromJson(j)).toList();
 
-        // Always merge local sample products (like Flicko Beats & new stickers) that are not present in the DB catalog
+        // Always merge local sample products (like themes & new stickers) that are not present in the DB catalog
         final sampleProducts = getSampleProducts();
         final dbProductSlugs = products.map((p) => p.slug.toLowerCase()).toSet();
         
@@ -225,17 +225,10 @@ class StoreService {
       StoreProduct(id: 'space-vibes', slug: 'space-vibes', name: 'Space Vibes', type: 'STICKERS', price: 199.0, rarity: 'epic', description: 'Cosmic sticker pack'),
       StoreProduct(id: 'pixel-art', slug: 'pixel-art', name: 'Pixel Art Pack', type: 'STICKERS', price: 249.0, rarity: 'rare', description: 'Retro pixel art stickers'),
 
-      // Premium Flicko Beats Soundboard Tracks
-      StoreProduct(id: 'beat-bad-boy', slug: 'beat-bad-boy', name: 'Bad Boy Beats', type: 'SOUNDS', price: 99.0, rarity: 'rare', isHot: true, description: 'Electronic hip-hop upbeat backing track from the Flicko Beats catalog.', previewUrl: 'assets/sounds/bad-boy.mp3', imageUrl: 'assets/cover.jpg'),
-      StoreProduct(id: 'beat-arcade-chiptune', slug: 'beat-arcade-chiptune', name: 'Retro Arcade Chiptune', type: 'SOUNDS', price: 149.0, rarity: 'epic', description: 'Classic game-over 8-bit chiptune loop from the Flicko Beats catalog.', previewUrl: 'assets/sounds/game-over-8-bit-chiptune.mp3', imageUrl: 'assets/cover.jpg'),
-      StoreProduct(id: 'beat-hypnosphere', slug: 'beat-hypnosphere', name: 'Hypnosphere Ambient', type: 'SOUNDS', price: 199.0, rarity: 'legendary', isHot: true, description: 'Soothing cosmic hypnosphere synth beats from the Flicko Beats catalog.', previewUrl: 'assets/sounds/hypnosphere.mp3', imageUrl: 'assets/cover.jpg'),
-      StoreProduct(id: 'beat-memories-joy', slug: 'beat-memories-joy', name: 'Memories of Joy', type: 'SOUNDS', price: 99.0, rarity: 'rare', description: 'Nostalgic, warm lo-fi background beats from the Flicko Beats catalog.', previewUrl: 'assets/sounds/memories-of-joy.mp3', imageUrl: 'assets/cover.jpg'),
-      StoreProduct(id: 'beat-youth-emotion', slug: 'beat-youth-emotion', name: 'Youth Emotion', type: 'SOUNDS', price: 119.0, rarity: 'epic', description: 'Energetic electronic synthwave loop from the Flicko Beats catalog.', previewUrl: 'assets/sounds/youth-emotion.mp3', imageUrl: 'assets/cover.jpg'),
       // Built-in sounds
       StoreProduct(id: 'myinstants-trending', slug: 'myinstants-trending', name: 'Trending Sounds', type: 'SOUNDS', price: 0, rarity: 'common', description: 'Free trending sound effects from MyInstants. Updated daily with the hottest sounds.'),
       StoreProduct(id: 'classic-memes', slug: 'classic-memes', name: 'Classic Memes', type: 'SOUNDS', price: 79.0, rarity: 'rare', isHot: true, description: 'Vine Boom, Bruh, Oof, Airhorn — the essential meme soundboard classics.'),
       StoreProduct(id: 'retro-beeps', slug: 'retro-beeps', name: 'Retro Beeps', type: 'SOUNDS', price: 79.0, rarity: 'common', description: 'Retro notification and game sounds'),
-      StoreProduct(id: 'chill-beats', slug: 'chill-beats', name: 'Chill Beats', type: 'SOUNDS', price: 119.0, rarity: 'rare', description: 'Relaxing notification sounds'),
 
       // Badges
       StoreProduct(id: 'og-badge', slug: 'og-badge', name: 'OG Badge', type: 'BADGE', price: 799.0, rarity: 'legendary', isHot: true, description: 'Original gangster badge'),

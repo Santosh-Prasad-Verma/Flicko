@@ -1203,7 +1203,7 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
 
     // Detect if participant has an active video track
     final videoTrack = participant.videoTrackPublications
-        .where((pub) => pub.track != null && !pub.isScreenShare)
+        .where((pub) => pub.track != null && pub.kind == TrackType.VIDEO && !pub.isScreenShare)
         .toList();
     final hasVideo = videoTrack.isNotEmpty;
 

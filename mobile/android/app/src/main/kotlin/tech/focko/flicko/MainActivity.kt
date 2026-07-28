@@ -38,10 +38,12 @@ class MainActivity : AudioServiceActivity() {
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        // Request code 1 matches CAPTURE_PERMISSION_REQUEST_CODE in flutter_webrtc
+        // Start the foreground service BEFORE super.onActivityResult so that
+        // MediaProjection is guaranteed to have an active mediaProjection FGS
+        // when flutter_webrtc processes the intent result inside super.onActivityResult.
         if (requestCode == 1 && resultCode == Activity.RESULT_OK) {
             ScreenCaptureService.start(this)
         }
+        super.onActivityResult(requestCode, resultCode, data)
     }
 }

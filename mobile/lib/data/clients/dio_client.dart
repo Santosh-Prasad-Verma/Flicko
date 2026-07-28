@@ -213,7 +213,11 @@ class _ErrorMappingInterceptor extends Interceptor {
         err.type == DioExceptionType.receiveTimeout ||
         err.type == DioExceptionType.sendTimeout) {
       apiException = FlickoApiException.timeout(requestId: requestId);
-    } else if (err.type == DioExceptionType.connectionError || err.error is SocketException) {
+    } else if (err.type == DioExceptionType.connectionError ||
+        err.error is SocketException ||
+        err.error is HttpException ||
+        err.error is HandshakeException ||
+        (statusCode == null && err.response == null)) {
       apiException = FlickoApiException.noConnection(requestId: requestId);
     } else if (statusCode == 401) {
       apiException = FlickoApiException.unauthorized(requestId: requestId);
@@ -288,7 +292,13 @@ class _DioLogInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
-    print('❌ [HTTP] ${err.response?.statusCode ?? 'unknown'} <- ${err.requestOptions.uri} | ${err.message}');
+    final extra = err.requestOptions.extra;
+    final isSilent = extra['silent'] == true ||
+        (extra['no_retry'] == true && (err.type == DioExceptionType.connectionError || err.response == null));
+
+    if (!isSilent) {
+      print('❌ [HTTP] ${err.response?.statusCode ?? 'unknown'} <- ${err.requestOptions.uri} | ${err.message}');
+    }
     handler.next(err);
   }
 }

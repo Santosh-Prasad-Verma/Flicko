@@ -87,11 +87,6 @@ class ScreenCaptureService : Service() {
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
-                    try {
-                        startForeground(NOTIFICATION_ID, notification)
-                    } catch (e2: Exception) {
-                        e2.printStackTrace()
-                    }
                 }
             }
         }

@@ -1,7 +1,5 @@
 import 'dart:async';
 import 'dart:developer' as developer;
-import 'dart:io' show Platform;
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:livekit_client/livekit_client.dart';
 import 'package:audio_session/audio_session.dart';
@@ -9,6 +7,8 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:just_audio/just_audio.dart';
 import 'dart:convert';
 import 'package:mobile/data/models/soundboard_model.dart';
+import 'package:mobile/data/services/livekit_service.dart';
+import 'package:mobile/data/services/media_engine.dart';
 import 'package:mobile/features/voice/data/voice_repository.dart';
 import 'voice_state.dart';
 
@@ -31,6 +31,7 @@ final voiceControllerProvider = NotifierProvider<VoiceController, VoiceState>(Vo
 
 class VoiceController extends Notifier<VoiceState> {
   late final VoiceRepository _repository;
+  late final MediaEngine _mediaEngine;
   EventsListener<RoomEvent>? _listener;
   late final AudioPlayer _audioPlayer;
   Room? _room;
@@ -41,12 +42,16 @@ class VoiceController extends Notifier<VoiceState> {
   @override
   VoiceState build() {
     _repository = ref.watch(voiceRepositoryProvider);
+    _mediaEngine = ref.watch(mediaEngineProvider);
     _audioPlayer = ref.watch(audioPlayerProvider);
 
     ref.onDispose(() {
       _listener?.dispose();
-      _room?.disconnect();
-      _room = null;
+      if (_room != null) {
+        _mediaEngine.disposeRoomMedia(_room);
+        _room?.disconnect();
+        _room = null;
+      }
       _activeServerId = null;
     });
 
@@ -74,9 +79,7 @@ class VoiceController extends Notifier<VoiceState> {
         throw Exception('Failed to activate audio session');
       }
 
-      // 3. Get Token — and the URL of the server that signed it. Using the
-      // issued serverUrl instead of the compile-time define keeps every
-      // participant on the same SFU even if a build carries a stale URL.
+      // 3. Get Token and Server URL
       final connection = await _repository.fetchConnection(channelId, serverId);
 
       // 4. Connect to Room
@@ -102,12 +105,13 @@ class VoiceController extends Notifier<VoiceState> {
         ),
       );
 
+      _room = room;
       _setupRoomListeners(room);
 
-      // 5. Publish Local Audio
+      // 5. Publish Local Audio using MediaEngine
       bool micPublishFailed = false;
       try {
-        await room.localParticipant?.setMicrophoneEnabled(true);
+        await _mediaEngine.setMicrophoneEnabled(room, true);
       } catch (trackErr) {
         developer.log('Failed to publish microphone track', name: 'VoiceController', error: trackErr);
         micPublishFailed = true;
@@ -217,10 +221,8 @@ class VoiceController extends Notifier<VoiceState> {
     final room = state.room;
     if (room == null) return;
 
-    // 1. Play locally
     _playRemoteSound(sound.url);
 
-    // 2. Send to others
     final message = jsonEncode({
       'type': 'soundboard',
       'soundId': sound.id,
@@ -232,7 +234,6 @@ class VoiceController extends Notifier<VoiceState> {
       reliable: true,
     );
   }
-
 
   void _updateParticipants() {
     final room = state.room;
@@ -253,13 +254,11 @@ class VoiceController extends Notifier<VoiceState> {
 
     final newMute = !state.isMuted;
     try {
-      await room.localParticipant?.setMicrophoneEnabled(!newMute);
+      await _mediaEngine.setMicrophoneEnabled(room, !newMute);
       
-      // If we are unmuting, we must also undeafen (a deafened user cannot be unmuted)
       bool newDeafen = state.isDeafened;
       if (!newMute && state.isDeafened) {
         newDeafen = false;
-        // Resubscribe to remote audio tracks
         for (final p in room.remoteParticipants.values) {
           for (final sub in p.audioTrackPublications) {
             await sub.subscribe();
@@ -280,7 +279,6 @@ class VoiceController extends Notifier<VoiceState> {
     if (room == null) return;
 
     final newDeafen = !state.isDeafened;
-    // Deafen logic: unsubscribe/subscribe remote audio tracks
     for (final p in room.remoteParticipants.values) {
       for (final sub in p.audioTrackPublications) {
         if (newDeafen) {
@@ -291,26 +289,23 @@ class VoiceController extends Notifier<VoiceState> {
       }
     }
 
-    // If we are deafening ourselves, we MUST also mute ourselves
     bool newMute = state.isMuted;
     if (newDeafen && !state.isMuted) {
       newMute = true;
       try {
-        await room.localParticipant?.setMicrophoneEnabled(false);
+        await _mediaEngine.setMicrophoneEnabled(room, false);
       } catch (trackErr) {
         developer.log('Failed to mute on deafen', name: 'VoiceController', error: trackErr);
       }
     }
-    // Note: When undeafening, we do not automatically unmute, so the user stays in their controlled mute state.
 
     state = state.copyWith(isDeafened: newDeafen, isMuted: newMute);
   }
 
-      Future<void> toggleVideo() async {
+  Future<void> toggleVideo() async {
     final room = state.room;
     if (room == null) return;
 
-    // Request camera permission before toggling
     final camStatus = await Permission.camera.request();
     if (camStatus != PermissionStatus.granted) {
       state = state.copyWith(error: 'Camera permission denied');
@@ -322,42 +317,17 @@ class VoiceController extends Notifier<VoiceState> {
 
     try {
       final isVideoEnabled = localParticipant.isCameraEnabled();
-      if (isVideoEnabled) {
-        await localParticipant.setCameraEnabled(false);
-      } else {
-        // Publish camera directly without redundant pre-closing calls
-        try {
-          await localParticipant.setCameraEnabled(
-            true,
-            cameraCaptureOptions: const CameraCaptureOptions(
-              params: VideoParametersPresets.h540_169,
-              maxFrameRate: 30,
-            ),
-          );
-        } catch (e1) {
-          developer.log('540p camera publish failed, trying 360p fallback', name: 'VoiceController', error: e1);
-          // Wait for Android Camera2 HAL to settle before retrying fallback
-          await Future.delayed(const Duration(milliseconds: 300));
-          await localParticipant.setCameraEnabled(
-            true,
-            cameraCaptureOptions: const CameraCaptureOptions(
-              params: VideoParametersPresets.h360_169,
-              maxFrameRate: 24,
-            ),
-          );
-        }
-      }
+      final targetEnabled = !isVideoEnabled;
+
+      final result = await _mediaEngine.setCameraEnabled(room, targetEnabled);
       _updateParticipants();
       state = state.copyWith(error: null);
-      await _syncPublishState(isVideo: localParticipant.isCameraEnabled());
+      await _syncPublishState(isVideo: result);
     } catch (e) {
       developer.log('Failed to toggle camera video', name: 'VoiceController', error: e);
       state = state.copyWith(error: 'Camera track publish failed: ${e.toString()}');
     }
   }
-
-  static const _screenCaptureChannel =
-      MethodChannel('tech.focko.flicko/screen_capture');
 
   Future<void> toggleScreenShare() async {
     final room = state.room;
@@ -368,43 +338,12 @@ class VoiceController extends Notifier<VoiceState> {
 
     try {
       final isScreenShareEnabled = localParticipant.isScreenShareEnabled();
+      final targetEnabled = !isScreenShareEnabled;
 
-      if (!isScreenShareEnabled && Platform.isAndroid) {
-        // MUST start Android foreground service BEFORE launching MediaProjection screen capture
-        try {
-          await _screenCaptureChannel.invokeMethod('startService');
-          // Allow Android OS time to bind foreground service
-          await Future.delayed(const Duration(milliseconds: 300));
-        } catch (e) {
-          developer.log(
-            'Failed to start screen capture foreground service',
-            name: 'VoiceController',
-            error: e,
-          );
-        }
-      }
-
-      await localParticipant.setScreenShareEnabled(!isScreenShareEnabled);
+      final result = await _mediaEngine.setScreenShareEnabled(room, targetEnabled);
       _updateParticipants();
       state = state.copyWith(error: null);
-      await _syncPublishState(
-        isStreaming: localParticipant.isScreenShareEnabled(),
-      );
-
-      if (isScreenShareEnabled && Platform.isAndroid) {
-        // Screen share was just disabled — delay service stop until capturer completes teardown
-        Future.delayed(const Duration(milliseconds: 300), () async {
-          try {
-            await _screenCaptureChannel.invokeMethod('stopService');
-          } catch (e) {
-            developer.log(
-              'Failed to stop screen capture service',
-              name: 'VoiceController',
-              error: e,
-            );
-          }
-        });
-      }
+      await _syncPublishState(isStreaming: result);
     } catch (e) {
       developer.log('Error toggling screen share', name: 'VoiceController', error: e);
       final String userMsg = e.toString().contains('TrackPublishException') || e.toString().contains('cancelled')
@@ -412,28 +351,14 @@ class VoiceController extends Notifier<VoiceState> {
           : 'Failed to share screen: ${e.toString()}';
       state = state.copyWith(error: userMsg);
 
-      // Auto-clear error toast after 3 seconds so banner does not stay on screen
       Future.delayed(const Duration(seconds: 3), () {
         if (state.error == userMsg) {
           state = state.copyWith(error: null);
         }
       });
-
-      // Stop the service if we started it but screen share failed or was cancelled
-      if (Platform.isAndroid) {
-        Future.delayed(const Duration(milliseconds: 300), () async {
-          try {
-            await _screenCaptureChannel.invokeMethod('stopService');
-          } catch (_) {}
-        });
-      }
     }
   }
 
-  /// Publishes the local camera/screen-share state to `voice_states` so remote
-  /// members can render the corresponding indicators. LiveKit track state is
-  /// only visible to clients that have subscribed, so the database row is what
-  /// drives everyone else's UI.
   Future<void> _syncPublishState({bool? isVideo, bool? isStreaming}) async {
     final channelId = state.activeChannelId;
     if (channelId == null) return;
@@ -444,7 +369,6 @@ class VoiceController extends Notifier<VoiceState> {
     );
   }
 
-  /// Sets per-user volume override (0.0 to 2.0)
   void setParticipantVolume(String participantSid, double volume) {
     final updatedVolumes = Map<String, double>.from(state.participantVolumes);
     updatedVolumes[participantSid] = volume.clamp(0.0, 2.0);
@@ -453,7 +377,11 @@ class VoiceController extends Notifier<VoiceState> {
 
   Future<void> leaveChannel() async {
     _playFlickoLeaveSound();
-    await state.room?.disconnect();
+    if (_room != null) {
+      await _mediaEngine.disposeRoomMedia(_room);
+      await _room?.disconnect();
+      _room = null;
+    }
     _activeServerId = null;
     state = const VoiceState();
     final session = await ref.read(audioSessionProvider);

@@ -1,22 +1,30 @@
 import 'dart:async';
-import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:livekit_client/livekit_client.dart';
 import 'package:mobile/core/config/app_config.dart';
+import 'package:mobile/data/services/media_engine.dart';
+
+final mediaEngineProvider = Provider<MediaEngine>((ref) {
+  return MediaEngine();
+});
 
 final livekitServiceProvider = Provider<LiveKitService>((ref) {
-  return LiveKitService();
+  return LiveKitService(ref.watch(mediaEngineProvider));
 });
 
 class LiveKitService {
+  final MediaEngine _mediaEngine;
+
+  LiveKitService(this._mediaEngine);
+
   Room? _room;
   EventsListener<RoomEvent>? _listener;
   bool _isDeafened = false;
 
   Room? get currentRoom => _room;
   bool get isDeafened => _isDeafened;
+  MediaEngine get mediaEngine => _mediaEngine;
 
   final _activeSpeakersController = StreamController<List<Participant>>.broadcast();
   Stream<List<Participant>> get activeSpeakersStream => _activeSpeakersController.stream;
@@ -41,7 +49,6 @@ class LiveKitService {
       autoSubscribe: true,
     );
 
-    // Default WebRTC Audio Processing options: Echo Cancellation, Noise Suppression, Auto Gain
     final defaultAudioOptions = audioCaptureOptions ?? const AudioCaptureOptions(
       echoCancellation: true,
       noiseSuppression: true,
@@ -49,8 +56,6 @@ class LiveKitService {
       typingNoiseDetection: true,
     );
 
-    // Fail with a named cause rather than dialing an empty URL and surfacing a
-    // generic connection timeout.
     AppConfig.requireLivekitUrl();
 
     await _room!.connect(
@@ -59,14 +64,16 @@ class LiveKitService {
       connectOptions: connOps,
     );
 
-    // Enable local microphone with WebRTC Noise Suppression
     try {
-      await _room!.localParticipant?.setMicrophoneEnabled(true, audioCaptureOptions: defaultAudioOptions);
+      await _mediaEngine.setMicrophoneEnabled(
+        _room!,
+        true,
+        audioCaptureOptions: defaultAudioOptions,
+      );
     } catch (e) {
       debugPrint('Warning: Could not enable microphone on join: $e');
     }
 
-    // Listen to active speakers event
     _listener?.dispose();
     _listener = _room!.createListener();
     _listener!.on<ActiveSpeakersChangedEvent>((event) {
@@ -74,63 +81,28 @@ class LiveKitService {
     });
   }
 
-  /// Toggle local microphone (mute/unmute) with WebRTC noise suppression
+  /// Toggle local microphone (mute/unmute)
   Future<void> toggleMicrophone() async {
     if (_room == null || _room!.localParticipant == null) return;
     final isEnabled = _room!.localParticipant!.isMicrophoneEnabled();
-    const audioOptions = AudioCaptureOptions(
-      echoCancellation: true,
-      noiseSuppression: true,
-      autoGainControl: true,
-      typingNoiseDetection: true,
-    );
-    await _room!.localParticipant!.setMicrophoneEnabled(!isEnabled, audioCaptureOptions: audioOptions);
+    await _mediaEngine.setMicrophoneEnabled(_room!, !isEnabled);
   }
 
   /// Toggle local camera
   Future<void> toggleCamera() async {
     if (_room == null || _room!.localParticipant == null) return;
     final isEnabled = _room!.localParticipant!.isCameraEnabled();
-    await _room!.localParticipant!.setCameraEnabled(!isEnabled);
+    await _mediaEngine.setCameraEnabled(_room!, !isEnabled);
   }
-
-  static const _screenCaptureChannel =
-      MethodChannel('tech.focko.flicko/screen_capture');
 
   /// Toggle screen share
   Future<void> toggleScreenShare() async {
     if (_room == null || _room!.localParticipant == null) return;
     final isEnabled = _room!.localParticipant!.isScreenShareEnabled();
-
-    if (!isEnabled && Platform.isAndroid) {
-      try {
-        await _screenCaptureChannel.invokeMethod('startService');
-      } catch (e) {
-        debugPrint('Failed to start screen capture foreground service: $e');
-      }
-    }
-
-    try {
-      await _room!.localParticipant!.setScreenShareEnabled(!isEnabled);
-    } catch (e) {
-      // Stop service on failure or cancel
-      if (Platform.isAndroid) {
-        try { await _screenCaptureChannel.invokeMethod('stopService'); } catch (_) {}
-      }
-      rethrow;
-    }
-
-    if (isEnabled && Platform.isAndroid) {
-      // Screen share was disabled — stop foreground service
-      try {
-        await _screenCaptureChannel.invokeMethod('stopService');
-      } catch (e) {
-        debugPrint('Failed to stop screen capture service: $e');
-      }
-    }
+    await _mediaEngine.setScreenShareEnabled(_room!, !isEnabled);
   }
 
-  /// Toggle deafen mode (mute/unmute incoming audio from all remote participants)
+  /// Toggle deafen mode
   Future<void> toggleDeafen() async {
     if (_room == null) return;
     _isDeafened = !_isDeafened;
@@ -149,6 +121,7 @@ class LiveKitService {
     _listener?.dispose();
     _listener = null;
     if (_room != null) {
+      await _mediaEngine.disposeRoomMedia(_room);
       await _room!.disconnect();
       _room = null;
     }
