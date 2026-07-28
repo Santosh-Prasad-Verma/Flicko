@@ -52,7 +52,7 @@ void main() {
     TestWidgetsFlutterBinding.ensureInitialized();
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-      const MethodChannel('com.ryanheise.just_audio'),
+      const MethodChannel('com.ryanheise.just_audio.methods'),
       (methodCall) async {
         if (methodCall.method == 'init') {
           return {'id': 'test_player_id'};
