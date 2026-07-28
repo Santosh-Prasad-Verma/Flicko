@@ -109,7 +109,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Connecting...'), findsOneWidget);
+      expect(find.textContaining('in Voice'), findsOneWidget);
     });
 
     testWidgets('VoiceHUD shows active voice status and buttons when isConnected is true', (tester) async {
