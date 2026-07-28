@@ -46,6 +46,8 @@ class MediaEngine {
       MethodChannel('tech.focko.flicko/screen_capture');
 
   bool _isScreenServiceRunning = false;
+  LocalVideoTrack? _cameraTrack;
+  LocalTrackPublication<LocalVideoTrack>? _cameraPublication;
 
   MediaLock get lock => _lock;
 
@@ -62,108 +64,115 @@ class MediaEngine {
         return false;
       }
 
-      final currentlyEnabled = localParticipant.isCameraEnabled();
+      final currentlyEnabled = localParticipant.isCameraEnabled() || _cameraTrack != null;
       developer.log(
         '[MediaEngine] setCameraEnabled requested: target=$enabled, currentlyEnabled=$currentlyEnabled',
         name: 'MediaEngine',
       );
 
-      if (currentlyEnabled == enabled) {
+      if (currentlyEnabled == enabled && enabled) {
         developer.log(
-          '[MediaEngine] setCameraEnabled: camera is already ${enabled ? "enabled" : "disabled"}',
+          '[MediaEngine] setCameraEnabled: camera is already enabled',
           name: 'MediaEngine',
         );
-        return enabled;
+        return true;
       }
 
       if (!enabled) {
         developer.log('[MediaEngine] Disabling camera track...', name: 'MediaEngine');
-        try {
-          await localParticipant.setCameraEnabled(false);
-          developer.log('[MediaEngine] Camera track disabled and disposed cleanly', name: 'MediaEngine');
-          return false;
-        } catch (e) {
-          developer.log('[MediaEngine] Error disabling camera track: $e', name: 'MediaEngine', error: e);
-          rethrow;
-        }
+        await _disposeCameraTrack(localParticipant);
+        developer.log('[MediaEngine] Camera track disabled and disposed cleanly', name: 'MediaEngine');
+        return false;
       }
 
       // ENABLING CAMERA:
-      // CRITICAL FIX FOR DOUBLE-CAMERA CREATION:
-      // Ensure any existing camera track is completely stopped and disposed first
-      // before attempting to instantiate a new Camera2Capturer.
-      try {
-        developer.log('[MediaEngine] Pre-cleaning existing camera tracks prior to enable...', name: 'MediaEngine');
-        await localParticipant.setCameraEnabled(false);
-      } catch (e) {
-        developer.log('[MediaEngine] Pre-clean setCameraEnabled(false) ignored: $e', name: 'MediaEngine');
-      }
+      // Always dispose any existing track first to guarantee single capturer!
+      await _disposeCameraTrack(localParticipant);
 
       // Settle HAL before opening new CameraCaptureSession
       await Future.delayed(const Duration(milliseconds: 150));
 
-      developer.log('[MediaEngine] Creating & Publishing Camera Track (Primary 540p)...', name: 'MediaEngine');
       final primaryOptions = cameraCaptureOptions ??
           const CameraCaptureOptions(
             params: VideoParametersPresets.h540_169,
             maxFrameRate: 30,
           );
 
+      developer.log('[MediaEngine] Creating Camera Track (Primary 540p)...', name: 'MediaEngine');
+      LocalVideoTrack? track;
       try {
-        await localParticipant.setCameraEnabled(
-          true,
-          cameraCaptureOptions: primaryOptions,
-        );
-        developer.log('[MediaEngine] Camera track created & published successfully (540p)', name: 'MediaEngine');
+        track = await LocalVideoTrack.createCameraTrack(primaryOptions);
+        developer.log('[MediaEngine] LocalVideoTrack created. Publishing to LiveKit...', name: 'MediaEngine');
+        final pub = await localParticipant.publishVideoTrack(track);
+        _cameraTrack = track;
+        _cameraPublication = pub;
+        developer.log('[MediaEngine] Camera track published successfully (540p)', name: 'MediaEngine');
         return true;
       } catch (primaryError) {
         developer.log(
-          '[MediaEngine] Primary camera publish failed: $primaryError. Unwinding partial track...',
+          '[MediaEngine] Primary camera publish failed: $primaryError. Stopping track & attempting 360p fallback...',
           name: 'MediaEngine',
           error: primaryError,
         );
 
-        // MANDATORY: Unwind the partial track creation in LiveKit!
-        // Calling setCameraEnabled(false) stops the orphaned Camera2Capturer #1
-        // so that it does NOT linger when attempting 360p fallback!
-        try {
-          await localParticipant.setCameraEnabled(false);
-          developer.log('[MediaEngine] Cleanly stopped failed primary camera capturer', name: 'MediaEngine');
-        } catch (unwindErr) {
-          developer.log('[MediaEngine] Error unwinding failed primary camera track: $unwindErr', name: 'MediaEngine');
+        // GUARANTEED CLEANUP: Stop & dispose the created track so Camera2Capturer #1 NEVER lingers!
+        if (track != null) {
+          try { await track.stop(); } catch (_) {}
+          try { await track.dispose(); } catch (_) {}
+          track = null;
         }
 
-        // Allow Android Camera2 HAL time to completely release hardware lock
-        developer.log('[MediaEngine] Waiting 500ms for Camera2 HAL to settle...', name: 'MediaEngine');
+        // Allow Android Camera2 HAL time to settle
         await Future.delayed(const Duration(milliseconds: 500));
 
-        developer.log('[MediaEngine] Creating & Publishing Camera Track (Fallback 360p)...', name: 'MediaEngine');
+        developer.log('[MediaEngine] Creating Camera Track (Fallback 360p)...', name: 'MediaEngine');
         try {
-          await localParticipant.setCameraEnabled(
-            true,
-            cameraCaptureOptions: const CameraCaptureOptions(
-              params: VideoParametersPresets.h360_169,
-              maxFrameRate: 24,
-            ),
-          );
-          developer.log('[MediaEngine] Camera track created & published successfully (360p fallback)', name: 'MediaEngine');
+          track = await LocalVideoTrack.createCameraTrack(const CameraCaptureOptions(
+            params: VideoParametersPresets.h360_169,
+            maxFrameRate: 24,
+          ));
+          developer.log('[MediaEngine] Fallback LocalVideoTrack created. Publishing to LiveKit...', name: 'MediaEngine');
+          final pub = await localParticipant.publishVideoTrack(track);
+          _cameraTrack = track;
+          _cameraPublication = pub;
+          developer.log('[MediaEngine] Fallback camera track published successfully (360p)', name: 'MediaEngine');
           return true;
         } catch (fallbackError) {
           developer.log(
-            '[MediaEngine] Fallback camera publish failed: $fallbackError. Unwinding fallback track...',
+            '[MediaEngine] Fallback camera publish failed: $fallbackError. Cleaning up...',
             name: 'MediaEngine',
             error: fallbackError,
           );
 
-          // Clean up lingering fallback capturer
-          try {
-            await localParticipant.setCameraEnabled(false);
-          } catch (_) {}
+          if (track != null) {
+            try { await track.stop(); } catch (_) {}
+            try { await track.dispose(); } catch (_) {}
+            track = null;
+          }
 
           throw TrackPublishException('Failed to publish camera track: $fallbackError');
         }
       }
     });
+  }
+
+  Future<void> _disposeCameraTrack(LocalParticipant localParticipant) async {
+    if (_cameraPublication != null) {
+      try {
+        await localParticipant.unpublishTrack(_cameraPublication!.sid);
+      } catch (e) {
+        developer.log('[MediaEngine] unpublishTrack error ignored: $e', name: 'MediaEngine');
+      }
+      _cameraPublication = null;
+    }
+    if (_cameraTrack != null) {
+      try { await _cameraTrack!.stop(); } catch (_) {}
+      try { await _cameraTrack!.dispose(); } catch (_) {}
+      _cameraTrack = null;
+    }
+    try {
+      await localParticipant.setCameraEnabled(false);
+    } catch (_) {}
   }
 
   /// Safely toggles local screen share stream on a LiveKit [Room].
@@ -300,12 +309,7 @@ class MediaEngine {
               developer.log('[MediaEngine] Screen share disposal error: $e', name: 'MediaEngine');
             }
           }
-          if (localParticipant.isCameraEnabled()) {
-            developer.log('[MediaEngine] Disposing camera track...', name: 'MediaEngine');
-            try { await localParticipant.setCameraEnabled(false); } catch (e) {
-              developer.log('[MediaEngine] Camera track disposal error: $e', name: 'MediaEngine');
-            }
-          }
+          await _disposeCameraTrack(localParticipant);
           if (localParticipant.isMicrophoneEnabled()) {
             developer.log('[MediaEngine] Disposing microphone track...', name: 'MediaEngine');
             try { await localParticipant.setMicrophoneEnabled(false); } catch (e) {
