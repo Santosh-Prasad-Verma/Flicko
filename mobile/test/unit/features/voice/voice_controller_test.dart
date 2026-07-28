@@ -35,7 +35,7 @@ void main() {
         if (methodCall.method == 'init') {
           return {'id': 'test_player_id'};
         }
-        return null;
+        return {};
       },
     );
     registerFallbackValue(const AudioSessionConfiguration.speech());
