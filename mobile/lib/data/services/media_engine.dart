@@ -157,14 +157,7 @@ class MediaEngine {
   }
 
   Future<void> _disposeCameraTrack(LocalParticipant localParticipant) async {
-    if (_cameraPublication != null) {
-      try {
-        await localParticipant.unpublishTrack(_cameraPublication!.sid);
-      } catch (e) {
-        developer.log('[MediaEngine] unpublishTrack error ignored: $e', name: 'MediaEngine');
-      }
-      _cameraPublication = null;
-    }
+    _cameraPublication = null;
     if (_cameraTrack != null) {
       try { await _cameraTrack!.stop(); } catch (_) {}
       try { await _cameraTrack!.dispose(); } catch (_) {}
