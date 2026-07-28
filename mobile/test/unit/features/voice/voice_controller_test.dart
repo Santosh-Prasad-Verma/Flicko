@@ -26,6 +26,17 @@ void main() {
   });
 
   setUpAll(() {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+      const MethodChannel('com.ryanheise.just_audio'),
+      (methodCall) async {
+        if (methodCall.method == 'init') {
+          return {'id': 'test_player_id'};
+        }
+        return null;
+      },
+    );
     registerFallbackValue(const AudioSessionConfiguration.speech());
   });
 
