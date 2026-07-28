@@ -7,6 +7,40 @@ import 'package:mobile/features/voice/presentation/controllers/voice_controller.
 import 'package:mobile/features/voice/data/voice_repository.dart';
 import 'package:mocktail/mocktail.dart';
 
+import 'package:just_audio_platform_interface/just_audio_platform_interface.dart';
+
+class MockJustAudioPlatform extends JustAudioPlatform {
+  @override
+  Future<InitResponse> init(InitRequest request) async {
+    return InitResponse(duration: Duration.zero);
+  }
+
+  @override
+  Future<DisposeResponse> dispose(DisposeRequest request) async {
+    return DisposeResponse();
+  }
+
+  @override
+  Future<DisposeAllPlayersResponse> disposeAllPlayers(DisposeAllPlayersRequest request) async {
+    return DisposeAllPlayersResponse();
+  }
+
+  @override
+  Future<LoadResponse> load(LoadRequest request) async {
+    return LoadResponse(duration: Duration.zero);
+  }
+
+  @override
+  Future<PlayResponse> play(PlayRequest request) async {
+    return PlayResponse();
+  }
+
+  @override
+  Future<SetVolumeResponse> setVolume(SetVolumeRequest request) async {
+    return SetVolumeResponse();
+  }
+}
+
 class MockVoiceRepository extends Mock implements VoiceRepository {}
 class MockAudioPlayer extends Mock implements AudioPlayer {}
 class MockAudioSession extends Mock implements AudioSession {}
@@ -28,16 +62,7 @@ void main() {
 
   setUpAll(() {
     TestWidgetsFlutterBinding.ensureInitialized();
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(
-      const MethodChannel('com.ryanheise.just_audio.methods'),
-      (methodCall) async {
-        if (methodCall.method == 'init') {
-          return {'id': 'test_player_id'};
-        }
-        return {};
-      },
-    );
+    JustAudioPlatform.instance = MockJustAudioPlatform();
     registerFallbackValue(const AudioSessionConfiguration.speech());
   });
 
