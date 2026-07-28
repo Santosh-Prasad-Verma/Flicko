@@ -134,14 +134,8 @@ class VoiceController extends Notifier<VoiceState> {
 
   Future<void> _playFlickoSFX(String assetPath) async {
     try {
-      final sfxPlayer = AudioPlayer();
-      await sfxPlayer.setAsset(assetPath);
-      await sfxPlayer.play();
-      sfxPlayer.playerStateStream.listen((playerState) {
-        if (playerState.processingState == ProcessingState.completed) {
-          sfxPlayer.dispose();
-        }
-      });
+      await _audioPlayer.setAsset(assetPath);
+      await _audioPlayer.play();
     } catch (e) {
       developer.log('Error playing Flicko sound effect: $assetPath', name: 'VoiceController', error: e);
     }

@@ -21,8 +21,10 @@ void main() {
     mockAudioPlayer = MockAudioPlayer();
     mockAudioSession = MockAudioSession();
     
-    // Stub the dispose method to avoid mocktail errors
+    // Stub audio player methods to avoid unhandled calls
     when(() => mockAudioPlayer.dispose()).thenAnswer((_) async {});
+    when(() => mockAudioPlayer.setAsset(any())).thenAnswer((_) async => Duration.zero);
+    when(() => mockAudioPlayer.play()).thenAnswer((_) async {});
     when(() => mockAudioSession.setActive(any())).thenAnswer((_) async => true);
   });
 
