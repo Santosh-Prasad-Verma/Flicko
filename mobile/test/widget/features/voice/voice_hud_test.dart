@@ -2,9 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/voice/presentation/widgets/voice_hud.dart';
 import 'package:mobile/features/voice/presentation/controllers/voice_controller.dart';
 import 'package:mobile/features/voice/presentation/controllers/voice_state.dart';
+
+class FakeAuthNotifier extends AuthNotifier {
+  @override
+  AuthState build() {
+    return const AuthState.unauthenticated();
+  }
+}
 
 class FakeVoiceController extends VoiceController {
   final VoiceState _initialState;
@@ -62,6 +70,7 @@ void main() {
         ProviderScope(
           overrides: [
             voiceControllerProvider.overrideWith(() => fakeController),
+            authNotifierProvider.overrideWith(() => FakeAuthNotifier()),
           ],
           child: const MaterialApp(
             home: Scaffold(
@@ -86,6 +95,7 @@ void main() {
         ProviderScope(
           overrides: [
             voiceControllerProvider.overrideWith(() => fakeController),
+            authNotifierProvider.overrideWith(() => FakeAuthNotifier()),
           ],
           child: const MaterialApp(
             home: Scaffold(
@@ -109,6 +119,7 @@ void main() {
         ProviderScope(
           overrides: [
             voiceControllerProvider.overrideWith(() => fakeController),
+            authNotifierProvider.overrideWith(() => FakeAuthNotifier()),
           ],
           child: const MaterialApp(
             home: Scaffold(
@@ -134,6 +145,7 @@ void main() {
         ProviderScope(
           overrides: [
             voiceControllerProvider.overrideWith(() => fakeController),
+            authNotifierProvider.overrideWith(() => FakeAuthNotifier()),
           ],
           child: const MaterialApp(
             home: Scaffold(
@@ -160,6 +172,7 @@ void main() {
         ProviderScope(
           overrides: [
             voiceControllerProvider.overrideWith(() => fakeController),
+            authNotifierProvider.overrideWith(() => FakeAuthNotifier()),
           ],
           child: const MaterialApp(
             home: Scaffold(
