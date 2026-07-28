@@ -14,6 +14,8 @@ abstract class VoiceState with _$VoiceState {
     @Default([]) List<Participant> participants,
     @Default({}) Set<String> speakingParticipants, // Set of sids who are speaking
     @Default({}) Map<String, double> participantVolumes, // Map of sid/identity -> volume (0.0 to 2.0)
+    @Default(0) int trackVersion,
+    @Default([]) List<Map<String, String>> chatMessages,
     String? error,
     String? activeChannelId,
   }) = _VoiceState;

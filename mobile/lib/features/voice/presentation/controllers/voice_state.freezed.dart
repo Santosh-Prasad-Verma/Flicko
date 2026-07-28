@@ -23,6 +23,8 @@ mixin _$VoiceState {
   Set<String> get speakingParticipants; // Set of sids who are speaking
   Map<String, double>
       get participantVolumes; // Map of sid/identity -> volume (0.0 to 2.0)
+  int get trackVersion;
+  List<Map<String, String>> get chatMessages;
   String? get error;
   String? get activeChannelId;
 
@@ -52,6 +54,10 @@ mixin _$VoiceState {
                 .equals(other.speakingParticipants, speakingParticipants) &&
             const DeepCollectionEquality()
                 .equals(other.participantVolumes, participantVolumes) &&
+            (identical(other.trackVersion, trackVersion) ||
+                other.trackVersion == trackVersion) &&
+            const DeepCollectionEquality()
+                .equals(other.chatMessages, chatMessages) &&
             (identical(other.error, error) || other.error == error) &&
             (identical(other.activeChannelId, activeChannelId) ||
                 other.activeChannelId == activeChannelId));
@@ -68,12 +74,14 @@ mixin _$VoiceState {
       const DeepCollectionEquality().hash(participants),
       const DeepCollectionEquality().hash(speakingParticipants),
       const DeepCollectionEquality().hash(participantVolumes),
+      trackVersion,
+      const DeepCollectionEquality().hash(chatMessages),
       error,
       activeChannelId);
 
   @override
   String toString() {
-    return 'VoiceState(room: $room, isConnected: $isConnected, isConnecting: $isConnecting, isMuted: $isMuted, isDeafened: $isDeafened, participants: $participants, speakingParticipants: $speakingParticipants, participantVolumes: $participantVolumes, error: $error, activeChannelId: $activeChannelId)';
+    return 'VoiceState(room: $room, isConnected: $isConnected, isConnecting: $isConnecting, isMuted: $isMuted, isDeafened: $isDeafened, participants: $participants, speakingParticipants: $speakingParticipants, participantVolumes: $participantVolumes, trackVersion: $trackVersion, chatMessages: $chatMessages, error: $error, activeChannelId: $activeChannelId)';
   }
 }
 
@@ -92,6 +100,8 @@ abstract mixin class $VoiceStateCopyWith<$Res> {
       List<Participant> participants,
       Set<String> speakingParticipants,
       Map<String, double> participantVolumes,
+      int trackVersion,
+      List<Map<String, String>> chatMessages,
       String? error,
       String? activeChannelId});
 }
@@ -116,6 +126,8 @@ class _$VoiceStateCopyWithImpl<$Res> implements $VoiceStateCopyWith<$Res> {
     Object? participants = null,
     Object? speakingParticipants = null,
     Object? participantVolumes = null,
+    Object? trackVersion = null,
+    Object? chatMessages = null,
     Object? error = freezed,
     Object? activeChannelId = freezed,
   }) {
@@ -152,6 +164,14 @@ class _$VoiceStateCopyWithImpl<$Res> implements $VoiceStateCopyWith<$Res> {
           ? _self.participantVolumes
           : participantVolumes // ignore: cast_nullable_to_non_nullable
               as Map<String, double>,
+      trackVersion: null == trackVersion
+          ? _self.trackVersion
+          : trackVersion // ignore: cast_nullable_to_non_nullable
+              as int,
+      chatMessages: null == chatMessages
+          ? _self.chatMessages
+          : chatMessages // ignore: cast_nullable_to_non_nullable
+              as List<Map<String, String>>,
       error: freezed == error
           ? _self.error
           : error // ignore: cast_nullable_to_non_nullable
@@ -266,6 +286,8 @@ extension VoiceStatePatterns on VoiceState {
             List<Participant> participants,
             Set<String> speakingParticipants,
             Map<String, double> participantVolumes,
+            int trackVersion,
+            List<Map<String, String>> chatMessages,
             String? error,
             String? activeChannelId)?
         $default, {
@@ -283,6 +305,8 @@ extension VoiceStatePatterns on VoiceState {
             _that.participants,
             _that.speakingParticipants,
             _that.participantVolumes,
+            _that.trackVersion,
+            _that.chatMessages,
             _that.error,
             _that.activeChannelId);
       case _:
@@ -314,6 +338,8 @@ extension VoiceStatePatterns on VoiceState {
             List<Participant> participants,
             Set<String> speakingParticipants,
             Map<String, double> participantVolumes,
+            int trackVersion,
+            List<Map<String, String>> chatMessages,
             String? error,
             String? activeChannelId)
         $default,
@@ -330,6 +356,8 @@ extension VoiceStatePatterns on VoiceState {
             _that.participants,
             _that.speakingParticipants,
             _that.participantVolumes,
+            _that.trackVersion,
+            _that.chatMessages,
             _that.error,
             _that.activeChannelId);
       case _:
@@ -360,6 +388,8 @@ extension VoiceStatePatterns on VoiceState {
             List<Participant> participants,
             Set<String> speakingParticipants,
             Map<String, double> participantVolumes,
+            int trackVersion,
+            List<Map<String, String>> chatMessages,
             String? error,
             String? activeChannelId)?
         $default,
@@ -376,6 +406,8 @@ extension VoiceStatePatterns on VoiceState {
             _that.participants,
             _that.speakingParticipants,
             _that.participantVolumes,
+            _that.trackVersion,
+            _that.chatMessages,
             _that.error,
             _that.activeChannelId);
       case _:
@@ -396,11 +428,14 @@ class _VoiceState implements VoiceState {
       final List<Participant> participants = const [],
       final Set<String> speakingParticipants = const {},
       final Map<String, double> participantVolumes = const {},
+      this.trackVersion = 0,
+      final List<Map<String, String>> chatMessages = const [],
       this.error,
       this.activeChannelId})
       : _participants = participants,
         _speakingParticipants = speakingParticipants,
-        _participantVolumes = participantVolumes;
+        _participantVolumes = participantVolumes,
+        _chatMessages = chatMessages;
 
   @override
   final Room? room;
@@ -449,6 +484,18 @@ class _VoiceState implements VoiceState {
 
 // Map of sid/identity -> volume (0.0 to 2.0)
   @override
+  @JsonKey()
+  final int trackVersion;
+  final List<Map<String, String>> _chatMessages;
+  @override
+  @JsonKey()
+  List<Map<String, String>> get chatMessages {
+    if (_chatMessages is EqualUnmodifiableListView) return _chatMessages;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_chatMessages);
+  }
+
+  @override
   final String? error;
   @override
   final String? activeChannelId;
@@ -480,6 +527,10 @@ class _VoiceState implements VoiceState {
                 .equals(other._speakingParticipants, _speakingParticipants) &&
             const DeepCollectionEquality()
                 .equals(other._participantVolumes, _participantVolumes) &&
+            (identical(other.trackVersion, trackVersion) ||
+                other.trackVersion == trackVersion) &&
+            const DeepCollectionEquality()
+                .equals(other._chatMessages, _chatMessages) &&
             (identical(other.error, error) || other.error == error) &&
             (identical(other.activeChannelId, activeChannelId) ||
                 other.activeChannelId == activeChannelId));
@@ -496,12 +547,14 @@ class _VoiceState implements VoiceState {
       const DeepCollectionEquality().hash(_participants),
       const DeepCollectionEquality().hash(_speakingParticipants),
       const DeepCollectionEquality().hash(_participantVolumes),
+      trackVersion,
+      const DeepCollectionEquality().hash(_chatMessages),
       error,
       activeChannelId);
 
   @override
   String toString() {
-    return 'VoiceState(room: $room, isConnected: $isConnected, isConnecting: $isConnecting, isMuted: $isMuted, isDeafened: $isDeafened, participants: $participants, speakingParticipants: $speakingParticipants, participantVolumes: $participantVolumes, error: $error, activeChannelId: $activeChannelId)';
+    return 'VoiceState(room: $room, isConnected: $isConnected, isConnecting: $isConnecting, isMuted: $isMuted, isDeafened: $isDeafened, participants: $participants, speakingParticipants: $speakingParticipants, participantVolumes: $participantVolumes, trackVersion: $trackVersion, chatMessages: $chatMessages, error: $error, activeChannelId: $activeChannelId)';
   }
 }
 
@@ -522,6 +575,8 @@ abstract mixin class _$VoiceStateCopyWith<$Res>
       List<Participant> participants,
       Set<String> speakingParticipants,
       Map<String, double> participantVolumes,
+      int trackVersion,
+      List<Map<String, String>> chatMessages,
       String? error,
       String? activeChannelId});
 }
@@ -546,6 +601,8 @@ class __$VoiceStateCopyWithImpl<$Res> implements _$VoiceStateCopyWith<$Res> {
     Object? participants = null,
     Object? speakingParticipants = null,
     Object? participantVolumes = null,
+    Object? trackVersion = null,
+    Object? chatMessages = null,
     Object? error = freezed,
     Object? activeChannelId = freezed,
   }) {
@@ -582,6 +639,14 @@ class __$VoiceStateCopyWithImpl<$Res> implements _$VoiceStateCopyWith<$Res> {
           ? _self._participantVolumes
           : participantVolumes // ignore: cast_nullable_to_non_nullable
               as Map<String, double>,
+      trackVersion: null == trackVersion
+          ? _self.trackVersion
+          : trackVersion // ignore: cast_nullable_to_non_nullable
+              as int,
+      chatMessages: null == chatMessages
+          ? _self._chatMessages
+          : chatMessages // ignore: cast_nullable_to_non_nullable
+              as List<Map<String, String>>,
       error: freezed == error
           ? _self.error
           : error // ignore: cast_nullable_to_non_nullable

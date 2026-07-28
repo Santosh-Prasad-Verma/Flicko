@@ -29,21 +29,21 @@ class _SoundboardSheetState extends ConsumerState<SoundboardSheet> {
   final TextEditingController _searchController = TextEditingController();
 
   final List<Map<String, String>> _flickoSounds = [
-    {'name': 'quack', 'emoji': '🦆'},
-    {'name': 'airhorn', 'emoji': '🔊'},
-    {'name': 'cricket', 'emoji': '🦗'},
-    {'name': 'golf clap', 'emoji': '👏'},
-    {'name': 'sad horn', 'emoji': '🎺'},
-    {'name': 'ba dum tss', 'emoji': '🥁'},
+    {'name': 'quack', 'emoji': '🦆', 'url': 'https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3'},
+    {'name': 'airhorn', 'emoji': '🔊', 'url': 'https://assets.mixkit.co/active_storage/sfx/2763/2763-preview.mp3'},
+    {'name': 'cricket', 'emoji': '🦗', 'url': 'https://assets.mixkit.co/active_storage/sfx/2405/2405-preview.mp3'},
+    {'name': 'golf clap', 'emoji': '👏', 'url': 'https://assets.mixkit.co/active_storage/sfx/477/477-preview.mp3'},
+    {'name': 'sad horn', 'emoji': '🎺', 'url': 'https://assets.mixkit.co/active_storage/sfx/2832/2832-preview.mp3'},
+    {'name': 'ba dum tss', 'emoji': '🥁', 'url': 'https://assets.mixkit.co/active_storage/sfx/2800/2800-preview.mp3'},
   ];
 
   final List<Map<String, String>> _clashSounds = [
-    {'name': 'Gem Boost', 'emoji': '💎'},
-    {'name': 'Coin Steal', 'emoji': '🪙'},
-    {'name': 'Coins Collect', 'emoji': '🪙'},
-    {'name': 'Elixir Steal', 'emoji': '🔮'},
-    {'name': 'Elixir Collect', 'emoji': '🔮'},
-    {'name': 'Dark Elixir', 'emoji': '🧪'},
+    {'name': 'Gem Boost', 'emoji': '💎', 'url': 'https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3'},
+    {'name': 'Coin Steal', 'emoji': '🪙', 'url': 'https://assets.mixkit.co/active_storage/sfx/2004/2004-preview.mp3'},
+    {'name': 'Coins Collect', 'emoji': '🪙', 'url': 'https://assets.mixkit.co/active_storage/sfx/2004/2004-preview.mp3'},
+    {'name': 'Elixir Steal', 'emoji': '🔮', 'url': 'https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3'},
+    {'name': 'Elixir Collect', 'emoji': '🔮', 'url': 'https://assets.mixkit.co/active_storage/sfx/2004/2004-preview.mp3'},
+    {'name': 'Dark Elixir', 'emoji': '🧪', 'url': 'https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3'},
   ];
 
   @override
@@ -143,7 +143,7 @@ class _SoundboardSheetState extends ConsumerState<SoundboardSheet> {
                       itemCount: _flickoSounds.length,
                       itemBuilder: (context, index) {
                         final sound = _flickoSounds[index];
-                        return _buildSoundTile(sound['name']!, sound['emoji']!);
+                        return _buildSoundTile(sound['name']!, sound['emoji']!, sound['url']!);
                       },
                     ),
                     const SizedBox(height: 20),
@@ -196,7 +196,7 @@ class _SoundboardSheetState extends ConsumerState<SoundboardSheet> {
                       itemCount: _clashSounds.length,
                       itemBuilder: (context, index) {
                         final sound = _clashSounds[index];
-                        return _buildSoundTile(sound['name']!, sound['emoji']!);
+                        return _buildSoundTile(sound['name']!, sound['emoji']!, sound['url']!);
                       },
                     ),
                     const SizedBox(height: 24),
@@ -271,7 +271,7 @@ class _SoundboardSheetState extends ConsumerState<SoundboardSheet> {
     );
   }
 
-  Widget _buildSoundTile(String name, String emoji) {
+  Widget _buildSoundTile(String name, String emoji, String url) {
     const bgTertiary = Color(FlickoColors.bgTertiary);
     return GestureDetector(
       onTap: () {
@@ -280,7 +280,7 @@ class _SoundboardSheetState extends ConsumerState<SoundboardSheet> {
           serverId: widget.serverId,
           name: name,
           emoji: emoji,
-          url: 'https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3',
+          url: url,
           creatorId: 'system',
           createdAt: DateTime.now(),
         );
