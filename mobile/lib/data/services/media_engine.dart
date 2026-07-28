@@ -32,13 +32,14 @@ class MediaLock {
   }
 }
 
-/// Robust Media Lifecycle Engine for LiveKit & WebRTC.
+/// Robust, Production-Grade Media Lifecycle Engine for LiveKit & WebRTC.
 ///
-/// Ensures:
-/// 1. Only ONE media operation modifies room/track state at a time.
-/// 2. Camera hardware HAL errors on Android do not crash PeerConnection signaling.
-/// 3. Android Foreground Service for screen sharing starts BEFORE MediaProjection dialog.
-/// 4. All tracks, capturers, and services are released deterministically exactly once.
+/// Guaranteed Guarantees:
+/// 1. Only ONE camera capturer exists at any time during the room session.
+/// 2. Clean single-disposal: Partial/failed track creations are immediately un-published & stopped.
+/// 3. Serialized execution via [MediaLock]: Prevents concurrent SDP offer/answer collisions.
+/// 4. Android Camera2 HAL isolation: Screen sharing NEVER touches or recreates camera tracks.
+/// 5. Full lifecycle logging for auditability.
 class MediaEngine {
   final MediaLock _lock = MediaLock();
   static const _screenCaptureChannel =
@@ -57,30 +58,51 @@ class MediaEngine {
     return _lock.run(() async {
       final localParticipant = room.localParticipant;
       if (localParticipant == null) {
-        developer.log('setCameraEnabled: localParticipant is null', name: 'MediaEngine');
+        developer.log('[MediaEngine] setCameraEnabled: localParticipant is null', name: 'MediaEngine');
         return false;
       }
 
       final currentlyEnabled = localParticipant.isCameraEnabled();
+      developer.log(
+        '[MediaEngine] setCameraEnabled requested: target=$enabled, currentlyEnabled=$currentlyEnabled',
+        name: 'MediaEngine',
+      );
+
       if (currentlyEnabled == enabled) {
-        developer.log('setCameraEnabled: camera is already ${enabled ? "enabled" : "disabled"}', name: 'MediaEngine');
+        developer.log(
+          '[MediaEngine] setCameraEnabled: camera is already ${enabled ? "enabled" : "disabled"}',
+          name: 'MediaEngine',
+        );
         return enabled;
       }
 
       if (!enabled) {
-        developer.log('Disabling camera track...', name: 'MediaEngine');
+        developer.log('[MediaEngine] Disabling camera track...', name: 'MediaEngine');
         try {
           await localParticipant.setCameraEnabled(false);
-          developer.log('Camera track disabled successfully', name: 'MediaEngine');
+          developer.log('[MediaEngine] Camera track disabled and disposed cleanly', name: 'MediaEngine');
           return false;
         } catch (e) {
-          developer.log('Error disabling camera track: $e', name: 'MediaEngine', error: e);
+          developer.log('[MediaEngine] Error disabling camera track: $e', name: 'MediaEngine', error: e);
           rethrow;
         }
       }
 
-      // Enabling Camera
-      developer.log('Enabling camera track...', name: 'MediaEngine');
+      // ENABLING CAMERA:
+      // CRITICAL FIX FOR DOUBLE-CAMERA CREATION:
+      // Ensure any existing camera track is completely stopped and disposed first
+      // before attempting to instantiate a new Camera2Capturer.
+      try {
+        developer.log('[MediaEngine] Pre-cleaning existing camera tracks prior to enable...', name: 'MediaEngine');
+        await localParticipant.setCameraEnabled(false);
+      } catch (e) {
+        developer.log('[MediaEngine] Pre-clean setCameraEnabled(false) ignored: $e', name: 'MediaEngine');
+      }
+
+      // Settle HAL before opening new CameraCaptureSession
+      await Future.delayed(const Duration(milliseconds: 150));
+
+      developer.log('[MediaEngine] Creating & Publishing Camera Track (Primary 540p)...', name: 'MediaEngine');
       final primaryOptions = cameraCaptureOptions ??
           const CameraCaptureOptions(
             params: VideoParametersPresets.h540_169,
@@ -92,18 +114,30 @@ class MediaEngine {
           true,
           cameraCaptureOptions: primaryOptions,
         );
-        developer.log('Camera track enabled successfully (540p)', name: 'MediaEngine');
+        developer.log('[MediaEngine] Camera track created & published successfully (540p)', name: 'MediaEngine');
         return true;
       } catch (primaryError) {
         developer.log(
-          'Primary camera publish failed: $primaryError. Attempting 360p fallback after HAL settle...',
+          '[MediaEngine] Primary camera publish failed: $primaryError. Unwinding partial track...',
           name: 'MediaEngine',
           error: primaryError,
         );
 
-        // Allow Android Camera2 HAL time to settle if session reset occurred
-        await Future.delayed(const Duration(milliseconds: 400));
+        // MANDATORY: Unwind the partial track creation in LiveKit!
+        // Calling setCameraEnabled(false) stops the orphaned Camera2Capturer #1
+        // so that it does NOT linger when attempting 360p fallback!
+        try {
+          await localParticipant.setCameraEnabled(false);
+          developer.log('[MediaEngine] Cleanly stopped failed primary camera capturer', name: 'MediaEngine');
+        } catch (unwindErr) {
+          developer.log('[MediaEngine] Error unwinding failed primary camera track: $unwindErr', name: 'MediaEngine');
+        }
 
+        // Allow Android Camera2 HAL time to completely release hardware lock
+        developer.log('[MediaEngine] Waiting 500ms for Camera2 HAL to settle...', name: 'MediaEngine');
+        await Future.delayed(const Duration(milliseconds: 500));
+
+        developer.log('[MediaEngine] Creating & Publishing Camera Track (Fallback 360p)...', name: 'MediaEngine');
         try {
           await localParticipant.setCameraEnabled(
             true,
@@ -112,14 +146,20 @@ class MediaEngine {
               maxFrameRate: 24,
             ),
           );
-          developer.log('Camera track enabled successfully (360p fallback)', name: 'MediaEngine');
+          developer.log('[MediaEngine] Camera track created & published successfully (360p fallback)', name: 'MediaEngine');
           return true;
         } catch (fallbackError) {
-          developer.log('Fallback camera publish failed: $fallbackError', name: 'MediaEngine', error: fallbackError);
-          // Ensure state is clean
+          developer.log(
+            '[MediaEngine] Fallback camera publish failed: $fallbackError. Unwinding fallback track...',
+            name: 'MediaEngine',
+            error: fallbackError,
+          );
+
+          // Clean up lingering fallback capturer
           try {
             await localParticipant.setCameraEnabled(false);
           } catch (_) {}
+
           throw TrackPublishException('Failed to publish camera track: $fallbackError');
         }
       }
@@ -127,66 +167,80 @@ class MediaEngine {
   }
 
   /// Safely toggles local screen share stream on a LiveKit [Room].
+  ///
+  /// CRITICAL: Screen Share lifecycle is COMPLETELY ISOLATED from Camera lifecycle.
+  /// Starting or stopping screen share NEVER touches or recreates camera tracks.
   Future<bool> setScreenShareEnabled(Room room, bool enabled) {
     return _lock.run(() async {
       final localParticipant = room.localParticipant;
       if (localParticipant == null) {
-        developer.log('setScreenShareEnabled: localParticipant is null', name: 'MediaEngine');
+        developer.log('[MediaEngine] setScreenShareEnabled: localParticipant is null', name: 'MediaEngine');
         return false;
       }
 
       final currentlyEnabled = localParticipant.isScreenShareEnabled();
+      developer.log(
+        '[MediaEngine] setScreenShareEnabled requested: target=$enabled, currentlyEnabled=$currentlyEnabled',
+        name: 'MediaEngine',
+      );
+
       if (currentlyEnabled == enabled) {
-        developer.log('setScreenShareEnabled: screen share is already ${enabled ? "enabled" : "disabled"}', name: 'MediaEngine');
+        developer.log(
+          '[MediaEngine] setScreenShareEnabled: screen share is already ${enabled ? "enabled" : "disabled"}',
+          name: 'MediaEngine',
+        );
         return enabled;
       }
 
       if (enabled) {
-        developer.log('Starting screen share process...', name: 'MediaEngine');
+        developer.log('[MediaEngine] Starting screen share process...', name: 'MediaEngine');
         if (Platform.isAndroid) {
           try {
-            developer.log('Starting Android Foreground Service for MediaProjection...', name: 'MediaEngine');
+            developer.log('[MediaEngine] Invoking Android Foreground Service for MediaProjection...', name: 'MediaEngine');
             await _screenCaptureChannel.invokeMethod('startService');
             _isScreenServiceRunning = true;
-            // Wait for OS to bind foreground service
+            developer.log('[MediaEngine] Android Foreground Service started successfully', name: 'MediaEngine');
+            // Wait for OS foreground service binding to stabilize before MediaProjection request
             await Future.delayed(const Duration(milliseconds: 350));
           } catch (e) {
-            developer.log('Failed to start Screen Capture Service: $e', name: 'MediaEngine', error: e);
+            developer.log('[MediaEngine] Failed to start Screen Capture Service: $e', name: 'MediaEngine', error: e);
           }
         }
 
         try {
+          developer.log('[MediaEngine] Publishing Screen Share Track to LiveKit Room...', name: 'MediaEngine');
           await localParticipant.setScreenShareEnabled(true);
-          developer.log('Screen share enabled successfully', name: 'MediaEngine');
+          developer.log('[MediaEngine] Screen share track published successfully', name: 'MediaEngine');
           return true;
         } catch (e) {
-          developer.log('Failed to enable screen share: $e', name: 'MediaEngine', error: e);
-          // Teardown service on failure
+          developer.log('[MediaEngine] Failed to publish screen share track: $e', name: 'MediaEngine', error: e);
+          // Clean up service on publication error
           if (Platform.isAndroid && _isScreenServiceRunning) {
             await Future.delayed(const Duration(milliseconds: 300));
             try {
               await _screenCaptureChannel.invokeMethod('stopService');
+              developer.log('[MediaEngine] Stopped Screen Capture Service after publish failure', name: 'MediaEngine');
             } catch (_) {}
             _isScreenServiceRunning = false;
           }
           rethrow;
         }
       } else {
-        developer.log('Stopping screen share process...', name: 'MediaEngine');
+        developer.log('[MediaEngine] Stopping screen share process...', name: 'MediaEngine');
         try {
           await localParticipant.setScreenShareEnabled(false);
-          developer.log('Screen share disabled successfully', name: 'MediaEngine');
+          developer.log('[MediaEngine] Screen share track unpublished successfully', name: 'MediaEngine');
         } catch (e) {
-          developer.log('Error while disabling screen share: $e', name: 'MediaEngine', error: e);
+          developer.log('[MediaEngine] Error while unpublishing screen share track: $e', name: 'MediaEngine', error: e);
         } finally {
           if (Platform.isAndroid && _isScreenServiceRunning) {
-            // Delay service stop until capturer completes native teardown
+            // Delay service teardown until native capturer releases MediaProjection
             await Future.delayed(const Duration(milliseconds: 400));
             try {
               await _screenCaptureChannel.invokeMethod('stopService');
-              developer.log('Screen Capture Service stopped', name: 'MediaEngine');
+              developer.log('[MediaEngine] Android Screen Capture Service stopped successfully', name: 'MediaEngine');
             } catch (e) {
-              developer.log('Failed to stop Screen Capture Service: $e', name: 'MediaEngine', error: e);
+              developer.log('[MediaEngine] Failed to stop Screen Capture Service: $e', name: 'MediaEngine', error: e);
             }
             _isScreenServiceRunning = false;
           }
@@ -204,7 +258,15 @@ class MediaEngine {
   }) {
     return _lock.run(() async {
       final localParticipant = room.localParticipant;
-      if (localParticipant == null) return false;
+      if (localParticipant == null) {
+        developer.log('[MediaEngine] setMicrophoneEnabled: localParticipant is null', name: 'MediaEngine');
+        return false;
+      }
+
+      developer.log(
+        '[MediaEngine] setMicrophoneEnabled requested: target=$enabled',
+        name: 'MediaEngine',
+      );
 
       const defaultAudioOptions = AudioCaptureOptions(
         echoCancellation: true,
@@ -215,7 +277,12 @@ class MediaEngine {
 
       final options = audioCaptureOptions ?? defaultAudioOptions;
       await localParticipant.setMicrophoneEnabled(enabled, audioCaptureOptions: options);
-      return localParticipant.isMicrophoneEnabled();
+      final isEnabled = localParticipant.isMicrophoneEnabled();
+      developer.log(
+        '[MediaEngine] Microphone track state updated: isEnabled=$isEnabled',
+        name: 'MediaEngine',
+      );
+      return isEnabled;
     });
   }
 
@@ -223,28 +290,41 @@ class MediaEngine {
   Future<void> disposeRoomMedia(Room? room) {
     return _lock.run(() async {
       if (room == null) return;
-      developer.log('Disposing room media tracks cleanly...', name: 'MediaEngine');
+      developer.log('[MediaEngine] Disposing all room media tracks deterministically...', name: 'MediaEngine');
       try {
         final localParticipant = room.localParticipant;
         if (localParticipant != null) {
           if (localParticipant.isScreenShareEnabled()) {
-            try { await localParticipant.setScreenShareEnabled(false); } catch (_) {}
+            developer.log('[MediaEngine] Disposing screen share track...', name: 'MediaEngine');
+            try { await localParticipant.setScreenShareEnabled(false); } catch (e) {
+              developer.log('[MediaEngine] Screen share disposal error: $e', name: 'MediaEngine');
+            }
           }
           if (localParticipant.isCameraEnabled()) {
-            try { await localParticipant.setCameraEnabled(false); } catch (_) {}
+            developer.log('[MediaEngine] Disposing camera track...', name: 'MediaEngine');
+            try { await localParticipant.setCameraEnabled(false); } catch (e) {
+              developer.log('[MediaEngine] Camera track disposal error: $e', name: 'MediaEngine');
+            }
           }
           if (localParticipant.isMicrophoneEnabled()) {
-            try { await localParticipant.setMicrophoneEnabled(false); } catch (_) {}
+            developer.log('[MediaEngine] Disposing microphone track...', name: 'MediaEngine');
+            try { await localParticipant.setMicrophoneEnabled(false); } catch (e) {
+              developer.log('[MediaEngine] Microphone track disposal error: $e', name: 'MediaEngine');
+            }
           }
         }
       } catch (e) {
-        developer.log('Error during room media disposal: $e', name: 'MediaEngine', error: e);
+        developer.log('[MediaEngine] Error during room media disposal: $e', name: 'MediaEngine', error: e);
       } finally {
         if (Platform.isAndroid && _isScreenServiceRunning) {
-          try { await _screenCaptureChannel.invokeMethod('stopService'); } catch (_) {}
+          try {
+            await _screenCaptureChannel.invokeMethod('stopService');
+            developer.log('[MediaEngine] Screen Capture Service stopped during room media disposal', name: 'MediaEngine');
+          } catch (_) {}
           _isScreenServiceRunning = false;
         }
       }
     });
   }
 }
+
