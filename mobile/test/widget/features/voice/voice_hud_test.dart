@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/features/voice/presentation/widgets/voice_hud.dart';
@@ -39,6 +40,20 @@ class FakeVoiceController extends VoiceController {
 }
 
 void main() {
+  setUpAll(() {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+      const MethodChannel('com.ryanheise.just_audio'),
+      (methodCall) async {
+        if (methodCall.method == 'init') {
+          return {'id': 'test_player_id'};
+        }
+        return null;
+      },
+    );
+  });
+
   group('VoiceHUD Widget Tests', () {
     testWidgets('VoiceHUD is hidden when state is disconnected', (tester) async {
       final fakeController = FakeVoiceController(const VoiceState(isConnected: false, isConnecting: false));
