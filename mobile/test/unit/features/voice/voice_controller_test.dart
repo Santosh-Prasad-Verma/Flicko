@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:audio_session/audio_session.dart';
@@ -26,6 +27,17 @@ void main() {
   });
 
   setUpAll(() {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+      const MethodChannel('com.ryanheise.just_audio'),
+      (methodCall) async {
+        if (methodCall.method == 'init') {
+          return {'id': 'test_player_id'};
+        }
+        return null;
+      },
+    );
     registerFallbackValue(const AudioSessionConfiguration.speech());
   });
 

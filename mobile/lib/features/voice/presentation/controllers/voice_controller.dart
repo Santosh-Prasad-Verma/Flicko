@@ -74,12 +74,15 @@ class VoiceController extends Notifier<VoiceState> {
         throw Exception('Failed to activate audio session');
       }
 
-      // 3. Get Token
-      final token = await _repository.getAccessToken(channelId, serverId);
+      // 3. Get Token — and the URL of the server that signed it. Using the
+      // issued serverUrl instead of the compile-time define keeps every
+      // participant on the same SFU even if a build carries a stale URL.
+      final connection = await _repository.fetchConnection(channelId, serverId);
 
       // 4. Connect to Room
       final room = await _repository.connect(
-        token,
+        connection.token,
+        serverUrl: connection.serverUrl,
         options: const RoomOptions(
           adaptiveStream: true,
           dynacast: true,
@@ -119,7 +122,7 @@ class VoiceController extends Notifier<VoiceState> {
         participants: [room.localParticipant!, ...room.remoteParticipants.values],
       );
 
-      _playDiscordJoinSound();
+      _playFlickoJoinSound();
     } catch (e) {
       state = state.copyWith(
         isConnecting: false,
@@ -129,10 +132,10 @@ class VoiceController extends Notifier<VoiceState> {
     }
   }
 
-  Future<void> _playDiscordJoinSound() async {
+  Future<void> _playFlickoSFX(String assetPath) async {
     try {
       final sfxPlayer = AudioPlayer();
-      await sfxPlayer.setAsset('assets/sounds/discord_join.mp3');
+      await sfxPlayer.setAsset(assetPath);
       await sfxPlayer.play();
       sfxPlayer.playerStateStream.listen((playerState) {
         if (playerState.processingState == ProcessingState.completed) {
@@ -140,23 +143,30 @@ class VoiceController extends Notifier<VoiceState> {
         }
       });
     } catch (e) {
-      developer.log('Error playing Discord join sound effect', name: 'VoiceController', error: e);
+      developer.log('Error playing Flicko sound effect: $assetPath', name: 'VoiceController', error: e);
     }
   }
+
+  Future<void> _playFlickoJoinSound() async => _playFlickoSFX('assets/sounds/flicko_join.mp3');
+  Future<void> _playFlickoLeaveSound() async => _playFlickoSFX('assets/sounds/flicko_leave.mp3');
+  Future<void> _playFlickoUnmuteSound() async => _playFlickoSFX('assets/sounds/flicko_unmute.mp3');
+  Future<void> playFlickoNotificationSound() async => _playFlickoSFX('assets/sounds/flicko_notification.mp3');
 
   void _setupRoomListeners(Room room) {
     _listener = room.createListener();
 
     _listener!
       ..on<RoomDisconnectedEvent>((event) {
+        _playFlickoLeaveSound();
         state = const VoiceState();
       })
       ..on<ParticipantConnectedEvent>((event) {
         _updateParticipants();
-        _playDiscordJoinSound();
+        _playFlickoJoinSound();
       })
       ..on<ParticipantDisconnectedEvent>((event) {
         _updateParticipants();
+        _playFlickoLeaveSound();
       })
       ..on<ActiveSpeakersChangedEvent>((event) {
         state = state.copyWith(
@@ -239,6 +249,7 @@ class VoiceController extends Notifier<VoiceState> {
         if (local != null) local,
         ...room.remoteParticipants.values,
       ],
+      trackVersion: state.trackVersion + 1,
     );
   }
 
@@ -263,6 +274,7 @@ class VoiceController extends Notifier<VoiceState> {
       }
 
       state = state.copyWith(isMuted: newMute, isDeafened: newDeafen, error: null);
+      _playFlickoUnmuteSound();
     } catch (trackErr) {
       developer.log('Failed to toggle microphone', name: 'VoiceController', error: trackErr);
       state = state.copyWith(error: 'Failed to access microphone: $trackErr');
@@ -319,7 +331,7 @@ class VoiceController extends Notifier<VoiceState> {
       if (isVideoEnabled) {
         await localParticipant.setCameraEnabled(false);
       } else {
-        // Try publishing camera with 540p preset for universal hardware compatibility
+        // Publish camera directly without redundant pre-closing calls
         try {
           await localParticipant.setCameraEnabled(
             true,
@@ -329,8 +341,9 @@ class VoiceController extends Notifier<VoiceState> {
             ),
           );
         } catch (e1) {
-          // Fallback to 360p if 540p fails on device hardware
           developer.log('540p camera publish failed, trying 360p fallback', name: 'VoiceController', error: e1);
+          // Wait for Android Camera2 HAL to settle before retrying fallback
+          await Future.delayed(const Duration(milliseconds: 300));
           await localParticipant.setCameraEnabled(
             true,
             cameraCaptureOptions: const CameraCaptureOptions(
@@ -342,6 +355,7 @@ class VoiceController extends Notifier<VoiceState> {
       }
       _updateParticipants();
       state = state.copyWith(error: null);
+      await _syncPublishState(isVideo: localParticipant.isCameraEnabled());
     } catch (e) {
       developer.log('Failed to toggle camera video', name: 'VoiceController', error: e);
       state = state.copyWith(error: 'Camera track publish failed: ${e.toString()}');
@@ -366,7 +380,7 @@ class VoiceController extends Notifier<VoiceState> {
         try {
           await _screenCaptureChannel.invokeMethod('startService');
           // Allow Android OS time to bind foreground service
-          await Future.delayed(const Duration(milliseconds: 150));
+          await Future.delayed(const Duration(milliseconds: 300));
         } catch (e) {
           developer.log(
             'Failed to start screen capture foreground service',
@@ -379,18 +393,23 @@ class VoiceController extends Notifier<VoiceState> {
       await localParticipant.setScreenShareEnabled(!isScreenShareEnabled);
       _updateParticipants();
       state = state.copyWith(error: null);
+      await _syncPublishState(
+        isStreaming: localParticipant.isScreenShareEnabled(),
+      );
 
       if (isScreenShareEnabled && Platform.isAndroid) {
-        // Screen share was just disabled — stop the foreground service
-        try {
-          await _screenCaptureChannel.invokeMethod('stopService');
-        } catch (e) {
-          developer.log(
-            'Failed to stop screen capture service',
-            name: 'VoiceController',
-            error: e,
-          );
-        }
+        // Screen share was just disabled — delay service stop until capturer completes teardown
+        Future.delayed(const Duration(milliseconds: 300), () async {
+          try {
+            await _screenCaptureChannel.invokeMethod('stopService');
+          } catch (e) {
+            developer.log(
+              'Failed to stop screen capture service',
+              name: 'VoiceController',
+              error: e,
+            );
+          }
+        });
       }
     } catch (e) {
       developer.log('Error toggling screen share', name: 'VoiceController', error: e);
@@ -408,11 +427,27 @@ class VoiceController extends Notifier<VoiceState> {
 
       // Stop the service if we started it but screen share failed or was cancelled
       if (Platform.isAndroid) {
-        try {
-          await _screenCaptureChannel.invokeMethod('stopService');
-        } catch (_) {}
+        Future.delayed(const Duration(milliseconds: 300), () async {
+          try {
+            await _screenCaptureChannel.invokeMethod('stopService');
+          } catch (_) {}
+        });
       }
     }
+  }
+
+  /// Publishes the local camera/screen-share state to `voice_states` so remote
+  /// members can render the corresponding indicators. LiveKit track state is
+  /// only visible to clients that have subscribed, so the database row is what
+  /// drives everyone else's UI.
+  Future<void> _syncPublishState({bool? isVideo, bool? isStreaming}) async {
+    final channelId = state.activeChannelId;
+    if (channelId == null) return;
+    await _repository.syncPublishState(
+      channelId,
+      isVideo: isVideo,
+      isStreaming: isStreaming,
+    );
   }
 
   /// Sets per-user volume override (0.0 to 2.0)
@@ -423,6 +458,7 @@ class VoiceController extends Notifier<VoiceState> {
   }
 
   Future<void> leaveChannel() async {
+    _playFlickoLeaveSound();
     await state.room?.disconnect();
     _activeServerId = null;
     state = const VoiceState();
