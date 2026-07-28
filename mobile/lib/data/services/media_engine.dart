@@ -227,17 +227,20 @@ class MediaEngine {
         if (Platform.isAndroid) {
           try {
             developer.log(
-              '[MediaEngine] Signaling Android to prepare screen capture FGS (post-consent)...',
+              '[MediaEngine] Starting Android Screen Capture Foreground Service (mediaProjection)...',
               name: 'MediaEngine',
             );
-            await _screenCaptureChannel.invokeMethod('prepareCapture');
+            await _screenCaptureChannel.invokeMethod('startService');
+            _isScreenServiceRunning = true;
             developer.log(
-              '[MediaEngine] Screen capture prepared (FGS will start after user consent)',
+              '[MediaEngine] Screen capture FGS started successfully',
               name: 'MediaEngine',
             );
+            // Allow Android OS time to register the active foreground service
+            await Future.delayed(const Duration(milliseconds: 300));
           } catch (e) {
             developer.log(
-              '[MediaEngine] Failed to prepare screen capture: $e',
+              '[MediaEngine] Failed to start screen capture service: $e',
               name: 'MediaEngine',
               error: e,
             );
