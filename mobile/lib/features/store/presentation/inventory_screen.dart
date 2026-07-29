@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/features/store/data/store_service.dart';
 import 'package:mobile/features/store/data/equipment_service.dart';
+import 'package:mobile/features/store/presentation/widgets/discord_profile_preview_card.dart';
 
 class InventoryScreen extends ConsumerStatefulWidget {
   const InventoryScreen({super.key});
@@ -23,7 +24,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
   static const Color _greenAccent = Color(0xFF23A55A);
   static const Color _textMuted = Color(0xFF949BA4);
 
-  final _tabs = ['ALL', 'THEMES', 'STICKERS', 'SOUNDS', 'BADGES'];
+  final _tabs = ['ALL', 'DECORATIONS', 'BANNERS', 'EFFECTS', 'THEMES', 'NAMEPLATES', 'STICKERS', 'SOUNDS', 'BADGES'];
 
   @override
   void initState() {
@@ -123,19 +124,29 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
             ? items
             : items.where((item) {
                 final type = item.productType.toUpperCase();
-                if (tab == 'THEMES') return type.contains('THEME') || type.contains('DECORATION');
-                if (tab == 'BADGES') return type.contains('BADGE') || type.contains('NAMEPLATE');
+                if (tab == 'DECORATIONS') return type.contains('DECORATION');
+                if (tab == 'BANNERS') return type.contains('BANNER');
+                if (tab == 'EFFECTS') return type.contains('EFFECT');
+                if (tab == 'THEMES') return type.contains('THEME') || type.contains('GRADIENT');
+                if (tab == 'NAMEPLATES') return type.contains('NAMEPLATE');
+                if (tab == 'BADGES') return type.contains('BADGE');
                 return type == tab;
               }).toList();
 
-        if (filtered.isEmpty) {
-          return _buildEmptyState(tab);
-        }
-
-        return ListView.builder(
+        return ListView(
           padding: const EdgeInsets.all(16),
-          itemCount: filtered.length,
-          itemBuilder: (context, index) => _buildInventoryItem(filtered[index], equipped),
+          children: [
+            // Live Equipped Profile Card Preview at top of inventory!
+            const DiscordProfilePreviewCard(
+              showLiveLabel: true,
+            ),
+            const SizedBox(height: 20),
+
+            if (filtered.isEmpty)
+              _buildEmptyState(tab)
+            else
+              ...filtered.map((item) => _buildInventoryItem(item, equipped)),
+          ],
         );
       }).toList(),
     );

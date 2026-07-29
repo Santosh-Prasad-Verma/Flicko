@@ -172,11 +172,15 @@ class StoreService {
       final typeLower = type.toLowerCase();
       filtered = filtered.where((p) {
         final pType = p.type.toLowerCase();
-        if (typeLower == 'themes') {
-          return pType == 'theme';
+        if (typeLower == 'themes' || typeLower == 'theme') {
+          return pType == 'theme' || pType == 'profile_theme' || pType == 'gradient';
         } else if (typeLower == 'decorations' || typeLower == 'decoration' || typeLower == 'avatar_decoration') {
           return pType == 'avatar_decoration' || pType == 'decoration';
-        } else if (typeLower == 'badges') {
+        } else if (typeLower == 'banners' || typeLower == 'banner' || typeLower == 'profile_banner') {
+          return pType == 'profile_banner' || pType == 'banner';
+        } else if (typeLower == 'effects' || typeLower == 'effect' || typeLower == 'profile_effect') {
+          return pType == 'profile_effect' || pType == 'effect';
+        } else if (typeLower == 'badges' || typeLower == 'badge') {
           return pType == 'badge';
         } else if (typeLower == 'nameplates' || typeLower == 'nameplate') {
           return pType == 'nameplate';
@@ -184,9 +188,9 @@ class StoreService {
           return pType == 'voice_skin';
         } else if (typeLower == 'warp_drips' || typeLower == 'warp_drip' || typeLower == 'entrance_warp' || typeLower == 'drip_card') {
           return pType == 'entrance_warp' || pType == 'drip_card';
-        } else if (typeLower == 'sounds') {
+        } else if (typeLower == 'sounds' || typeLower == 'sound') {
           return pType == 'sounds' || pType == 'sound';
-        } else if (typeLower == 'stickers') {
+        } else if (typeLower == 'stickers' || typeLower == 'sticker') {
           return pType == 'stickers' || pType == 'sticker';
         }
         return pType == typeLower;
@@ -203,77 +207,76 @@ class StoreService {
 
   List<StoreProduct> getSampleProducts({String? type, String? search}) {
     final allProducts = [
-      // Premium Themes from cloned repos
-      StoreProduct(id: 'sonic-drip', slug: 'sonic-drip', name: 'Sonic Drip', type: 'THEME', price: 399.0, rarity: 'legendary', isHot: true, description: 'The official Sonic Drip brutalist theme. Bold forest-green outlines on a solid black turntable canvas.'),
-      StoreProduct(id: 'amoled-cord', slug: 'amoled-cord', name: 'AMOLED Cord', type: 'THEME', price: 249.0, rarity: 'epic', isHot: true, description: 'Ultra-dark AMOLED true-black theme with soft purple accents. Pure black saves battery on OLED screens.'),
-      StoreProduct(id: 'dark-discord', slug: 'dark-discord', name: 'Dark Discord', type: 'THEME', price: 149.0, rarity: 'rare', isHot: true, description: 'Official Discord blurple on ultra-dark base. The darkest Discord experience with green accent highlights.'),
-      StoreProduct(id: 'pm-theme', slug: 'pm-theme', name: 'PM Theme', type: 'THEME', price: 199.0, rarity: 'epic', description: 'Warm orange-amber tones on a rich dark brown base. Cozy and premium feel for late-night chatting.'),
-      // Built-in themes
-      StoreProduct(id: 'neon-pulse', slug: 'neon-pulse', name: 'Neon Pulse', type: 'THEME', price: 399.0, rarity: 'epic', isHot: true, description: 'Vibrant neon colors that pulse with energy'),
-      StoreProduct(id: 'cyber-glow', slug: 'cyber-glow', name: 'Cyber Glow', type: 'THEME', price: 299.0, rarity: 'rare', description: 'Futuristic cyberpunk aesthetic'),
-      StoreProduct(id: 'midnight', slug: 'midnight', name: 'Midnight', type: 'THEME', price: 0, rarity: 'common', description: 'Dark and elegant free theme'),
-      StoreProduct(id: 'aurora-borealis', slug: 'aurora-borealis', name: 'Aurora Borealis', type: 'THEME', price: 549.0, rarity: 'legendary', isHot: true, description: 'Stunning northern lights theme'),
-      StoreProduct(id: 'synthwave', slug: 'synthwave', name: 'Synthwave', type: 'THEME', price: 399.0, rarity: 'epic', description: '80s inspired synthwave theme'),
-      StoreProduct(id: 'fire', slug: 'fire', name: 'Fire', type: 'THEME', price: 299.0, rarity: 'rare', description: 'Hot flames and warm embers'),
-
-      // Sticker Packs — Emojis & Animated Stickers from assets
-      StoreProduct(id: 'sticker-chaimal', slug: 'sticker-chaimal', name: 'Indian Classic Memes', type: 'STICKERS', price: 149.0, rarity: 'rare', isHot: true, description: 'Classic Indian meme stickers including Chapal Marunga, chal chal baap ko mat sikha, Mujhe Maaro, and cheekh ke scheme btade.', imageUrl: 'assets/images/emojis/emojis/static/cheekh_ke_scheme_btade.png'),
-      StoreProduct(id: 'sticker-anime-dance', slug: 'sticker-anime-dance', name: 'Animated Anime Dance', type: 'STICKERS', price: 249.0, rarity: 'epic', isHot: true, description: 'Smooth looping retro and anime animated stickers including JotaroDance, kurukuru, ChikaBrow, and nachoo.', imageUrl: 'assets/images/emojis/emojis/animated/JotaroDance.gif'),
-      StoreProduct(id: 'sticker-pepe-galactic', slug: 'sticker-pepe-galactic', name: 'Pepe Galactic Pack', type: 'STICKERS', price: 199.0, rarity: 'epic', description: 'The absolute premium cosmic Pepe collection: Pepe Galactic, Pepe Gaming, Pepe Anger, and monkas.', imageUrl: 'assets/images/emojis/emojis/static/PepeGalaxy.png'),
-      StoreProduct(id: 'handy-emoji-panel', slug: 'handy-emoji-panel', name: 'Handy Emoji Panel', type: 'STICKERS', price: 249.0, rarity: 'epic', isHot: true, description: '246 premium stickers — cute, expressive, and animated. Perfect for every conversation.'),
-      StoreProduct(id: 'flame-pack', slug: 'flame-pack', name: 'Flame Pack', type: 'STICKERS', price: 149.0, rarity: 'rare', description: 'Hot flame sticker collection'),
-      StoreProduct(id: 'space-vibes', slug: 'space-vibes', name: 'Space Vibes', type: 'STICKERS', price: 199.0, rarity: 'epic', description: 'Cosmic sticker pack'),
-      StoreProduct(id: 'pixel-art', slug: 'pixel-art', name: 'Pixel Art Pack', type: 'STICKERS', price: 249.0, rarity: 'rare', description: 'Retro pixel art stickers'),
-
-      // Built-in sounds
-      StoreProduct(id: 'myinstants-trending', slug: 'myinstants-trending', name: 'Trending Sounds', type: 'SOUNDS', price: 0, rarity: 'common', description: 'Free trending sound effects from MyInstants. Updated daily with the hottest sounds.'),
-      StoreProduct(id: 'classic-memes', slug: 'classic-memes', name: 'Classic Memes', type: 'SOUNDS', price: 79.0, rarity: 'rare', isHot: true, description: 'Vine Boom, Bruh, Oof, Airhorn — the essential meme soundboard classics.'),
-      StoreProduct(id: 'retro-beeps', slug: 'retro-beeps', name: 'Retro Beeps', type: 'SOUNDS', price: 79.0, rarity: 'common', description: 'Retro notification and game sounds'),
-
-      // Badges
-      StoreProduct(id: 'og-badge', slug: 'og-badge', name: 'OG Badge', type: 'BADGE', price: 799.0, rarity: 'legendary', isHot: true, description: 'Original gangster badge'),
-      StoreProduct(id: 'verified-plus', slug: 'verified-plus', name: 'Verified+', type: 'BADGE', price: 1199.0, rarity: 'legendary', description: 'Premium verified badge'),
-      StoreProduct(id: 'premium-star', slug: 'premium-star', name: 'Premium Star', type: 'BADGE', price: 249.0, rarity: 'epic', description: 'A sparkling green star badge for premium users.'),
-      StoreProduct(id: 'bolt-master', slug: 'bolt-master', name: 'Bolt Master', type: 'BADGE', price: 299.0, rarity: 'rare', description: 'An electrical yellow bolt badge for energetic chatters.'),
-      StoreProduct(id: 'diamond-elite', slug: 'diamond-elite', name: 'Diamond Elite', type: 'BADGE', price: 499.0, rarity: 'epic', description: 'A sleek purple diamond badge for elite members.'),
-      StoreProduct(id: 'cosmic-overlord-badge', slug: 'cosmic-overlord-badge', name: 'Cosmic Overlord', type: 'BADGE', price: 0.0, rarity: 'legendary', description: 'An elite mythic badge forged in the alchemical fusion core.'),
-      StoreProduct(id: 'alchemist-badge', slug: 'alchemist-badge', name: 'Badge Alchemist', type: 'BADGE', price: 0.0, rarity: 'legendary', description: 'A mystical shifting badge awarded to master alchemists.'),
-      StoreProduct(id: 'soundboard-dj', slug: 'soundboard-dj', name: 'Soundboard DJ', type: 'BADGE', price: 0.0, rarity: 'rare', description: 'Awarded for playing a massive amount of soundboard effects.'),
-      StoreProduct(id: 'chat-veteran-badge', slug: 'chat-veteran-badge', name: 'Chat Veteran', type: 'BADGE', price: 0.0, rarity: 'epic', description: 'Awarded for sending a massive amount of chat messages.'),
-
-      // Special Gacha & Styling Bundles
-      StoreProduct(id: 'mystery-crate', slug: 'mystery-crate', name: 'Mystery Vinyl Crate', type: 'CRATE', price: 149.0, rarity: 'epic', isHot: true, description: 'Decelerating turntable needle-drop gacha spin. Unlocks one premium Rare, Epic, or Legendary cosmetic item!'),
-      StoreProduct(id: 'sonic-cyber-bundle', slug: 'sonic-cyber-bundle', name: 'Sonic Cyber Bundle', type: 'BUNDLE', price: 599.0, rarity: 'legendary', isHot: true, description: 'Includes Sonic Drip Theme, OG Badge, and Classic Memes Soundboard. Save 55% over individual purchases!'),
-
-      // Animated Avatar Decorations / Profile Frames
-      StoreProduct(id: 'neon-cyber-frame', slug: 'neon-cyber-frame', name: 'Neon Cyber Frame', type: 'AVATAR_DECORATION', price: 299.0, rarity: 'epic', isHot: true, description: 'Radioactive sweep gradient revolving around your avatar container in a fluid neon pulse.'),
+      // 1. AVATAR DECORATIONS (Profile Picture Frames & Rings)
+      StoreProduct(id: 'neon-cyber-frame', slug: 'neon-cyber-frame', name: 'Neon Cyber Ring', type: 'AVATAR_DECORATION', price: 299.0, rarity: 'epic', isHot: true, description: 'Radioactive green & cyan sweep gradient revolving dynamically around your avatar.'),
+      StoreProduct(id: 'sakura-aura', slug: 'sakura-aura', name: 'Sakura Blossom Aura', type: 'AVATAR_DECORATION', price: 349.0, rarity: 'epic', isHot: true, description: 'Soft pink sakura petals and glowing floral shimmer encircling your profile avatar.'),
+      StoreProduct(id: 'dragon-fire-frame', slug: 'dragon-fire-frame', name: 'Dragon Flame Burst', type: 'AVATAR_DECORATION', price: 399.0, rarity: 'legendary', isHot: true, description: 'Combustive orange and red heat embers pulsing vigorously with fire energy.'),
+      StoreProduct(id: 'cyberpunk-visor', slug: 'cyberpunk-visor', name: 'Cyber Visor & HUD', type: 'AVATAR_DECORATION', price: 449.0, rarity: 'legendary', isHot: true, description: 'Futuristic cyan HUD visor with digital target reticles scanning your avatar.'),
+      StoreProduct(id: 'golden-crown', slug: 'golden-crown', name: 'Imperial Gold Crown', type: 'AVATAR_DECORATION', price: 499.0, rarity: 'legendary', isHot: true, description: 'Majestic golden crown floating with shimmering specular sparkles over your profile.'),
       StoreProduct(id: 'glitch-matrix-frame', slug: 'glitch-matrix-frame', name: 'Glitch Matrix Frame', type: 'AVATAR_DECORATION', price: 499.0, rarity: 'legendary', isHot: true, description: 'Flickering matrix code stream wrapping your profile in erratic chromatic visual offsets.'),
       StoreProduct(id: 'cosmic-orbit-frame', slug: 'cosmic-orbit-frame', name: 'Cosmic Orbit Frame', type: 'AVATAR_DECORATION', price: 399.0, rarity: 'legendary', description: 'Revolving tiny orbital spheres rotating on double-ring coordinates around your avatar.'),
-      StoreProduct(id: 'fire-ring-frame', slug: 'fire-ring-frame', name: 'Fire Aura Frame', type: 'AVATAR_DECORATION', price: 249.0, rarity: 'rare', description: 'Dynamic glowing orange heat aura that pulses and expands outwards with fire ember elements.'),
-      StoreProduct(id: 'rainbow-pulse-frame', slug: 'rainbow-pulse-frame', name: 'Rainbow Pulse Frame', type: 'AVATAR_DECORATION', price: 279.0, rarity: 'epic', description: 'Looping hue-spectrum gradient color sweep that flows in a continuous spectrum wave.'),
+      StoreProduct(id: 'pixel-glitch', slug: 'pixel-glitch', name: 'Chromatic Pixel Glitch', type: 'AVATAR_DECORATION', price: 299.0, rarity: 'rare', description: 'Retro 8-bit pixel shifts and color channel split jitter around your avatar.'),
+      StoreProduct(id: 'anime-sparkles', slug: 'anime-sparkles', name: 'Kawaii Star Sparkles', type: 'AVATAR_DECORATION', price: 249.0, rarity: 'rare', description: 'Cute sparkling anime stars and twinkling glimmers shining around your avatar.'),
+      StoreProduct(id: 'void-vortex', slug: 'void-vortex', name: 'Void Gravity Well', type: 'AVATAR_DECORATION', price: 549.0, rarity: 'legendary', isHot: true, description: 'Deep cosmic singularity pulling purple event-horizon particle trails inward.'),
+      StoreProduct(id: 'rainbow-pulse-frame', slug: 'rainbow-pulse-frame', name: 'Rainbow Spectrum Wave', type: 'AVATAR_DECORATION', price: 279.0, rarity: 'epic', description: 'Looping hue-spectrum gradient color sweep that flows in a continuous spectrum wave.'),
 
-      // Kinetic Nameplates / Text Drips
-      StoreProduct(id: 'glitch-matrix-tag', slug: 'glitch-matrix-tag', name: 'Glitch Matrix Tag', type: 'NAMEPLATE', price: 499.0, rarity: 'legendary', isHot: true, description: 'Chaoitc, erratically flickering green-magenta pixel-shifts formatting your name tag.'),
-      StoreProduct(id: 'neon-cyber-tag', slug: 'neon-cyber-tag', name: 'Neon Cyber Tag', type: 'NAMEPLATE', price: 299.0, rarity: 'epic', isHot: true, description: 'A vibrant radioactive neon tag outlining your name text with high contrast breathing glows.'),
-      StoreProduct(id: 'fire-pulse-tag', slug: 'fire-pulse-tag', name: 'Fire Aura Tag', type: 'NAMEPLATE', price: 249.0, rarity: 'rare', description: 'Combustive orange flaming embers pulsing dynamically behind your user name text.'),
-      StoreProduct(id: 'gold-spark-tag', slug: 'gold-spark-tag', name: 'Gold Specular Tag', type: 'NAMEPLATE', price: 399.0, rarity: 'legendary', description: 'Shining specular golden beams sweeping continuously across your uppercase lettering.'),
-      StoreProduct(id: 'rainbow-drip-tag', slug: 'rainbow-drip-tag', name: 'Rainbow Drip Tag', type: 'NAMEPLATE', price: 279.0, rarity: 'epic', description: 'Continuous looping hue-spectrum color wave flowing beautifully across your tag.'),
+      // 2. PROFILE BANNERS (Header Backgrounds)
+      StoreProduct(id: 'banner-nebula', slug: 'banner-nebula', name: 'Cosmic Pink Nebula', type: 'PROFILE_BANNER', price: 249.0, rarity: 'epic', isHot: true, description: 'Deep purple space filled with vibrant magenta star clusters and glowing celestial gas.'),
+      StoreProduct(id: 'banner-synthwave', slug: 'banner-synthwave', name: 'Retrowave Grid Sunset', type: 'PROFILE_BANNER', price: 299.0, rarity: 'epic', isHot: true, description: 'Neon wireframe 3D grid stretching towards a blazing 80s synthwave vector sun.'),
+      StoreProduct(id: 'banner-cybercity', slug: 'banner-cybercity', name: 'Neo-Tokyo Cyber Rain', type: 'PROFILE_BANNER', price: 349.0, rarity: 'legendary', isHot: true, description: 'Rain-soaked futuristic cyberpunk city glowing with neon Japanese billboard reflections.'),
+      StoreProduct(id: 'banner-deep-sea', slug: 'banner-deep-sea', name: 'Bioluminescent Abyss', type: 'PROFILE_BANNER', price: 199.0, rarity: 'rare', description: 'Mystical deep ocean waters shimmering with cyan bioluminescent jellyfish currents.'),
+      StoreProduct(id: 'banner-pixel-dungeon', slug: 'banner-pixel-dungeon', name: '16-Bit Pixel Dungeon', type: 'PROFILE_BANNER', price: 299.0, rarity: 'epic', description: 'Detailed retro pixel art castle with torchlights and dramatic moonlit clouds.'),
+      StoreProduct(id: 'banner-liquid-gold', slug: 'banner-liquid-gold', name: 'Molten Liquid Gold', type: 'PROFILE_BANNER', price: 399.0, rarity: 'legendary', isHot: true, description: 'Lustrous molten golden waves flowing smoothly with high-contrast metallic speculars.'),
+      StoreProduct(id: 'banner-sakura-night', slug: 'banner-sakura-night', name: 'Midnight Cherry Blossom', type: 'PROFILE_BANNER', price: 249.0, rarity: 'rare', description: 'Full moon casting silver moonlight over dark cherry blossom trees in full bloom.'),
 
-      // Premium Voice Skins / Audio Filters & Waveforms
-      StoreProduct(id: '8bit-arcade-skin', slug: '8bit-arcade-skin', name: '8-Bit Arcade Skin', type: 'VOICE_SKIN', price: 299.0, rarity: 'epic', isHot: true, description: 'Adds retro bitcrushed chiptune texture and bounces a sharp neon grid visualizer on your voice clips.'),
-      StoreProduct(id: 'retro-radio-skin', slug: 'retro-radio-skin', name: 'Retro Radio Skin', type: 'VOICE_SKIN', price: 149.0, rarity: 'rare', description: 'Filters your voice with narrow AM radio warmth and record scratches, paired with an oscilloscope wave visualizer.'),
-      StoreProduct(id: 'lofi-tape-skin', slug: 'lofi-tape-skin', name: 'Lofi Tape Skin', type: 'VOICE_SKIN', price: 249.0, rarity: 'epic', isHot: true, description: 'Injects pitch wow-and-flutter wiggles and warm tape saturation, complete with a flowing orange ember waveform.'),
-      StoreProduct(id: 'cyber-vocoder-skin', slug: 'cyber-vocoder-skin', name: 'Cyber Vocoder Skin', type: 'VOICE_SKIN', price: 499.0, rarity: 'legendary', isHot: true, description: 'Synthesizes your voice note with robotic vocoder chimes, rendering falling matrix binary codes on bounce.'),
+      // 3. PROFILE EFFECTS & INTROS (Special Particle Overlay Animations)
+      StoreProduct(id: 'effect-cherry-blossoms', slug: 'effect-cherry-blossoms', name: 'Falling Sakura Petals', type: 'PROFILE_EFFECT', price: 299.0, rarity: 'epic', isHot: true, description: 'Gentle breeze drifting pink cherry blossom petals continuously across your profile card.'),
+      StoreProduct(id: 'effect-matrix-code', slug: 'effect-matrix-code', name: 'Matrix Binary Code Rain', type: 'PROFILE_EFFECT', price: 399.0, rarity: 'legendary', isHot: true, description: 'Cascading digital green binary glyphs falling smoothly from the top of your profile.'),
+      StoreProduct(id: 'effect-electric-sparks', slug: 'effect-electric-sparks', name: 'High-Voltage Lightning Arcs', type: 'PROFILE_EFFECT', price: 349.0, rarity: 'legendary', description: 'Cyan and violet electrical discharges dancing around your profile banner and card.'),
+      StoreProduct(id: 'effect-cosmic-dust', slug: 'effect-cosmic-dust', name: 'Golden Cosmic Star Dust', type: 'PROFILE_EFFECT', price: 299.0, rarity: 'epic', description: 'Floating golden stardust particles rising softly with warm ambient lighting.'),
 
-      // Premium Entrance Warps
-      StoreProduct(id: 'cyber-matrix-warp', slug: 'cyber-matrix-warp', name: 'Cyber Matrix Warp', type: 'ENTRANCE_WARP', price: 399.0, rarity: 'epic', isHot: true, description: 'Green cascading matrix rain columns dissolving beautifully across the entire chat layout when you enter.'),
-      StoreProduct(id: 'grid-explosion-warp', slug: 'grid-explosion-warp', name: 'Grid Expansion Warp', type: 'ENTRANCE_WARP', price: 299.0, rarity: 'epic', description: 'Synthwave wobbly wireframe vector grid expanding and exploding outwards in 3D scale upon entering chat.'),
-      StoreProduct(id: 'neon-rift-warp', slug: 'neon-rift-warp', name: 'Neon Rift Warp', type: 'ENTRANCE_WARP', price: 499.0, rarity: 'legendary', isHot: true, description: 'Screen splits open from the center with cyan-magenta electric lightning sparks and bolts on entering.'),
+      // 4. PROFILE THEMES & COLOR GRADIENTS (App Theme & Card Shading)
+      StoreProduct(id: 'gradient-midnight-violet', slug: 'gradient-midnight-violet', name: 'Midnight Violet Gradient', type: 'THEME', price: 199.0, rarity: 'rare', isHot: true, description: 'Smooth deep obsidian to electric violet gradient shading for your profile card.'),
+      StoreProduct(id: 'gradient-cyber-pink', slug: 'gradient-cyber-pink', name: 'Cyberpunk Magenta-Cyan', type: 'THEME', price: 249.0, rarity: 'epic', isHot: true, description: 'High-energy neon pink transitioning into bright cyan blue profile theme.'),
+      StoreProduct(id: 'gradient-sunset-blaze', slug: 'gradient-sunset-blaze', name: 'Sunset Amber Blaze', type: 'THEME', price: 249.0, rarity: 'epic', description: 'Rich fiery crimson melting into warm golden amber sunset gradients.'),
+      StoreProduct(id: 'gradient-emerald-matrix', slug: 'gradient-emerald-matrix', name: 'Emerald Matrix Green', type: 'THEME', price: 199.0, rarity: 'rare', description: 'Deep dark forest green blending with vibrant lime matrix accents.'),
+      StoreProduct(id: 'gradient-platinum-lux', slug: 'gradient-platinum-lux', name: 'Platinum Pearl Glow', type: 'THEME', price: 349.0, rarity: 'legendary', description: 'Sleek metallic silver and pearl white luxurious profile gradient.'),
+      StoreProduct(id: 'sonic-drip', slug: 'sonic-drip', name: 'Sonic Drip Theme', type: 'THEME', price: 399.0, rarity: 'legendary', isHot: true, description: 'The official Sonic Drip brutalist theme. Bold forest-green outlines on a solid black canvas.'),
+      StoreProduct(id: 'amoled-cord', slug: 'amoled-cord', name: 'AMOLED Cord Theme', type: 'THEME', price: 249.0, rarity: 'epic', isHot: true, description: 'Ultra-dark AMOLED true-black theme with soft purple accents.'),
+      StoreProduct(id: 'dark-discord', slug: 'dark-discord', name: 'Dark Discord Theme', type: 'THEME', price: 149.0, rarity: 'rare', description: 'Official Discord blurple on ultra-dark base with green accent highlights.'),
+      StoreProduct(id: 'pm-theme', slug: 'pm-theme', name: 'PM Amber Theme', type: 'THEME', price: 199.0, rarity: 'epic', description: 'Warm orange-amber tones on a rich dark brown base.'),
+      StoreProduct(id: 'neon-pulse', slug: 'neon-pulse', name: 'Neon Pulse Theme', type: 'THEME', price: 399.0, rarity: 'epic', description: 'Vibrant neon colors that pulse with energy.'),
+      StoreProduct(id: 'aurora-borealis', slug: 'aurora-borealis', name: 'Aurora Borealis Theme', type: 'THEME', price: 549.0, rarity: 'legendary', isHot: true, description: 'Stunning northern lights theme with emerald and violet glows.'),
+      StoreProduct(id: 'synthwave', slug: 'synthwave', name: 'Synthwave Theme', type: 'THEME', price: 399.0, rarity: 'epic', description: '80s inspired synthwave theme.'),
+      StoreProduct(id: 'midnight', slug: 'midnight', name: 'Midnight Default', type: 'THEME', price: 0, rarity: 'common', description: 'Dark and elegant default theme.'),
 
-      // Premium Message Drip Cards
-      StoreProduct(id: 'toxic-hazard-card', slug: 'toxic-hazard-card', name: 'Toxic Hazard Card', type: 'DRIP_CARD', price: 279.0, rarity: 'epic', description: 'Dresses your message text bubble in a radioactive lime dashed border with custom corner hazard stripe blocks.'),
-      StoreProduct(id: 'cyber-glitch-card', slug: 'cyber-glitch-card', name: 'Cyber Glitch Card', type: 'DRIP_CARD', price: 399.0, rarity: 'epic', isHot: true, description: 'Surrounds your message cards with overlapping cyan-magenta double borders that glitch and jitter periodically.'),
-      StoreProduct(id: 'specular-gold-card', slug: 'specular-gold-card', name: 'Gold Metal Card', type: 'DRIP_CARD', price: 549.0, rarity: 'legendary', isHot: true, description: 'Forges a solid reflective gold border around your messages with an automated looping metallic specular glint sweep.'),
+      // 5. NAMEPLATES (Kinetic Username Styling)
+      StoreProduct(id: 'glitch-matrix-tag', slug: 'glitch-matrix-tag', name: 'Glitch Matrix Nameplate', type: 'NAMEPLATE', price: 499.0, rarity: 'legendary', isHot: true, description: 'Erratic green-magenta pixel shifts and digital glitch effect on your name tag.'),
+      StoreProduct(id: 'neon-cyber-tag', slug: 'neon-cyber-tag', name: 'Neon Cyber Nameplate', type: 'NAMEPLATE', price: 299.0, rarity: 'epic', isHot: true, description: 'Radioactive neon outline with breathing glow around your username text.'),
+      StoreProduct(id: 'fire-pulse-tag', slug: 'fire-pulse-tag', name: 'Fire Aura Nameplate', type: 'NAMEPLATE', price: 249.0, rarity: 'rare', description: 'Flaming orange embers pulsing dynamically behind your username lettering.'),
+      StoreProduct(id: 'gold-spark-tag', slug: 'gold-spark-tag', name: 'Gold Specular Nameplate', type: 'NAMEPLATE', price: 399.0, rarity: 'legendary', description: 'Reflective gold metallic sheen sweeping continuously across your nameplate.'),
+      StoreProduct(id: 'rainbow-drip-tag', slug: 'rainbow-drip-tag', name: 'Rainbow Wave Nameplate', type: 'NAMEPLATE', price: 279.0, rarity: 'epic', description: 'Looping hue-spectrum color wave flowing across your name tag.'),
+      StoreProduct(id: 'vampire-goth-tag', slug: 'vampire-goth-tag', name: 'Goth Crimson Nameplate', type: 'NAMEPLATE', price: 349.0, rarity: 'epic', description: 'Dark blood-red gothic outline with subtle mist animations.'),
+
+      // 6. BADGES (Equippable Profile Badges)
+      StoreProduct(id: 'og-badge', slug: 'og-badge', name: 'OG Master Badge', type: 'BADGE', price: 799.0, rarity: 'legendary', isHot: true, description: 'Original early supporter master badge with purple glowing border.'),
+      StoreProduct(id: 'verified-plus', slug: 'verified-plus', name: 'Verified+ Badge', type: 'BADGE', price: 1199.0, rarity: 'legendary', description: 'Official verified creator checkmark with diamond glow.'),
+      StoreProduct(id: 'premium-star', slug: 'premium-star', name: 'Premium Star Badge', type: 'BADGE', price: 249.0, rarity: 'epic', description: 'Sparkling green star badge for active community supporters.'),
+      StoreProduct(id: 'bolt-master', slug: 'bolt-master', name: 'Lightning Bolt Badge', type: 'BADGE', price: 299.0, rarity: 'rare', description: 'Electrical yellow bolt badge for energetic chatters.'),
+      StoreProduct(id: 'diamond-elite', slug: 'diamond-elite', name: 'Diamond Elite Badge', type: 'BADGE', price: 499.0, rarity: 'epic', description: 'Sleek royal purple diamond badge for elite members.'),
+      StoreProduct(id: 'cosmic-overlord-badge', slug: 'cosmic-overlord-badge', name: 'Cosmic Overlord Badge', type: 'BADGE', price: 899.0, rarity: 'legendary', description: 'Mythic galaxy emblem forged in cosmic starfire.'),
+      StoreProduct(id: 'alchemist-badge', slug: 'alchemist-badge', name: 'Badge Alchemist', type: 'BADGE', price: 599.0, rarity: 'legendary', description: 'Mystical shifting alchemy emblem awarded to master creators.'),
+
+      // 7. STICKERS & SOUNDBOARDS
+      StoreProduct(id: 'sticker-chaimal', slug: 'sticker-chaimal', name: 'Indian Classic Memes', type: 'STICKERS', price: 149.0, rarity: 'rare', isHot: true, description: 'Classic Indian meme stickers including Chapal Marunga, chal chal baap ko mat sikha, and Mujhe Maaro.', imageUrl: 'assets/images/emojis/emojis/static/cheekh_ke_scheme_btade.png'),
+      StoreProduct(id: 'sticker-anime-dance', slug: 'sticker-anime-dance', name: 'Animated Anime Dance', type: 'STICKERS', price: 249.0, rarity: 'epic', isHot: true, description: 'Smooth looping retro and anime animated stickers including JotaroDance and kurukuru.', imageUrl: 'assets/images/emojis/emojis/animated/JotaroDance.gif'),
+      StoreProduct(id: 'sticker-pepe-galactic', slug: 'sticker-pepe-galactic', name: 'Pepe Galactic Pack', type: 'STICKERS', price: 199.0, rarity: 'epic', description: 'The absolute premium cosmic Pepe collection.', imageUrl: 'assets/images/emojis/emojis/static/PepeGalaxy.png'),
+      StoreProduct(id: 'handy-emoji-panel', slug: 'handy-emoji-panel', name: 'Handy Emoji Panel (246 Stickers)', type: 'STICKERS', price: 249.0, rarity: 'epic', isHot: true, description: '246 premium stickers — cute, expressive, and animated. Perfect for every conversation.'),
+
+      // 8. SOUNDS & CRATES
+      StoreProduct(id: 'classic-memes', slug: 'classic-memes', name: 'Classic Memes Soundboard', type: 'SOUNDS', price: 79.0, rarity: 'rare', isHot: true, description: 'Vine Boom, Bruh, Oof, Airhorn — essential meme soundboard classics.'),
+      StoreProduct(id: 'mystery-crate', slug: 'mystery-crate', name: 'Mystery Cosmetic Crate', type: 'CRATE', price: 149.0, rarity: 'epic', isHot: true, description: 'Gacha spin unlocking one premium Rare, Epic, or Legendary cosmetic item!'),
+      StoreProduct(id: 'sonic-cyber-bundle', slug: 'sonic-cyber-bundle', name: 'Sonic Cyber Ultimate Bundle', type: 'BUNDLE', price: 599.0, rarity: 'legendary', isHot: true, description: 'Includes Sonic Drip Theme, OG Badge, Neon Ring Decoration, and Classic Memes. Save 55%!'),
     ];
 
     var filtered = allProducts;

@@ -4,8 +4,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/features/store/data/store_service.dart';
 import 'package:mobile/features/store/data/wishlist_service.dart';
+import 'package:mobile/features/store/data/equipment_service.dart';
 import 'package:mobile/features/store/data/store_audio_preview_service.dart';
 import 'package:mobile/features/store/data/store_theme_service.dart';
+import 'package:mobile/features/store/presentation/widgets/discord_profile_preview_card.dart';
 
 class ProductDetailScreen extends ConsumerWidget {
   final String productId;
@@ -206,9 +208,25 @@ class ProductDetailScreen extends ConsumerWidget {
   }
 
   Widget _buildProductPreview(BuildContext context, WidgetRef ref, StoreProduct product, Color rarityColor) {
-    if (product.type.toUpperCase() == 'THEME') {
-      final theme = BuiltInThemes.getById(product.id) ?? BuiltInThemes.sonicDrip;
-      return _buildThemeMockSimulator(theme);
+    final type = product.type.toUpperCase();
+    if (type == 'AVATAR_DECORATION' ||
+        type == 'DECORATION' ||
+        type == 'PROFILE_BANNER' ||
+        type == 'BANNER' ||
+        type == 'PROFILE_THEME' ||
+        type == 'THEME' ||
+        type == 'GRADIENT' ||
+        type == 'PROFILE_EFFECT' ||
+        type == 'EFFECT' ||
+        type == 'NAMEPLATE' ||
+        type == 'BADGE') {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: DiscordProfilePreviewCard(
+          previewProduct: product,
+          showLiveLabel: true,
+        ),
+      );
     }
 
     final previewStatus = ref.watch(storeAudioPreviewProvider);
@@ -603,6 +621,15 @@ class ProductDetailScreen extends ConsumerWidget {
     final wishlist = ref.watch(wishlistProvider);
     final isInWishlist = wishlist.contains(product.id);
 
+    final purchasesAsync = ref.watch(userPurchasesProvider);
+    final purchases = purchasesAsync.value ?? [];
+    final isOwned = isFree || purchases.any((p) => p.productId == product.id);
+
+    final equippedAsync = ref.watch(equippedItemsProvider);
+    final equippedMap = equippedAsync.value ?? {};
+    final typeKey = product.type.toLowerCase();
+    final isEquipped = equippedMap[typeKey]?.productId == product.id;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -630,7 +657,7 @@ class ProductDetailScreen extends ConsumerWidget {
               child: Container(
                 width: 48,
                 height: 48,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: _cardBgLight,
                   shape: BoxShape.circle,
                 ),
@@ -648,7 +675,7 @@ class ProductDetailScreen extends ConsumerWidget {
               child: Container(
                 width: 48,
                 height: 48,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: _cardBgLight,
                   shape: BoxShape.circle,
                 ),
@@ -666,7 +693,7 @@ class ProductDetailScreen extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'PRICE',
+                    isOwned ? 'STATUS' : 'PRICE',
                     style: GoogleFonts.inter(
                       color: _textMuted,
                       fontSize: 10,
@@ -674,10 +701,10 @@ class ProductDetailScreen extends ConsumerWidget {
                     ),
                   ),
                   Text(
-                    isFree ? 'FREE' : '₹${product.price.toStringAsFixed(0)}',
+                    isOwned ? (isEquipped ? 'EQUIPPED' : 'OWNED') : (isFree ? 'FREE' : '₹${product.price.toStringAsFixed(0)}'),
                     style: GoogleFonts.inter(
-                      color: isFree ? _greenAccent : Colors.white,
-                      fontSize: 20,
+                      color: isOwned ? _greenAccent : (isFree ? _greenAccent : Colors.white),
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -689,46 +716,82 @@ class ProductDetailScreen extends ConsumerWidget {
               flex: 2,
               child: SizedBox(
                 height: 48,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    if (inCart) {
-                      context.push('/store/cart');
-                      return;
-                    }
-                    ref.read(cartProvider.notifier).add(product);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('${product.name} added to cart'),
-                        backgroundColor: _greenAccent,
-                        action: SnackBarAction(
-                          label: 'VIEW CART',
-                          textColor: Colors.white,
-                          onPressed: () => context.push('/store/cart'),
+                child: isOwned
+                    ? ElevatedButton.icon(
+                        onPressed: () async {
+                          final equipService = ref.read(equipmentServiceProvider);
+                          if (isEquipped) {
+                            await equipService.unequipItem(product.id);
+                          } else {
+                            await equipService.equipItem(product.id, product.type);
+                          }
+                          ref.invalidate(equippedItemsProvider);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(isEquipped ? '${product.name} unequipped' : '${product.name} equipped!'),
+                                backgroundColor: _greenAccent,
+                              ),
+                            );
+                          }
+                        },
+                        icon: Icon(
+                          isEquipped ? Icons.check_circle_rounded : Icons.tune_rounded,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                        label: Text(
+                          isEquipped ? 'EQUIPPED' : 'EQUIP NOW',
+                          style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isEquipped ? _greenAccent : _blurple,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          elevation: 0,
+                        ),
+                      )
+                    : ElevatedButton.icon(
+                        onPressed: () {
+                          if (inCart) {
+                            context.push('/store/cart');
+                            return;
+                          }
+                          ref.read(cartProvider.notifier).add(product);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('${product.name} added to cart'),
+                              backgroundColor: _greenAccent,
+                              action: SnackBarAction(
+                                label: 'VIEW CART',
+                                textColor: Colors.white,
+                                onPressed: () => context.push('/store/cart'),
+                              ),
+                            ),
+                          );
+                        },
+                        icon: Icon(
+                          inCart ? Icons.shopping_bag_rounded : Icons.add_shopping_cart_rounded,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                        label: Text(
+                          inCart ? 'VIEW CART' : 'ADD TO CART',
+                          style: GoogleFonts.inter(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: inCart ? _greenAccent : _blurple,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          elevation: 0,
                         ),
                       ),
-                    );
-                  },
-                  icon: Icon(
-                    inCart ? Icons.shopping_bag_rounded : Icons.add_shopping_cart_rounded,
-                    size: 18,
-                  ),
-                  label: Text(
-                    inCart ? 'VIEW CART' : 'ADD TO CART',
-                    style: GoogleFonts.inter(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: inCart ? _greenAccent : _blurple,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    elevation: 0,
-                  ),
-                ),
               ),
             ),
           ],

@@ -7,6 +7,7 @@ import 'package:mobile/features/store/data/wishlist_service.dart';
 import 'package:mobile/features/store/data/equipment_service.dart';
 import 'package:mobile/core/services/flicko_haptics.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
+import 'package:mobile/features/store/presentation/widgets/discord_profile_preview_card.dart';
 
 /// Discord-Style Mobile Shop Screen
 class StoreScreen extends ConsumerStatefulWidget {
@@ -31,7 +32,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
   static const _purpleBannerGrad1 = Color(0xFF381F68);
   static const _purpleBannerGrad2 = Color(0xFF1D1137);
 
-  final _categories = ['ALL', 'DECORATIONS', 'THEMES', 'NAMEPLATES', 'VOICE_SKINS', 'STICKERS', 'BADGES'];
+  final _categories = ['ALL', 'DECORATIONS', 'BANNERS', 'EFFECTS', 'THEMES', 'NAMEPLATES', 'BADGES', 'VOICE_SKINS', 'STICKERS'];
 
   @override
   void initState() {
@@ -859,153 +860,9 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                   const SizedBox(height: 16),
 
                   // Large Interactive Preview Box (Profile / Decoration / Nameplate)
-                  Container(
-                    height: 200,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: _cardBgLight,
-                      borderRadius: BorderRadius.circular(20),
-                      image: selectedTab == 0
-                          ? const DecorationImage(
-                              image: NetworkImage('https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&auto=format&fit=crop&q=60'),
-                              fit: BoxFit.cover,
-                              opacity: 0.45,
-                            )
-                          : null,
-                    ),
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        if (selectedTab == 0) ...[
-                          // Full Profile Card Preview (Screenshot 1)
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              UserAvatar(
-                                size: 76,
-                                name: 'Tarun_ OP',
-                                decoration: product.id,
-                                showStatus: true,
-                                status: UserStatus.online,
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Tarun_ OP',
-                                style: GoogleFonts.inter(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Text(
-                                'tarun0342',
-                                style: GoogleFonts.inter(
-                                  color: Colors.white60,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ] else if (selectedTab == 1) ...[
-                          // Avatar Decoration Frame Only
-                          UserAvatar(
-                            size: 96,
-                            name: product.name,
-                            decoration: product.id,
-                            showStatus: true,
-                            status: UserStatus.online,
-                          ),
-                        ] else ...[
-                          // Nameplate Member List Preview (Screenshot 2)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF1E1F22),
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: Row(
-                                children: [
-                                  UserAvatar(
-                                    size: 40,
-                                    name: 'Tarun_ OP',
-                                    decoration: product.id,
-                                    showStatus: true,
-                                    status: UserStatus.online,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          'Tarun_ OP',
-                                          style: GoogleFonts.inter(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 15,
-                                          ),
-                                        ),
-                                        Text(
-                                          'Playing Flicko',
-                                          style: GoogleFonts.inter(
-                                            color: Colors.white54,
-                                            fontSize: 11,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-
-                  // Tab Segmented Selector (Profile | Decoration | Nameplate) (Screenshot 1 & 2)
-                  Container(
-                    padding: const EdgeInsets.all(3),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.3),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      children: [
-                        for (final tab in [
-                          MapEntry('Profile', 0),
-                          MapEntry('Decoration', 1),
-                          MapEntry('Nameplate', 2),
-                        ])
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () => setSheetState(() => selectedTab = tab.value),
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 180),
-                                padding: const EdgeInsets.symmetric(vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: selectedTab == tab.value ? const Color(0xFF2B2D31) : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(18),
-                                ),
-                                child: Text(
-                                  tab.key,
-                                  style: GoogleFonts.inter(
-                                    color: selectedTab == tab.value ? Colors.white : Colors.white54,
-                                    fontSize: 13,
-                                    fontWeight: selectedTab == tab.value ? FontWeight.bold : FontWeight.normal,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
+                  DiscordProfilePreviewCard(
+                    previewProduct: product,
+                    showLiveLabel: true,
                   ),
                   const SizedBox(height: 18),
 
@@ -1016,7 +873,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                       product.name,
                       style: GoogleFonts.inter(
                         color: Colors.white,
-                        fontSize: 24,
+                        fontSize: 22,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -1025,7 +882,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                   Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      product.description ?? 'Give your avatar a new look.',
+                      product.description ?? 'Give your avatar and profile a new look.',
                       style: GoogleFonts.inter(
                         color: Colors.white60,
                         fontSize: 13,
@@ -1035,18 +892,18 @@ class _StoreScreenState extends ConsumerState<StoreScreen>
                   ),
                   const SizedBox(height: 16),
 
-              // Pricing Row (₹255.00 & ❖ 4100)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '₹${product.price.toStringAsFixed(2)}',
-                    style: GoogleFonts.inter(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  // Pricing Row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        product.price == 0 ? 'FREE' : '₹${product.price.toStringAsFixed(2)}',
+                        style: GoogleFonts.inter(
+                          color: product.price == 0 ? _greenDiscount : Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                   Row(
                     children: [
                       const Icon(Icons.auto_awesome_rounded, color: Colors.white70, size: 16),

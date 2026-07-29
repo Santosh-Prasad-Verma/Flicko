@@ -8,6 +8,7 @@ import 'package:mobile/features/store/data/avatar_decoration_service.dart';
 
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/core/services/presence_service.dart';
+import 'package:mobile/features/store/data/equipment_service.dart';
 
 enum UserStatus { online, idle, dnd, offline }
 
@@ -40,9 +41,11 @@ class UserAvatar extends ConsumerWidget {
 
     final badgeAsync = showBadge && isCurrentUser ? ref.watch(equippedBadgeProvider) : null;
     final decorationAsync = isCurrentUser ? ref.watch(equippedDecorationProvider) : null;
+    final equippedAsync = isCurrentUser ? ref.watch(equippedItemsProvider) : null;
+    final equippedDec = equippedAsync?.value?['avatar_decoration']?.productId ?? equippedAsync?.value?['decoration']?.productId;
 
     // If widget has explicit decoration param, use it. Otherwise resolve dynamic equipped decoration for current user
-    final activeDecoration = decoration ?? (isCurrentUser ? decorationAsync?.value?.id : null);
+    final activeDecoration = decoration ?? (isCurrentUser ? (decorationAsync?.value?.id ?? equippedDec) : null);
     
     // Resolve dynamic online status from presence service if userId is provided
     final targetUserId = userId;
