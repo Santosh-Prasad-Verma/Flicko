@@ -132,13 +132,17 @@ class _DiscordProfilePreviewCardState
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text(
-                    'LIVE PROFILE PREVIEW — HOW OTHERS SEE YOU',
-                    style: GoogleFonts.inter(
-                      color: const Color(0xFF949BA4),
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.8,
+                  Expanded(
+                    child: Text(
+                      'LIVE PROFILE PREVIEW — HOW OTHERS SEE YOU',
+                      style: GoogleFonts.inter(
+                        color: const Color(0xFF949BA4),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.8,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
