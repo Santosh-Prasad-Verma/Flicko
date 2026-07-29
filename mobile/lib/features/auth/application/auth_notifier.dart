@@ -127,6 +127,8 @@ class AuthNotifier extends Notifier<AuthState> {
       await _repository.signOut();
     } catch (e) {
       state = AuthState.error(e.toString());
+    } finally {
+      state = const AuthState.unauthenticated();
     }
   }
 

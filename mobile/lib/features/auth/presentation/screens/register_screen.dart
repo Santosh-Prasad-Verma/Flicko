@@ -9,6 +9,7 @@ import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/data/services/oauth_service.dart';
 import 'package:mobile/features/shared/presentation/widgets/keyboard_dismiss_on_tap.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:mobile/core/services/username_availability_service.dart';
 
 /// Register Screen — Discord-inspired
 ///
@@ -44,6 +45,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   bool _isCheckingUsername = false;
   bool? _isUsernameAvailable;
   Timer? _usernameCheckTimer;
+  List<String> _usernameSuggestions = [];
 
   @override
   void dispose() {
@@ -66,13 +68,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 
   bool _validatePassword(String password) {
-    // At least 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special
     if (password.length < 8) return false;
     if (!password.contains(RegExp(r'[A-Z]'))) return false;
     if (!password.contains(RegExp(r'[a-z]'))) return false;
     if (!password.contains(RegExp(r'\d'))) return false;
     if (!password.contains(RegExp(r'[!@#$%^&*()_+\-=\[\]{};:\x22\x27\\|,.<>\/?]'))) return false;
-    // No 3+ repeated chars
     if (RegExp(r'(.)\1{2,}').hasMatch(password)) return false;
     return true;
   }
@@ -108,47 +108,37 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       _usernameError = null;
       _isUsernameAvailable = null;
       _isCheckingUsername = false;
+      _usernameSuggestions = [];
     });
 
     _usernameCheckTimer?.cancel();
     final trimmed = value.trim();
-    if (trimmed.length >= 2 && _validateUsername(trimmed)) {
+    if (trimmed.length >= 2) {
       setState(() => _isCheckingUsername = true);
-      _usernameCheckTimer = Timer(const Duration(milliseconds: 450), () {
+      _usernameCheckTimer = Timer(const Duration(milliseconds: 300), () {
         _checkUsernameAvailability(trimmed);
       });
-    } else if (trimmed.isNotEmpty && !_validateUsername(trimmed)) {
-      setState(() => _usernameError = '2-32 chars: letters, numbers, _ . -');
     }
   }
 
   Future<void> _checkUsernameAvailability(String name) async {
     try {
-      final supabase = Supabase.instance.client;
-      final data = await supabase
-          .from('profiles')
-          .select('id')
-          .ilike('username', name)
-          .limit(1);
+      final service = ref.read(usernameAvailabilityServiceProvider);
+      final result = await service.checkAvailability(name);
 
       if (!mounted) return;
-      if (data.isNotEmpty) {
-        setState(() {
-          _usernameError = 'Username is already taken';
-          _isUsernameAvailable = false;
-          _isCheckingUsername = false;
-        });
-      } else {
-        setState(() {
-          _usernameError = null;
-          _isUsernameAvailable = true;
-          _isCheckingUsername = false;
-        });
-      }
+      setState(() {
+        _isCheckingUsername = false;
+        _isUsernameAvailable = result.isAvailable;
+        _usernameError = result.error;
+        _usernameSuggestions = result.suggestions;
+      });
     } catch (_) {
       if (mounted) {
         setState(() {
           _isCheckingUsername = false;
+          _isUsernameAvailable = true;
+          _usernameError = null;
         });
       }
     }
@@ -895,6 +885,76 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 fontWeight: FontWeight.w600,
               ),
             ),
+          ],
+        ),
+      );
+    }
+
+    if (_isUsernameAvailable == false) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 6),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.cancel_rounded, color: Color(FlickoColors.danger), size: 14),
+                const SizedBox(width: 6),
+                Text(
+                  _usernameError ?? 'Username is already taken',
+                  style: GoogleFonts.inter(
+                    color: const Color(FlickoColors.danger),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            if (_usernameSuggestions.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                'SUGGESTIONS:',
+                style: GoogleFonts.inter(
+                  color: const Color(FlickoColors.textMuted),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.8,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: _usernameSuggestions.map((suggestion) {
+                  return InkWell(
+                    onTap: () {
+                      _usernameController.text = suggestion;
+                      _handleUsernameChange(suggestion);
+                    },
+                    borderRadius: BorderRadius.circular(14),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(FlickoColors.brandLime).withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: const Color(FlickoColors.brandLime).withValues(alpha: 0.4),
+                          width: 1,
+                        ),
+                      ),
+                      child: Text(
+                        suggestion,
+                        style: GoogleFonts.inter(
+                          color: const Color(FlickoColors.brandLime),
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
           ],
         ),
       );
