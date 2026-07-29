@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
-import 'dart:ui';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/features/store/data/store_service.dart';
 import 'package:mobile/features/store/data/store_payment_service.dart';
+import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/settings/application/payment_methods_provider.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
+import 'package:mobile/core/config/app_config.dart';
 
 // Discord Mobile Shop Theme Palette
 const _bgDark = Color(0xFF111214);
@@ -684,6 +685,8 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
   }
 
   Widget _buildCouponCodeSection() {
+    final activeCoupon = ref.watch(activeCouponProvider);
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -1147,23 +1150,21 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.black,
-        shape: const Border(
-          top: BorderSide(color: _kNeon, width: 4),
-          left: BorderSide(color: _kNeon, width: 2),
-          right: BorderSide(color: _kNeon, width: 2),
-          bottom: BorderSide(color: _kNeon, width: 2),
+        backgroundColor: _kCardBg,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: _kBlurple, width: 1.5),
         ),
         title: Row(
           children: [
-            const Icon(Icons.terminal, color: _kNeon, size: 20),
+            const Icon(Icons.terminal_rounded, color: _kBlurple, size: 22),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'SANDBOX_OVERRIDE',
-                style: GoogleFonts.spaceGrotesk(
-                  color: _kWhite,
-                  fontWeight: FontWeight.w900,
+                'TEST MODE OVERRIDE',
+                style: GoogleFonts.inter(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
                   fontSize: 18,
                 ),
               ),
@@ -1177,18 +1178,18 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.05),
-                border: Border.all(color: Colors.red.withValues(alpha: 0.5), width: 1),
+                color: Colors.redAccent.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.info_outline, color: Colors.red, size: 14),
+                  const Icon(Icons.info_outline_rounded, color: Colors.redAccent, size: 14),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'LIVE_GATEWAY: NOT_CONFIGURED',
-                      style: GoogleFonts.robotoMono(
-                        color: Colors.red,
+                      'LIVE GATEWAY UNCONFIGURED',
+                      style: GoogleFonts.inter(
+                        color: Colors.redAccent,
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
                       ),
@@ -1197,14 +1198,14 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
             Text(
-              'PROCESS STORE PURCHASE OF ₹${amount.toStringAsFixed(0)} IN TEST MODE?\n\n'
-              'THIS WILL GRANT COSMETICS WITHOUT PROCESSING A REAL PAYMENT.',
-              style: GoogleFonts.robotoMono(
-                color: _kWhite.withValues(alpha: 0.8),
-                fontSize: 12,
-                height: 1.6,
+              'Process test store purchase of ₹${amount.toStringAsFixed(0)}?\n\n'
+              'This will grant items directly in debug mode.',
+              style: GoogleFonts.inter(
+                color: _kTextMuted,
+                fontSize: 13,
+                height: 1.5,
               ),
             ),
           ],
@@ -1213,34 +1214,24 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: Text(
-              'ABORT',
-              style: GoogleFonts.robotoMono(
-                color: _kWhite.withValues(alpha: 0.5),
+              'CANCEL',
+              style: GoogleFonts.inter(
+                color: _kTextMuted,
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
-          const SizedBox(width: 8),
-          GestureDetector(
-            onTap: () => Navigator.pop(ctx, true),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              decoration: BoxDecoration(
-                color: _kNeon,
-                border: Border.all(color: Colors.black, width: 2),
-                boxShadow: const [
-                  BoxShadow(color: Colors.white, offset: Offset(3, 3)),
-                ],
-              ),
-              child: Text(
-                'OVERRIDE_&_PURCHASE',
-                style: GoogleFonts.spaceGrotesk(
-                  color: Colors.black,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 13,
-                  letterSpacing: 1,
-                ),
-              ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _kBlurple,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
+            ),
+            child: Text(
+              'PURCHASE IN TEST MODE',
+              style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 12),
             ),
           ),
         ],
@@ -1253,66 +1244,61 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
       context: context,
       barrierDismissible: true,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.black,
-        shape: const Border(
-          top: BorderSide(color: _kLime, width: 4),
-          left: BorderSide(color: _kLime, width: 2),
-          right: BorderSide(color: _kLime, width: 2),
-          bottom: BorderSide(color: _kLime, width: 2),
+        backgroundColor: _kCardBg,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: _kGreen, width: 1.5),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 80,
-              height: 80,
+              width: 72,
+              height: 72,
               decoration: BoxDecoration(
-                color: Colors.black,
-                border: Border.all(color: _kLime, width: 1),
+                color: _kGreen.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.check_circle, color: _kLime, size: 48),
+              child: const Icon(Icons.check_circle_rounded, color: _kGreen, size: 44),
             ),
             const SizedBox(height: 20),
             Text(
               'PURCHASE SUCCESSFUL!',
               style: GoogleFonts.inter(
-                color: _kWhite,
-                fontWeight: FontWeight.w900,
-                fontSize: 20,
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               'Your items are now available in My Items.',
-              style: GoogleFonts.inter(color: _kMuted),
+              style: GoogleFonts.inter(color: _kTextMuted, fontSize: 13),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
-            GestureDetector(
-              onTap: () {
-                Navigator.pop(ctx);
-                context.pop();
-              },
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                margin: const EdgeInsets.only(right: 4, bottom: 4),
-                decoration: BoxDecoration(
-                  color: _kLime,
-                  border: Border.all(color: Colors.black, width: 2),
-                  boxShadow:  [
-                    BoxShadow(color: Colors.white.withValues(alpha: 0.25),
-                      blurRadius: 14, offset: const Offset(0, 4),
-                    ),
-                  ],
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  context.pop();
+                  context.push('/store/inventory');
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _kGreen,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  elevation: 0,
                 ),
-                child: Center(
-                  child: Text(
-                    'VIEW MY ITEMS',
-                    style: GoogleFonts.inter(
-                      color: Colors.black,
-                      fontWeight: FontWeight.w900,
-                    ),
+                child: Text(
+                  'VIEW MY ITEMS',
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
                   ),
                 ),
               ),

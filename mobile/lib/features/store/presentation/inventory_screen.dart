@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:get_it/get_it.dart';
-import 'package:mobile/features/sonic_music/Helpers/config.dart';
 import 'package:mobile/features/store/data/store_service.dart';
 import 'package:mobile/features/store/data/equipment_service.dart';
 
@@ -272,71 +270,33 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
                       ],
                     ],
                   ),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.check, color: Colors.black, size: 12),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    'EQUIPPED',
-                                    style: GoogleFonts.inter(
-                                      color: Colors.black,
-                                      fontWeight: FontWeight.w900,
-                                      fontSize: 10,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        item.productType.toUpperCase(),
-                        style: GoogleFonts.inter(
-                          color: _muted,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Purchased ${_formatDate(item.purchasedAt)}',
-                        style: GoogleFonts.inter(
-                          color: _muted.withValues(alpha: 0.7),
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
+                  const SizedBox(height: 4),
+                  Text(
+                    item.productType.replaceAll('_', ' ').toUpperCase(),
+                    style: GoogleFonts.inter(
+                      color: _textMuted,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ),
-          // Action button
-          Positioned(
-            right: 16,
-            bottom: 16,
-            child: GestureDetector(
-              onTap: () => _showItemOptions(item, isEquipped),
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: _bg,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  Icons.more_vert,
-                  color: _white.withValues(alpha: 0.7),
-                  size: 18,
-                ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Purchased ${_formatDate(item.purchasedAt)}',
+                    style: GoogleFonts.inter(
+                      color: _textMuted.withValues(alpha: 0.7),
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-        ],
+            // Action button
+            IconButton(
+              icon: const Icon(Icons.more_vert_rounded, color: Colors.white70, size: 20),
+              onPressed: () => _showItemOptions(item, isEquipped),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -344,7 +304,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
   void _showItemOptions(UserPurchase item, bool isEquipped) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: _surface,
+      backgroundColor: _bgDark,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -353,30 +313,40 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
           padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(width: 40, height: 4, decoration: BoxDecoration(color: _white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(2))),
-              const SizedBox(height: 24),
-              Text(
-                item.productName,
-                style: GoogleFonts.epilogue(
-                  color: _white,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 20,
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
+              Text(
+                item.productName,
+                style: GoogleFonts.inter(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+              const SizedBox(height: 20),
               if (!isEquipped)
                 ListTile(
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: _lime.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(8),
+                      color: _greenAccent.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(Icons.check_circle, color: _lime),
+                    child: const Icon(Icons.check_circle_rounded, color: _greenAccent, size: 20),
                   ),
-                  title: Text('Equip', style: GoogleFonts.inter(color: _white, fontWeight: FontWeight.w600)),
-                  subtitle: Text('Use this ${item.productType.toLowerCase()}', style: GoogleFonts.inter(color: _muted)),
+                  title: Text('Equip', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold)),
+                  subtitle: Text('Use this ${item.productType.toLowerCase()}', style: GoogleFonts.inter(color: _textMuted)),
                   onTap: () async {
                     Navigator.pop(ctx);
                     await _equipItem(item);
@@ -387,13 +357,13 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.red.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.redAccent.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.remove_circle_outline, color: Colors.red),
+                    child: const Icon(Icons.remove_circle_outline_rounded, color: Colors.redAccent, size: 20),
                   ),
-                  title: Text('Unequip', style: GoogleFonts.inter(color: Colors.red, fontWeight: FontWeight.w600)),
-                  subtitle: Text('Stop using this ${item.productType.toLowerCase()}', style: GoogleFonts.inter(color: _muted)),
+                  title: Text('Unequip', style: GoogleFonts.inter(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                  subtitle: Text('Stop using this ${item.productType.toLowerCase()}', style: GoogleFonts.inter(color: _textMuted)),
                   onTap: () async {
                     Navigator.pop(ctx);
                     await _unequipItem(item);
@@ -403,17 +373,17 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
                 leading: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: _neon.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(8),
+                    color: _blurple.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(Icons.card_giftcard, color: _neon),
+                  child: const Icon(Icons.card_giftcard_rounded, color: _blurple, size: 20),
                 ),
-                title: Text('Gift to Friend', style: GoogleFonts.inter(color: _white, fontWeight: FontWeight.w600)),
-                subtitle: const Text('Coming soon', style: TextStyle(color: _muted)),
+                title: Text('Gift to Friend', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold)),
+                subtitle: Text('Coming soon', style: GoogleFonts.inter(color: _textMuted)),
                 onTap: () {
                   Navigator.pop(ctx);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: const Text('Gifting coming soon!'), backgroundColor: _neon),
+                    const SnackBar(content: Text('Gifting coming soon!'), backgroundColor: _blurple),
                   );
                 },
               ),
@@ -435,7 +405,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${item.productName} equipped!'),
-            backgroundColor: _lime,
+            backgroundColor: _greenAccent,
           ),
         );
       }
@@ -444,7 +414,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Failed to equip item'),
-            backgroundColor: Colors.red,
+            backgroundColor: Colors.redAccent,
           ),
         );
       }
@@ -461,7 +431,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${item.productName} unequipped'),
-            backgroundColor: _neon,
+            backgroundColor: _blurple,
           ),
         );
       }
@@ -493,16 +463,16 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
     switch (type.toUpperCase()) {
       case 'THEME':
       case 'AVATAR_DECORATION':
-        return _neon;
+        return _blurple;
       case 'STICKERS':
-        return _gold;
+        return const Color(0xFFFEE75C);
       case 'SOUNDS':
-        return Colors.cyan;
+        return const Color(0xFF57F287);
       case 'BADGE':
       case 'NAMEPLATE':
-        return _lime;
+        return _greenAccent;
       default:
-        return _muted;
+        return _textMuted;
     }
   }
 

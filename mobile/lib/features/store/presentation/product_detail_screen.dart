@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:ui';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -140,24 +139,23 @@ class ProductDetailScreen extends ConsumerWidget {
                     const SizedBox(height: 16),
                     Text(
                       product.name,
-                      style: GoogleFonts.epilogue(
-                        color: _white,
-                        fontSize: 32,
-                        fontWeight: FontWeight.w900,
-                        fontStyle: FontStyle.italic,
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Icon(_iconForType(product.type), color: _muted, size: 16),
+                        Icon(_iconForType(product.type), color: _textMuted, size: 16),
                         const SizedBox(width: 8),
                         Text(
-                          product.type.toUpperCase(),
+                          product.type.replaceAll('_', ' ').toUpperCase(),
                           style: GoogleFonts.inter(
-                            color: _muted,
+                            color: _textMuted,
                             fontSize: 12,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ],
@@ -168,9 +166,9 @@ class ProductDetailScreen extends ConsumerWidget {
                       Text(
                         'DESCRIPTION',
                         style: GoogleFonts.inter(
-                          color: _muted,
+                          color: _textMuted,
                           fontSize: 11,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.bold,
                           letterSpacing: 1,
                         ),
                       ),
@@ -178,9 +176,9 @@ class ProductDetailScreen extends ConsumerWidget {
                       Text(
                         product.description!,
                         style: GoogleFonts.inter(
-                          color: _white.withValues(alpha: 0.8),
+                          color: Colors.white.withValues(alpha: 0.85),
                           fontSize: 14,
-                          height: 1.6,
+                          height: 1.5,
                         ),
                       ),
                       const SizedBox(height: 24),
@@ -201,10 +199,10 @@ class ProductDetailScreen extends ConsumerWidget {
           bottom: 0,
           left: 0,
           right: 0,
-          child: _buildBottomBar(context, ref, product, isFree, inCart),
+          child: _buildBottomActionBar(context, ref, product, isFree, inCart),
         ),
       ],
-    ));
+    );
   }
 
   Widget _buildProductPreview(BuildContext context, WidgetRef ref, StoreProduct product, Color rarityColor) {
@@ -465,7 +463,7 @@ class ProductDetailScreen extends ConsumerWidget {
             child: Text(
               isPlaying ? 'NOW PREVIEWING...' : 'TAP TO PREVIEW AUDIO',
               style: GoogleFonts.inter(
-                color: isPlaying ? rarityColor : _white.withValues(alpha: 0.5),
+                color: isPlaying ? rarityColor : Colors.white.withValues(alpha: 0.5),
                 fontSize: 10,
                 fontWeight: FontWeight.w900,
               ),
@@ -485,10 +483,10 @@ class ProductDetailScreen extends ConsumerWidget {
         Text(
           'INCLUDES',
           style: GoogleFonts.inter(
-            color: _muted,
+            color: _textMuted,
             fontSize: 11,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 1,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.0,
           ),
         ),
         const SizedBox(height: 12),
@@ -496,13 +494,13 @@ class ProductDetailScreen extends ConsumerWidget {
           padding: const EdgeInsets.only(bottom: 8),
           child: Row(
             children: [
-              const Icon(Icons.check_circle, color: _lime, size: 18),
+              const Icon(Icons.check_circle_rounded, color: _greenAccent, size: 18),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   feature,
                   style: GoogleFonts.inter(
-                    color: _white.withValues(alpha: 0.8),
+                    color: Colors.white.withValues(alpha: 0.85),
                     fontSize: 13,
                   ),
                 ),
@@ -524,20 +522,20 @@ class ProductDetailScreen extends ConsumerWidget {
             Text(
               'REVIEWS',
               style: GoogleFonts.inter(
-                color: _muted,
+                color: _textMuted,
                 fontSize: 11,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.0,
               ),
             ),
             Row(
               children: [
-                ...List.generate(5, (i) => const Icon(Icons.star, color: _gold, size: 16)),
+                ...List.generate(5, (i) => const Icon(Icons.star_rounded, color: Color(0xFFFEE75C), size: 16)),
                 const SizedBox(width: 8),
                 Text(
                   '4.9 (128 reviews)',
                   style: GoogleFonts.inter(
-                    color: _white.withValues(alpha: 0.7),
+                    color: Colors.white.withValues(alpha: 0.7),
                     fontSize: 12,
                   ),
                 ),
@@ -549,8 +547,9 @@ class ProductDetailScreen extends ConsumerWidget {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.black,
-            border: Border.all(color: _neon, width: 1.5),
+            color: _cardBg,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -561,10 +560,10 @@ class ProductDetailScreen extends ConsumerWidget {
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: Colors.black,
-                      border: Border.all(color: _neon, width: 1.5),
+                      color: _cardBgLight,
+                      shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.person, color: _neon, size: 18),
+                    child: const Icon(Icons.person_rounded, color: _blurple, size: 20),
                   ),
                   const SizedBox(width: 12),
                   Column(
@@ -573,13 +572,13 @@ class ProductDetailScreen extends ConsumerWidget {
                       Text(
                         'Alex_Gamer',
                         style: GoogleFonts.inter(
-                          color: _white,
-                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
                           fontSize: 13,
                         ),
                       ),
                       Row(
-                        children: List.generate(5, (i) => const Icon(Icons.star, color: _gold, size: 12)),
+                        children: List.generate(5, (i) => const Icon(Icons.star_rounded, color: Color(0xFFFEE75C), size: 12)),
                       ),
                     ],
                   ),
@@ -589,7 +588,7 @@ class ProductDetailScreen extends ConsumerWidget {
               Text(
                 'Amazing product! The quality is fantastic and it looks even better in person.',
                 style: GoogleFonts.inter(
-                  color: _white.withValues(alpha: 0.7),
+                  color: Colors.white.withValues(alpha: 0.8),
                   fontSize: 13,
                 ),
               ),
@@ -600,165 +599,139 @@ class ProductDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildBottomBar(BuildContext context, WidgetRef ref, StoreProduct product, bool isFree, bool inCart) {
+  Widget _buildBottomActionBar(BuildContext context, WidgetRef ref, StoreProduct product, bool isFree, bool inCart) {
     final wishlist = ref.watch(wishlistProvider);
     final isInWishlist = wishlist.contains(product.id);
 
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.45),
-            border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.08), width: 1.0)),
-          ),
-          child: SafeArea(
-            child: Row(
-              children: [
-                // Wishlist button
-                GestureDetector(
-                  onTap: () async {
-                    await ref.read(wishlistProvider.notifier).toggle(product.id);
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(isInWishlist ? 'Removed from wishlist' : 'Added to wishlist'),
-                          backgroundColor: isInWishlist ? Colors.red : _lime,
-                          duration: const Duration(seconds: 1),
-                        ),
-                      );
-                    }
-                  },
-                  child: Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.05),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: isInWishlist ? Colors.red : Colors.white.withValues(alpha: 0.2),
-                        width: 1,
-                      ),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF18191C),
+        border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.08))),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            // Wishlist button
+            GestureDetector(
+              onTap: () async {
+                await ref.read(wishlistProvider.notifier).toggle(product.id);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(isInWishlist ? 'Removed from wishlist' : 'Added to wishlist'),
+                      backgroundColor: isInWishlist ? _dangerRed : _greenAccent,
+                      duration: const Duration(seconds: 1),
                     ),
-                    child: Icon(
-                      isInWishlist ? Icons.favorite : Icons.favorite_border,
-                      color: isInWishlist ? Colors.red : _white.withValues(alpha: 0.7),
-                      size: 22,
-                    ),
-                  ),
+                  );
+                }
+              },
+              child: Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: _cardBgLight,
+                  shape: BoxShape.circle,
                 ),
-                // Gift button
-                GestureDetector(
-                  onTap: () => _showGiftFriendSelector(context, ref, product),
-                  child: Container(
-                    width: 52,
-                    height: 52,
-                    margin: const EdgeInsets.only(left: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.05),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: _neon.withValues(alpha: 0.4),
-                        width: 1,
-                      ),
-                    ),
-                    child: const Icon(
-                      Icons.card_giftcard,
-                      color: _neon,
-                      size: 22,
-                    ),
-                  ),
+                child: Icon(
+                  isInWishlist ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                  color: isInWishlist ? _dangerRed : Colors.white70,
+                  size: 22,
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'PRICE',
-                        style: GoogleFonts.inter(
-                          color: _muted,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      Text(
-                        isFree ? 'FREE' : '₹${product.price.toStringAsFixed(0)}',
-                        style: GoogleFonts.epilogue(
-                          color: isFree ? _lime : _white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  flex: 2,
-                  child: GestureDetector(
-                    onTap: () {
-                      if (inCart) {
-                        context.push('/store/cart');
-                        return;
-                      }
-
-                      ref.read(cartProvider.notifier).add(product);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('${product.name} added to cart'),
-                          backgroundColor: _lime,
-                          action: SnackBarAction(
-                            label: 'VIEW CART',
-                            textColor: Colors.black,
-                            onPressed: () => context.push('/store/cart'),
-                          ),
-                        ),
-                      );
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      decoration: BoxDecoration(
-                        color: inCart ? _lime : _neon,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: (inCart ? _lime : _neon).withValues(alpha: 0.3),
-                            blurRadius: 16,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Center(
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              inCart ? Icons.shopping_bag : Icons.add_shopping_cart,
-                              color: Colors.black,
-                              size: 18,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              inCart ? 'VIEW CART' : 'ADD TO CART',
-                              style: GoogleFonts.inter(
-                                color: Colors.black,
-                                fontWeight: FontWeight.w900,
-                                fontSize: 13,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
+            const SizedBox(width: 10),
+            // Gift button
+            GestureDetector(
+              onTap: () => _showGiftFriendSelector(context, ref, product),
+              child: Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: _cardBgLight,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.card_giftcard_rounded,
+                  color: _blurple,
+                  size: 22,
+                ),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'PRICE',
+                    style: GoogleFonts.inter(
+                      color: _textMuted,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    isFree ? 'FREE' : '₹${product.price.toStringAsFixed(0)}',
+                    style: GoogleFonts.inter(
+                      color: isFree ? _greenAccent : Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              flex: 2,
+              child: SizedBox(
+                height: 48,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    if (inCart) {
+                      context.push('/store/cart');
+                      return;
+                    }
+                    ref.read(cartProvider.notifier).add(product);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('${product.name} added to cart'),
+                        backgroundColor: _greenAccent,
+                        action: SnackBarAction(
+                          label: 'VIEW CART',
+                          textColor: Colors.white,
+                          onPressed: () => context.push('/store/cart'),
+                        ),
+                      ),
+                    );
+                  },
+                  icon: Icon(
+                    inCart ? Icons.shopping_bag_rounded : Icons.add_shopping_cart_rounded,
+                    size: 18,
+                  ),
+                  label: Text(
+                    inCart ? 'VIEW CART' : 'ADD TO CART',
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: inCart ? _greenAccent : _blurple,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    elevation: 0,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -775,7 +748,7 @@ class ProductDetailScreen extends ConsumerWidget {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.black,
+      backgroundColor: _bgDark,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -789,15 +762,15 @@ class ProductDetailScreen extends ConsumerWidget {
               Text(
                 'GIFT TO A FRIEND',
                 style: GoogleFonts.inter(
-                  color: _white,
-                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
                   fontSize: 18,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 'Select a friend to gift "${product.name}" to:',
-                style: GoogleFonts.inter(color: _muted, fontSize: 13),
+                style: GoogleFonts.inter(color: _textMuted, fontSize: 13),
               ),
               const SizedBox(height: 16),
               Expanded(
@@ -806,63 +779,56 @@ class ProductDetailScreen extends ConsumerWidget {
                   itemBuilder: (ctx, index) {
                     final friend = friends[index];
                     return Container(
-                      margin: const EdgeInsets.only(bottom: 8, right: 4),
+                      margin: const EdgeInsets.only(bottom: 8),
                       decoration: BoxDecoration(
-                        color: Colors.black,
-                        border: Border.all(color: _neon.withValues(alpha: 0.3), width: 1.5),
+                        color: _cardBg,
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: ListTile(
                         leading: CircleAvatar(
-                          backgroundColor: _neon,
+                          backgroundColor: _blurple,
                           child: Text(
                             friend['displayName']![0],
-                            style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                           ),
                         ),
                         title: Text(
                           friend['displayName']!,
-                          style: GoogleFonts.inter(color: _white, fontWeight: FontWeight.bold),
+                          style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold),
                         ),
                         subtitle: Text(
                           '@${friend['username']!}',
-                          style: GoogleFonts.inter(color: _muted, fontSize: 11),
+                          style: GoogleFonts.inter(color: _textMuted, fontSize: 11),
                         ),
-                        trailing: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          margin: const EdgeInsets.only(right: 4, bottom: 4),
-                          decoration: BoxDecoration(
-                            color: _neon,
-                            border: Border.all(color: Colors.black, width: 1.5),
-                            boxShadow:  [
-                              BoxShadow(color: Colors.white.withValues(alpha: 0.15), blurRadius: 12, offset: const Offset(0, 2)),
-                            ],
+                        trailing: ElevatedButton(
+                          onPressed: () async {
+                            Navigator.pop(ctx);
+                            final storeService = ref.read(storeServiceProvider);
+                            final success = await storeService.giftProduct(
+                              product,
+                              friend['id']!,
+                              friend['displayName']!,
+                            );
+                            if (success && context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Gifted ${product.name} to ${friend['displayName']!}!'),
+                                  backgroundColor: _greenAccent,
+                                ),
+                              );
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _blurple,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            elevation: 0,
                           ),
                           child: Text(
                             'GIFT',
-                            style: GoogleFonts.inter(
-                              color: Colors.black,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 11,
-                            ),
+                            style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 11),
                           ),
                         ),
-                        onTap: () async {
-                          Navigator.pop(ctx);
-                          final storeService = ref.read(storeServiceProvider);
-                          final success = await storeService.giftProduct(
-                            product,
-                            friend['id']!,
-                            friend['displayName']!,
-                          );
-                          if (success && context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Gifted ${product.name} to ${friend['displayName']!}!'),
-                                backgroundColor: _lime,
-                              ),
-                            );
-                          }
-                        },
                       ),
                     );
                   },
@@ -913,13 +879,13 @@ class ProductDetailScreen extends ConsumerWidget {
   Color _getRarityColor(String rarity) {
     switch (rarity.toLowerCase()) {
       case 'legendary':
-        return _gold;
+        return const Color(0xFFFEE75C);
       case 'epic':
-        return _neon;
+        return const Color(0xFFEB459E);
       case 'rare':
-        return const Color(0xFF00E5FF);
+        return const Color(0xFF57F287);
       default:
-        return _muted;
+        return _textMuted;
     }
   }
 
