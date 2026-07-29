@@ -574,11 +574,13 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
       child: Row(
         children: [
           IconButton(
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white, size: 26),
+            padding: const EdgeInsets.all(8),
+            constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+            icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white, size: 28),
             onPressed: () {
-              Navigator.of(context).pop();
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              }
             },
           ),
           const SizedBox(width: 6),
@@ -959,7 +961,7 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
     Participant? screenSharingParticipant;
     VideoTrack? screenShareTrack;
     for (final p in voiceState.participants) {
-      final pubs = p.videoTrackPublications.where((pub) => pub.track != null && pub.isScreenShare).toList();
+      final pubs = p.videoTrackPublications.where((pub) => pub.track != null && !pub.muted && pub.isScreenShare).toList();
       if (pubs.isNotEmpty) {
         screenSharingParticipant = p;
         screenShareTrack = pubs.first.track as VideoTrack?;
@@ -1188,13 +1190,13 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
 
     // Detect if participant has an active screen share track
     final screenShareTrack = participant.videoTrackPublications
-        .where((pub) => pub.track != null && pub.isScreenShare)
+        .where((pub) => pub.track != null && !pub.muted && pub.isScreenShare)
         .toList();
     final hasScreenShare = !ignoreScreenShare && screenShareTrack.isNotEmpty;
 
     // Detect if participant has an active video track
     final videoTrack = participant.videoTrackPublications
-        .where((pub) => pub.track != null && pub.kind == TrackType.VIDEO && !pub.isScreenShare)
+        .where((pub) => pub.track != null && !pub.muted && pub.kind == TrackType.VIDEO && !pub.isScreenShare)
         .toList();
     final hasVideo = videoTrack.isNotEmpty;
 
@@ -1584,6 +1586,7 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
   }) {
     return GestureDetector(
       onTap: onTap,
+      behavior: HitTestBehavior.opaque,
       child: Container(
         width: 52,
         height: 52,

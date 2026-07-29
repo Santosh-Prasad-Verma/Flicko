@@ -39,12 +39,14 @@ func (s *livekitService) GenerateToken(roomName string, participantName string, 
 
 	canPub := canPublish
 	canPubData := canPublishData
+	canSub := true
 
 	grant := &auth.VideoGrant{
 		RoomJoin:       true,
 		Room:           roomName,
 		CanPublish:     &canPub,
 		CanPublishData: &canPubData,
+		CanSubscribe:   &canSub,
 	}
 
 	at := auth.NewAccessToken(s.apiKey, s.apiSecret).

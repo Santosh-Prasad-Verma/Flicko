@@ -47,8 +47,8 @@ class RoomNotifier extends Notifier<RoomState> {
     if (local != null) {
       participants[local.sid] = ParticipantState(
         participant: local,
-        videoTrack: local.videoTrackPublications.firstWhereOrNull((p) => p.track != null)?.track as VideoTrack?,
-        audioTrack: local.audioTrackPublications.firstWhereOrNull((p) => p.track != null)?.track as AudioTrack?,
+        videoTrack: local.videoTrackPublications.firstWhereOrNull((p) => p.track != null && !p.muted)?.track as VideoTrack?,
+        audioTrack: local.audioTrackPublications.firstWhereOrNull((p) => p.track != null && !p.muted)?.track as AudioTrack?,
         isSpeaking: local.isSpeaking,
         isMuted: local.isMuted,
       );
@@ -57,8 +57,8 @@ class RoomNotifier extends Notifier<RoomState> {
     for (var p in room.remoteParticipants.values) {
       participants[p.sid] = ParticipantState(
         participant: p,
-        videoTrack: p.videoTrackPublications.firstWhereOrNull((pub) => pub.track != null)?.track as VideoTrack?,
-        audioTrack: p.audioTrackPublications.firstWhereOrNull((pub) => pub.track != null)?.track as AudioTrack?,
+        videoTrack: p.videoTrackPublications.firstWhereOrNull((pub) => pub.track != null && !pub.muted)?.track as VideoTrack?,
+        audioTrack: p.audioTrackPublications.firstWhereOrNull((pub) => pub.track != null && !pub.muted)?.track as AudioTrack?,
         isSpeaking: p.isSpeaking,
         isMuted: p.isMuted,
       );

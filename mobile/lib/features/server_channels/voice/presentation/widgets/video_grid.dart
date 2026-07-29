@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:livekit_client/livekit_client.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
 
@@ -118,19 +119,24 @@ class VideoGrid extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                // Screen share content placeholder
+                // Screen share content
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    color: Colors.black,
-                    child: const Center(
-                      child: Icon(
-                        Icons.screen_share,
-                        size: 64,
-                        color: Colors.white54,
-                      ),
-                    ),
-                  ),
+                  child: screenShareParticipant.screenShareTrack != null
+                      ? VideoTrackRenderer(
+                          screenShareParticipant.screenShareTrack!,
+                          fit: VideoViewFit.contain,
+                        )
+                      : Container(
+                          color: Colors.black,
+                          child: const Center(
+                            child: Icon(
+                              Icons.screen_share,
+                              size: 64,
+                              color: Colors.white54,
+                            ),
+                          ),
+                        ),
                 ),
 
                 // Screen sharer info overlay
@@ -302,6 +308,8 @@ class VideoParticipant {
   bool isSpeaking;
   bool isScreenSharing;
   bool isPinned;
+  VideoTrack? videoTrack;
+  VideoTrack? screenShareTrack;
 
   VideoParticipant({
     required this.id,
@@ -313,6 +321,8 @@ class VideoParticipant {
     this.isSpeaking = false,
     this.isScreenSharing = false,
     this.isPinned = false,
+    this.videoTrack,
+    this.screenShareTrack,
   });
 
   String get effectiveName => displayName ?? name;
@@ -453,6 +463,12 @@ class VideoTile extends StatelessWidget {
   }
 
   Widget _buildVideoPlaceholder() {
+    if (participant.videoTrack != null) {
+      return VideoTrackRenderer(
+        participant.videoTrack!,
+        fit: VideoViewFit.cover,
+      );
+    }
     return Container(
       color: Colors.black87,
       child: Center(

@@ -78,14 +78,6 @@ class MediaEngine {
         name: 'MediaEngine',
       );
 
-      if (currentlyEnabled == enabled) {
-        developer.log(
-          '[MediaEngine] Camera already in requested state ($enabled)',
-          name: 'MediaEngine',
-        );
-        return enabled;
-      }
-
       if (!enabled) {
         developer.log(
           '[MediaEngine] Disabling camera via LiveKit SDK...',
@@ -107,70 +99,57 @@ class MediaEngine {
       }
 
       // === ENABLING CAMERA ===
-      // Delegate to LiveKit SDK with primary → fallback resolution strategy.
-      final primaryOptions = cameraCaptureOptions ??
-          const CameraCaptureOptions(
-            params: VideoParametersPresets.h540_169,
-            maxFrameRate: 30,
-          );
-
+      // Use caller options or native auto-negotiated options directly.
+      // Avoid forcing intermediate resolution resets (540p -> 720p) that cause Camera2 HAL session
+      // tear-down exceptions (-38) on vendor hardware (Oplus/ColorOS/Realme).
       developer.log(
-        '[MediaEngine] Enabling camera (Primary 540p)...',
+        '[MediaEngine] Enabling camera via LiveKit SDK...',
         name: 'MediaEngine',
       );
       try {
         await localParticipant.setCameraEnabled(
           true,
-          cameraCaptureOptions: primaryOptions,
+          cameraCaptureOptions: cameraCaptureOptions,
         );
         developer.log(
-          '[MediaEngine] Camera enabled successfully (540p)',
+          '[MediaEngine] Camera enabled successfully',
           name: 'MediaEngine',
         );
         return true;
       } catch (primaryError) {
         developer.log(
-          '[MediaEngine] Primary 540p camera failed: $primaryError. Attempting 360p fallback...',
+          '[MediaEngine] Primary camera option failed: $primaryError. Waiting for HAL cleanup...',
           name: 'MediaEngine',
           error: primaryError,
         );
 
-        // Clean up any partial state from failed attempt
+        // Clean up partial state and allow Camera2 HAL time to release hardware resources
         try {
           await localParticipant.setCameraEnabled(false);
         } catch (_) {}
 
-        // Allow Camera2 HAL time to release hardware resources
-        await Future.delayed(const Duration(milliseconds: 500));
+        await Future.delayed(const Duration(milliseconds: 1000));
 
         developer.log(
-          '[MediaEngine] Enabling camera (Fallback 360p)...',
+          '[MediaEngine] Retrying camera with native auto-negotiated options...',
           name: 'MediaEngine',
         );
         try {
-          await localParticipant.setCameraEnabled(
-            true,
-            cameraCaptureOptions: const CameraCaptureOptions(
-              params: VideoParametersPresets.h360_169,
-              maxFrameRate: 24,
-            ),
-          );
+          await localParticipant.setCameraEnabled(true);
           developer.log(
-            '[MediaEngine] Camera enabled successfully (360p fallback)',
+            '[MediaEngine] Camera enabled successfully on retry',
             name: 'MediaEngine',
           );
           return true;
         } catch (fallbackError) {
-          developer.log(
-            '[MediaEngine] Fallback 360p camera also failed: $fallbackError',
-            name: 'MediaEngine',
-            error: fallbackError,
-          );
-          // Final cleanup — ensure camera is fully disabled
           try {
             await localParticipant.setCameraEnabled(false);
           } catch (_) {}
-          rethrow;
+          developer.log(
+            '[MediaEngine] Camera hardware unavailable or in use by another app',
+            name: 'MediaEngine',
+          );
+          return false;
         }
       }
     });
@@ -363,78 +342,25 @@ class MediaEngine {
     });
   }
 
-  /// Safely stops all media tracks and services on room disconnect.
-  /// Delegates to LiveKit SDK for all track disposal — no manual track.stop()/dispose().
+  /// Safely stops foreground services on room disconnect.
+  /// Delegates track disposal entirely to LiveKit SDK's [Room.disconnect()]
+  /// to prevent double-dispose warnings on track emitters.
   Future<void> disposeRoomMedia(Room? room) {
     return _lock.run(() async {
       if (room == null) return;
       developer.log(
-        '[MediaEngine] Disposing all room media tracks deterministically...',
+        '[MediaEngine] Cleaning up media background services on room disconnect...',
         name: 'MediaEngine',
       );
-      try {
-        final localParticipant = room.localParticipant;
-        if (localParticipant != null) {
-          if (localParticipant.isScreenShareEnabled()) {
-            developer.log(
-              '[MediaEngine] Disposing screen share track...',
-              name: 'MediaEngine',
-            );
-            try {
-              await localParticipant.setScreenShareEnabled(false);
-            } catch (e) {
-              developer.log(
-                '[MediaEngine] Screen share disposal error: $e',
-                name: 'MediaEngine',
-              );
-            }
-          }
-          if (localParticipant.isCameraEnabled()) {
-            developer.log(
-              '[MediaEngine] Disposing camera track...',
-              name: 'MediaEngine',
-            );
-            try {
-              await localParticipant.setCameraEnabled(false);
-            } catch (e) {
-              developer.log(
-                '[MediaEngine] Camera track disposal error: $e',
-                name: 'MediaEngine',
-              );
-            }
-          }
-          if (localParticipant.isMicrophoneEnabled()) {
-            developer.log(
-              '[MediaEngine] Disposing microphone track...',
-              name: 'MediaEngine',
-            );
-            try {
-              await localParticipant.setMicrophoneEnabled(false);
-            } catch (e) {
-              developer.log(
-                '[MediaEngine] Microphone track disposal error: $e',
-                name: 'MediaEngine',
-              );
-            }
-          }
-        }
-      } catch (e) {
-        developer.log(
-          '[MediaEngine] Error during room media disposal: $e',
-          name: 'MediaEngine',
-          error: e,
-        );
-      } finally {
-        if (Platform.isAndroid && _isScreenServiceRunning) {
-          try {
-            await _screenCaptureChannel.invokeMethod('stopService');
-            developer.log(
-              '[MediaEngine] Screen Capture Service stopped during room media disposal',
-              name: 'MediaEngine',
-            );
-          } catch (_) {}
-          _isScreenServiceRunning = false;
-        }
+      if (Platform.isAndroid && _isScreenServiceRunning) {
+        try {
+          await _screenCaptureChannel.invokeMethod('stopService');
+          developer.log(
+            '[MediaEngine] Screen Capture Service stopped during room media disposal',
+            name: 'MediaEngine',
+          );
+        } catch (_) {}
+        _isScreenServiceRunning = false;
       }
     });
   }

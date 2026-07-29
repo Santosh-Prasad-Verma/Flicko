@@ -63,7 +63,7 @@ class _VoiceHUDState extends ConsumerState<VoiceHUD> {
     Participant? screenSharingParticipant;
     VideoTrack? screenShareTrack;
     for (final p in voiceState.participants) {
-      final pubs = p.videoTrackPublications.where((pub) => pub.track != null && pub.isScreenShare).toList();
+      final pubs = p.videoTrackPublications.where((pub) => pub.track != null && !pub.muted && pub.isScreenShare).toList();
       if (pubs.isNotEmpty) {
         screenSharingParticipant = p;
         screenShareTrack = pubs.first.track as VideoTrack?;
@@ -76,7 +76,7 @@ class _VoiceHUDState extends ConsumerState<VoiceHUD> {
     VideoTrack? cameraTrack;
     if (screenShareTrack == null) {
       for (final p in voiceState.participants) {
-        final pubs = p.videoTrackPublications.where((pub) => pub.track != null && pub.kind == TrackType.VIDEO && !pub.isScreenShare).toList();
+        final pubs = p.videoTrackPublications.where((pub) => pub.track != null && !pub.muted && pub.kind == TrackType.VIDEO && !pub.isScreenShare).toList();
         if (pubs.isNotEmpty) {
           cameraParticipant = p;
           cameraTrack = pubs.first.track as VideoTrack?;

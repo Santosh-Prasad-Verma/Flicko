@@ -316,7 +316,8 @@ func (h *VideoHandler) GenerateLiveKitToken(w http.ResponseWriter, r *http.Reque
 		canPublish = hasSpeakPerm
 	}
 
-	token, err := h.liveKitSvc.GenerateToken(channelID, userID, userID, canPublish, canPublishData)
+	roomName := "channel_" + channelID
+	token, err := h.liveKitSvc.GenerateToken(roomName, userID, userID, canPublish, canPublishData)
 	if err != nil {
 		h.logger.Error("failed to generate livekit token", zap.Error(err))
 		writeError(w, http.StatusInternalServerError, "failed to generate vc token")

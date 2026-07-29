@@ -74,9 +74,20 @@ class VoiceController extends Notifier<VoiceState> {
     try {
       // 2. Configure Audio Session
       final session = await ref.read(audioSessionProvider);
-      await session.configure(const AudioSessionConfiguration.speech());
-      if (!await session.setActive(true)) {
-        throw Exception('Failed to activate audio session');
+      await session.configure(const AudioSessionConfiguration(
+        avAudioSessionCategory: AVAudioSessionCategory.playAndRecord,
+        avAudioSessionCategoryOptions: AVAudioSessionCategoryOptions.allowBluetooth,
+        avAudioSessionMode: AVAudioSessionMode.voiceChat,
+        androidAudioAttributes: AndroidAudioAttributes(
+          contentType: AndroidAudioContentType.speech,
+          usage: AndroidAudioUsage.voiceCommunication,
+        ),
+        androidAudioFocusGainType: AndroidAudioFocusGainType.gainTransient,
+      ));
+      try {
+        await session.setActive(true);
+      } catch (sessionErr) {
+        developer.log('AudioSession activation warning: $sessionErr', name: 'VoiceController');
       }
 
       // 3. Get Token and Server URL
@@ -306,18 +317,20 @@ class VoiceController extends Notifier<VoiceState> {
     final room = state.room;
     if (room == null) return;
 
-    final camStatus = await Permission.camera.request();
-    if (camStatus != PermissionStatus.granted) {
-      state = state.copyWith(error: 'Camera permission denied');
-      return;
-    }
-
     final localParticipant = room.localParticipant;
     if (localParticipant == null) return;
 
     try {
       final isVideoEnabled = localParticipant.isCameraEnabled();
       final targetEnabled = !isVideoEnabled;
+
+      if (targetEnabled) {
+        final camStatus = await Permission.camera.request();
+        if (camStatus != PermissionStatus.granted) {
+          state = state.copyWith(error: 'Camera permission denied');
+          return;
+        }
+      }
 
       final result = await _mediaEngine.setCameraEnabled(room, targetEnabled);
       _updateParticipants();

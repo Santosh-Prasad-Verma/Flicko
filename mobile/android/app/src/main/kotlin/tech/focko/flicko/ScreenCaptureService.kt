@@ -85,6 +85,8 @@ class ScreenCaptureService : Service() {
                     } else {
                         startForeground(NOTIFICATION_ID, notification)
                     }
+                } catch (e: SecurityException) {
+                    android.util.Log.e("ScreenCaptureService", "SecurityException starting FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION: ${e.message}")
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
