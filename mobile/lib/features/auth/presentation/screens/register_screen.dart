@@ -41,6 +41,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   String? _oauthLoading;
   bool _isVerificationEmailSent = false;
   
+  bool _isCheckingUsername = false;
+  bool? _isUsernameAvailable;
   Timer? _usernameCheckTimer;
 
   @override
@@ -75,17 +77,48 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     return true;
   }
 
+  String _sanitizeErrorMessage(String raw) {
+    if (raw.contains('502') || raw.contains('unexpected_failure') || raw.contains('hook')) {
+      return 'Registration service is currently busy. Please try again or use Google/GitHub sign in.';
+    }
+    if (raw.contains('already registered') || raw.contains('User already registered')) {
+      return 'This email address is already registered. Try logging in instead.';
+    }
+    if (raw.contains('Username is already taken') || raw.contains('username_taken')) {
+      return 'Username is already taken. Please choose a different username.';
+    }
+    if (raw.contains('Password should be at least')) {
+      return 'Password should be at least 8 characters long.';
+    }
+    if (raw.startsWith('{') && raw.contains('"message"')) {
+      final match = RegExp(r'"message"\s*:\s*"([^"]+)"').firstMatch(raw);
+      if (match != null) {
+        final innerMsg = match.group(1)!;
+        if (innerMsg.contains('502')) {
+          return 'Registration server connection issue. Please try again.';
+        }
+        return innerMsg;
+      }
+    }
+    return raw.replaceAll(RegExp(r'^AuthException:\s*'), '').trim();
+  }
+
   void _handleUsernameChange(String value) {
     setState(() {
       _usernameError = null;
+      _isUsernameAvailable = null;
+      _isCheckingUsername = false;
     });
-    
+
     _usernameCheckTimer?.cancel();
     final trimmed = value.trim();
     if (trimmed.length >= 2 && _validateUsername(trimmed)) {
-      _usernameCheckTimer = Timer(const Duration(milliseconds: 500), () {
+      setState(() => _isCheckingUsername = true);
+      _usernameCheckTimer = Timer(const Duration(milliseconds: 450), () {
         _checkUsernameAvailability(trimmed);
       });
+    } else if (trimmed.isNotEmpty && !_validateUsername(trimmed)) {
+      setState(() => _usernameError = '2-32 chars: letters, numbers, _ . -');
     }
   }
 
@@ -97,11 +130,27 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           .select('id')
           .ilike('username', name)
           .limit(1);
-          
+
+      if (!mounted) return;
       if (data.isNotEmpty) {
-        setState(() => _usernameError = 'Username is already taken');
+        setState(() {
+          _usernameError = 'Username is already taken';
+          _isUsernameAvailable = false;
+          _isCheckingUsername = false;
+        });
+      } else {
+        setState(() {
+          _usernameError = null;
+          _isUsernameAvailable = true;
+          _isCheckingUsername = false;
+        });
       }
-    } finally {
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _isCheckingUsername = false;
+        });
+      }
     }
   }
 
@@ -297,11 +346,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           _successMessage = 'Account created! A confirmation link has been sent to your email. Check your spam folder too.';
         });
       } else {
-        setState(() => _generalError = e.message);
+        setState(() => _generalError = _sanitizeErrorMessage(e.message));
       }
     } catch (e) {
       debugPrint('Register error: $e');
-      setState(() => _generalError = 'Registration failed: ${e.toString()}');
+      setState(() => _generalError = _sanitizeErrorMessage(e.toString()));
     } finally {
       setState(() => _isLoading = false);
     }
@@ -505,6 +554,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           error: _usernameError,
           onChanged: _handleUsernameChange,
         ),
+        _buildUsernameAvailabilityIndicator(),
         
         const SizedBox(height: 24),
         
@@ -519,8 +569,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             if (_passwordError != null) {
               setState(() => _passwordError = null);
             }
+            setState(() {});
           },
         ),
+        _buildPasswordStrengthCard(),
         
         const SizedBox(height: 24),
         
@@ -765,20 +817,200 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   Widget _buildErrorBanner() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: const Color(FlickoColors.danger).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        _generalError!,
-        style: GoogleFonts.inter(
-          color: const Color(FlickoColors.danger),
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
+        border: Border.all(
+          color: const Color(FlickoColors.danger).withValues(alpha: 0.3),
         ),
-        textAlign: TextAlign.center,
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.error_outline_rounded,
+            color: Color(FlickoColors.danger),
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              _generalError!,
+              style: GoogleFonts.inter(
+                color: const Color(FlickoColors.danger),
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                height: 1.35,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUsernameAvailabilityIndicator() {
+    final trimmed = _usernameController.text.trim();
+    if (trimmed.isEmpty) return const SizedBox.shrink();
+
+    if (_isCheckingUsername) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 6),
+        child: Row(
+          children: [
+            const SizedBox(
+              width: 12,
+              height: 12,
+              child: CircularProgressIndicator(
+                strokeWidth: 1.5,
+                valueColor: AlwaysStoppedAnimation<Color>(Color(FlickoColors.textMuted)),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Checking username availability...',
+              style: GoogleFonts.inter(
+                color: const Color(FlickoColors.textMuted),
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_isUsernameAvailable == true) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 6),
+        child: Row(
+          children: [
+            const Icon(Icons.check_circle_rounded, color: Color(FlickoColors.brandLime), size: 14),
+            const SizedBox(width: 6),
+            Text(
+              'Username is available',
+              style: GoogleFonts.inter(
+                color: const Color(FlickoColors.brandLime),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return const SizedBox.shrink();
+  }
+
+  Widget _buildPasswordStrengthCard() {
+    final pwd = _passwordController.text;
+    if (pwd.isEmpty) return const SizedBox.shrink();
+
+    final hasMinLength = pwd.length >= 8;
+    final hasUpper = pwd.contains(RegExp(r'[A-Z]'));
+    final hasLower = pwd.contains(RegExp(r'[a-z]'));
+    final hasDigit = pwd.contains(RegExp(r'\d'));
+    final hasSpecial = pwd.contains(RegExp(r'[!@#$%^&*()_+\-=\[\]{};:\x22\x27\\|,.<>\/?]'));
+
+    int metCount = 0;
+    if (hasMinLength) metCount++;
+    if (hasUpper) metCount++;
+    if (hasLower) metCount++;
+    if (hasDigit) metCount++;
+    if (hasSpecial) metCount++;
+
+    Color strengthColor = Colors.redAccent;
+    String strengthLabel = 'Weak';
+    if (metCount >= 4) {
+      strengthColor = const Color(FlickoColors.brandLime);
+      strengthLabel = 'Strong';
+    } else if (metCount >= 2) {
+      strengthColor = Colors.orangeAccent;
+      strengthLabel = 'Medium';
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'PASSWORD STRENGTH',
+                style: GoogleFonts.inter(
+                  color: const Color(FlickoColors.textMuted),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.0,
+                ),
+              ),
+              Text(
+                strengthLabel.toUpperCase(),
+                style: GoogleFonts.inter(
+                  color: strengthColor,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: List.generate(5, (index) {
+              final active = index < metCount;
+              return Expanded(
+                child: Container(
+                  height: 4,
+                  margin: EdgeInsets.only(right: index < 4 ? 4 : 0),
+                  decoration: BoxDecoration(
+                    color: active ? strengthColor : Colors.white.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              );
+            }),
+          ),
+          const SizedBox(height: 10),
+          _buildRequirementItem('At least 8 characters', hasMinLength),
+          _buildRequirementItem('One uppercase letter (A-Z)', hasUpper),
+          _buildRequirementItem('One lowercase letter (a-z)', hasLower),
+          _buildRequirementItem('One number (0-9)', hasDigit),
+          _buildRequirementItem('One special character (!@#\$%^&*)', hasSpecial),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRequirementItem(String text, bool isMet) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          Icon(
+            isMet ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+            color: isMet ? const Color(FlickoColors.brandLime) : const Color(FlickoColors.textMuted),
+            size: 13,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: GoogleFonts.inter(
+              color: isMet ? Colors.white : const Color(FlickoColors.textMuted),
+              fontSize: 11,
+              fontWeight: isMet ? FontWeight.w600 : FontWeight.w400,
+            ),
+          ),
+        ],
       ),
     );
   }

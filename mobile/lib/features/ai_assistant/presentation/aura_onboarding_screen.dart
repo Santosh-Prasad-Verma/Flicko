@@ -187,14 +187,8 @@ class _AuraOnboardingScreenState extends ConsumerState<AuraOnboardingScreen>
                           rotX: 65,
                           rotY: -20,
                           speedFactor: -3.0, // negative for reverse
-                          border: Border(
-                            bottom: BorderSide(
-                                color: _primaryAccent.withOpacity(0.9),
-                                width: 2),
-                            right: BorderSide(
-                                color: _textColor.withOpacity(0.6),
-                                width: 2.5),
-                          ),
+                          color: _primaryAccent.withOpacity(0.8),
+                          borderWidth: 2.0,
                         ),
 
                         // Orbit 3: Middle back layer
@@ -204,14 +198,8 @@ class _AuraOnboardingScreenState extends ConsumerState<AuraOnboardingScreen>
                           rotX: 75,
                           rotY: 5,
                           speedFactor: 4.8,
-                          border: Border(
-                            top: BorderSide(
-                                color: _textColor.withOpacity(0.5),
-                                width: 1.5),
-                            right: BorderSide(
-                                color: _primaryAccent.withOpacity(0.7),
-                                width: 2),
-                          ),
+                          color: _textColor.withOpacity(0.5),
+                          borderWidth: 1.5,
                         ),
 
                         // Glowing sphere element
@@ -261,14 +249,8 @@ class _AuraOnboardingScreenState extends ConsumerState<AuraOnboardingScreen>
                           rotX: 70,
                           rotY: 15,
                           speedFactor: 4.0, // base speed multiplier
-                          border: Border(
-                            top: BorderSide(
-                                color: _textColor.withOpacity(0.85),
-                                width: 3),
-                            left: BorderSide(
-                                color: _primaryAccent.withOpacity(0.4),
-                                width: 2),
-                          ),
+                          color: _textColor.withOpacity(0.85),
+                          borderWidth: 2.5,
                         ),
                       ],
                     ),
@@ -407,7 +389,8 @@ class _AuraOnboardingScreenState extends ConsumerState<AuraOnboardingScreen>
     required double rotX,
     required double rotY,
     required double speedFactor,
-    required Border border,
+    required Color color,
+    double borderWidth = 2.0,
   }) {
     return AnimatedBuilder(
       animation: _rotationController,
@@ -428,7 +411,7 @@ class _AuraOnboardingScreenState extends ConsumerState<AuraOnboardingScreen>
         width: width,
         height: height,
         decoration: BoxDecoration(
-          border: border,
+          border: Border.all(color: color, width: borderWidth),
           borderRadius: BorderRadius.all(
             Radius.elliptical(width / 2, height / 2),
           ),

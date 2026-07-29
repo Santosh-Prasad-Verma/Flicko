@@ -60,9 +60,24 @@ class SettingsScreen extends ConsumerWidget {
               child: authState.maybeWhen(
                 authenticated: (user, profile) =>
                     _buildSettings(context, ref, user, profile),
-                orElse: () => const Center(
-                  child: Text('Logged out', style: TextStyle(color: _textWhite)),
-                ),
+                orElse: () {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (context.mounted) context.go('/login');
+                  });
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const CircularProgressIndicator(color: _neonGreen),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Logging out...',
+                          style: GoogleFonts.inter(color: _textMuted, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
             ),
           ],
@@ -309,7 +324,12 @@ class SettingsScreen extends ConsumerWidget {
               context,
               Icons.logout_rounded,
               'Log Out',
-              () => ref.read(authNotifierProvider.notifier).signOut(),
+              () async {
+                await ref.read(authNotifierProvider.notifier).signOut();
+                if (context.mounted) {
+                  context.go('/login');
+                }
+              },
               isDanger: true,
             ),
             const SizedBox(height: 32),

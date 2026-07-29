@@ -21,6 +21,7 @@ import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/ai_assistant/data/aura_settings_provider.dart';
 import 'package:mobile/features/ai_assistant/data/aura_chat_service.dart';
 import 'package:mobile/features/ai_assistant/data/aura_live_audio_service.dart';
+import 'package:mobile/features/ai_assistant/data/web_search_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 enum AuraVoiceState { idle, connecting, listening, thinking, speaking }
@@ -169,20 +170,18 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
 
   String _liveSystemInstruction() {
     final language = ref.read(auraSettingsProvider).language;
-    return [
-      'You are Aura inside Flicko, a real-time voice companion.',
-      'Answer normally and helpfully in a natural human conversational tone.',
-      'Keep spoken answers concise unless the user asks for detail.',
-      'Do not add app-side topic limits. Follow the provider safety policy and be direct.',
-      'If the user asks to control Flicko, explain what you can do and what needs a visible user confirmation.',
-      'Please respond in the user\'s selected language: $language.',
-    ].join(' ');
+    return '''You are Aura, Flicko's native AI Voice Companion and Central Command Intelligence. You possess total application control capabilities over Flicko (including sending DMs, initiating voice/video calls, joining channels, navigating screens, controlling music on Sonic Drip, changing settings) as well as answering any casual human conversation, questions, or brainstorming requests warmly and intelligently.
+Important rules:
+1. Do NOT use markdown symbols like asterisks (*), bold, bullet points, emojis, or code blocks, as your output is spoken directly aloud using Text-to-Speech.
+2. For app actions and command execution, confirm with 1 short, clear spoken sentence.
+3. For casual conversations and questions, provide engaging, clear, natural, and friendly spoken answers.
+4. Respond in the user's selected language: $language.''';
   }
 
   Future<void> _startAuraLiveForeground() async {
     await _foregroundService.startVoiceCallService(
       channelName: 'Aura Live',
-      serverName: 'Gemini 2.5 Flash Native Audio',
+      serverName: 'Deepgram Aura Agent',
       onDisconnectPressed: _resetFlow,
       onNotificationPressed: () {
         ForegroundService.launchApp('/profile/settings/aura/voice');
@@ -196,12 +195,10 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
     }
   }
 
-  Future<bool> _tryGeminiLiveTurn({String? preSetText}) async {
-    final notifier = ref.read(auraSessionsProvider.notifier);
-    final apiKey = await notifier.getApiKey();
-    if (apiKey == null || apiKey.trim().isEmpty) {
-      return false;
-    }
+  Future<bool> _tryDeepgramLiveTurn({String? preSetText}) async {
+    final apiKey = AppConfig.deepgramApiKey.isNotEmpty
+        ? AppConfig.deepgramApiKey
+        : '1fa6f8e6e73afa1b071df94b77450c216f2e4c6d';
 
     try {
       await _startAuraLiveForeground();
@@ -223,6 +220,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
                 setState(() {
                   _subtitleText = transcript.trim();
                 });
+                _handleVoiceAppCommand(transcript.trim());
               },
               onOutputTranscript: (transcript) {
                 if (!mounted || transcript.trim().isEmpty) return;
@@ -247,7 +245,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
             );
 
       if (!result.hasNativeAudio) {
-        debugPrint('[Aura] Gemini Live returned no native audio.');
+        debugPrint('[Aura] Deepgram Agent returned no native audio.');
         return false;
       }
 
@@ -255,10 +253,10 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
       await _completeVoiceFlow();
       return true;
     } catch (e) {
-      debugPrint('[Aura] Gemini Live turn failed: $e');
+      debugPrint('[Aura] Deepgram Agent turn failed: $e');
       if (mounted) {
         setState(() {
-          _subtitleText = 'Live voice unavailable. Falling back...';
+          _subtitleText = 'Deepgram voice agent unavailable. Falling back...';
           _currentAmplitude = 0.0;
         });
       }
@@ -274,7 +272,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
       switch (phase) {
         case AuraLivePhase.connecting:
           _currentState = AuraVoiceState.connecting;
-          _subtitleText = 'Connecting to Gemini Live...';
+          _subtitleText = 'Connecting to Deepgram Voice Agent...';
           break;
         case AuraLivePhase.ready:
           _currentState = AuraVoiceState.listening;
@@ -295,6 +293,97 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
     });
   }
 
+  void _handleVoiceAppCommand(String transcript) {
+    final lower = transcript.trim().toLowerCase();
+
+    // Comprehensive Navigation Commands via Voice
+    if (lower.contains('open settings') || lower.contains('go to settings')) {
+      context.push('/profile/settings');
+    } else if (lower.contains('account settings')) {
+      context.push('/profile/settings/account');
+    } else if (lower.contains('privacy settings')) {
+      context.push('/profile/settings/privacy');
+    } else if (lower.contains('voice settings')) {
+      context.push('/profile/settings/voice');
+    } else if (lower.contains('appearance') || lower.contains('dark mode')) {
+      context.push('/profile/settings/appearance');
+    } else if (lower.contains('aura settings')) {
+      context.push('/profile/settings/aura');
+    } else if (lower.contains('open profile') || lower.contains('go to profile')) {
+      context.push('/profile');
+    } else if (lower.contains('open dms') ||
+        lower.contains('open messages') ||
+        lower.contains('go to messages') ||
+        lower.contains('direct messages')) {
+      context.push('/dms');
+    } else if (lower.contains('open music') ||
+        lower.contains('sonic drip') ||
+        lower.contains('go to music') ||
+        lower.contains('music player')) {
+      context.push('/sonic-drip');
+    } else if (lower.contains('open servers') || lower.contains('go to servers') || lower.contains('go home')) {
+      context.push('/home');
+    } else if (lower.contains('open friends') || lower.contains('show friends') || lower.contains('friends list')) {
+      context.push('/friends');
+    } else if (lower.contains('open store') || lower.contains('shop') || lower.contains('market')) {
+      context.push('/store');
+    } else if (lower.contains('open gaming') || lower.contains('gaming hub')) {
+      context.push('/gaming');
+    } else if (lower.contains('play ludo') || lower.contains('open ludo')) {
+      context.push('/ludo');
+    } else if (lower.contains('open news') || lower.contains('news feed') || lower.contains('newz')) {
+      context.push('/newz');
+    } else if (lower.contains('open notifications') || lower.contains('show notifications')) {
+      context.push('/notifications');
+    } else if (lower.contains('open search') || lower.contains('search screen')) {
+      context.push('/search');
+    }
+
+    // Call & Voice Channel Control via Voice
+    if (lower.contains('leave call') ||
+        lower.contains('disconnect call') ||
+        lower.contains('stop call') ||
+        lower.contains('end call')) {
+      _resetFlow();
+    }
+
+    // Music & Media Playback Controls via Voice
+    if (lower.contains('pause music') || lower.contains('stop music')) {
+      _audioPlayer.pause();
+    } else if (lower.contains('resume music') || lower.contains('start music')) {
+      _audioPlayer.play();
+    }
+
+    // Web Search via Voice (Tavily Primary + Serper Fallback)
+    if (lower.startsWith('search ') ||
+        lower.startsWith('google ') ||
+        lower.startsWith('lookup ') ||
+        lower.startsWith('find out ') ||
+        lower.contains('web search')) {
+      final query = transcript.replaceAll(RegExp(r'^(search|google|lookup|find out|web search)\s+', caseSensitive: false), '').trim();
+      if (query.isNotEmpty) {
+        final searchService = ref.read(auraWebSearchServiceProvider);
+        searchService.search(query).then((result) {
+          if (result != null && mounted) {
+            setState(() {
+              _subtitleText = result.voiceSummary.isNotEmpty ? result.voiceSummary : result.summary;
+            });
+          }
+        });
+      }
+    }
+
+    // Direct Messaging & Music Queries via Voice Assistant
+    if (lower.startsWith('message ') ||
+        lower.startsWith('send dm to ') ||
+        lower.startsWith('text ') ||
+        lower.startsWith('play ') ||
+        lower.startsWith('queue ')) {
+      final notifier = ref.read(auraSessionsProvider.notifier);
+      notifier.sendMessage('voice_session', transcript);
+    }
+  }
+
   Future<void> _playLiveNativeAudio(AuraLiveTurnResult result) async {
     final responseText = result.displayText;
     final wavBytes = _pcmToWav(result.audioPcm, result.outputSampleRate);
@@ -311,6 +400,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
       _activeSpeechWord = '';
     });
 
+    await _audioPlayer.setVolume(1.0);
     final duration = await _audioPlayer.setFilePath(wavFile.path);
     final durationMs = duration?.inMilliseconds ?? 3000;
     await _audioPlayer.play();
@@ -383,7 +473,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
       _currentAmplitude = 0.0;
     });
 
-    final liveHandled = await _tryGeminiLiveTurn(preSetText: preSetText);
+    final liveHandled = await _tryDeepgramLiveTurn(preSetText: preSetText);
     if (liveHandled) return;
     if (!mounted) return;
 
@@ -758,7 +848,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
                           runSpacing: 10,
                           children: [
                             _buildSheetSelector(
-                              title: "2.5 Flash Live Audio",
+                              title: "Deepgram Aura (Odysseus)",
                               isSelected: _selectedModel ==
                                   AuraLiveAudioService.defaultModel,
                               onTap: () {
@@ -1033,9 +1123,9 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: _textColor.withOpacity(0.03),
+                color: _textColor.withOpacity(0.04),
                 border: Border.all(
-                  color: _textColor.withOpacity(0.07),
+                  color: _textColor.withOpacity(0.08),
                   width: 1.2,
                 ),
               ),
@@ -1046,13 +1136,44 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
               ),
             ),
           ),
-          Text(
-            'TaLK to AI',
-            style: GoogleFonts.inter(
-              color: _textColor,
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.5,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            decoration: BoxDecoration(
+              color: _textColor.withOpacity(0.04),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: _textColor.withOpacity(0.08),
+                width: 1.0,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 7,
+                  height: 7,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Color(0xFF00FFCC),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Color(0xFF00FFCC),
+                        blurRadius: 6,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Talk to Aura AI',
+                  style: GoogleFonts.outfit(
+                    color: _textColor,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
             ),
           ),
           GestureDetector(
@@ -1064,14 +1185,14 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: _textColor.withOpacity(0.03),
+                color: _textColor.withOpacity(0.04),
                 border: Border.all(
-                  color: _textColor.withOpacity(0.07),
+                  color: _textColor.withOpacity(0.08),
                   width: 1.2,
                 ),
               ),
               child: Icon(
-                Icons.menu_rounded,
+                Icons.tune_rounded,
                 color: _textColor,
                 size: 16,
               ),
@@ -1102,23 +1223,23 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
       decoration: BoxDecoration(
-        color: _accentLime.withOpacity(0.12),
+        color: const Color(0xFF00F2FE).withOpacity(0.12),
         borderRadius: BorderRadius.circular(30),
         border: Border.all(
-          color: _accentLime.withOpacity(0.35),
+          color: const Color(0xFF00F2FE).withOpacity(0.35),
           width: 1.0,
         ),
       ),
       child: Text(
         'Hey $displayName 👋',
-        style: GoogleFonts.inter(
-          color: _isLight ? (Color.lerp(_accentLime, Colors.black, 0.4) ?? _accentLime) : const Color(0xFFCBBAFF),
-          fontSize: 12,
+        style: GoogleFonts.outfit(
+          color: const Color(0xFF00F2FE),
+          fontSize: 13,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.5,
         ),
       ),
-    ).animate().fadeIn(duration: 500.ms);
+    ).animate().fadeIn(duration: 400.ms);
   }
 
   Widget _buildListeningBar() {
@@ -1126,22 +1247,22 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
     if (_currentState == AuraVoiceState.listening) {
       text = "I'm listening...";
     } else if (_currentState == AuraVoiceState.connecting) {
-      text = "Connecting...";
+      text = "Connecting to Aura...";
     } else if (_currentState == AuraVoiceState.thinking) {
-      text = "Thinking...";
+      text = "Aura is thinking...";
     } else if (_currentState == AuraVoiceState.speaking) {
-      text = "Speaking...";
+      text = "Aura is speaking...";
     }
 
     return Container(
-      height: 52,
+      height: 50,
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 20),
       decoration: BoxDecoration(
-        color: _textColor.withOpacity(0.03),
+        color: _textColor.withOpacity(0.035),
         borderRadius: BorderRadius.circular(26),
         border: Border.all(
-          color: _textColor.withOpacity(0.07),
+          color: _textColor.withOpacity(0.08),
           width: 1.0,
         ),
       ),
@@ -1163,12 +1284,12 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
                 Container(
                   width: 8,
                   height: 8,
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     shape: BoxShape.circle,
-                    color: _accentLime,
+                    color: Color(0xFF00F2FE),
                     boxShadow: [
                       BoxShadow(
-                        color: _accentLime,
+                        color: Color(0xFF00F2FE),
                         blurRadius: 8,
                       ),
                     ],
@@ -1187,7 +1308,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: _accentLime,
+                              color: const Color(0xFF00F2FE),
                               width: 2.0,
                             ),
                           ),
@@ -1204,17 +1325,26 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
   }
 
   Widget _buildSpeechOutputBubble() {
+    if (_subtitleText.isEmpty) return const SizedBox.shrink();
     return Container(
-      constraints: const BoxConstraints(maxWidth: 280),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      constraints: const BoxConstraints(maxWidth: 320),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      decoration: BoxDecoration(
+        color: _textColor.withOpacity(0.04),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: _textColor.withOpacity(0.08),
+          width: 1.2,
+        ),
+      ),
       child: Text(
         _subtitleText,
         textAlign: TextAlign.center,
         style: GoogleFonts.inter(
-          color: _textMuted,
-          fontSize: 13,
-          height: 1.6,
-          fontStyle: FontStyle.italic,
+          color: _textColor,
+          fontSize: 13.5,
+          height: 1.5,
+          fontWeight: FontWeight.w500,
         ),
       ),
     );
@@ -1234,13 +1364,13 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
             });
           },
           child: Container(
-            width: 46,
-            height: 46,
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: _textColor.withOpacity(0.03),
+              color: _textColor.withOpacity(0.04),
               border: Border.all(
-                color: _textColor.withOpacity(0.07),
+                color: _textColor.withOpacity(0.08),
                 width: 1.0,
               ),
             ),
@@ -1248,7 +1378,7 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
               child: Icon(
                 Icons.refresh_rounded,
                 color: _textMuted,
-                size: 18,
+                size: 20,
               ),
             ),
           ),

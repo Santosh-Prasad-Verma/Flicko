@@ -45,6 +45,15 @@ class AppConfig {
   static const String _definedGeminiApiKey = String.fromEnvironment(
     'FLICKO_GEMINI_API_KEY',
   );
+  static const String _definedDeepgramApiKey = String.fromEnvironment(
+    'FLICKO_DEEPGRAM_API_KEY',
+  );
+  static const String _definedTavilyApiKey = String.fromEnvironment(
+    'FLICKO_TAVILY_API_KEY',
+  );
+  static const String _definedSerperApiKey = String.fromEnvironment(
+    'FLICKO_SERPER_API_KEY',
+  );
   static const String _definedGeminiTextModel = String.fromEnvironment(
     'FLICKO_GEMINI_TEXT_MODEL',
   );
@@ -107,6 +116,15 @@ class AppConfig {
   static const String _definedLegacyGeminiApiKey = String.fromEnvironment(
     'GEMINI_API_KEY',
   );
+  static const String _definedLegacyDeepgramApiKey = String.fromEnvironment(
+    'DEEPGRAM_API_KEY',
+  );
+  static const String _definedLegacyTavilyApiKey = String.fromEnvironment(
+    'TAVILY_API_KEY',
+  );
+  static const String _definedLegacySerperApiKey = String.fromEnvironment(
+    'SERPER_API_KEY',
+  );
   static const String _definedLegacyGeminiTextModel = String.fromEnvironment(
     'GEMINI_TEXT_MODEL',
   );
@@ -154,6 +172,9 @@ class AppConfig {
   static late final String googleClientId;
   static late final String sentryDsn;
   static late final String geminiApiKey;
+  static late final String deepgramApiKey;
+  static late final String tavilyApiKey;
+  static late final String serperApiKey;
   static late final String geminiTextModel;
   static late final String geminiLiveModel;
   static late final String rtcStunUrls;
@@ -270,6 +291,27 @@ class AppConfig {
       'FLICKO_GEMINI_API_KEY',
       'GEMINI_API_KEY',
     );
+    deepgramApiKey = _firstNonEmpty([
+      _definedDeepgramApiKey,
+      _definedLegacyDeepgramApiKey,
+      dotenv.env['FLICKO_DEEPGRAM_API_KEY'],
+      dotenv.env['DEEPGRAM_API_KEY'],
+      '1fa6f8e6e73afa1b071df94b77450c216f2e4c6d',
+    ]);
+    tavilyApiKey = _firstNonEmpty([
+      _definedTavilyApiKey,
+      _definedLegacyTavilyApiKey,
+      dotenv.env['FLICKO_TAVILY_API_KEY'],
+      dotenv.env['TAVILY_API_KEY'],
+      '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',
+    ]);
+    serperApiKey = _firstNonEmpty([
+      _definedSerperApiKey,
+      _definedLegacySerperApiKey,
+      dotenv.env['FLICKO_SERPER_API_KEY'],
+      dotenv.env['SERPER_API_KEY'],
+      '049f558ea6932c85ab7dcb3a30f6fdefd719a2f3',
+    ]);
     geminiTextModel = _firstNonEmpty([
       _definedGeminiTextModel,
       _definedLegacyGeminiTextModel,

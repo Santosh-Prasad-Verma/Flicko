@@ -12,6 +12,7 @@ import 'package:mobile/features/direct_messages/data/dm_repository.dart';
 import 'package:mobile/features/home/application/servers_notifier.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/ai_assistant/data/aura_settings_provider.dart';
+import 'package:mobile/features/ai_assistant/data/web_search_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 class AuraMessage {
@@ -130,6 +131,28 @@ class AuraSession {
           ? DateTime.parse(map['lastActive'])
           : DateTime.now(),
     );
+  }
+}
+
+class AuraRateLimiter {
+  static final List<DateTime> _timestamps = [];
+  static const int maxRequestsPerMinute = 20;
+  static const Duration windowDuration = Duration(minutes: 1);
+
+  static bool checkAndRecord() {
+    final now = DateTime.now();
+    _timestamps.removeWhere((t) => now.difference(t) > windowDuration);
+    if (_timestamps.length >= maxRequestsPerMinute) {
+      return false; // Exceeded rate limit
+    }
+    _timestamps.add(now);
+    return true;
+  }
+
+  static int get remainingRequests {
+    final now = DateTime.now();
+    _timestamps.removeWhere((t) => now.difference(t) > windowDuration);
+    return (maxRequestsPerMinute - _timestamps.length).clamp(0, maxRequestsPerMinute);
   }
 }
 
@@ -344,6 +367,27 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
       timestamp: DateTime.now(),
     );
 
+    // Rate Limit Guard
+    if (!AuraRateLimiter.checkAndRecord()) {
+      final rateMsg = AuraMessage(
+        id: 'msg_rate_${DateTime.now().millisecondsSinceEpoch}',
+        sender: 'aura',
+        text: '⚠️ **Rate Limit Reached**: You are sending messages too quickly. Please wait a moment before sending another message. (Limit: ${AuraRateLimiter.maxRequestsPerMinute} reqs/min).',
+        timestamp: DateTime.now(),
+      );
+      state = state.map((session) {
+        if (session.id == sessionId) {
+          return session.copyWith(
+            messages: [...session.messages, userMsg, rateMsg],
+            lastActive: DateTime.now(),
+          );
+        }
+        return session;
+      }).toList();
+      await _saveSessions();
+      return;
+    }
+
     // Add user message immediately
     state = state.map((session) {
       if (session.id == sessionId) {
@@ -409,6 +453,12 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
         lowerText == 'my servers' ||
         lowerText.contains('list my servers')) {
       localCommandResponse = await _executeTool('list_servers', {});
+    } else if (lowerText.startsWith('search ') ||
+        lowerText.startsWith('google ') ||
+        lowerText.startsWith('lookup ') ||
+        lowerText.startsWith('web search ')) {
+      final query = text.replaceAll(RegExp(r'^(search|google|lookup|web search)\s+', caseSensitive: false), '').trim();
+      localCommandResponse = await _executeTool('web_search', {'query': query});
     }
 
     if (localCommandResponse != null) {
@@ -808,6 +858,19 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
         return '🌐 Here are the servers you are currently active in:\n\n$list';
       } catch (e) {
         return 'Error listing servers: $e';
+      }
+    } else if (name == 'web_search' || name == 'search_web') {
+      final query = args['query'] as String? ?? args['q'] as String? ?? '';
+      if (query.isEmpty) return 'No search query specified.';
+      try {
+        final searchService = ref.read(auraWebSearchServiceProvider);
+        final result = await searchService.search(query);
+        if (result == null || !result.hasResults) {
+          return 'No live web search results found for "$query".';
+        }
+        return '🌐 **Web Search Results via ${result.provider}**:\n\n${result.summary.isNotEmpty ? result.summary : result.voiceSummary}';
+      } catch (e) {
+        return 'Web search failed: $e';
       }
     }
     return 'Unknown tool: $name';

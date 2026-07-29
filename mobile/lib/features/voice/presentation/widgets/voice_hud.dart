@@ -151,14 +151,14 @@ class _VoiceHUDState extends ConsumerState<VoiceHUD> {
               border: Border.all(
                 color: isScreenShare
                     ? const Color(0xFFED4245)
-                    : (isSpeaking ? const Color(0xFF52B788) : const Color(0xFF52B788).withValues(alpha: 0.4)),
-                width: isSpeaking || isScreenShare ? 2.5 : 1.5,
+                    : (isSpeaking ? const Color(0xFF52B788) : Colors.white.withValues(alpha: 0.12)),
+                width: isSpeaking || isScreenShare ? 2.0 : 1.0,
               ),
               boxShadow: [
                 BoxShadow(
                   color: isScreenShare
-                      ? const Color(0xFFED4245).withValues(alpha: 0.4)
-                      : (isSpeaking ? const Color(0xFF52B788).withValues(alpha: 0.4) : Colors.black.withValues(alpha: 0.6)),
+                      ? const Color(0xFFED4245).withValues(alpha: 0.3)
+                      : (isSpeaking ? const Color(0xFF52B788).withValues(alpha: 0.3) : Colors.black.withValues(alpha: 0.5)),
                   blurRadius: 16,
                   spreadRadius: 2,
                   offset: const Offset(0, 4),

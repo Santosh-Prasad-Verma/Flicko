@@ -40,7 +40,11 @@
         <service 
             android:name="com.pravera.flutter_foreground_task.service.ForegroundService"
             android:foregroundServiceType="microphone|camera|mediaProjection"
-            android:exported="false" />
+            android:exported="false">
+            <meta-data
+                android:name="app.icon"
+                android:resource="@mipmap/ic_launcher" />
+        </service>
 
         <!-- Screen-share / media-projection foreground service (Android 14+) -->
         <service

@@ -5,6 +5,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:record/record.dart';
+import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 enum AuraLivePhase { connecting, ready, listening, responding, complete }
@@ -52,15 +53,66 @@ class AuraLiveAudioException implements Exception {
 }
 
 class AuraLiveAudioService {
-  static const String defaultModel =
-      'gemini-2.5-flash-native-audio-preview-12-2025';
-  static const int inputSampleRate = 16000;
+  static const String defaultModel = 'aura-2-odysseus-en';
+  static const String defaultAgentEndpoint = 'wss://agent.deepgram.com/v1/agent/converse';
+  static const int inputSampleRate = 48000;
   static const int outputSampleRate = 24000;
   static const Duration _setupTimeout = Duration(seconds: 12);
   static const Duration _responseTimeout = Duration(seconds: 45);
-  static const Duration _maxInputDuration = Duration(seconds: 10);
-  static const Duration _minInputDuration = Duration(milliseconds: 1200);
-  static const Duration _silenceStopDuration = Duration(milliseconds: 1100);
+  static const Duration _maxInputDuration = Duration(seconds: 12);
+  static const Duration _minInputDuration = Duration(milliseconds: 1000);
+  static const Duration _silenceStopDuration = Duration(milliseconds: 1200);
+
+  static const String _defaultSystemPrompt = r'''# Role & Identity
+You are Aura, the native AI Voice Companion and Central Command Intelligence inside the Flicko application. You serve dual roles:
+1. Full Application Controller: Executing real-time voice commands to control all aspects of Flicko (messaging, calls, music, navigation, settings, social).
+2. Conversational Companion: Engaging in natural, intelligent, warm, and casual dialogue on any topic, question, or task.
+
+# General Voice Directives
+- Voice Output Only: Do not use markdown syntax (no asterisks, bullet points, numbered lists, hashtags, emojis, or code blocks) because your words will be spoken directly via Text-to-Speech (TTS). Use natural punctuation for fluid spoken cadence.
+- Operational Brevity: For application commands and control tasks, confirm the action in 1 short, crisp sentence (under 100 characters).
+- Casual Conversations: For general questions, advice, tech discussions, stories, or casual banter, be engaging, warm, articulate, and conversational while keeping speech flowing and easy to listen to.
+- Persona: Cybernetic, intelligent, friendly, confident, and ultra-responsive.
+
+# Application Control & Navigation Reference
+- Navigation & Screens:
+  • "Open Settings" -> Navigates to Settings (/profile/settings)
+  • "Open Account Settings" -> Navigates to Account Settings (/profile/settings/account)
+  • "Open Privacy Settings" -> Navigates to Privacy (/profile/settings/privacy)
+  • "Open Voice Settings" -> Navigates to Voice Settings (/profile/settings/voice)
+  • "Open Appearance" / "Dark Mode" -> Navigates to Appearance (/profile/settings/appearance)
+  • "Open Aura Settings" -> Navigates to Aura AI Config (/profile/settings/aura)
+  • "Open Profile" -> Navigates to User Profile (/profile)
+  • "Open Direct Messages" / "Open DMs" -> Navigates to DM list (/dms)
+  • "Open Music" / "Open Sonic Drip" -> Navigates to Music Player (/sonic-drip)
+  • "Open Servers" / "Go Home" -> Navigates to Server Hub (/home)
+  • "Open Friends" -> Navigates to Friends List (/friends)
+  • "Open Store" -> Navigates to Flicko Store (/store)
+  • "Open Gaming" / "Open Ludo" -> Navigates to Gaming Hub or Ludo (/gaming or /ludo)
+  • "Open News" -> Navigates to News Feed (/newz)
+  • "Open Notifications" -> Navigates to Notifications (/notifications)
+  • "Open Search" -> Navigates to Search (/search)
+
+- Direct Messaging & Communication:
+  • "Message [Name]: [Message]" -> Sends direct message to friend/contact
+  • "Send DM to [Name] saying [Message]" -> Sends direct message
+  • "Read my unread messages" -> Checks notifications and DMs
+
+- Calls & Voice Channel Control:
+  • "Disconnect call" / "Leave call" -> End current voice session or call
+  • "Mute microphone" / "Unmute" -> Toggles audio input state
+  • "Start voice call with [Name]" -> Connects to voice call
+
+- Music & Media Controls (Sonic Drip):
+  • "Play [Song/Genre]" -> Searches and plays track on Sonic Drip
+  • "Pause music" / "Stop music" -> Pauses current audio playback
+  • "Resume music" -> Resumes audio playback
+  • "Next song" / "Skip track" -> Advances music queue
+
+# Behavioral Rules
+- When the user gives a command (e.g., "Open my settings" or "Message Alex hey what's up"), immediately acknowledge the action concisely and execute.
+- When the user asks a casual question (e.g., "How does quantum computing work?" or "Tell me a joke"), answer conversationally, accurately, and naturally.
+- Always remain helpful, positive, and attentive to user intent.''';
 
   final AudioRecorder _recorder = AudioRecorder();
 
@@ -82,7 +134,7 @@ class AuraLiveAudioService {
   }) async {
     final cleanKey = apiKey.trim();
     if (cleanKey.isEmpty) {
-      throw const AuraLiveAudioException('Gemini API key is not configured.');
+      throw const AuraLiveAudioException('Deepgram API key is not configured.');
     }
     final hasPermission = await _recorder.hasPermission();
     if (!hasPermission) {
@@ -115,7 +167,7 @@ class AuraLiveAudioService {
   }) async {
     final cleanKey = apiKey.trim();
     if (cleanKey.isEmpty) {
-      throw const AuraLiveAudioException('Gemini API key is not configured.');
+      throw const AuraLiveAudioException('Deepgram API key is not configured.');
     }
 
     return _runTurn(
@@ -128,17 +180,8 @@ class AuraLiveAudioService {
       sendInput: () async {
         onPhase?.call(AuraLivePhase.responding);
         _sendJson({
-          'clientContent': {
-            'turns': [
-              {
-                'role': 'user',
-                'parts': [
-                  {'text': prompt.trim()},
-                ],
-              },
-            ],
-            'turnComplete': true,
-          },
+          'type': 'InjectAgentMessage',
+          'message': prompt.trim(),
         });
       },
     );
@@ -163,119 +206,95 @@ class AuraLiveAudioService {
     final outputBytes = BytesBuilder(copy: false);
     final inputTranscript = StringBuffer();
     final outputTranscript = StringBuffer();
-    int detectedOutputRate = outputSampleRate;
-    int promptTokens = 0;
-    int responseTokens = 0;
-    int totalTokens = 0;
+    final effectiveModel = model.isNotEmpty ? model : defaultModel;
+    final effectiveVoice = voiceName.isNotEmpty ? voiceName : defaultModel;
+    final promptToUse = systemInstruction.isNotEmpty
+        ? systemInstruction
+        : _defaultSystemPrompt;
 
     try {
-      final uri = Uri(
-        scheme: 'wss',
-        host: 'generativelanguage.googleapis.com',
-        path:
-            '/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent',
-        queryParameters: {'key': apiKey},
+      final uri = Uri.parse(defaultAgentEndpoint);
+      final channel = IOWebSocketChannel.connect(
+        uri,
+        headers: {
+          'Authorization': 'Token $apiKey',
+        },
       );
-      final channel = WebSocketChannel.connect(uri);
       _channel = channel;
+
       _socketSub = channel.stream.listen(
         (event) {
           try {
+            // Binary data = PCM output audio from Deepgram Aura TTS (24kHz linear16)
+            if (event is List<int> || event is Uint8List) {
+              final bytes = event is Uint8List
+                  ? event
+                  : Uint8List.fromList(event as List<int>);
+              outputBytes.add(bytes);
+              onPhase?.call(AuraLivePhase.responding);
+              return;
+            }
+
             final decoded = _decodeServerMessage(event);
             if (decoded == null) return;
 
-            if (decoded['setupComplete'] != null &&
-                !setupComplete.isCompleted) {
-              setupComplete.complete();
-              onPhase?.call(AuraLivePhase.ready);
+            final type = decoded['type'] as String?;
+
+            if (type == 'Welcome' || type == 'SettingsApplied') {
+              if (!setupComplete.isCompleted) {
+                setupComplete.complete();
+                onPhase?.call(AuraLivePhase.ready);
+              }
               return;
             }
 
-            final error = decoded['error'];
-            if (error != null && !turnComplete.isCompleted) {
-              turnComplete.completeError(
-                AuraLiveAudioException('Gemini Live API error', error),
-              );
+            if (type == 'Error') {
+              final errorMsg = decoded['message'] ?? 'Deepgram Agent Error';
+              if (!turnComplete.isCompleted) {
+                turnComplete.completeError(
+                  AuraLiveAudioException('Deepgram Agent error', errorMsg),
+                );
+              }
               return;
             }
 
-            final usage = decoded['usageMetadata'];
-            if (usage is Map) {
-              promptTokens = _readInt(usage['promptTokenCount']);
-              responseTokens = _readInt(usage['responseTokenCount']);
-              totalTokens = _readInt(usage['totalTokenCount']);
-            }
-
-            final serverContent = decoded['serverContent'];
-            if (serverContent is! Map) return;
-
-            if (serverContent['interrupted'] == true) {
-              outputBytes.clear();
-            }
-
-            final inText = _readTranscription(
-              serverContent['inputTranscription'],
-            );
-            if (inText.isNotEmpty) {
-              inputTranscript.write(inText);
-              onInputTranscript?.call(inputTranscript.toString());
-            }
-
-            final outText = _readTranscription(
-              serverContent['outputTranscription'],
-            );
-            if (outText.isNotEmpty) {
-              outputTranscript.write(outText);
-              onOutputTranscript?.call(outputTranscript.toString());
-            }
-
-            final modelTurn = serverContent['modelTurn'];
-            if (modelTurn is Map) {
-              final parts = modelTurn['parts'];
-              if (parts is List) {
-                for (final part in parts) {
-                  if (part is! Map) continue;
-                  final text = part['text'];
-                  if (text is String && text.trim().isNotEmpty) {
-                    outputTranscript.write(text);
-                    onOutputTranscript?.call(outputTranscript.toString());
-                  }
-                  final inlineData = part['inlineData'];
-                  if (inlineData is Map) {
-                    final data = inlineData['data'];
-                    final mimeType = inlineData['mimeType'];
-                    if (data is String && data.isNotEmpty) {
-                      outputBytes.add(base64Decode(data));
-                      detectedOutputRate =
-                          _sampleRateFromMimeType(mimeType) ?? outputSampleRate;
-                      onPhase?.call(AuraLivePhase.responding);
-                    }
-                  }
+            if (type == 'UserStartedSpeaking') {
+              onPhase?.call(AuraLivePhase.listening);
+            } else if (type == 'AgentThinking') {
+              onPhase?.call(AuraLivePhase.responding);
+            } else if (type == 'AgentStartedSpeaking') {
+              onPhase?.call(AuraLivePhase.responding);
+            } else if (type == 'AgentAudioDone' || type == 'UtteranceEnd') {
+              if (outputBytes.length > 0 && !turnComplete.isCompleted) {
+                onPhase?.call(AuraLivePhase.complete);
+                turnComplete.complete(
+                  AuraLiveTurnResult(
+                    audioPcm: outputBytes.takeBytes(),
+                    outputSampleRate: outputSampleRate,
+                    inputTranscript: inputTranscript.toString(),
+                    outputTranscript: outputTranscript.toString(),
+                    model: effectiveVoice,
+                  ),
+                );
+              }
+            } else if (type == 'ConversationText') {
+              final role = decoded['role'] as String?;
+              final content = decoded['content'] as String?;
+              if (content != null && content.trim().isNotEmpty) {
+                if (role == 'user') {
+                  inputTranscript.write(content);
+                  onInputTranscript?.call(inputTranscript.toString());
+                } else {
+                  outputTranscript.write(content);
+                  onOutputTranscript?.call(outputTranscript.toString());
                 }
               }
-            }
-
-            if (serverContent['turnComplete'] == true &&
-                !turnComplete.isCompleted) {
-              onPhase?.call(AuraLivePhase.complete);
-              turnComplete.complete(
-                AuraLiveTurnResult(
-                  audioPcm: outputBytes.takeBytes(),
-                  outputSampleRate: detectedOutputRate,
-                  inputTranscript: inputTranscript.toString(),
-                  outputTranscript: outputTranscript.toString(),
-                  model: model,
-                  promptTokenCount: promptTokens,
-                  responseTokenCount: responseTokens,
-                  totalTokenCount: totalTokens,
-                ),
-              );
             }
           } catch (error) {
             if (!turnComplete.isCompleted) {
               turnComplete.completeError(
                 AuraLiveAudioException(
-                  'Failed to parse Gemini Live response',
+                  'Failed to parse Deepgram Agent response',
                   error,
                 ),
               );
@@ -285,58 +304,107 @@ class AuraLiveAudioService {
         onError: (error) {
           if (!turnComplete.isCompleted) {
             turnComplete.completeError(
-              AuraLiveAudioException('Gemini Live socket failed', error),
+              AuraLiveAudioException('Deepgram Agent socket failed', error),
             );
           }
         },
         onDone: () {
           if (!_closed && !turnComplete.isCompleted) {
-            turnComplete.completeError(
-              const AuraLiveAudioException('Gemini Live socket closed early.'),
-            );
+            if (outputBytes.length > 0) {
+              turnComplete.complete(
+                AuraLiveTurnResult(
+                  audioPcm: outputBytes.takeBytes(),
+                  outputSampleRate: outputSampleRate,
+                  inputTranscript: inputTranscript.toString(),
+                  outputTranscript: outputTranscript.toString(),
+                  model: effectiveModel,
+                ),
+              );
+            } else {
+              turnComplete.completeError(
+                const AuraLiveAudioException(
+                  'Deepgram Agent socket closed early.',
+                ),
+              );
+            }
           }
         },
       );
 
       await channel.ready.timeout(_setupTimeout);
+
+      // Send the exact Deepgram Voice Agent Settings JSON payload
       _sendJson({
-        'setup': {
-          'model': _normalizeModelName(model),
-          'generationConfig': {
-            'responseModalities': ['AUDIO'],
-            'temperature': 0.8,
-            'speechConfig': {
-              'voiceConfig': {
-                'prebuiltVoiceConfig': {'voiceName': voiceName},
-              },
+        'type': 'Settings',
+        'audio': {
+          'input': {
+            'encoding': 'linear16',
+            'sample_rate': inputSampleRate,
+          },
+          'output': {
+            'encoding': 'linear16',
+            'sample_rate': outputSampleRate,
+            'container': 'none',
+          },
+        },
+        'agent': {
+          'speak': {
+            'provider': {
+              'type': 'deepgram',
+              'model': effectiveVoice,
             },
           },
-          'systemInstruction': {
-            'role': 'system',
-            'parts': [
-              {'text': systemInstruction},
-            ],
-          },
-          'inputAudioTranscription': {},
-          'outputAudioTranscription': {},
-          'realtimeInputConfig': {
-            'automaticActivityDetection': {
-              'disabled': false,
-              'silenceDurationMs': 700,
+          'listen': {
+            'provider': {
+              'type': 'deepgram',
+              'model': 'nova-2-general',
             },
-            'activityHandling': 'START_OF_ACTIVITY_INTERRUPTS',
           },
+          'think': {
+            'provider': {
+              'type': 'google',
+              'model': 'gemini-2.0-flash',
+            },
+            'prompt': promptToUse,
+          },
+          'greeting': 'Hello! How may I help you?',
         },
       });
 
       await setupComplete.future.timeout(_setupTimeout);
       await sendInput();
+
+      // Fallback timeout check to ensure completion if AgentAudioDone isn't sent
+      Timer(const Duration(seconds: 4), () {
+        if (!turnComplete.isCompleted && outputBytes.length > 0) {
+          onPhase?.call(AuraLivePhase.complete);
+          turnComplete.complete(
+            AuraLiveTurnResult(
+              audioPcm: outputBytes.takeBytes(),
+              outputSampleRate: outputSampleRate,
+              inputTranscript: inputTranscript.toString(),
+              outputTranscript: outputTranscript.toString(),
+              model: effectiveModel,
+            ),
+          );
+        }
+      });
+
       return await turnComplete.future.timeout(_responseTimeout);
     } on TimeoutException catch (error) {
-      throw AuraLiveAudioException('Gemini Live timed out.', error);
+      if (outputBytes.length > 0) {
+        return AuraLiveTurnResult(
+          audioPcm: outputBytes.takeBytes(),
+          outputSampleRate: outputSampleRate,
+          inputTranscript: inputTranscript.toString(),
+          outputTranscript: outputTranscript.toString(),
+          model: effectiveModel,
+        );
+      }
+      throw AuraLiveAudioException('Deepgram Agent timed out.', error);
     } catch (error) {
       if (error is AuraLiveAudioException) rethrow;
-      throw AuraLiveAudioException('Gemini Live failed.', error);
+      throw AuraLiveAudioException('Deepgram Agent failed.', error);
     } finally {
       await dispose();
     }
@@ -371,14 +439,8 @@ class AuraLiveAudioService {
         if (level > 0.018) {
           lastVoiceAt = DateTime.now();
         }
-        _sendJson({
-          'realtimeInput': {
-            'audio': {
-              'mimeType': 'audio/pcm;rate=$inputSampleRate',
-              'data': base64Encode(chunk),
-            },
-          },
-        });
+        // Send raw binary PCM bytes directly to Deepgram Agent WebSocket
+        _channel?.sink.add(chunk);
       },
       onError: (error) {
         if (!stopInput.isCompleted) {
@@ -392,7 +454,7 @@ class AuraLiveAudioService {
     _silenceTimer = Timer.periodic(const Duration(milliseconds: 160), (_) {
       final now = DateTime.now();
       final hasMinimumAudio = now.difference(startedAt) >= _minInputDuration;
-      final hasSpeech = bytesSent >= inputSampleRate;
+      final hasSpeech = bytesSent >= (inputSampleRate * 2);
       final silenceLongEnough =
           now.difference(lastVoiceAt) >= _silenceStopDuration;
       if (hasMinimumAudio && hasSpeech && silenceLongEnough) {
@@ -402,9 +464,6 @@ class AuraLiveAudioService {
 
     await stopInput.future.timeout(_maxInputDuration, onTimeout: () {});
     await _stopMic();
-    _sendJson({
-      'realtimeInput': {'audioStreamEnd': true},
-    });
   }
 
   Map<String, dynamic>? _decodeServerMessage(dynamic event) {
@@ -422,32 +481,6 @@ class AuraLiveAudioService {
   void _sendJson(Map<String, dynamic> payload) {
     if (_closed) return;
     _channel?.sink.add(jsonEncode(payload));
-  }
-
-  String _normalizeModelName(String model) {
-    final trimmed = model.trim().isEmpty ? defaultModel : model.trim();
-    return trimmed.startsWith('models/') ? trimmed : 'models/$trimmed';
-  }
-
-  String _readTranscription(Object? value) {
-    if (value is Map) {
-      final text = value['text'];
-      return text is String ? text : '';
-    }
-    return '';
-  }
-
-  int _readInt(Object? value) {
-    if (value is int) return value;
-    if (value is num) return value.toInt();
-    return 0;
-  }
-
-  int? _sampleRateFromMimeType(Object? mimeType) {
-    if (mimeType is! String) return null;
-    final match = RegExp(r'rate=(\d+)').firstMatch(mimeType);
-    if (match == null) return null;
-    return int.tryParse(match.group(1)!);
   }
 
   double _estimatePcmLevel(Uint8List bytes) {

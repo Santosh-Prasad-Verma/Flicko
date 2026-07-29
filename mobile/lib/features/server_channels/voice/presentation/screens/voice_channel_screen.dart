@@ -19,7 +19,6 @@ import 'package:mobile/features/voice/presentation/soundboard_sheet.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/calling/presentation/voice_settings_bottom_sheet.dart';
 import 'package:mobile/features/calling/presentation/invite_friends_bottom_sheet.dart';
-import 'package:mobile/features/calling/presentation/floating_call_pip_overlay.dart';
 import 'package:mobile/features/calling/presentation/stream_settings_sheet.dart';
 import 'package:mobile/features/server_channels/voice/presentation/widgets/voice_channel_chat_sheet.dart';
 
@@ -579,14 +578,6 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
             constraints: const BoxConstraints(),
             icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white, size: 26),
             onPressed: () {
-              FloatingCallPipOverlay.show(
-                context,
-                userName: _channel?['name'] ?? 'Voice Channel',
-                isSpeaking: true,
-                onTapExpand: () {
-                  context.push('/server/${widget.serverId}/channel/${widget.channelId}/voice');
-                },
-              );
               Navigator.of(context).pop();
             },
           ),

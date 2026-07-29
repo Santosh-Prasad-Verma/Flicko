@@ -201,8 +201,21 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
     } catch (e) {
       dev.log('Purchase error: $e', name: 'PremiumBilling');
       if (mounted) {
+        String errorMsg = 'Payment was cancelled or could not be completed. Please try again.';
+        final eStr = e.toString();
+        if (eStr.contains('cancelled') || eStr.contains('CANCELED')) {
+          errorMsg = 'Payment cancelled.';
+        } else if (eStr.contains('500') || eStr.contains('network error')) {
+          errorMsg = 'Payment gateway is temporarily undergoing maintenance. Please try again shortly.';
+        }
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Payment cancelled or failed: $e')),
+          SnackBar(
+            backgroundColor: const Color(FlickoColors.danger),
+            content: Text(
+              errorMsg,
+              style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600),
+            ),
+          ),
         );
       }
     } finally {
@@ -280,34 +293,49 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: borderLine),
+        gradient: LinearGradient(
+          colors: [
+            accentLime.withValues(alpha: 0.15),
+            const Color(0xFF161820),
+            const Color(0xFFB57CFF).withValues(alpha: 0.1),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: accentLime.withValues(alpha: 0.3),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: accentLime.withValues(alpha: 0.1),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
             decoration: BoxDecoration(
-              color: accentLime.withValues(alpha: 0.12),
+              color: accentLime.withValues(alpha: 0.18),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: accentLime.withValues(alpha: 0.3)),
+              border: Border.all(color: accentLime.withValues(alpha: 0.5)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.star_rounded, color: accentLime, size: 14),
-                const SizedBox(width: 6),
-                Flexible(
-                  child: Text(
-                    'UPGRADE YOUR EXPERIENCE',
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.outfit(
-                      color: accentLime,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.2,
-                    ),
+                const Icon(Icons.workspace_premium_rounded, color: accentLime, size: 16),
+                const SizedBox(width: 8),
+                Text(
+                  'FLICKO PLUS & PRO',
+                  style: GoogleFonts.outfit(
+                    color: accentLime,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.5,
                   ),
                 ),
               ],
@@ -315,21 +343,21 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Simple, Powerful Perks.',
+            'Unlock Superpowers.',
             textAlign: TextAlign.center,
             style: GoogleFonts.outfit(
               color: Colors.white,
-              fontSize: 26,
-              fontWeight: FontWeight.w800,
+              fontSize: 30,
+              fontWeight: FontWeight.w900,
               letterSpacing: -0.5,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Enjoy HD video streaming, custom emojis, higher file upload limits, and profile customization.',
+            'Elevate your streaming to 4K 60FPS, unlock unlimited file uploads, custom emojis, verified golden profile badge, and VIP AI tools.',
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(
-              color: Colors.white60,
+              color: Colors.white70,
               fontSize: 13,
               height: 1.4,
             ),

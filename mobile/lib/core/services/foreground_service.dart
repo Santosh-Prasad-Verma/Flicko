@@ -192,7 +192,7 @@ class ForegroundService {
         notificationTitle: 'Voice Call in Progress',
         notificationText: 'In $channelName on $serverName',
         notificationIcon: const NotificationIcon(
-          metaDataName: 'android.app.Service',
+          metaDataName: 'app.icon',
         ),
         notificationButtons: [
           const NotificationButton(

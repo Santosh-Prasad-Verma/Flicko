@@ -309,13 +309,17 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'NOTIFICATIONS',
-                  style: GoogleFonts.outfit(
-                    color: _textPrimary,
-                    fontSize: 34,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.5,
+                Expanded(
+                  child: Text(
+                    'NOTIFICATIONS',
+                    style: GoogleFonts.outfit(
+                      color: _textPrimary,
+                      fontSize: 32,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.5,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 if (_unreadCount > 0)

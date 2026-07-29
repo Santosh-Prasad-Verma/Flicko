@@ -336,58 +336,188 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
   }
 
   Widget _buildHeroHeader(Color accent) {
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: _cardBg.withOpacity(0.6),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: _textColor.withOpacity(0.08),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: accent.withOpacity(0.06),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'How may I help\nyou today?',
-                style: GoogleFonts.inter(
-                  color: _textColor,
-                  fontSize: 32,
-                  fontWeight: FontWeight.w900,
-                  height: 1.15,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFF10B981).withOpacity(0.3)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Color(0xFF10B981),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'ONLINE • WEB CONNECTED',
+                      style: GoogleFonts.outfit(
+                        color: const Color(0xFF10B981),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                'AURA AI assistant is ready to chat or speak with you.',
-                style: GoogleFonts.inter(
-                  color: _textMuted,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: _textColor.withOpacity(0.04),
+                  border: Border.all(
+                    color: accent.withOpacity(0.2),
+                    width: 1.2,
+                  ),
+                ),
+                child: Center(
+                  child: ClipOval(
+                    child: Image.asset(
+                      'assets/images/happy-robot-assistant.png',
+                      width: 40,
+                      height: 40,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
-        ),
-        const SizedBox(width: 16),
-        Container(
-          width: 90,
-          height: 90,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: _textColor.withOpacity(0.03),
-            border: Border.all(
-              color: accent.withOpacity(0.15),
-              width: 1.2,
+          const SizedBox(height: 14),
+          Text(
+            'How may I help\nyou today?',
+            style: GoogleFonts.outfit(
+              color: _textColor,
+              fontSize: 30,
+              fontWeight: FontWeight.w900,
+              height: 1.15,
+              letterSpacing: -0.5,
             ),
           ),
-          child: Center(
-            child: ClipOval(
-              child: Image.asset(
-                'assets/images/happy-robot-assistant.png',
-                width: 70,
-                height: 70,
-                fit: BoxFit.contain,
-              ),
+          const SizedBox(height: 8),
+          Text(
+            'Aura AI Assistant is ready to chat, search the web, or converse via voice.',
+            style: GoogleFonts.inter(
+              color: _textMuted,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              height: 1.35,
             ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.05);
+  }
+
+  Widget _buildQuickActionChips(Color accent) {
+    final actions = [
+      (Icons.search_rounded, 'Search Web', 'search quantum computing breakthrough news 2026'),
+      (Icons.mic_rounded, 'Voice Companion', 'VOICE_LAUNCH'),
+      (Icons.code_rounded, 'Write Code', 'write a python async websocket client'),
+      (Icons.brush_rounded, 'Create Image', 'generate image of futuristic cyberpunk city'),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Quick Actions',
+          style: GoogleFonts.outfit(
+            color: _textColor,
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 12),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          child: Row(
+            children: actions.map((item) {
+              return Padding(
+                padding: const EdgeInsets.only(right: 10),
+                child: GestureDetector(
+                  onTap: () async {
+                    HapticFeedback.lightImpact();
+                    if (item.$3 == 'VOICE_LAUNCH') {
+                      context.push('/profile/settings/aura/voice');
+                    } else {
+                      final session = await ref
+                          .read(auraSessionsProvider.notifier)
+                          .createNewSession('Chat');
+                      if (mounted) {
+                        context.push(
+                          '/profile/settings/aura/chat?category=Chat&sessionId=${session.id}',
+                        );
+                        ref.read(auraSessionsProvider.notifier).sendMessage(session.id, item.$3);
+                      }
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: _textColor.withOpacity(0.03),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: _textColor.withOpacity(0.08),
+                        width: 1.2,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(item.$1, color: accent, size: 16),
+                        const SizedBox(width: 8),
+                        Text(
+                          item.$2,
+                          style: GoogleFonts.inter(
+                            color: _textColor.withOpacity(0.9),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
           ),
         ),
       ],
-    ).animate().fadeIn(duration: 400.ms).slideX(begin: -0.1);
+    ).animate().fadeIn(delay: 150.ms, duration: 400.ms);
   }
 
   Widget _buildBentoGrid(Color accent) {
@@ -400,8 +530,8 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
           child: GestureDetector(
             onTap: () => context.push('/profile/settings/aura/voice'),
             child: Container(
-              height: 180,
-              padding: const EdgeInsets.all(20),
+              height: 196,
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
@@ -428,13 +558,13 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(8),
+                        padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.12),
+                          color: Colors.white.withOpacity(0.15),
                         ),
                         child: const Icon(
-                          Icons.mic_none_rounded,
+                          Icons.graphic_eq_rounded,
                           color: Colors.white,
                           size: 22,
                         ),
@@ -446,14 +576,28 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
                       ),
                     ],
                   ),
-                  Text(
-                    'Talk\nwith Bot',
-                    style: GoogleFonts.inter(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                      height: 1.15,
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Voice\nCompanion',
+                        style: GoogleFonts.outfit(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          height: 1.1,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Powered by Deepgram',
+                        style: GoogleFonts.inter(
+                          color: Colors.white.withOpacity(0.7),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -461,7 +605,7 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
           ),
         ),
         const SizedBox(width: 14),
-        // Right Column: Chat with Bot & Brain card
+        // Right Column: Chat with Bot & Engine specs card
         Expanded(
           flex: 6,
           child: Column(
@@ -479,7 +623,7 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
                   }
                 },
                 child: Container(
-                  height: 84,
+                  height: 92,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 14,
@@ -488,17 +632,17 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
                     color: _textColor.withOpacity(0.03),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: _textColor.withOpacity(0.07),
+                      color: _textColor.withOpacity(0.08),
                       width: 1.2,
                     ),
                   ),
                   child: Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(8),
+                        padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: _textColor.withOpacity(0.04),
+                          color: accent.withOpacity(0.12),
                         ),
                         child: Icon(
                           Icons.chat_bubble_outline_rounded,
@@ -513,11 +657,18 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              'Chat with Bot',
-                              style: GoogleFonts.inter(
+                              'AI Text Chat',
+                              style: GoogleFonts.outfit(
                                 color: _textColor,
                                 fontSize: 14,
-                                fontWeight: FontWeight.w700,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            Text(
+                              'Grok & Gemini API',
+                              style: GoogleFonts.inter(
+                                color: _textMuted,
+                                fontSize: 11,
                               ),
                             ),
                           ],
@@ -533,14 +684,14 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
                 ),
               ),
               const SizedBox(height: 12),
-              // Bottom: Cyber Brain Graphic Card
+              // Bottom: Cyber Brain Spec Card
               Container(
-                height: 84,
+                height: 92,
                 decoration: BoxDecoration(
                   color: _textColor.withOpacity(0.03),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: _textColor.withOpacity(0.07),
+                    color: _textColor.withOpacity(0.08),
                     width: 1.2,
                   ),
                 ),
@@ -569,17 +720,34 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
                       ),
                       Padding(
                         padding: const EdgeInsets.all(12.0),
-                        child: Align(
-                          alignment: Alignment.bottomLeft,
-                          child: Text(
-                            'AURA ENGINE v2.5',
-                            style: GoogleFonts.spaceMono(
-                              color: _textColor.withOpacity(0.4),
-                              fontSize: 9,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 1.2,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'AURA ENGINE v2.5',
+                                  style: GoogleFonts.spaceMono(
+                                    color: _textColor.withOpacity(0.7),
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 1.2,
+                                  ),
+                                ),
+                                Icon(Icons.bolt_rounded, color: accent, size: 14),
+                              ],
                             ),
-                          ),
+                            Text(
+                              'Tavily • Serper • Deepgram',
+                              style: GoogleFonts.inter(
+                                color: _textMuted,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -788,11 +956,13 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildTopRow(context, accent),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
                     _buildHeroHeader(accent),
                     const SizedBox(height: 24),
+                    _buildQuickActionChips(accent),
+                    const SizedBox(height: 24),
                     _buildBentoGrid(accent),
-                    const SizedBox(height: 36),
+                    const SizedBox(height: 32),
                     _buildHistorySection(filteredSessions, accent),
                   ],
                 ),
