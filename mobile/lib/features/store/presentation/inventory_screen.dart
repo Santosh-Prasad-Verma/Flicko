@@ -18,13 +18,12 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
-  static const Color _bg = Color(0xFF07040A);
-  static const Color _surface = Color(0xFF0C0C0E);
-  Color get _neon => GetIt.I<MyTheme>().currentColor();
-  static const Color _white = Color(0xFFFFFFFF);
-  static const Color _muted = Color(0xFF71717A);
-  Color get _lime => GetIt.I<MyTheme>().currentColor();
-  static const Color _gold = Color(0xFFFFD700);
+  static const Color _bgDark = Color(0xFF111214);
+  static const Color _cardBg = Color(0xFF1E1F22);
+  static const Color _cardBgLight = Color(0xFF2B2D31);
+  static const Color _blurple = Color(0xFF5865F2);
+  static const Color _greenAccent = Color(0xFF23A55A);
+  static const Color _textMuted = Color(0xFF949BA4);
 
   final _tabs = ['ALL', 'THEMES', 'STICKERS', 'SOUNDS', 'BADGES'];
 
@@ -40,61 +39,43 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
     super.dispose();
   }
 
-  Widget _buildLiquidGlassBackground({required Widget child}) {
-    final currentTheme = GetIt.I<MyTheme>();
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF07040A),
-        gradient: RadialGradient(
-          center: const Alignment(-0.5, -0.6),
-          radius: 1.5,
-          colors: [
-            currentTheme.currentColor().withValues(alpha: 0.08),
-            const Color(0xFF07040A),
-          ],
-        ),
-      ),
-      child: child,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final inventoryAsync = ref.watch(inventoryProvider);
     final equippedAsync = ref.watch(equippedItemsProvider);
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: _bgDark,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: _bgDark,
         elevation: 0,
+        scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: _white),
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 24),
           onPressed: () => context.pop(),
         ),
         title: Row(
           children: [
             Text(
               'My Items',
-              style: GoogleFonts.epilogue(
-                color: _white,
-                fontWeight: FontWeight.w900,
+              style: GoogleFonts.inter(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
                 fontSize: 20,
-                fontStyle: FontStyle.italic,
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 10),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: _neon.withValues(alpha: 0.2),
+                color: _blurple,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
                 '${inventoryAsync.value?.length ?? 0}',
                 style: GoogleFonts.inter(
-                  color: _neon,
-                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
                   fontSize: 12,
                 ),
               ),
@@ -103,36 +84,35 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.mic_none_rounded, color: _neon),
+            icon: const Icon(Icons.mic_none_rounded, color: _blurple, size: 22),
             tooltip: 'Sound Studio',
             onPressed: () => context.push('/store/sound-studio'),
           ),
           IconButton(
-            icon: const Icon(Icons.shopping_bag_outlined, color: _white),
+            icon: const Icon(Icons.storefront_rounded, color: Colors.white, size: 22),
             onPressed: () => context.push('/store'),
           ),
         ],
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
-          indicatorColor: _neon,
-          indicatorWeight: 2,
-          labelColor: _white,
-          unselectedLabelColor: _muted,
-          labelStyle: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 12),
+          indicatorColor: _blurple,
+          indicatorWeight: 3,
+          labelColor: Colors.white,
+          unselectedLabelColor: _textMuted,
+          labelStyle: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13),
+          unselectedLabelStyle: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13),
           tabs: _tabs.map((t) => Tab(text: t)).toList(),
         ),
       ),
-      body: _buildLiquidGlassBackground(
-        child: inventoryAsync.when(
-          data: (items) => equippedAsync.when(
-            data: (equipped) => _buildInventoryList(items, equipped),
-            loading: () => Center(child: CircularProgressIndicator(color: _neon)),
-            error: (_, __) => const Center(child: Text('Error loading equipped items', style: TextStyle(color: Colors.red))),
-          ),
-          loading: () => Center(child: CircularProgressIndicator(color: _neon)),
-          error: (e, _) => Center(child: Text('Error: $e', style: const TextStyle(color: Colors.red))),
+      body: inventoryAsync.when(
+        data: (items) => equippedAsync.when(
+          data: (equipped) => _buildInventoryList(items, equipped),
+          loading: () => const Center(child: CircularProgressIndicator(color: _blurple)),
+          error: (_, __) => const Center(child: Text('Error loading equipped items', style: TextStyle(color: Colors.red))),
         ),
+        loading: () => const Center(child: CircularProgressIndicator(color: _blurple)),
+        error: (e, _) => Center(child: Text('Error: $e', style: const TextStyle(color: Colors.red))),
       ),
     );
   }
@@ -170,40 +150,39 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
         children: [
           Icon(
             _getEmptyIcon(tab),
-            color: _muted,
+            color: _textMuted,
             size: 64,
           ),
           const SizedBox(height: 16),
           Text(
-            'NO ${tab == 'ALL' ? 'ITEMS' : tab} YET',
-            style: GoogleFonts.epilogue(
-              color: _white,
+            'No ${tab == 'ALL' ? 'items' : tab.toLowerCase()} yet',
+            style: GoogleFonts.inter(
+              color: Colors.white,
               fontSize: 18,
-              fontWeight: FontWeight.w900,
-              fontStyle: FontStyle.italic,
+              fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Visit the store to get some!',
-            style: GoogleFonts.inter(color: _muted),
+            'Visit the shop to discover new cosmetics!',
+            style: GoogleFonts.inter(color: _textMuted, fontSize: 13),
           ),
           const SizedBox(height: 24),
-          GestureDetector(
-            onTap: () => context.push('/store'),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-              decoration: BoxDecoration(
-                color: _neon,
-                borderRadius: BorderRadius.circular(12),
+          ElevatedButton.icon(
+            onPressed: () => context.push('/store'),
+            icon: const Icon(Icons.storefront_rounded, size: 18),
+            label: Text(
+              'VISIT STORE',
+              style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _blurple,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
               ),
-              child: Text(
-                'VISIT STORE',
-                style: GoogleFonts.inter(
-                  color: Colors.black,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
+              elevation: 0,
             ),
           ),
         ],
@@ -218,66 +197,81 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: _surface,
+        color: _cardBg,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isEquipped ? _lime : _white.withValues(alpha: 0.1),
-          width: isEquipped ? 2 : 1,
+          color: isEquipped ? _greenAccent : Colors.white.withValues(alpha: 0.06),
+          width: isEquipped ? 1.8 : 1.0,
         ),
       ),
-      child: Stack(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                // Item icon
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        _getTypeColor(item.productType).withValues(alpha: 0.3),
-                        _getTypeColor(item.productType).withValues(alpha: 0.1),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Center(
-                    child: Icon(
-                      _getTypeIcon(item.productType),
-                      color: _getTypeColor(item.productType),
-                      size: 28,
-                    ),
-                  ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            // Item icon
+            Container(
+              width: 58,
+              height: 58,
+              decoration: BoxDecoration(
+                color: _cardBgLight,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Center(
+                child: Icon(
+                  _getTypeIcon(item.productType),
+                  color: _getTypeColor(item.productType),
+                  size: 28,
                 ),
-                const SizedBox(width: 16),
-                // Item info
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              ),
+            ),
+            const SizedBox(width: 14),
+            // Item info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              item.productName,
-                              style: GoogleFonts.inter(
-                                color: _white,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 15,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                      Expanded(
+                        child: Text(
+                          item.productName,
+                          style: GoogleFonts.inter(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
                           ),
-                          if (isEquipped) ...[
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: _lime,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (isEquipped) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: _greenAccent.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: _greenAccent.withValues(alpha: 0.4)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.check_rounded, color: _greenAccent, size: 12),
+                              const SizedBox(width: 4),
+                              Text(
+                                'EQUIPPED',
+                                style: GoogleFonts.inter(
+                                  color: _greenAccent,
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Row(

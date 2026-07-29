@@ -5,32 +5,32 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/features/store/data/store_service.dart';
 import 'package:mobile/features/store/data/store_payment_service.dart';
-import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/settings/application/payment_methods_provider.dart';
-import 'package:mobile/core/config/app_config.dart';
+import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
 
-// Shared colors
-const _kSurface = Color(0xFF000000);
-const _kNeon = Color(0xFF52B788);
-const _kWhite = Color(0xFFFFFFFF);
-const _kMuted = Color(0xFF71717A);
-const _kGold = Color(0xFFFFD700);
+// Discord Mobile Shop Theme Palette
+const _bgDark = Color(0xFF111214);
+const _cardBg = Color(0xFF1E1F22);
+const _cardBgLight = Color(0xFF2B2D31);
+const _blurple = Color(0xFF5865F2);
+const _greenAccent = Color(0xFF23A55A);
+const _dangerRed = Color(0xFFDA373C);
+const _textMuted = Color(0xFF949BA4);
 
-// Helper functions for cart items
-Color getRarityColor(String rarity) {
+Color _getRarityColor(String rarity) {
   switch (rarity.toLowerCase()) {
     case 'legendary':
-      return _kGold;
+      return const Color(0xFFFEE75C);
     case 'epic':
-      return _kNeon;
+      return const Color(0xFFEB459E);
     case 'rare':
-      return const Color(0xFF00E5FF);
+      return const Color(0xFF57F287);
     default:
-      return _kMuted;
+      return _textMuted;
   }
 }
 
-IconData iconForType(String type) {
+IconData _iconForType(String type) {
   switch (type.toUpperCase()) {
     case 'THEME':
       return Icons.palette_rounded;
@@ -39,57 +39,15 @@ IconData iconForType(String type) {
     case 'SOUNDS':
       return Icons.music_note_rounded;
     case 'BADGE':
+    case 'NAMEPLATE':
       return Icons.verified_rounded;
     default:
-      return Icons.store_rounded;
+      return Icons.storefront_rounded;
   }
 }
 
 class CartScreen extends ConsumerWidget {
   const CartScreen({super.key});
-
-  Widget _buildLiquidGlassBackground({required Widget child}) {
-    return Stack(
-      children: [
-        // Pure black base
-        Container(color: const Color(0xFF000000)),
-        // Ambient glow 1 (Emerald Green)
-        Positioned(
-          top: -100,
-          left: -80,
-          child: Container(
-            width: 320,
-            height: 320,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: const Color(0xFF10B981).withValues(alpha: 0.18),
-            ),
-          ),
-        ),
-        // Ambient glow 2 (Deep Purple)
-        Positioned(
-          bottom: 200,
-          right: -100,
-          child: Container(
-            width: 380,
-            height: 380,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: const Color(0xFF9B84EE).withValues(alpha: 0.15),
-            ),
-          ),
-        ),
-        // Backdrop blur overlay
-        Positioned.fill(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 70, sigmaY: 70),
-            child: Container(color: Colors.transparent),
-          ),
-        ),
-        child,
-      ],
-    );
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -97,48 +55,38 @@ class CartScreen extends ConsumerWidget {
     final total = ref.read(cartProvider.notifier).total;
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
-      extendBodyBehindAppBar: true,
+      backgroundColor: _bgDark,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: _bgDark,
         elevation: 0,
         scrolledUnderElevation: 0,
-        flexibleSpace: ClipRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-            child: Container(
-              color: Colors.black.withValues(alpha: 0.25),
-            ),
-          ),
-        ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: _kWhite),
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 24),
           onPressed: () => context.pop(),
         ),
         title: Row(
           children: [
             Text(
               'Cart',
-              style: GoogleFonts.epilogue(
-                color: _kWhite,
-                fontWeight: FontWeight.w900,
+              style: GoogleFonts.inter(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
                 fontSize: 20,
-                fontStyle: FontStyle.italic,
               ),
             ),
             if (cart.isNotEmpty) ...[
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: _kNeon,
+                  color: _blurple,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   '${cart.length}',
                   style: GoogleFonts.inter(
-                    color: Colors.black,
-                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
                     fontSize: 12,
                   ),
                 ),
@@ -153,142 +101,138 @@ class CartScreen extends ConsumerWidget {
               child: Text(
                 'CLEAR ALL',
                 style: GoogleFonts.inter(
-                  color: Colors.red,
-                  fontWeight: FontWeight.w700,
+                  color: _dangerRed,
+                  fontWeight: FontWeight.bold,
                   fontSize: 12,
+                  letterSpacing: 0.5,
                 ),
               ),
             ),
         ],
       ),
-      body: _buildLiquidGlassBackground(
-        child: SafeArea(
-          bottom: false,
-          child: cart.isEmpty
-              ? _buildEmptyCart(context)
-              : Column(
-                  children: [
-                    Expanded(
-                      child: ListView.builder(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: cart.length,
-                        itemBuilder: (context, index) => _buildCartItem(context, ref, cart[index]),
-                      ),
-                    ),
-                    _buildCheckoutSection(context, ref, cart, total),
-                  ],
+      body: cart.isEmpty
+          ? _buildEmptyCart(context)
+          : Column(
+              children: [
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: cart.length,
+                    itemBuilder: (context, index) =>
+                        _buildCartItemCard(context, ref, cart[index]),
+                  ),
                 ),
-        ),
-      ),
+                _buildCheckoutFooter(context, ref, cart, total),
+              ],
+            ),
     );
   }
 
   Widget _buildEmptyCart(BuildContext context) {
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              color: _kSurface,
-              borderRadius: BorderRadius.circular(50),
-            ),
-            child: const Icon(Icons.shopping_bag_outlined, color: _kMuted, size: 48),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            'YOUR CART IS EMPTY',
-            style: GoogleFonts.epilogue(
-              color: _kWhite,
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
-              fontStyle: FontStyle.italic,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Looks like you haven\'t added anything yet.',
-            style: GoogleFonts.inter(color: _kMuted, fontSize: 14),
-          ),
-          const SizedBox(height: 32),
-          GestureDetector(
-            onTap: () => context.push('/store'),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-              margin: const EdgeInsets.only(right: 4, bottom: 4),
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 96,
+              height: 96,
               decoration: BoxDecoration(
-                color: _kNeon,
-                border: Border.all(color: Colors.black, width: 2),
-                boxShadow:  [
-                  BoxShadow(color: Colors.white.withValues(alpha: 0.25),
-                    blurRadius: 14, offset: const Offset(0, 4),
-                  ),
-                ],
+                color: _cardBg,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
               ),
-              child: Text(
-                'BROWSE STORE',
-                style: GoogleFonts.inter(
-                  color: Colors.black,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 14,
-                ),
+              child: const Icon(Icons.shopping_bag_outlined, color: _textMuted, size: 44),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Your Cart is Empty',
+              style: GoogleFonts.inter(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: 8),
+            Text(
+              'Explore the shop to discover avatar decorations, nameplates, themes & more.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(
+                color: _textMuted,
+                fontSize: 14,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 32),
+            ElevatedButton.icon(
+              onPressed: () => context.push('/store'),
+              icon: const Icon(Icons.storefront_rounded, size: 18),
+              label: Text(
+                'EXPLORE SHOP',
+                style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _blurple,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                elevation: 0,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildCartItem(BuildContext context, WidgetRef ref, CartItem item) {
-    final rarityColor = getRarityColor(item.product.rarity);
+  Widget _buildCartItemCard(BuildContext context, WidgetRef ref, CartItem item) {
+    final rarityColor = _getRarityColor(item.product.rarity);
+    final isAvatarDecoration = item.product.type.toUpperCase() == 'AVATAR_DECORATION';
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.25),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: rarityColor.withValues(alpha: 0.35), width: 1.2),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.white.withValues(alpha: 0.04),
-                  Colors.white.withValues(alpha: 0.01),
-                ],
-              ),
-            ),
-            child: Row(
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      decoration: BoxDecoration(
+        color: _cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
           children: [
-            // Product image/icon
+            // Preview Thumbnail Box
             GestureDetector(
               onTap: () => context.push('/store/product/${item.product.id}'),
               child: Container(
-                width: 72,
-                height: 72,
+                width: 68,
+                height: 68,
                 decoration: BoxDecoration(
-                  color: Colors.black,
-                  border: Border.all(color: rarityColor, width: 1.5),
+                  color: _cardBgLight,
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
-                  child: Icon(
-                    iconForType(item.product.type),
-                    color: rarityColor,
-                    size: 32,
-                  ),
+                  child: isAvatarDecoration
+                      ? UserAvatar(
+                          size: 48,
+                          decoration: item.product.id,
+                          name: item.product.name,
+                          showStatus: false,
+                          showBadge: false,
+                        )
+                      : Icon(
+                          _iconForType(item.product.type),
+                          color: rarityColor,
+                          size: 32,
+                        ),
                 ),
               ),
             ),
-            const SizedBox(width: 12),
-            // Product details
+            const SizedBox(width: 14),
+
+            // Details Column
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -299,47 +243,48 @@ class CartScreen extends ConsumerWidget {
                         child: Text(
                           item.product.name,
                           style: GoogleFonts.inter(
-                            color: _kWhite,
-                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
                             fontSize: 15,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 6),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: rarityColor.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(4),
+                          color: rarityColor.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
                           item.product.rarity.toUpperCase(),
                           style: GoogleFonts.inter(
                             color: rarityColor,
-                            fontSize: 8,
+                            fontSize: 9,
                             fontWeight: FontWeight.w900,
                           ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 2),
                   Text(
-                    item.product.type.toUpperCase(),
+                    item.product.type.replaceAll('_', ' ').toUpperCase(),
                     style: GoogleFonts.inter(
-                      color: _kMuted,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
+                      color: _textMuted,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  // Quantity controls
+                  const SizedBox(height: 10),
+
+                  // Quantity Controls & Item Subtotal
                   Row(
                     children: [
-                      _buildQuantityButton(
-                        icon: Icons.remove,
+                      _buildQtyButton(
+                        icon: Icons.remove_rounded,
                         onTap: () {
                           ref.read(cartProvider.notifier).updateQuantity(
                             item.product.id,
@@ -347,21 +292,19 @@ class CartScreen extends ConsumerWidget {
                           );
                         },
                       ),
-                      SizedBox(
-                        width: 32,
-                        child: Center(
-                          child: Text(
-                            '${item.quantity}',
-                            style: GoogleFonts.inter(
-                              color: _kWhite,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 16,
-                            ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        child: Text(
+                          '${item.quantity}',
+                          style: GoogleFonts.inter(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
                           ),
                         ),
                       ),
-                      _buildQuantityButton(
-                        icon: Icons.add,
+                      _buildQtyButton(
+                        icon: Icons.add_rounded,
                         onTap: () {
                           ref.read(cartProvider.notifier).updateQuantity(
                             item.product.id,
@@ -372,10 +315,10 @@ class CartScreen extends ConsumerWidget {
                       const Spacer(),
                       Text(
                         '₹${(item.product.price * item.quantity).toStringAsFixed(0)}',
-                        style: GoogleFonts.epilogue(
-                          color: _kWhite,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 18,
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
                         ),
                       ),
                     ],
@@ -384,129 +327,105 @@ class CartScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(width: 8),
-            // Remove button
+
+            // Delete Button
             IconButton(
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-              icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+              icon: const Icon(Icons.delete_outline_rounded, color: _dangerRed, size: 20),
               onPressed: () {
                 ref.read(cartProvider.notifier).remove(item.product.id);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('${item.product.name} removed from cart'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
               },
             ),
           ],
         ),
       ),
-    ),
-  ),
-);
+    );
   }
 
-  Widget _buildQuantityButton({required IconData icon, required VoidCallback onTap}) {
+  Widget _buildQtyButton({required IconData icon, required VoidCallback onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 32,
-        height: 32,
+        padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.05),
+          color: _cardBgLight,
           shape: BoxShape.circle,
-          border: Border.all(color: _kNeon.withValues(alpha: 0.4), width: 1.0),
         ),
-        child: Icon(icon, color: _kNeon, size: 16),
+        child: Icon(icon, color: Colors.white, size: 16),
       ),
     );
   }
 
-  Widget _buildCheckoutSection(BuildContext context, WidgetRef ref, List<CartItem> cart, double total) {
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.4),
-            border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.08), width: 1.0)),
-          ),
-          child: SafeArea(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+  Widget _buildCheckoutFooter(BuildContext context, WidgetRef ref, List<CartItem> cart, double total) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF18191C),
+        border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.08))),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'TOTAL',
-                      style: GoogleFonts.inter(
-                        color: _kMuted,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    Text(
-                      '₹${total.toStringAsFixed(0)}',
-                      style: GoogleFonts.epilogue(
-                        color: _kWhite,
-                        fontSize: 28,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                GestureDetector(
-                  onTap: () => _showCheckoutDialog(context, ref, cart),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    decoration: BoxDecoration(
-                      color: _kNeon,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: _kNeon.withValues(alpha: 0.3),
-                          blurRadius: 16,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Center(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.lock, color: Colors.black, size: 18),
-                          const SizedBox(width: 8),
-                          Text(
-                            'SECURE CHECKOUT',
-                            style: GoogleFonts.inter(
-                              color: Colors.black,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 16,
-                              letterSpacing: 1.0,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
                 Text(
-                  'Secure checkout powered by Flicko Pay',
+                  'TOTAL',
                   style: GoogleFonts.inter(
-                    color: _kMuted,
-                    fontSize: 9,
+                    color: _textMuted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.0,
                   ),
-                  textAlign: TextAlign.center,
+                ),
+                Text(
+                  '₹${total.toStringAsFixed(0)}',
+                  style: GoogleFonts.inter(
+                    color: Colors.white,
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
-          ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: ElevatedButton.icon(
+                onPressed: () => _showCheckoutDialog(context, ref, cart),
+                icon: const Icon(Icons.lock_rounded, size: 18),
+                label: Text(
+                  'SECURE CHECKOUT',
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _greenAccent,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  elevation: 0,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '🔒 Encrypted checkout powered by Flicko Pay',
+              style: GoogleFonts.inter(
+                color: _textMuted,
+                fontSize: 11,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       ),
     );
@@ -521,27 +440,22 @@ class CartScreen extends ConsumerWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      elevation: 0,
       builder: (ctx) => DraggableScrollableSheet(
-        initialChildSize: 0.9,
+        initialChildSize: 0.85,
         minChildSize: 0.5,
         maxChildSize: 0.95,
         expand: false,
-        builder: (ctx, scrollController) => BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.85),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-            ),
-            child: _CheckoutSheet(
-              cart: cart,
-              total: total,
-              paidItems: paidItems,
-              freeItems: freeItems,
-              scrollController: scrollController,
-            ),
+        builder: (ctx, scrollController) => Container(
+          decoration: const BoxDecoration(
+            color: _bgDark,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: _CheckoutSheet(
+            cart: cart,
+            total: total,
+            paidItems: paidItems,
+            freeItems: freeItems,
+            scrollController: scrollController,
           ),
         ),
       ),
@@ -583,10 +497,11 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
     super.dispose();
   }
 
-  static const Color _kNeon = Color(0xFF52B788);
-  static const Color _kWhite = Color(0xFFFFFFFF);
-  static const Color _kMuted = Color(0xFF71717A);
-  static const Color _kLime = Color(0xFF52B788);
+  static const Color _kCardBg = Color(0xFF1E1F22);
+  static const Color _kCardBgLight = Color(0xFF2B2D31);
+  static const Color _kBlurple = Color(0xFF5865F2);
+  static const Color _kGreen = Color(0xFF23A55A);
+  static const Color _kTextMuted = Color(0xFF949BA4);
 
   @override
   Widget build(BuildContext context) {
@@ -607,8 +522,9 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
             child: Container(
               width: 40,
               height: 4,
-              decoration: const BoxDecoration(
-                color: _kNeon,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
           ),
@@ -619,12 +535,12 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.black,
-                  border: Border.all(color: _kNeon, width: 1.5),
+                  color: _kCardBgLight,
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.lock, color: _kNeon, size: 24),
+                child: const Icon(Icons.lock_rounded, color: _kBlurple, size: 22),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -632,15 +548,15 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
                     Text(
                       'SECURE CHECKOUT',
                       style: GoogleFonts.inter(
-                        color: _kWhite,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 20,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
                       ),
                     ),
                     Text(
                       '256-bit encrypted payment',
                       style: GoogleFonts.inter(
-                        color: _kMuted,
+                        color: _kTextMuted,
                         fontSize: 12,
                       ),
                     ),
@@ -649,10 +565,10 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
           // Order summary
           _buildOrderSummary(),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
           // Coupon section
           _buildCouponCodeSection(),
           const SizedBox(height: 12),
@@ -661,17 +577,17 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
             Text(
               'PAYMENT METHOD',
               style: GoogleFonts.inter(
-                color: _kMuted,
+                color: _kTextMuted,
                 fontSize: 11,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.0,
               ),
             ),
             const SizedBox(height: 12),
             paymentMethodsAsync.when(
               data: (methods) => _buildPaymentMethodsList(methods, hasSavedCards),
-              loading: () => const Center(child: CircularProgressIndicator(color: _kNeon)),
-              error: (e, _) => Text('Error loading payment methods', style: TextStyle(color: Colors.red)),
+              loading: () => const Center(child: CircularProgressIndicator(color: _kBlurple)),
+              error: (e, _) => const Text('Error loading payment methods', style: TextStyle(color: Colors.red)),
             ),
             const SizedBox(height: 24),
           ],
@@ -691,13 +607,9 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.black,
-        border: Border.all(color: _kNeon, width: 2),
-        boxShadow:  [
-          BoxShadow(color: _kNeon.withValues(alpha: 0.25),
-            blurRadius: 14, offset: const Offset(0, 4),
-          ),
-        ],
+        color: _kCardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
       child: Column(
         children: [
@@ -707,15 +619,15 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
               Text(
                 'Items (${widget.cart.length})',
                 style: GoogleFonts.inter(
-                  color: _kWhite,
-                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               Text(
                 '₹${total.toStringAsFixed(0)}',
                 style: GoogleFonts.inter(
-                  color: _kWhite,
-                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ],
@@ -728,40 +640,40 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
                 Text(
                   'DISCOUNT (${activeCoupon.code})',
                   style: GoogleFonts.inter(
-                    color: _kLime,
-                    fontWeight: FontWeight.w700,
+                    color: _kGreen,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
                 Text(
                   '-₹${discount.toStringAsFixed(0)}',
                   style: GoogleFonts.inter(
-                    color: _kLime,
-                    fontWeight: FontWeight.w900,
+                    color: _kGreen,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ],
             ),
           ],
-          const SizedBox(height: 8),
-          const Divider(color: _kNeon, thickness: 1.5),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
+          Divider(color: Colors.white.withValues(alpha: 0.08), height: 1),
+          const SizedBox(height: 10),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 'TOTAL',
                 style: GoogleFonts.inter(
-                  color: _kNeon,
-                  fontWeight: FontWeight.w900,
+                  color: _kGreen,
+                  fontWeight: FontWeight.bold,
                   fontSize: 14,
                 ),
               ),
               Text(
                 '₹${finalTotal.toStringAsFixed(0)}',
-                style: GoogleFonts.epilogue(
-                  color: _kWhite,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 24,
+                style: GoogleFonts.inter(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 22,
                 ),
               ),
             ],
@@ -772,19 +684,12 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
   }
 
   Widget _buildCouponCodeSection() {
-    final activeCoupon = ref.watch(activeCouponProvider);
-
     return Container(
-      margin: const EdgeInsets.only(bottom: 24, right: 4),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.black,
-        border: Border.all(color: _kNeon, width: 2),
-        boxShadow:  [
-          BoxShadow(color: Colors.white.withValues(alpha: 0.25),
-            blurRadius: 14, offset: const Offset(0, 4),
-          ),
-        ],
+        color: _kCardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -792,10 +697,10 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
           Text(
             'PROMO CODE',
             style: GoogleFonts.inter(
-              color: _kWhite,
-              fontWeight: FontWeight.w900,
+              color: _kTextMuted,
+              fontWeight: FontWeight.bold,
               fontSize: 11,
-              letterSpacing: 1,
+              letterSpacing: 1.0,
             ),
           ),
           const SizedBox(height: 12),
@@ -806,19 +711,20 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     decoration: BoxDecoration(
-                      color: Colors.black,
-                      border: Border.all(color: _kNeon, width: 1.5),
+                      color: _kGreen.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: _kGreen),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.check_circle, color: _kNeon, size: 16),
+                        const Icon(Icons.check_circle_rounded, color: _kGreen, size: 16),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             '${activeCoupon.code} APPLIED (${activeCoupon.discountPercent.toInt()}% OFF)',
                             style: GoogleFonts.inter(
-                              color: _kNeon,
-                              fontWeight: FontWeight.w900,
+                              color: _kGreen,
+                              fontWeight: FontWeight.bold,
                               fontSize: 11,
                             ),
                             maxLines: 1,
@@ -831,7 +737,7 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
                 ),
                 const SizedBox(width: 8),
                 IconButton(
-                  icon: const Icon(Icons.clear, color: Colors.red),
+                  icon: const Icon(Icons.clear, color: Colors.redAccent),
                   onPressed: () {
                     ref.read(activeCouponProvider.notifier).state = null;
                     _couponController.clear();
@@ -850,39 +756,40 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
                   child: Container(
                     height: 44,
                     decoration: BoxDecoration(
-                      color: Colors.black,
-                      border: Border.all(color: _couponError != null ? Colors.red : _kNeon, width: 1.5),
+                      color: _kCardBgLight,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: _couponError != null ? Colors.redAccent : Colors.transparent,
+                      ),
                     ),
                     child: TextField(
                       controller: _couponController,
-                      style: GoogleFonts.inter(color: _kWhite, fontSize: 13),
+                      style: GoogleFonts.inter(color: Colors.white, fontSize: 13),
                       decoration: InputDecoration(
-                        hintText: 'ENTER CODE',
-                        hintStyle: GoogleFonts.inter(color: _kMuted, fontSize: 12),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        hintText: 'ENTER PROMO CODE',
+                        hintStyle: GoogleFonts.inter(color: _kTextMuted, fontSize: 12),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                         border: InputBorder.none,
-                        enabledBorder: InputBorder.none,
-                        focusedBorder: InputBorder.none,
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 10),
                 GestureDetector(
                   onTap: _applyCoupon,
                   child: Container(
                     height: 44,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: 18),
                     decoration: BoxDecoration(
-                      color: _kNeon,
-                      border: Border.all(color: Colors.black, width: 1.5),
+                      color: _kBlurple,
+                      borderRadius: BorderRadius.circular(10),
                     ),
                     child: Center(
                       child: Text(
                         'APPLY',
                         style: GoogleFonts.inter(
-                          color: Colors.black,
-                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
                           fontSize: 12,
                         ),
                       ),
@@ -895,7 +802,7 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
               const SizedBox(height: 8),
               Text(
                 _couponError!,
-                style: GoogleFonts.inter(color: Colors.red, fontSize: 10),
+                style: GoogleFonts.inter(color: Colors.redAccent, fontSize: 11, fontWeight: FontWeight.w600),
               ),
             ],
           ],
@@ -939,21 +846,19 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
   Widget _buildPaymentMethodsList(List<dynamic> methods, bool hasSavedCards) {
     return Column(
       children: [
-        // Saved cards
         if (hasSavedCards) ...[
           ...methods.take(2).map((method) => _buildPaymentOption(
             index: methods.indexOf(method),
-            icon: Icons.credit_card,
+            icon: Icons.credit_card_rounded,
             title: '${method.cardType} •••• ${method.cardNumberLastFour}',
             subtitle: 'Expires ${method.expiryMonth}/${method.expiryYear}',
             isSelected: _selectedPaymentMethod == methods.indexOf(method),
             onTap: () => setState(() => _selectedPaymentMethod = methods.indexOf(method)),
           )),
         ],
-        // Add new card
         _buildPaymentOption(
           index: 10,
-          icon: Icons.add_card,
+          icon: Icons.add_card_rounded,
           title: 'Add New Card',
           subtitle: 'Credit or debit card',
           isSelected: _selectedPaymentMethod == 10,
@@ -962,12 +867,11 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
             ref.invalidate(paymentMethodsProvider);
           },
         ),
-        // UPI (for Indian users)
         _buildPaymentOption(
           index: 11,
-          icon: Icons.account_balance_wallet,
+          icon: Icons.account_balance_wallet_rounded,
           title: 'UPI / Wallet',
-          subtitle: 'Google Pay, PhonePe, etc.',
+          subtitle: 'Google Pay, PhonePe, Paytm, BHIM',
           isSelected: _selectedPaymentMethod == 11,
           onTap: () => setState(() => _selectedPaymentMethod = 11),
         ),
@@ -986,34 +890,28 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 12, right: 4),
-        padding: const EdgeInsets.all(16),
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.black,
+          color: _kCardBg,
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: isSelected ? _kNeon : _kWhite.withValues(alpha: 0.2),
-            width: isSelected ? 2.5 : 1.5,
+            color: isSelected ? _kBlurple : Colors.white.withValues(alpha: 0.06),
+            width: isSelected ? 2.0 : 1.0,
           ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(color: _kNeon.withValues(alpha: 0.25),
-                    blurRadius: 14, offset: const Offset(0, 4),
-                  ),
-                ]
-              : null,
         ),
         child: Row(
           children: [
             Container(
-              width: 48,
-              height: 32,
+              width: 44,
+              height: 34,
               decoration: BoxDecoration(
-                color: Colors.black,
-                border: Border.all(color: isSelected ? _kNeon : _kMuted, width: 1.5),
+                color: _kCardBgLight,
+                borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(icon, color: isSelected ? _kNeon : _kMuted, size: 20),
+              child: Icon(icon, color: isSelected ? _kBlurple : Colors.white70, size: 20),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1021,15 +919,15 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
                   Text(
                     title,
                     style: GoogleFonts.inter(
-                      color: _kWhite,
-                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
                       fontSize: 14,
                     ),
                   ),
                   Text(
                     subtitle,
                     style: GoogleFonts.inter(
-                      color: _kMuted,
+                      color: _kTextMuted,
                       fontSize: 11,
                     ),
                   ),
@@ -1042,7 +940,7 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isSelected ? _kNeon : _kMuted,
+                  color: isSelected ? _kBlurple : Colors.white38,
                   width: isSelected ? 6 : 2,
                 ),
               ),
@@ -1060,47 +958,38 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
 
     return Column(
       children: [
-        GestureDetector(
-          onTap: _isProcessing ? null : () => _processPayment(context),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 18),
-            margin: const EdgeInsets.only(right: 4, bottom: 4),
-            decoration: BoxDecoration(
-              color: isFree ? _kLime : _kNeon,
-              border: Border.all(color: Colors.black, width: 2),
-              boxShadow:  [
-                BoxShadow(color: Colors.white.withValues(alpha: 0.25),
-                  blurRadius: 14, offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Center(
-              child: _isProcessing
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2),
-                    )
-                  : Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          isFree ? Icons.card_giftcard : Icons.lock,
-                          color: Colors.black,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          isFree ? 'CLAIM FREE ITEMS' : 'PAY ₹${finalTotal.toStringAsFixed(0)}',
-                          style: GoogleFonts.inter(
-                            color: Colors.black,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
+        SizedBox(
+          width: double.infinity,
+          height: 50,
+          child: ElevatedButton.icon(
+            onPressed: _isProcessing ? null : () => _processPayment(context),
+            icon: _isProcessing
+                ? const SizedBox.shrink()
+                : Icon(
+                    isFree ? Icons.card_giftcard_rounded : Icons.lock_rounded,
+                    size: 18,
+                  ),
+            label: _isProcessing
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                  )
+                : Text(
+                    isFree ? 'CLAIM FREE ITEMS' : 'PAY ₹${finalTotal.toStringAsFixed(0)}',
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      letterSpacing: 0.5,
                     ),
+                  ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isFree ? _kGreen : _kBlurple,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              elevation: 0,
             ),
           ),
         ),
@@ -1108,13 +997,13 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.shield, color: _kMuted, size: 14),
+            const Icon(Icons.shield_rounded, color: _kTextMuted, size: 14),
             const SizedBox(width: 6),
             Text(
-              'Protected by Flicko Secure Pay',
+              'Protected by Flicko 256-Bit Encrypted Pay',
               style: GoogleFonts.inter(
-                color: _kMuted,
-                fontSize: 10,
+                color: _kTextMuted,
+                fontSize: 11,
               ),
             ),
           ],

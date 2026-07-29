@@ -13,47 +13,32 @@ class ProductDetailScreen extends ConsumerWidget {
 
   const ProductDetailScreen({super.key, required this.productId});
 
-  static const Color _bg = Color(0xFF000000);
-  static const Color _neon = Color(0xFF52B788);
-  static const Color _white = Color(0xFFFFFFFF);
-  static const Color _muted = Color(0xFF71717A);
-  static const Color _lime = Color(0xFF52B788);
-  static const Color _gold = Color(0xFFFFD700);
+  static const Color _bgDark = Color(0xFF111214);
+  static const Color _cardBg = Color(0xFF1E1F22);
+  static const Color _cardBgLight = Color(0xFF2B2D31);
+  static const Color _blurple = Color(0xFF5865F2);
+  static const Color _greenAccent = Color(0xFF23A55A);
+  static const Color _dangerRed = Color(0xFFDA373C);
+  static const Color _textMuted = Color(0xFF949BA4);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final productAsync = ref.watch(productProvider(productId));
 
     return Scaffold(
-      backgroundColor: _bg,
-      extendBodyBehindAppBar: true,
+      backgroundColor: _bgDark,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: _bgDark,
         elevation: 0,
-        leading: Container(
-          margin: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.black,
-            border: Border.all(color: _neon, width: 1.5),
-          ),
-          child: IconButton(
-            icon: const Icon(Icons.arrow_back, color: _white),
-            onPressed: () => context.pop(),
-          ),
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 24),
+          onPressed: () => context.pop(),
         ),
         actions: [
-          Container(
-            margin: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-            color: Colors.black,
-            border: Border.all(color: _neon, width: 1.5),
-          ),
-          child: IconButton(
-            icon: const Icon(Icons.share, color: _white),
-            onPressed: () {
-              // Share functionality
-            },
-          ),
+          IconButton(
+            icon: const Icon(Icons.share_rounded, color: Colors.white, size: 22),
+            onPressed: () {},
           ),
         ],
       ),
@@ -64,7 +49,7 @@ class ProductDetailScreen extends ConsumerWidget {
           }
           return _buildProductDetail(context, ref, product);
         },
-        loading: () => const Center(child: CircularProgressIndicator(color: _neon)),
+        loading: () => const Center(child: CircularProgressIndicator(color: _blurple)),
         error: (e, _) => Center(child: Text('Error: $e', style: const TextStyle(color: Colors.red))),
       ),
     );
@@ -75,55 +60,14 @@ class ProductDetailScreen extends ConsumerWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.error_outline, color: _muted, size: 64),
+          const Icon(Icons.error_outline_rounded, color: _textMuted, size: 64),
           const SizedBox(height: 16),
           Text(
             'Product not found',
-            style: GoogleFonts.epilogue(color: _white, fontSize: 20, fontWeight: FontWeight.w900),
+            style: GoogleFonts.inter(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildLiquidGlassBackground({required Widget child, required Color rarityColor}) {
-    return Stack(
-      children: [
-        Container(color: const Color(0xFF000000)),
-        // Rarity ambient glow
-        Positioned(
-          top: -80,
-          left: -80,
-          child: Container(
-            width: 360,
-            height: 360,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: rarityColor.withValues(alpha: 0.22),
-            ),
-          ),
-        ),
-        // Secondary ambient glow
-        Positioned(
-          bottom: 120,
-          right: -80,
-          child: Container(
-            width: 320,
-            height: 320,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: const Color(0xFF9B84EE).withValues(alpha: 0.12),
-            ),
-          ),
-        ),
-        Positioned.fill(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 75, sigmaY: 75),
-            child: Container(color: Colors.transparent),
-          ),
-        ),
-        child,
-      ],
     );
   }
 
@@ -133,17 +77,15 @@ class ProductDetailScreen extends ConsumerWidget {
     final cart = ref.watch(cartProvider);
     final inCart = cart.any((item) => item.product.id == product.id);
 
-    return _buildLiquidGlassBackground(
-      rarityColor: rarityColor,
-      child: Stack(
-        children: [
-          // Content
-          SingleChildScrollView(
-            padding: const EdgeInsets.only(bottom: 120),
-            child: Column(
+    return Stack(
+      children: [
+        // Content
+        SingleChildScrollView(
+          padding: const EdgeInsets.only(bottom: 120),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 100),
+              const SizedBox(height: 12),
               // Product preview
               _buildProductPreview(context, ref, product, rarityColor),
               const SizedBox(height: 24),
