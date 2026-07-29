@@ -36,6 +36,11 @@
         android:enableOnBackInvokedCallback="true"
         android:usesCleartextTraffic="true">
 
+        <!-- App Icon metadata for FlutterForegroundTask -->
+        <meta-data
+            android:name="app.icon"
+            android:resource="@mipmap/ic_launcher" />
+
         <!-- Foreground Service Registration -->
         <service 
             android:name="com.pravera.flutter_foreground_task.service.ForegroundService"

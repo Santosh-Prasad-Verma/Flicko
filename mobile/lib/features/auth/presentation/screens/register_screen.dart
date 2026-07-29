@@ -387,7 +387,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 
   void _navigateToLogin() {
-    context.pop();
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/login');
+    }
   }
 
   @override
