@@ -490,12 +490,23 @@ You are Aura, the native AI Voice Companion and Central Command Intelligence ins
       final hasSpeech = bytesSent >= (inputSampleRate * 2);
       final silenceLongEnough =
           now.difference(lastVoiceAt) >= _silenceStopDuration;
+
+      // Send silent PCM keepalive frames while waiting for mic initialization/speech to prevent Deepgram timeout
+      if (bytesSent == 0 && !_closed && _channel != null) {
+        final silence = Uint8List(3840); // 40ms of 48kHz 16-bit PCM
+        try {
+          _channel?.sink.add(silence);
+        } catch (_) {}
+      }
+
       if (hasMinimumAudio && hasSpeech && silenceLongEnough) {
         if (!stopInput.isCompleted) stopInput.complete();
       }
     });
 
-    await stopInput.future.timeout(_maxInputDuration, onTimeout: () {});
+    await stopInput.future.timeout(_maxInputDuration, onTimeout: () {
+      if (!stopInput.isCompleted) stopInput.complete();
+    });
     await _stopMic();
   }
 
