@@ -44,7 +44,7 @@
         <!-- Foreground Service Registration -->
         <service 
             android:name="com.pravera.flutter_foreground_task.service.ForegroundService"
-            android:foregroundServiceType="microphone|camera|mediaProjection"
+            android:foregroundServiceType="microphone|camera"
             android:exported="false">
             <meta-data
                 android:name="app.icon"

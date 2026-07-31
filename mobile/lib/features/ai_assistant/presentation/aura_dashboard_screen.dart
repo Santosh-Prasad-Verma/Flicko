@@ -625,8 +625,8 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
                 child: Container(
                   height: 92,
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
+                    horizontal: 12,
+                    vertical: 10,
                   ),
                   decoration: BoxDecoration(
                     color: _textColor.withOpacity(0.03),
@@ -650,14 +650,17 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
                           size: 18,
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
                               'AI Text Chat',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: GoogleFonts.outfit(
                                 color: _textColor,
                                 fontSize: 14,
@@ -666,6 +669,8 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
                             ),
                             Text(
                               'Grok & Gemini API',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: GoogleFonts.inter(
                                 color: _textMuted,
                                 fontSize: 11,
