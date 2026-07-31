@@ -855,7 +855,7 @@ Important rules:
                           runSpacing: 10,
                           children: [
                             _buildSheetSelector(
-                              title: "Deepgram Aura (Odysseus)",
+                              title: "Deepgram Aura (Stella)",
                               isSelected: _selectedModel ==
                                   AuraLiveAudioService.defaultModel,
                               onTap: () {

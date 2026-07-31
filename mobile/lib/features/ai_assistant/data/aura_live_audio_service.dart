@@ -53,7 +53,7 @@ class AuraLiveAudioException implements Exception {
 }
 
 class AuraLiveAudioService {
-  static const String defaultModel = 'aura-2-odysseus-en';
+  static const String defaultModel = 'aura-stella-en';
   static const String defaultAgentEndpoint = 'wss://agent.deepgram.com/v1/agent/converse';
   static const int inputSampleRate = 48000;
   static const int outputSampleRate = 24000;
@@ -216,26 +216,34 @@ You are Aura, the native AI Voice Companion and Central Command Intelligence ins
     switch (voiceName.toLowerCase()) {
       case 'aoede':
       case 'stella':
-        deepgramVoice = 'aura-2-stella-en';
+        deepgramVoice = 'aura-stella-en';
         break;
       case 'puck':
       case 'arcas':
-        deepgramVoice = 'aura-2-arcas-en';
+        deepgramVoice = 'aura-arcas-en';
         break;
       case 'charon':
       case 'zeus':
-        deepgramVoice = 'aura-2-zeus-en';
+        deepgramVoice = 'aura-zeus-en';
         break;
       case 'kore':
       case 'luna':
-        deepgramVoice = 'aura-2-luna-en';
+        deepgramVoice = 'aura-luna-en';
         break;
       case 'fenrir':
       case 'asteria':
-        deepgramVoice = 'aura-2-asteria-en';
+        deepgramVoice = 'aura-asteria-en';
+        break;
+      case 'orpheus':
+        deepgramVoice = 'aura-orpheus-en';
+        break;
+      case 'angus':
+        deepgramVoice = 'aura-angus-en';
         break;
       default:
-        deepgramVoice = voiceName.startsWith('aura-') ? voiceName : 'aura-2-odysseus-en';
+        deepgramVoice = voiceName.startsWith('aura-')
+            ? voiceName.replaceAll('aura-2-', 'aura-')
+            : 'aura-stella-en';
     }
 
     try {
