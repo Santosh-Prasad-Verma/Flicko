@@ -401,7 +401,7 @@ class _AuraChatScreenState extends ConsumerState<AuraChatScreen> {
               crossAxisCount: 2,
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
-              childAspectRatio: 1.35,
+              childAspectRatio: 1.15,
             ),
             itemCount: promptCards.length,
             itemBuilder: (context, index) {
@@ -413,7 +413,7 @@ class _AuraChatScreenState extends ConsumerState<AuraChatScreen> {
               return GestureDetector(
                 onTap: () => _sendMessage(subtitle),
                 child: Container(
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: _textWhite.withOpacity(0.025),
                     borderRadius: BorderRadius.circular(18),
@@ -427,7 +427,7 @@ class _AuraChatScreenState extends ConsumerState<AuraChatScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(7),
+                        padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
                           color: accent.withOpacity(0.12),
                           borderRadius: BorderRadius.circular(10),
@@ -443,6 +443,8 @@ class _AuraChatScreenState extends ConsumerState<AuraChatScreen> {
                         children: [
                           Text(
                             title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: GoogleFonts.outfit(
                               color: _textWhite,
                               fontSize: 13,
