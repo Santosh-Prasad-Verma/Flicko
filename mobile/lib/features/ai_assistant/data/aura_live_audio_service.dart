@@ -212,6 +212,32 @@ You are Aura, the native AI Voice Companion and Central Command Intelligence ins
         ? systemInstruction
         : _defaultSystemPrompt;
 
+    final String deepgramVoice;
+    switch (voiceName.toLowerCase()) {
+      case 'aoede':
+      case 'stella':
+        deepgramVoice = 'aura-2-stella-en';
+        break;
+      case 'puck':
+      case 'arcas':
+        deepgramVoice = 'aura-2-arcas-en';
+        break;
+      case 'charon':
+      case 'zeus':
+        deepgramVoice = 'aura-2-zeus-en';
+        break;
+      case 'kore':
+      case 'luna':
+        deepgramVoice = 'aura-2-luna-en';
+        break;
+      case 'fenrir':
+      case 'asteria':
+        deepgramVoice = 'aura-2-asteria-en';
+        break;
+      default:
+        deepgramVoice = voiceName.startsWith('aura-') ? voiceName : 'aura-2-odysseus-en';
+    }
+
     try {
       final uri = Uri.parse(defaultAgentEndpoint);
       final channel = IOWebSocketChannel.connect(
@@ -249,7 +275,7 @@ You are Aura, the native AI Voice Companion and Central Command Intelligence ins
             }
 
             if (type == 'Error') {
-              final errorMsg = decoded['message'] ?? 'Deepgram Agent Error';
+              final errorMsg = decoded['message'] ?? decoded['description'] ?? 'Deepgram Agent Error';
               if (!turnComplete.isCompleted) {
                 turnComplete.completeError(
                   AuraLiveAudioException('Deepgram Agent error', errorMsg),
@@ -273,7 +299,7 @@ You are Aura, the native AI Voice Companion and Central Command Intelligence ins
                     outputSampleRate: outputSampleRate,
                     inputTranscript: inputTranscript.toString(),
                     outputTranscript: outputTranscript.toString(),
-                    model: effectiveVoice,
+                    model: deepgramVoice,
                   ),
                 );
               }
@@ -317,7 +343,7 @@ You are Aura, the native AI Voice Companion and Central Command Intelligence ins
                   outputSampleRate: outputSampleRate,
                   inputTranscript: inputTranscript.toString(),
                   outputTranscript: outputTranscript.toString(),
-                  model: effectiveModel,
+                  model: deepgramVoice,
                 ),
               );
             } else {
@@ -333,7 +359,7 @@ You are Aura, the native AI Voice Companion and Central Command Intelligence ins
 
       await channel.ready.timeout(_setupTimeout);
 
-      // Send the exact Deepgram Voice Agent Settings JSON payload
+      // Send valid Deepgram Voice Agent Settings payload
       _sendJson({
         'type': 'Settings',
         'audio': {
@@ -348,12 +374,6 @@ You are Aura, the native AI Voice Companion and Central Command Intelligence ins
           },
         },
         'agent': {
-          'speak': {
-            'provider': {
-              'type': 'deepgram',
-              'model': effectiveVoice,
-            },
-          },
           'listen': {
             'provider': {
               'type': 'deepgram',
@@ -362,12 +382,17 @@ You are Aura, the native AI Voice Companion and Central Command Intelligence ins
           },
           'think': {
             'provider': {
-              'type': 'google',
-              'model': 'gemini-2.0-flash',
+              'type': 'open_ai',
+              'model': 'gpt-4o-mini',
             },
             'prompt': promptToUse,
           },
-          'greeting': 'Hello! How may I help you?',
+          'speak': {
+            'provider': {
+              'type': 'deepgram',
+              'model': deepgramVoice,
+            },
+          },
         },
       });
 

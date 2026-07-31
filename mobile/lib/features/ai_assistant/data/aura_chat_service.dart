@@ -453,12 +453,32 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
         lowerText == 'my servers' ||
         lowerText.contains('list my servers')) {
       localCommandResponse = await _executeTool('list_servers', {});
-    } else if (lowerText.startsWith('search ') ||
+    }
+
+    // Auto Web Search detection for 'Search Web' category or explicit search queries
+    final isSearchQuery = category == 'Search Web' ||
+        lowerText.startsWith('search ') ||
         lowerText.startsWith('google ') ||
         lowerText.startsWith('lookup ') ||
-        lowerText.startsWith('web search ')) {
-      final query = text.replaceAll(RegExp(r'^(search|google|lookup|web search)\s+', caseSensitive: false), '').trim();
-      localCommandResponse = await _executeTool('web_search', {'query': query});
+        lowerText.startsWith('web search ') ||
+        lowerText.startsWith('find out ') ||
+        lowerText.contains('latest news') ||
+        lowerText.contains('weather') ||
+        lowerText.contains('today') ||
+        lowerText.contains('breakthrough');
+
+    if (isSearchQuery && localCommandResponse == null) {
+      final cleanQuery = text.replaceAll(RegExp(r'^(search|google|lookup|find out|web search)\s+', caseSensitive: false), '').trim();
+      final searchService = ref.read(auraWebSearchServiceProvider);
+      final searchResult = await searchService.search(cleanQuery.isEmpty ? text : cleanQuery);
+      if (searchResult != null && searchResult.hasResults) {
+        if (category == 'Search Web') {
+          localCommandResponse = '🌐 **Web Search Results via ${searchResult.provider}**:\n\n${searchResult.summary.isNotEmpty ? searchResult.summary : searchResult.formattedForPrompt}';
+        } else {
+          // Prepend search context to text for LLM model
+          text = '${searchResult.formattedForPrompt}\n\nUser Question: $text';
+        }
+      }
     }
 
     if (localCommandResponse != null) {

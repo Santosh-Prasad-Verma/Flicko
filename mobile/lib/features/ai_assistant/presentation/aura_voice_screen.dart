@@ -363,11 +363,18 @@ Important rules:
       final query = transcript.replaceAll(RegExp(r'^(search|google|lookup|find out|web search)\s+', caseSensitive: false), '').trim();
       if (query.isNotEmpty) {
         final searchService = ref.read(auraWebSearchServiceProvider);
-        searchService.search(query).then((result) {
+        searchService.search(query).then((result) async {
           if (result != null && mounted) {
-            setState(() {
-              _subtitleText = result.voiceSummary.isNotEmpty ? result.voiceSummary : result.summary;
-            });
+            final textToSpeak = result.voiceSummary.isNotEmpty ? result.voiceSummary : result.summary;
+            if (textToSpeak.isNotEmpty) {
+              setState(() {
+                _subtitleText = textToSpeak;
+                _currentState = AuraVoiceState.speaking;
+              });
+              try {
+                await _flutterTts.speak(textToSpeak);
+              } catch (_) {}
+            }
           }
         });
       }
