@@ -32,6 +32,15 @@ class RoomNotifier extends Notifier<RoomState> {
       _listener!.on<RoomEvent>((event) {
         _updateParticipants(room);
       });
+      _listener!.on<TrackSubscribedEvent>((_) => _updateParticipants(room));
+      _listener!.on<TrackUnsubscribedEvent>((_) => _updateParticipants(room));
+      _listener!.on<TrackPublishedEvent>((_) => _updateParticipants(room));
+      _listener!.on<TrackUnpublishedEvent>((_) => _updateParticipants(room));
+      _listener!.on<TrackMutedEvent>((_) => _updateParticipants(room));
+      _listener!.on<TrackUnmutedEvent>((_) => _updateParticipants(room));
+      _listener!.on<ParticipantConnectedEvent>((_) => _updateParticipants(room));
+      _listener!.on<ParticipantDisconnectedEvent>((_) => _updateParticipants(room));
+      _listener!.on<ActiveSpeakersChangedEvent>((_) => _updateParticipants(room));
 
       _updateParticipants(room);
 
@@ -45,20 +54,42 @@ class RoomNotifier extends Notifier<RoomState> {
 
     final local = room.localParticipant;
     if (local != null) {
+      final camPub = local.videoTrackPublications.firstWhereOrNull(
+        (p) => (p.source == TrackSource.camera || p.source == TrackSource.unknown) && p.track != null && !p.muted,
+      );
+      final screenPub = local.videoTrackPublications.firstWhereOrNull(
+        (p) => p.source == TrackSource.screenShareVideo && p.track != null && !p.muted,
+      );
+      final audioPub = local.audioTrackPublications.firstWhereOrNull(
+        (p) => p.track != null && !p.muted,
+      );
+
       participants[local.sid] = ParticipantState(
         participant: local,
-        videoTrack: local.videoTrackPublications.firstWhereOrNull((p) => p.track != null && !p.muted)?.track as VideoTrack?,
-        audioTrack: local.audioTrackPublications.firstWhereOrNull((p) => p.track != null && !p.muted)?.track as AudioTrack?,
+        videoTrack: camPub?.track as VideoTrack?,
+        screenShareTrack: screenPub?.track as VideoTrack?,
+        audioTrack: audioPub?.track as AudioTrack?,
         isSpeaking: local.isSpeaking,
         isMuted: local.isMuted,
       );
     }
 
     for (var p in room.remoteParticipants.values) {
+      final camPub = p.videoTrackPublications.firstWhereOrNull(
+        (pub) => (pub.source == TrackSource.camera || pub.source == TrackSource.unknown) && pub.track != null && !pub.muted,
+      );
+      final screenPub = p.videoTrackPublications.firstWhereOrNull(
+        (pub) => pub.source == TrackSource.screenShareVideo && pub.track != null && !pub.muted,
+      );
+      final audioPub = p.audioTrackPublications.firstWhereOrNull(
+        (pub) => pub.track != null && !pub.muted,
+      );
+
       participants[p.sid] = ParticipantState(
         participant: p,
-        videoTrack: p.videoTrackPublications.firstWhereOrNull((pub) => pub.track != null && !pub.muted)?.track as VideoTrack?,
-        audioTrack: p.audioTrackPublications.firstWhereOrNull((pub) => pub.track != null && !pub.muted)?.track as AudioTrack?,
+        videoTrack: camPub?.track as VideoTrack?,
+        screenShareTrack: screenPub?.track as VideoTrack?,
+        audioTrack: audioPub?.track as AudioTrack?,
         isSpeaking: p.isSpeaking,
         isMuted: p.isMuted,
       );

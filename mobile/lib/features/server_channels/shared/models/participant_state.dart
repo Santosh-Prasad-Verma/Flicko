@@ -8,6 +8,7 @@ abstract class ParticipantState with _$ParticipantState {
   const factory ParticipantState({
     required Participant participant,
     VideoTrack? videoTrack,
+    VideoTrack? screenShareTrack,
     AudioTrack? audioTrack,
     @Default(false) bool isSpeaking,
     @Default(false) bool isMuted,

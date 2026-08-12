@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:livekit_client/livekit_client.dart';
 import 'package:mobile/core/config/app_config.dart';
 import 'package:mobile/data/services/media_engine.dart';
@@ -57,6 +59,17 @@ class LiveKitService {
     );
 
     AppConfig.requireLivekitUrl();
+
+    if (Platform.isAndroid) {
+      try {
+        await Helper.setAndroidAudioConfiguration(
+          AndroidAudioConfiguration.communication,
+        );
+        await Helper.setSpeakerphoneOn(true);
+      } catch (e) {
+        debugPrint('Warning: Could not set Android audio mode on join: $e');
+      }
+    }
 
     await _room!.connect(
       AppConfig.livekitUrl,

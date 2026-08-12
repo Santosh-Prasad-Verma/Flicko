@@ -16,6 +16,7 @@ T _$identity<T>(T value) => value;
 mixin _$ParticipantState {
   Participant get participant;
   VideoTrack? get videoTrack;
+  VideoTrack? get screenShareTrack;
   AudioTrack? get audioTrack;
   bool get isSpeaking;
   bool get isMuted;
@@ -37,6 +38,8 @@ mixin _$ParticipantState {
                 other.participant == participant) &&
             (identical(other.videoTrack, videoTrack) ||
                 other.videoTrack == videoTrack) &&
+            (identical(other.screenShareTrack, screenShareTrack) ||
+                other.screenShareTrack == screenShareTrack) &&
             (identical(other.audioTrack, audioTrack) ||
                 other.audioTrack == audioTrack) &&
             (identical(other.isSpeaking, isSpeaking) ||
@@ -45,12 +48,12 @@ mixin _$ParticipantState {
   }
 
   @override
-  int get hashCode => Object.hash(
-      runtimeType, participant, videoTrack, audioTrack, isSpeaking, isMuted);
+  int get hashCode => Object.hash(runtimeType, participant, videoTrack,
+      screenShareTrack, audioTrack, isSpeaking, isMuted);
 
   @override
   String toString() {
-    return 'ParticipantState(participant: $participant, videoTrack: $videoTrack, audioTrack: $audioTrack, isSpeaking: $isSpeaking, isMuted: $isMuted)';
+    return 'ParticipantState(participant: $participant, videoTrack: $videoTrack, screenShareTrack: $screenShareTrack, audioTrack: $audioTrack, isSpeaking: $isSpeaking, isMuted: $isMuted)';
   }
 }
 
@@ -63,6 +66,7 @@ abstract mixin class $ParticipantStateCopyWith<$Res> {
   $Res call(
       {Participant participant,
       VideoTrack? videoTrack,
+      VideoTrack? screenShareTrack,
       AudioTrack? audioTrack,
       bool isSpeaking,
       bool isMuted});
@@ -83,6 +87,7 @@ class _$ParticipantStateCopyWithImpl<$Res>
   $Res call({
     Object? participant = null,
     Object? videoTrack = freezed,
+    Object? screenShareTrack = freezed,
     Object? audioTrack = freezed,
     Object? isSpeaking = null,
     Object? isMuted = null,
@@ -95,6 +100,10 @@ class _$ParticipantStateCopyWithImpl<$Res>
       videoTrack: freezed == videoTrack
           ? _self.videoTrack
           : videoTrack // ignore: cast_nullable_to_non_nullable
+              as VideoTrack?,
+      screenShareTrack: freezed == screenShareTrack
+          ? _self.screenShareTrack
+          : screenShareTrack // ignore: cast_nullable_to_non_nullable
               as VideoTrack?,
       audioTrack: freezed == audioTrack
           ? _self.audioTrack
@@ -205,16 +214,26 @@ extension ParticipantStatePatterns on ParticipantState {
 
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>(
-    TResult Function(Participant participant, VideoTrack? videoTrack,
-            AudioTrack? audioTrack, bool isSpeaking, bool isMuted)?
+    TResult Function(
+            Participant participant,
+            VideoTrack? videoTrack,
+            VideoTrack? screenShareTrack,
+            AudioTrack? audioTrack,
+            bool isSpeaking,
+            bool isMuted)?
         $default, {
     required TResult orElse(),
   }) {
     final _that = this;
     switch (_that) {
       case _ParticipantState() when $default != null:
-        return $default(_that.participant, _that.videoTrack, _that.audioTrack,
-            _that.isSpeaking, _that.isMuted);
+        return $default(
+            _that.participant,
+            _that.videoTrack,
+            _that.screenShareTrack,
+            _that.audioTrack,
+            _that.isSpeaking,
+            _that.isMuted);
       case _:
         return orElse();
     }
@@ -235,15 +254,25 @@ extension ParticipantStatePatterns on ParticipantState {
 
   @optionalTypeArgs
   TResult when<TResult extends Object?>(
-    TResult Function(Participant participant, VideoTrack? videoTrack,
-            AudioTrack? audioTrack, bool isSpeaking, bool isMuted)
+    TResult Function(
+            Participant participant,
+            VideoTrack? videoTrack,
+            VideoTrack? screenShareTrack,
+            AudioTrack? audioTrack,
+            bool isSpeaking,
+            bool isMuted)
         $default,
   ) {
     final _that = this;
     switch (_that) {
       case _ParticipantState():
-        return $default(_that.participant, _that.videoTrack, _that.audioTrack,
-            _that.isSpeaking, _that.isMuted);
+        return $default(
+            _that.participant,
+            _that.videoTrack,
+            _that.screenShareTrack,
+            _that.audioTrack,
+            _that.isSpeaking,
+            _that.isMuted);
       case _:
         throw StateError('Unexpected subclass');
     }
@@ -263,15 +292,25 @@ extension ParticipantStatePatterns on ParticipantState {
 
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>(
-    TResult? Function(Participant participant, VideoTrack? videoTrack,
-            AudioTrack? audioTrack, bool isSpeaking, bool isMuted)?
+    TResult? Function(
+            Participant participant,
+            VideoTrack? videoTrack,
+            VideoTrack? screenShareTrack,
+            AudioTrack? audioTrack,
+            bool isSpeaking,
+            bool isMuted)?
         $default,
   ) {
     final _that = this;
     switch (_that) {
       case _ParticipantState() when $default != null:
-        return $default(_that.participant, _that.videoTrack, _that.audioTrack,
-            _that.isSpeaking, _that.isMuted);
+        return $default(
+            _that.participant,
+            _that.videoTrack,
+            _that.screenShareTrack,
+            _that.audioTrack,
+            _that.isSpeaking,
+            _that.isMuted);
       case _:
         return null;
     }
@@ -284,6 +323,7 @@ class _ParticipantState implements ParticipantState {
   const _ParticipantState(
       {required this.participant,
       this.videoTrack,
+      this.screenShareTrack,
       this.audioTrack,
       this.isSpeaking = false,
       this.isMuted = false});
@@ -292,6 +332,8 @@ class _ParticipantState implements ParticipantState {
   final Participant participant;
   @override
   final VideoTrack? videoTrack;
+  @override
+  final VideoTrack? screenShareTrack;
   @override
   final AudioTrack? audioTrack;
   @override
@@ -318,6 +360,8 @@ class _ParticipantState implements ParticipantState {
                 other.participant == participant) &&
             (identical(other.videoTrack, videoTrack) ||
                 other.videoTrack == videoTrack) &&
+            (identical(other.screenShareTrack, screenShareTrack) ||
+                other.screenShareTrack == screenShareTrack) &&
             (identical(other.audioTrack, audioTrack) ||
                 other.audioTrack == audioTrack) &&
             (identical(other.isSpeaking, isSpeaking) ||
@@ -326,12 +370,12 @@ class _ParticipantState implements ParticipantState {
   }
 
   @override
-  int get hashCode => Object.hash(
-      runtimeType, participant, videoTrack, audioTrack, isSpeaking, isMuted);
+  int get hashCode => Object.hash(runtimeType, participant, videoTrack,
+      screenShareTrack, audioTrack, isSpeaking, isMuted);
 
   @override
   String toString() {
-    return 'ParticipantState(participant: $participant, videoTrack: $videoTrack, audioTrack: $audioTrack, isSpeaking: $isSpeaking, isMuted: $isMuted)';
+    return 'ParticipantState(participant: $participant, videoTrack: $videoTrack, screenShareTrack: $screenShareTrack, audioTrack: $audioTrack, isSpeaking: $isSpeaking, isMuted: $isMuted)';
   }
 }
 
@@ -346,6 +390,7 @@ abstract mixin class _$ParticipantStateCopyWith<$Res>
   $Res call(
       {Participant participant,
       VideoTrack? videoTrack,
+      VideoTrack? screenShareTrack,
       AudioTrack? audioTrack,
       bool isSpeaking,
       bool isMuted});
@@ -366,6 +411,7 @@ class __$ParticipantStateCopyWithImpl<$Res>
   $Res call({
     Object? participant = null,
     Object? videoTrack = freezed,
+    Object? screenShareTrack = freezed,
     Object? audioTrack = freezed,
     Object? isSpeaking = null,
     Object? isMuted = null,
@@ -378,6 +424,10 @@ class __$ParticipantStateCopyWithImpl<$Res>
       videoTrack: freezed == videoTrack
           ? _self.videoTrack
           : videoTrack // ignore: cast_nullable_to_non_nullable
+              as VideoTrack?,
+      screenShareTrack: freezed == screenShareTrack
+          ? _self.screenShareTrack
+          : screenShareTrack // ignore: cast_nullable_to_non_nullable
               as VideoTrack?,
       audioTrack: freezed == audioTrack
           ? _self.audioTrack
