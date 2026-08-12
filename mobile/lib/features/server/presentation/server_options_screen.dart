@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/home/application/servers_notifier.dart';
+import 'package:mobile/features/server/presentation/widgets/invite_modal.dart';
 
 class ServerOptionsScreen extends ConsumerStatefulWidget {
   final String serverId;
@@ -242,8 +243,11 @@ class _ServerOptionsScreenState extends ConsumerState<ServerOptionsScreen> {
               'Share an invite to this server',
               const Color(0xFF5865F2),
               () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Invite link - Coming Soon')),
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (context) => InviteModal(serverId: widget.serverId),
                 );
               },
             ),
