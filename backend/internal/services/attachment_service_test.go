@@ -12,15 +12,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// In a real environment we'd inject a mocked StorageClient interface,
-// but for property testing the validation logic we test the error boundaries
-// and metadata generation specifically.
-
 func TestAttachmentService_Validation(t *testing.T) {
 	// Create a service instance with a dummy config
 	cfg := &config.Config{
-		SupabaseURL:        "https://test.supabase.co",
-		SupabaseServiceKey: "dummy_key",
+		AzureBlobConnectionString: "DefaultEndpointsProtocol=https;AccountName=test;AccountKey=key;EndpointSuffix=core.windows.net",
 	}
 	svc := services.NewAttachmentService(cfg)
 	ctx := context.Background()
@@ -35,14 +30,8 @@ func TestAttachmentService_Validation(t *testing.T) {
 		}
 		file.Header.Set("Content-Type", "application/x-msdownload")
 
-		// To simulate multipart.File we need a buffer that supports Seek
 		_ = bytes.NewReader(content)
-		// We'll wrap reader in a mock multipart.File if needed,
-		// but typically we can use a basic stub or just let it panic if it reaches read
-		// because validation happens first.
 
-		// Wait, multipart.File is an interface (io.Reader, io.ReaderAt, io.Seeker, io.Closer)
-		// If we pass nil for now since validation happens before reading the body.
 		_, err := svc.UploadAttachment(ctx, nil, file, "user-123")
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "invalid file type")

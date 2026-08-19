@@ -98,7 +98,7 @@ class AuthNotifier extends Notifier<AuthState> {
   Future<void> signIn(String email, String password) async {
     try {
       state = const AuthState.loading();
-      await _repository.signIn(email: email, password: password);
+      await _repository.signIn(identifier: email, password: password);
     } catch (e) {
       state = AuthState.error(e.toString());
       state = const AuthState.unauthenticated();
@@ -109,7 +109,7 @@ class AuthNotifier extends Notifier<AuthState> {
   Future<void> signUp(String email, String password, String username) async {
     try {
       state = const AuthState.loading();
-      await _repository.signUp(email: email, password: password, username: username);
+      await _repository.signUp(username: username, email: email, password: password);
     } catch (e) {
       state = AuthState.error(e.toString());
       state = const AuthState.unauthenticated();

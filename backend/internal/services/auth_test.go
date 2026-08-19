@@ -47,11 +47,11 @@ func TestAuthService_RegistrationValidation(t *testing.T) {
 	svc := services.NewAuthService(nil, "key")
 	ctx := context.Background()
 
-	_, _, err := svc.Register(ctx, "a", "valid@email.com", "password123")
+	_, _, err := svc.Register(ctx, "a", "valid@email.com", "A Name", "password123")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "username must be between 2 and 32")
 
-	_, _, err = svc.Register(ctx, "validname", "invalidemail", "password123")
+	_, _, err = svc.Register(ctx, "validname", "invalidemail", "Valid Name", "password123")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid email format")
 }

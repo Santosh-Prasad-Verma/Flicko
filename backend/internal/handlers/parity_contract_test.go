@@ -70,7 +70,7 @@ func TestParityWSContractDomainsPresent(t *testing.T) {
 	}
 	assertContainsAll(t, wsDocs, requiredDomains)
 
-	schemaMigration := readFile(t, filepath.Join(repoRoot, "supabase", "migrations", "100_phase0_parity_governance.sql"))
+	schemaMigration := readFile(t, filepath.Join(repoRoot, "DEL", "supabase", "migrations", "100_phase0_parity_governance.sql"))
 	requiredSeeds := []string{
 		"('MESSAGE', 'ws_event', 'v1', 'active', NOW())",
 		"('VOICE', 'ws_event', 'v1', 'active', NOW())",

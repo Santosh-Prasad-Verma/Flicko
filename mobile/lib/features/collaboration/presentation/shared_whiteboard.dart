@@ -95,17 +95,6 @@ class _SharedWhiteboardState extends State<SharedWhiteboard> {
         _paths.add(newPath);
         _currentPath.clear();
       });
-
-      _channel?.sendBroadcastMessage(
-        event: 'draw',
-        payload: {
-          'id': newPath.id,
-          'points': newPath.points.map((p) => {'x': p.dx, 'y': p.dy}).toList(),
-          'color': newPath.color.value,
-          'strokeWidth': newPath.strokeWidth,
-          'userId': newPath.userId,
-        },
-      );
     }
   }
 
@@ -118,11 +107,6 @@ class _SharedWhiteboardState extends State<SharedWhiteboard> {
         }
       }
     });
-
-    _channel?.sendBroadcastMessage(
-      event: 'undo',
-      payload: {'userId': widget.currentUserId},
-    );
   }
 
   void _handleClear() {
@@ -148,10 +132,6 @@ class _SharedWhiteboardState extends State<SharedWhiteboard> {
               setState(() {
                 _paths.clear();
               });
-              _channel?.sendBroadcastMessage(
-                event: 'clear',
-                payload: {},
-              );
               Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(backgroundColor: const Color(FlickoColors.danger)),

@@ -1,0 +1,8 @@
+[allowlist]
+description = "Ignore legacy archive directory and mock templates"
+paths = [
+    '''DEL/''',
+    '''\.env\.example$''',
+    '''\.env\.prod$''',
+    '''\.env$''',
+]
