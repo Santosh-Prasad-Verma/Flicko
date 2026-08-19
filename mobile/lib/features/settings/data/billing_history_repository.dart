@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:mobile/data/clients/supabase_client.dart';
 
 /// What a billing entry was for.
 enum BillingEntryKind { subscription, gift }

@@ -5,7 +5,7 @@ import 'package:livekit_client/livekit_client.dart';
 import 'package:mobile/core/config/app_config.dart';
 import 'package:mobile/data/services/watch_together_service.dart';
 import 'package:mobile/data/models/watch_together_session.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:mobile/data/clients/supabase_client.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt_explode;
 import 'package:flutter/foundation.dart';
 

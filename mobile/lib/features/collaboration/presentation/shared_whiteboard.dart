@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+// Local interactive whiteboard engine
+
 
 class PathData {
   final String id;
@@ -45,125 +46,13 @@ class _SharedWhiteboardState extends State<SharedWhiteboard> {
   String _tool = 'pen'; // 'pen' or 'eraser'
   int _pathIdCounter = 0;
   
-  RealtimeChannel? _channel;
-
   @override
   void initState() {
     super.initState();
-    _setupRealtime();
-  }
-
-  void _setupRealtime() {
-    _channel = Supabase.instance.client.channel(
-      'whiteboard:${widget.channelId}',
-    );
-
-    _channel!.onBroadcast(event: 'draw', callback: (payload) {
-      if (!mounted) return;
-      final data = payload['payload'] as Map<String, dynamic>;
-      
-      if (data['userId'] == widget.currentUserId) return;
-      
-      final dynamicPoints = data['points'] as List;
-      final points = dynamicPoints.map((p) => Offset((p['x'] as num).toDouble(), (p['y'] as num).toDouble())).toList();
-      
-      final newPath = PathData(
-        id: data['id'] as String,
-        points: points,
-        color: Color(data['color'] as int),
-        strokeWidth: (data['strokeWidth'] as num).toDouble(),
-        userId: data['userId'] as String,
-      );
-      
-      setState(() {
-        _paths.add(newPath);
-      });
-    });
-
-    _channel!.onBroadcast(event: 'undo', callback: (payload) {
-      if (!mounted) return;
-      final data = payload['payload'] as Map<String, dynamic>;
-      final targetUserId = data['userId'] as String;
-      
-      if (targetUserId == widget.currentUserId) return;
-      
-      setState(() {
-        for (int i = _paths.length - 1; i >= 0; i--) {
-          if (_paths[i].userId == targetUserId) {
-            _paths.removeAt(i);
-            break;
-          }
-        }
-      });
-    });
-
-    _channel!.onBroadcast(event: 'clear', callback: (payload) {
-      if (!mounted) return;
-      setState(() {
-        _paths.clear();
-      });
-    });
-
-    _channel!.onBroadcast(event: 'request_history', callback: (payload) {
-      if (!mounted) return;
-      final data = payload['payload'] as Map<String, dynamic>;
-      final requesterId = data['userId'] as String;
-      if (requesterId == widget.currentUserId) return;
-
-      if (_paths.isNotEmpty) {
-        _channel?.sendBroadcastMessage(
-          event: 'history',
-          payload: {
-            'targetUserId': requesterId,
-            'paths': _paths.map((path) => {
-              'id': path.id,
-              'points': path.points.map((p) => {'x': p.dx, 'y': p.dy}).toList(),
-              'color': path.color.value,
-              'strokeWidth': path.strokeWidth,
-              'userId': path.userId,
-            }).toList(),
-          },
-        );
-      }
-    });
-
-    _channel!.onBroadcast(event: 'history', callback: (payload) {
-      if (!mounted) return;
-      final data = payload['payload'] as Map<String, dynamic>;
-      final targetUserId = data['targetUserId'] as String;
-      if (targetUserId != widget.currentUserId) return;
-
-      final rawPaths = data['paths'] as List;
-      setState(() {
-        _paths.clear();
-        for (final rawPath in rawPaths) {
-          final dynamicPoints = rawPath['points'] as List;
-          final points = dynamicPoints.map((p) => Offset((p['x'] as num).toDouble(), (p['y'] as num).toDouble())).toList();
-          
-          _paths.add(PathData(
-            id: rawPath['id'] as String,
-            points: points,
-            color: Color(rawPath['color'] as int),
-            strokeWidth: (rawPath['strokeWidth'] as num).toDouble(),
-            userId: rawPath['userId'] as String,
-          ));
-        }
-      });
-    });
-
-    _channel!.subscribe((status, [error]) {
-      if (status == RealtimeSubscribeStatus.subscribed) {
-        _channel?.sendBroadcastMessage(
-          event: 'request_history',
-          payload: {'userId': widget.currentUserId},
-        );
-      }
-    });
   }
 
   @override
   void dispose() {
-    _channel?.unsubscribe();
     super.dispose();
   }
 

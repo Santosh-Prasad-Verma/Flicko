@@ -30,13 +30,16 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Install Doppler CLI
-        uses: dopplerhq/cli-action@v4
+      - name: Fetch Secrets from Azure Key Vault
+        uses: Azure/get-keyvault-secrets@v1
+        id: keyvault
+        with:
+          keyvault: 'FlickoKeyVault'
+          secrets: '*'
 
-      - name: Fetch Secrets from Doppler
-        run: doppler secrets download --no-file --format env > .env.production
-        env:
-          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+      - name: Export Secrets to .env.production
+        run: |
+          echo "${{ steps.keyvault.outputs.secrets }}" > .env.production
 
       - name: Copy .env to VPS
         uses: appleboy/scp-action@v1.0.0
@@ -73,7 +76,7 @@ jobs:
             # 2.5. Remove token from persisted git config (security hygiene)
             git remote set-url origin https://github.com/${{ github.repository }}
 
-            # 3. Move the Doppler-generated .env file into place
+            # 3. Move the Azure Key Vault-generated .env file into place
             mv ~/Flicko/.env.production ~/Flicko/.env
 
             # 3.5. Materialize JWT public key file for docker compose secret mount

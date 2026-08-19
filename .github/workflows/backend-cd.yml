@@ -24,13 +24,21 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Install Doppler CLI
-        uses: dopplerhq/cli-action@v4
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Fetch Secrets from Doppler
-        run: doppler secrets download --no-file --format env > .env.production
-        env:
-          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+      - name: Fetch Secrets from Azure Key Vault
+        uses: Azure/get-keyvault-secrets@v1
+        id: keyvault
+        with:
+          keyvault: 'FlickoKeyVault'
+          secrets: '*'
+
+      - name: Export Secrets to .env.production
+        run: |
+          echo "${{ steps.keyvault.outputs.secrets }}" > .env.production
 
       - name: Copy .env to VPS
         uses: appleboy/scp-action@v1.0.0

@@ -3,10 +3,12 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:mobile/core/config/app_config.dart';
+
+const _secureStorage = FlutterSecureStorage();
 
 /// Provider for PresenceService
 final presenceServiceProvider = Provider<PresenceService>((ref) {
@@ -26,12 +28,6 @@ final typingStatusProvider = StreamProvider.family<List<String>, String>((ref, c
 });
 
 /// Presence Service
-/// 
-/// Handles real-time user presence via WebSocket:
-/// - Online/offline status tracking
-/// - Status updates (online, idle, dnd, invisible)
-/// - Typing indicators
-/// - Activity tracking
 class PresenceService {
   WebSocketChannel? _channel;
   Timer? _heartbeatTimer;
@@ -48,38 +44,26 @@ class PresenceService {
   final _typingController = StreamController<Map<String, List<String>>>.broadcast();
   final _activityController = StreamController<Map<String, dynamic>>.broadcast();
   
-  /// Stream of all user status updates
   Stream<Map<String, String>> get onStatusUpdate => _statusController.stream;
-  
-  /// Stream of typing updates
   Stream<Map<String, List<String>>> get onTypingUpdate => _typingController.stream;
-  
-  /// Stream of activity updates
   Stream<Map<String, dynamic>> get onActivityUpdate => _activityController.stream;
 
-  /// Initialize presence service
   Future<void> initialize(String userId) async {
     _currentUserId = userId;
     await _connect();
   }
 
-  /// Connect to WebSocket server
   Future<void> _connect() async {
     if (_connected || _currentUserId == null) return;
 
     try {
-      // Get Supabase realtime token
-      final supabase = Supabase.instance.client;
-      final token = supabase.realtime.headers['apikey'] ?? AppConfig.supabaseAnonKey;
-      
-      // Connect to WebSocket
+      final token = await _secureStorage.read(key: 'auth_token') ?? '';
       final wsUrl = _buildWebSocketUrl(token);
       
       _channel = IOWebSocketChannel.connect(
         wsUrl,
         headers: {
-          'apikey': token,
-          'Authorization': 'Bearer ${supabase.auth.currentSession?.accessToken}',
+          'Authorization': 'Bearer $token',
         },
       );
 
@@ -255,17 +239,6 @@ class PresenceService {
       },
     });
 
-    // Also update in Supabase
-    try {
-      final supabase = Supabase.instance.client;
-      await supabase.from('user_status').upsert({
-        'user_id': _currentUserId,
-        'status': status,
-        'updated_at': DateTime.now().toIso8601String(),
-      });
-    } catch (e) {
-      debugPrint('❌ Error updating status in Supabase: $e');
-    }
   }
 
   /// Set typing status for a channel

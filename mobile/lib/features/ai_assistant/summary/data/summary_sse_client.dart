@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:mobile/data/clients/supabase_client.dart';
 
 /// Streaming SSE client for `/api/v1/ai/summary/stream/<request_id>`.
 ///

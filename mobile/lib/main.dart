@@ -1,13 +1,9 @@
+import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:audio_service/audio_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
-import 'package:sentry_logging/sentry_logging.dart';
-import 'package:audio_service/audio_service.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-
 import 'core/config/env.dart';
 import 'core/config/app_config.dart';
 import 'core/router/app_router.dart';
@@ -54,7 +50,6 @@ void main() async {
         options.dsn = AppConfig.sentryDsn;
         options.tracesSampleRate = 1.0; // 100% of performance traces
         options.enableLogs = true; // Searchable structured logging support
-        options.addIntegration(LoggingIntegration()); // Hook standard Dart logging package
       },
       appRunner: () => _initializeApp(),
     );
@@ -64,15 +59,6 @@ void main() async {
 }
 
 Future<void> _initializeApp() async {
-  // Initialize Supabase
-  await Supabase.initialize(
-    url: AppConfig.supabaseUrl,
-    anonKey: AppConfig.supabaseAnonKey,
-    authOptions: const FlutterAuthClientOptions(
-      localStorage: SecureSupabaseStorage(),
-    ),
-  );
-
   // Initialize Firebase before any FCM call. Wrapped in try/catch so the app
   // still launches if google-services.json hasn't been added yet.
   try {
@@ -258,7 +244,7 @@ class ConfigErrorApp extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Launch with doppler run -- ./flutter-start.sh or pass these values with --dart-define:',
+                      'Configure Azure Key Vault or pass these values with --dart-define:',
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                     const SizedBox(height: 12),
@@ -274,32 +260,4 @@ class ConfigErrorApp extends StatelessWidget {
   }
 }
 
-class SecureSupabaseStorage extends LocalStorage {
-  const SecureSupabaseStorage();
 
-  static const _storage = FlutterSecureStorage();
-
-  @override
-  Future<void> initialize() async {}
-
-  @override
-  Future<bool> hasAccessToken() async {
-    final token = await accessToken();
-    return token != null;
-  }
-
-  @override
-  Future<String?> accessToken() async {
-    return _storage.read(key: 'supabase_session');
-  }
-
-  @override
-  Future<void> removePersistedSession() async {
-    await _storage.delete(key: 'supabase_session');
-  }
-
-  @override
-  Future<void> persistSession(String persistSessionString) async {
-    await _storage.write(key: 'supabase_session', value: persistSessionString);
-  }
-}

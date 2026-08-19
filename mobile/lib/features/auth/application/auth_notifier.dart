@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
+import 'package:mobile/data/clients/supabase_client.dart' as supabase;
 import '../../../data/models/auth_state.dart';
 import 'package:mobile/data/repositories/auth_repository.dart';
 import 'package:mobile/features/e2ee/application/e2ee_session.dart';

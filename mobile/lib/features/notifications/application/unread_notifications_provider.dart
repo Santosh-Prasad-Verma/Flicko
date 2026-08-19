@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:mobile/data/clients/supabase_client.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 
 /// StreamProvider that yields the count of unread notifications for the currently logged-in user in real-time.

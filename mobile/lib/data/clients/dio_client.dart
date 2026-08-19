@@ -2,20 +2,14 @@ import 'dart:async';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mobile/core/config/app_config.dart';
 import 'package:mobile/core/errors/flicko_api_exception.dart';
 import 'package:mobile/core/services/app_logger.dart';
 
+const _secureStorage = FlutterSecureStorage();
+
 /// Provides a global implementation of Dio for external API calls.
-///
-/// Pre-configured with:
-///   - Backend base URL from [AppConfig.apiBaseUrl]
-///   - JSON content-type header
-///   - Reasonable timeouts
-///   - Automatic retry for transient errors
-///   - Automatic error transformation to [FlickoApiException]
-///   - Client-side GET response caching
 final dioProvider = Provider<Dio>((ref) {
   final dio = Dio(
     BaseOptions(
@@ -31,7 +25,7 @@ final dioProvider = Provider<Dio>((ref) {
     ),
   );
 
-  // 1. Auth interceptor to inject Supabase JWT
+  // 1. Auth interceptor to inject JWT token from secure storage
   dio.interceptors.add(
     InterceptorsWrapper(
       onRequest: (options, handler) async {
@@ -45,15 +39,14 @@ final dioProvider = Provider<Dio>((ref) {
               ),
             );
           }
-          // Strip leading slash from path to prevent replacing baseUrl's subpath
           if (options.path.startsWith('/')) {
             options.path = options.path.substring(1);
           }
         }
 
-        final session = Supabase.instance.client.auth.currentSession;
-        if (session != null) {
-          options.headers['Authorization'] = 'Bearer ${session.accessToken}';
+        final token = await _secureStorage.read(key: 'auth_token');
+        if (token != null && token.isNotEmpty) {
+          options.headers['Authorization'] = 'Bearer $token';
         }
         return handler.next(options);
       },

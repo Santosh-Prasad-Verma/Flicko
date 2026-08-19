@@ -22,7 +22,7 @@ import 'package:mobile/features/ai_assistant/data/aura_settings_provider.dart';
 import 'package:mobile/features/ai_assistant/data/aura_chat_service.dart';
 import 'package:mobile/features/ai_assistant/data/aura_live_audio_service.dart';
 import 'package:mobile/features/ai_assistant/data/web_search_service.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
+import 'package:mobile/data/clients/supabase_client.dart' as supabase;
 
 enum AuraVoiceState { idle, connecting, listening, thinking, speaking }
 

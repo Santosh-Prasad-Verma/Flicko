@@ -15,7 +15,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5/pgxpool"
-	storage_go "github.com/supabase-community/storage-go"
 	"go.uber.org/zap"
 )
 
@@ -27,7 +26,6 @@ type SoundboardHandler struct {
 	db        *pgxpool.Pool
 	repo      repo.SoundboardRepo
 	publisher centrifugo.Publisher
-	storage   *storage_go.Client
 	cfg       *config.Config
 	logger    *zap.Logger
 }
@@ -39,14 +37,10 @@ func NewSoundboardHandler(
 	cfg *config.Config,
 	logger *zap.Logger,
 ) *SoundboardHandler {
-	storageUrl := fmt.Sprintf("%s/storage/v1", cfg.SupabaseURL)
-	storageClient := storage_go.NewClient(storageUrl, cfg.SupabaseServiceKey, nil)
-
 	return &SoundboardHandler{
 		db:        db,
 		repo:      r,
 		publisher: pub,
-		storage:   storageClient,
 		cfg:       cfg,
 		logger:    logger.Named("handler.soundboard"),
 	}
@@ -137,15 +131,7 @@ func (h *SoundboardHandler) UploadSound(w http.ResponseWriter, r *http.Request) 
 	fileID := uuid.NewString()
 	filePath := fmt.Sprintf("%s/%s_%s", serverID, fileID, filename)
 
-	// Upload to Supabase Storage
-	_, err = h.storage.UploadFile("soundboard-sounds", filePath, file)
-	if err != nil {
-		h.logger.Error("failed to upload sound to storage", zap.Error(err))
-		http.Error(w, "failed to upload sound file", http.StatusInternalServerError)
-		return
-	}
-
-	soundURL := fmt.Sprintf("%s/storage/v1/object/public/soundboard-sounds/%s", h.cfg.SupabaseURL, filePath)
+	soundURL := fmt.Sprintf("/api/v1/media/soundboard-sounds/%s", filePath)
 
 	sound := &models.SoundboardSound{
 		ID:         fileID,
@@ -325,11 +311,5 @@ func (h *SoundboardHandler) DeleteSound(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Clean up from storage best effort
-	// SoundURL format: .../soundboard-sounds/[serverId]/[fileID]_[filename]
-	parts := strings.Split(sound.SoundURL, "soundboard-sounds/")
-	if len(parts) > 1 {
-		_, _ = h.storage.RemoveFile("soundboard-sounds", []string{parts[1]})
-	}
-
 	w.WriteHeader(http.StatusNoContent)
 }

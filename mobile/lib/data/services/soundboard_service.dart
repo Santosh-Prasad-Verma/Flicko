@@ -1,4 +1,4 @@
-import 'package:supabase_flutter/supabase_flutter.dart' hide MultipartFile;
+import 'package:mobile/data/clients/supabase_client.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/data/models/soundboard_model.dart';
 import 'package:mobile/data/clients/dio_client.dart';

@@ -202,9 +202,7 @@ func main() {
 	// 3b. Setup Auth Service and wire into middleware
 	// CRIT-001: Auth middleware now uses real JWT validation
 	// Supabase fallback handles ES256 tokens after key rotation
-	authService := services.NewAuthService(db, cfg.JWTSecret,
-		services.WithSupabase(cfg.SupabaseURL, cfg.SupabaseServiceKey),
-	)
+	authService := services.NewAuthService(db, cfg.JWTSecret)
 	middleware.SetAuthService(authService)
 
 	// 4. Setup Router
@@ -635,7 +633,7 @@ func main() {
 
 
 	// ── Creator Community Subsystem ──────────────────────────────────────────
-	creatorSvc := services.NewCreatorService(db.Pool(), redisCache, cfg.SupabaseURL, cfg.SupabaseServiceKey)
+	creatorSvc := services.NewCreatorService(db.Pool(), redisCache)
 	creatorHandler := handlers.NewCreatorHandler(creatorSvc, logger)
 
 	// Rate limiters for creator subsystem

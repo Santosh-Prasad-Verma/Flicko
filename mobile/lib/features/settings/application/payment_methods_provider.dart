@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:mobile/data/clients/supabase_client.dart';
 import 'package:mobile/data/models/payment_method_model.dart';
 
 final paymentMethodsProvider = FutureProvider<List<PaymentMethodModel>>((ref) async {

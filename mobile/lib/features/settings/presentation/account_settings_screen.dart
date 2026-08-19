@@ -6,7 +6,7 @@ import 'package:mobile/data/models/user_model.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
 import 'package:dio/dio.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:mobile/data/clients/supabase_client.dart';
 import 'package:mobile/core/config/app_config.dart';
 
 /// Account Settings Screen (Sleek Brutalist Black/Neon Theme)

@@ -369,11 +369,8 @@ class AppConfig {
 
   static List<String> get missingStartupConfig {
     final missing = <String>[];
-    if (supabaseUrl.isEmpty) {
-      missing.add('FLICKO_SUPABASE_URL or SUPABASE_URL');
-    }
-    if (supabaseAnonKey.isEmpty) {
-      missing.add('FLICKO_SUPABASE_ANON_KEY or SUPABASE_ANON_KEY');
+    if (apiBaseUrl.isEmpty) {
+      missing.add('FLICKO_API_URL or API_BASE_URL');
     }
     return missing;
   }

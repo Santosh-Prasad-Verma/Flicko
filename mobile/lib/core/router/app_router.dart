@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import 'package:mobile/features/spike/spike_dashboard_screen.dart';
 import 'package:mobile/features/spike/livekit_spike_screen.dart';
-import 'package:mobile/features/spike/supabase_spike_screen.dart';
 import 'package:mobile/features/auth/presentation/screens/login_screen.dart';
 import 'package:mobile/features/auth/presentation/screens/register_screen.dart';
 import 'package:mobile/features/auth/presentation/screens/forgot_password_screen.dart';
@@ -807,7 +806,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // ── Spike / Dev Routes ──
       GoRoute(path: '/spike', builder: (context, state) => const SpikeDashboardScreen()),
       GoRoute(path: '/spike/livekit', builder: (context, state) => const LiveKitSpikeScreen()),
-      GoRoute(path: '/spike/supabase', builder: (context, state) => const SupabaseSpikeScreen()),
     ],
   );
 });

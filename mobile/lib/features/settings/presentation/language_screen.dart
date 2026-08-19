@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:mobile/data/clients/supabase_client.dart';
 import 'package:mobile/core/theme/theme_provider.dart';
 
 class LanguageScreen extends ConsumerStatefulWidget {
@@ -51,7 +51,7 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
     // Sync to Supabase so preference persists across reinstalls/devices
     try {
       final client = Supabase.instance.client;
-      final userId = client.auth.currentSession?.user.id;
+      final userId = client.auth.currentSession?.user?.id;
       if (userId != null) {
         // Load current preferences first to avoid overwriting other settings
         final response = await client

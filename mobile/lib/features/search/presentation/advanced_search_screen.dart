@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:mobile/data/clients/dio_client.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/shared/presentation/widgets/pill_search_bar.dart';
 
@@ -46,26 +46,24 @@ class _AdvancedSearchScreenState extends ConsumerState<AdvancedSearchScreen> {
     });
 
     try {
-      // Search messages in Supabase
-      var queryBuilder = Supabase.instance.client
-          .from('messages')
-          .select('*, profiles!inner(username, display_name, avatar_url:avatar), channels!inner(server_id)')
-          .ilike('content', '%$query%');
-
-      if (widget.channelId != null) {
-        queryBuilder = queryBuilder.eq('channel_id', widget.channelId!);
-      }
-
-      if (widget.serverId != null) {
-        queryBuilder = queryBuilder.eq('channels.server_id', widget.serverId!);
-      }
-
-      final response = await queryBuilder.order('created_at', ascending: false).limit(50);
-
-      setState(() {
-        _results = (response as List).cast<Map<String, dynamic>>();
-        _isSearching = false;
+      final dio = ref.read(dioProvider);
+      final response = await dio.get('/api/v1/messages/search', queryParameters: {
+        'q': query,
+        if (widget.channelId != null) 'channel_id': widget.channelId,
+        if (widget.serverId != null) 'server_id': widget.serverId,
       });
+
+      if (response.statusCode == 200 && response.data != null && response.data is List) {
+        setState(() {
+          _results = (response.data as List).cast<Map<String, dynamic>>();
+          _isSearching = false;
+        });
+      } else {
+        setState(() {
+          _results = [];
+          _isSearching = false;
+        });
+      }
     } catch (e) {
       setState(() {
         _errorMessage = e.toString();
@@ -220,7 +218,7 @@ class _AdvancedSearchScreenState extends ConsumerState<AdvancedSearchScreen> {
     final username = profile?['username'] ?? 'Unknown';
     final displayName = profile?['display_name'] ?? username;
     final avatarUrl = profile?['avatar_url'];
-    final content = message['content'] as String;
+    final content = message['content'] as String? ?? '';
     final createdAt = message['created_at'] as String?;
 
     return Container(
@@ -244,7 +242,7 @@ class _AdvancedSearchScreenState extends ConsumerState<AdvancedSearchScreen> {
                 backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
                 child: avatarUrl == null
                     ? Text(
-                        username[0].toUpperCase(),
+                        username.isNotEmpty ? username[0].toUpperCase() : '?',
                         style: GoogleFonts.inter(color: const Color(FlickoColors.textPrimary)),
                       )
                     : null,
@@ -288,18 +286,22 @@ class _AdvancedSearchScreenState extends ConsumerState<AdvancedSearchScreen> {
   }
 
   String _formatDate(String dateString) {
-    final date = DateTime.parse(dateString);
-    final now = DateTime.now();
-    final difference = now.difference(date);
+    try {
+      final date = DateTime.parse(dateString);
+      final now = DateTime.now();
+      final difference = now.difference(date);
 
-    if (difference.inDays > 0) {
-      return '${difference.inDays}d ago';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours}h ago';
-    } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes}m ago';
-    } else {
-      return 'Just now';
+      if (difference.inDays > 0) {
+        return '${difference.inDays}d ago';
+      } else if (difference.inHours > 0) {
+        return '${difference.inHours}h ago';
+      } else if (difference.inMinutes > 0) {
+        return '${difference.inMinutes}m ago';
+      } else {
+        return 'Just now';
+      }
+    } catch (_) {
+      return '';
     }
   }
 }

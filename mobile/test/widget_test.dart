@@ -2,7 +2,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
+import 'package:mobile/data/clients/supabase_client.dart' hide AuthState;
 import 'package:mobile/core/config/app_config.dart';
 import 'package:mobile/main.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';

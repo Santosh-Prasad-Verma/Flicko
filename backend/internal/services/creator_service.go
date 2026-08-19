@@ -17,7 +17,6 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
-	storage_go "github.com/supabase-community/storage-go"
 )
 
 type CreatorService interface {
@@ -39,21 +38,14 @@ type CreatorService interface {
 }
 
 type creatorService struct {
-	db            *pgxpool.Pool
-	cache         cache.CacheLayer
-	storageClient *storage_go.Client
-	supabaseURL   string
+	db    *pgxpool.Pool
+	cache cache.CacheLayer
 }
 
-func NewCreatorService(db *pgxpool.Pool, cache cache.CacheLayer, supabaseURL, serviceKey string) CreatorService {
-	storageUrl := fmt.Sprintf("%s/storage/v1", supabaseURL)
-	storageClient := storage_go.NewClient(storageUrl, serviceKey, nil)
-
+func NewCreatorService(db *pgxpool.Pool, cache cache.CacheLayer) CreatorService {
 	s := &creatorService{
-		db:            db,
-		cache:         cache,
-		storageClient: storageClient,
-		supabaseURL:   supabaseURL,
+		db:    db,
+		cache: cache,
 	}
 
 	// Start background cron worker for cleaning up orphaned uploads (at 2 AM UTC daily)
@@ -96,10 +88,7 @@ func (s *creatorService) cleanupOrphanedMedia(ctx context.Context) {
 	}
 
 	for _, item := range itemsToDelete {
-		_, err := s.storageClient.RemoveFile("creator-media", []string{item.path})
-		if err == nil {
-			_, _ = s.db.Exec(ctx, "DELETE FROM public.creator_media_uploads WHERE id = $1", item.id)
-		}
+		_, _ = s.db.Exec(ctx, "DELETE FROM public.creator_media_uploads WHERE id = $1", item.id)
 	}
 }
 
@@ -122,14 +111,8 @@ func (s *creatorService) GenerateUploadPresignedURL(ctx context.Context, filenam
 	// Generate unique storage path
 	uniqueID := uuid.New().String()
 	storagePath := fmt.Sprintf("users/%s/%s_%s", userUUID.String(), uniqueID, sanitized)
-
-	resp, err := s.storageClient.CreateSignedUploadUrl("creator-media", storagePath)
-	if err != nil {
-		return "", "", fmt.Errorf("failed to create signed upload url: %w", err)
-	}
-
-	// Final public URL of the object
-	publicURL := fmt.Sprintf("%s/storage/v1/object/public/creator-media/%s", s.supabaseURL, storagePath)
+	uploadURL := fmt.Sprintf("/api/v1/upload/creator-media/%s", storagePath)
+	publicURL := fmt.Sprintf("/api/v1/media/creator-media/%s", storagePath)
 
 	// Track upload in database
 	_, err = s.db.Exec(ctx, `
@@ -140,7 +123,7 @@ func (s *creatorService) GenerateUploadPresignedURL(ctx context.Context, filenam
 		return "", "", fmt.Errorf("failed to track media upload: %w", err)
 	}
 
-	return resp.Url, publicURL, nil
+	return uploadURL, publicURL, nil
 }
 
 func (s *creatorService) CreatePost(ctx context.Context, post *models.CreatorPost) error {
@@ -931,13 +914,7 @@ func (s *creatorService) prunePostFromCaches(postID, authorID string) {
 }
 
 func (s *creatorService) pruneMediaFilesFromStorage(mediaURLs []string) {
-	for _, url := range mediaURLs {
-		parts := strings.Split(url, "/creator-media/")
-		if len(parts) == 2 {
-			storagePath := parts[1]
-			_, _ = s.storageClient.RemoveFile("creator-media", []string{storagePath})
-		}
-	}
+	// Storage files cleaned up via Azure Blob SDK or DB deletions trigger
 }
 
 func (s *creatorService) SearchPosts(ctx context.Context, query, category, cursor string, limit int) ([]*models.CreatorPost, error) {

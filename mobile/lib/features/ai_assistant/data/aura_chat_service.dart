@@ -13,7 +13,7 @@ import 'package:mobile/features/home/application/servers_notifier.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/ai_assistant/data/aura_settings_provider.dart';
 import 'package:mobile/features/ai_assistant/data/web_search_service.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
+import 'package:mobile/data/clients/supabase_client.dart' as supabase;
 
 class AuraMessage {
   final String id;

@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' hide MultipartFile;
+import 'package:mobile/data/clients/supabase_client.dart';
 import 'package:mobile/core/config/app_config.dart';
 import 'package:mobile/features/channel_backgrounds/domain/channel_background.dart';
 

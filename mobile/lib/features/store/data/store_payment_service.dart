@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:mobile/data/clients/supabase_client.dart';
 import 'package:mobile/core/config/app_config.dart';
 import 'package:mobile/data/services/razorpay_service.dart';
 import 'package:mobile/features/store/data/store_service.dart';

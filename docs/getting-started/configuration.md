@@ -274,7 +274,7 @@ These variables configure the application-level Redis-backed rate limiter (the t
 
 ---
 
-These variables are loaded by the Flutter app (typically via Doppler or local `.env` files). They are NOT secret as they are embedded in the compiled application.
+These variables are loaded by the Flutter app (typically via Azure Key Vault or local `.env` files). They are NOT secret as they are embedded in the compiled application.
 
 | Variable | Type | Required | Default | Description |
 |----------|------|----------|---------|-------------|

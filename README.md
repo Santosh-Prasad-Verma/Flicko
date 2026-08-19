@@ -28,7 +28,7 @@
   <img src="https://img.shields.io/badge/Supabase-Postgres_RLS-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" alt="Supabase" />
   <img src="https://img.shields.io/badge/LiveKit-WebRTC_SFU-5AC8FA?style=for-the-badge&logo=livekit&logoColor=white" alt="LiveKit" />
   <img src="https://img.shields.io/badge/Tolgee-i18n_Sync-EC407A?style=for-the-badge&logo=tolgee&logoColor=white" alt="Tolgee" />
-  <img src="https://img.shields.io/badge/Doppler-Vault-10B981?style=for-the-badge&logo=doppler&logoColor=white" alt="Doppler" />
+  <img src="https://img.shields.io/badge/Azure_Key_Vault-Security-0078D4?style=for-the-badge&logo=microsoftazure&logoColor=white" alt="Azure Key Vault" />
   <img src="https://img.shields.io/badge/Workflows-27_CI%2FCD-2088FF?style=for-the-badge&logo=githubactions&logoColor=white" alt="CI/CD" />
 </p>
 
@@ -137,7 +137,7 @@ Operated by an asynchronous Go job coordinator (`asynq`):
 | **Relational Database**| Supabase PostgreSQL | ACID storage, 131+ SQL migrations, Row-Level Security |
 | **WebRTC Voice/Video** | LiveKit SFU | WebRTC Media Server, Opus Codec, H.264 Video |
 | **Localization (i18n)**| Tolgee Platform | Self-hosted i18n platform & CLI sync (`scripts/sync-l10n.sh`) |
-| **Secrets & Config** | Doppler Vault | Zero hardcoded keys in repository |
+| **Secrets & Config** | Azure Key Vault | Zero hardcoded keys in repository |
 
 ---
 
@@ -193,7 +193,7 @@ chmod +x ./scripts/sync-l10n.sh
 ## 🔐 Security Checklist
 
 Before deploying Flicko to production:
-- [ ] Ensure all API keys and tokens are stored in **Doppler** vault.
+- [ ] Ensure all API keys and tokens are stored in **Azure Key Vault**.
 - [ ] Verify Row-Level Security (RLS) is enabled on all PostgreSQL tables.
 - [ ] Set up SSL certificates via Nginx and Cloudflare Origin certificates.
 - [ ] Enable `fail2ban` rate-limiting rules.

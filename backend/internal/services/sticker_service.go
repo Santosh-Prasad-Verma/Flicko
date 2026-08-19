@@ -11,7 +11,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	storage_go "github.com/supabase-community/storage-go"
 )
 
 type StickerService interface {
@@ -24,14 +23,12 @@ type StickerService interface {
 type stickerService struct {
 	db          *pgxpool.Pool
 	permService PermissionService
-	storage     *storage_go.Client
 }
 
-func NewStickerService(db *pgxpool.Pool, permService PermissionService, storage *storage_go.Client) StickerService {
+func NewStickerService(db *pgxpool.Pool, permService PermissionService) StickerService {
 	return &stickerService{
 		db:          db,
 		permService: permService,
-		storage:     storage,
 	}
 }
 
@@ -42,23 +39,19 @@ func (s *stickerService) UploadSticker(ctx context.Context, serverID, creatorID,
 		return nil, fmt.Errorf("invalid uuid")
 	}
 
-	// 1. Validate File Size (<= 512 KB)
 	if size > 512*1024 {
 		return nil, fmt.Errorf("sticker file size must be <= 512KB")
 	}
 
-	// 2. Validate Image Format
 	ext := strings.ToLower(filepath.Ext(filename))
 	if ext != ".png" && ext != ".apng" && ext != ".gif" {
 		return nil, fmt.Errorf("invalid sticker format: must be PNG, APNG, or GIF")
 	}
 
-	// 3. Validate Server Boost Level >= 1
 	var boostLevel int
 	err := s.db.QueryRow(ctx, "SELECT boost_level FROM public.server_boost_status WHERE server_id = $1", serverUUID).Scan(&boostLevel)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			// No boost record means level 0 normally
 			return nil, fmt.Errorf("server is not boosted enough to upload stickers")
 		}
 		return nil, fmt.Errorf("failed to verify server boost level: %w", err)
@@ -67,8 +60,6 @@ func (s *stickerService) UploadSticker(ctx context.Context, serverID, creatorID,
 		return nil, fmt.Errorf("server boost level must be at least 1 to upload stickers")
 	}
 
-	// 4. Validate Permission if necessary (Server admin or specific permissions? Task says just boost >= 1 but normally requires MANAGE_EMOJIS)
-	// We'll enforce MANAGE_EMOJIS here for good measure
 	hasPerm, err := s.permService.HasPermission(ctx, creatorUUID, serverUUID, "MANAGE_EMOJIS")
 	if err != nil {
 		return nil, err
@@ -77,20 +68,10 @@ func (s *stickerService) UploadSticker(ctx context.Context, serverID, creatorID,
 		return nil, fmt.Errorf("unauthorized: requires MANAGE_EMOJIS permission")
 	}
 
-	// 5. Upload to storage
 	stickerID := uuid.New()
 	storagePath := fmt.Sprintf("%s/%s%s", serverID, stickerID.String(), ext)
+	imageURL := fmt.Sprintf("/storage/stickers/%s", storagePath)
 
-	if s.storage != nil {
-		_, err := s.storage.UploadFile("stickers", storagePath, file)
-		if err != nil {
-			return nil, fmt.Errorf("storage upload failed: %v", err)
-		}
-	}
-
-	imageURL := fmt.Sprintf("stickers/%s", storagePath) // Mock URL mapping
-
-	// 6. DB Insert
 	query := `
 		INSERT INTO public.stickers (id, server_id, name, description, tags, image_url, creator_id)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -145,7 +126,6 @@ func (s *stickerService) DeleteSticker(ctx context.Context, serverID, stickerID,
 		return fmt.Errorf("unauthorized: requires MANAGE_EMOJIS")
 	}
 
-	// Delete from storage ideally, then DB
 	res, err := s.db.Exec(ctx, "DELETE FROM public.stickers WHERE id = $1 AND server_id = $2", stickerUUID, serverUUID)
 	if err != nil {
 		return err

@@ -1,0 +1,54 @@
+name: Flutter Mobile CI/CD
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/mobile-ci.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'mobile/**'
+
+jobs:
+  analyze-and-build:
+    name: Flutter Analyze & Build APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.29.x'
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: |
+          cd mobile
+          flutter pub get
+
+      - name: Run Flutter Static Analysis
+        run: |
+          cd mobile
+          flutter analyze
+
+      - name: Build Release APK
+        run: |
+          cd mobile
+          flutter build apk --release --no-tree-shake-icons
+
+      - name: Upload Release APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: flicko-release-apk
+          path: mobile/build/app/outputs/flutter-apk/app-release.apk

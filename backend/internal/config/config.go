@@ -13,25 +13,29 @@ import (
 )
 
 type Config struct {
-	DatabaseURL        string
-	RedisURL           string
-	JWTSecret          string
-	PortHTTP           string
-	PortWS             string
-	SupabaseURL        string
-	SupabaseServiceKey string
-	EncryptionKey      []byte
-	EncryptionKeyID    string
-	Environment        string
-	LiveKitAPIKey      string
-	LiveKitAPISecret   string
-	LiveKitURL         string
-	RazorpayKeyID      string
-	RazorpayKeySecret  string
-	MailGatewayURL     string
-	InternalToken      string
-	CentrifugoAPIURL   string // e.g. http://centrifugo:8000/api
-	CentrifugoAPIKey   string
+	DatabaseURL                     string
+	RedisURL                        string
+	JWTSecret                       string
+	PortHTTP                        string
+	PortWS                          string
+	AzureBlobConnectionString       string
+	AzureWebPubSubConnectionString  string
+	AzureCommunicationConnectionString string
+	AzureCosmosEndpoint             string
+	AzureCosmosKey                  string
+	AzureCosmosDatabaseName         string
+	EncryptionKey                   []byte
+	EncryptionKeyID                 string
+	Environment                     string
+	LiveKitAPIKey                   string
+	LiveKitAPISecret                string
+	LiveKitURL                      string
+	RazorpayKeyID                   string
+	RazorpayKeySecret               string
+	MailGatewayURL                  string
+	InternalToken                   string
+	CentrifugoAPIURL                string // e.g. http://centrifugo:8000/api
+	CentrifugoAPIKey                string
 	// E2EE v2 rollout (Task 3 / R16)
 	E2EEV2Enabled        bool
 	E2EEV2RolloutPercent int // 0..100; clients with hash(user_id)%100 < this opt in
@@ -59,6 +63,7 @@ type Config struct {
 	// Astra DB
 	AstraDBEndpoint string
 	AstraDBToken    string
+	FlickoGeminiAPIKey string
 }
 
 func Load() (*Config, error) {
@@ -95,15 +100,8 @@ func Load() (*Config, error) {
 		portWS = "8081"
 	}
 
-	supabaseURL := os.Getenv("SUPABASE_URL")
-	if supabaseURL == "" {
-		return nil, errors.New("SUPABASE_URL is required")
-	}
-
-	supabaseServiceKey := os.Getenv("SUPABASE_SERVICE_ROLE_KEY")
-	if supabaseServiceKey == "" {
-		return nil, errors.New("SUPABASE_SERVICE_ROLE_KEY is required")
-	}
+	azureBlobConn := os.Getenv("AZURE_BLOB_CONNECTION_STRING")
+	azureWebPubSubConn := os.Getenv("AZURE_WEBPUBSUB_CONNECTION_STRING")
 
 	// CRIT-010: Encryption key is REQUIRED in production
 	var encryptionKeyBytes []byte
@@ -144,15 +142,19 @@ func Load() (*Config, error) {
 	keyIDHex = hex.EncodeToString(keyID[:8])
 
 	cfg := &Config{
-		DatabaseURL:        dbURL,
-		RedisURL:           redisURL,
-		JWTSecret:          jwtSecret,
-		PortHTTP:           portHTTP,
-		PortWS:             portWS,
-		SupabaseURL:        supabaseURL,
-		SupabaseServiceKey: supabaseServiceKey,
-		EncryptionKey:      encryptionKeyBytes,
-		EncryptionKeyID:    keyIDHex,
+		DatabaseURL:                    dbURL,
+		RedisURL:                       redisURL,
+		JWTSecret:                      jwtSecret,
+		PortHTTP:                       portHTTP,
+		PortWS:                         portWS,
+		AzureBlobConnectionString:          azureBlobConn,
+		AzureWebPubSubConnectionString:     azureWebPubSubConn,
+		AzureCommunicationConnectionString: envOr("AZURE_COMMUNICATION_CONNECTION_STRING", ""),
+		AzureCosmosEndpoint:            envOr("AZURE_COSMOS_ENDPOINT", ""),
+		AzureCosmosKey:                 os.Getenv("AZURE_COSMOS_KEY"),
+		AzureCosmosDatabaseName:        envOr("AZURE_COSMOS_DATABASE_NAME", "flicko_db"),
+		EncryptionKey:                  encryptionKeyBytes,
+		EncryptionKeyID:                keyIDHex,
 		Environment:        environment,
 		LiveKitAPIKey:      os.Getenv("LIVEKIT_API_KEY"),
 		LiveKitAPISecret:   os.Getenv("LIVEKIT_API_SECRET"),
@@ -167,6 +169,7 @@ func Load() (*Config, error) {
 		E2EEV2RolloutPercent: parseIntEnv("E2EE_V2_ROLLOUT_PERCENT", 0, 0, 100),
 		AstraDBEndpoint:    envOr("ASTRA_DB_API_ENDPOINT", ""),
 		AstraDBToken:       envOr("ASTRA_DB_APPLICATION_TOKEN", ""),
+		FlickoGeminiAPIKey: os.Getenv("FLICKO_GEMINI_API_KEY"),
 	}
 
 	groqKey := os.Getenv("GROQ_API_KEY")

@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:mobile/core/config/app_config.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:mobile/data/clients/supabase_client.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final webRtcCallServiceProvider = Provider<WebRtcCallService>((ref) {

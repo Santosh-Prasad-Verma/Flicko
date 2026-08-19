@@ -1,2 +1,0 @@
--- Placeholder seed file for Supabase local resets.
--- Add deterministic development seed data here when needed.

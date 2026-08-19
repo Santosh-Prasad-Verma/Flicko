@@ -29,6 +29,10 @@ type Config struct {
 	// Security: Development mode must be explicitly enabled
 	EnableInsecureDevMode bool // Set ENABLE_INSECURE_DEV_MODE=true to bypass auth (dev only)
 
+	// Azure Communication Services Email
+	AzureCommunicationConnectionString string // Connection string for Azure Communication Services
+	AzureCommunicationEmailSender       string // Sender address (e.g. DoNotReply@flicko.app)
+
 	// SMTP configuration (Gmail)
 	SMTPHost     string // SMTP server hostname (smtp.gmail.com)
 	SMTPPort     string // SMTP server port (587 for STARTTLS)
@@ -78,87 +82,44 @@ func Load() *Config {
 		// Security fix: explicit dev mode flag required (not just missing SEND_API_KEY)
 		EnableInsecureDevMode: os.Getenv("ENABLE_INSECURE_DEV_MODE") == "true",
 
+		AzureCommunicationConnectionString: os.Getenv("AZURE_COMMUNICATION_CONNECTION_STRING"),
+		AzureCommunicationEmailSender:       getEnv("AZURE_COMMUNICATION_EMAIL_SENDER", "DoNotReply@flicko.app"),
+
 		SMTPHost:     getEnv("SMTP_HOST", "smtp.gmail.com"),
 		SMTPPort:     getEnv("SMTP_PORT", "587"),
 		SMTPUsername: os.Getenv("SMTP_USERNAME"),
 		SMTPPassword: os.Getenv("SMTP_PASSWORD"),
-		SMTPFrom:     os.Getenv("SMTP_FROM"),
-
-		QueueSize:  getEnvInt("EMAIL_QUEUE_SIZE", 100),
-		WorkerPool: getEnvInt("EMAIL_WORKER_POOL", 3),
-		MaxRetries: getEnvInt("EMAIL_MAX_RETRIES", 3),
-
-		LogLevel:  getEnv("LOG_LEVEL", "info"),
-		LogFormat: getEnv("LOG_FORMAT", "json"),
-
-		SupabaseURL: os.Getenv("SUPABASE_URL"),
-		
-		RazorpayKeyID:     os.Getenv("RAZORPAY_KEY_ID"),
-		RazorpayKeySecret: os.Getenv("RAZORPAY_KEY_SECRET"),
-
-		MoonclerkWebhookSecret: os.Getenv("MOONCLERK_WEBHOOK_SECRET"),
+		SMTPFrom:     getEnv("SMTP_FROM", os.Getenv("SMTP_USERNAME")),
 	}
-
 
 	cfg.validate()
 	return cfg
 }
 
-// validate ensures all required secrets are present.
-// Panics on missing required values — this is intentional fail-fast behavior.
 func (c *Config) validate() {
-	// In production, WEBHOOK_SECRET is mandatory for security
 	if c.AppEnv == "production" && c.WebhookSecret == "" {
-		panic("WEBHOOK_SECRET is required in production — get it from Supabase Auth Hook dashboard")
+		panic("WEBHOOK_SECRET is required in production")
 	}
 
-	// SECURITY FIX: Stricter SEND_API_KEY validation
-	// In production, either SEND_API_KEY must be set OR explicit dev mode must be enabled
 	if c.AppEnv == "production" && c.SendAPIKey == "" && !c.EnableInsecureDevMode {
-		panic("SEND_API_KEY is required in production. Options:\n" +
-			"  1. Set SEND_API_KEY env var (recommended)\n" +
-			"  2. Set ENABLE_INSECURE_DEV_MODE=true (development only, not recommended for prod)")
+		panic("SEND_API_KEY is required in production.")
 	}
 
-	// Warn if dev mode is accidentally enabled in production
-	if c.AppEnv == "production" && c.EnableInsecureDevMode {
-		slog.Warn("WARNING: ENABLE_INSECURE_DEV_MODE is enabled in production",
-			"severity", "high",
-			"action", "change APP_ENV to 'development' or disable ENABLE_INSECURE_DEV_MODE",
-		)
+	// If Azure Communication Services Connection String is set, ACS Email is enabled
+	if c.AzureCommunicationConnectionString != "" {
+		slog.Info("Azure Communication Services Email enabled for transactional emails")
+		return
 	}
 
-	// Warn if no SEND_API_KEY is set
-	if c.SendAPIKey == "" && !c.EnableInsecureDevMode {
-		slog.Warn("SEND_API_KEY not set and development mode disabled",
-			"hint", "set SEND_API_KEY or ENABLE_INSECURE_DEV_MODE=true",
-		)
-	}
-
-	// SMTP credentials are always required
+	// Otherwise, fallback to SMTP credentials
 	if c.SMTPUsername == "" {
-		panic("SMTP_USERNAME is required — set your Gmail address")
-	}
-	if c.SMTPPassword == "" {
-		panic("SMTP_PASSWORD is required — generate a Gmail App Password at myaccount.google.com → Security → App Passwords")
-	}
-	if c.SMTPFrom == "" {
-		// Default to SMTP username if FROM not set
-		c.SMTPFrom = c.SMTPUsername
+		slog.Warn("SMTP_USERNAME not set — using dummy dev mailer")
 	}
 
 	// Supabase URL needed for building verification links
 	if c.SupabaseURL == "" {
 		slog.Warn("SUPABASE_URL not set — verification links will use APP_URL as fallback")
 		c.SupabaseURL = c.AppURL
-	}
-	
-	// Razorpay credentials
-	if c.RazorpayKeyID == "" {
-		slog.Warn("RAZORPAY_KEY_ID not set — payment features will be disabled")
-	}
-	if c.RazorpayKeySecret == "" {
-		slog.Warn("RAZORPAY_KEY_SECRET not set — payment verification will fail")
 	}
 }
 

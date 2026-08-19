@@ -1,0 +1,35 @@
+name: Azure PostgreSQL Migrations CI/CD
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'azure-migrations/**'
+      - '.github/workflows/postgres-migrations-ci.yml'
+
+jobs:
+  apply-migrations:
+    name: Apply Migration Scripts to Azure PostgreSQL
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install psql client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Run Migrations Against Azure PostgreSQL
+        env:
+          PGHOST: ${{ secrets.AZURE_POSTGRES_HOST }}
+          PGDATABASE: ${{ secrets.AZURE_POSTGRES_DB }}
+          PGUSER: ${{ secrets.AZURE_POSTGRES_USER }}
+          PGPASSWORD: ${{ secrets.AZURE_POSTGRES_PASSWORD }}
+          PGPORT: '5432'
+          PGSSLMODE: 'require'
+        run: |
+          for f in azure-migrations/*.sql; do
+            echo "Applying $f..."
+            psql -f "$f"
+          done

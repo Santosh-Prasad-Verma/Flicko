@@ -54,7 +54,7 @@ When a developer merges a feature into `main`, GitHub Actions automatically conn
 
 **File:** `.github/workflows/vps-deploy.yml`
 
-*Requires GitHub Repository Secrets:* `VPS_IP`, `VPS_SSH_KEY`, `VPS_USER`, `DOPPLER_TOKEN`, `GITHUB_TOKEN`
+*Requires GitHub Repository Secrets:* `VPS_IP`, `VPS_SSH_KEY`, `VPS_USER`, `AZURE_CREDENTIALS`, `GITHUB_TOKEN`
 
 ```yaml
 name: Deploy Flicko to VPS
@@ -73,9 +73,21 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Fetch Secrets from Doppler
-      uses: dopplerhq/cli-action@v3
-      # Materializes .env.production via Doppler Token
+    - name: Azure Login
+      uses: azure/login@v2
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Fetch Secrets from Azure Key Vault
+      uses: Azure/get-keyvault-secrets@v1
+      id: keyvault
+      with:
+        keyvault: 'FlickoKeyVault'
+        secrets: '*'
+
+    - name: Export Secrets to .env.production
+      run: |
+        echo "${{ steps.keyvault.outputs.secrets }}" > .env.production
 
     - name: Deploy to VPS via SSH
       uses: appleboy/ssh-action@v1.0.3
@@ -89,7 +101,7 @@ jobs:
           mv .env.production .env
           docker compose -f docker-compose.prod.yml up -d --build
 ```
-This ensures zero drift between the `main` GitHub branch and actual production servers, while securely managing environment variables via Doppler.
+This ensures zero drift between the `main` GitHub branch and actual production servers, while securely managing environment variables via Azure Key Vault.
 
 ---
 

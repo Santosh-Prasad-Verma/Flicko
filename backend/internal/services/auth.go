@@ -20,8 +20,8 @@ type AuthService interface {
 	ValidateToken(tokenString string) (*jwt.RegisteredClaims, error)
 	HashPassword(password string) (string, error)
 	CheckPassword(hash, password string) bool
-	Register(ctx context.Context, username, email, password string) (*models.User, string, error)
-	Login(ctx context.Context, email, password string) (*models.User, string, error)
+	Register(ctx context.Context, username, email, phone, password string) (*models.User, string, error)
+	Login(ctx context.Context, identifier, password string) (*models.User, string, error)
 }
 
 type authService struct {
@@ -30,7 +30,6 @@ type authService struct {
 }
 
 func NewAuthService(db database.DatabaseClient, jwtSecret string, opts ...AuthOption) AuthService {
-	// Supabase JWT secrets are base64-encoded. Try to decode; fall back to raw string.
 	secret, err := base64.StdEncoding.DecodeString(jwtSecret)
 	if err != nil {
 		secret = []byte(jwtSecret)
@@ -45,13 +44,10 @@ func NewAuthService(db database.DatabaseClient, jwtSecret string, opts ...AuthOp
 	return svc
 }
 
-// AuthOption configures optional auth service settings.
 type AuthOption func(*authService)
 
-// WithSupabase enables Supabase token validation as fallback.
 func WithSupabase(supabaseURL, supabaseAPIKey string) AuthOption {
 	return func(s *authService) {
-		// Set options discarded. Removed per architecture review.
 	}
 }
 
@@ -69,7 +65,6 @@ func (s *authService) GenerateToken(userID, email string) (string, error) {
 }
 
 func (s *authService) ValidateToken(tokenString string) (*jwt.RegisteredClaims, error) {
-	// 1. Try local HMAC (HS256) validation first
 	token, err := jwt.ParseWithClaims(tokenString, &jwt.RegisteredClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -82,10 +77,6 @@ func (s *authService) ValidateToken(tokenString string) (*jwt.RegisteredClaims, 
 			return claims, nil
 		}
 	}
-
-	// 2. If HMAC validation fails and Supabase is configured, verify via Supabase Auth API.
-	//    This handles tokens signed with ES256 (ECC P-256) after key rotation.
-	//    Removed per architecture review report (unified HS256 validation only).
 	return nil, err
 }
 
@@ -102,14 +93,16 @@ func (s *authService) CheckPassword(hash, password string) bool {
 	return err == nil
 }
 
-func (s *authService) Register(ctx context.Context, username, email, password string) (*models.User, string, error) {
+func (s *authService) Register(ctx context.Context, username, email, phone, password string) (*models.User, string, error) {
 	if utf8.RuneCountInString(username) < 2 || utf8.RuneCountInString(username) > 32 {
 		return nil, "", errors.New("username must be between 2 and 32 characters")
 	}
 
-	_, err := mail.ParseAddress(email)
-	if err != nil {
-		return nil, "", errors.New("invalid email format")
+	if email != "" {
+		_, err := mail.ParseAddress(email)
+		if err != nil {
+			return nil, "", errors.New("invalid email format")
+		}
 	}
 
 	hash, err := s.HashPassword(password)
@@ -117,16 +110,15 @@ func (s *authService) Register(ctx context.Context, username, email, password st
 		return nil, "", err
 	}
 
-	// CRIT-002: Use parameterized query with proper pgx row scanning
 	query := `
-		INSERT INTO users (username, email, password_hash)
-		VALUES ($1, $2, $3)
-		RETURNING id, username, email, theme, created_at, updated_at
+		INSERT INTO users (username, email, phone, encrypted_password)
+		VALUES ($1, $2, $3, $4)
+		RETURNING id, username, COALESCE(email, ''), created_at, updated_at
 	`
 
 	var user models.User
-	row := s.db.QueryRow(ctx, query, username, email, hash)
-	err = row.Scan(&user.ID, &user.Username, &user.Email, &user.Theme, &user.CreatedAt, &user.UpdatedAt)
+	row := s.db.QueryRow(ctx, query, username, email, phone, hash)
+	err = row.Scan(&user.ID, &user.Username, &user.Email, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to create user: %w", err)
 	}
@@ -139,24 +131,22 @@ func (s *authService) Register(ctx context.Context, username, email, password st
 	return &user, token, nil
 }
 
-func (s *authService) Login(ctx context.Context, email, password string) (*models.User, string, error) {
-	// CRIT-002: Proper login implementation with parameterized query
+func (s *authService) Login(ctx context.Context, identifier, password string) (*models.User, string, error) {
 	query := `
-		SELECT id, username, email, password_hash, theme, created_at, updated_at
+		SELECT id, username, COALESCE(email, ''), encrypted_password, created_at, updated_at
 		FROM users
-		WHERE email = $1
+		WHERE email = $1 OR username = $1 OR phone = $1
 	`
 
 	var user models.User
-	row := s.db.QueryRow(ctx, query, email)
-	err := row.Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.Theme, &user.CreatedAt, &user.UpdatedAt)
+	row := s.db.QueryRow(ctx, query, identifier)
+	err := row.Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
-		// Don't reveal whether email exists
-		return nil, "", errors.New("invalid email or password")
+		return nil, "", errors.New("invalid credentials")
 	}
 
 	if !s.CheckPassword(user.Password, password) {
-		return nil, "", errors.New("invalid email or password")
+		return nil, "", errors.New("invalid credentials")
 	}
 
 	token, err := s.GenerateToken(user.ID, user.Email)
@@ -164,7 +154,6 @@ func (s *authService) Login(ctx context.Context, email, password string) (*model
 		return nil, "", fmt.Errorf("failed to generate token: %w", err)
 	}
 
-	// Clear password from response
 	user.Password = ""
 
 	return &user, token, nil

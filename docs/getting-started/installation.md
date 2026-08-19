@@ -154,7 +154,7 @@ cp mobile/.env.example mobile/.env
 
 ```env
 # Mobile app environment variables
-# These are loaded by the Flutter app using Doppler or local .env fallback
+# These are loaded by the Flutter app using Azure Key Vault or local .env fallback
 
 # API base URL — points to msg-service REST API
 # For local dev: use your machine's LAN IP, NOT localhost
