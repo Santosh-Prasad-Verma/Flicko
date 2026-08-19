@@ -65,8 +65,7 @@ func (s *MailService) SendFlickoPlusConfirmation(to, username, txID, amount stri
 
 func (s *MailService) send(mailReq MailRequest) error {
 	if s.gatewayURL == "" {
-		s.logger.Warn("mail gateway URL not configured, skipping email", zap.String("type", mailReq.Type))
-		return nil
+		s.gatewayURL = "http://mail-gateway:8082"
 	}
 
 	body, err := json.Marshal(mailReq)
