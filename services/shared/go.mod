@@ -1,6 +1,6 @@
 module github.com/flicko-org/flicko/services/shared
 
-go 1.25.12
+go 1.23.0
 
 require (
 	github.com/alicebob/miniredis/v2 v2.37.0
