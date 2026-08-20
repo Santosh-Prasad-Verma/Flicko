@@ -41,7 +41,7 @@ jobs:
   build-and-deploy:
     name: Build Docker Images & Deploy to Azure
     needs: test-and-lint
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && secrets.AZURE_ACR_USERNAME != ''
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
