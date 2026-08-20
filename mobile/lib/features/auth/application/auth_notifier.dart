@@ -44,7 +44,7 @@ class AuthNotifier extends Notifier<AuthState> {
           final profile = await _repository.getUserProfile('@me');
           final user = supabase.User(
             id: profile.id,
-            email: profile.email ?? '',
+            email: '',
             userMetadata: {'username': profile.username},
           );
           state = AuthState.authenticated(
@@ -96,7 +96,7 @@ class AuthNotifier extends Notifier<AuthState> {
       final profile = await _repository.getUserProfile('@me');
       final user = supabase.User(
         id: profile.id,
-        email: profile.email ?? email,
+        email: email,
         userMetadata: {'username': profile.username},
       );
       state = AuthState.authenticated(
@@ -118,7 +118,7 @@ class AuthNotifier extends Notifier<AuthState> {
       final profile = await _repository.getUserProfile('@me');
       final user = supabase.User(
         id: profile.id,
-        email: profile.email ?? email,
+        email: email,
         userMetadata: {'username': profile.username},
       );
       state = AuthState.authenticated(
