@@ -69,25 +69,38 @@ Future<void> _initializeApp() async {
   }
 
   final container = ProviderContainer();
-  await container.read(translationServiceProvider.notifier).loadLocale('en');
+  try {
+    await container.read(translationServiceProvider.notifier).loadLocale('en');
+  } catch (e) {
+    debugPrint('Translation service loadLocale skipped: $e');
+  }
 
   // BlackHole initialization
-  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-    await Hive.initFlutter('BlackHole/Database');
-  } else if (Platform.isIOS) {
-    await Hive.initFlutter('Database');
-  } else {
-    await Hive.initFlutter();
-  }
-  await Future.wait(
-    hiveBoxes.map(
-      (box) => openHiveBox(
-        box['name'].toString(),
-        limit: box['limit'] as bool? ?? false,
+  try {
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      await Hive.initFlutter('BlackHole/Database');
+    } else if (Platform.isIOS) {
+      await Hive.initFlutter('Database');
+    } else {
+      await Hive.initFlutter();
+    }
+    await Future.wait(
+      hiveBoxes.map(
+        (box) => openHiveBox(
+          box['name'].toString(),
+          limit: box['limit'] as bool? ?? false,
+        ),
       ),
-    ),
-  );
-  await startBlackHoleService();
+    ).timeout(const Duration(seconds: 6));
+  } catch (e) {
+    debugPrint('Hive initialization warning: $e');
+  }
+
+  try {
+    await startBlackHoleService().timeout(const Duration(seconds: 6));
+  } catch (e) {
+    debugPrint('BlackHole service startup warning: $e');
+  }
 
   runApp(
     UncontrolledProviderScope(
@@ -98,34 +111,44 @@ Future<void> _initializeApp() async {
 }
 
 Future<void> startBlackHoleService() async {
-  await initializeLogging();
-  MetadataGod.initialize();
+  try {
+    await initializeLogging();
+    MetadataGod.initialize();
+  } catch (e) {
+    debugPrint('MetadataGod init warning: $e');
+  }
 
   // Initialize the Flicko audio handler — single AudioService.init for the
   // whole app. Sonic Drip's notifier (`features/voice`) discovers it via
   // GetIt and routes playback through it so lock-screen + notification +
   // Bluetooth controls all work.
-  final handler = await AudioService.init(
-    builder: () => FlickoAudioHandler(),
-    config: const AudioServiceConfig(
-      androidNotificationChannelId: 'tech.focko.flicko.audio',
-      androidNotificationChannelName: 'Flicko Music',
-      androidNotificationOngoing: true,
-      androidStopForegroundOnPause: true,
-    ),
-  );
-  GetIt.I.registerSingleton<FlickoAudioHandler>(handler);
-  GetIt.I.registerSingleton<MyTheme>(MyTheme());
+  try {
+    final handler = await AudioService.init(
+      builder: () => FlickoAudioHandler(),
+      config: const AudioServiceConfig(
+        androidNotificationChannelId: 'tech.focko.flicko.audio',
+        androidNotificationChannelName: 'Flicko Music',
+        androidNotificationOngoing: true,
+        androidStopForegroundOnPause: true,
+      ),
+    ).timeout(const Duration(seconds: 5));
+    if (!GetIt.I.isRegistered<FlickoAudioHandler>()) {
+      GetIt.I.registerSingleton<FlickoAudioHandler>(handler);
+    }
+  } catch (e, st) {
+    debugPrint('AudioService init failed or timed out: $e\n$st');
+  }
+
+  if (!GetIt.I.isRegistered<MyTheme>()) {
+    GetIt.I.registerSingleton<MyTheme>(MyTheme());
+  }
 
   // Sonic Music UI (BlackHole-derived) looks up AudioPlayerHandler in GetIt.
-  // We register a plain AudioPlayerHandlerImpl instance — AudioService.init
-  // is already consumed by FlickoAudioHandler above, so this instance only
-  // drives in-app playback for the sonic_music screens. It does not get
-  // OS notification / lockscreen integration; that path stays on
-  // FlickoAudioHandler.
-  GetIt.I.registerSingleton<sonic_player.AudioPlayerHandler>(
-    sonic_service.AudioPlayerHandlerImpl(),
-  );
+  if (!GetIt.I.isRegistered<sonic_player.AudioPlayerHandler>()) {
+    GetIt.I.registerSingleton<sonic_player.AudioPlayerHandler>(
+      sonic_service.AudioPlayerHandlerImpl(),
+    );
+  }
 }
 
 Future<void> openHiveBox(String boxName, {bool limit = false}) async {
