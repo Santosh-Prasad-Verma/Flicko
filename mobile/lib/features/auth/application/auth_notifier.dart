@@ -37,34 +37,28 @@ class AuthNotifier extends Notifier<AuthState> {
   }
 
   void _init() {
-    _repository.authStateChanges.listen((data) async {
-      final session = data.session;
-      if (session != null) {
-        try {
-          final profile = await _repository.getUserProfile(session.user.id);
+    Future(() async {
+      try {
+        final token = await _repository.getStoredToken();
+        if (token != null && token.isNotEmpty) {
+          final profile = await _repository.getUserProfile('@me');
+          final user = supabase.User(
+            id: profile.id,
+            email: profile.email ?? '',
+            userMetadata: {'username': profile.username},
+          );
           state = AuthState.authenticated(
-            authUser: session.user,
+            authUser: user,
             userProfile: profile,
           );
-        } catch (e) {
-          state = AuthState.authenticated(
-            authUser: session.user,
-          );
+          _bootstrapE2EE();
+          return;
         }
-        _bootstrapE2EE();
-      } else {
-        state = const AuthState.unauthenticated();
+      } catch (e) {
+        // Token invalid or expired
       }
-    });
-
-    final currentUser = _repository.currentUser;
-    if (currentUser != null) {
-      state = AuthState.authenticated(authUser: currentUser);
-      _fetchProfile(currentUser.id);
-      _bootstrapE2EE();
-    } else {
       state = const AuthState.unauthenticated();
-    }
+    });
   }
 
   /// Best-effort: ensure E2EE keys are uploaded once the user is authenticated.
@@ -99,6 +93,17 @@ class AuthNotifier extends Notifier<AuthState> {
     try {
       state = const AuthState.loading();
       await _repository.signIn(identifier: email, password: password);
+      final profile = await _repository.getUserProfile('@me');
+      final user = supabase.User(
+        id: profile.id,
+        email: profile.email ?? email,
+        userMetadata: {'username': profile.username},
+      );
+      state = AuthState.authenticated(
+        authUser: user,
+        userProfile: profile,
+      );
+      _bootstrapE2EE();
     } catch (e) {
       state = AuthState.error(e.toString());
       state = const AuthState.unauthenticated();
@@ -110,6 +115,17 @@ class AuthNotifier extends Notifier<AuthState> {
     try {
       state = const AuthState.loading();
       await _repository.signUp(username: username, email: email, password: password);
+      final profile = await _repository.getUserProfile('@me');
+      final user = supabase.User(
+        id: profile.id,
+        email: profile.email ?? email,
+        userMetadata: {'username': profile.username},
+      );
+      state = AuthState.authenticated(
+        authUser: user,
+        userProfile: profile,
+      );
+      _bootstrapE2EE();
     } catch (e) {
       state = AuthState.error(e.toString());
       state = const AuthState.unauthenticated();
