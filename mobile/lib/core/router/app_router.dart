@@ -168,19 +168,7 @@ class RiverpodRefreshListenable extends ChangeNotifier {
     ref.listen<AuthState>(
       authNotifierProvider,
       (previous, next) {
-        final wasAuthenticated = previous?.maybeWhen(
-          authenticated: (_, __) => true,
-          orElse: () => false,
-        ) ?? false;
-
-        final isAuthenticated = next.maybeWhen(
-          authenticated: (_, __) => true,
-          orElse: () => false,
-        );
-
-        if (wasAuthenticated != isAuthenticated) {
-          notifyListeners();
-        }
+        notifyListeners();
       },
     );
   }
@@ -199,7 +187,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     navigatorKey: rootNavigatorKey,
-    initialLocation: '/',
+    initialLocation: '/login',
     refreshListenable: listenable,
     redirect: (context, state) {
       final authState = ref.read(authNotifierProvider);
@@ -221,7 +209,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           return isAuthRoute ? '/' : null;
         },
         unauthenticated: () => isAuthRoute ? null : '/login',
-        orElse: () => null,
+        orElse: () => isAuthRoute ? null : '/login',
       );
     },
     routes: [
