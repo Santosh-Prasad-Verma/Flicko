@@ -34,6 +34,12 @@ func CSRFMiddleware(logger *zap.Logger) func(http.Handler) http.Handler {
 				return
 			}
 
+			// Public auth endpoints (register, login, SSO) and webhooks don't use CSRF tokens
+			if strings.Contains(r.URL.Path, "/auth/") || strings.Contains(r.URL.Path, "/webhooks/") {
+				next.ServeHTTP(w, r)
+				return
+			}
+
 			// Extract CSRF token from header
 			token := r.Header.Get("X-CSRF-Token")
 			if token == "" {
