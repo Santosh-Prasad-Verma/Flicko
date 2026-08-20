@@ -24,17 +24,19 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version: '1.24'
 
       - name: Test Go Backend
         run: |
           cd backend
-          go test -v ./...
+          go mod tidy
+          go test -short -v ./...
 
       - name: Test WS Gateway Microservice
         run: |
           cd services/ws-gateway
-          go test -v ./...
+          go mod tidy
+          go test -short -v ./...
 
   build-and-deploy:
     name: Build Docker Images & Deploy to Azure

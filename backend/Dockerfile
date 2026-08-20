@@ -1,7 +1,7 @@
 # Dockerfile
 
 # Build Stage
-FROM golang:1.25-alpine AS builder
+FROM golang:1.24-alpine AS builder
 WORKDIR /app
 
 # Enable CGO_ENABLED=0 for fully static compiled binary
@@ -17,7 +17,7 @@ RUN go mod download
 COPY . .
 
 # Build the binary — MED-008: strip debug info for smaller image
-RUN go build -trimpath -ldflags="-s -w" -o flicko-backend ./cmd/server/main.go
+RUN go mod tidy && go build -trimpath -ldflags="-s -w" -o flicko-backend ./cmd/server/main.go
 
 # Final runtime image — MED-008: Pin alpine version for reproducible builds
 FROM alpine:3.22
