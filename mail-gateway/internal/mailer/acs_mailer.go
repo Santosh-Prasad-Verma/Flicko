@@ -98,7 +98,7 @@ func (a *acsMailer) Send(to, subject, templateName string, data models.EmailData
 		return fmt.Errorf("failed to marshal ACS email payload: %w", err)
 	}
 
-	apiURL := fmt.Sprintf("%s/emails:send?api-version=2023-03-31", a.endpoint)
+	apiURL := fmt.Sprintf("%s/emails/messages:send?api-version=2023-03-31", a.endpoint)
 	parsedURL, err := url.Parse(apiURL)
 	if err != nil {
 		return fmt.Errorf("failed to parse ACS API URL: %w", err)
