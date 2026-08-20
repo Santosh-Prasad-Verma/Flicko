@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <em>High-performance real-time messaging, WebRTC 4K voice & video, AI assistant vector search, integrated promotional email dashboard, extensible bot framework, Azure cloud infrastructure, and Signal-protocol end-to-end encryption.</em>
+  <em>High-performance real-time messaging, Azure Communication Services voice & video, AI assistant vector search, integrated promotional email dashboard, extensible bot framework, Azure cloud infrastructure, and Signal-protocol end-to-end encryption.</em>
 </p>
 
 <p align="center">
@@ -25,9 +25,8 @@
   <img src="https://img.shields.io/badge/Go-1.24.0-00ADD8?style=for-the-badge&logo=go&logoColor=white" alt="Go 1.24.0" />
   <img src="https://img.shields.io/badge/Flutter-3.22+-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Flutter" />
   <img src="https://img.shields.io/badge/Next.js-15_App_Router-000000?style=for-the-badge&logo=nextdotjs&logoColor=white" alt="Next.js 15" />
-  <img src="https://img.shields.io/badge/Azure-PostgreSQL_%26_Key_Vault-0078D4?style=for-the-badge&logo=microsoftazure&logoColor=white" alt="Azure Cloud" />
+  <img src="https://img.shields.io/badge/Azure-ACS_%26_PostgreSQL-0078D4?style=for-the-badge&logo=microsoftazure&logoColor=white" alt="Azure Cloud" />
   <img src="https://img.shields.io/badge/Astra_DB-Vector_Search-108160?style=for-the-badge&logo=datastax&logoColor=white" alt="Astra DB" />
-  <img src="https://img.shields.io/badge/LiveKit-WebRTC_SFU-5AC8FA?style=for-the-badge&logo=livekit&logoColor=white" alt="LiveKit" />
   <img src="https://img.shields.io/badge/Tolgee-i18n_Sync-EC407A?style=for-the-badge&logo=tolgee&logoColor=white" alt="Tolgee" />
   <img src="https://img.shields.io/badge/Main_Branch-Protected-238636?style=for-the-badge&logo=github&logoColor=white" alt="Main Branch Protected" />
 </p>
@@ -52,12 +51,12 @@
 
 ## 🚀 What is Flicko?
 
-**Flicko** is a modern, high-concurrency real-time communication platform designed as a self-hostable, secure enterprise alternative to proprietary apps like Discord and Slack. Built on a Go 1.24 microservices core, DataStax Astra DB vector store, Azure PostgreSQL, and LiveKit WebRTC SFU, Flicko scales seamlessly from single virtual servers up to multi-region Azure cloud clusters.
+**Flicko** is a modern, high-concurrency real-time communication platform designed as a self-hostable, secure enterprise alternative to proprietary apps like Discord and Slack. Built on a Go 1.24 microservices core, DataStax Astra DB vector store, Azure PostgreSQL, and Azure Communication Services (ACS), Flicko scales seamlessly from single virtual servers up to multi-region Azure cloud clusters.
 
 ### 🌟 Core Architectural Pillars
 
 * **⚡ Ultra-Fast Go Messaging** — Sub-10ms latency WebSocket message delivery powered by dedicated `flicko-ws-gateway` brokers, thread channels, reactions, media attachments, custom stickers, polls, and real-time typing indicators.
-* **🎙️ 4K Voice & Video SFU** — WebRTC-powered voice rooms, 4K screen sharing, stage channels with speaker queues, collaborative whiteboards, and custom in-call soundboards via LiveKit.
+* **🎙️ Azure Communication Services (ACS) Voice & Video** — Cloud-scale voice & video calling, Push Notifications (FCM/APNS), and VoIP token issuance via `azure_acs_service.go`.
 * **🧠 Aura AI & Vector Search** — Server-side 1536-dimensional Astra DB vector embedding (`$vectorize`) providing semantic chat search and automated conversation summarization via Gemini / Groq.
 * **📧 Promotional Email Admin Portal** — Native Next.js 15 marketing and promotional email campaign dispatch dashboard (`promo.flicko.dev`) integrated with Azure Communication Services (ACS) & SMTP mail gateways.
 * **🔒 End-to-End Encryption** — Signal protocol (X3DH key agreement and Double Ratchet with XChaCha20-Poly1305) for private 1:1 direct messages.
@@ -90,16 +89,16 @@ graph TB
         ASTRA["DataStax Astra DB<br/>NoSQL Vector Store & Log"]
         AZ_PG["Azure PostgreSQL / DB<br/>ACID Relational Data & RLS (azure-migrations/)"]
         REDIS["Redis / Upstash<br/>Pub/Sub Fanout & Hot Cache"]
-        LK["LiveKit SFU<br/>WebRTC Audio/Video Server"]
+        ACS["Azure Communication Services (ACS)<br/>VoIP Audio/Video & Push Engine"]
         TOLGEE["Tolgee i18n Platform<br/>Automated Translation Server"]
     end
 
     APP & WEB -->|HTTPS / WSS| CF --> NGX
-    APP -->|WebRTC| LK
+    APP -->|VoIP / Push| ACS
     NGX --> BE & WS & MSG & MAIL
     BE & MSG --> ASTRA & AZ_PG & REDIS
     WS --> REDIS
-    BE & MAIL --> AZ_PG & TOLGEE & LK
+    BE & MAIL --> AZ_PG & ACS & TOLGEE
 ```
 
 ---
@@ -111,8 +110,8 @@ graph TB
 * **Interactive Media:** Custom server emojis, stickers, pinned messages, view-once media, and nested replies.
 * **E2EE Direct Messages:** Private key agreement via Curve25519 and double ratchet payload encryption.
 
-### 🎙️ WebRTC Voice, Video & Stage Channels
-* **LiveKit SFU Integration:** High-definition voice and video calls with sub-50ms glass-to-glass latency.
+### 🎙️ Azure Communication Services (ACS) Voice & Video Calling
+* **ACS Integration:** High-definition VoIP calling tokens and push notification dispatch powered by `azure_acs_service.go`.
 * **Stage Channels:** Raised-hand queue, speaker moderation, and role-based speaking permissions.
 * **Interactive Whiteboard & Soundboard:** Synchronized canvas drawing and sound FX during live sessions.
 
@@ -134,14 +133,14 @@ Operated by an asynchronous Go job coordinator (`asynq`):
 
 | Layer | Component | Description |
 |---|---|---|
-| **Mobile & Desktop** | Flutter 3.22+ / Dart 3.4+ | Riverpod, GoRouter, Freezed, LiveKit Client |
+| **Mobile & Desktop** | Flutter 3.22+ / Dart 3.4+ | Riverpod, GoRouter, Freezed |
 | **Web & Admin Portal** | Next.js 15 / React 19 | TypeScript, Tailwind CSS v4, Vercel |
 | **Backend API** | Go 1.24.0 | Chi Router, Zap Logger, pgx/v5, Asynq Coordinator |
 | **Real-time Gateway** | Go 1.24 WebSocket Broker | Gorilla WebSocket, Redis Pub/Sub Event Fanout |
 | **Email Gateway** | Go 1.24 Mail Gateway | Azure Communication Services (ACS) & SMTP Relay |
 | **NoSQL & Vector** | DataStax Astra DB | 1536d Cosine Vector Search, Serverless Data API |
 | **Relational Database**| Azure PostgreSQL | ACID storage, 150+ SQL migrations in `azure-migrations/` |
-| **WebRTC Voice/Video** | LiveKit SFU | WebRTC Media Server, Opus Codec, H.264 Video |
+| **Voice & Video** | Azure Communication Services (ACS) | VoIP Calling, Push Notifications (FCM/APNS) |
 | **Localization (i18n)**| Tolgee Platform | Self-hosted i18n platform & CLI sync (`scripts/sync-l10n.sh`) |
 | **Secrets & Config** | Azure Key Vault | Secure enterprise secrets management |
 
@@ -159,7 +158,7 @@ Operated by an asynchronous Go job coordinator (`asynq`):
 ├── backend/                     # Go 1.24 Core REST API, Bot Coordinator & Container Config
 │   ├── Dockerfile               # Multi-stage Alpine build pinned to golang:1.24-alpine
 │   ├── cmd/server/              # Main API Server Entrypoint
-│   └── internal/                # Handlers, Services, Middleware & Database Clients
+│   └── internal/                # Handlers (Azure ACS), Services, Middleware & Database Clients
 ├── services/                    # Go 1.24 Microservices
 │   ├── ws-gateway/              # Real-time WebSocket Gateway Broker
 │   ├── msg-service/             # High-Throughput Message Ingestion Service
@@ -242,5 +241,5 @@ chmod +x ./scripts/sync-l10n.sh
 Flicko is distributed under the **MIT License**. See `LICENSE` for details.
 
 <p align="center">
-  <sub>Built with passion using Go 1.24, Flutter, Azure PostgreSQL, Astra DB, and LiveKit.</sub>
+  <sub>Built with passion using Go 1.24, Flutter, Azure PostgreSQL, Azure ACS, and Astra DB.</sub>
 </p>
