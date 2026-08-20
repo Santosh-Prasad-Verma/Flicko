@@ -1,5 +1,4 @@
 # OSV-Scanner Configuration to ignore legacy DEL archive directory
 IgnoredPaths = [
-    "DEL/**",
-    "DEL/azure-functions/package-lock.json"
+    "DEL/**"
 ]
