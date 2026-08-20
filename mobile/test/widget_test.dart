@@ -38,5 +38,6 @@ void main() {
         child: const FlickoApp(),
       ),
     );
+    await tester.pumpAndSettle();
   });
 }
