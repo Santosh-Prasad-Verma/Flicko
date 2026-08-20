@@ -247,6 +247,12 @@ func main() {
 	// MED-007: Filter sensitive data from logs
 	api.Use(middleware.RequestFilterMiddleware(logger))
 
+	// Register Public Auth Endpoints
+	authHandler := handlers.NewAuthHandler(authService, logger)
+	api.HandleFunc("/auth/register", authHandler.Register).Methods("POST", "OPTIONS")
+	api.HandleFunc("/auth/login", authHandler.Login).Methods("POST", "OPTIONS")
+	api.HandleFunc("/auth/entra-id", authHandler.EntraIDLogin).Methods("POST", "OPTIONS")
+
 	// CRIT-002: Replace memory-based rate limiter with distributed Redis-backed limiter
 	apiLimiter := middleware.NewDistributedRateLimiter(redisCache.GetRedisClient(), 50, logger, "api")
 	// 50 requests per second per IP for general API endpoints
