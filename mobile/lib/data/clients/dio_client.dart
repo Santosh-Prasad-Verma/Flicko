@@ -39,7 +39,11 @@ final dioProvider = Provider<Dio>((ref) {
               ),
             );
           }
-          if (options.path.startsWith('/')) {
+          if (options.path.startsWith('/api/v1/')) {
+            options.path = options.path.substring(8);
+          } else if (options.path.startsWith('api/v1/')) {
+            options.path = options.path.substring(7);
+          } else if (options.path.startsWith('/')) {
             options.path = options.path.substring(1);
           }
         }
