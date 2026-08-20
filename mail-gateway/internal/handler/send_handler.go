@@ -69,6 +69,15 @@ func NewSendHandler(cfg *config.Config, q *queue.EmailQueue) *SendHandler {
 func (h *SendHandler) HandleSend(w http.ResponseWriter, r *http.Request) {
 	// Step 1: Verify API key — prevents public abuse
 	apiKey := r.Header.Get("x-api-key")
+	if apiKey == "" {
+		apiKey = r.Header.Get("X-Internal-Token")
+	}
+	if apiKey == "" {
+		authHeader := r.Header.Get("Authorization")
+		if len(authHeader) > 7 && authHeader[:7] == "Bearer " {
+			apiKey = authHeader[7:]
+		}
+	}
 	if !h.validateAPIKey(apiKey) {
 		slog.Warn("send endpoint: invalid or missing api key",
 			"remote_addr", r.RemoteAddr,

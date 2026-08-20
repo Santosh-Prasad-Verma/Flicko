@@ -210,6 +210,9 @@ func main() {
 	if internalToken == "" {
 		internalToken = os.Getenv("INTERNAL_API_TOKEN")
 	}
+	if internalToken == "" {
+		internalToken = os.Getenv("SEND_API_KEY")
+	}
 	mailService := services.NewMailService(mailGatewayURL, internalToken, logger)
 
 	authService := services.NewAuthService(db, cfg.JWTSecret, services.WithMailService(mailService))

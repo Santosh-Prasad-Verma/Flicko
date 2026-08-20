@@ -80,6 +80,7 @@ func (s *MailService) send(mailReq MailRequest) error {
 
 	req.Header.Set("Content-Type", "application/json")
 	if s.token != "" {
+		req.Header.Set("x-api-key", s.token)
 		req.Header.Set("X-Internal-Token", s.token)
 	}
 
