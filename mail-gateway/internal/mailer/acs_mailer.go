@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -145,5 +146,6 @@ func (a *acsMailer) Send(to, subject, templateName string, data models.EmailData
 		return nil
 	}
 
-	return fmt.Errorf("Azure Communication Services returned status %s", resp.Status)
+	respBody, _ := io.ReadAll(resp.Body)
+	return fmt.Errorf("Azure Communication Services returned status %s: %s", resp.Status, string(respBody))
 }
