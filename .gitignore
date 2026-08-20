@@ -327,3 +327,7 @@ monitoring/agent_token
 
 # Reference repos
 references/
+
+# Temporary / Deleted dump folders
+DEL/
+

@@ -46,20 +46,22 @@ func main() {
 		os.Exit(1)
 	}
 
-	// ===== 4. INITIALIZE MAILER =====
+	// ===== 4. INITIALIZE MAILER (Azure Communication Services) =====
 	var emailMailer mailer.Mailer
 	if cfg.IsDevelopment() && os.Getenv("USE_MOCK_MAILER") == "true" {
 		slog.Warn("using MockMailer — emails will NOT be sent (development mode)")
 		emailMailer = mailer.NewMockMailer()
+	} else if cfg.AzureCommunicationConnectionString != "" {
+		slog.Info("initializing Azure Communication Services Email Mailer", "sender", cfg.AzureCommunicationEmailSender)
+		acs, err := mailer.NewACSMailer(cfg.AzureCommunicationConnectionString, cfg.AzureCommunicationEmailSender, renderer)
+		if err != nil {
+			slog.Error("failed to initialize Azure Communication Services Mailer", "error", err)
+			os.Exit(1)
+		}
+		emailMailer = acs
 	} else {
-		emailMailer = mailer.NewSMTPMailer(
-			cfg.SMTPHost,
-			cfg.SMTPPort,
-			cfg.SMTPUsername,
-			cfg.SMTPPassword,
-			cfg.SMTPFrom,
-			renderer,
-		)
+		slog.Error("AZURE_COMMUNICATION_CONNECTION_STRING is required for Azure ACS Email")
+		os.Exit(1)
 	}
 
 	// ===== 5. INITIALIZE EMAIL QUEUE =====

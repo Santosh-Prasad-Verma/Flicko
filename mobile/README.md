@@ -53,7 +53,7 @@ The project follows a **Modular Feature-First** architecture (Slices):
 ### Prerequisites
 - Flutter SDK (v3.22+)
 - Android Studio (Jellyfish+) / Xcode (15+)
-- [Doppler CLI](https://docs.doppler.com/docs/cli) (Production-ready secret management)
+- [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/) (Azure Key Vault secret management)
 
 ### Installation
 1. Clone the repository and navigate to the mobile folder:
@@ -68,9 +68,10 @@ The project follows a **Modular Feature-First** architecture (Slices):
    ```bash
    flutter pub run build_runner build --delete-conflicting-outputs
    ```
-4. Launch with Doppler:
+4. Sync secrets from Azure Key Vault and Launch:
    ```bash
-   doppler run -- ./flutter-start.sh
+   bash ../scripts/azure-keyvault-sync.sh pull
+   ./flutter-start.sh
    ```
 
 ## 📊 Project Tracking

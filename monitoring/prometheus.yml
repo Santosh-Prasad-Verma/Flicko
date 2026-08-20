@@ -49,14 +49,14 @@ scrape_configs:
           service: backend
           env: production
 
-  # ── Redis Exporter ───────────────────────────────────────────────────────
-  - job_name: "redis"
-    scrape_interval: 15s
-    static_configs:
-      - targets: ["redis-exporter:9121"]
-        labels:
-          service: redis
-          env: production
+  # ── Redis Exporter (Disabled: using Azure Cache for Redis with Azure Monitor metrics)
+  # - job_name: "redis"
+  #   scrape_interval: 15s
+  #   static_configs:
+  #     - targets: ["redis-exporter:9121"]
+  #       labels:
+  #         service: redis
+  #         env: production
 
   # ── NGINX Exporter ───────────────────────────────────────────────────────
   - job_name: "nginx"

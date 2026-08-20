@@ -179,7 +179,6 @@ func runeLen(s string) int {
 }
 
 var (
-	emojiOnlyRE   = regexp.MustCompile(`^[\p{So}\p{Sk}\p{Cs}\s\p{Mn}\p{Me}\p{Sm}\p{Cn}~!@#$%^&*()_+\-=,.<>?/\[\]{}]+$`)
 	reactionyRE   = regexp.MustCompile(`^(?i)(lol+|haha+|lmao+|wtf+|same+|\+1|same|this|f|ok+|np+|gg+|nice+)\.?!*$`)
 	multiQuoteRE  = regexp.MustCompile(`(?m)^(>[^\n]*\n){3,}`)
 	whitespaceMul = regexp.MustCompile(`\s+`)
@@ -191,17 +190,12 @@ func isEmojiOnly(s string) bool {
 	if len(s) == 0 {
 		return true
 	}
-	hasLetter := false
 	for _, r := range s {
 		if unicode.IsLetter(r) || unicode.IsDigit(r) {
-			hasLetter = true
-			break
+			return false
 		}
 	}
-	if !hasLetter {
-		return true
-	}
-	return emojiOnlyRE.MatchString(s)
+	return true
 }
 
 // isLowSignalReaction matches one-word reactions that don't carry information

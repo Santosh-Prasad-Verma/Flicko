@@ -96,8 +96,7 @@ volumes:
     driver: local              # Log index + chunks
   dead_letter_data:
     driver: local              # Failed message batches (JSONL files)
-  redis_data:
-    driver: local
+  # redis_data: REMOVED — migrated to Azure Cache for Redis (managed)
   tolgee_data:
     driver: local
 
@@ -204,9 +203,11 @@ services:
           memory: 512M
     secrets:
       - jwt_public_key
-    depends_on:
-      redis:
-        condition: service_healthy
+    # NOTE: Redis dependency removed — now using Azure Cache for Redis (external).
+    # The service connects via REDIS_URL in .env.prod (rediss:// TLS endpoint).
+    # depends_on:
+    #   redis:
+    #     condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO /dev/null http://localhost:8080/healthz || exit 1"]
       interval: 10s
@@ -262,9 +263,10 @@ services:
           memory: 256M
     secrets:
       - jwt_public_key
-    depends_on:
-      redis:
-        condition: service_healthy
+    # NOTE: Redis dependency removed — now using Azure Cache for Redis (external).
+    # depends_on:
+    #   redis:
+    #     condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO /dev/null http://localhost:8081/healthz || exit 1"]
       interval: 10s
@@ -294,6 +296,7 @@ services:
       ENVIRONMENT: "production"
       PORT_HTTP: "8080"
       PORT_WS: "8081"
+      REDIS_URL: "${REDIS_URL}"
     deploy:
       resources:
         limits:
@@ -301,9 +304,10 @@ services:
           cpus: "1.0"
         reservations:
           memory: 256M
-    depends_on:
-      redis:
-        condition: service_healthy
+    # NOTE: Redis dependency removed — now using Azure Cache for Redis (external).
+    # depends_on:
+    #   redis:
+    #     condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO /dev/null http://localhost:8080/api/v1/health || exit 1"]
       interval: 10s
@@ -392,32 +396,43 @@ services:
       start_period: 30s
 
   # ──────────────────────────────────────────────────────────────────────────
-  # REDIS — Local Container
+  # REDIS — MIGRATED to Azure Cache for Redis (Managed)
   # ──────────────────────────────────────────────────────────────────────────
-  redis:
-    image: redis:7-alpine
-    container_name: flicko-redis
-    # volatile-lru (not allkeys-lru): only keys WITH a TTL are evictable. All
-    # cache/presence/lock writes set a TTL, so they remain evictable under memory
-    # pressure — but Asynq queue keys and the Ludo bot-move tasks carry NO TTL, so
-    # they are never silently dropped. (Asynq requires a non-allkeys policy.)
-    # appendonly yes: AOF persistence so durable jobs actually survive a restart.
-    command: ["redis-server", "--maxmemory", "200mb", "--maxmemory-policy", "volatile-lru", "--appendonly", "yes"]
-    <<: [*restart-policy, *default-logging]
-    networks:
-      - flicko_internal
-    volumes:
-      - redis_data:/data
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-          cpus: "0.5"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+  # The self-hosted Redis 7 Alpine container has been replaced by Azure Cache
+  # for Redis (Standard C1, 1GB, TLS on port 6380).
+  #
+  # Benefits:
+  #   • 99.9% SLA with automatic failover to replica
+  #   • Managed patching, monitoring, and alerts via Azure Monitor
+  #   • RDB persistence snapshots every 15 minutes
+  #   • Firewall restricted to VM IP 104.43.114.32
+  #
+  # Connection: via REDIS_URL in .env.prod
+  #   rediss://:ACCESS_KEY@flicko-redis-2026.redis.cache.windows.net:6380
+  #
+  # The shared Go redis client (services/shared/redis/client.go) already
+  # supports rediss:// TLS URLs via goredis.ParseURL(). No code changes needed.
+  #
+  # To revert: uncomment below and change REDIS_URL back to redis://redis:6379
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: flicko-redis
+  #   command: ["redis-server", "--maxmemory", "200mb", "--maxmemory-policy", "volatile-lru", "--appendonly", "yes"]
+  #   <<: [*restart-policy, *default-logging]
+  #   networks:
+  #     - flicko_internal
+  #   volumes:
+  #     - redis_data:/data
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 256M
+  #         cpus: "0.5"
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
 
 
   # ──────────────────────────────────────────────────────────────────────────
@@ -526,25 +541,29 @@ services:
       start_period: 10s
 
   # ──────────────────────────────────────────────────────────────────────────
-  # REDIS EXPORTER — Scraping Redis metrics for Prometheus
+  # REDIS EXPORTER — REMOVED (Azure Cache for Redis provides built-in metrics)
   # ──────────────────────────────────────────────────────────────────────────
-  redis-exporter:
-    image: oliver006/redis_exporter:v1.55.0
-    container_name: flicko-redis-exporter
-    <<: [*restart-policy, *default-logging]
-    environment:
-      - REDIS_ADDR=redis://redis:6379
-    networks:
-      - flicko_internal              # Reach local Redis
-      - flicko_monitor               # Prometheus scrapes this
-    deploy:
-      resources:
-        limits:
-          memory: 64M
-          cpus: "0.1"
-    depends_on:
-      redis:
-        condition: service_healthy
+  # Azure Monitor provides built-in Redis metrics:
+  #   • Connected Clients, Memory Usage, Cache Hit/Miss Ratio
+  #   • Operations/sec, Latency, Evicted Keys
+  #   • Available via Azure Portal → Azure Cache for Redis → Insights
+  #   • Can also be exported to Prometheus via Azure Monitor exporter
+  #
+  # To revert: uncomment below
+  # redis-exporter:
+  #   image: oliver006/redis_exporter:v1.55.0
+  #   container_name: flicko-redis-exporter
+  #   <<: [*restart-policy, *default-logging]
+  #   environment:
+  #     - REDIS_ADDR=rediss://:ACCESS_KEY@flicko-redis-2026.redis.cache.windows.net:6380
+  #   networks:
+  #     - flicko_internal
+  #     - flicko_monitor
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 64M
+  #         cpus: "0.1"
 
   # ──────────────────────────────────────────────────────────────────────────
   # POSTGRES EXPORTER — Scraping PostgreSQL metrics for Prometheus

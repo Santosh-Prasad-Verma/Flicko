@@ -16,21 +16,13 @@ func main() {
 	// Load environment variables from .env
 	godotenv.Load("../../../.env")
 
-	host := os.Getenv("SMTP_HOST")
-	port := os.Getenv("SMTP_PORT")
-	username := os.Getenv("SMTP_USERNAME")
-	password := os.Getenv("SMTP_PASSWORD")
-	from := os.Getenv("SMTP_FROM")
-
-	if host == "" || username == "" || password == "" {
-		host = "smtp.gmail.com"
-		port = "587"
-		username = "flickochat@gmail.com"
-		password = "xplt elyr dikl zvoi"
-		from = "flickochat@gmail.com"
+	connStr := os.Getenv("AZURE_COMMUNICATION_CONNECTION_STRING")
+	sender := os.Getenv("AZURE_COMMUNICATION_EMAIL_SENDER")
+	if sender == "" {
+		sender = "DoNotReply@flicko.app"
 	}
 
-	fmt.Printf("SMTP Config: Host=%s, Port=%s, User=%s, From=%s\n", host, port, username, from)
+	fmt.Printf("ACS Mailer Config: Sender=%s\n", sender)
 
 	// Initialize template renderer
 	renderer, err := templates.NewRenderer("../../templates")
@@ -38,8 +30,11 @@ func main() {
 		log.Fatalf("Failed to initialize templates: %v", err)
 	}
 
-	// Initialize SMTP mailer
-	smtpMailer := mailer.NewSMTPMailer(host, port, username, password, from, renderer)
+	// Initialize Azure Communication Services mailer
+	acsMailer, err := mailer.NewACSMailer(connStr, sender, renderer)
+	if err != nil {
+		log.Fatalf("Failed to initialize ACS mailer: %v", err)
+	}
 
 	to := "bittutrial1@gmail.com"
 
@@ -254,7 +249,7 @@ func main() {
 
 	for _, tc := range templatesToTest {
 		fmt.Printf("Sending template %q to %s...\n", tc.name, to)
-		err := smtpMailer.Send(to, tc.subject, tc.name, tc.data)
+		err := acsMailer.Send(to, tc.subject, tc.name, tc.data)
 		if err != nil {
 			log.Printf("Failed to send template %q: %v\n", tc.name, err)
 		} else {

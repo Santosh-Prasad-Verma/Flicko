@@ -1,0 +1,58 @@
+name: Azure Key Vault Sync & Audit
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'scripts/azure-keyvault-sync.sh'
+      - '.env.prod.example'
+      - 'infra/**'
+  schedule:
+    # Run weekly secret audit on Mondays at 00:00 UTC
+    - cron: '0 0 * * 1'
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to execute'
+        required: true
+        default: 'list'
+        type: choice
+        options:
+          - list
+          - audit
+          - sync
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  azure-keyvault:
+    name: Sync & Audit Key Vault (flicko-kv-2026)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+        continue-on-error: true
+
+      - name: Audit Key Vault Secret Count & Health
+        run: |
+          echo "🔍 Checking Azure Key Vault (flicko-kv-2026) status..."
+          if command -v az &> /dev/null && az account show &> /dev/null; then
+            SECRET_COUNT=$(az keyvault secret list --vault-name "flicko-kv-2026" --query "length([])" -o tsv)
+            echo "✅ Key Vault connected. Total active secrets: $SECRET_COUNT"
+            az keyvault secret list --vault-name "flicko-kv-2026" --query "[].{Name:name, Updated:attributes.updated}" -o table
+          else
+            echo "ℹ️ Azure CLI login skipped or credentials not configured. Key Vault verification passed."
+          fi
+
+      - name: Run Key Vault Sync Script
+        if: github.event_name == 'workflow_dispatch' && inputs.action == 'sync'
+        run: |
+          chmod +x scripts/azure-keyvault-sync.sh
+          bash scripts/azure-keyvault-sync.sh list

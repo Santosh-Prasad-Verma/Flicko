@@ -1,6 +1,7 @@
 go 1.25.12
 
 use (
+	./jobs
 	./msg-service
 	./shared
 	./ws-gateway

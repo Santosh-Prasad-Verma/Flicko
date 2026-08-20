@@ -13,7 +13,7 @@ This directory contains a per-feature build dossier for everything not yet imple
 
 ## Stack assumptions
 
-- **Backend:** Go (Chi/Fiber), Supabase Postgres, Centrifugo/NATS, Redis (Upstash), Meilisearch, Qdrant, LiveKit, Appwrite Storage, Doppler secrets, Clerk auth
+- **Backend:** Go (Chi), Azure Postgres, Centrifugo, Azure Managed Redis, LiveKit, Azure Blob Storage, Azure Key Vault secrets
 - **Mobile:** Flutter, Riverpod, Hive/Isar, Firebase FCM, Supabase Realtime, LiveKit client
 - **AI:** Ollama (self-hosted) + Groq (cloud free), Whisper, LibreTranslate, Stable Diffusion / Pollinations
 - **Search:** Meilisearch (lexical) + Qdrant (vector)
