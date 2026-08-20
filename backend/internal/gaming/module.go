@@ -2,7 +2,10 @@ package gaming
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
+	"fmt"
+	"net/url"
 	"time"
 
 	"github.com/flicko-org/flicko-backend/internal/bots"
@@ -81,6 +84,7 @@ func Initialize(
 	rc *redis.Client,
 	r *mux.Router,
 	publisher centrifugoSvc.Publisher,
+	asynqRedisURL string,
 ) (*Hub, error) {
 	logger.Info("initializing gaming hub module")
 
@@ -109,12 +113,13 @@ func Initialize(
 	ludoEngine := gameSvc.NewLudoEngineWithPublisher(stateService, ludoValidator, lockService, rngSvc, publisher)
 
 	// 5. Asynq-backed coordinator (Ludo bot tasks survive pod restart via Redis).
-	asynqClient := asynq.NewClient(asynq.RedisClientOpt{
-		Addr:      rc.Options().Addr,
-		Password:  rc.Options().Password,
-		DB:        rc.Options().DB,
-		TLSConfig: rc.Options().TLSConfig,
-	})
+	// NOTE: asynq uses Lua EVAL scripts which are incompatible with Redis Cluster
+	// (Azure Redis Enterprise). Use a separate standalone Redis URL for asynq.
+	asynqRedisOpt, asynqErr := buildAsynqRedisOpt(asynqRedisURL, rc, logger)
+	if asynqErr != nil {
+		return nil, fmt.Errorf("failed to build asynq redis opts: %w", asynqErr)
+	}
+	asynqClient := asynq.NewClient(asynqRedisOpt)
 	asynqCoord := bots.NewAsynqBotCoordinator(
 		asynqClient,
 		lockService,
@@ -170,3 +175,43 @@ func (h *Hub) Shutdown() {
 	}
 }
 
+// buildAsynqRedisOpt creates the asynq RedisClientOpt from a dedicated URL
+// (typically a local standalone Redis) to avoid MOVED errors from Azure Redis
+// Cluster. Falls back to main Redis client options if asynqURL is empty.
+func buildAsynqRedisOpt(asynqURL string, rc *redis.Client, logger *zap.Logger) (asynq.RedisClientOpt, error) {
+	if asynqURL == "" {
+		logger.Info("asynq: no dedicated ASYNQ_REDIS_URL, using main Redis client options")
+		return asynq.RedisClientOpt{
+			Addr:      rc.Options().Addr,
+			Password:  rc.Options().Password,
+			DB:        rc.Options().DB,
+			TLSConfig: rc.Options().TLSConfig,
+		}, nil
+	}
+
+	parsed, err := url.Parse(asynqURL)
+	if err != nil {
+		return asynq.RedisClientOpt{}, fmt.Errorf("failed to parse ASYNQ_REDIS_URL: %w", err)
+	}
+
+	opt := asynq.RedisClientOpt{
+		Addr: parsed.Host,
+	}
+
+	if parsed.User != nil {
+		opt.Password, _ = parsed.User.Password()
+	}
+
+	if parsed.Scheme == "rediss" {
+		opt.TLSConfig = &tls.Config{
+			ServerName: parsed.Hostname(),
+		}
+	}
+
+	logger.Info("asynq: using dedicated standalone Redis",
+		zap.String("addr", opt.Addr),
+		zap.Bool("tls", opt.TLSConfig != nil),
+	)
+
+	return opt, nil
+}

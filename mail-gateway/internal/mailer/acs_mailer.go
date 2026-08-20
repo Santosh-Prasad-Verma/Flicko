@@ -74,7 +74,8 @@ type acsRecipients struct {
 }
 
 type acsAddress struct {
-	Address string `json:"address"`
+	Address     string `json:"address"`
+	DisplayName string `json:"displayName,omitempty"`
 }
 
 func (a *acsMailer) Send(to, subject, templateName string, data models.EmailData) error {
@@ -90,7 +91,7 @@ func (a *acsMailer) Send(to, subject, templateName string, data models.EmailData
 			HTML:    htmlContent,
 		},
 		Recipients: acsRecipients{
-			To: []acsAddress{{Address: to}},
+			To: []acsAddress{{Address: to, DisplayName: data.Username}},
 		},
 	}
 

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
@@ -521,7 +522,8 @@ func main() {
 
 	// ── Gaming Hub Initialization ───────────────────────────────────────────
 	gamingPublisher := centrifugoSvc.NewHTTPPublisher(cfg.CentrifugoAPIURL, cfg.CentrifugoAPIKey, logger)
-	hub, err := gaming.Initialize(context.Background(), logger, db.Pool(), redisCache.GetRedisClient().(*redis.Client), r, gamingPublisher)
+	asynqRedisURL := os.Getenv("ASYNQ_REDIS_URL") // standalone Redis for asynq (avoids Azure Redis Cluster MOVED errors)
+	hub, err := gaming.Initialize(context.Background(), logger, db.Pool(), redisCache.GetRedisClient().(*redis.Client), r, gamingPublisher, asynqRedisURL)
 	if err != nil {
 		logger.Fatal("failed to initialize gaming hub", zap.Error(err))
 	}
@@ -576,14 +578,27 @@ func main() {
 
 	// CRIT-9: Register Asynq worker server for ludo_bot:move tasks.
 	if coord := hub.BotCoordinatorAsynq(); coord != nil {
-		rdb := redisCache.GetRedisClient().(*redis.Client)
-		asynqRedisOpt := asynq.RedisClientOpt{
-			Addr:      rdb.Options().Addr,
-			Password:  rdb.Options().Password,
-			DB:        rdb.Options().DB,
-			TLSConfig: rdb.Options().TLSConfig,
+		// Build asynq server Redis opt from ASYNQ_REDIS_URL (same as client).
+		var srvRedisOpt asynq.RedisClientOpt
+		if asynqRedisURL != "" {
+			parsed, parseErr := url.Parse(asynqRedisURL)
+			if parseErr != nil {
+				logger.Fatal("failed to parse ASYNQ_REDIS_URL for asynq server", zap.Error(parseErr))
+			}
+			srvRedisOpt = asynq.RedisClientOpt{Addr: parsed.Host}
+			if parsed.User != nil {
+				srvRedisOpt.Password, _ = parsed.User.Password()
+			}
+		} else {
+			rdb := redisCache.GetRedisClient().(*redis.Client)
+			srvRedisOpt = asynq.RedisClientOpt{
+				Addr:      rdb.Options().Addr,
+				Password:  rdb.Options().Password,
+				DB:        rdb.Options().DB,
+				TLSConfig: rdb.Options().TLSConfig,
+			}
 		}
-		asynqSrv := asynq.NewServer(asynqRedisOpt, asynq.Config{
+		asynqSrv := asynq.NewServer(srvRedisOpt, asynq.Config{
 			Concurrency: 8,
 			Queues:      map[string]int{"default": 1},
 		})

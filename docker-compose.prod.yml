@@ -297,6 +297,7 @@ services:
       PORT_HTTP: "8080"
       PORT_WS: "8081"
       REDIS_URL: "${REDIS_URL}"
+      ASYNQ_REDIS_URL: "redis://redis:6379"  # asynq needs standalone Redis (Azure Redis Cluster doesn't support Lua EVAL)
     deploy:
       resources:
         limits:
