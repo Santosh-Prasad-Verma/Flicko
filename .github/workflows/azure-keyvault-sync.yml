@@ -44,9 +44,13 @@ jobs:
         run: |
           echo "🔍 Checking Azure Key Vault (flicko-kv-2026) status..."
           if command -v az &> /dev/null && az account show &> /dev/null; then
-            SECRET_COUNT=$(az keyvault secret list --vault-name "flicko-kv-2026" --query "length([])" -o tsv)
-            echo "✅ Key Vault connected. Total active secrets: $SECRET_COUNT"
-            az keyvault secret list --vault-name "flicko-kv-2026" --query "[].{Name:name, Updated:attributes.updated}" -o table
+            if SECRET_COUNT=$(az keyvault secret list --vault-name "flicko-kv-2026" --query "length([])" -o tsv 2>/dev/null); then
+              echo "✅ Key Vault connected. Total active secrets: $SECRET_COUNT"
+              az keyvault secret list --vault-name "flicko-kv-2026" --query "[].{Name:name, Updated:attributes.updated}" -o table
+            else
+              echo "⚠️ Azure Key Vault 'flicko-kv-2026' connected, but RBAC secret list permission is pending or restricted."
+              echo "👉 To grant permission, run: az role assignment create --role 'Key Vault Secrets Officer' --assignee <SP_APP_ID> --scope /subscriptions/.../providers/Microsoft.KeyVault/vaults/flicko-kv-2026"
+            fi
           else
             echo "ℹ️ Azure CLI login skipped or credentials not configured. Key Vault verification passed."
           fi

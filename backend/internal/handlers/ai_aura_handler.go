@@ -113,7 +113,7 @@ func (h *AIAuraHandler) HandleAuraChat(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"text": "I'm Aura, your AI assistant. I'm operating in fallback mode!"})
 }
 
-type gifSearchReq struct {
+type GIFSearchReq struct {
 	Query string `json:"q"`
 	Limit int    `json:"limit"`
 }

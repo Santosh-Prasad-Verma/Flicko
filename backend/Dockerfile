@@ -2,6 +2,7 @@
 
 # Build Stage
 FROM golang:1.24-alpine AS builder
+RUN apk upgrade --no-cache
 WORKDIR /app
 
 # Enable CGO_ENABLED=0 for fully static compiled binary

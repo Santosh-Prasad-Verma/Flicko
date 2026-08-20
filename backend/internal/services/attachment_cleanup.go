@@ -80,7 +80,7 @@ func (s *AttachmentCleanupService) cleanupOrphanedAttachments(ctx context.Contex
 	}
 }
 
-func extractFilePathFromURL(url string) string {
+func ExtractFilePathFromURL(url string) string {
 	prefix := "/attachments/"
 	idx := strings.Index(url, prefix)
 	if idx == -1 {
