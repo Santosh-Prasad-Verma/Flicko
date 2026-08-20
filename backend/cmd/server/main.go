@@ -199,10 +199,13 @@ func main() {
 		}
 	}()
 
-	// 3b. Setup Auth Service and wire into middleware
-	// CRIT-001: Auth middleware now uses real JWT validation
-	// Supabase fallback handles ES256 tokens after key rotation
-	authService := services.NewAuthService(db, cfg.JWTSecret)
+	mailGatewayURL := os.Getenv("MAIL_GATEWAY_URL")
+	if mailGatewayURL == "" {
+		mailGatewayURL = "http://mail-gateway:8082"
+	}
+	mailService := services.NewMailService(mailGatewayURL, os.Getenv("INTERNAL_API_TOKEN"), logger)
+
+	authService := services.NewAuthService(db, cfg.JWTSecret, services.WithMailService(mailService))
 	middleware.SetAuthService(authService)
 
 	// 4. Setup Router

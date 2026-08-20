@@ -25,8 +25,9 @@ type AuthService interface {
 }
 
 type authService struct {
-	db     database.DatabaseClient
-	secret []byte
+	db      database.DatabaseClient
+	secret  []byte
+	mailSvc *MailService
 }
 
 func NewAuthService(db database.DatabaseClient, jwtSecret string, opts ...AuthOption) AuthService {
@@ -48,6 +49,12 @@ type AuthOption func(*authService)
 
 func WithSupabase(supabaseURL, supabaseAPIKey string) AuthOption {
 	return func(s *authService) {
+	}
+}
+
+func WithMailService(mailSvc *MailService) AuthOption {
+	return func(s *authService) {
+		s.mailSvc = mailSvc
 	}
 }
 
@@ -126,6 +133,12 @@ func (s *authService) Register(ctx context.Context, username, email, phone, pass
 	token, err := s.GenerateToken(user.ID, user.Email)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to generate token: %w", err)
+	}
+
+	if s.mailSvc != nil && user.Email != "" {
+		go func(toEmail, toUsername string) {
+			_ = s.mailSvc.SendWelcomeEmail(toEmail, toUsername)
+		}(user.Email, user.Username)
 	}
 
 	return &user, token, nil
