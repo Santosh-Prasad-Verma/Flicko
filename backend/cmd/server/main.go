@@ -199,11 +199,18 @@ func main() {
 		}
 	}()
 
-	mailGatewayURL := os.Getenv("MAIL_GATEWAY_URL")
+	mailGatewayURL := cfg.MailGatewayURL
+	if mailGatewayURL == "" {
+		mailGatewayURL = os.Getenv("MAIL_GATEWAY_URL")
+	}
 	if mailGatewayURL == "" {
 		mailGatewayURL = "http://mail-gateway:8082"
 	}
-	mailService := services.NewMailService(mailGatewayURL, os.Getenv("INTERNAL_API_TOKEN"), logger)
+	internalToken := cfg.InternalToken
+	if internalToken == "" {
+		internalToken = os.Getenv("INTERNAL_API_TOKEN")
+	}
+	mailService := services.NewMailService(mailGatewayURL, internalToken, logger)
 
 	authService := services.NewAuthService(db, cfg.JWTSecret, services.WithMailService(mailService))
 	middleware.SetAuthService(authService)
@@ -342,7 +349,6 @@ func main() {
 	moderationActionsHandler := handlers.NewModerationActionsHandler(db.Pool(), logger)
 	stageHandler := handlers.NewStageHandler(db.Pool(), logger)
 	voiceAdminHandler := handlers.NewVoiceAdminHandler(db.Pool(), logger)
-	mailService := services.NewMailService(cfg.MailGatewayURL, cfg.InternalToken, logger)
 	adminPromoHandler := handlers.NewAdminPromoHandler(db.Pool(), logger, nil, mailService)
 	r.HandleFunc("/promo", handlers.ServePromoAdminUI).Methods("GET")
 	r.HandleFunc("/admin/promo", handlers.ServePromoAdminUI).Methods("GET")
