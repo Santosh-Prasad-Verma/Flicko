@@ -34,6 +34,10 @@ class AzureCallingParticipant {
     this.videoRenderer,
   });
 
+  bool isMicrophoneEnabled() => !isMuted;
+  bool isCameraEnabled() => hasVideo;
+  bool isScreenShareEnabled() => false;
+
   AzureCallingParticipant copyWith({
     String? id,
     String? name,

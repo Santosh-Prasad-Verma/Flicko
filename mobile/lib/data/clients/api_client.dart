@@ -207,6 +207,8 @@ class ApiClient {
   ApiFilterBuilder from(String table) => ApiFilterBuilder();
   ApiFilterBuilder rpc(String fn, {Map<String, dynamic>? params}) => ApiFilterBuilder();
   RealtimeChannel channel(String name, {RealtimeChannelConfig? opts}) => RealtimeChannel();
+  Future<String> removeChannel(RealtimeChannel channel) async => 'ok';
+  Future<List<String>> removeAllChannels() async => [];
 }
 
 typedef SupabaseClient = ApiClient;
