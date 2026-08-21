@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/features/store/data/nameplate_service.dart';
-import 'package:mobile/data/clients/supabase_client.dart';
+import 'package:mobile/features/auth/application/auth_notifier.dart';
 
 class KineticNameplateText extends ConsumerStatefulWidget {
   final String text;
@@ -75,7 +75,7 @@ class _KineticNameplateTextState extends ConsumerState<KineticNameplateText>
 
   @override
   Widget build(BuildContext context) {
-    final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+    final currentUserId = ref.watch(currentUserIdProvider);
     final targetUserId = widget.userId ?? currentUserId;
 
     // 1. Resolve Nameplate Selection

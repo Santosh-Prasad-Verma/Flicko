@@ -8,8 +8,12 @@ CREATE TABLE IF NOT EXISTS dm_webrtc_signals (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Realtime needs replication setup for the table to stream inserts
-ALTER PUBLICATION supabase_realtime ADD TABLE dm_webrtc_signals;
+-- Realtime publication setup for the table to stream inserts (if publication exists)
+DO $$ BEGIN
+    IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE dm_webrtc_signals;
+    END IF;
+END $$;
 
 CREATE INDEX idx_webrtc_receiver ON dm_webrtc_signals(receiver_id);
 CREATE INDEX idx_webrtc_channel ON dm_webrtc_signals(channel_id);

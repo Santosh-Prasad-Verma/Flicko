@@ -1,6 +1,5 @@
 -- 002_bot_system_tables.sql
 -- Bot system tables for Docker-based local development.
--- Adapted from supabase/migrations/062_bot_system_tables.sql
 -- (auth.users → users, no RLS, no auth.uid())
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;

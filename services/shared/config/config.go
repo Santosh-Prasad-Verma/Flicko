@@ -145,7 +145,7 @@ type MsgServiceConfig struct {
 	GRPCPort    int `env:"GRPC_PORT" envDefault:"9081"`
 	MetricsPort int `env:"MSG_METRICS_PORT" envDefault:"9101"`
 
-	// Database (Supabase PostgreSQL via pooler)
+	// Database (PostgreSQL)
 	DatabaseURL     string `env:"DATABASE_URL,required"`
 	DatabasePoolMax int    `env:"DATABASE_POOL_MAX" envDefault:"20"`
 	DatabasePoolMin int    `env:"DATABASE_POOL_MIN" envDefault:"5"`

@@ -172,10 +172,14 @@ func NewDatabaseClient(ctx context.Context, databaseURL string) (DatabaseClient,
 		SafetyMultiplier = 1.25
 	)
 
-	calculatedConns := int32(int(float64(MaxCCU) * ConnPerUser * SafetyMultiplier))
+	calculatedConns := int32(1000)
+	rawCalc := float64(MaxCCU) * ConnPerUser * SafetyMultiplier
+	if rawCalc < 1000 && rawCalc > 0 {
+		calculatedConns = int32(rawCalc)
+	}
 	maxConns := calculatedConns
 	if envMax := os.Getenv("DATABASE_POOL_MAX"); envMax != "" {
-		if parsed, err := strconv.Atoi(envMax); err == nil && parsed > 0 {
+		if parsed, err := strconv.ParseInt(envMax, 10, 32); err == nil && parsed > 0 {
 			maxConns = int32(parsed)
 		}
 	}

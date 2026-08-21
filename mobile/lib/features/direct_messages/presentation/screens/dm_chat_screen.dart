@@ -14,7 +14,7 @@ import 'package:mobile/features/e2ee/presentation/identity_change_banner.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
 import 'package:mobile/core/services/presence_service.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:mobile/data/clients/supabase_client.dart';
+import 'package:mobile/data/clients/api_client.dart';
 import 'package:mobile/features/calling/presentation/incoming_call_overlay.dart';
 import 'package:mobile/features/calling/services/call_signaling_service.dart';
 import 'package:mobile/features/calling/services/webrtc_call_service.dart';

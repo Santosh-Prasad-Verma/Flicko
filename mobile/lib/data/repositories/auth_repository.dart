@@ -15,7 +15,11 @@ class AuthRepository {
   AuthRepository(this._dio);
 
   Future<String?> getStoredToken() async {
-    return await _secureStorage.read(key: 'auth_token');
+    try {
+      return await _secureStorage.read(key: 'auth_token');
+    } catch (_) {
+      return null;
+    }
   }
 
   dynamic get currentUser => null;

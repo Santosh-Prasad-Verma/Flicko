@@ -252,7 +252,6 @@ func Auth(next http.Handler) http.Handler {
 			logger, _ := zap.NewProduction()
 			logger.Warn("JWT validation failed",
 				zap.Error(err),
-				zap.String("token_prefix", token[:min(20, len(token))]+"..."),
 			)
 			writeJSONError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Invalid or expired token")
 			return

@@ -6,7 +6,7 @@
 #
 #  NOT included (run locally):
 #    - Go services     → go run ./services/ws-gateway/cmd/gateway
-#    - PostgreSQL      → remote Supabase instance
+#    - PostgreSQL      → Azure PostgreSQL instance
 #    - NGINX           → connect to Go directly
 # ============================================================
 

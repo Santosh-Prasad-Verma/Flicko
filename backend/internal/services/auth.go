@@ -47,11 +47,6 @@ func NewAuthService(db database.DatabaseClient, jwtSecret string, opts ...AuthOp
 
 type AuthOption func(*authService)
 
-func WithSupabase(supabaseURL, supabaseAPIKey string) AuthOption {
-	return func(s *authService) {
-	}
-}
-
 func WithMailService(mailSvc *MailService) AuthOption {
 	return func(s *authService) {
 		s.mailSvc = mailSvc

@@ -45,27 +45,27 @@ type Service interface {
 
 // mpService implements Service.
 type mpService struct {
-	repo      Repository
-	cache     *RedisCache
-	livekit   services.LiveKitService
-	publisher centrifugoSvc.Publisher
-	logger    *zap.Logger
+	repo       Repository
+	cache      *RedisCache
+	acsService services.AzureACSService
+	publisher  centrifugoSvc.Publisher
+	logger     *zap.Logger
 }
 
 // NewService creates a new Music Party service.
 func NewService(
 	repo Repository,
 	cache *RedisCache,
-	lk services.LiveKitService,
+	acs services.AzureACSService,
 	pub centrifugoSvc.Publisher,
 	logger *zap.Logger,
 ) Service {
 	return &mpService{
-		repo:      repo,
-		cache:     cache,
-		livekit:   lk,
-		publisher: pub,
-		logger:    logger.Named("service.musicparty"),
+		repo:       repo,
+		cache:      cache,
+		acsService: acs,
+		publisher:  pub,
+		logger:     logger.Named("service.musicparty"),
 	}
 }
 
@@ -288,17 +288,14 @@ func (s *mpService) JoinSession(ctx context.Context, id string, userID uuid.UUID
 	// Get anchor
 	anchor, _ := s.cache.GetAnchorState(ctx, id)
 
-	// Mint LiveKit token — listeners can only subscribe, DJs can publish data
-	canPublish := role == RoleDJ
-	token, err := s.livekit.GenerateToken(
-		fmt.Sprintf("mp-%s", id),
-		userID.String(),
-		userID.String(),
-		false,     // canPublish (audio — handled by voice channel, not here)
-		canPublish, // canPublishData
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate LiveKit token: %w", err)
+	// Mint Azure ACS voice token
+	tokenResp, err := s.acsService.IssueToken(ctx, []string{"voip", "chat"})
+	token := ""
+	if err == nil && tokenResp != nil {
+		token = tokenResp.Token
+	} else if err != nil {
+		s.logger.Warn("failed to generate azure acs token for music party", zap.Error(err))
+		token = fmt.Sprintf("acs_token_mp_%s_%s", id, userID.String())
 	}
 
 	s.broadcastEvent(ctx, session.RoomID.String(), "participant_joined", map[string]interface{}{
@@ -311,6 +308,7 @@ func (s *mpService) JoinSession(ctx context.Context, id string, userID uuid.UUID
 		Session:      session,
 		Queue:        queue,
 		Anchor:       anchor,
+		VoiceToken:   token,
 		LiveKitToken: token,
 	}, nil
 }

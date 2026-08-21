@@ -332,7 +332,7 @@ func (r *pgMessageRepo) GetByNonce(ctx context.Context, channelID, nonce string)
 		  AND content = content  -- placeholder: nonce is checked at app-level via idempotency service
 		LIMIT 0`
 
-	// NOTE: The Supabase schema doesn't have a nonce column. Nonce-based
+	// NOTE: The messages schema doesn't have a nonce column. Nonce-based
 	// idempotency is handled by the idempotency package (Redis-backed).
 	// This method is kept in the interface for forward-compatibility if a
 	// nonce column is added later.  For now it always returns nil, nil.
