@@ -2,7 +2,7 @@
 // Patrol E2E: Microphone permission flow for voice channels
 // =============================================================================
 // This is the flagship reason to use Patrol over vanilla integration_test:
-// it can tap the NATIVE OS permission dialog. Joining voice (LiveKit) triggers
+// it can tap the NATIVE OS permission dialog. Joining voice (Azure Calling) triggers
 // the system mic prompt, which lives outside the Flutter view hierarchy and is
 // invisible to a normal WidgetTester.
 //

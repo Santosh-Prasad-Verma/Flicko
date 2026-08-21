@@ -70,7 +70,7 @@ networks:
   flicko_internal:
     # Service mesh: ws-gateway, msg-service.
     # internal: false means outbound internet access is allowed.
-    # Services that need external connectivity (Supabase DB) use the host
+    # Services that need external connectivity (Azure DB) use the host
     # network stack via Docker's DNS (the connection goes out the host).
     driver: bridge
     internal: false
@@ -321,8 +321,8 @@ services:
   # ──────────────────────────────────────────────────────────────────────────
   # MAIL GATEWAY — SMTP Email Service
   # ──────────────────────────────────────────────────────────────────────────
-  # Handles all email sending via SMTP: verification, password reset, welcome.
-  # Receives webhooks from Supabase Auth and queues emails for async delivery.
+  # Handles all email sending via SMTP / Azure: verification, password reset, welcome.
+  # Receives auth webhooks and queues emails for async delivery.
   # Uses beautiful Discord-style HTML templates from templates/ directory.
   mail-gateway:
     build:
@@ -332,7 +332,7 @@ services:
     container_name: flicko-mail-gateway
     <<: [*restart-policy, *default-logging]
     networks:
-      - flicko_internal              # Receives webhooks from Supabase via NGINX
+      - flicko_internal              # Receives webhooks via NGINX
     dns:
       - 8.8.8.8
       - 1.1.1.1

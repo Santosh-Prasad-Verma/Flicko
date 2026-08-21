@@ -9,23 +9,24 @@ import (
 )
 
 type VoiceSFUHandler struct {
-	livekitSvc services.LiveKitService
-	logger     *zap.Logger
+	acsSvc services.AzureACSService
+	logger *zap.Logger
 }
 
-func NewVoiceSFUHandler(livekitSvc services.LiveKitService, logger *zap.Logger) *VoiceSFUHandler {
+func NewVoiceSFUHandler(acsSvc services.AzureACSService, logger *zap.Logger) *VoiceSFUHandler {
 	return &VoiceSFUHandler{
-		livekitSvc: livekitSvc,
-		logger:     logger,
+		acsSvc: acsSvc,
+		logger: logger,
 	}
 }
 
 type tokenRequest struct {
-	RoomName            string `json:"room_name"`
-	ParticipantName     string `json:"participant_name"`
-	ParticipantIdentity string `json:"participant_identity"`
-	CanPublish          bool   `json:"can_publish"`
-	CanPublishData      bool   `json:"can_publish_data"`
+	RoomName            string   `json:"room_name"`
+	ParticipantName     string   `json:"participant_name"`
+	ParticipantIdentity string   `json:"participant_identity"`
+	CanPublish          bool     `json:"can_publish"`
+	CanPublishData      bool     `json:"can_publish_data"`
+	Scopes              []string `json:"scopes"`
 }
 
 func (h *VoiceSFUHandler) GenerateToken(w http.ResponseWriter, r *http.Request) {
@@ -35,25 +36,22 @@ func (h *VoiceSFUHandler) GenerateToken(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if req.RoomName == "" || req.ParticipantIdentity == "" {
-		writeError(w, http.StatusBadRequest, "room_name and participant_identity are required")
-		return
+	scopes := req.Scopes
+	if len(scopes) == 0 {
+		scopes = []string{"voip", "chat"}
 	}
 
-	token, err := h.livekitSvc.GenerateToken(
-		req.RoomName,
-		req.ParticipantName,
-		req.ParticipantIdentity,
-		req.CanPublish,
-		req.CanPublishData,
-	)
+	tokenResp, err := h.acsSvc.IssueToken(r.Context(), scopes)
 	if err != nil {
-		h.logger.Error("failed to generate livekit token", zap.Error(err))
-		writeError(w, http.StatusInternalServerError, "Failed to generate voice token")
+		h.logger.Error("failed to generate azure acs token", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "Failed to generate voice communication token")
 		return
 	}
 
 	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"token": token,
+		"token":      tokenResp.Token,
+		"user_id":    tokenResp.User.ID,
+		"expires_on": tokenResp.ExpiresOn,
+		"room":       req.RoomName,
 	})
 }

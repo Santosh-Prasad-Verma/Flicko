@@ -183,7 +183,6 @@ func run(log *zap.Logger) error {
 	guildH := handler.NewGuildHandler(guildSvc, log)
 	uploadH := handler.NewUploadHandler(mediaSvc, log)
 	healthH := handler.NewHealthHandler(dbPool, rdb, log)
-	livekitWebhookH := handler.NewLivekitWebhookHandler(rdb, log)
 	searchH := handler.NewSearchHandler(searchSvc, log)
 
 	// ── Router ──────────────────────────────────────────────
@@ -193,7 +192,6 @@ func run(log *zap.Logger) error {
 		Guild:          guildH,
 		Upload:         uploadH,
 		Health:         healthH,
-		LivekitWebhook: livekitWebhookH,
 		Search:         searchH,
 		KeySet:         keySet,
 		RateLimiter:    rateLimiter,

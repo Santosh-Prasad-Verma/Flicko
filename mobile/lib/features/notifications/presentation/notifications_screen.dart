@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:mobile/data/clients/supabase_client.dart' hide User;
+import 'package:mobile/data/clients/api_client.dart' hide User;
 import 'package:go_router/go_router.dart';
 import '../../auth/application/auth_notifier.dart';
 import '../../shared/presentation/widgets/user_avatar.dart';

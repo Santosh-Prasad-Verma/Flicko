@@ -22,7 +22,7 @@ func Initialize(
 	logger *zap.Logger,
 	db *pgxpool.Pool,
 	c cache.CacheLayer,
-	lk services.LiveKitService,
+	acs services.AzureACSService,
 	r *mux.Router,
 	pub centrifugoSvc.Publisher,
 ) (*Hub, error) {
@@ -31,7 +31,7 @@ func Initialize(
 	// Create layers
 	repo := NewRepository(db)
 	redisCache := NewRedisCache(c)
-	svc := NewService(repo, redisCache, lk, pub, logger)
+	svc := NewService(repo, redisCache, acs, pub, logger)
 	handler := NewHandler(svc, logger)
 
 	// Route registration

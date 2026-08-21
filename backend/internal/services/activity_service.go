@@ -73,7 +73,7 @@ func (s *activityService) SetActivity(ctx context.Context, userID string, activi
 		return nil, fmt.Errorf("failed to insert activity: %w", err)
 	}
 
-	// Supabase realtime push logic would normally happen here or via DB trigger.
+	// Realtime push logic would normally happen here or via DB trigger.
 
 	return &a, nil
 }

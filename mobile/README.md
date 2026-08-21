@@ -14,7 +14,7 @@ Flicko is a premium, high-performance mobile communication platform inspired by 
 - **Real-time Presence**: WebSocket-driven online/idle/dnd status tracking via Supabase.
 
 ### 🔊 Voice & Video Collaboration
-- **LiveKit Integration**: Low-latency voice and video channels with background support.
+- **Azure Communication Services**: Low-latency voice and video channels with background support.
 - **Interactive Tools**: Built-in soundboard, collaborative whiteboard, and screen sharing.
 - **Voice HUD**: Non-intrusive floating control bar for active calls.
 
@@ -33,7 +33,7 @@ Flicko is a premium, high-performance mobile communication platform inspired by 
 - **State Management**: [Riverpod Generator](https://riverpod.dev)
 - **Navigation**: [GoRouter](https://pub.dev/packages/go_router)
 - **Database & Auth**: [Supabase Flutter](https://supabase.com)
-- **Real-time**: [LiveKit Client](https://livekit.io)
+- **Voice & Video**: [Azure Communication Services & Flutter WebRTC](https://azure.microsoft.com/en-us/products/communication-services)
 - **Media Storage**: [Appwrite Flutter SDK](https://appwrite.io)
 - **Payments**: [Flutter Stripe](https://stripe.com)
 - **Local Storage**: [Flutter Secure Storage](https://pub.dev/packages/flutter_secure_storage)

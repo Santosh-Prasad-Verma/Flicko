@@ -240,8 +240,8 @@ func (b *AutoModBot) configureFilter(serverID, filter, value string) (*commands.
 // ── Message Evaluation Engine ───────────────────────────────────────────────
 
 var (
-	inviteRegex = regexp.MustCompile(`(?i)(discord\.gg|discordapp\.com/invite|invite\.gg|flicko\.gg)/\w+`)
-	urlRegex    = regexp.MustCompile(`https?://[^\s]+`)
+	inviteRegex = regexp.MustCompile(`(?i)(?:^|\s)(?:https?://)?(?:www\.)?(?:discord\.gg|discordapp\.com/invite|invite\.gg|flicko\.gg)/[a-zA-Z0-9_-]+(?:$|\s)`)
+	urlRegex    = regexp.MustCompile(`(?i)(?:^|\s)https?://[^\s]+(?:$|\s)`)
 	// MED-11 fix: Flicko mentions wrap UUIDs (with hyphens), not Discord
 	// snowflakes. Match hex+hyphens.
 	mentionRegex = regexp.MustCompile(`<@!?[a-fA-F0-9-]+>`)

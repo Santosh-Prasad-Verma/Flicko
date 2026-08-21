@@ -14,15 +14,17 @@ T _$identity<T>(T value) => value;
 
 /// @nodoc
 mixin _$VoiceState {
-  Room? get room;
+  String? get token;
+  String? get roomName;
   bool get isConnected;
   bool get isConnecting;
   bool get isMuted;
+  bool get isCameraEnabled;
+  bool get isScreenSharing;
   bool get isDeafened;
-  List<Participant> get participants;
-  Set<String> get speakingParticipants; // Set of sids who are speaking
-  Map<String, double>
-      get participantVolumes; // Map of sid/identity -> volume (0.0 to 2.0)
+  List<AzureCallingParticipant> get participants;
+  Set<String> get speakingParticipants;
+  Map<String, double> get participantVolumes;
   int get trackVersion;
   List<Map<String, String>> get chatMessages;
   String? get error;
@@ -40,12 +42,18 @@ mixin _$VoiceState {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is VoiceState &&
-            (identical(other.room, room) || other.room == room) &&
+            (identical(other.token, token) || other.token == token) &&
+            (identical(other.roomName, roomName) ||
+                other.roomName == roomName) &&
             (identical(other.isConnected, isConnected) ||
                 other.isConnected == isConnected) &&
             (identical(other.isConnecting, isConnecting) ||
                 other.isConnecting == isConnecting) &&
             (identical(other.isMuted, isMuted) || other.isMuted == isMuted) &&
+            (identical(other.isCameraEnabled, isCameraEnabled) ||
+                other.isCameraEnabled == isCameraEnabled) &&
+            (identical(other.isScreenSharing, isScreenSharing) ||
+                other.isScreenSharing == isScreenSharing) &&
             (identical(other.isDeafened, isDeafened) ||
                 other.isDeafened == isDeafened) &&
             const DeepCollectionEquality()
@@ -66,10 +74,13 @@ mixin _$VoiceState {
   @override
   int get hashCode => Object.hash(
       runtimeType,
-      room,
+      token,
+      roomName,
       isConnected,
       isConnecting,
       isMuted,
+      isCameraEnabled,
+      isScreenSharing,
       isDeafened,
       const DeepCollectionEquality().hash(participants),
       const DeepCollectionEquality().hash(speakingParticipants),
@@ -81,7 +92,7 @@ mixin _$VoiceState {
 
   @override
   String toString() {
-    return 'VoiceState(room: $room, isConnected: $isConnected, isConnecting: $isConnecting, isMuted: $isMuted, isDeafened: $isDeafened, participants: $participants, speakingParticipants: $speakingParticipants, participantVolumes: $participantVolumes, trackVersion: $trackVersion, chatMessages: $chatMessages, error: $error, activeChannelId: $activeChannelId)';
+    return 'VoiceState(token: $token, roomName: $roomName, isConnected: $isConnected, isConnecting: $isConnecting, isMuted: $isMuted, isCameraEnabled: $isCameraEnabled, isScreenSharing: $isScreenSharing, isDeafened: $isDeafened, participants: $participants, speakingParticipants: $speakingParticipants, participantVolumes: $participantVolumes, trackVersion: $trackVersion, chatMessages: $chatMessages, error: $error, activeChannelId: $activeChannelId)';
   }
 }
 
@@ -92,12 +103,15 @@ abstract mixin class $VoiceStateCopyWith<$Res> {
       _$VoiceStateCopyWithImpl;
   @useResult
   $Res call(
-      {Room? room,
+      {String? token,
+      String? roomName,
       bool isConnected,
       bool isConnecting,
       bool isMuted,
+      bool isCameraEnabled,
+      bool isScreenSharing,
       bool isDeafened,
-      List<Participant> participants,
+      List<AzureCallingParticipant> participants,
       Set<String> speakingParticipants,
       Map<String, double> participantVolumes,
       int trackVersion,
@@ -118,10 +132,13 @@ class _$VoiceStateCopyWithImpl<$Res> implements $VoiceStateCopyWith<$Res> {
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? room = freezed,
+    Object? token = freezed,
+    Object? roomName = freezed,
     Object? isConnected = null,
     Object? isConnecting = null,
     Object? isMuted = null,
+    Object? isCameraEnabled = null,
+    Object? isScreenSharing = null,
     Object? isDeafened = null,
     Object? participants = null,
     Object? speakingParticipants = null,
@@ -132,10 +149,14 @@ class _$VoiceStateCopyWithImpl<$Res> implements $VoiceStateCopyWith<$Res> {
     Object? activeChannelId = freezed,
   }) {
     return _then(_self.copyWith(
-      room: freezed == room
-          ? _self.room
-          : room // ignore: cast_nullable_to_non_nullable
-              as Room?,
+      token: freezed == token
+          ? _self.token
+          : token // ignore: cast_nullable_to_non_nullable
+              as String?,
+      roomName: freezed == roomName
+          ? _self.roomName
+          : roomName // ignore: cast_nullable_to_non_nullable
+              as String?,
       isConnected: null == isConnected
           ? _self.isConnected
           : isConnected // ignore: cast_nullable_to_non_nullable
@@ -148,6 +169,14 @@ class _$VoiceStateCopyWithImpl<$Res> implements $VoiceStateCopyWith<$Res> {
           ? _self.isMuted
           : isMuted // ignore: cast_nullable_to_non_nullable
               as bool,
+      isCameraEnabled: null == isCameraEnabled
+          ? _self.isCameraEnabled
+          : isCameraEnabled // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isScreenSharing: null == isScreenSharing
+          ? _self.isScreenSharing
+          : isScreenSharing // ignore: cast_nullable_to_non_nullable
+              as bool,
       isDeafened: null == isDeafened
           ? _self.isDeafened
           : isDeafened // ignore: cast_nullable_to_non_nullable
@@ -155,7 +184,7 @@ class _$VoiceStateCopyWithImpl<$Res> implements $VoiceStateCopyWith<$Res> {
       participants: null == participants
           ? _self.participants
           : participants // ignore: cast_nullable_to_non_nullable
-              as List<Participant>,
+              as List<AzureCallingParticipant>,
       speakingParticipants: null == speakingParticipants
           ? _self.speakingParticipants
           : speakingParticipants // ignore: cast_nullable_to_non_nullable
@@ -278,12 +307,15 @@ extension VoiceStatePatterns on VoiceState {
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>(
     TResult Function(
-            Room? room,
+            String? token,
+            String? roomName,
             bool isConnected,
             bool isConnecting,
             bool isMuted,
+            bool isCameraEnabled,
+            bool isScreenSharing,
             bool isDeafened,
-            List<Participant> participants,
+            List<AzureCallingParticipant> participants,
             Set<String> speakingParticipants,
             Map<String, double> participantVolumes,
             int trackVersion,
@@ -297,10 +329,13 @@ extension VoiceStatePatterns on VoiceState {
     switch (_that) {
       case _VoiceState() when $default != null:
         return $default(
-            _that.room,
+            _that.token,
+            _that.roomName,
             _that.isConnected,
             _that.isConnecting,
             _that.isMuted,
+            _that.isCameraEnabled,
+            _that.isScreenSharing,
             _that.isDeafened,
             _that.participants,
             _that.speakingParticipants,
@@ -330,12 +365,15 @@ extension VoiceStatePatterns on VoiceState {
   @optionalTypeArgs
   TResult when<TResult extends Object?>(
     TResult Function(
-            Room? room,
+            String? token,
+            String? roomName,
             bool isConnected,
             bool isConnecting,
             bool isMuted,
+            bool isCameraEnabled,
+            bool isScreenSharing,
             bool isDeafened,
-            List<Participant> participants,
+            List<AzureCallingParticipant> participants,
             Set<String> speakingParticipants,
             Map<String, double> participantVolumes,
             int trackVersion,
@@ -348,10 +386,13 @@ extension VoiceStatePatterns on VoiceState {
     switch (_that) {
       case _VoiceState():
         return $default(
-            _that.room,
+            _that.token,
+            _that.roomName,
             _that.isConnected,
             _that.isConnecting,
             _that.isMuted,
+            _that.isCameraEnabled,
+            _that.isScreenSharing,
             _that.isDeafened,
             _that.participants,
             _that.speakingParticipants,
@@ -380,12 +421,15 @@ extension VoiceStatePatterns on VoiceState {
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>(
     TResult? Function(
-            Room? room,
+            String? token,
+            String? roomName,
             bool isConnected,
             bool isConnecting,
             bool isMuted,
+            bool isCameraEnabled,
+            bool isScreenSharing,
             bool isDeafened,
-            List<Participant> participants,
+            List<AzureCallingParticipant> participants,
             Set<String> speakingParticipants,
             Map<String, double> participantVolumes,
             int trackVersion,
@@ -398,10 +442,13 @@ extension VoiceStatePatterns on VoiceState {
     switch (_that) {
       case _VoiceState() when $default != null:
         return $default(
-            _that.room,
+            _that.token,
+            _that.roomName,
             _that.isConnected,
             _that.isConnecting,
             _that.isMuted,
+            _that.isCameraEnabled,
+            _that.isScreenSharing,
             _that.isDeafened,
             _that.participants,
             _that.speakingParticipants,
@@ -420,12 +467,15 @@ extension VoiceStatePatterns on VoiceState {
 
 class _VoiceState implements VoiceState {
   const _VoiceState(
-      {this.room,
+      {this.token,
+      this.roomName,
       this.isConnected = false,
       this.isConnecting = false,
       this.isMuted = false,
+      this.isCameraEnabled = false,
+      this.isScreenSharing = false,
       this.isDeafened = false,
-      final List<Participant> participants = const [],
+      final List<AzureCallingParticipant> participants = const [],
       final Set<String> speakingParticipants = const {},
       final Map<String, double> participantVolumes = const {},
       this.trackVersion = 0,
@@ -438,7 +488,9 @@ class _VoiceState implements VoiceState {
         _chatMessages = chatMessages;
 
   @override
-  final Room? room;
+  final String? token;
+  @override
+  final String? roomName;
   @override
   @JsonKey()
   final bool isConnected;
@@ -450,11 +502,17 @@ class _VoiceState implements VoiceState {
   final bool isMuted;
   @override
   @JsonKey()
-  final bool isDeafened;
-  final List<Participant> _participants;
+  final bool isCameraEnabled;
   @override
   @JsonKey()
-  List<Participant> get participants {
+  final bool isScreenSharing;
+  @override
+  @JsonKey()
+  final bool isDeafened;
+  final List<AzureCallingParticipant> _participants;
+  @override
+  @JsonKey()
+  List<AzureCallingParticipant> get participants {
     if (_participants is EqualUnmodifiableListView) return _participants;
     // ignore: implicit_dynamic_type
     return EqualUnmodifiableListView(_participants);
@@ -470,9 +528,7 @@ class _VoiceState implements VoiceState {
     return EqualUnmodifiableSetView(_speakingParticipants);
   }
 
-// Set of sids who are speaking
   final Map<String, double> _participantVolumes;
-// Set of sids who are speaking
   @override
   @JsonKey()
   Map<String, double> get participantVolumes {
@@ -482,7 +538,6 @@ class _VoiceState implements VoiceState {
     return EqualUnmodifiableMapView(_participantVolumes);
   }
 
-// Map of sid/identity -> volume (0.0 to 2.0)
   @override
   @JsonKey()
   final int trackVersion;
@@ -513,12 +568,18 @@ class _VoiceState implements VoiceState {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _VoiceState &&
-            (identical(other.room, room) || other.room == room) &&
+            (identical(other.token, token) || other.token == token) &&
+            (identical(other.roomName, roomName) ||
+                other.roomName == roomName) &&
             (identical(other.isConnected, isConnected) ||
                 other.isConnected == isConnected) &&
             (identical(other.isConnecting, isConnecting) ||
                 other.isConnecting == isConnecting) &&
             (identical(other.isMuted, isMuted) || other.isMuted == isMuted) &&
+            (identical(other.isCameraEnabled, isCameraEnabled) ||
+                other.isCameraEnabled == isCameraEnabled) &&
+            (identical(other.isScreenSharing, isScreenSharing) ||
+                other.isScreenSharing == isScreenSharing) &&
             (identical(other.isDeafened, isDeafened) ||
                 other.isDeafened == isDeafened) &&
             const DeepCollectionEquality()
@@ -539,10 +600,13 @@ class _VoiceState implements VoiceState {
   @override
   int get hashCode => Object.hash(
       runtimeType,
-      room,
+      token,
+      roomName,
       isConnected,
       isConnecting,
       isMuted,
+      isCameraEnabled,
+      isScreenSharing,
       isDeafened,
       const DeepCollectionEquality().hash(_participants),
       const DeepCollectionEquality().hash(_speakingParticipants),
@@ -554,7 +618,7 @@ class _VoiceState implements VoiceState {
 
   @override
   String toString() {
-    return 'VoiceState(room: $room, isConnected: $isConnected, isConnecting: $isConnecting, isMuted: $isMuted, isDeafened: $isDeafened, participants: $participants, speakingParticipants: $speakingParticipants, participantVolumes: $participantVolumes, trackVersion: $trackVersion, chatMessages: $chatMessages, error: $error, activeChannelId: $activeChannelId)';
+    return 'VoiceState(token: $token, roomName: $roomName, isConnected: $isConnected, isConnecting: $isConnecting, isMuted: $isMuted, isCameraEnabled: $isCameraEnabled, isScreenSharing: $isScreenSharing, isDeafened: $isDeafened, participants: $participants, speakingParticipants: $speakingParticipants, participantVolumes: $participantVolumes, trackVersion: $trackVersion, chatMessages: $chatMessages, error: $error, activeChannelId: $activeChannelId)';
   }
 }
 
@@ -567,12 +631,15 @@ abstract mixin class _$VoiceStateCopyWith<$Res>
   @override
   @useResult
   $Res call(
-      {Room? room,
+      {String? token,
+      String? roomName,
       bool isConnected,
       bool isConnecting,
       bool isMuted,
+      bool isCameraEnabled,
+      bool isScreenSharing,
       bool isDeafened,
-      List<Participant> participants,
+      List<AzureCallingParticipant> participants,
       Set<String> speakingParticipants,
       Map<String, double> participantVolumes,
       int trackVersion,
@@ -593,10 +660,13 @@ class __$VoiceStateCopyWithImpl<$Res> implements _$VoiceStateCopyWith<$Res> {
   @override
   @pragma('vm:prefer-inline')
   $Res call({
-    Object? room = freezed,
+    Object? token = freezed,
+    Object? roomName = freezed,
     Object? isConnected = null,
     Object? isConnecting = null,
     Object? isMuted = null,
+    Object? isCameraEnabled = null,
+    Object? isScreenSharing = null,
     Object? isDeafened = null,
     Object? participants = null,
     Object? speakingParticipants = null,
@@ -607,10 +677,14 @@ class __$VoiceStateCopyWithImpl<$Res> implements _$VoiceStateCopyWith<$Res> {
     Object? activeChannelId = freezed,
   }) {
     return _then(_VoiceState(
-      room: freezed == room
-          ? _self.room
-          : room // ignore: cast_nullable_to_non_nullable
-              as Room?,
+      token: freezed == token
+          ? _self.token
+          : token // ignore: cast_nullable_to_non_nullable
+              as String?,
+      roomName: freezed == roomName
+          ? _self.roomName
+          : roomName // ignore: cast_nullable_to_non_nullable
+              as String?,
       isConnected: null == isConnected
           ? _self.isConnected
           : isConnected // ignore: cast_nullable_to_non_nullable
@@ -623,6 +697,14 @@ class __$VoiceStateCopyWithImpl<$Res> implements _$VoiceStateCopyWith<$Res> {
           ? _self.isMuted
           : isMuted // ignore: cast_nullable_to_non_nullable
               as bool,
+      isCameraEnabled: null == isCameraEnabled
+          ? _self.isCameraEnabled
+          : isCameraEnabled // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isScreenSharing: null == isScreenSharing
+          ? _self.isScreenSharing
+          : isScreenSharing // ignore: cast_nullable_to_non_nullable
+              as bool,
       isDeafened: null == isDeafened
           ? _self.isDeafened
           : isDeafened // ignore: cast_nullable_to_non_nullable
@@ -630,7 +712,7 @@ class __$VoiceStateCopyWithImpl<$Res> implements _$VoiceStateCopyWith<$Res> {
       participants: null == participants
           ? _self._participants
           : participants // ignore: cast_nullable_to_non_nullable
-              as List<Participant>,
+              as List<AzureCallingParticipant>,
       speakingParticipants: null == speakingParticipants
           ? _self._speakingParticipants
           : speakingParticipants // ignore: cast_nullable_to_non_nullable

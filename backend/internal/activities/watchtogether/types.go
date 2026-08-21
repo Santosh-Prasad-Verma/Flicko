@@ -92,7 +92,8 @@ type MediaInput struct {
 
 type JoinSessionResponse struct {
 	Session      *WTSession `json:"session"`
-	LiveKitToken string     `json:"livekit_token"`
+	VoiceToken   string     `json:"voice_token"`
+	LiveKitToken string     `json:"livekit_token,omitempty"`
 }
 
 type TransferHostRequest struct {

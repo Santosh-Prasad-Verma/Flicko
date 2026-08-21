@@ -6,8 +6,8 @@ import 'package:mobile/data/models/channel_model.dart';
 import 'package:mobile/data/models/server_model.dart';
 import 'package:mobile/features/home/application/servers_notifier.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
+import 'package:mobile/data/services/azure_calling_service.dart';
 import 'package:mobile/features/voice/presentation/controllers/voice_controller.dart';
-import 'package:livekit_client/livekit_client.dart';
 import 'package:mobile/features/voice/presentation/widgets/active_speaker_indicator.dart';
 import 'package:mobile/features/voice/presentation/widgets/voice_permission_dialog.dart';
 
@@ -279,7 +279,7 @@ class _VoiceChannelRow extends ConsumerWidget {
 }
 
 class _VoiceParticipantRow extends StatelessWidget {
-  final Participant participant;
+  final AzureCallingParticipant participant;
   const _VoiceParticipantRow({required this.participant});
 
   @override
@@ -292,7 +292,7 @@ class _VoiceParticipantRow extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              participant.name.isNotEmpty ? participant.name : participant.identity,
+              participant.name.isNotEmpty ? participant.name : 'User',
               style: const TextStyle(
                 color: Color(FlickoColors.textSecondary),
                 fontSize: 13,
@@ -308,27 +308,25 @@ class _VoiceParticipantRow extends StatelessWidget {
 }
 
 class _ParticipantBubble extends StatelessWidget {
-  final Participant participant;
+  final AzureCallingParticipant participant;
   const _ParticipantBubble({required this.participant});
 
   @override
   Widget build(BuildContext context) {
     return ActiveSpeakerIndicator(
-      participantSid: participant.sid,
+      participantSid: participant.id,
       child: CircleAvatar(
         radius: 9,
         backgroundColor: const Color(FlickoColors.blurple),
         child: Text(
-                ((participant.name.isNotEmpty ? participant.name : participant.identity).isNotEmpty
-                        ? (participant.name.isNotEmpty ? participant.name : participant.identity)[0]
-                        : 'U')
+                (participant.name.isNotEmpty ? participant.name[0] : 'U')
                     .toUpperCase(),
                 style: const TextStyle(
                   fontSize: 7,
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
                 ),
-              )
+              ),
       ),
     );
   }

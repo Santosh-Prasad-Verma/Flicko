@@ -57,7 +57,7 @@ func (s *presenceService) SetPresence(ctx context.Context, userID string, status
 		return fmt.Errorf("failed to update presence: %w", err)
 	}
 
-	// In a complete implementation we'd also trigger a Broadcast presence.update via Supabase Realtime here.
+	// In a complete implementation we'd also trigger a Broadcast presence.update via WebPubSub here.
 
 	return nil
 }

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mobile/data/clients/supabase_client.dart';
-import 'package:livekit_client/livekit_client.dart';
+import 'package:mobile/data/clients/api_client.dart';
+import 'package:mobile/data/services/azure_calling_service.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
 import 'package:mobile/features/voice/presentation/controllers/voice_controller.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
@@ -58,36 +59,12 @@ class _VoiceHUDState extends ConsumerState<VoiceHUD> {
     final activeServerId = ref.read(voiceControllerProvider.notifier).activeServerId;
     final activeChannelId = voiceState.activeChannelId;
     final controller = ref.read(voiceControllerProvider.notifier);
+    final callingService = ref.watch(azureCallingServiceProvider);
 
-    // 1. Check for active screen share track across all participants
-    Participant? screenSharingParticipant;
-    VideoTrack? screenShareTrack;
-    for (final p in voiceState.participants) {
-      final pubs = p.videoTrackPublications.where((pub) => pub.track != null && !pub.muted && pub.isScreenShare).toList();
-      if (pubs.isNotEmpty) {
-        screenSharingParticipant = p;
-        screenShareTrack = pubs.first.track as VideoTrack?;
-        break;
-      }
-    }
-
-    // 2. Check for active camera video track if no screen share
-    Participant? cameraParticipant;
-    VideoTrack? cameraTrack;
-    if (screenShareTrack == null) {
-      for (final p in voiceState.participants) {
-        final pubs = p.videoTrackPublications.where((pub) => pub.track != null && !pub.muted && pub.kind == TrackType.VIDEO && !pub.isScreenShare).toList();
-        if (pubs.isNotEmpty) {
-          cameraParticipant = p;
-          cameraTrack = pubs.first.track as VideoTrack?;
-          break;
-        }
-      }
-    }
-
-    final bool hasLiveVideo = screenShareTrack != null || cameraTrack != null;
-    final VideoTrack? activeVideoTrack = screenShareTrack ?? cameraTrack;
-    final bool isScreenShare = screenShareTrack != null;
+    final bool isCameraActive = voiceState.isCameraEnabled;
+    final bool isScreenShare = voiceState.isScreenSharing;
+    final bool hasLiveVideo = isCameraActive || isScreenShare;
+    final RTCVideoRenderer? activeRenderer = callingService.localVideoRenderer;
 
     // Adjust container dimensions if video stream is active
     final double boxWidth = hasLiveVideo ? 160 : 140;
@@ -96,20 +73,21 @@ class _VoiceHUDState extends ConsumerState<VoiceHUD> {
     _position ??= Offset(size.width - boxWidth - 16, size.height - boxHeight - 80);
 
     // Identify active speaker or local participant for avatar display when video is inactive
-    Participant? activeSpeakerParticipant;
+    AzureCallingParticipant? activeSpeakerParticipant;
     if (voiceState.speakingParticipants.isNotEmpty) {
-      final speakingSid = voiceState.speakingParticipants.first;
+      final speakingId = voiceState.speakingParticipants.first;
       for (final p in voiceState.participants) {
-        if (p.sid == speakingSid) {
+        if (p.id == speakingId) {
           activeSpeakerParticipant = p;
           break;
         }
       }
     }
-    activeSpeakerParticipant ??= voiceState.participants.isNotEmpty ? voiceState.participants.first : null;
+    activeSpeakerParticipant ??=
+        voiceState.participants.isNotEmpty ? voiceState.participants.first : null;
 
-    final String? speakerUserId = activeSpeakerParticipant?.identity;
-    if (speakerUserId != null && speakerUserId.isNotEmpty) {
+    final String? speakerUserId = activeSpeakerParticipant?.id;
+    if (speakerUserId != null && speakerUserId.isNotEmpty && speakerUserId != 'me') {
       _fetchProfile(speakerUserId);
     }
 
@@ -121,7 +99,7 @@ class _VoiceHUDState extends ConsumerState<VoiceHUD> {
     final cachedProfile = speakerUserId != null ? _profilesCache[speakerUserId] : null;
     final String avatarUrl = cachedProfile?['avatar'] as String? ?? currentAuthUser?.userMetadata?['avatar_url'] as String? ?? '';
     final String displayName = cachedProfile?['display_name'] as String? ?? cachedProfile?['username'] as String? ?? currentAuthUser?.userMetadata?['username'] as String? ?? 'User';
-    final bool isSpeaking = activeSpeakerParticipant != null && voiceState.speakingParticipants.contains(activeSpeakerParticipant.sid);
+    final bool isSpeaking = activeSpeakerParticipant != null && voiceState.speakingParticipants.contains(activeSpeakerParticipant.id);
 
     return Positioned(
       left: _position!.dx,
@@ -201,15 +179,17 @@ class _VoiceHUDState extends ConsumerState<VoiceHUD> {
                 const SizedBox(height: 6),
 
                 // Main Content Body: Render Live Video Stream OR User Avatar
-                if (hasLiveVideo && activeVideoTrack != null)
+                if (hasLiveVideo && activeRenderer != null && activeRenderer.srcObject != null)
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
                     child: SizedBox(
                       height: 60,
                       width: double.infinity,
-                      child: VideoTrackRenderer(
-                        activeVideoTrack,
-                        fit: isScreenShare ? VideoViewFit.contain : VideoViewFit.cover,
+                      child: RTCVideoView(
+                        activeRenderer,
+                        objectFit: isScreenShare
+                            ? RTCVideoViewObjectFit.RTCVideoViewObjectFitContain
+                            : RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
                       ),
                     ),
                   )

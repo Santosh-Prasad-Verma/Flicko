@@ -1,25 +1,17 @@
 // =============================================================================
-// k6 Realtime WebSocket fan-out load test  (Supabase Realtime / Phoenix proto)
+// k6 Realtime WebSocket fan-out load test
 // =============================================================================
-// The app connects to Supabase Realtime at:
-//   wss://<project>.supabase.co/realtime/v1/websocket?apikey=<anon>&vsn=1.0.0
-// (see mobile/lib/core/services/presence_service.dart). This test measures the
-// metric that actually breaks Discord-like apps under load: end-to-end message
-// PROPAGATION LATENCY as the number of concurrent subscribers on one channel
-// grows.
+// This test measures end-to-end message PROPAGATION LATENCY as the number of
+// concurrent subscribers on one channel grows.
 //
 // Design: every VU joins the SAME broadcast topic and periodically sends a
 // broadcast carrying a send-timestamp. Every VU receives every broadcast and
 // records (now - sent_at) into a Trend. With N connected VUs, each broadcast
 // fans out to N receivers — so this directly stresses realtime fan-out.
 //
-// Broadcast (not postgres_changes) is used so the test is self-contained and
-// needs no DB writes. A postgres_changes variant is sketched at the bottom.
-//
 // Run locally:
 //   k6 run scripts/k6-realtime-ws-test.js \
-//     -e SUPABASE_URL=https://YOURPROJ.supabase.co \
-//     -e SUPABASE_ANON_KEY=eyJ...
+//     -e REALTIME_WS_URL=wss://YOURHOST/realtime/v1/websocket
 //
 // !!! Point this at a DEDICATED TEST/STAGING project, never production. !!!
 // =============================================================================
@@ -33,12 +25,8 @@ const messagesReceived = new Counter('realtime_messages_received');
 const joinErrors = new Rate('realtime_join_errors');
 
 // --- Config -----------------------------------------------------------------
-const SUPABASE_URL = __ENV.SUPABASE_URL || 'http://localhost:54321';
-const ANON_KEY = __ENV.SUPABASE_ANON_KEY || 'anon-key-not-set';
+const WS_URL = __ENV.REALTIME_WS_URL || 'ws://localhost:8081/ws';
 const TOPIC = 'realtime:load-test-room';
-const WS_URL =
-  `${SUPABASE_URL.replace(/^http/, 'ws')}/realtime/v1/websocket` +
-  `?apikey=${ANON_KEY}&vsn=1.0.0`;
 
 export const options = {
   scenarios: {
