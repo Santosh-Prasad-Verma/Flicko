@@ -4,20 +4,24 @@ on:
   issues:
     types: [opened]
 
+permissions:
+  issues: write
+  contents: read
+
 jobs:
   summary:
+    name: Summarize Issue
     runs-on: ubuntu-latest
     permissions:
       issues: write
-      models: read
       contents: read
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Run AI inference
         id: inference
+        continue-on-error: true
         uses: actions/ai-inference@v1
         with:
           prompt: |
@@ -27,8 +31,10 @@ jobs:
             Body: ${{ github.event.issue.body }}
 
       - name: Comment with AI summary
+        if: steps.inference.outputs.response != ''
+        continue-on-error: true
         run: |
-          gh issue comment $ISSUE_NUMBER --body "$RESPONSE"
+          gh issue comment "$ISSUE_NUMBER" --body "$RESPONSE"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
