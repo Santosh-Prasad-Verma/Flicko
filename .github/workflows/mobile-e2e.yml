@@ -94,7 +94,7 @@ jobs:
                   }
                 },
                 "api_key": [
-                  { "current_key": "AIzaSyA0000000000000000000000000000000000" }
+                  { "current_key": "dummy_api_key_for_ci_build" }
                 ]
               }
             ],
