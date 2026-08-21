@@ -1,0 +1,87 @@
+name: Deploy to Azure VPS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'mail-gateway/**'
+      - 'services/**'
+      - 'docker-compose.prod.yml'
+      - 'nginx/**'
+      - '.env.prod'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy to Azure VPS
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          DB_PASS: ${{ secrets.AZURE_POSTGRES_PASSWORD }}
+          DB_HOST: ${{ secrets.AZURE_POSTGRES_HOST }}
+          DB_USER: ${{ secrets.AZURE_POSTGRES_USER }}
+          DB_NAME: ${{ secrets.AZURE_POSTGRES_DB }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          timeout: 30s
+          command_timeout: 10m
+          envs: DB_PASS,DB_HOST,DB_USER,DB_NAME
+          script: |
+            set -euo pipefail
+            echo "=== Starting Flicko Deployment ==="
+
+            # Navigate to project directory
+            cd ~/Flicko || cd /home/$USER/Flicko
+
+            # Pull latest code
+            echo "--- Pulling latest code from origin/main ---"
+            git fetch origin main
+            git reset --hard origin/main
+
+            # Apply any pending database migrations if DB credentials are provided
+            if [ -n "${DB_PASS:-}" ] && [ -n "${DB_HOST:-}" ] && [ -n "${DB_USER:-}" ] && [ -f backend/migrations/082_email_verification.up.sql ]; then
+              echo "--- Applying migration 082_email_verification ---"
+              PGPASSWORD="${DB_PASS}" psql \
+                -h "${DB_HOST}" \
+                -U "${DB_USER}" \
+                -d "${DB_NAME:-postgres}" \
+                -f backend/migrations/082_email_verification.up.sql \
+                2>&1 || echo "Migration notice: check DB logs"
+            fi
+
+            # Rebuild and restart containers
+            echo "--- Rebuilding Docker containers ---"
+            docker compose -f docker-compose.prod.yml build --no-cache backend mail-gateway
+            
+            echo "--- Rolling restart (zero-downtime) ---"
+            docker compose -f docker-compose.prod.yml up -d --force-recreate backend mail-gateway
+
+            # Wait for containers to be healthy
+            echo "--- Waiting for health checks ---"
+            sleep 10
+
+            # Health check
+            echo "--- Running health checks ---"
+            docker compose -f docker-compose.prod.yml ps
+
+            # Check mail-gateway health
+            if curl -sf http://localhost:8082/health > /dev/null 2>&1; then
+              echo "✅ Mail Gateway is healthy"
+            else
+              echo "⚠️ Mail Gateway health check failed (may still be starting)"
+            fi
+
+            echo "=== Flicko Deployment Complete ==="

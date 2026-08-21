@@ -147,3 +147,70 @@ func (h *AuthHandler) EntraIDLogin(w http.ResponseWriter, r *http.Request) {
 		"token":    token,
 	})
 }
+
+// ── Verify Email ────────────────────────────────────────────────────────────
+
+type verifyEmailRequest struct {
+	Email string `json:"email"`
+	Token string `json:"token"`
+}
+
+func (h *AuthHandler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
+	var req verifyEmailRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	if req.Email == "" || req.Token == "" {
+		writeError(w, http.StatusBadRequest, "Email and verification code are required")
+		return
+	}
+
+	err := h.authSvc.VerifyEmail(r.Context(), req.Email, req.Token)
+	if err != nil {
+		h.logger.Warn("email verification failed",
+			zap.String("email", req.Email),
+			zap.Error(err),
+		)
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"message": "Email verified successfully",
+	})
+}
+
+// ── Resend Verification ─────────────────────────────────────────────────────
+
+type resendVerificationRequest struct {
+	Email string `json:"email"`
+}
+
+func (h *AuthHandler) ResendVerification(w http.ResponseWriter, r *http.Request) {
+	var req resendVerificationRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	if req.Email == "" {
+		writeError(w, http.StatusBadRequest, "Email is required")
+		return
+	}
+
+	err := h.authSvc.ResendVerification(r.Context(), req.Email)
+	if err != nil {
+		h.logger.Warn("resend verification failed",
+			zap.String("email", req.Email),
+			zap.Error(err),
+		)
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"message": "Verification code sent",
+	})
+}

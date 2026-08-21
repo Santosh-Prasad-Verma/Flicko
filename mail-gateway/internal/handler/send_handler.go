@@ -34,8 +34,11 @@ type SendRequest struct {
 	// Username is the user's display name
 	Username string `json:"username,omitempty"`
 
-	// Type is the email to send: "welcome", "flicko_plus", etc.
+	// Type is the email to send: "welcome", "verify", "flicko_plus", etc.
 	Type string `json:"type"`
+
+	// Token is the verification code for verify emails
+	Token string `json:"token,omitempty"`
 
 	// AvatarURL is an optional profile picture URL
 	AvatarURL string `json:"avatar_url,omitempty"`
@@ -134,6 +137,7 @@ func (h *SendHandler) HandleSend(w http.ResponseWriter, r *http.Request) {
 			Username:      username,
 			AvatarURL:     avatarURL,
 			Subject:       subject,
+			Token:         req.Token,
 			AppName:       h.cfg.AppName,
 			AppURL:        h.cfg.AppURL,
 			MemberSince:   time.Now().Format("January 02, 2006"),
@@ -168,12 +172,16 @@ func (h *SendHandler) routeSendType(sendType string) (templateName, subject stri
 		return "welcome",
 			fmt.Sprintf("Welcome to %s — Let's get started!", h.cfg.AppName),
 			nil
+	case "verify":
+		return "verify",
+			fmt.Sprintf("Verify your %s account", h.cfg.AppName),
+			nil
 	case "flicko_plus":
 		return "flicko_plus",
 			fmt.Sprintf("✨ Welcome to %s Plus — You're in!", h.cfg.AppName),
 			nil
 	default:
-		return "", "", fmt.Errorf("unknown send type: %q (supported: welcome, flicko_plus)", sendType)
+		return "", "", fmt.Errorf("unknown send type: %q (supported: welcome, verify, flicko_plus)", sendType)
 	}
 }
 
