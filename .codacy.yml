@@ -1,0 +1,19 @@
+---
+engines:
+  pmd:
+    exclude_paths:
+      - "backend/migrations/**"
+      - "azure-migrations/**"
+      - "supabase/**"
+      - "**/*.sql"
+
+exclude_paths:
+  - "backend/migrations/**"
+  - "azure-migrations/**"
+  - "supabase/**"
+  - "missing-features/**"
+  - "mobile/build/**"
+  - "mobile/.dart_tool/**"
+  - "**/node_modules/**"
+  - "**/*.g.dart"
+  - "**/*.freezed.dart"
