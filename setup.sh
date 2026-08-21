@@ -495,7 +495,7 @@ _row " FRONTEND"  "Flutter  ·  Riverpod  ·  Dart"              "$M"    "$WHITE
 printf "  ${GRAY}├$(repeat_char '─' $(( TABLE_W - 2 )))┤${R}\n"
 _row " BACKEND"   "Go  ·  ws-gateway  ·  msg-service"             "$CB"   "$WHITE"
 printf "  ${GRAY}├$(repeat_char '─' $(( TABLE_W - 2 )))┤${R}\n"
-_row " INFRA"     "Supabase  ·  Redis  ·  Docker  ·  LiveKit"     "$B"    "$WHITE"
+_row " INFRA"     "Azure  ·  Redis  ·  Docker  ·  ACS"            "$B"    "$WHITE"
 printf "  ${GRAY}├$(repeat_char '─' $(( TABLE_W - 2 )))┤${R}\n"
 _row " OBS"       "Prometheus  ·  Grafana  ·  pprof"              "$P"    "$WHITE"
 printf "  ${GRAY}├$(repeat_char '─' $(( TABLE_W - 2 )))┤${R}\n"

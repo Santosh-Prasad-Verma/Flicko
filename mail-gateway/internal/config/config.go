@@ -23,7 +23,7 @@ type Config struct {
 	AppURL  string // Frontend URL for redirect links
 
 	// Webhook security
-	WebhookSecret string // HMAC-SHA256 signing secret from Supabase
+	WebhookSecret string // HMAC-SHA256 signing secret
 	SendAPIKey    string // API key protecting the POST /send endpoint
 
 	// Security: Development mode must be explicitly enabled
@@ -49,8 +49,8 @@ type Config struct {
 	LogLevel  string // debug, info, warn, error
 	LogFormat string // json or text
 
-	// Supabase project URL (for building verification links)
-	SupabaseURL string // e.g. https://xxxxx.supabase.co
+	// Auth service URL (for building verification links)
+	AuthURL string // e.g. https://api.flicko.app or http://localhost:8080
 
 	// Razorpay configuration
 	RazorpayKeyID     string
@@ -116,10 +116,10 @@ func (c *Config) validate() {
 		slog.Warn("SMTP_USERNAME not set — using dummy dev mailer")
 	}
 
-	// Supabase URL needed for building verification links
-	if c.SupabaseURL == "" {
-		slog.Warn("SUPABASE_URL not set — verification links will use APP_URL as fallback")
-		c.SupabaseURL = c.AppURL
+	// Auth URL needed for building verification links
+	if c.AuthURL == "" {
+		slog.Warn("AUTH_URL not set — verification links will use APP_URL as fallback")
+		c.AuthURL = c.AppURL
 	}
 }
 

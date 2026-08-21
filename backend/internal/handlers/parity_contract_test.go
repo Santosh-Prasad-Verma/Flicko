@@ -70,7 +70,7 @@ func TestParityWSContractDomainsPresent(t *testing.T) {
 	}
 	assertContainsAll(t, wsDocs, requiredDomains)
 
-	migrationPath := filepath.Join(repoRoot, "supabase", "migrations", "100_phase0_parity_governance.sql")
+	migrationPath := filepath.Join(repoRoot, "azure-migrations", "supabase-migrations", "migrations", "100_phase0_parity_governance.sql")
 	if _, err := os.Stat(migrationPath); err == nil {
 		schemaMigration := readFile(t, migrationPath)
 		requiredSeeds := []string{

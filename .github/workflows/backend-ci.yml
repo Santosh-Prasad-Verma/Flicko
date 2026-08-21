@@ -13,6 +13,9 @@ on:
       - 'backend/**'
       - 'services/**'
 
+permissions:
+  contents: read
+
 jobs:
   test-and-lint:
     name: Test & Lint Go Code

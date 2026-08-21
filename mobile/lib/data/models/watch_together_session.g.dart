@@ -70,12 +70,12 @@ _WatchTogetherJoinResponse _$WatchTogetherJoinResponseFromJson(
     _WatchTogetherJoinResponse(
       session: WatchTogetherSession.fromJson(
           json['session'] as Map<String, dynamic>),
-      liveKitToken: json['livekit_token'] as String,
+      voiceToken: json['voice_token'] as String? ?? '',
     );
 
 Map<String, dynamic> _$WatchTogetherJoinResponseToJson(
         _WatchTogetherJoinResponse instance) =>
     <String, dynamic>{
       'session': instance.session,
-      'livekit_token': instance.liveKitToken,
+      'voice_token': instance.voiceToken,
     };

@@ -22,8 +22,8 @@ abstract class VoiceState with _$VoiceState {
 @freezed
 abstract class VoiceParticipant with _$VoiceParticipant {
   const factory VoiceParticipant({
-    required String participantSid, // LiveKit SID
-    required String userId,         // Supabase user ID
+    required String participantSid, // Voice participant identifier
+    required String userId,         // User ID
     @Default(false) bool isMuted,
     @Default(false) bool isSpeaking,    // Local or Remote detection
     @Default(false) bool isDeafened,

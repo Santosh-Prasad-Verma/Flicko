@@ -1,5 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:mobile/data/clients/supabase_client.dart' show User;
+import 'auth_user.dart';
 import 'user_model.dart';
 
 part 'auth_state.freezed.dart';

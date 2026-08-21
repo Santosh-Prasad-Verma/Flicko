@@ -24,7 +24,7 @@ class MusicPartyState {
   final MusicPartySession session;
   final List<MusicPartyQueueItem> queue;
   final MusicPartyAnchor? anchor;
-  final String? liveKitToken;
+  final String? voiceToken;
   final bool isLoading;
   final String? error;
 
@@ -32,7 +32,7 @@ class MusicPartyState {
     required this.session,
     this.queue = const [],
     this.anchor,
-    this.liveKitToken,
+    this.voiceToken,
     this.isLoading = false,
     this.error,
   });
@@ -41,7 +41,7 @@ class MusicPartyState {
     MusicPartySession? session,
     List<MusicPartyQueueItem>? queue,
     MusicPartyAnchor? anchor,
-    String? liveKitToken,
+    String? voiceToken,
     bool? isLoading,
     String? error,
   }) {
@@ -49,7 +49,7 @@ class MusicPartyState {
       session: session ?? this.session,
       queue: queue ?? this.queue,
       anchor: anchor ?? this.anchor,
-      liveKitToken: liveKitToken ?? this.liveKitToken,
+      voiceToken: voiceToken ?? this.voiceToken,
       isLoading: isLoading ?? this.isLoading,
       error: error,
     );
@@ -102,7 +102,7 @@ class MusicPartyNotifier extends Notifier<MusicPartyState?> {
         session: response.session,
         queue: response.queue,
         anchor: response.anchor,
-        liveKitToken: response.liveKitToken,
+        voiceToken: response.voiceToken,
       );
 
       // Start polling queue for updates

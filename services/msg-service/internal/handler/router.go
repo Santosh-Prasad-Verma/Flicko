@@ -17,12 +17,11 @@ type RouterDeps struct {
 	Message *MessageHandler
 	Channel *ChannelHandler
 	Guild   *GuildHandler
-	Upload  *UploadHandler
-	Health  *HealthHandler
-	Poll    *PollHandler
-	Search  *SearchHandler
-	Voice   *VoiceHandler
-	LivekitWebhook *LivekitWebhookHandler
+	Upload *UploadHandler
+	Health *HealthHandler
+	Poll   *PollHandler
+	Search *SearchHandler
+	Voice  *VoiceHandler
 
 	KeySet      *auth.KeySet
 	RateLimiter *ratelimit.Composite
@@ -58,9 +57,6 @@ func NewRouter(deps RouterDeps) *chi.Mux {
 
 	// ── Public routes (no auth) ─────────────────────────────
 	r.Get("/healthz", deps.Health.Healthz)
-	if deps.LivekitWebhook != nil {
-		r.Post("/v1/voice/webhook", deps.LivekitWebhook.ReceiveEvent)
-	}
 
 	// ── Authenticated routes ────────────────────────────────
 	r.Group(func(r chi.Router) {

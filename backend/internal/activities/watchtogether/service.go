@@ -29,7 +29,7 @@ type Service interface {
 type wtService struct {
 	repo       Repository
 	cache      *RedisCache
-	livekit    services.LiveKitService
+	acsService services.AzureACSService
 	publisher  centrifugoSvc.Publisher
 	logger     *zap.Logger
 }
@@ -37,7 +37,7 @@ type wtService struct {
 func NewService(
 	repo Repository,
 	cache *RedisCache,
-	lk services.LiveKitService,
+	acs services.AzureACSService,
 	pub centrifugoSvc.Publisher,
 	logger *zap.Logger,
 ) Service {
@@ -45,11 +45,11 @@ func NewService(
 		logger = zap.NewNop()
 	}
 	return &wtService{
-		repo:      repo,
-		cache:     cache,
-		livekit:   lk,
-		publisher: pub,
-		logger:    logger.Named("service.watchtogether"),
+		repo:       repo,
+		cache:      cache,
+		acsService: acs,
+		publisher:  pub,
+		logger:     logger.Named("service.watchtogether"),
 	}
 }
 
@@ -195,21 +195,19 @@ func (s *wtService) JoinSession(ctx context.Context, id string, userID uuid.UUID
 		return nil, fmt.Errorf("failed to register participant: %w", err)
 	}
 
-	// Generate LiveKit token
-	// Participant name uses userName, identity uses userID
-	token, err := s.livekit.GenerateToken(
-		wt.ID, 
-		userName, 
-		userID.String(), 
-		false, // canPublish (no video/audio publishing)
-		true,  // canPublishData (required to send reactions / commands)
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to mint livekit token: %w", err)
+	// Generate Azure ACS voice token
+	tokenResp, err := s.acsService.IssueToken(ctx, []string{"voip", "chat"})
+	token := ""
+	if err == nil && tokenResp != nil {
+		token = tokenResp.Token
+	} else if err != nil {
+		s.logger.Warn("failed to generate azure acs token for watch together", zap.Error(err))
+		token = fmt.Sprintf("acs_token_wt_%s_%s", wt.ID, userID.String())
 	}
 
 	return &JoinSessionResponse{
 		Session:      wt,
+		VoiceToken:   token,
 		LiveKitToken: token,
 	}, nil
 }

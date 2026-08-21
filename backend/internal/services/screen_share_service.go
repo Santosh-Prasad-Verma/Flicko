@@ -95,7 +95,7 @@ func (s *screenShareService) StartScreenShare(ctx context.Context, userID, chann
 		return nil, fmt.Errorf("failed to commit tx: %w", err)
 	}
 
-	// Supabase Broadcast would occur here.
+	// WebPubSub broadcast would occur here.
 
 	return &share, nil
 }

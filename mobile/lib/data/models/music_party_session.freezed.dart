@@ -2058,8 +2058,8 @@ mixin _$MusicPartyJoinResponse {
   MusicPartySession get session;
   List<MusicPartyQueueItem> get queue;
   MusicPartyAnchor? get anchor;
-  @JsonKey(name: 'livekit_token')
-  String get liveKitToken;
+  @JsonKey(name: 'voice_token', defaultValue: '')
+  String get voiceToken;
 
   /// Create a copy of MusicPartyJoinResponse
   /// with the given fields replaced by the non-null parameter values.
@@ -2080,18 +2080,18 @@ mixin _$MusicPartyJoinResponse {
             (identical(other.session, session) || other.session == session) &&
             const DeepCollectionEquality().equals(other.queue, queue) &&
             (identical(other.anchor, anchor) || other.anchor == anchor) &&
-            (identical(other.liveKitToken, liveKitToken) ||
-                other.liveKitToken == liveKitToken));
+            (identical(other.voiceToken, voiceToken) ||
+                other.voiceToken == voiceToken));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(runtimeType, session,
-      const DeepCollectionEquality().hash(queue), anchor, liveKitToken);
+      const DeepCollectionEquality().hash(queue), anchor, voiceToken);
 
   @override
   String toString() {
-    return 'MusicPartyJoinResponse(session: $session, queue: $queue, anchor: $anchor, liveKitToken: $liveKitToken)';
+    return 'MusicPartyJoinResponse(session: $session, queue: $queue, anchor: $anchor, voiceToken: $voiceToken)';
   }
 }
 
@@ -2105,7 +2105,7 @@ abstract mixin class $MusicPartyJoinResponseCopyWith<$Res> {
       {MusicPartySession session,
       List<MusicPartyQueueItem> queue,
       MusicPartyAnchor? anchor,
-      @JsonKey(name: 'livekit_token') String liveKitToken});
+      @JsonKey(name: 'voice_token', defaultValue: '') String voiceToken});
 
   $MusicPartySessionCopyWith<$Res> get session;
   $MusicPartyAnchorCopyWith<$Res>? get anchor;
@@ -2127,7 +2127,7 @@ class _$MusicPartyJoinResponseCopyWithImpl<$Res>
     Object? session = null,
     Object? queue = null,
     Object? anchor = freezed,
-    Object? liveKitToken = null,
+    Object? voiceToken = null,
   }) {
     return _then(_self.copyWith(
       session: null == session
@@ -2142,9 +2142,9 @@ class _$MusicPartyJoinResponseCopyWithImpl<$Res>
           ? _self.anchor
           : anchor // ignore: cast_nullable_to_non_nullable
               as MusicPartyAnchor?,
-      liveKitToken: null == liveKitToken
-          ? _self.liveKitToken
-          : liveKitToken // ignore: cast_nullable_to_non_nullable
+      voiceToken: null == voiceToken
+          ? _self.voiceToken
+          : voiceToken // ignore: cast_nullable_to_non_nullable
               as String,
     ));
   }
@@ -2271,7 +2271,7 @@ extension MusicPartyJoinResponsePatterns on MusicPartyJoinResponse {
             MusicPartySession session,
             List<MusicPartyQueueItem> queue,
             MusicPartyAnchor? anchor,
-            @JsonKey(name: 'livekit_token') String liveKitToken)?
+            @JsonKey(name: 'voice_token', defaultValue: '') String voiceToken)?
         $default, {
     required TResult orElse(),
   }) {
@@ -2279,7 +2279,7 @@ extension MusicPartyJoinResponsePatterns on MusicPartyJoinResponse {
     switch (_that) {
       case _MusicPartyJoinResponse() when $default != null:
         return $default(
-            _that.session, _that.queue, _that.anchor, _that.liveKitToken);
+            _that.session, _that.queue, _that.anchor, _that.voiceToken);
       case _:
         return orElse();
     }
@@ -2304,14 +2304,14 @@ extension MusicPartyJoinResponsePatterns on MusicPartyJoinResponse {
             MusicPartySession session,
             List<MusicPartyQueueItem> queue,
             MusicPartyAnchor? anchor,
-            @JsonKey(name: 'livekit_token') String liveKitToken)
+            @JsonKey(name: 'voice_token', defaultValue: '') String voiceToken)
         $default,
   ) {
     final _that = this;
     switch (_that) {
       case _MusicPartyJoinResponse():
         return $default(
-            _that.session, _that.queue, _that.anchor, _that.liveKitToken);
+            _that.session, _that.queue, _that.anchor, _that.voiceToken);
       case _:
         throw StateError('Unexpected subclass');
     }
@@ -2335,14 +2335,14 @@ extension MusicPartyJoinResponsePatterns on MusicPartyJoinResponse {
             MusicPartySession session,
             List<MusicPartyQueueItem> queue,
             MusicPartyAnchor? anchor,
-            @JsonKey(name: 'livekit_token') String liveKitToken)?
+            @JsonKey(name: 'voice_token', defaultValue: '') String voiceToken)?
         $default,
   ) {
     final _that = this;
     switch (_that) {
       case _MusicPartyJoinResponse() when $default != null:
         return $default(
-            _that.session, _that.queue, _that.anchor, _that.liveKitToken);
+            _that.session, _that.queue, _that.anchor, _that.voiceToken);
       case _:
         return null;
     }
@@ -2356,7 +2356,7 @@ class _MusicPartyJoinResponse implements MusicPartyJoinResponse {
       {required this.session,
       final List<MusicPartyQueueItem> queue = const [],
       this.anchor,
-      @JsonKey(name: 'livekit_token') required this.liveKitToken})
+      @JsonKey(name: 'voice_token', defaultValue: '') this.voiceToken = ''})
       : _queue = queue;
   factory _MusicPartyJoinResponse.fromJson(Map<String, dynamic> json) =>
       _$MusicPartyJoinResponseFromJson(json);
@@ -2375,8 +2375,8 @@ class _MusicPartyJoinResponse implements MusicPartyJoinResponse {
   @override
   final MusicPartyAnchor? anchor;
   @override
-  @JsonKey(name: 'livekit_token')
-  final String liveKitToken;
+  @JsonKey(name: 'voice_token', defaultValue: '')
+  final String voiceToken;
 
   /// Create a copy of MusicPartyJoinResponse
   /// with the given fields replaced by the non-null parameter values.
@@ -2402,18 +2402,18 @@ class _MusicPartyJoinResponse implements MusicPartyJoinResponse {
             (identical(other.session, session) || other.session == session) &&
             const DeepCollectionEquality().equals(other._queue, _queue) &&
             (identical(other.anchor, anchor) || other.anchor == anchor) &&
-            (identical(other.liveKitToken, liveKitToken) ||
-                other.liveKitToken == liveKitToken));
+            (identical(other.voiceToken, voiceToken) ||
+                other.voiceToken == voiceToken));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(runtimeType, session,
-      const DeepCollectionEquality().hash(_queue), anchor, liveKitToken);
+      const DeepCollectionEquality().hash(_queue), anchor, voiceToken);
 
   @override
   String toString() {
-    return 'MusicPartyJoinResponse(session: $session, queue: $queue, anchor: $anchor, liveKitToken: $liveKitToken)';
+    return 'MusicPartyJoinResponse(session: $session, queue: $queue, anchor: $anchor, voiceToken: $voiceToken)';
   }
 }
 
@@ -2429,7 +2429,7 @@ abstract mixin class _$MusicPartyJoinResponseCopyWith<$Res>
       {MusicPartySession session,
       List<MusicPartyQueueItem> queue,
       MusicPartyAnchor? anchor,
-      @JsonKey(name: 'livekit_token') String liveKitToken});
+      @JsonKey(name: 'voice_token', defaultValue: '') String voiceToken});
 
   @override
   $MusicPartySessionCopyWith<$Res> get session;
@@ -2453,7 +2453,7 @@ class __$MusicPartyJoinResponseCopyWithImpl<$Res>
     Object? session = null,
     Object? queue = null,
     Object? anchor = freezed,
-    Object? liveKitToken = null,
+    Object? voiceToken = null,
   }) {
     return _then(_MusicPartyJoinResponse(
       session: null == session
@@ -2468,9 +2468,9 @@ class __$MusicPartyJoinResponseCopyWithImpl<$Res>
           ? _self.anchor
           : anchor // ignore: cast_nullable_to_non_nullable
               as MusicPartyAnchor?,
-      liveKitToken: null == liveKitToken
-          ? _self.liveKitToken
-          : liveKitToken // ignore: cast_nullable_to_non_nullable
+      voiceToken: null == voiceToken
+          ? _self.voiceToken
+          : voiceToken // ignore: cast_nullable_to_non_nullable
               as String,
     ));
   }

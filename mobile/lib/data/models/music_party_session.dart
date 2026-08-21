@@ -76,7 +76,7 @@ abstract class MusicPartyJoinResponse with _$MusicPartyJoinResponse {
     required MusicPartySession session,
     @Default([]) List<MusicPartyQueueItem> queue,
     MusicPartyAnchor? anchor,
-    @JsonKey(name: 'livekit_token') required String liveKitToken,
+    @JsonKey(name: 'voice_token', defaultValue: '') @Default('') String voiceToken,
   }) = _MusicPartyJoinResponse;
 
   factory MusicPartyJoinResponse.fromJson(Map<String, dynamic> json) =>

@@ -29,7 +29,7 @@ var systemUserErr error
 //
 // Returns the system user's UUID. On error, callers should still treat the
 // returned string as a best-effort fallback ("" allowed; messages.author_id
-// is nullable per supabase/migrations/064b_allow_system_messages_without_author.sql).
+// is nullable).
 func EnsureSystemUser(ctx context.Context, bctx BotContext) (string, error) {
 	systemUserOnce.Do(func() {
 		// Seeded UUID for the system user. Stable across deployments so
@@ -289,8 +289,7 @@ func RequirePermission(ctx context.Context, bctx BotContext, serverID, userID st
 
 // ─── Audit Logging ────────────────────────────────────────────────────────────
 
-// LogAudit inserts a row into the canonical audit_logs table
-// (supabase/migrations/032_moderation_domain_tables.sql, partitioned in 133).
+// LogAudit inserts a row into the canonical audit_logs table.
 //
 // Schema: (server_id, actor_id, action_type, target_type, target_id, reason, changes)
 // Replaces the old (moderator_id, target_id, action, reason) shape (CRIT-3 fix).

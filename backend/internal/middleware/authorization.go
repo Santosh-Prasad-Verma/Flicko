@@ -119,8 +119,6 @@ func RequirePermission(
 			hasPermission, err := permService.HasPermission(ctx, userID, resourceUUID, permission)
 			if err != nil {
 				logger.Error("permission check failed",
-					zap.String("user_id", userID.String()),
-					zap.String("resource_id", resourceID),
 					zap.String("permission", string(permission)),
 					zap.Error(err),
 				)
@@ -130,8 +128,6 @@ func RequirePermission(
 
 			if !hasPermission {
 				logger.Warn("permission denied",
-					zap.String("user_id", userID.String()),
-					zap.String("resource_id", resourceID),
 					zap.String("permission", string(permission)),
 				)
 				writeJSONError(w, http.StatusForbidden, "FORBIDDEN", "Insufficient permissions for this action")
@@ -195,8 +191,6 @@ func RequireServerPermission(
 
 			if !hasPermission {
 				logger.Warn("server permission denied",
-					zap.String("user_id", userID.String()),
-					zap.String("server_id", serverID),
 					zap.String("permission", string(permission)),
 				)
 				writeJSONError(w, http.StatusForbidden, "FORBIDDEN", "Insufficient permissions for this action")
@@ -259,8 +253,6 @@ func RequireChannelPermission(
 
 			if !hasPermission {
 				logger.Warn("channel permission denied",
-					zap.String("user_id", userID.String()),
-					zap.String("channel_id", channelID),
 					zap.String("permission", string(permission)),
 				)
 				writeJSONError(w, http.StatusForbidden, "FORBIDDEN", "Insufficient permissions for this action")

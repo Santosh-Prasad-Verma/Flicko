@@ -74,7 +74,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
 # ─────────────────────────────────────────────────────────────────────────────
 # Why alpine:3.22 and not scratch?
 #   - We need wget for HEALTHCHECK (scratch has no shell/tools).
-#   - We need ca-certificates for outbound TLS (Supabase, CF).
+#   - We need ca-certificates for outbound TLS (Redis, Azure).
 #   - alpine:3.22 base is ~3.3 MB, total image stays under 20 MB.
 FROM alpine:3.22
 
