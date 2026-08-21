@@ -84,7 +84,7 @@ func (s *VoiceService) signRequest(req *http.Request, key []byte) error {
 
 	stringToSign := fmt.Sprintf("%s\n%s\n%s;%s;%s",
 		req.Method,
-		req.URL.Path,
+		req.URL.RequestURI(),
 		dateStr,
 		req.URL.Host,
 		contentHash,
@@ -148,10 +148,21 @@ func (s *VoiceService) GenerateToken(ctx context.Context, in VoiceTokenInput) (s
 	}
 
 	var tokenResp struct {
-		Token string `json:"token"`
+		Token       string `json:"token"`
+		AccessToken struct {
+			Token string `json:"token"`
+		} `json:"accessToken"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
 		return "", fkerr.ErrInternal(fmt.Errorf("failed to decode voice token"))
+	}
+
+	token := tokenResp.Token
+	if token == "" {
+		token = tokenResp.AccessToken.Token
+	}
+	if token == "" {
+		return "", fkerr.ErrInternal(fmt.Errorf("empty voice token returned from provider"))
 	}
 
 	s.log.Info("azure acs voice token generated",
@@ -159,5 +170,5 @@ func (s *VoiceService) GenerateToken(ctx context.Context, in VoiceTokenInput) (s
 		zap.String("channel_id", in.ChannelID),
 	)
 
-	return tokenResp.Token, nil
+	return token, nil
 }
