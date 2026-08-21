@@ -40,20 +40,13 @@ subprojects {
                 }
             }
         }
-    }
-}
-
-// Fix for legacy plugins having package attribute in AndroidManifest.xml (e.g. on_audio_query_android)
-subprojects {
-    afterEvaluate {
-        if (plugins.hasPlugin("com.android.library")) {
-            val manifestFile = file("src/main/AndroidManifest.xml")
-            if (manifestFile.exists()) {
-                val manifestText = manifestFile.readText()
-                if (manifestText.contains("package=\"")) {
-                    val cleaned = manifestText.replace(Regex("""\s*package="[^"]*""""), "")
-                    manifestFile.writeText(cleaned)
-                }
+        // Fix for legacy plugins having package attribute in AndroidManifest.xml (e.g. on_audio_query_android)
+        val manifestFile = file("src/main/AndroidManifest.xml")
+        if (manifestFile.exists()) {
+            val manifestText = manifestFile.readText()
+            if (manifestText.contains("package=\"")) {
+                val cleaned = manifestText.replace(Regex("""\s*package="[^"]*""""), "")
+                manifestFile.writeText(cleaned)
             }
         }
     }
