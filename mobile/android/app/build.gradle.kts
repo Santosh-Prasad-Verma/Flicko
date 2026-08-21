@@ -13,7 +13,6 @@ val flickoDartDefineKeys =
     listOf(
         "FLICKO_SUPABASE_URL",
         "FLICKO_SUPABASE_ANON_KEY",
-        "FLICKO_LIVEKIT_URL",
         "FLICKO_API_URL",
         "FLICKO_GIPHY_API_KEY",
         "FLICKO_APPWRITE_PROJECT_ID",
@@ -23,7 +22,6 @@ val flickoDartDefineKeys =
         "FLICKO_GOOGLE_CLIENT_ID",
         "SUPABASE_URL",
         "SUPABASE_ANON_KEY",
-        "LIVEKIT_URL",
         "API_BASE_URL",
         "GIPHY_API_KEY",
         "APPWRITE_PROJECT_ID",

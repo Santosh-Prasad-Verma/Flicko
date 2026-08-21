@@ -5,6 +5,9 @@ on:
     - cron: '0 3 * * 0' # Run weekly on Sunday at 03:00 UTC
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   chaos-test:
     name: Run Resilience & Fault Injection Tests

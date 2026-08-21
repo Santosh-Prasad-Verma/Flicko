@@ -116,7 +116,7 @@ _MusicPartyJoinResponse _$MusicPartyJoinResponseFromJson(
       anchor: json['anchor'] == null
           ? null
           : MusicPartyAnchor.fromJson(json['anchor'] as Map<String, dynamic>),
-      liveKitToken: json['livekit_token'] as String,
+      voiceToken: json['voice_token'] as String? ?? '',
     );
 
 Map<String, dynamic> _$MusicPartyJoinResponseToJson(
@@ -125,7 +125,7 @@ Map<String, dynamic> _$MusicPartyJoinResponseToJson(
       'session': instance.session,
       'queue': instance.queue,
       'anchor': instance.anchor,
-      'livekit_token': instance.liveKitToken,
+      'voice_token': instance.voiceToken,
     };
 
 _SkipVoteStatus _$SkipVoteStatusFromJson(Map<String, dynamic> json) =>

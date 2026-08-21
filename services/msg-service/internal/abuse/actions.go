@@ -37,7 +37,7 @@ type LogEntry struct {
 // AbuseLogger interface (for testability)
 // ─────────────────────────────────────────────────────────────────────────────
 
-// AbuseLogger persists abuse events for admin review (e.g. Supabase, stdout).
+// AbuseLogger persists abuse events for admin review (e.g. database, stdout).
 type AbuseLogger interface {
 	LogAbuse(ctx context.Context, entry LogEntry) error
 }

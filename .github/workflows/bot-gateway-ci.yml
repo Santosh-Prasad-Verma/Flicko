@@ -16,6 +16,9 @@ on:
       - 'backend/internal/middleware/**'
       - 'backend/internal/services/**'
 
+permissions:
+  contents: read
+
 jobs:
   test:
     name: Bot & Gateway Protocol Tests

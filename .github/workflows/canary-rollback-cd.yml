@@ -12,6 +12,9 @@ on:
         required: true
         default: '10'
 
+permissions:
+  contents: read
+
 jobs:
   canary-deploy:
     name: Deploy Canary & Monitor Metrics

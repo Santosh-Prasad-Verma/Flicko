@@ -2,7 +2,7 @@ import 'dart:developer' as developer;
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/data/clients/dio_client.dart';
-import 'package:mobile/data/clients/supabase_client.dart';
+import 'package:mobile/data/clients/api_client.dart';
 import 'package:mobile/features/friends/domain/friends_models.dart';
 
 final friendsRepositoryProvider = Provider<FriendsRepository>((ref) {

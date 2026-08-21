@@ -1,6 +1,6 @@
 import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mobile/data/clients/supabase_client.dart';
+import 'package:mobile/data/clients/api_client.dart';
 
 class ServerInvite {
   final String id;

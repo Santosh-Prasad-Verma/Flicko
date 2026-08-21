@@ -42,7 +42,7 @@ abstract class WatchTogetherSession with _$WatchTogetherSession {
 abstract class WatchTogetherJoinResponse with _$WatchTogetherJoinResponse {
   const factory WatchTogetherJoinResponse({
     required WatchTogetherSession session,
-    @JsonKey(name: 'livekit_token') required String liveKitToken,
+    @JsonKey(name: 'voice_token', defaultValue: '') @Default('') String voiceToken,
   }) = _WatchTogetherJoinResponse;
 
   factory WatchTogetherJoinResponse.fromJson(Map<String, dynamic> json) => _$WatchTogetherJoinResponseFromJson(json);

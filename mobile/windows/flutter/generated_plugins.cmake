@@ -15,7 +15,6 @@ list(APPEND FLUTTER_PLUGIN_LIST
   flutter_tts
   flutter_webrtc
   gal
-  livekit_client
   local_auth_windows
   permission_handler_windows
   record_windows

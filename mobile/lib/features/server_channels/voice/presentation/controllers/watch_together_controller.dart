@@ -1,11 +1,8 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:livekit_client/livekit_client.dart';
-import 'package:mobile/core/config/app_config.dart';
 import 'package:mobile/data/services/watch_together_service.dart';
 import 'package:mobile/data/models/watch_together_session.dart';
-import 'package:mobile/data/clients/supabase_client.dart';
+import 'package:mobile/data/clients/api_client.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt_explode;
 import 'package:flutter/foundation.dart';
 
@@ -67,8 +64,7 @@ final watchTogetherControllerProvider =
 class WatchTogetherController extends Notifier<WatchTogetherState> {
   late final WatchTogetherService _service;
   late final SupabaseClient _supabase;
-  Room? _sessionRoom;
-  EventsListener<RoomEvent>? _roomListener;
+  RealtimeChannel? _syncChannel;
   Timer? _syncTimer;
   final _ytExplode = yt_explode.YoutubeExplode();
 
@@ -80,7 +76,7 @@ class WatchTogetherController extends Notifier<WatchTogetherState> {
     _supabase = Supabase.instance.client;
 
     ref.onDispose(() {
-      _cleanupRoom();
+      _cleanupSyncChannel();
       _syncTimer?.cancel();
       _ytExplode.close();
     });
@@ -88,10 +84,11 @@ class WatchTogetherController extends Notifier<WatchTogetherState> {
     return const WatchTogetherState();
   }
 
-  void _cleanupRoom() {
-    _roomListener?.dispose();
-    _sessionRoom?.disconnect();
-    _sessionRoom = null;
+  void _cleanupSyncChannel() {
+    if (_syncChannel != null) {
+      _supabase.removeChannel(_syncChannel!);
+      _syncChannel = null;
+    }
   }
 
   Future<void> startSession({
@@ -150,8 +147,8 @@ class WatchTogetherController extends Notifier<WatchTogetherState> {
       // Resolve direct stream URL if YouTube
       _resolveMediaUrl(session.mediaUrl, session.mediaKind);
 
-      // Connect to dedicated LiveKit data room for session sync
-      await _connectToSyncRoom(session.id, joinResp.liveKitToken);
+      // Connect to Realtime broadcast sync channel
+      _setupSyncChannel(session.id);
 
       // Start periodic status sync if Host
       if (isHost) {
@@ -223,49 +220,54 @@ class WatchTogetherController extends Notifier<WatchTogetherState> {
     }
   }
 
-  Future<void> _connectToSyncRoom(String sessionId, String token) async {
-    _cleanupRoom();
+  void _setupSyncChannel(String sessionId) {
+    _cleanupSyncChannel();
 
     try {
-      final room = Room();
-      _sessionRoom = room;
+      final channel = _supabase.channel('wt_sync:$sessionId');
 
-      _roomListener = room.createListener()
-        ..on<DataReceivedEvent>((event) {
-          final decoded = utf8.decode(event.data);
+      channel.onBroadcast(
+        event: 'wt_sync',
+        callback: (payload) {
           try {
-            final data = jsonDecode(decoded);
-            if (data['type'] == 'wt_sync') {
-              final positionMs = data['position_ms'] as int;
-              final playing = data['playing'] as bool;
-              final seq = data['seq'] as int;
+            final positionMs = payload['position_ms'] as int;
+            final playing = payload['playing'] as bool;
+            final seq = (payload['seq'] as num).toInt();
 
-              if (seq > state.seq) {
-                state = state.copyWith(
-                  lastPositionMs: positionMs,
-                  lastPlaying: playing,
-                  seq: seq,
-                );
-                // Call UI callback if bound
-                if (onSyncReceived != null) {
-                  onSyncReceived!(positionMs, playing);
-                }
+            if (seq > state.seq) {
+              state = state.copyWith(
+                lastPositionMs: positionMs,
+                lastPlaying: playing,
+                seq: seq,
+              );
+              if (onSyncReceived != null) {
+                onSyncReceived!(positionMs, playing);
               }
-            } else if (data['type'] == 'change_media') {
-              final url = data['url'] as String;
-              final title = data['title'] as String;
-              final kind = data['kind'] as String;
-              changeMedia(url, title, kind);
             }
           } catch (e) {
-            debugPrint('Failed to parse sync frame: $e');
+            debugPrint('Failed to parse wt_sync frame: $e');
           }
-        });
+        },
+      );
 
-      AppConfig.requireLivekitUrl();
-      await room.connect(AppConfig.livekitUrl, token);
+      channel.onBroadcast(
+        event: 'change_media',
+        callback: (payload) {
+          try {
+            final url = payload['url'] as String;
+            final title = payload['title'] as String;
+            final kind = payload['kind'] as String;
+            changeMedia(url, title, kind);
+          } catch (e) {
+            debugPrint('Failed to parse change_media frame: $e');
+          }
+        },
+      );
+
+      channel.subscribe();
+      _syncChannel = channel;
     } catch (e) {
-      debugPrint('Failed to connect to watch together sync room: $e');
+      debugPrint('Failed to setup sync channel: $e');
     }
   }
 
@@ -292,18 +294,15 @@ class WatchTogetherController extends Notifier<WatchTogetherState> {
       seq: nextSeq,
     );
 
-    if (state.isHost) {
-      final message = jsonEncode({
-        'type': 'wt_sync',
-        'position_ms': positionMs,
-        'playing': playing,
-        'seq': nextSeq,
-      });
-
+    if (state.isHost && _syncChannel != null) {
       try {
-        await _sessionRoom?.localParticipant?.publishData(
-          utf8.encode(message),
-          reliable: true,
+        await _syncChannel!.sendBroadcastMessage(
+          event: 'wt_sync',
+          payload: {
+            'position_ms': positionMs,
+            'playing': playing,
+            'seq': nextSeq,
+          },
         );
       } catch (e) {
         debugPrint('Failed to broadcast sync event: $e');
@@ -316,7 +315,7 @@ class WatchTogetherController extends Notifier<WatchTogetherState> {
     if (state.session != null) {
       await _service.leaveSession(state.session!.id);
     }
-    _cleanupRoom();
+    _cleanupSyncChannel();
     state = const WatchTogetherState();
   }
 
@@ -325,7 +324,7 @@ class WatchTogetherController extends Notifier<WatchTogetherState> {
     if (state.session != null) {
       await _service.endSession(state.session!.id);
     }
-    _cleanupRoom();
+    _cleanupSyncChannel();
     state = const WatchTogetherState();
   }
 
@@ -348,21 +347,20 @@ class WatchTogetherController extends Notifier<WatchTogetherState> {
         debugPrint('Error updating session in database: $e');
       }
 
-      // Broadcast to other participants in the LiveKit room
-      final message = jsonEncode({
-        'type': 'change_media',
-        'url': url,
-        'title': title,
-        'kind': kind,
-      });
-
-      try {
-        await _sessionRoom?.localParticipant?.publishData(
-          utf8.encode(message),
-          reliable: true,
-        );
-      } catch (e) {
-        debugPrint('Failed to broadcast change_media event: $e');
+      // Broadcast to other participants in the channel
+      if (_syncChannel != null) {
+        try {
+          await _syncChannel!.sendBroadcastMessage(
+            event: 'change_media',
+            payload: {
+              'url': url,
+              'title': title,
+              'kind': kind,
+            },
+          );
+        } catch (e) {
+          debugPrint('Failed to broadcast change_media event: $e');
+        }
       }
     }
 

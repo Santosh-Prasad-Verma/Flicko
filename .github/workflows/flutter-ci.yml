@@ -12,6 +12,9 @@ on:
       - 'mobile/**'
       - '.github/workflows/flutter-ci.yml'
 
+permissions:
+  contents: read
+
 jobs:
   flutter-checks:
     name: Flutter Lint & Test

@@ -2,7 +2,7 @@
 //
 // CRIT-7: Bridges Postgres NOTIFY events into the in-process EventBus.
 //
-// When the mobile client (or any Supabase-direct writer) inserts into
+// When the mobile client or any backend writer inserts into
 // server_members, messages, or message_reactions, a Postgres trigger fires
 // pg_notify('flicko_events', json_payload). This listener receives those
 // notifications and publishes the corresponding EventBus event so bots

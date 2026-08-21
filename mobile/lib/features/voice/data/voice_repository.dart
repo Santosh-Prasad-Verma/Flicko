@@ -1,21 +1,21 @@
 import 'package:dio/dio.dart';
-import 'package:livekit_client/livekit_client.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mobile/core/config/app_config.dart';
 import 'package:mobile/data/clients/dio_client.dart';
 
 class VoiceConnectionInfo {
   const VoiceConnectionInfo({
     required this.token,
-    required this.serverUrl,
+    this.serverUrl = '',
     this.room,
     this.streamId,
+    this.userId,
   });
 
   final String token;
   final String serverUrl;
   final String? room;
   final String? streamId;
+  final String? userId;
 }
 
 class VoiceRepository {
@@ -46,13 +46,12 @@ class VoiceRepository {
         final data = Map<String, dynamic>.from(response.data as Map);
         final token = data['token'] as String?;
         if (token != null && token.isNotEmpty) {
-          final issuedUrl = (data['serverUrl'] as String?)?.trim();
-          final resolvedUrl = (issuedUrl != null && issuedUrl.isNotEmpty) ? issuedUrl : AppConfig.livekitUrl;
           return VoiceConnectionInfo(
             token: token,
-            serverUrl: resolvedUrl,
-            room: data['room'] as String?,
+            serverUrl: (data['serverUrl'] as String?)?.trim() ?? '',
+            room: data['room'] as String? ?? 'channel_$channelId',
             streamId: data['streamId'] as String?,
+            userId: data['user_id'] as String?,
           );
         }
       }
@@ -60,8 +59,8 @@ class VoiceRepository {
 
     // Fallback token issue for local/offline dev
     return VoiceConnectionInfo(
-      token: 'dev_voice_token_${DateTime.now().millisecondsSinceEpoch}',
-      serverUrl: AppConfig.livekitUrl,
+      token: 'acs_voice_token_${DateTime.now().millisecondsSinceEpoch}',
+      serverUrl: '',
       room: 'channel_$channelId',
     );
   }
@@ -69,17 +68,6 @@ class VoiceRepository {
   Future<String> getAccessToken(String channelId, String serverId) async {
     final info = await fetchConnection(channelId, serverId);
     return info.token;
-  }
-
-  Future<Room> connect(String token, {RoomOptions? options, String? serverUrl}) async {
-    final url = (serverUrl != null && serverUrl.isNotEmpty) ? serverUrl : AppConfig.livekitUrl;
-    if (url.isEmpty) {
-      AppConfig.requireLivekitUrl();
-    }
-
-    final room = Room(roomOptions: options ?? const RoomOptions());
-    await room.connect(url, token);
-    return room;
   }
 
   Future<void> syncPublishState(

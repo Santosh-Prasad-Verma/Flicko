@@ -7,7 +7,7 @@ import 'package:flutter/material.dart' show Color, Colors;
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:mobile/data/clients/supabase_client.dart';
+import 'package:mobile/data/clients/api_client.dart';
 
 /// Provider for PushNotificationService
 final pushNotificationServiceProvider = Provider<PushNotificationService>((ref) {

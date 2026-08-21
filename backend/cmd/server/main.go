@@ -296,27 +296,30 @@ func main() {
 	// protected := api.PathPrefix("/").Subrouter()
 	// protected.Use(middleware.Auth)
 
-	// ── Video/Streaming endpoints ───────────────────────────────────────────
+	// ── Azure ACS VoIP & Video/Streaming endpoints ─────────────────────────
 	permService := services.NewPermissionService(db.Pool(), redisCache)
 	voiceService := services.NewVoiceService(db.Pool(), permService)
 	streamService := services.NewStreamService(db.Pool(), permService, voiceService)
-	liveKitService := services.NewLiveKitService(cfg.LiveKitAPIKey, cfg.LiveKitAPISecret)
-	videoHandler := handlers.NewVideoHandler(streamService, voiceService, permService, liveKitService, logger)
+	azureACSService := services.NewAzureACSService(cfg, logger)
+	videoHandler := handlers.NewVideoHandler(streamService, voiceService, permService, azureACSService, logger)
 	// VideoHandler.RegisterRoutes uses absolute /api/v1/ paths with auth middleware
 	videoRouter := r.PathPrefix("/").Subrouter()
 	videoRouter.Use(middleware.RequestID, middleware.CORS, middleware.Auth)
 	videoHandler.RegisterRoutes(videoRouter)
 
+	azureACSHandler := handlers.NewAzureACSHandler(azureACSService, logger)
+	protected.HandleFunc("/acs/token", azureACSHandler.IssueToken).Methods("POST")
+	protected.HandleFunc("/acs/push", azureACSHandler.SendPushNotification).Methods("POST")
+
 	// ── Bot API routes ──────────────────────────────────────────────────────
 	botHandler := handlers.NewBotHandler(db, eventBus, cmdRouter, redisCache, logger)
 
-	// Start event bridge to sync internal events to Supabase Realtime
+	// Start event bridge to sync internal events to Realtime / WebPubSub
 	eventBridge := events.NewBridge(db, eventBus, logger)
 	eventBridge.Start()
 
 	// CRIT-7: Start Postgres LISTEN/NOTIFY bridge so bots react to real
-	// activity (messages, member joins, reactions) written by mobile/web
-	// clients directly via Supabase.
+	// activity (messages, member joins, reactions) written by clients.
 	pgListener := events.NewPgListener(db.Pool(), eventBus, logger)
 	go pgListener.Start(tickerCtx)
 
@@ -541,7 +544,7 @@ func main() {
 			logger,
 			db.Pool(),
 			redisCache,
-			liveKitService,
+			azureACSService,
 			protected,
 			gamingPublisher,
 		)
@@ -571,7 +574,7 @@ func main() {
 			logger,
 			db.Pool(),
 			redisCache,
-			liveKitService,
+			azureACSService,
 			protected,
 			gamingPublisher,
 		)
