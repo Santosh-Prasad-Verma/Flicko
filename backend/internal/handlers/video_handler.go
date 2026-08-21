@@ -304,15 +304,26 @@ func (h *VideoHandler) GenerateVoiceToken(w http.ResponseWriter, r *http.Request
 	}
 
 	// 0.5. Verify user has CONNECT permission to join this channel
-	userUUID, err := uuid.Parse(userID)
-	if err == nil {
+	if h.permSvc != nil {
+		userUUID, err := uuid.Parse(userID)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid user_id format")
+			return
+		}
 		channelUUID, err := uuid.Parse(channelID)
-		if err == nil {
-			hasConnectPerm, err := h.permSvc.HasPermission(r.Context(), userUUID, channelUUID, "CONNECT")
-			if err == nil && !hasConnectPerm {
-				writeError(w, http.StatusForbidden, "missing CONNECT permission for this channel")
-				return
-			}
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid channel_id format")
+			return
+		}
+		hasConnectPerm, err := h.permSvc.HasPermission(r.Context(), userUUID, channelUUID, "CONNECT")
+		if err != nil {
+			h.logger.Error("failed to verify CONNECT permission", zap.Error(err))
+			writeError(w, http.StatusInternalServerError, "failed to check channel permissions")
+			return
+		}
+		if !hasConnectPerm {
+			writeError(w, http.StatusForbidden, "missing CONNECT permission for this channel")
+			return
 		}
 	}
 

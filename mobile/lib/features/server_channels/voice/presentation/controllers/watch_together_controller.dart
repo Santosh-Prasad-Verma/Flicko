@@ -230,9 +230,12 @@ class WatchTogetherController extends Notifier<WatchTogetherState> {
         event: 'wt_sync',
         callback: (payload) {
           try {
-            final positionMs = payload['position_ms'] as int;
-            final playing = payload['playing'] as bool;
-            final seq = (payload['seq'] as num).toInt();
+            final data = (payload['payload'] is Map<String, dynamic>)
+                ? payload['payload'] as Map<String, dynamic>
+                : payload;
+            final positionMs = (data['position_ms'] as num?)?.toInt() ?? 0;
+            final playing = data['playing'] as bool? ?? false;
+            final seq = (data['seq'] as num?)?.toInt() ?? 0;
 
             if (seq > state.seq) {
               state = state.copyWith(
@@ -254,10 +257,15 @@ class WatchTogetherController extends Notifier<WatchTogetherState> {
         event: 'change_media',
         callback: (payload) {
           try {
-            final url = payload['url'] as String;
-            final title = payload['title'] as String;
-            final kind = payload['kind'] as String;
-            changeMedia(url, title, kind);
+            final data = (payload['payload'] is Map<String, dynamic>)
+                ? payload['payload'] as Map<String, dynamic>
+                : payload;
+            final url = data['url'] as String? ?? '';
+            final title = data['title'] as String? ?? '';
+            final kind = data['kind'] as String? ?? '';
+            if (url.isNotEmpty) {
+              changeMedia(url, title, kind);
+            }
           } catch (e) {
             debugPrint('Failed to parse change_media frame: $e');
           }

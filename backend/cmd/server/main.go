@@ -252,6 +252,8 @@ func main() {
 	api.HandleFunc("/auth/register", authHandler.Register).Methods("POST", "OPTIONS")
 	api.HandleFunc("/auth/login", authHandler.Login).Methods("POST", "OPTIONS")
 	api.HandleFunc("/auth/entra-id", authHandler.EntraIDLogin).Methods("POST", "OPTIONS")
+	api.HandleFunc("/auth/verify-email", authHandler.VerifyEmail).Methods("POST", "OPTIONS")
+	api.HandleFunc("/auth/resend-verification", authHandler.ResendVerification).Methods("POST", "OPTIONS")
 
 	// CRIT-002: Replace memory-based rate limiter with distributed Redis-backed limiter
 	apiLimiter := middleware.NewDistributedRateLimiter(redisCache.GetRedisClient(), 50, logger, "api")

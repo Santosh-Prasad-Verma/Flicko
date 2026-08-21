@@ -22,6 +22,7 @@ type MailRequest struct {
 	Type          string `json:"type"`
 	AppName       string `json:"app_name"`
 	AppURL        string `json:"app_url"`
+	Token         string `json:"token,omitempty"`
 	TransactionID string `json:"transaction_id,omitempty"`
 	TotalAmount   string `json:"total_amount,omitempty"`
 	MemberSince   string `json:"member_since,omitempty"`
@@ -41,6 +42,19 @@ func (s *MailService) SendWelcomeEmail(to, username string) error {
 		To:       to,
 		Username: username,
 		Type:     "welcome",
+		AppName:  "Flicko",
+		AppURL:   "https://flicko.dev",
+		Year:     time.Now().Year(),
+	}
+	return s.send(req)
+}
+
+func (s *MailService) SendVerificationEmail(to, username, verificationCode string) error {
+	req := MailRequest{
+		To:       to,
+		Username: username,
+		Type:     "verify",
+		Token:    verificationCode,
 		AppName:  "Flicko",
 		AppURL:   "https://flicko.dev",
 		Year:     time.Now().Year(),

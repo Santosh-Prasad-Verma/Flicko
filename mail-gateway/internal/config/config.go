@@ -90,6 +90,25 @@ func Load() *Config {
 		SMTPUsername: os.Getenv("SMTP_USERNAME"),
 		SMTPPassword: os.Getenv("SMTP_PASSWORD"),
 		SMTPFrom:     getEnv("SMTP_FROM", os.Getenv("SMTP_USERNAME")),
+
+		// Email queue tuning
+		QueueSize:  getEnvInt("EMAIL_QUEUE_SIZE", 100),
+		WorkerPool: getEnvInt("EMAIL_WORKER_POOL", 3),
+		MaxRetries: getEnvInt("EMAIL_MAX_RETRIES", 3),
+
+		// Logging
+		LogLevel:  getEnv("LOG_LEVEL", "info"),
+		LogFormat: getEnv("LOG_FORMAT", "json"),
+
+		// Auth URL for building verification links
+		AuthURL: os.Getenv("AUTH_URL"),
+
+		// Razorpay
+		RazorpayKeyID:     os.Getenv("RAZORPAY_KEY_ID"),
+		RazorpayKeySecret: os.Getenv("RAZORPAY_KEY_SECRET"),
+
+		// Moonclerk
+		MoonclerkWebhookSecret: os.Getenv("MOONCLERK_WEBHOOK_SECRET"),
 	}
 
 	cfg.validate()

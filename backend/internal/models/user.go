@@ -33,6 +33,11 @@ type User struct {
 	LastSeen            time.Time  `json:"last_seen" db:"last_seen"`
 	Phone               *string    `json:"phone" db:"phone"`
 	TwoFactorEnabled    bool       `json:"two_factor_enabled" db:"two_factor_enabled"`
+
+	// Email verification fields (from users table)
+	EmailConfirmedAt            *time.Time `json:"email_confirmed_at,omitempty" db:"email_confirmed_at"`
+	VerificationToken           string     `json:"-" db:"verification_token"`
+	VerificationTokenExpiresAt  *time.Time `json:"-" db:"verification_token_expires_at"`
 }
 
 type PresenceStatus string
