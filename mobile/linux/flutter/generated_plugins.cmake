@@ -10,7 +10,6 @@ list(APPEND FLUTTER_PLUGIN_LIST
   flutter_secure_storage_linux
   flutter_webrtc
   gtk
-  livekit_client
   record_linux
   sentry_flutter
   url_launcher_linux

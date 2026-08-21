@@ -1,0 +1,42 @@
+name: Zscaler IaC Scan
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  schedule:
+    - cron: '15 11 * * 3'
+
+permissions:
+  contents: read
+
+jobs:
+  zscaler-iac-scan:
+    name: Zscaler IaC Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Code Checkout
+        uses: actions/checkout@v4
+
+      - name: Zscaler IAC Scan
+        uses: ZscalerCWP/Zscaler-IaC-Action@v1.0.0
+        id: zscaler-iac-scan
+        continue-on-error: true
+        with:
+          client_id: ${{ secrets.ZSCANNER_CLIENT_ID }}
+          client_secret: ${{ secrets.ZSCANNER_CLIENT_SECRET }}
+          region: 'US'
+          iac_dir: '.'
+          output_format: 'sarif'
+          fail_build: 'false'
+
+      - name: Upload SARIF file
+        if: ${{ always() && steps.zscaler-iac-scan.outputs.sarif_file_path != '' }}
+        uses: github/codeql-action/upload-sarif@v3
+        continue-on-error: true
+        with:
+          sarif_file: ${{ steps.zscaler-iac-scan.outputs.sarif_file_path }}

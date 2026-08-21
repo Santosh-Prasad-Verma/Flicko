@@ -10,12 +10,8 @@ import (
 )
 
 // DMMessageService is NOT wired into the HTTP router (cmd/server/main.go): DM
-// messaging is served by Supabase (PostgREST + RLS) and the mobile client hits
-// it directly via features/direct_messages/data/dm_repository.dart. Its only
-// in-repo reference is dm_reaction_service.go, which is itself unwired. Retained
-// as a reference / ready-made backend-owned path. NewDMMessageService has no
-// callers today — verified unused, not accidentally orphaned. Do not delete
-// without confirming the Supabase-direct path still owns this domain.
+// messaging is served by direct REST endpoints. Retained
+// as a reference / ready-made backend-owned path.
 type DMMessageService interface {
 	SendMessage(ctx context.Context, conversationID, authorID string, content string, msgType models.DMMessageType, replyToID *string) (*models.DMMessage, error)
 	MarkAsRead(ctx context.Context, conversationID, userID, messageID string) (*models.DMReadState, error)
@@ -134,7 +130,7 @@ func (s *dmMessageService) SendMessage(ctx context.Context, conversationID, auth
 		return nil, fmt.Errorf("failed to insert dm message: %w", err)
 	}
 
-	// Would trigger notification / Supabase Realtime broadcast to participants here
+	// Would trigger notification / WebPubSub broadcast to participants here
 
 	return &msg, nil
 }

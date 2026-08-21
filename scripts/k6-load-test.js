@@ -18,7 +18,7 @@ import { check, sleep } from 'k6';
 //
 // !!! Point at a DEDICATED STAGING stack, never production. 4000 VUs hitting
 // !!! prod is a self-inflicted DoS. Watch alongside: ws-gateway conn count
-// !!! (6000 cap), Redis memory (200MB), and Supabase connection pool ceiling.
+// !!! (6000 cap), Redis memory (200MB), and PostgreSQL connection pool ceiling.
 // =============================================================================
 
 const BASE_URL = __ENV.API_TARGET_URL || 'http://localhost:8085';

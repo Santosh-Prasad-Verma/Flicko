@@ -13,27 +13,27 @@ import (
 
 // VideoHandler manages all video/streaming HTTP endpoints.
 type VideoHandler struct {
-	streamSvc   services.StreamService
-	voiceSvc    services.VoiceService
-	permSvc     services.PermissionService
-	liveKitSvc  services.LiveKitService
-	logger      *zap.Logger
+	streamSvc  services.StreamService
+	voiceSvc   services.VoiceService
+	permSvc    services.PermissionService
+	acsService services.AzureACSService
+	logger     *zap.Logger
 }
 
-// NewVideoHandler creates a VideoHandler wired to stream and voice services.
-func NewVideoHandler(streamSvc services.StreamService, voiceSvc services.VoiceService, permSvc services.PermissionService, liveKitSvc services.LiveKitService, logger *zap.Logger) *VideoHandler {
+// NewVideoHandler creates a VideoHandler wired to stream, voice, and Azure ACS services.
+func NewVideoHandler(streamSvc services.StreamService, voiceSvc services.VoiceService, permSvc services.PermissionService, acsService services.AzureACSService, logger *zap.Logger) *VideoHandler {
 	return &VideoHandler{
-		streamSvc: streamSvc,
-		voiceSvc:  voiceSvc,
-		permSvc:   permSvc,
-		liveKitSvc: liveKitSvc,
-		logger:    logger,
+		streamSvc:  streamSvc,
+		voiceSvc:   voiceSvc,
+		permSvc:    permSvc,
+		acsService: acsService,
+		logger:     logger,
 	}
 }
 
 // RegisterRoutes binds video/streaming endpoints to the given router.
 func (h *VideoHandler) RegisterRoutes(r *mux.Router) {
-	r.HandleFunc("/api/v1/voice/token", h.GenerateLiveKitToken).Methods("GET")
+	r.HandleFunc("/api/v1/voice/token", h.GenerateVoiceToken).Methods("GET", "POST")
 
 	// Stream (Go Live) endpoints
 	r.HandleFunc("/api/v1/streams", h.CreateStream).Methods("POST")
@@ -273,9 +273,14 @@ func getVideoUserID(r *http.Request) string {
 	return ""
 }
 
-// ── LiveKit JWT Token ──
+// ── Azure ACS Voice & Video Token ──
 
-func (h *VideoHandler) GenerateLiveKitToken(w http.ResponseWriter, r *http.Request) {
+type voiceTokenReqBody struct {
+	ChannelID string `json:"channelId"`
+	ServerID  string `json:"serverId"`
+}
+
+func (h *VideoHandler) GenerateVoiceToken(w http.ResponseWriter, r *http.Request) {
 	userID := getVideoUserID(r)
 	if userID == "" {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
@@ -284,48 +289,47 @@ func (h *VideoHandler) GenerateLiveKitToken(w http.ResponseWriter, r *http.Reque
 
 	channelID := r.URL.Query().Get("channel_id")
 	if channelID == "" {
+		channelID = r.URL.Query().Get("channelId")
+	}
+
+	if channelID == "" && r.Body != nil {
+		var req voiceTokenReqBody
+		_ = json.NewDecoder(r.Body).Decode(&req)
+		channelID = req.ChannelID
+	}
+
+	if channelID == "" {
 		writeError(w, http.StatusBadRequest, "channel_id is required")
 		return
 	}
 
 	// 0.5. Verify user has CONNECT permission to join this channel
 	userUUID, err := uuid.Parse(userID)
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid user_id")
-		return
-	}
-	channelUUID, err := uuid.Parse(channelID)
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid channel_id")
-		return
-	}
-
-	hasConnectPerm, err := h.permSvc.HasPermission(r.Context(), userUUID, channelUUID, "CONNECT")
-	if err != nil || !hasConnectPerm {
-		writeError(w, http.StatusForbidden, "missing CONNECT permission for this channel")
-		return
-	}
-
-	// Default flags
-	canPublish := true
-	canPublishData := true
-
-	// Check if user has SPEAK permission to publish audio/video
-	hasSpeakPerm, err := h.permSvc.HasPermission(r.Context(), userUUID, channelUUID, "SPEAK")
 	if err == nil {
-		canPublish = hasSpeakPerm
+		channelUUID, err := uuid.Parse(channelID)
+		if err == nil {
+			hasConnectPerm, err := h.permSvc.HasPermission(r.Context(), userUUID, channelUUID, "CONNECT")
+			if err == nil && !hasConnectPerm {
+				writeError(w, http.StatusForbidden, "missing CONNECT permission for this channel")
+				return
+			}
+		}
+	}
+
+	scopes := []string{"voip", "chat"}
+	tokenResp, err := h.acsService.IssueToken(r.Context(), scopes)
+	if err != nil {
+		h.logger.Error("failed to generate azure acs voice token", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to generate voice communication token")
+		return
 	}
 
 	roomName := "channel_" + channelID
-	token, err := h.liveKitSvc.GenerateToken(roomName, userID, userID, canPublish, canPublishData)
-	if err != nil {
-		h.logger.Error("failed to generate livekit token", zap.Error(err))
-		writeError(w, http.StatusInternalServerError, "failed to generate vc token")
-		return
-	}
-
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
-		"token": token,
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"token":      tokenResp.Token,
+		"user_id":    tokenResp.User.ID,
+		"expires_on": tokenResp.ExpiresOn,
+		"room":       roomName,
 	})
 }

@@ -12,7 +12,7 @@ import (
 // `..\..\etc\passwd` survives Base() and must be neutralised here.
 var unsafeFilenameChars = regexp.MustCompile(`[^A-Za-z0-9._-]`)
 
-// maxUploadFilenameLen bounds the stored name. Supabase object keys also carry a
+// maxUploadFilenameLen bounds the stored name. Storage object keys also carry a
 // user/channel prefix and a 64-char hash, so this leaves ample headroom.
 const maxUploadFilenameLen = 128
 

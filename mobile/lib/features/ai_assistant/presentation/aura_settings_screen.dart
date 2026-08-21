@@ -267,7 +267,7 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
                           date: "May 2026",
                           title: "Server-Side AI Integration",
                           description:
-                              "Migrated full backend logic to secure server-side Supabase Edge Functions. Direct frontend keys have been completely phased out for production-grade safety.",
+                              "Migrated full backend logic to secure server-side API endpoints. Direct frontend keys have been completely phased out for production-grade safety.",
                         ),
                         _buildTimelineItem(
                           accent: accent,
@@ -436,7 +436,7 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
                           accent: accent,
                           question: "Is my data secure?",
                           answer:
-                              "Absolutely. All API requests are routed through verified Supabase Deno Edge Functions using production-grade JWT session authentication. No API keys are ever exposed on the client side.",
+                              "Absolutely. All API requests are routed through verified backend endpoints using production-grade JWT session authentication. No API keys are ever exposed on the client side.",
                         ),
                         _buildFAQItem(
                           accent: accent,
