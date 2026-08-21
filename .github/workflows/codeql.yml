@@ -114,7 +114,7 @@ jobs:
         JSON
         fi
         flutter pub get
-        flutter build apk --debug
+        flutter build apk --debug --android-skip-build-dependency-validation
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
