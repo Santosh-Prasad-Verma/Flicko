@@ -19,9 +19,25 @@ TMP_ZIP="/tmp/tolgee_export.zip"
 TMP_EXTRACT="/tmp/tolgee_l10n"
 
 # Export JSON zip from Tolgee
-curl -s -f -H "X-API-Key: ${TOLGEE_KEY}" \
+curl_exit_code=0
+curl -sS -f \
+  --retry 3 \
+  --retry-all-errors \
+  --retry-delay 5 \
+  --connect-timeout 15 \
+  --max-time 300 \
+  -H "X-API-Key: ${TOLGEE_KEY}" \
   "${TOLGEE_URL}/v2/projects/${PROJECT_ID}/export?format=JSON" \
-  -o "${TMP_ZIP}"
+  -o "${TMP_ZIP}" || curl_exit_code=$?
+
+if [ "${curl_exit_code}" -ne 0 ]; then
+  if [ "${curl_exit_code}" -eq 28 ]; then
+    echo "⚠️ Tolgee export timed out (curl exit 28). Skipping sync for this run."
+    exit 0
+  fi
+  echo "❌ Failed to export translations from Tolgee (curl exit ${curl_exit_code})."
+  exit "${curl_exit_code}"
+fi
 
 mkdir -p "${TMP_EXTRACT}"
 unzip -q -o "${TMP_ZIP}" -d "${TMP_EXTRACT}"

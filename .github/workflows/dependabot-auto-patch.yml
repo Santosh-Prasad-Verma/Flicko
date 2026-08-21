@@ -3,6 +3,8 @@ name: Dependabot Auto-Patch & Merge
 on:
   pull_request:
     types: [opened, synchronize, reopened]
+    branches:
+      - 'dependabot/**'
 
 jobs:
   dependabot-auto-merge:
