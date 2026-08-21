@@ -12,6 +12,9 @@ on:
       - 'backend/go.mod'
       - 'backend/go.sum'
 
+permissions:
+  contents: read
+
 jobs:
   govulncheck:
     name: Run govulncheck

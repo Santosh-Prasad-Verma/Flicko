@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
-import 'package:mobile/data/clients/supabase_client.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 /// Streaming SSE client for `/api/v1/ai/summary/stream/<request_id>`.
 ///
@@ -11,7 +11,7 @@ import 'package:mobile/data/clients/supabase_client.dart';
 /// The frame parser is buffered: we only emit a complete event when an empty
 /// line terminates it.
 ///
-/// The auth token is injected from Supabase's current session, matching the
+/// The auth token is injected from FlutterSecureStorage, matching the
 /// pattern used by `dioProvider`.
 class SummarySseClient {
   SummarySseClient({required Uri baseUri, http.Client? httpClient})
@@ -20,19 +20,20 @@ class SummarySseClient {
 
   final Uri _base;
   final http.Client _http;
+  final _storage = const FlutterSecureStorage();
 
   /// One parsed SSE frame.
   ///
   /// `event` defaults to `"message"` per spec when the server omits the field.
   Stream<SsePacket> stream(String requestId) async* {
-    final session = Supabase.instance.client.auth.currentSession;
+    final token = await _storage.read(key: 'auth_token');
     final url = _base.resolve('ai/summary/stream/$requestId');
 
     final req = http.Request('GET', url);
     req.headers['Accept'] = 'text/event-stream';
     req.headers['Cache-Control'] = 'no-cache';
-    if (session != null) {
-      req.headers['Authorization'] = 'Bearer ${session.accessToken}';
+    if (token != null && token.isNotEmpty) {
+      req.headers['Authorization'] = 'Bearer $token';
     }
 
     final response = await _http.send(req);

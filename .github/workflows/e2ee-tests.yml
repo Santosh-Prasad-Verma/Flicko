@@ -24,6 +24,9 @@ on:
       - 'backend/migrations/*e2ee*'
       - '.github/workflows/e2ee-tests.yml'
 
+permissions:
+  contents: read
+
 jobs:
   mobile-e2ee:
     name: Mobile E2EE (Dart)

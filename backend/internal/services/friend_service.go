@@ -12,12 +12,8 @@ import (
 )
 
 // FriendService is NOT wired into the HTTP router (cmd/server/main.go): the
-// friends/friend-request domain is served by Supabase (PostgREST + RLS,
-// enforced by migration 099_user_privacy_dm_fr_enforcement) and the mobile
-// client hits it directly. Retained as a reference / ready-made backend-owned
-// path. NewFriendService has no callers today — verified unused, not
-// accidentally orphaned. Do not delete without confirming the Supabase-direct
-// path still owns this domain.
+// friends/friend-request domain is served by REST endpoints.
+// Retained as a reference / ready-made backend-owned path.
 type FriendService interface {
 	SendFriendRequest(ctx context.Context, senderID, receiverID string, message *string) (*models.FriendRequest, error)
 	GetPendingRequests(ctx context.Context, userID string) ([]*models.FriendRequest, error)

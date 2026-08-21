@@ -3,18 +3,6 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 class AppConfig {
   static const bool isDebug = bool.fromEnvironment('dart.vm.product') == false;
 
-  static const String _definedSupabaseUrl = String.fromEnvironment(
-    'FLICKO_SUPABASE_URL',
-  );
-  static const String _definedSupabaseAnonKey = String.fromEnvironment(
-    'FLICKO_SUPABASE_ANON_KEY',
-  );
-  static const String _definedSupabaseRealtimeUrl = String.fromEnvironment(
-    'FLICKO_SUPABASE_REALTIME_URL',
-  );
-  static const String _definedLivekitUrl = String.fromEnvironment(
-    'FLICKO_LIVEKIT_URL',
-  );
   static const String _definedApiBaseUrl = String.fromEnvironment(
     'FLICKO_API_URL',
   );
@@ -76,18 +64,6 @@ class AppConfig {
     'FLICKO_CURRENTS_API_KEY',
   );
 
-  static const String _definedLegacySupabaseUrl = String.fromEnvironment(
-    'SUPABASE_URL',
-  );
-  static const String _definedLegacySupabaseAnonKey = String.fromEnvironment(
-    'SUPABASE_ANON_KEY',
-  );
-  static const String _definedLegacySupabaseRealtimeUrl = String.fromEnvironment(
-    'SUPABASE_REALTIME_URL',
-  );
-  static const String _definedLegacyLivekitUrl = String.fromEnvironment(
-    'LIVEKIT_URL',
-  );
   static const String _definedLegacyApiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
   );
@@ -156,10 +132,7 @@ class AppConfig {
     'CENTRIFUGO_URL',
   );
 
-  static late final String supabaseUrl;
-  static late final String supabaseAnonKey;
-  static late final String supabaseRealtimeUrl;
-  static late final String livekitUrl;
+  static late final String realtimeWsUrl;
   static late final String apiBaseUrl;
   static late final String giphyApiKey;
 
@@ -189,30 +162,6 @@ class AppConfig {
   static late final String centrifugoUrl;
 
   static void init() {
-    supabaseUrl = _read(
-      _definedSupabaseUrl,
-      _definedLegacySupabaseUrl,
-      'FLICKO_SUPABASE_URL',
-      'SUPABASE_URL',
-    );
-    supabaseAnonKey = _read(
-      _definedSupabaseAnonKey,
-      _definedLegacySupabaseAnonKey,
-      'FLICKO_SUPABASE_ANON_KEY',
-      'SUPABASE_ANON_KEY',
-    );
-    final definedRealtime = _read(
-      _definedSupabaseRealtimeUrl,
-      _definedLegacySupabaseRealtimeUrl,
-      'FLICKO_SUPABASE_REALTIME_URL',
-      'SUPABASE_REALTIME_URL',
-    );
-    livekitUrl = _read(
-      _definedLivekitUrl,
-      _definedLegacyLivekitUrl,
-      'FLICKO_LIVEKIT_URL',
-      'LIVEKIT_URL',
-    );
     apiBaseUrl = _normalizeBaseUrl(
       _read(
         _definedApiBaseUrl,
@@ -222,19 +171,14 @@ class AppConfig {
       ),
     );
 
-    if (definedRealtime.isNotEmpty) {
-      supabaseRealtimeUrl = definedRealtime;
-    } else if (apiBaseUrl.isNotEmpty) {
+    if (apiBaseUrl.isNotEmpty) {
       final host = apiBaseUrl.replaceAll(RegExp(r'/api/v1/?$'), '');
       final wsHost = host.startsWith('https://')
           ? host.replaceFirst('https://', 'wss://')
           : host.replaceFirst('http://', 'ws://');
-      supabaseRealtimeUrl = '$wsHost/realtime/v1/websocket';
+      realtimeWsUrl = '$wsHost/ws';
     } else {
-      final wsHost = supabaseUrl.startsWith('https://')
-          ? supabaseUrl.replaceFirst('https://', 'wss://')
-          : supabaseUrl.replaceFirst('http://', 'ws://');
-      supabaseRealtimeUrl = '$wsHost/realtime/v1/websocket';
+      realtimeWsUrl = 'ws://localhost:8080/ws';
     }
     giphyApiKey = _read(
       _definedGiphyApiKey,
@@ -379,14 +323,6 @@ class AppConfig {
 
   static bool get hasCentrifugoUrl => centrifugoUrl.isNotEmpty;
 
-  static bool get hasLivekitUrl => livekitUrl.isNotEmpty;
-
-  static void requireLivekitUrl() {
-    if (!hasLivekitUrl) {
-      throw const LivekitConfigurationException();
-    }
-  }
-
   static void requireBackendBaseUrl() {
     if (!hasApiBaseUrl) {
       throw const BackendConfigurationException();
@@ -473,16 +409,6 @@ class BackendConfigurationException implements Exception {
 
   String get message =>
       'Backend URL is not configured. Set FLICKO_API_URL or API_BASE_URL to your backend URL, for example http://<your-computer-lan-ip>:8090 when running on a physical phone.';
-
-  @override
-  String toString() => message;
-}
-
-class LivekitConfigurationException implements Exception {
-  const LivekitConfigurationException();
-
-  String get message =>
-      'Voice server URL is not configured. Set FLICKO_LIVEKIT_URL or LIVEKIT_URL to your LiveKit URL, for example ws://<your-computer-lan-ip>:7880 when running on a physical phone.';
 
   @override
   String toString() => message;

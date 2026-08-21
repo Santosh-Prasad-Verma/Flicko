@@ -13,7 +13,6 @@ import 'package:mobile/features/home/application/servers_notifier.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/ai_assistant/data/aura_settings_provider.dart';
 import 'package:mobile/features/ai_assistant/data/web_search_service.dart';
-import 'package:mobile/data/clients/supabase_client.dart' as supabase;
 
 class AuraMessage {
   final String id;
@@ -486,14 +485,11 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
       liveSuccess = true;
     }
 
-    // 2. Call Aura Edge Function (xAI Grok API, key stays server-side)
+    // 2. Call Aura API (xAI Grok API, key stays server-side)
     if (!liveSuccess) {
       try {
-        final supabaseUrl = AppConfig.supabaseUrl;
+        final apiBaseUrl = AppConfig.apiBaseUrl;
         final dio = Dio();
-
-        // Get the current Supabase auth token
-        final accessToken = supabase.Supabase.instance.client.auth.currentSession?.accessToken;
 
         // Build conversation history for context
         final conversationMessages = <Map<String, String>>[];
@@ -509,13 +505,10 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
         final temperature = settings.temperature;
 
         final response = await dio.post(
-          '$supabaseUrl/functions/v1/aura-chat',
+          '$apiBaseUrl/aura/chat',
           options: Options(
             headers: {
               'Content-Type': 'application/json',
-              if (accessToken != null)
-                'Authorization': 'Bearer $accessToken',
-              'apikey': AppConfig.supabaseAnonKey,
             },
           ),
           data: {

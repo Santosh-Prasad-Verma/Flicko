@@ -20,7 +20,7 @@ type PoolConfig struct {
 	HealthCheckPeriod time.Duration `env:"DATABASE_POOL_HEALTHCHECK"   envDefault:"1m"`
 }
 
-// NewPool creates a *pgxpool.Pool configured for Supabase's PgBouncer pooler.
+// NewPool creates a *pgxpool.Pool configured for PostgreSQL.
 //
 // Key settings:
 //   - PreferSimpleProtocol=true — required for PgBouncer transaction mode.

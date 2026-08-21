@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:livekit_client/livekit_client.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
 
@@ -122,10 +122,11 @@ class VideoGrid extends StatelessWidget {
                 // Screen share content
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: screenShareParticipant.screenShareTrack != null
-                      ? VideoTrackRenderer(
-                          screenShareParticipant.screenShareTrack!,
-                          fit: VideoViewFit.contain,
+                  child: screenShareParticipant.screenShareRenderer != null &&
+                          screenShareParticipant.screenShareRenderer!.srcObject != null
+                      ? RTCVideoView(
+                          screenShareParticipant.screenShareRenderer!,
+                          objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitContain,
                         )
                       : Container(
                           color: Colors.black,
@@ -308,8 +309,8 @@ class VideoParticipant {
   bool isSpeaking;
   bool isScreenSharing;
   bool isPinned;
-  VideoTrack? videoTrack;
-  VideoTrack? screenShareTrack;
+  RTCVideoRenderer? videoRenderer;
+  RTCVideoRenderer? screenShareRenderer;
 
   VideoParticipant({
     required this.id,
@@ -321,8 +322,8 @@ class VideoParticipant {
     this.isSpeaking = false,
     this.isScreenSharing = false,
     this.isPinned = false,
-    this.videoTrack,
-    this.screenShareTrack,
+    this.videoRenderer,
+    this.screenShareRenderer,
   });
 
   String get effectiveName => displayName ?? name;
@@ -463,10 +464,10 @@ class VideoTile extends StatelessWidget {
   }
 
   Widget _buildVideoPlaceholder() {
-    if (participant.videoTrack != null) {
-      return VideoTrackRenderer(
-        participant.videoTrack!,
-        fit: VideoViewFit.cover,
+    if (participant.videoRenderer != null && participant.videoRenderer!.srcObject != null) {
+      return RTCVideoView(
+        participant.videoRenderer!,
+        objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
       );
     }
     return Container(

@@ -48,7 +48,7 @@ func testConfig(webhookSecret string) *config.Config {
 		AppName:       "TestApp",
 		AppURL:        "http://localhost:3000",
 		WebhookSecret: webhookSecret,
-		SupabaseURL:   "http://localhost:3000",
+		AuthURL:       "http://localhost:3000",
 	}
 }
 

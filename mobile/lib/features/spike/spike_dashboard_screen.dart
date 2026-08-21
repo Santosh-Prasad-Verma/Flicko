@@ -13,18 +13,10 @@ class SpikeDashboardScreen extends StatelessWidget {
         children: [
           _buildSpikeCard(
             context,
-            title: 'LiveKit WebRTC',
-            description: 'Test joining rooms, publishing tracks, and remote subscription.',
-            onTap: () => context.go('/spike/livekit'),
-            status: 'Pending',
-          ),
-
-          _buildSpikeCard(
-            context,
-            title: 'Supabase Realtime',
-            description: 'Test channel subscriptions and presence.',
-            onTap: () => context.go('/spike/supabase'),
-            status: 'Pending',
+            title: 'Azure Calling WebRTC',
+            description: 'Test joining voice rooms, camera/mic publishing, and ACS token connection.',
+            onTap: () => context.go('/spike/azure'),
+            status: 'Ready',
           ),
         ],
       ),

@@ -8,6 +8,12 @@ on:
   schedule:
     - cron: '30 2 * * 1' # Every Monday at 02:30 UTC
 
+permissions:
+  security-events: write
+  packages: read
+  actions: read
+  contents: read
+
 jobs:
   analyze:
     name: CodeQL Analysis

@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:io';
 import 'package:mobile/data/models/flicko_message.dart';
 import 'package:mobile/data/clients/dio_client.dart';
-import 'package:mobile/data/clients/supabase_client.dart';
+import 'package:mobile/data/clients/api_client.dart';
 import 'package:mobile/core/services/appwrite_storage_service.dart';
 import 'package:mobile/features/server_channels/chat/presentation/widgets/command_autocomplete.dart';
 

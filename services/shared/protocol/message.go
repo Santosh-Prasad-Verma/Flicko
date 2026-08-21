@@ -30,7 +30,7 @@ type GatewayMessage struct {
 // IdentifyPayload is sent by the client immediately after WebSocket open.
 // The gateway validates the JWT token and responds with OpReady or OpError.
 type IdentifyPayload struct {
-	// Token is the JWT access token (Supabase-issued, Ed25519-signed).
+	// Token is the JWT access token (Ed25519-signed / HS256).
 	Token string `json:"token"`
 
 	// SessionID allows a disconnecting client to resume previous subscriptions.
