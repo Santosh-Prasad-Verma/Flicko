@@ -1,17 +1,19 @@
+import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:livekit_client/livekit_client.dart';
 
 part 'participant_state.freezed.dart';
 
 @freezed
 abstract class ParticipantState with _$ParticipantState {
   const factory ParticipantState({
-    required Participant participant,
-    VideoTrack? videoTrack,
-    VideoTrack? screenShareTrack,
-    AudioTrack? audioTrack,
+    required String id,
+    required String name,
+    RTCVideoRenderer? videoRenderer,
+    RTCVideoRenderer? screenShareRenderer,
+    @Default(false) bool hasVideo,
     @Default(false) bool isSpeaking,
     @Default(false) bool isMuted,
+    @Default(false) bool isScreenSharing,
   }) = _ParticipantState;
 }
 
@@ -20,7 +22,7 @@ abstract class RoomState with _$RoomState {
   const factory RoomState.disconnected() = _Disconnected;
   const factory RoomState.connecting() = _Connecting;
   const factory RoomState.connected({
-    required Room room,
+    required String roomName,
     required Map<String, ParticipantState> participants,
   }) = _Connected;
   const factory RoomState.error(String message) = _Error;

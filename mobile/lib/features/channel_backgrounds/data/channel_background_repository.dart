@@ -1,17 +1,18 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:mobile/data/clients/supabase_client.dart';
 import 'package:mobile/core/config/app_config.dart';
 import 'package:mobile/features/channel_backgrounds/domain/channel_background.dart';
 
 class ChannelBackgroundRepository {
+  final _storage = const FlutterSecureStorage();
+
   Dio _getDio() {
     return Dio(BaseOptions(
       baseUrl: AppConfig.apiBaseUrl.endsWith('/') ? AppConfig.apiBaseUrl : '${AppConfig.apiBaseUrl}/',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer ${Supabase.instance.client.auth.currentSession?.accessToken ?? ""}',
       },
     ));
   }

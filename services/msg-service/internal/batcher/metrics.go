@@ -1,5 +1,5 @@
 // Package batcher implements micro-batch DB inserts (50 messages / 50ms
-// window) to reduce write amplification on Supabase PostgreSQL.
+// window) to reduce write amplification on PostgreSQL.
 //
 // At 300 msg/sec, individual INSERTs would need 300 round-trips/sec.
 // Batching 50 messages drops this to 6 round-trips/sec while keeping

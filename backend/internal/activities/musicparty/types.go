@@ -193,10 +193,11 @@ type JoinRequest struct {
 // ── REST Responses ─────────────────────────────────────────────
 
 type JoinSessionResponse struct {
-	Session      *MPSession    `json:"session"`
+	Session      *MPSession     `json:"session"`
 	Queue        []*MPQueueItem `json:"queue"`
-	Anchor       *AnchorState  `json:"anchor,omitempty"`
-	LiveKitToken string        `json:"livekit_token"`
+	Anchor       *AnchorState   `json:"anchor,omitempty"`
+	VoiceToken   string         `json:"voice_token"`
+	LiveKitToken string         `json:"livekit_token,omitempty"`
 }
 
 type AnchorState struct {

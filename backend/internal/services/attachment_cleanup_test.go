@@ -30,8 +30,8 @@ func TestAttachmentCleanup_OrphanDetectionLogic(t *testing.T) {
 	_ = context.Background()
 
 	// Simulate deduplication: two attachments pointing to the same URL
-	orphanedAttachment1 := "https://supabase/object/public/attachments/user/hash123_a.png"
-	orphanedAttachment2 := "https://supabase/object/public/attachments/user/hash456_b.png"
+	orphanedAttachment1 := "https://flickostorage.blob.core.windows.net/attachments/user/hash123_a.png"
+	orphanedAttachment2 := "https://flickostorage.blob.core.windows.net/attachments/user/hash456_b.png"
 
 	// Assuming 2 references to hash123, 1 reference to hash456
 	refCounts := map[string]int{
@@ -45,9 +45,9 @@ func TestAttachmentCleanup_OrphanDetectionLogic(t *testing.T) {
 	for url, count := range refCounts {
 		if count <= 1 {
 			// Extract filepath
-			idx := strings.Index(url, "/object/public/attachments/")
+			idx := strings.Index(url, "/attachments/")
 			if idx != -1 {
-				pathStart := idx + len("/object/public/attachments/")
+				pathStart := idx + len("/attachments/")
 				filepath := url[pathStart:]
 				storageMock.RemoveFile("attachments", []string{filepath})
 			}

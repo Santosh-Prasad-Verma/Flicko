@@ -501,7 +501,7 @@ if [[ -z "${DATABASE_URL:-}" ]]; then
   gap
   hint "Set it in .env or export before running. Example:"
   hint "  DATABASE_URL=postgresql://user:pass@host:5432/db?sslmode=require"
-  hint "If you use Supabase, copy the pooler URI into DATABASE_URL"
+  hint "If you use Azure PostgreSQL, copy the connection URI into DATABASE_URL"
   gap
   exit 1
 fi

@@ -12,8 +12,12 @@ CREATE TABLE IF NOT EXISTS public.bot_events (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Enable Realtime
-ALTER PUBLICATION supabase_realtime ADD TABLE public.bot_events;
+-- Enable Realtime (if publication exists)
+DO $$ BEGIN
+    IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.bot_events;
+    END IF;
+END $$;
 
 -- RLS: Members can view events in their servers
 ALTER TABLE public.bot_events ENABLE ROW LEVEL SECURITY;

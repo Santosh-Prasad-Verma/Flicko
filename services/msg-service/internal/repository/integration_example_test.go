@@ -92,7 +92,7 @@ func TestMain(m *testing.M) {
 
 // applyMigrations reads SQL files from supabase/migrations/ and executes them in order.
 func applyMigrations(ctx context.Context, pool *pgxpool.Pool) error {
-	migrationsDir := filepath.Join("..", "..", "..", "..", "supabase", "migrations")
+	migrationsDir := filepath.Join("..", "..", "..", "..", "azure-migrations", "supabase-migrations", "migrations")
 	entries, err := os.ReadDir(migrationsDir)
 	if err != nil {
 		return fmt.Errorf("read migrations dir: %w", err)
@@ -111,7 +111,7 @@ func applyMigrations(ctx context.Context, pool *pgxpool.Pool) error {
 			return fmt.Errorf("read %s: %w", entry.Name(), err)
 		}
 		if _, err := pool.Exec(ctx, string(data)); err != nil {
-			// Skip auth.users references since we don't have Supabase auth schema.
+			// Skip schema references if not present in local test container.
 			fmt.Fprintf(os.Stderr, "WARN: migration %s failed (may be expected): %v\n", entry.Name(), err)
 		}
 	}

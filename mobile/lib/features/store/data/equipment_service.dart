@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mobile/data/clients/supabase_client.dart';
+import 'package:mobile/data/clients/api_client.dart';
 import 'package:mobile/features/store/data/store_service.dart';
 import 'dart:developer' as dev;
 import 'package:shared_preferences/shared_preferences.dart';

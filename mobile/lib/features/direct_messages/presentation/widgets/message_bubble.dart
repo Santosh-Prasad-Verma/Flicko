@@ -9,7 +9,7 @@ import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:mobile/features/shared/presentation/widgets/safe_network_media.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:mobile/data/clients/supabase_client.dart';
+import 'package:mobile/data/clients/api_client.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/features/shared/presentation/widgets/message_drip_card.dart';
 import 'package:google_fonts/google_fonts.dart';

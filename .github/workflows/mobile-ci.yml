@@ -11,6 +11,9 @@ on:
     paths:
       - 'mobile/**'
 
+permissions:
+  contents: read
+
 jobs:
   analyze-and-build:
     name: Flutter Analyze & Build APK

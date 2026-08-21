@@ -2,11 +2,10 @@ import 'dart:async';
 import 'dart:developer' as developer;
 import 'dart:io' show Platform;
 import 'package:flutter/services.dart';
-import 'package:livekit_client/livekit_client.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 /// Serial task runner (Mutex lock) to guarantee that media lifecycle operations
-/// (camera toggles, screen share toggles, track publishing/unpublishing, room joins)
-/// execute sequentially without race conditions or overlapping WebRTC SDP renegotiations.
+/// execute sequentially without race conditions.
 class MediaLock {
   Future<void>? _lastOperation;
 
@@ -32,265 +31,163 @@ class MediaLock {
   }
 }
 
-/// Production-Grade Media Lifecycle Engine for LiveKit & WebRTC.
+/// Production-Grade Media Lifecycle Engine using flutter_webrtc.
 ///
-/// Architecture Principles:
-/// 1. DELEGATES track lifecycle to LiveKit SDK's LocalParticipant API
-///    (setCameraEnabled/setScreenShareEnabled/setMicrophoneEnabled).
-///    Manual track creation (createCameraTrack + publishVideoTrack) is REMOVED
-///    to prevent double-dispose conflicts with the SDK's internal state machine.
-/// 2. Serialized execution via [MediaLock] prevents concurrent SDP offer/answer collisions.
-/// 3. Android MediaProjection FGS is started AFTER user consent (in onActivityResult),
-///    not before — required by Android 14+ (API 34) to avoid SecurityException.
-/// 4. Full lifecycle logging for auditability.
+/// Handles microphone, camera, and Android 14+ Screen Capture Foreground Service (FGS).
 class MediaEngine {
   final MediaLock _lock = MediaLock();
   static const _screenCaptureChannel =
       MethodChannel('tech.focko.flicko/screen_capture');
 
+  RTCVideoRenderer? _localRenderer;
+  MediaStream? _localStream;
+  MediaStream? _screenStream;
+
   bool _isScreenServiceRunning = false;
+  bool _isCameraEnabled = false;
+  bool _isMicrophoneEnabled = true;
 
   MediaLock get lock => _lock;
+  RTCVideoRenderer? get localRenderer => _localRenderer;
+  MediaStream? get localStream => _localStream;
+  MediaStream? get screenStream => _screenStream;
 
-  /// Safely toggles local camera stream on a LiveKit [Room].
-  ///
-  /// Delegates entirely to LiveKit SDK's [LocalParticipant.setCameraEnabled()]
-  /// to avoid Camera2 HAL lifecycle conflicts (double-dispose, HAL session races).
-  /// Includes automatic fallback from 540p to 360p on failure.
-  Future<bool> setCameraEnabled(
-    Room room,
-    bool enabled, {
-    CameraCaptureOptions? cameraCaptureOptions,
-  }) {
+  Future<void> initLocalMedia() async {
     return _lock.run(() async {
-      final localParticipant = room.localParticipant;
-      if (localParticipant == null) {
-        developer.log(
-          '[MediaEngine] setCameraEnabled: localParticipant is null',
-          name: 'MediaEngine',
-        );
-        return false;
+      if (_localRenderer == null) {
+        _localRenderer = RTCVideoRenderer();
+        await _localRenderer!.initialize();
       }
 
-      final currentlyEnabled = localParticipant.isCameraEnabled();
-      developer.log(
-        '[MediaEngine] setCameraEnabled requested: target=$enabled, currentlyEnabled=$currentlyEnabled',
-        name: 'MediaEngine',
-      );
-
-      if (!enabled) {
-        developer.log(
-          '[MediaEngine] Disabling camera via LiveKit SDK...',
-          name: 'MediaEngine',
-        );
+      if (_localStream == null) {
         try {
-          await localParticipant.setCameraEnabled(false);
+          final mediaConstraints = <String, dynamic>{
+            'audio': {
+              'echoCancellation': true,
+              'noiseSuppression': true,
+              'autoGainControl': true,
+            },
+            'video': false,
+          };
+          _localStream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
+          _isMicrophoneEnabled = true;
+          _isCameraEnabled = false;
         } catch (e) {
-          developer.log(
-            '[MediaEngine] Camera disable error (non-fatal): $e',
-            name: 'MediaEngine',
-          );
-        }
-        developer.log(
-          '[MediaEngine] Camera disabled successfully',
-          name: 'MediaEngine',
-        );
-        return false;
-      }
-
-      // === ENABLING CAMERA ===
-      // Use caller options or native auto-negotiated options directly.
-      // Avoid forcing intermediate resolution resets (540p -> 720p) that cause Camera2 HAL session
-      // tear-down exceptions (-38) on vendor hardware (Oplus/ColorOS/Realme).
-      developer.log(
-        '[MediaEngine] Enabling camera via LiveKit SDK...',
-        name: 'MediaEngine',
-      );
-      try {
-        await localParticipant.setCameraEnabled(
-          true,
-          cameraCaptureOptions: cameraCaptureOptions,
-        );
-        developer.log(
-          '[MediaEngine] Camera enabled successfully',
-          name: 'MediaEngine',
-        );
-        return true;
-      } catch (primaryError) {
-        developer.log(
-          '[MediaEngine] Primary camera option failed: $primaryError. Waiting for HAL cleanup...',
-          name: 'MediaEngine',
-          error: primaryError,
-        );
-
-        // Clean up partial state and allow Camera2 HAL time to release hardware resources
-        try {
-          await localParticipant.setCameraEnabled(false);
-        } catch (_) {}
-
-        await Future.delayed(const Duration(milliseconds: 1000));
-
-        developer.log(
-          '[MediaEngine] Retrying camera with native auto-negotiated options...',
-          name: 'MediaEngine',
-        );
-        try {
-          await localParticipant.setCameraEnabled(true);
-          developer.log(
-            '[MediaEngine] Camera enabled successfully on retry',
-            name: 'MediaEngine',
-          );
-          return true;
-        } catch (fallbackError) {
-          try {
-            await localParticipant.setCameraEnabled(false);
-          } catch (_) {}
-          developer.log(
-            '[MediaEngine] Camera hardware unavailable or in use by another app',
-            name: 'MediaEngine',
-          );
-          return false;
+          developer.log('[MediaEngine] Error initializing audio stream: $e', name: 'MediaEngine');
         }
       }
     });
   }
 
-  /// Safely toggles local screen share stream on a LiveKit [Room].
-  ///
-  /// CRITICAL Android 14+ (API 34) FGS Timing:
-  /// The MediaProjection foreground service MUST be started AFTER the user
-  /// grants consent (in onActivityResult), NOT before. Calling startForeground()
-  /// with FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION before consent throws
-  /// SecurityException / MissingForegroundServiceTypeException on Android 14+.
-  ///
-  /// Flow:
-  /// 1. Dart calls 'prepareCapture' via MethodChannel → sets flag in MainActivity
-  /// 2. LiveKit SDK shows system consent dialog
-  /// 3. User approves → onActivityResult fires → FGS starts (using flag)
-  /// 4. super.onActivityResult() is deferred 300ms so FGS calls startForeground()
-  /// 5. flutter_webrtc calls getMediaProjection() → FGS is active → succeeds
-  Future<bool> setScreenShareEnabled(Room room, bool enabled) {
+  /// Safely toggles local camera stream.
+  Future<bool> setCameraEnabled(bool enabled) {
     return _lock.run(() async {
-      final localParticipant = room.localParticipant;
-      if (localParticipant == null) {
-        developer.log(
-          '[MediaEngine] setScreenShareEnabled: localParticipant is null',
-          name: 'MediaEngine',
-        );
+      if (_localRenderer == null) {
+        _localRenderer = RTCVideoRenderer();
+        await _localRenderer!.initialize();
+      }
+
+      if (!enabled) {
+        developer.log('[MediaEngine] Disabling camera...', name: 'MediaEngine');
+        if (_localStream != null) {
+          for (final track in _localStream!.getVideoTracks()) {
+            track.enabled = false;
+            await track.stop();
+            _localStream!.removeTrack(track);
+          }
+        }
+        _localRenderer?.srcObject = null;
+        _isCameraEnabled = false;
         return false;
       }
 
-      final currentlyEnabled = localParticipant.isScreenShareEnabled();
-      developer.log(
-        '[MediaEngine] setScreenShareEnabled requested: target=$enabled, currentlyEnabled=$currentlyEnabled',
-        name: 'MediaEngine',
-      );
-
-      if (currentlyEnabled == enabled) {
-        developer.log(
-          '[MediaEngine] Screen share already in requested state ($enabled)',
-          name: 'MediaEngine',
-        );
-        return enabled;
+      developer.log('[MediaEngine] Enabling camera...', name: 'MediaEngine');
+      try {
+        final videoConstraints = <String, dynamic>{
+          'audio': false,
+          'video': {
+            'facingMode': 'user',
+            'width': {'ideal': 720},
+            'height': {'ideal': 1280},
+          },
+        };
+        final videoStream = await navigator.mediaDevices.getUserMedia(videoConstraints);
+        if (_localStream == null) {
+          _localStream = videoStream;
+        } else {
+          for (final track in videoStream.getVideoTracks()) {
+            _localStream!.addTrack(track);
+          }
+        }
+        _localRenderer?.srcObject = _localStream;
+        _isCameraEnabled = true;
+        return true;
+      } catch (e) {
+        developer.log('[MediaEngine] Failed to enable camera: $e', name: 'MediaEngine', error: e);
+        _isCameraEnabled = false;
+        return false;
       }
+    });
+  }
 
+  /// Safely toggles local screen share stream.
+  ///
+  /// CRITICAL Android 14+ (API 34) FGS Timing:
+  /// The MediaProjection foreground service MUST be started AFTER the user
+  /// grants consent.
+  Future<bool> setScreenShareEnabled(bool enabled) {
+    return _lock.run(() async {
       if (enabled) {
-        developer.log(
-          '[MediaEngine] Starting screen share process...',
-          name: 'MediaEngine',
-        );
-
-        // On Android 14+ (API 34), signal the Activity to prepare for
-        // MediaProjection FGS start. The actual FGS start happens in
-        // onActivityResult() AFTER the user grants consent.
+        developer.log('[MediaEngine] Starting screen share process...', name: 'MediaEngine');
         if (Platform.isAndroid) {
           try {
-            developer.log(
-              '[MediaEngine] Starting Android Screen Capture Foreground Service (mediaProjection)...',
-              name: 'MediaEngine',
-            );
+            developer.log('[MediaEngine] Starting Android Screen Capture FGS...', name: 'MediaEngine');
             await _screenCaptureChannel.invokeMethod('startService');
             _isScreenServiceRunning = true;
-            developer.log(
-              '[MediaEngine] Screen capture FGS started successfully',
-              name: 'MediaEngine',
-            );
-            // Allow Android OS time to register the active foreground service
             await Future.delayed(const Duration(milliseconds: 300));
           } catch (e) {
-            developer.log(
-              '[MediaEngine] Failed to start screen capture service: $e',
-              name: 'MediaEngine',
-              error: e,
-            );
+            developer.log('[MediaEngine] Failed to start screen capture service: $e', name: 'MediaEngine', error: e);
           }
         }
 
         try {
-          developer.log(
-            '[MediaEngine] Publishing Screen Share Track to LiveKit Room...',
-            name: 'MediaEngine',
-          );
-          await localParticipant.setScreenShareEnabled(true);
+          final stream = await navigator.mediaDevices.getDisplayMedia(<String, dynamic>{
+            'video': true,
+            'audio': false,
+          });
+          _screenStream = stream;
           _isScreenServiceRunning = Platform.isAndroid;
-          developer.log(
-            '[MediaEngine] Screen share track published successfully',
-            name: 'MediaEngine',
-          );
           return true;
         } catch (e) {
-          developer.log(
-            '[MediaEngine] Failed to publish screen share track: $e',
-            name: 'MediaEngine',
-            error: e,
-          );
-          // Clean up FGS on failure
+          developer.log('[MediaEngine] Failed to capture display media: $e', name: 'MediaEngine', error: e);
           if (Platform.isAndroid) {
             await Future.delayed(const Duration(milliseconds: 300));
             try {
               await _screenCaptureChannel.invokeMethod('stopService');
-              developer.log(
-                '[MediaEngine] Stopped Screen Capture Service after publish failure',
-                name: 'MediaEngine',
-              );
             } catch (_) {}
             _isScreenServiceRunning = false;
           }
-          rethrow;
+          return false;
         }
       } else {
-        developer.log(
-          '[MediaEngine] Stopping screen share process...',
-          name: 'MediaEngine',
-        );
+        developer.log('[MediaEngine] Stopping screen share process...', name: 'MediaEngine');
         try {
-          await localParticipant.setScreenShareEnabled(false);
-          developer.log(
-            '[MediaEngine] Screen share track unpublished successfully',
-            name: 'MediaEngine',
-          );
+          if (_screenStream != null) {
+            for (final track in _screenStream!.getTracks()) {
+              await track.stop();
+            }
+            await _screenStream!.dispose();
+            _screenStream = null;
+          }
         } catch (e) {
-          developer.log(
-            '[MediaEngine] Error while unpublishing screen share track: $e',
-            name: 'MediaEngine',
-            error: e,
-          );
+          developer.log('[MediaEngine] Error stopping screen share: $e', name: 'MediaEngine', error: e);
         } finally {
           if (Platform.isAndroid && _isScreenServiceRunning) {
-            // Delay service teardown until native capturer releases MediaProjection
             await Future.delayed(const Duration(milliseconds: 400));
             try {
               await _screenCaptureChannel.invokeMethod('stopService');
-              developer.log(
-                '[MediaEngine] Android Screen Capture Service stopped successfully',
-                name: 'MediaEngine',
-              );
             } catch (e) {
-              developer.log(
-                '[MediaEngine] Failed to stop Screen Capture Service: $e',
-                name: 'MediaEngine',
-                error: e,
-              );
+              developer.log('[MediaEngine] Failed to stop screen service: $e', name: 'MediaEngine');
             }
             _isScreenServiceRunning = false;
           }
@@ -300,68 +197,64 @@ class MediaEngine {
     });
   }
 
-  /// Safely toggles local microphone stream on a LiveKit [Room].
-  Future<bool> setMicrophoneEnabled(
-    Room room,
-    bool enabled, {
-    AudioCaptureOptions? audioCaptureOptions,
-  }) {
+  /// Safely toggles local microphone mute state.
+  Future<bool> setMicrophoneMuted(bool muted) {
     return _lock.run(() async {
-      final localParticipant = room.localParticipant;
-      if (localParticipant == null) {
-        developer.log(
-          '[MediaEngine] setMicrophoneEnabled: localParticipant is null',
-          name: 'MediaEngine',
-        );
-        return false;
+      _isMicrophoneEnabled = !muted;
+      if (_localStream != null) {
+        for (final track in _localStream!.getAudioTracks()) {
+          track.enabled = _isMicrophoneEnabled;
+        }
       }
-
-      developer.log(
-        '[MediaEngine] setMicrophoneEnabled requested: target=$enabled',
-        name: 'MediaEngine',
-      );
-
-      const defaultAudioOptions = AudioCaptureOptions(
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true,
-        typingNoiseDetection: true,
-      );
-
-      final options = audioCaptureOptions ?? defaultAudioOptions;
-      await localParticipant.setMicrophoneEnabled(
-        enabled,
-        audioCaptureOptions: options,
-      );
-      final isEnabled = localParticipant.isMicrophoneEnabled();
-      developer.log(
-        '[MediaEngine] Microphone track state updated: isEnabled=$isEnabled',
-        name: 'MediaEngine',
-      );
-      return isEnabled;
+      return _isMicrophoneEnabled;
     });
   }
 
-  /// Safely stops foreground services on room disconnect.
-  /// Delegates track disposal entirely to LiveKit SDK's [Room.disconnect()]
-  /// to prevent double-dispose warnings on track emitters.
-  Future<void> disposeRoomMedia(Room? room) {
+  /// Sets deafened mode
+  Future<void> setDeafened(bool deafened) {
     return _lock.run(() async {
-      if (room == null) return;
-      developer.log(
-        '[MediaEngine] Cleaning up media background services on room disconnect...',
-        name: 'MediaEngine',
-      );
+      try {
+        await Helper.setSpeakerphoneOn(!deafened);
+      } catch (e) {
+        developer.log('[MediaEngine] Error setting deafen audio state: $e', name: 'MediaEngine');
+      }
+    });
+  }
+
+  /// Safely stops foreground services and releases streams on room disconnect.
+  Future<void> disposeRoomMedia() {
+    return _lock.run(() async {
+      developer.log('[MediaEngine] Cleaning up media background services on room disconnect...', name: 'MediaEngine');
       if (Platform.isAndroid && _isScreenServiceRunning) {
         try {
           await _screenCaptureChannel.invokeMethod('stopService');
-          developer.log(
-            '[MediaEngine] Screen Capture Service stopped during room media disposal',
-            name: 'MediaEngine',
-          );
         } catch (_) {}
         _isScreenServiceRunning = false;
       }
+
+      if (_screenStream != null) {
+        for (final track in _screenStream!.getTracks()) {
+          await track.stop();
+        }
+        await _screenStream!.dispose();
+        _screenStream = null;
+      }
+
+      if (_localStream != null) {
+        for (final track in _localStream!.getTracks()) {
+          await track.stop();
+        }
+        await _localStream!.dispose();
+        _localStream = null;
+      }
+
+      _localRenderer?.srcObject = null;
     });
+  }
+
+  Future<void> dispose() async {
+    await disposeRoomMedia();
+    await _localRenderer?.dispose();
+    _localRenderer = null;
   }
 }

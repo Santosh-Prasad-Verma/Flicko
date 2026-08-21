@@ -22,7 +22,6 @@ import 'package:mobile/features/ai_assistant/data/aura_settings_provider.dart';
 import 'package:mobile/features/ai_assistant/data/aura_chat_service.dart';
 import 'package:mobile/features/ai_assistant/data/aura_live_audio_service.dart';
 import 'package:mobile/features/ai_assistant/data/web_search_service.dart';
-import 'package:mobile/data/clients/supabase_client.dart' as supabase;
 
 enum AuraVoiceState { idle, connecting, listening, thinking, speaking }
 
@@ -592,20 +591,16 @@ Important rules:
     bool audioSuccess = false;
     bool textFallbackSuccess = false;
 
-    // 1. Try to call aura-chat Edge Function (secure server-side Grok API)
+    // 1. Try to call aura-chat API (secure server-side Grok API)
     try {
-      final supabaseUrl = AppConfig.supabaseUrl;
+      final apiBaseUrl = AppConfig.apiBaseUrl;
       final dio = Dio();
-      final accessToken = supabase.Supabase.instance.client.auth.currentSession?.accessToken;
 
       final response = await dio.post(
-        '$supabaseUrl/functions/v1/aura-chat',
+        '$apiBaseUrl/aura/chat',
         options: Options(
           headers: {
             'Content-Type': 'application/json',
-            if (accessToken != null)
-              'Authorization': 'Bearer $accessToken',
-            'apikey': AppConfig.supabaseAnonKey,
           },
         ),
         data: {
@@ -633,21 +628,17 @@ Important rules:
       debugPrint('[Aura] Server-side voice chat proxy failed: $e');
     }
 
-    // 2. Try to synthesize high-quality speech via aura-tts Edge Function (secure server-side xAI TTS API)
+    // 2. Try to synthesize high-quality speech via aura-tts API (secure server-side xAI TTS API)
     if (textFallbackSuccess && responseText.isNotEmpty) {
       try {
-        final supabaseUrl = AppConfig.supabaseUrl;
+        final apiBaseUrl = AppConfig.apiBaseUrl;
         final dio = Dio();
-        final accessToken = supabase.Supabase.instance.client.auth.currentSession?.accessToken;
 
         final ttsResponse = await dio.post(
-          '$supabaseUrl/functions/v1/aura-tts',
+          '$apiBaseUrl/aura/tts',
           options: Options(
             headers: {
               'Content-Type': 'application/json',
-              if (accessToken != null)
-                'Authorization': 'Bearer $accessToken',
-              'apikey': AppConfig.supabaseAnonKey,
             },
             responseType: ResponseType.bytes, // Streaming binary bytes
           ),
