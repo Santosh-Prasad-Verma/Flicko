@@ -130,7 +130,7 @@ func (b *PollBot) createPoll(ctx commands.CommandContext) (*commands.CommandResp
 		}
 	}
 
-	// CRIT-4: the canonical polls schema (supabase/migrations/040_polls.sql)
+	// CRIT-4: the canonical polls schema
 	// requires message_id NOT NULL. We insert a placeholder system message
 	// in the channel first, then attach the poll to it.
 	systemID, _ := EnsureSystemUser(reqCtx, b.ctx)

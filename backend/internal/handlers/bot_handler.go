@@ -133,8 +133,7 @@ func (h *BotHandler) InvokeCommand(w http.ResponseWriter, r *http.Request) {
 	sanitizedOptions := h.sanitizeOptions(body.Options)
 	body.Options = sanitizedOptions
 
-	// Create an interaction record matching the deployed schema
-	// (supabase/migrations/054_phase2_rich_experience_tables.sql).
+	// Create an interaction record matching the deployed schema.
 	// type=2 == APPLICATION_COMMAND in the Discord-style enum.
 	var interactionID string
 	{
@@ -623,7 +622,7 @@ func (h *BotHandler) GetStarboardEntries(w http.ResponseWriter, r *http.Request)
 
 // NotifyMemberJoin publishes a MEMBER_JOIN event so bots (e.g. WelcomeBot) can
 // react when a user joins a server. The frontend calls this after adding the
-// member directly via Supabase.
+// member directly.
 //
 // Idempotent per (server_id, user_id) for 60 seconds to absorb retries.
 func (h *BotHandler) NotifyMemberJoin(w http.ResponseWriter, r *http.Request) {
@@ -679,7 +678,7 @@ func (h *BotHandler) NotifyMemberLeave(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify the caller is still a member (notifyMemberLeave is called before Supabase delete)
+	// Verify the caller is still a member (notifyMemberLeave is called before member delete)
 	var memberExists bool
 	if err := h.db.QueryRow(r.Context(),
 		`SELECT EXISTS(SELECT 1 FROM server_members WHERE server_id = $1 AND user_id = $2)`,

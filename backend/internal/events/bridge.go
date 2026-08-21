@@ -8,7 +8,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// Bridge handles syncing internal events to external systems (e.g. Supabase Realtime).
+// Bridge handles syncing internal events to external systems (e.g. WebPubSub / Realtime).
 type Bridge struct {
 	db     database.DatabaseClient
 	bus    *EventBus
@@ -56,7 +56,7 @@ func (b *Bridge) Start() {
 		CommandInvoke,
 	}
 
-	b.bus.SubscribeMany(clientEvents, "bridge.supabase", b.handleClientEvent)
+	b.bus.SubscribeMany(clientEvents, "bridge.realtime", b.handleClientEvent)
 }
 
 func (b *Bridge) handleClientEvent(evt Event) error {

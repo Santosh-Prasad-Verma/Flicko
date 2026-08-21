@@ -1166,8 +1166,8 @@ class __$WatchTogetherSessionCopyWithImpl<$Res>
 /// @nodoc
 mixin _$WatchTogetherJoinResponse {
   WatchTogetherSession get session;
-  @JsonKey(name: 'livekit_token')
-  String get liveKitToken;
+  @JsonKey(name: 'voice_token', defaultValue: '')
+  String get voiceToken;
 
   /// Create a copy of WatchTogetherJoinResponse
   /// with the given fields replaced by the non-null parameter values.
@@ -1186,17 +1186,17 @@ mixin _$WatchTogetherJoinResponse {
         (other.runtimeType == runtimeType &&
             other is WatchTogetherJoinResponse &&
             (identical(other.session, session) || other.session == session) &&
-            (identical(other.liveKitToken, liveKitToken) ||
-                other.liveKitToken == liveKitToken));
+            (identical(other.voiceToken, voiceToken) ||
+                other.voiceToken == voiceToken));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, session, liveKitToken);
+  int get hashCode => Object.hash(runtimeType, session, voiceToken);
 
   @override
   String toString() {
-    return 'WatchTogetherJoinResponse(session: $session, liveKitToken: $liveKitToken)';
+    return 'WatchTogetherJoinResponse(session: $session, voiceToken: $voiceToken)';
   }
 }
 
@@ -1208,7 +1208,7 @@ abstract mixin class $WatchTogetherJoinResponseCopyWith<$Res> {
   @useResult
   $Res call(
       {WatchTogetherSession session,
-      @JsonKey(name: 'livekit_token') String liveKitToken});
+      @JsonKey(name: 'voice_token', defaultValue: '') String voiceToken});
 
   $WatchTogetherSessionCopyWith<$Res> get session;
 }
@@ -1227,16 +1227,16 @@ class _$WatchTogetherJoinResponseCopyWithImpl<$Res>
   @override
   $Res call({
     Object? session = null,
-    Object? liveKitToken = null,
+    Object? voiceToken = null,
   }) {
     return _then(_self.copyWith(
       session: null == session
           ? _self.session
           : session // ignore: cast_nullable_to_non_nullable
               as WatchTogetherSession,
-      liveKitToken: null == liveKitToken
-          ? _self.liveKitToken
-          : liveKitToken // ignore: cast_nullable_to_non_nullable
+      voiceToken: null == voiceToken
+          ? _self.voiceToken
+          : voiceToken // ignore: cast_nullable_to_non_nullable
               as String,
     ));
   }
@@ -1346,14 +1346,14 @@ extension WatchTogetherJoinResponsePatterns on WatchTogetherJoinResponse {
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>(
     TResult Function(WatchTogetherSession session,
-            @JsonKey(name: 'livekit_token') String liveKitToken)?
+            @JsonKey(name: 'voice_token', defaultValue: '') String voiceToken)?
         $default, {
     required TResult orElse(),
   }) {
     final _that = this;
     switch (_that) {
       case _WatchTogetherJoinResponse() when $default != null:
-        return $default(_that.session, _that.liveKitToken);
+        return $default(_that.session, _that.voiceToken);
       case _:
         return orElse();
     }
@@ -1375,13 +1375,13 @@ extension WatchTogetherJoinResponsePatterns on WatchTogetherJoinResponse {
   @optionalTypeArgs
   TResult when<TResult extends Object?>(
     TResult Function(WatchTogetherSession session,
-            @JsonKey(name: 'livekit_token') String liveKitToken)
+            @JsonKey(name: 'voice_token', defaultValue: '') String voiceToken)
         $default,
   ) {
     final _that = this;
     switch (_that) {
       case _WatchTogetherJoinResponse():
-        return $default(_that.session, _that.liveKitToken);
+        return $default(_that.session, _that.voiceToken);
       case _:
         throw StateError('Unexpected subclass');
     }
@@ -1402,13 +1402,13 @@ extension WatchTogetherJoinResponsePatterns on WatchTogetherJoinResponse {
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>(
     TResult? Function(WatchTogetherSession session,
-            @JsonKey(name: 'livekit_token') String liveKitToken)?
+            @JsonKey(name: 'voice_token', defaultValue: '') String voiceToken)?
         $default,
   ) {
     final _that = this;
     switch (_that) {
       case _WatchTogetherJoinResponse() when $default != null:
-        return $default(_that.session, _that.liveKitToken);
+        return $default(_that.session, _that.voiceToken);
       case _:
         return null;
     }
@@ -1420,15 +1420,15 @@ extension WatchTogetherJoinResponsePatterns on WatchTogetherJoinResponse {
 class _WatchTogetherJoinResponse implements WatchTogetherJoinResponse {
   const _WatchTogetherJoinResponse(
       {required this.session,
-      @JsonKey(name: 'livekit_token') required this.liveKitToken});
+      @JsonKey(name: 'voice_token', defaultValue: '') this.voiceToken = ''});
   factory _WatchTogetherJoinResponse.fromJson(Map<String, dynamic> json) =>
       _$WatchTogetherJoinResponseFromJson(json);
 
   @override
   final WatchTogetherSession session;
   @override
-  @JsonKey(name: 'livekit_token')
-  final String liveKitToken;
+  @JsonKey(name: 'voice_token', defaultValue: '')
+  final String voiceToken;
 
   /// Create a copy of WatchTogetherJoinResponse
   /// with the given fields replaced by the non-null parameter values.
@@ -1453,17 +1453,17 @@ class _WatchTogetherJoinResponse implements WatchTogetherJoinResponse {
         (other.runtimeType == runtimeType &&
             other is _WatchTogetherJoinResponse &&
             (identical(other.session, session) || other.session == session) &&
-            (identical(other.liveKitToken, liveKitToken) ||
-                other.liveKitToken == liveKitToken));
+            (identical(other.voiceToken, voiceToken) ||
+                other.voiceToken == voiceToken));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, session, liveKitToken);
+  int get hashCode => Object.hash(runtimeType, session, voiceToken);
 
   @override
   String toString() {
-    return 'WatchTogetherJoinResponse(session: $session, liveKitToken: $liveKitToken)';
+    return 'WatchTogetherJoinResponse(session: $session, voiceToken: $voiceToken)';
   }
 }
 
@@ -1477,7 +1477,7 @@ abstract mixin class _$WatchTogetherJoinResponseCopyWith<$Res>
   @useResult
   $Res call(
       {WatchTogetherSession session,
-      @JsonKey(name: 'livekit_token') String liveKitToken});
+      @JsonKey(name: 'voice_token', defaultValue: '') String voiceToken});
 
   @override
   $WatchTogetherSessionCopyWith<$Res> get session;
@@ -1497,16 +1497,16 @@ class __$WatchTogetherJoinResponseCopyWithImpl<$Res>
   @pragma('vm:prefer-inline')
   $Res call({
     Object? session = null,
-    Object? liveKitToken = null,
+    Object? voiceToken = null,
   }) {
     return _then(_WatchTogetherJoinResponse(
       session: null == session
           ? _self.session
           : session // ignore: cast_nullable_to_non_nullable
               as WatchTogetherSession,
-      liveKitToken: null == liveKitToken
-          ? _self.liveKitToken
-          : liveKitToken // ignore: cast_nullable_to_non_nullable
+      voiceToken: null == voiceToken
+          ? _self.voiceToken
+          : voiceToken // ignore: cast_nullable_to_non_nullable
               as String,
     ));
   }

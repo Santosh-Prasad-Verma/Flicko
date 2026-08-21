@@ -14,12 +14,14 @@ T _$identity<T>(T value) => value;
 
 /// @nodoc
 mixin _$ParticipantState {
-  Participant get participant;
-  VideoTrack? get videoTrack;
-  VideoTrack? get screenShareTrack;
-  AudioTrack? get audioTrack;
+  String get id;
+  String get name;
+  RTCVideoRenderer? get videoRenderer;
+  RTCVideoRenderer? get screenShareRenderer;
+  bool get hasVideo;
   bool get isSpeaking;
   bool get isMuted;
+  bool get isScreenSharing;
 
   /// Create a copy of ParticipantState
   /// with the given fields replaced by the non-null parameter values.
@@ -34,26 +36,28 @@ mixin _$ParticipantState {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is ParticipantState &&
-            (identical(other.participant, participant) ||
-                other.participant == participant) &&
-            (identical(other.videoTrack, videoTrack) ||
-                other.videoTrack == videoTrack) &&
-            (identical(other.screenShareTrack, screenShareTrack) ||
-                other.screenShareTrack == screenShareTrack) &&
-            (identical(other.audioTrack, audioTrack) ||
-                other.audioTrack == audioTrack) &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.name, name) || other.name == name) &&
+            (identical(other.videoRenderer, videoRenderer) ||
+                other.videoRenderer == videoRenderer) &&
+            (identical(other.screenShareRenderer, screenShareRenderer) ||
+                other.screenShareRenderer == screenShareRenderer) &&
+            (identical(other.hasVideo, hasVideo) ||
+                other.hasVideo == hasVideo) &&
             (identical(other.isSpeaking, isSpeaking) ||
                 other.isSpeaking == isSpeaking) &&
-            (identical(other.isMuted, isMuted) || other.isMuted == isMuted));
+            (identical(other.isMuted, isMuted) || other.isMuted == isMuted) &&
+            (identical(other.isScreenSharing, isScreenSharing) ||
+                other.isScreenSharing == isScreenSharing));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, participant, videoTrack,
-      screenShareTrack, audioTrack, isSpeaking, isMuted);
+  int get hashCode => Object.hash(runtimeType, id, name, videoRenderer,
+      screenShareRenderer, hasVideo, isSpeaking, isMuted, isScreenSharing);
 
   @override
   String toString() {
-    return 'ParticipantState(participant: $participant, videoTrack: $videoTrack, screenShareTrack: $screenShareTrack, audioTrack: $audioTrack, isSpeaking: $isSpeaking, isMuted: $isMuted)';
+    return 'ParticipantState(id: $id, name: $name, videoRenderer: $videoRenderer, screenShareRenderer: $screenShareRenderer, hasVideo: $hasVideo, isSpeaking: $isSpeaking, isMuted: $isMuted, isScreenSharing: $isScreenSharing)';
   }
 }
 
@@ -64,12 +68,14 @@ abstract mixin class $ParticipantStateCopyWith<$Res> {
       _$ParticipantStateCopyWithImpl;
   @useResult
   $Res call(
-      {Participant participant,
-      VideoTrack? videoTrack,
-      VideoTrack? screenShareTrack,
-      AudioTrack? audioTrack,
+      {String id,
+      String name,
+      RTCVideoRenderer? videoRenderer,
+      RTCVideoRenderer? screenShareRenderer,
+      bool hasVideo,
       bool isSpeaking,
-      bool isMuted});
+      bool isMuted,
+      bool isScreenSharing});
 }
 
 /// @nodoc
@@ -85,30 +91,36 @@ class _$ParticipantStateCopyWithImpl<$Res>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? participant = null,
-    Object? videoTrack = freezed,
-    Object? screenShareTrack = freezed,
-    Object? audioTrack = freezed,
+    Object? id = null,
+    Object? name = null,
+    Object? videoRenderer = freezed,
+    Object? screenShareRenderer = freezed,
+    Object? hasVideo = null,
     Object? isSpeaking = null,
     Object? isMuted = null,
+    Object? isScreenSharing = null,
   }) {
     return _then(_self.copyWith(
-      participant: null == participant
-          ? _self.participant
-          : participant // ignore: cast_nullable_to_non_nullable
-              as Participant,
-      videoTrack: freezed == videoTrack
-          ? _self.videoTrack
-          : videoTrack // ignore: cast_nullable_to_non_nullable
-              as VideoTrack?,
-      screenShareTrack: freezed == screenShareTrack
-          ? _self.screenShareTrack
-          : screenShareTrack // ignore: cast_nullable_to_non_nullable
-              as VideoTrack?,
-      audioTrack: freezed == audioTrack
-          ? _self.audioTrack
-          : audioTrack // ignore: cast_nullable_to_non_nullable
-              as AudioTrack?,
+      id: null == id
+          ? _self.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      name: null == name
+          ? _self.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      videoRenderer: freezed == videoRenderer
+          ? _self.videoRenderer
+          : videoRenderer // ignore: cast_nullable_to_non_nullable
+              as RTCVideoRenderer?,
+      screenShareRenderer: freezed == screenShareRenderer
+          ? _self.screenShareRenderer
+          : screenShareRenderer // ignore: cast_nullable_to_non_nullable
+              as RTCVideoRenderer?,
+      hasVideo: null == hasVideo
+          ? _self.hasVideo
+          : hasVideo // ignore: cast_nullable_to_non_nullable
+              as bool,
       isSpeaking: null == isSpeaking
           ? _self.isSpeaking
           : isSpeaking // ignore: cast_nullable_to_non_nullable
@@ -116,6 +128,10 @@ class _$ParticipantStateCopyWithImpl<$Res>
       isMuted: null == isMuted
           ? _self.isMuted
           : isMuted // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isScreenSharing: null == isScreenSharing
+          ? _self.isScreenSharing
+          : isScreenSharing // ignore: cast_nullable_to_non_nullable
               as bool,
     ));
   }
@@ -215,12 +231,14 @@ extension ParticipantStatePatterns on ParticipantState {
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>(
     TResult Function(
-            Participant participant,
-            VideoTrack? videoTrack,
-            VideoTrack? screenShareTrack,
-            AudioTrack? audioTrack,
+            String id,
+            String name,
+            RTCVideoRenderer? videoRenderer,
+            RTCVideoRenderer? screenShareRenderer,
+            bool hasVideo,
             bool isSpeaking,
-            bool isMuted)?
+            bool isMuted,
+            bool isScreenSharing)?
         $default, {
     required TResult orElse(),
   }) {
@@ -228,12 +246,14 @@ extension ParticipantStatePatterns on ParticipantState {
     switch (_that) {
       case _ParticipantState() when $default != null:
         return $default(
-            _that.participant,
-            _that.videoTrack,
-            _that.screenShareTrack,
-            _that.audioTrack,
+            _that.id,
+            _that.name,
+            _that.videoRenderer,
+            _that.screenShareRenderer,
+            _that.hasVideo,
             _that.isSpeaking,
-            _that.isMuted);
+            _that.isMuted,
+            _that.isScreenSharing);
       case _:
         return orElse();
     }
@@ -255,24 +275,28 @@ extension ParticipantStatePatterns on ParticipantState {
   @optionalTypeArgs
   TResult when<TResult extends Object?>(
     TResult Function(
-            Participant participant,
-            VideoTrack? videoTrack,
-            VideoTrack? screenShareTrack,
-            AudioTrack? audioTrack,
+            String id,
+            String name,
+            RTCVideoRenderer? videoRenderer,
+            RTCVideoRenderer? screenShareRenderer,
+            bool hasVideo,
             bool isSpeaking,
-            bool isMuted)
+            bool isMuted,
+            bool isScreenSharing)
         $default,
   ) {
     final _that = this;
     switch (_that) {
       case _ParticipantState():
         return $default(
-            _that.participant,
-            _that.videoTrack,
-            _that.screenShareTrack,
-            _that.audioTrack,
+            _that.id,
+            _that.name,
+            _that.videoRenderer,
+            _that.screenShareRenderer,
+            _that.hasVideo,
             _that.isSpeaking,
-            _that.isMuted);
+            _that.isMuted,
+            _that.isScreenSharing);
       case _:
         throw StateError('Unexpected subclass');
     }
@@ -293,24 +317,28 @@ extension ParticipantStatePatterns on ParticipantState {
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>(
     TResult? Function(
-            Participant participant,
-            VideoTrack? videoTrack,
-            VideoTrack? screenShareTrack,
-            AudioTrack? audioTrack,
+            String id,
+            String name,
+            RTCVideoRenderer? videoRenderer,
+            RTCVideoRenderer? screenShareRenderer,
+            bool hasVideo,
             bool isSpeaking,
-            bool isMuted)?
+            bool isMuted,
+            bool isScreenSharing)?
         $default,
   ) {
     final _that = this;
     switch (_that) {
       case _ParticipantState() when $default != null:
         return $default(
-            _that.participant,
-            _that.videoTrack,
-            _that.screenShareTrack,
-            _that.audioTrack,
+            _that.id,
+            _that.name,
+            _that.videoRenderer,
+            _that.screenShareRenderer,
+            _that.hasVideo,
             _that.isSpeaking,
-            _that.isMuted);
+            _that.isMuted,
+            _that.isScreenSharing);
       case _:
         return null;
     }
@@ -321,27 +349,35 @@ extension ParticipantStatePatterns on ParticipantState {
 
 class _ParticipantState implements ParticipantState {
   const _ParticipantState(
-      {required this.participant,
-      this.videoTrack,
-      this.screenShareTrack,
-      this.audioTrack,
+      {required this.id,
+      required this.name,
+      this.videoRenderer,
+      this.screenShareRenderer,
+      this.hasVideo = false,
       this.isSpeaking = false,
-      this.isMuted = false});
+      this.isMuted = false,
+      this.isScreenSharing = false});
 
   @override
-  final Participant participant;
+  final String id;
   @override
-  final VideoTrack? videoTrack;
+  final String name;
   @override
-  final VideoTrack? screenShareTrack;
+  final RTCVideoRenderer? videoRenderer;
   @override
-  final AudioTrack? audioTrack;
+  final RTCVideoRenderer? screenShareRenderer;
+  @override
+  @JsonKey()
+  final bool hasVideo;
   @override
   @JsonKey()
   final bool isSpeaking;
   @override
   @JsonKey()
   final bool isMuted;
+  @override
+  @JsonKey()
+  final bool isScreenSharing;
 
   /// Create a copy of ParticipantState
   /// with the given fields replaced by the non-null parameter values.
@@ -356,26 +392,28 @@ class _ParticipantState implements ParticipantState {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _ParticipantState &&
-            (identical(other.participant, participant) ||
-                other.participant == participant) &&
-            (identical(other.videoTrack, videoTrack) ||
-                other.videoTrack == videoTrack) &&
-            (identical(other.screenShareTrack, screenShareTrack) ||
-                other.screenShareTrack == screenShareTrack) &&
-            (identical(other.audioTrack, audioTrack) ||
-                other.audioTrack == audioTrack) &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.name, name) || other.name == name) &&
+            (identical(other.videoRenderer, videoRenderer) ||
+                other.videoRenderer == videoRenderer) &&
+            (identical(other.screenShareRenderer, screenShareRenderer) ||
+                other.screenShareRenderer == screenShareRenderer) &&
+            (identical(other.hasVideo, hasVideo) ||
+                other.hasVideo == hasVideo) &&
             (identical(other.isSpeaking, isSpeaking) ||
                 other.isSpeaking == isSpeaking) &&
-            (identical(other.isMuted, isMuted) || other.isMuted == isMuted));
+            (identical(other.isMuted, isMuted) || other.isMuted == isMuted) &&
+            (identical(other.isScreenSharing, isScreenSharing) ||
+                other.isScreenSharing == isScreenSharing));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, participant, videoTrack,
-      screenShareTrack, audioTrack, isSpeaking, isMuted);
+  int get hashCode => Object.hash(runtimeType, id, name, videoRenderer,
+      screenShareRenderer, hasVideo, isSpeaking, isMuted, isScreenSharing);
 
   @override
   String toString() {
-    return 'ParticipantState(participant: $participant, videoTrack: $videoTrack, screenShareTrack: $screenShareTrack, audioTrack: $audioTrack, isSpeaking: $isSpeaking, isMuted: $isMuted)';
+    return 'ParticipantState(id: $id, name: $name, videoRenderer: $videoRenderer, screenShareRenderer: $screenShareRenderer, hasVideo: $hasVideo, isSpeaking: $isSpeaking, isMuted: $isMuted, isScreenSharing: $isScreenSharing)';
   }
 }
 
@@ -388,12 +426,14 @@ abstract mixin class _$ParticipantStateCopyWith<$Res>
   @override
   @useResult
   $Res call(
-      {Participant participant,
-      VideoTrack? videoTrack,
-      VideoTrack? screenShareTrack,
-      AudioTrack? audioTrack,
+      {String id,
+      String name,
+      RTCVideoRenderer? videoRenderer,
+      RTCVideoRenderer? screenShareRenderer,
+      bool hasVideo,
       bool isSpeaking,
-      bool isMuted});
+      bool isMuted,
+      bool isScreenSharing});
 }
 
 /// @nodoc
@@ -409,30 +449,36 @@ class __$ParticipantStateCopyWithImpl<$Res>
   @override
   @pragma('vm:prefer-inline')
   $Res call({
-    Object? participant = null,
-    Object? videoTrack = freezed,
-    Object? screenShareTrack = freezed,
-    Object? audioTrack = freezed,
+    Object? id = null,
+    Object? name = null,
+    Object? videoRenderer = freezed,
+    Object? screenShareRenderer = freezed,
+    Object? hasVideo = null,
     Object? isSpeaking = null,
     Object? isMuted = null,
+    Object? isScreenSharing = null,
   }) {
     return _then(_ParticipantState(
-      participant: null == participant
-          ? _self.participant
-          : participant // ignore: cast_nullable_to_non_nullable
-              as Participant,
-      videoTrack: freezed == videoTrack
-          ? _self.videoTrack
-          : videoTrack // ignore: cast_nullable_to_non_nullable
-              as VideoTrack?,
-      screenShareTrack: freezed == screenShareTrack
-          ? _self.screenShareTrack
-          : screenShareTrack // ignore: cast_nullable_to_non_nullable
-              as VideoTrack?,
-      audioTrack: freezed == audioTrack
-          ? _self.audioTrack
-          : audioTrack // ignore: cast_nullable_to_non_nullable
-              as AudioTrack?,
+      id: null == id
+          ? _self.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      name: null == name
+          ? _self.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      videoRenderer: freezed == videoRenderer
+          ? _self.videoRenderer
+          : videoRenderer // ignore: cast_nullable_to_non_nullable
+              as RTCVideoRenderer?,
+      screenShareRenderer: freezed == screenShareRenderer
+          ? _self.screenShareRenderer
+          : screenShareRenderer // ignore: cast_nullable_to_non_nullable
+              as RTCVideoRenderer?,
+      hasVideo: null == hasVideo
+          ? _self.hasVideo
+          : hasVideo // ignore: cast_nullable_to_non_nullable
+              as bool,
       isSpeaking: null == isSpeaking
           ? _self.isSpeaking
           : isSpeaking // ignore: cast_nullable_to_non_nullable
@@ -440,6 +486,10 @@ class __$ParticipantStateCopyWithImpl<$Res>
       isMuted: null == isMuted
           ? _self.isMuted
           : isMuted // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isScreenSharing: null == isScreenSharing
+          ? _self.isScreenSharing
+          : isScreenSharing // ignore: cast_nullable_to_non_nullable
               as bool,
     ));
   }
@@ -589,7 +639,8 @@ extension RoomStatePatterns on RoomState {
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? disconnected,
     TResult Function()? connecting,
-    TResult Function(Room room, Map<String, ParticipantState> participants)?
+    TResult Function(
+            String roomName, Map<String, ParticipantState> participants)?
         connected,
     TResult Function(String message)? error,
     required TResult orElse(),
@@ -601,7 +652,7 @@ extension RoomStatePatterns on RoomState {
       case _Connecting() when connecting != null:
         return connecting();
       case _Connected() when connected != null:
-        return connected(_that.room, _that.participants);
+        return connected(_that.roomName, _that.participants);
       case _Error() when error != null:
         return error(_that.message);
       case _:
@@ -627,7 +678,7 @@ extension RoomStatePatterns on RoomState {
     required TResult Function() disconnected,
     required TResult Function() connecting,
     required TResult Function(
-            Room room, Map<String, ParticipantState> participants)
+            String roomName, Map<String, ParticipantState> participants)
         connected,
     required TResult Function(String message) error,
   }) {
@@ -638,7 +689,7 @@ extension RoomStatePatterns on RoomState {
       case _Connecting():
         return connecting();
       case _Connected():
-        return connected(_that.room, _that.participants);
+        return connected(_that.roomName, _that.participants);
       case _Error():
         return error(_that.message);
       case _:
@@ -662,7 +713,8 @@ extension RoomStatePatterns on RoomState {
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? disconnected,
     TResult? Function()? connecting,
-    TResult? Function(Room room, Map<String, ParticipantState> participants)?
+    TResult? Function(
+            String roomName, Map<String, ParticipantState> participants)?
         connected,
     TResult? Function(String message)? error,
   }) {
@@ -673,7 +725,7 @@ extension RoomStatePatterns on RoomState {
       case _Connecting() when connecting != null:
         return connecting();
       case _Connected() when connected != null:
-        return connected(_that.room, _that.participants);
+        return connected(_that.roomName, _that.participants);
       case _Error() when error != null:
         return error(_that.message);
       case _:
@@ -726,11 +778,11 @@ class _Connecting implements RoomState {
 
 class _Connected implements RoomState {
   const _Connected(
-      {required this.room,
+      {required this.roomName,
       required final Map<String, ParticipantState> participants})
       : _participants = participants;
 
-  final Room room;
+  final String roomName;
   final Map<String, ParticipantState> _participants;
   Map<String, ParticipantState> get participants {
     if (_participants is EqualUnmodifiableMapView) return _participants;
@@ -750,18 +802,19 @@ class _Connected implements RoomState {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _Connected &&
-            (identical(other.room, room) || other.room == room) &&
+            (identical(other.roomName, roomName) ||
+                other.roomName == roomName) &&
             const DeepCollectionEquality()
                 .equals(other._participants, _participants));
   }
 
   @override
-  int get hashCode => Object.hash(
-      runtimeType, room, const DeepCollectionEquality().hash(_participants));
+  int get hashCode => Object.hash(runtimeType, roomName,
+      const DeepCollectionEquality().hash(_participants));
 
   @override
   String toString() {
-    return 'RoomState.connected(room: $room, participants: $participants)';
+    return 'RoomState.connected(roomName: $roomName, participants: $participants)';
   }
 }
 
@@ -772,7 +825,7 @@ abstract mixin class _$ConnectedCopyWith<$Res>
           _Connected value, $Res Function(_Connected) _then) =
       __$ConnectedCopyWithImpl;
   @useResult
-  $Res call({Room room, Map<String, ParticipantState> participants});
+  $Res call({String roomName, Map<String, ParticipantState> participants});
 }
 
 /// @nodoc
@@ -786,14 +839,14 @@ class __$ConnectedCopyWithImpl<$Res> implements _$ConnectedCopyWith<$Res> {
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   $Res call({
-    Object? room = null,
+    Object? roomName = null,
     Object? participants = null,
   }) {
     return _then(_Connected(
-      room: null == room
-          ? _self.room
-          : room // ignore: cast_nullable_to_non_nullable
-              as Room,
+      roomName: null == roomName
+          ? _self.roomName
+          : roomName // ignore: cast_nullable_to_non_nullable
+              as String,
       participants: null == participants
           ? _self._participants
           : participants // ignore: cast_nullable_to_non_nullable

@@ -5,6 +5,10 @@ on:
     - cron: '0 2 * * *' # Run nightly at 02:00 UTC
   workflow_dispatch:
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   sync-translations:
     runs-on: ubuntu-latest

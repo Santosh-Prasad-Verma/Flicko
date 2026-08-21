@@ -5,9 +5,10 @@ import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:livekit_client/livekit_client.dart';
-import 'package:mobile/data/clients/supabase_client.dart';
+import 'package:mobile/data/clients/api_client.dart';
+import 'package:mobile/data/services/azure_calling_service.dart';
 
 import 'package:go_router/go_router.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
@@ -610,7 +611,7 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
               VoiceSettingsBottomSheet.show(
                 context,
                 isMuted: voiceState.isMuted,
-                isVideoOn: voiceState.room?.localParticipant?.isCameraEnabled() ?? false,
+                isVideoOn: voiceState.isCameraEnabled,
                 isDeafened: voiceState.isDeafened,
                 onMuteChanged: (_) => _handleToggleMute(),
                 onVideoChanged: (_) => _handleToggleVideo(),
@@ -736,10 +737,10 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
                   separatorBuilder: (_, __) => const Divider(height: 1, color: Colors.white10),
                   itemBuilder: (context, index) {
                     final p = voiceState.participants[index];
-                    final profile = _profilesCache[p.sid];
-                    final name = profile?['display_name'] ?? profile?['username'] ?? p.identity ?? 'Member ${index + 1}';
+                    final profile = _profilesCache[p.id];
+                    final name = profile?['display_name'] ?? profile?['username'] ?? (p.name.isNotEmpty ? p.name : 'Member ${index + 1}');
                     final avatar = profile?['avatar'];
-                      final currentVol = voiceState.participantVolumes[p.sid] ?? 1.0;
+                    final currentVol = voiceState.participantVolumes[p.id] ?? 1.0;
                     return Container(
                       padding: const EdgeInsets.symmetric(vertical: 4),
                       child: Column(
@@ -803,7 +804,7 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
                                       activeColor: Color(FlickoColors.brandLime),
                                       inactiveColor: Colors.white12,
                                       onChanged: (val) {
-                                        ref.read(voiceControllerProvider.notifier).setParticipantVolume(p.sid, val);
+                                        ref.read(voiceControllerProvider.notifier).setParticipantVolume(p.id, val);
                                       },
                                     ),
                                   ),
@@ -855,7 +856,7 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
     );
   }
 
-  void _showFullScreenVideo(VideoTrack track, String displayName) {
+  void _showFullScreenVideo(RTCVideoRenderer renderer, String displayName) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => Scaffold(
@@ -877,9 +878,9 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
               maxScale: 4.0,
               child: AspectRatio(
                 aspectRatio: 16 / 9,
-                child: VideoTrackRenderer(
-                  track,
-                  fit: VideoViewFit.contain,
+                child: RTCVideoView(
+                  renderer,
+                  objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitContain,
                 ),
               ),
             ),
@@ -951,32 +952,18 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
         final p = voiceState.participants[index];
         return _buildGlassParticipantCard(
           p,
-          voiceState.speakingParticipants.contains(p.sid),
+          voiceState.speakingParticipants.contains(p.id),
           ignoreScreenShare: true,
         );
       },
     );
 
-    // Find screen share participant
-    Participant? screenSharingParticipant;
-    VideoTrack? screenShareTrack;
-    for (final p in voiceState.participants) {
-      final pubs = p.videoTrackPublications.where((pub) => pub.track != null && !pub.muted && pub.isScreenShare).toList();
-      if (pubs.isNotEmpty) {
-        screenSharingParticipant = p;
-        screenShareTrack = pubs.first.track as VideoTrack?;
-        break;
-      }
-    }
+    // Find screen share or video participant
+    final callingService = ref.watch(azureCallingServiceProvider);
+    final isLocalScreenShare = voiceState.isScreenSharing;
+    final localRenderer = callingService.localVideoRenderer;
 
-    if (screenSharingParticipant != null && screenShareTrack != null) {
-      final userId = screenSharingParticipant.identity;
-      _fetchProfile(userId);
-      final cachedProfile = _profilesCache[userId];
-      final displayName = cachedProfile?['display_name'] as String? ?? 
-                          cachedProfile?['username'] as String? ?? 
-                          (screenSharingParticipant.name.isNotEmpty ? screenSharingParticipant.name : 'User');
-
+    if (isLocalScreenShare && localRenderer != null && localRenderer.srcObject != null) {
       return Column(
         children: [
           // Pinned Screen Share Card (Collapsible & Fullscreenable)
@@ -992,16 +979,16 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      VideoTrackRenderer(
-                        screenShareTrack,
-                        fit: VideoViewFit.contain,
+                      RTCVideoView(
+                        localRenderer,
+                        objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitContain,
                       ),
                       // Tap overlay detector
                       Positioned.fill(
                         child: Material(
                           color: Colors.transparent,
                           child: InkWell(
-                            onTap: () => _showFullScreenVideo(screenShareTrack!, '$displayName\'s Screen'),
+                            onTap: () => _showFullScreenVideo(localRenderer, 'Your Screen'),
                             child: const SizedBox.expand(),
                           ),
                         ),
@@ -1036,12 +1023,11 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
                               ),
                               const SizedBox(width: 6),
                               Text(
-                                'LIVE',
+                                'LIVE SCREEN',
                                 style: GoogleFonts.spaceGrotesk(
                                   color: Colors.white,
                                   fontSize: 10,
                                   fontWeight: FontWeight.w900,
-                                  letterSpacing: 1.0,
                                 ),
                               ),
                             ],
@@ -1064,100 +1050,30 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
                           ),
                         ),
                       ),
-                      // Bottom Banner Overlay with Fullscreen Button
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Colors.transparent,
-                                Colors.black.withValues(alpha: 0.8),
-                              ],
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  '$displayName is sharing screen',
-                                  style: GoogleFonts.inter(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.fullscreen_rounded, color: Colors.white, size: 22),
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                                onPressed: () => _showFullScreenVideo(screenShareTrack!, '$displayName\'s Screen'),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                 ),
               ),
               secondChild: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFED4245).withValues(alpha: 0.15),
+                  color: Colors.black.withValues(alpha: 0.6),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFED4245).withValues(alpha: 0.3)),
+                  border: Border.all(color: Colors.white10),
                 ),
                 child: Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFED4245),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        'LIVE',
-                        style: GoogleFonts.spaceGrotesk(
-                          color: Colors.white,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
+                    const Icon(Icons.screen_share_rounded, color: Color(0xFFED4245), size: 20),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        '$displayName\'s Screen Share',
-                        style: GoogleFonts.inter(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                        'Your Screen Share is Active',
+                        style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white, size: 22),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
+                      icon: const Icon(Icons.expand_more_rounded, color: Colors.white70),
                       onPressed: () => setState(() => _isScreenShareMinimized = false),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      icon: const Icon(Icons.fullscreen_rounded, color: Colors.white, size: 20),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      onPressed: () => _showFullScreenVideo(screenShareTrack!, '$displayName\'s Screen'),
                     ),
                   ],
                 ),
@@ -1178,9 +1094,11 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
   // ══════════════════════════════════════════════════════════════════════════
   //  PARTICIPANT CARD (MATCHING SCREENSHOT)
   // ══════════════════════════════════════════════════════════════════════════
-  Widget _buildGlassParticipantCard(Participant participant, bool isSpeaking, {bool ignoreScreenShare = false}) {
-    final userId = participant.identity;
-    _fetchProfile(userId);
+  Widget _buildGlassParticipantCard(AzureCallingParticipant participant, bool isSpeaking, {bool ignoreScreenShare = false}) {
+    final userId = participant.id;
+    if (userId.isNotEmpty && userId != 'me') {
+      _fetchProfile(userId);
+    }
 
     final cachedProfile = _profilesCache[userId];
     final String displayName = cachedProfile?['display_name'] as String? ?? 
@@ -1188,17 +1106,11 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
                                (participant.name.isNotEmpty ? participant.name : 'User');
     final String? avatarUrl = cachedProfile?['avatar'] as String?;
 
-    // Detect if participant has an active screen share track
-    final screenShareTrack = participant.videoTrackPublications
-        .where((pub) => pub.track != null && !pub.muted && pub.isScreenShare)
-        .toList();
-    final hasScreenShare = !ignoreScreenShare && screenShareTrack.isNotEmpty;
-
-    // Detect if participant has an active video track
-    final videoTrack = participant.videoTrackPublications
-        .where((pub) => pub.track != null && !pub.muted && pub.kind == TrackType.VIDEO && !pub.isScreenShare)
-        .toList();
-    final hasVideo = videoTrack.isNotEmpty;
+    final callingService = ref.watch(azureCallingServiceProvider);
+    final bool isLocal = participant.id == 'me';
+    final RTCVideoRenderer? renderer = isLocal ? callingService.localVideoRenderer : participant.videoRenderer;
+    final bool hasLiveVideo = (isLocal && (callingService.isCameraEnabled || callingService.isScreenSharing)) ||
+        (participant.hasVideo && renderer != null && renderer.srcObject != null);
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(28),
@@ -1226,31 +1138,28 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
                 ]
               : [],
         ),
-        child: hasScreenShare
-            ? _buildVideoView(screenShareTrack.first.track as VideoTrack,
-                participant, '$displayName (Screen)', isSpeaking, isScreenShare: true)
-            : hasVideo
-                ? _buildVideoView(videoTrack.first.track as VideoTrack,
-                    participant, displayName, isSpeaking)
-                : _buildAvatarView(
-                    displayName, avatarUrl, participant, isSpeaking),
+        child: hasLiveVideo && renderer != null && renderer.srcObject != null
+            ? _buildVideoView(renderer, participant, displayName, isSpeaking)
+            : _buildAvatarView(displayName, avatarUrl, participant, isSpeaking),
       ),
     );
   }
 
   /// Renders the live video stream inside the card
-  Widget _buildVideoView(VideoTrack track, Participant participant,
+  Widget _buildVideoView(RTCVideoRenderer renderer, AzureCallingParticipant participant,
       String displayName, bool isSpeaking, {bool isScreenShare = false}) {
     return GestureDetector(
-      onTap: () => _showFullScreenVideo(track, '$displayName\'s ${isScreenShare ? 'Screen' : 'Camera'}'),
+      onTap: () => _showFullScreenVideo(renderer, '$displayName\'s ${isScreenShare ? 'Screen' : 'Camera'}'),
       child: Stack(
         fit: StackFit.expand,
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(28),
-            child: VideoTrackRenderer(
-              track,
-              fit: isScreenShare ? VideoViewFit.contain : VideoViewFit.cover,
+            child: RTCVideoView(
+              renderer,
+              objectFit: isScreenShare
+                  ? RTCVideoViewObjectFit.RTCVideoViewObjectFitContain
+                  : RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
             ),
           ),
         // Red "LIVE" badge for screen sharing
@@ -1327,7 +1236,7 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
 
   /// Renders the avatar-based view (matching screenshot)
   Widget _buildAvatarView(String displayName, String? avatarUrl,
-      Participant participant, bool isSpeaking) {
+      AzureCallingParticipant participant, bool isSpeaking) {
     return Stack(
       children: [
         // Centered Avatar
@@ -1355,7 +1264,7 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
                     imageUrl: avatarUrl,
                     name: displayName,
                     size: 84,
-                    userId: participant.identity,
+                    userId: participant.id,
                     showStatus: false,
                     showBadge: false,
                   ),
@@ -1398,7 +1307,7 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
     );
   }
 
-  Widget _buildStatusIcons(Participant participant) {
+  Widget _buildStatusIcons(AzureCallingParticipant participant) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
@@ -1524,8 +1433,8 @@ class _VoiceChannelScreenState extends ConsumerState<VoiceChannelScreen>
   }
 
   Widget _buildConnectedGlassControls(voice_state.VoiceState voiceState) {
-    final isScreenSharing = voiceState.room?.localParticipant?.isScreenShareEnabled() ?? false;
-    final isCameraOn = voiceState.room?.localParticipant?.isCameraEnabled() ?? false;
+    final isScreenSharing = voiceState.isScreenSharing;
+    final isCameraOn = voiceState.isCameraEnabled;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,

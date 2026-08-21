@@ -1,13 +1,11 @@
 import 'dart:async';
 import 'dart:developer' as developer;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:livekit_client/livekit_client.dart';
 import 'package:audio_session/audio_session.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:just_audio/just_audio.dart';
-import 'dart:convert';
 import 'package:mobile/data/models/soundboard_model.dart';
-import 'package:mobile/data/services/livekit_service.dart';
+import 'package:mobile/data/services/azure_calling_service.dart';
 import 'package:mobile/data/services/media_engine.dart';
 import 'package:mobile/features/voice/data/voice_repository.dart';
 import 'voice_state.dart';
@@ -27,31 +25,29 @@ final audioSessionProvider = Provider<Future<AudioSession>>((ref) {
   return AudioSession.instance;
 });
 
-final voiceControllerProvider = NotifierProvider<VoiceController, VoiceState>(VoiceController.new);
+final voiceControllerProvider =
+    NotifierProvider<VoiceController, VoiceState>(VoiceController.new);
 
 class VoiceController extends Notifier<VoiceState> {
   late final VoiceRepository _repository;
+  late final AzureCallingService _callingService;
   late final MediaEngine _mediaEngine;
-  EventsListener<RoomEvent>? _listener;
   late final AudioPlayer _audioPlayer;
-  Room? _room;
   String? _activeServerId;
+  StreamSubscription<List<AzureCallingParticipant>>? _speakerSubscription;
 
   String? get activeServerId => _activeServerId;
 
   @override
   VoiceState build() {
     _repository = ref.watch(voiceRepositoryProvider);
+    _callingService = ref.watch(azureCallingServiceProvider);
     _mediaEngine = ref.watch(mediaEngineProvider);
     _audioPlayer = ref.watch(audioPlayerProvider);
 
     ref.onDispose(() {
-      _listener?.dispose();
-      if (_room != null) {
-        _mediaEngine.disposeRoomMedia(_room);
-        _room?.disconnect();
-        _room = null;
-      }
+      _speakerSubscription?.cancel();
+      _callingService.disconnect();
       _activeServerId = null;
     });
 
@@ -69,7 +65,11 @@ class VoiceController extends Notifier<VoiceState> {
     }
 
     _activeServerId = serverId;
-    state = state.copyWith(isConnecting: true, error: null, activeChannelId: channelId);
+    state = state.copyWith(
+      isConnecting: true,
+      error: null,
+      activeChannelId: channelId,
+    );
 
     try {
       // 2. Configure Audio Session
@@ -87,54 +87,42 @@ class VoiceController extends Notifier<VoiceState> {
       try {
         await session.setActive(true);
       } catch (sessionErr) {
-        developer.log('AudioSession activation warning: $sessionErr', name: 'VoiceController');
+        developer.log('AudioSession activation warning: $sessionErr',
+            name: 'VoiceController');
       }
 
-      // 3. Get Token and Server URL
+      // 3. Get Azure ACS voice token
       final connection = await _repository.fetchConnection(channelId, serverId);
 
-      // 4. Connect to Room
-      final room = await _repository.connect(
+      // 4. Connect to Azure Calling VoIP Room
+      await _callingService.connect(
         connection.token,
-        serverUrl: connection.serverUrl,
-        options: const RoomOptions(
-          adaptiveStream: true,
-          dynacast: true,
-          defaultAudioPublishOptions: AudioPublishOptions(
-            dtx: true,
-          ),
-          defaultVideoPublishOptions: VideoPublishOptions(
-            videoEncoding: VideoEncoding(
-              maxBitrate: 1700000,
-              maxFramerate: 30,
-            ),
-          ),
-          defaultCameraCaptureOptions: CameraCaptureOptions(
-            maxFrameRate: 30,
-            params: VideoParametersPresets.h720_169,
-          ),
-        ),
+        roomName: connection.room ?? 'channel_$channelId',
+        channelId: channelId,
+        serverId: serverId,
       );
 
-      _room = room;
-      _setupRoomListeners(room);
-
-      // 5. Publish Local Audio using MediaEngine
-      bool micPublishFailed = false;
-      try {
-        await _mediaEngine.setMicrophoneEnabled(room, true);
-      } catch (trackErr) {
-        developer.log('Failed to publish microphone track', name: 'VoiceController', error: trackErr);
-        micPublishFailed = true;
-      }
+      _speakerSubscription?.cancel();
+      _speakerSubscription =
+          _callingService.activeSpeakersStream.listen((speakers) {
+        state = state.copyWith(
+          speakingParticipants: speakers.map((p) => p.id).toSet(),
+        );
+      });
 
       state = state.copyWith(
-        room: room,
+        token: connection.token,
+        roomName: connection.room ?? 'channel_$channelId',
         isConnected: true,
         isConnecting: false,
-        isMuted: micPublishFailed,
-        error: micPublishFailed ? 'Failed to publish audio track (joined in listen-only mode)' : null,
-        participants: [room.localParticipant!, ...room.remoteParticipants.values],
+        isMuted: false,
+        participants: [
+          AzureCallingParticipant(
+            id: connection.userId ?? 'me',
+            name: 'You',
+          ),
+          ..._callingService.remoteParticipants.values,
+        ],
       );
 
       _playFlickoJoinSound();
@@ -152,68 +140,19 @@ class VoiceController extends Notifier<VoiceState> {
       await _audioPlayer.setAsset(assetPath);
       await _audioPlayer.play();
     } catch (e) {
-      developer.log('Error playing Flicko sound effect: $assetPath', name: 'VoiceController', error: e);
+      developer.log('Error playing Flicko sound effect: $assetPath',
+          name: 'VoiceController', error: e);
     }
   }
 
-  Future<void> _playFlickoJoinSound() async => _playFlickoSFX('assets/sounds/flicko_join.mp3');
-  Future<void> _playFlickoLeaveSound() async => _playFlickoSFX('assets/sounds/flicko_leave.mp3');
-  Future<void> _playFlickoUnmuteSound() async => _playFlickoSFX('assets/sounds/flicko_unmute.mp3');
-  Future<void> playFlickoNotificationSound() async => _playFlickoSFX('assets/sounds/flicko_notification.mp3');
-
-  void _setupRoomListeners(Room room) {
-    _listener = room.createListener();
-
-    _listener!
-      ..on<RoomDisconnectedEvent>((event) {
-        _playFlickoLeaveSound();
-        state = const VoiceState();
-      })
-      ..on<ParticipantConnectedEvent>((event) {
-        _updateParticipants();
-        _playFlickoJoinSound();
-      })
-      ..on<ParticipantDisconnectedEvent>((event) {
-        _updateParticipants();
-        _playFlickoLeaveSound();
-      })
-      ..on<ActiveSpeakersChangedEvent>((event) {
-        state = state.copyWith(
-          speakingParticipants: event.speakers.map((p) => p.sid).toSet(),
-        );
-      })
-      ..on<TrackPublishedEvent>((_) {
-        _updateParticipants();
-      })
-      ..on<TrackUnpublishedEvent>((_) {
-        _updateParticipants();
-      })
-      ..on<LocalTrackPublishedEvent>((_) {
-        _updateParticipants();
-      })
-      ..on<LocalTrackUnpublishedEvent>((_) {
-        _updateParticipants();
-      })
-      ..on<TrackSubscribedEvent>((_) {
-        _updateParticipants();
-      })
-      ..on<TrackUnsubscribedEvent>((_) {
-        _updateParticipants();
-      })
-      ..on<TrackMutedEvent>((_) {
-        _updateParticipants();
-      })
-      ..on<TrackUnmutedEvent>((_) {
-        _updateParticipants();
-      })
-      ..on<DataReceivedEvent>((event) {
-        final decoded = utf8.decode(event.data);
-        final data = jsonDecode(decoded);
-        if (data['type'] == 'soundboard') {
-          _playRemoteSound(data['url']);
-        }
-      });
-  }
+  Future<void> _playFlickoJoinSound() async =>
+      _playFlickoSFX('assets/sounds/flicko_join.mp3');
+  Future<void> _playFlickoLeaveSound() async =>
+      _playFlickoSFX('assets/sounds/flicko_leave.mp3');
+  Future<void> _playFlickoUnmuteSound() async =>
+      _playFlickoSFX('assets/sounds/flicko_unmute.mp3');
+  Future<void> playFlickoNotificationSound() async =>
+      _playFlickoSFX('assets/sounds/flicko_notification.mp3');
 
   Future<void> _playRemoteSound(String url) async {
     try {
@@ -224,152 +163,61 @@ class VoiceController extends Notifier<VoiceState> {
       }
       await _audioPlayer.play();
     } catch (e) {
-      developer.log('Error playing remote sound', name: 'VoiceController', error: e);
+      developer.log('Error playing remote sound',
+          name: 'VoiceController', error: e);
     }
   }
 
   Future<void> sendSoundboardSound(SoundboardSound sound) async {
-    final room = state.room;
-    if (room == null) return;
-
+    if (!state.isConnected) return;
     _playRemoteSound(sound.url);
-
-    final message = jsonEncode({
-      'type': 'soundboard',
-      'soundId': sound.id,
-      'url': sound.url,
-    });
-
-    await room.localParticipant?.publishData(
-      utf8.encode(message),
-      reliable: true,
-    );
-  }
-
-  void _updateParticipants() {
-    final room = state.room;
-    if (room == null) return;
-    final local = room.localParticipant;
-    state = state.copyWith(
-      participants: [
-        if (local != null) local,
-        ...room.remoteParticipants.values,
-      ],
-      trackVersion: state.trackVersion + 1,
-    );
   }
 
   Future<void> toggleMute() async {
-    final room = state.room;
-    if (room == null) return;
-
+    if (!state.isConnected) return;
     final newMute = !state.isMuted;
-    try {
-      await _mediaEngine.setMicrophoneEnabled(room, !newMute);
-      
-      bool newDeafen = state.isDeafened;
-      if (!newMute && state.isDeafened) {
-        newDeafen = false;
-        for (final p in room.remoteParticipants.values) {
-          for (final sub in p.audioTrackPublications) {
-            await sub.subscribe();
-          }
-        }
-      }
-
-      state = state.copyWith(isMuted: newMute, isDeafened: newDeafen, error: null);
+    await _callingService.toggleMicrophone();
+    state = state.copyWith(isMuted: newMute, error: null);
+    if (!newMute) {
       _playFlickoUnmuteSound();
-    } catch (trackErr) {
-      developer.log('Failed to toggle microphone', name: 'VoiceController', error: trackErr);
-      state = state.copyWith(error: 'Failed to access microphone: $trackErr');
     }
   }
 
   Future<void> toggleDeafen() async {
-    final room = state.room;
-    if (room == null) return;
-
+    if (!state.isConnected) return;
     final newDeafen = !state.isDeafened;
-    for (final p in room.remoteParticipants.values) {
-      for (final sub in p.audioTrackPublications) {
-        if (newDeafen) {
-          await sub.unsubscribe();
-        } else {
-          await sub.subscribe();
-        }
-      }
-    }
-
-    bool newMute = state.isMuted;
-    if (newDeafen && !state.isMuted) {
-      newMute = true;
-      try {
-        await _mediaEngine.setMicrophoneEnabled(room, false);
-      } catch (trackErr) {
-        developer.log('Failed to mute on deafen', name: 'VoiceController', error: trackErr);
-      }
-    }
-
-    state = state.copyWith(isDeafened: newDeafen, isMuted: newMute);
+    await _callingService.toggleDeafen();
+    state = state.copyWith(isDeafened: newDeafen);
   }
 
   Future<void> toggleVideo() async {
-    final room = state.room;
-    if (room == null) return;
+    if (!state.isConnected) return;
+    final targetEnabled = !state.isCameraEnabled;
 
-    final localParticipant = room.localParticipant;
-    if (localParticipant == null) return;
-
-    try {
-      final isVideoEnabled = localParticipant.isCameraEnabled();
-      final targetEnabled = !isVideoEnabled;
-
-      if (targetEnabled) {
-        final camStatus = await Permission.camera.request();
-        if (camStatus != PermissionStatus.granted) {
-          state = state.copyWith(error: 'Camera permission denied');
-          return;
-        }
+    if (targetEnabled) {
+      final camStatus = await Permission.camera.request();
+      if (camStatus != PermissionStatus.granted) {
+        state = state.copyWith(error: 'Camera permission denied');
+        return;
       }
-
-      final result = await _mediaEngine.setCameraEnabled(room, targetEnabled);
-      _updateParticipants();
-      state = state.copyWith(error: null);
-      await _syncPublishState(isVideo: result);
-    } catch (e) {
-      developer.log('Failed to toggle camera video', name: 'VoiceController', error: e);
-      state = state.copyWith(error: 'Camera track publish failed: ${e.toString()}');
     }
+
+    await _callingService.toggleCamera();
+    state = state.copyWith(
+      isCameraEnabled: _callingService.isCameraEnabled,
+      error: null,
+    );
+    await _syncPublishState(isVideo: _callingService.isCameraEnabled);
   }
 
   Future<void> toggleScreenShare() async {
-    final room = state.room;
-    if (room == null) return;
-
-    final localParticipant = room.localParticipant;
-    if (localParticipant == null) return;
-
-    try {
-      final isScreenShareEnabled = localParticipant.isScreenShareEnabled();
-      final targetEnabled = !isScreenShareEnabled;
-
-      final result = await _mediaEngine.setScreenShareEnabled(room, targetEnabled);
-      _updateParticipants();
-      state = state.copyWith(error: null);
-      await _syncPublishState(isStreaming: result);
-    } catch (e) {
-      developer.log('Error toggling screen share', name: 'VoiceController', error: e);
-      final String userMsg = e.toString().contains('TrackPublishException') || e.toString().contains('cancelled')
-          ? 'Screen sharing cancelled or unavailable'
-          : 'Failed to share screen: ${e.toString()}';
-      state = state.copyWith(error: userMsg);
-
-      Future.delayed(const Duration(seconds: 3), () {
-        if (state.error == userMsg) {
-          state = state.copyWith(error: null);
-        }
-      });
-    }
+    if (!state.isConnected) return;
+    await _callingService.toggleScreenShare();
+    state = state.copyWith(
+      isScreenSharing: _callingService.isScreenSharing,
+      error: null,
+    );
+    await _syncPublishState(isStreaming: _callingService.isScreenSharing);
   }
 
   Future<void> _syncPublishState({bool? isVideo, bool? isStreaming}) async {
@@ -382,19 +230,16 @@ class VoiceController extends Notifier<VoiceState> {
     );
   }
 
-  void setParticipantVolume(String participantSid, double volume) {
+  void setParticipantVolume(String participantId, double volume) {
     final updatedVolumes = Map<String, double>.from(state.participantVolumes);
-    updatedVolumes[participantSid] = volume.clamp(0.0, 2.0);
+    updatedVolumes[participantId] = volume.clamp(0.0, 2.0);
     state = state.copyWith(participantVolumes: updatedVolumes);
   }
 
   Future<void> leaveChannel() async {
     _playFlickoLeaveSound();
-    if (_room != null) {
-      await _mediaEngine.disposeRoomMedia(_room);
-      await _room?.disconnect();
-      _room = null;
-    }
+    _speakerSubscription?.cancel();
+    await _callingService.disconnect();
     _activeServerId = null;
     state = const VoiceState();
     final session = await ref.read(audioSessionProvider);

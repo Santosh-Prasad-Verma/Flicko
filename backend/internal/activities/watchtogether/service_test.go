@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
+	"github.com/flicko-org/flicko-backend/internal/services"
 )
 
 type mockRepository struct {
@@ -97,10 +98,20 @@ func (m *mockRepository) GetPublicLobbies(ctx context.Context) ([]*WTSession, er
 	return lobbies, nil
 }
 
-type mockLiveKit struct{}
+type mockACS struct{}
 
-func (m *mockLiveKit) GenerateToken(roomName string, participantName string, participantIdentity string, canPublish bool, canPublishData bool) (string, error) {
-	return "mocked-livekit-token", nil
+func (m *mockACS) IssueToken(ctx context.Context, scopes []string) (*services.ACSTokenResponse, error) {
+	return &services.ACSTokenResponse{
+		User: struct {
+			ID string `json:"id"`
+		}{ID: "8:acs:mock-user-id"},
+		Token:     "mocked-voice-token",
+		ExpiresOn: time.Now().Add(24 * time.Hour),
+	}, nil
+}
+
+func (m *mockACS) SendPushNotification(ctx context.Context, deviceToken string, platform string, payload map[string]interface{}) error {
+	return nil
 }
 
 type mockPublisher struct{}
@@ -216,10 +227,10 @@ func (m *mockCacheLayer) Expire(ctx context.Context, key string, expiration time
 func TestService_CreateSession(t *testing.T) {
 	repo := newMockRepository()
 	cache := NewRedisCache(nil) // we won't hit caching directly in this basic test or we mock it
-	lk := &mockLiveKit{}
+	acs := &mockACS{}
 	pub := &mockPublisher{}
 
-	svc := NewService(repo, cache, lk, pub, nil)
+	svc := NewService(repo, cache, acs, pub, nil)
 
 	req := &CreateSessionRequest{
 		RoomID: uuid.New().String(),
@@ -251,10 +262,10 @@ func TestService_CreateSession(t *testing.T) {
 func TestService_JoinSession(t *testing.T) {
 	repo := newMockRepository()
 	cache := NewRedisCache(nil)
-	lk := &mockLiveKit{}
+	acs := &mockACS{}
 	pub := &mockPublisher{}
 
-	svc := NewService(repo, cache, lk, pub, nil)
+	svc := NewService(repo, cache, acs, pub, nil)
 
 	roomID := uuid.New()
 	sessionID := "wt_test"
@@ -279,18 +290,18 @@ func TestService_JoinSession(t *testing.T) {
 		t.Fatalf("unexpected error joining session: %v", err)
 	}
 
-	if resp.LiveKitToken != "mocked-livekit-token" {
-		t.Errorf("expected livekit token 'mocked-livekit-token', got %s", resp.LiveKitToken)
+	if resp.VoiceToken != "mocked-voice-token" {
+		t.Errorf("expected voice token 'mocked-voice-token', got %s", resp.VoiceToken)
 	}
 }
 
 func TestService_UpdateAnchor(t *testing.T) {
 	repo := newMockRepository()
 	cache := NewRedisCache(nil)
-	lk := &mockLiveKit{}
+	acs := &mockACS{}
 	pub := &mockPublisher{}
 
-	svc := NewService(repo, cache, lk, pub, nil)
+	svc := NewService(repo, cache, acs, pub, nil)
 
 	sessionID := "wt_test"
 	hostID := uuid.New()
@@ -332,10 +343,10 @@ func TestService_UpdateAnchor_RateLimiting(t *testing.T) {
 	repo := newMockRepository()
 	cacheLayer := newMockCacheLayer()
 	cache := NewRedisCache(cacheLayer)
-	lk := &mockLiveKit{}
+	acs := &mockACS{}
 	pub := &mockPublisher{}
 
-	svc := NewService(repo, cache, lk, pub, nil)
+	svc := NewService(repo, cache, acs, pub, nil)
 
 	sessionID := "wt_rate_limit_test"
 	hostID := uuid.New()
@@ -372,10 +383,10 @@ func TestService_UpdateAnchor_RateLimiting(t *testing.T) {
 func TestService_GetSessionAnchor(t *testing.T) {
 	repo := newMockRepository()
 	cache := NewRedisCache(nil)
-	lk := &mockLiveKit{}
+	acs := &mockACS{}
 	pub := &mockPublisher{}
 
-	svc := NewService(repo, cache, lk, pub, nil)
+	svc := NewService(repo, cache, acs, pub, nil)
 
 	sessionID := "wt_anchor_test"
 	hostID := uuid.New()
@@ -410,10 +421,10 @@ func TestService_GetSessionAnchor(t *testing.T) {
 func TestService_CreateStandaloneSession(t *testing.T) {
 	repo := newMockRepository()
 	cache := NewRedisCache(nil)
-	lk := &mockLiveKit{}
+	acs := &mockACS{}
 	pub := &mockPublisher{}
 
-	svc := NewService(repo, cache, lk, pub, nil)
+	svc := NewService(repo, cache, acs, pub, nil)
 
 	req := &CreateSessionRequest{
 		RoomID: "", // empty room ID triggers standalone session
@@ -444,10 +455,10 @@ func TestService_CreateStandaloneSession(t *testing.T) {
 func TestService_ListPublicLobbies(t *testing.T) {
 	repo := newMockRepository()
 	cache := NewRedisCache(nil)
-	lk := &mockLiveKit{}
+	acs := &mockACS{}
 	pub := &mockPublisher{}
 
-	svc := NewService(repo, cache, lk, pub, nil)
+	svc := NewService(repo, cache, acs, pub, nil)
 
 	// Create a public session
 	s1 := &WTSession{

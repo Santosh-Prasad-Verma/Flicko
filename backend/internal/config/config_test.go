@@ -12,8 +12,6 @@ func TestLoadConfig_Success(t *testing.T) {
 	os.Setenv("DATABASE_URL", "postgres://user:pass@localhost:5432/db")
 	os.Setenv("REDIS_URL", "redis://localhost:6379")
 	os.Setenv("JWT_SECRET", "this-is-a-super-secret-key-that-is-at-least-thirty-two-bytes")
-	os.Setenv("SUPABASE_URL", "https://example.supabase.co")
-	os.Setenv("SUPABASE_SERVICE_ROLE_KEY", "test-service-role-key")
 
 	defer func() {
 		os.Clearenv()

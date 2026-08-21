@@ -509,8 +509,8 @@ class __$VoiceStateCopyWithImpl<$Res> implements _$VoiceStateCopyWith<$Res> {
 
 /// @nodoc
 mixin _$VoiceParticipant {
-  String get participantSid; // LiveKit SID
-  String get userId; // Supabase user ID
+  String get participantSid; // Voice participant identifier
+  String get userId; // User ID
   bool get isMuted;
   bool get isSpeaking; // Local or Remote detection
   bool get isDeafened;
@@ -903,10 +903,10 @@ class _VoiceParticipant implements VoiceParticipant {
 
   @override
   final String participantSid;
-// LiveKit SID
+// Voice participant identifier
   @override
   final String userId;
-// Supabase user ID
+// User ID
   @override
   @JsonKey()
   final bool isMuted;

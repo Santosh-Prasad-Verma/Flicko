@@ -18,6 +18,10 @@ on:
       - 'mail-gateway/**'
       - '.github/workflows/security-docker-scanner.yml'
 
+permissions:
+  contents: read
+  security-events: write
+
 jobs:
   scan-images:
     name: Docker Vulnerability Scan

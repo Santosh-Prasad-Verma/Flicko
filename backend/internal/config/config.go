@@ -27,9 +27,6 @@ type Config struct {
 	EncryptionKey                   []byte
 	EncryptionKeyID                 string
 	Environment                     string
-	LiveKitAPIKey                   string
-	LiveKitAPISecret                string
-	LiveKitURL                      string
 	RazorpayKeyID                   string
 	RazorpayKeySecret               string
 	MailGatewayURL                  string
@@ -156,9 +153,6 @@ func Load() (*Config, error) {
 		EncryptionKey:                  encryptionKeyBytes,
 		EncryptionKeyID:                keyIDHex,
 		Environment:        environment,
-		LiveKitAPIKey:      os.Getenv("LIVEKIT_API_KEY"),
-		LiveKitAPISecret:   os.Getenv("LIVEKIT_API_SECRET"),
-		LiveKitURL:         os.Getenv("LIVEKIT_URL"),
 		RazorpayKeyID:      os.Getenv("RAZORPAY_KEY_ID"),
 		RazorpayKeySecret:  os.Getenv("RAZORPAY_KEY_SECRET"),
 		MailGatewayURL:     os.Getenv("MAIL_GATEWAY_URL"),

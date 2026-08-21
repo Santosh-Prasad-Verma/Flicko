@@ -20,7 +20,7 @@ import (
 	"github.com/flicko-org/mail-gateway/internal/queue"
 )
 
-// HookHandler receives Supabase Auth webhook events, verifies their
+// HookHandler receives Auth webhook events, verifies their
 // HMAC-SHA256 signature, and enqueues email jobs for async sending.
 type HookHandler struct {
 	cfg   *config.Config
@@ -43,7 +43,7 @@ func NewHookHandler(cfg *config.Config, q *queue.EmailQueue) *HookHandler {
 //   - 200: email queued successfully
 //   - 400: bad/invalid payload
 //   - 401: invalid signature (webhook_secret mismatch)
-//   - 503: queue full (signals Supabase to retry)
+//   - 503: queue full (signals sender to retry)
 func (h *HookHandler) HandleEmail(w http.ResponseWriter, r *http.Request) {
 	// Step 1: Read the raw body BEFORE json.Decode (needed for HMAC verification)
 	body, err := io.ReadAll(r.Body)
@@ -58,7 +58,7 @@ func (h *HookHandler) HandleEmail(w http.ResponseWriter, r *http.Request) {
 	if !h.verifySignature(r, body) {
 		slog.Warn("webhook signature verification failed",
 			"remote_addr", r.RemoteAddr,
-			"signature_header", r.Header.Get("x-supabase-signature"),
+			"signature_header", r.Header.Get("Webhook-Signature"),
 			"ua", r.UserAgent(),
 		)
 		http.Error(w, `{"error":"invalid signature"}`, http.StatusUnauthorized)
@@ -66,7 +66,7 @@ func (h *HookHandler) HandleEmail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Step 3: Parse JSON payload
-	var payload models.SupabaseHookPayload
+	var payload models.AuthHookPayload
 	if err := json.Unmarshal(body, &payload); err != nil {
 		slog.Error("failed to parse webhook payload",
 			"error", err,
@@ -140,20 +140,16 @@ func (h *HookHandler) HandleEmail(w http.ResponseWriter, r *http.Request) {
 			)
 		}
 	}
-
 	// Step 9: Return 200 immediately — email will be sent asynchronously.
-	// Supabase Auth Hooks require an empty JSON object {} in the response body
-	// to acknowledge the hook was handled. Any other response may cause Supabase
-	// to fall back to its built-in email handling or report an error.
+	// Auth Hooks require an empty JSON object {} in the response body
+	// to acknowledge the hook was handled.
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(`{}`))
 }
 
 // verifySignature checks the HMAC-SHA256 signature.
-// Supports two formats:
-//   1. Modern Standard Webhooks (Svix spec): parses Webhook-Signature, Webhook-Id, Webhook-Timestamp
-//   2. Legacy x-supabase-signature format (v1,signature)
+// Supports standard Webhook-Signature and legacy headers.
 //
 // Uses hmac.Equal for constant-time comparison (timing-attack safe).
 // In development mode, skips verification if WEBHOOK_SECRET is empty.
@@ -179,7 +175,7 @@ func (h *HookHandler) verifySignature(r *http.Request, body []byte) bool {
 		secretStr = strings.TrimPrefix(secretStr, "v1,")
 		secretStr = strings.TrimPrefix(secretStr, "whsec_")
 
-		// Decode the base64 secret (standard for Svix/Supabase)
+		// Decode the base64 secret
 		var secretBytes []byte
 		var err error
 		if secretBytes, err = base64.StdEncoding.DecodeString(secretStr); err != nil {
@@ -194,7 +190,7 @@ func (h *HookHandler) verifySignature(r *http.Request, body []byte) bool {
 		mac.Write([]byte(signedContent))
 		computed := mac.Sum(nil)
 
-		// Supabase Webhook-Signature is v1,base64_sig or multiple sigs separated by spaces
+		// Webhook-Signature is v1,base64_sig or multiple sigs separated by spaces
 		sigs := strings.Split(webhookSignature, " ")
 		for _, sig := range sigs {
 			cleanSig := strings.TrimPrefix(sig, "v1,")
@@ -214,20 +210,24 @@ func (h *HookHandler) verifySignature(r *http.Request, body []byte) bool {
 		return false
 	}
 
-	// 2. Fallback to old format: x-supabase-signature
-	signature := r.Header.Get("x-supabase-signature")
+	// 2. Fallback to header format: x-webhook-signature / x-auth-signature / x-supabase-signature
+	signature := r.Header.Get("x-webhook-signature")
 	if signature == "" {
-		headers := make(map[string]string)
-		for k, v := range r.Header {
-			if len(v) > 0 {
-				headers[k] = v[0]
-			}
+		signature = r.Header.Get("x-auth-signature")
+	}
+	if signature == "" {
+		signature = r.Header.Get("x-supabase-signature")
+	}
+	if signature == "" {
+		var headerNames []string
+		for k := range r.Header {
+			headerNames = append(headerNames, k)
 		}
-		slog.Warn("missing standard Webhook-Signature and legacy x-supabase-signature", "received_headers", headers)
+		slog.Warn("missing standard Webhook-Signature or webhook signature header", "received_header_keys", headerNames)
 		return false
 	}
 
-	// The signature header format is "v1,SIGNATURE"
+	// The signature header format is "v1,SIGNATURE" or raw hex
 	rawSignature := strings.TrimPrefix(signature, "v1,")
 
 	secretStr := h.cfg.WebhookSecret
@@ -245,7 +245,7 @@ func (h *HookHandler) verifySignature(r *http.Request, body []byte) bool {
 
 // buildEmailJob creates an EmailJob from the webhook payload, routing to
 // the correct template and building the appropriate action URL.
-func (h *HookHandler) buildEmailJob(payload models.SupabaseHookPayload) models.EmailJob {
+func (h *HookHandler) buildEmailJob(payload models.AuthHookPayload) models.EmailJob {
 	templateName, subject := h.routeEmailType(payload.Type)
 
 	// Build the verification/action URL that goes in the email
@@ -260,70 +260,69 @@ func (h *HookHandler) buildEmailJob(payload models.SupabaseHookPayload) models.E
 	// Extract username from user metadata (set during signUp options.data)
 	username := payload.User.DisplayName()
 
+	// Pick the verification token (raw or hashed, whichever is present)
+	token := payload.Data.Token
+	if token == "" {
+		token = payload.Data.TokenHash
+	}
+
 	return models.EmailJob{
-		ID:           fmt.Sprintf("%s-%s-%d", payload.Type, payload.User.ID[:8], time.Now().UnixNano()),
+		ID:           fmt.Sprintf("job_%d", time.Now().UnixNano()),
 		To:           payload.User.Email,
 		Subject:      subject,
 		TemplateName: templateName,
+		CreatedAt:    time.Now(),
 		Data: models.EmailData{
-			To:        payload.User.Email,
-			Username:  username,
-			Subject:   subject,
-			ActionURL: actionURL,
 			AppName:   h.cfg.AppName,
 			AppURL:    h.cfg.AppURL,
-			Token:     payload.Data.Token,
+			ActionURL: actionURL,
+			Token:     token,
+			To:        payload.User.Email,
+			Username:  username,
 			ValidFor:  validFor,
-			Year:      time.Now().Year(),
 		},
-		CreatedAt: time.Now(),
-		Attempts:  0,
 	}
 }
 
-// buildWelcomeJob creates a welcome EmailJob for new signups.
-// This is sent alongside the verification email so the user receives
-// both a verification link and a warm welcome message.
-func (h *HookHandler) buildWelcomeJob(payload models.SupabaseHookPayload) models.EmailJob {
+// buildWelcomeJob creates a dedicated "welcome" EmailJob for newly verified users.
+// Dispatched alongside the signup confirmation email so the user gets both
+// a verification link AND a warm welcome explaining what Flicko is.
+func (h *HookHandler) buildWelcomeJob(payload models.AuthHookPayload) models.EmailJob {
 	username := payload.User.DisplayName()
 
-	// Generate a placeholder avatar using the user's email/username
-	avatarURL := fmt.Sprintf(
-		"https://ui-avatars.com/api/?name=%s&background=535cec&color=fff&size=128",
-		url.QueryEscape(username),
-	)
+	loginURL := h.cfg.AppURL
+	if loginURL != "" {
+		loginURL = strings.TrimSuffix(loginURL, "/") + "/login"
+	}
 
 	return models.EmailJob{
-		ID:           fmt.Sprintf("welcome-%s-%d", payload.User.ID[:8], time.Now().UnixNano()),
+		ID:           fmt.Sprintf("welcome_%d", time.Now().UnixNano()),
 		To:           payload.User.Email,
-		Subject:      fmt.Sprintf("🎉 Welcome to %s — you're in!", h.cfg.AppName),
+		Subject:      fmt.Sprintf("Welcome to %s! 🎉", h.cfg.AppName),
 		TemplateName: "welcome",
+		CreatedAt:    time.Now(),
 		Data: models.EmailData{
-			To:          payload.User.Email,
-			Username:    username,
-			AvatarURL:   avatarURL,
-			Subject:     fmt.Sprintf("🎉 Welcome to %s — you're in!", h.cfg.AppName),
-			AppName:     h.cfg.AppName,
-			AppURL:      h.cfg.AppURL,
-			MemberSince: time.Now().Format("January 2006"),
-			Year:        time.Now().Year(),
+			AppName:   h.cfg.AppName,
+			AppURL:    h.cfg.AppURL,
+			ActionURL: loginURL,
+			To:        payload.User.Email,
+			Username:  username,
+			ValidFor:  "",
 		},
-		CreatedAt: time.Now(),
-		Attempts:  0,
 	}
 }
 
-// routeEmailType maps the Supabase event type to a template name and email subject.
+// routeEmailType maps the event type to a template name and email subject.
 func (h *HookHandler) routeEmailType(eventType string) (templateName, subject string) {
 	switch eventType {
 	case "signup":
 		return "verify", fmt.Sprintf("Verify your %s account", h.cfg.AppName)
 	case "recovery":
-		return "reset", fmt.Sprintf("Reset your %s password", h.cfg.AppName)
+		return "recovery", fmt.Sprintf("Reset your %s password", h.cfg.AppName)
 	case "magiclink":
-		return "magic_link", fmt.Sprintf("Your %s login link", h.cfg.AppName)
+		return "magiclink", fmt.Sprintf("Your %s login link", h.cfg.AppName)
 	case "email_change":
-		return "confirm_email_change", fmt.Sprintf("Confirm your new %s email", h.cfg.AppName)
+		return "email_change", fmt.Sprintf("Confirm your new email for %s", h.cfg.AppName)
 	case "invite":
 		return "invite", fmt.Sprintf("You've been invited to %s", h.cfg.AppName)
 	case "reauthentication":
@@ -335,27 +334,24 @@ func (h *HookHandler) routeEmailType(eventType string) (templateName, subject st
 
 // buildActionURL returns the verification/action URL for the email.
 //
-// Supabase Auth Hooks (send_email) include a pre-built confirmation_url that
-// contains a properly signed token. We MUST use that when available, because
-// manually constructed URLs use a different token format that Supabase won't accept.
+// Auth Hooks (send_email) include a pre-built confirmation_url that
+// contains a properly signed token. We MUST use that when available.
 //
-// For legacy Database Webhook format (no confirmation_url), we fall back to
-// building the URL manually: {SUPABASE_URL}/auth/v1/verify?token={TOKEN_HASH}&type={TYPE}&redirect_to={REDIRECT}
-func (h *HookHandler) buildActionURL(payload models.SupabaseHookPayload) string {
-	// Prefer the pre-built confirmation_url from Supabase Auth Hook
+// For legacy Webhook format (no confirmation_url), we fall back to
+// building the URL manually: {AUTH_URL}/auth/v1/verify?token={TOKEN_HASH}&type={TYPE}&redirect_to={REDIRECT}
+func (h *HookHandler) buildActionURL(payload models.AuthHookPayload) string {
+	// Prefer the pre-built confirmation_url from Auth Hook
 	if payload.Data.ConfirmationURL != "" {
-		slog.Info("using pre-built confirmation_url from Supabase",
+		slog.Info("using pre-built confirmation_url from Auth Hook",
 			"url_prefix", payload.Data.ConfirmationURL[:min(80, len(payload.Data.ConfirmationURL))],
 		)
 
 		// Rewrite redirect_to in the confirmation URL to point to our actual APP_URL
-		// instead of whatever site_url Supabase has configured (which may be an
-		// unowned domain like flicko.app)
 		confURL := h.rewriteRedirectTo(payload.Data.ConfirmationURL)
 		return confURL
 	}
 
-	// Fallback: build the URL manually (Database Webhook / legacy format)
+	// Fallback: build the URL manually (Standard Webhook / legacy format)
 	slog.Warn("no confirmation_url in payload, building URL manually")
 
 	token := payload.Data.TokenHash
@@ -371,8 +367,7 @@ func (h *HookHandler) buildActionURL(payload models.SupabaseHookPayload) string 
 		}
 	}
 
-
-	u, _ := url.Parse(h.cfg.SupabaseURL)
+	u, _ := url.Parse(h.cfg.AuthURL)
 	u.Path = "/auth/v1/verify"
 
 	q := u.Query()
@@ -384,11 +379,8 @@ func (h *HookHandler) buildActionURL(payload models.SupabaseHookPayload) string 
 	return u.String()
 }
 
-// rewriteRedirectTo replaces the redirect_to query parameter in a Supabase
-// confirmation URL with the configured APP_URL. This ensures that after
-// Supabase verifies the token, the user is redirected to our actual app
-// instead of whatever site_url is configured in the Supabase dashboard
-// (which may be an unowned/non-existent domain).
+// rewriteRedirectTo replaces the redirect_to query parameter in a
+// confirmation URL with the configured APP_URL.
 func (h *HookHandler) rewriteRedirectTo(confirmationURL string) string {
 	u, err := url.Parse(confirmationURL)
 	if err != nil {

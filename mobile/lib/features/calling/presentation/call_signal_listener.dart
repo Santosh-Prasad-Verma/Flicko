@@ -22,8 +22,8 @@ class _CallSignalListenerState extends ConsumerState<CallSignalListener> {
   String? _myUserId;
 
   // Tracks the room name of the currently active or pending call so that
-  // duplicate ring/accept signals for the same room (Supabase Realtime can
-  // redeliver) don't tear down a live peer connection or stack overlays.
+  // duplicate ring/accept signals for the same room
+  // don't tear down a live peer connection or stack overlays.
   String? _activeRoomName;
 
   @override
