@@ -11,6 +11,9 @@ on:
         required: true
         default: 'https://flicko.southeastasia.cloudapp.azure.com'
 
+permissions:
+  contents: read
+
 jobs:
   load-test:
     name: Execute Load Test

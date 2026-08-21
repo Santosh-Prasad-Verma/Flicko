@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mobile/data/clients/supabase_client.dart' as supabase;
+import '../../../data/models/auth_user.dart';
 import '../../../data/models/auth_state.dart';
 import 'package:mobile/data/repositories/auth_repository.dart';
 import 'package:mobile/features/e2ee/application/e2ee_session.dart';
@@ -19,7 +19,7 @@ final currentUserIdProvider = Provider<String?>((ref) {
 });
 
 /// Provider for current user
-final currentUserProvider = Provider<supabase.User?>((ref) {
+final currentUserProvider = Provider<AuthUser?>((ref) {
   return ref.watch(authNotifierProvider).maybeWhen(
     authenticated: (user, _) => user,
     orElse: () => null,
@@ -42,7 +42,7 @@ class AuthNotifier extends Notifier<AuthState> {
         final token = await _repository.getStoredToken();
         if (token != null && token.isNotEmpty) {
           final profile = await _repository.getUserProfile('@me');
-          final user = supabase.User(
+          final user = AuthUser(
             id: profile.id,
             email: '',
             userMetadata: {'username': profile.username},
@@ -94,7 +94,7 @@ class AuthNotifier extends Notifier<AuthState> {
       state = const AuthState.loading();
       await _repository.signIn(identifier: email, password: password);
       final profile = await _repository.getUserProfile('@me');
-      final user = supabase.User(
+      final user = AuthUser(
         id: profile.id,
         email: email,
         userMetadata: {'username': profile.username},
@@ -116,7 +116,7 @@ class AuthNotifier extends Notifier<AuthState> {
       state = const AuthState.loading();
       await _repository.signUp(username: username, email: email, password: password);
       final profile = await _repository.getUserProfile('@me');
-      final user = supabase.User(
+      final user = AuthUser(
         id: profile.id,
         email: email,
         userMetadata: {'username': profile.username},

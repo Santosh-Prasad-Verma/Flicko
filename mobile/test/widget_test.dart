@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:mobile/data/clients/supabase_client.dart' hide AuthState;
 import 'package:mobile/core/config/app_config.dart';
 import 'package:mobile/main.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
@@ -22,10 +21,6 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     await dotenv.load(fileName: '.env.example', isOptional: true);
     AppConfig.init();
-    await Supabase.initialize(
-      url: 'https://example.supabase.co',
-      anonKey: 'fake-anon-key',
-    );
   });
 
   testWidgets('Smoke test', (WidgetTester tester) async {

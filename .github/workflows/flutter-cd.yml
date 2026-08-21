@@ -15,6 +15,10 @@ on:
           - staging
           - production
 
+permissions:
+  contents: write
+  actions: read
+
 jobs:
   build-android:
     name: Build & Distribute Android

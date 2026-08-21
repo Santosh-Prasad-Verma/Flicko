@@ -1,4 +1,4 @@
-// Package repository implements PostgreSQL (Supabase) query functions.
+// Package repository implements PostgreSQL query functions.
 package repository
 
 import (
