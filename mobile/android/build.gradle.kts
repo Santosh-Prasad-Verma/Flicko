@@ -39,6 +39,12 @@ subprojects {
                     else -> "tech.focko.flicko.plugin.${project.name.replace("-", "_")}"
                 }
             }
+            // Force JVM 17 for all library subprojects to prevent
+            // "Inconsistent JVM-target compatibility" between javac (1.8) and kotlinc (17)
+            compileOptions {
+                sourceCompatibility = JavaVersion.VERSION_17
+                targetCompatibility = JavaVersion.VERSION_17
+            }
         }
         // Fix for legacy plugins having package attribute in AndroidManifest.xml (e.g. on_audio_query_android)
         val manifestFile = file("src/main/AndroidManifest.xml")
@@ -53,6 +59,13 @@ subprojects {
 }
 
 subprojects {
+    // Suppress JVM target validation — third-party plugins (e.g. audioplayers_android)
+    // hardcode Java 1.8 in their compileOptions, which AGP applies AFTER our
+    // configureEach overrides. The mismatch is harmless at runtime (1.8 bytecode
+    // runs fine on JVM 17). Setting this via project.extra ensures it survives
+    // Flutter's automatic "Upgrading gradle.properties" migration in CI.
+    project.extra["kotlin.jvm.target.validation.mode"] = "warning"
+
     tasks.withType<JavaCompile>().configureEach {
         sourceCompatibility = "17"
         targetCompatibility = "17"

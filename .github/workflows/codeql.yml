@@ -23,7 +23,7 @@ permissions:
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
-    runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
     permissions:
       security-events: write
       packages: read
@@ -42,8 +42,9 @@ jobs:
           build-mode: none
         - language: java-kotlin
           build-mode: manual
-        - language: swift
-          build-mode: manual
+        # NOTE: swift is intentionally excluded — no Podfile exists in ios/
+        # so the build produces nothing for CodeQL to analyze.
+        # Re-add when iOS/CocoaPods support is properly set up.
 
     steps:
     - name: Checkout repository
@@ -56,8 +57,8 @@ jobs:
         distribution: temurin
         java-version: '17'
 
-    - name: Set up Flutter (Swift/Java-Kotlin)
-      if: matrix.language == 'swift' || matrix.language == 'java-kotlin'
+    - name: Set up Flutter (Java-Kotlin)
+      if: matrix.language == 'java-kotlin'
       uses: subosito/flutter-action@v2
       with:
         channel: stable
@@ -69,20 +70,15 @@ jobs:
         languages: ${{ matrix.language }}
         build-mode: ${{ matrix.build-mode }}
 
-    - name: Run manual build steps (Swift)
-      if: matrix.build-mode == 'manual' && matrix.language == 'swift'
-      shell: bash
-      run: |
-        cd mobile
-        touch .env
-        flutter pub get
-        flutter build macos --debug
-
     - name: Run manual build steps (Java/Kotlin)
       if: matrix.build-mode == 'manual' && matrix.language == 'java-kotlin'
       env:
-        GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m -Dfile.encoding=UTF-8 -Dorg.gradle.daemon=false"
-        _JAVA_OPTIONS: "-Xmx4096m"
+        GRADLE_OPTS: >-
+          -Dorg.gradle.jvmargs=-Xmx6144m
+          -XX:MaxMetaspaceSize=1024m
+          -Dfile.encoding=UTF-8
+          -Dorg.gradle.daemon=false
+        _JAVA_OPTIONS: "-Xmx6144m"
       shell: bash
       run: |
         cd mobile
