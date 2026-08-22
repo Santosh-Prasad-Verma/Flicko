@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:mobile/data/clients/dio_client.dart';
 import 'package:mobile/data/clients/api_client.dart';
 import 'package:mobile/features/direct_messages/domain/dm_models.dart';
-import 'package:mobile/core/services/appwrite_storage_service.dart';
+import 'package:mobile/data/services/appwrite_storage_service.dart';
 import 'package:mobile/features/e2ee/application/e2ee_session.dart';
 import 'package:mobile/data/models/user_model.dart';
 

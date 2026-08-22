@@ -57,8 +57,8 @@ This Code of Conduct also applies when an individual is representing the project
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the project maintainers responsible for enforcement at:
 
-- **GitHub:** Open a private security advisory or contact the maintainer directly
-- **Email:** Contact the project owner through their GitHub profile
+- **Conduct Inquiries & Abuse Reports:** `conduct@flicko.dev` (or direct message the project maintainers via GitHub `@Santosh-Prasad-Verma`)
+- **Security Vulnerabilities:** For security vulnerability disclosures, please report via [GitHub Security Advisories](https://github.com/Santosh-Prasad-Verma/Flicko/security/advisories/new)
 
 All complaints will be reviewed and investigated promptly and fairly. The project team is obligated to maintain confidentiality with regard to the reporter of an incident.
 

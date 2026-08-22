@@ -123,7 +123,7 @@ class WatchTogetherController extends Notifier<WatchTogetherState> {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      final username = _supabase.auth.currentUser?.email?.split('@').first ?? 'Viewer';
+      final username = _supabase.auth.currentUser?.email.split('@').first ?? 'Viewer';
       final joinResp = await _service.joinSession(
         sessionId: sessionId,
         username: username,

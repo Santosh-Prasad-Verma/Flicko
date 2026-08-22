@@ -13,10 +13,8 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   sentry_flutter: ^9.20.0
-  sentry_logging: ^9.20.0
   
   # UI & Design
-  cupertino_icons: ^1.0.6
   flutter_svg: ^2.0.10
   flutter_animate: ^4.5.0
   google_fonts: ^8.0.2
@@ -28,9 +26,7 @@ dependencies:
   
   # State Management & DI
   flutter_riverpod: ^3.3.1
-  riverpod_annotation: ^4.0.2
   freezed_annotation: ^3.1.0
-  json_annotation: ^4.8.1
   
   # Networking
   dio: ^5.4.3+1
@@ -84,13 +80,11 @@ dependencies:
   flutter_image_compress: ^2.4.0
   video_compress: ^3.1.4
   confetti: ^0.8.0
-  photo_view: ^0.15.0
   flutter_inappwebview: ^6.1.5
   centrifuge: ^0.19.0
   qr_flutter: ^4.1.0
   razorpay_flutter: ^1.4.5
   sqflite_sqlcipher: ^3.4.0
-  intl_phone_field: ^3.2.0
   
   # Music Streaming (BlackHole-style)
   youtube_explode_dart: ^3.1.0
@@ -124,7 +118,6 @@ dependencies:
   marquee: ^2.2.3
   flutter_material_design_icons: ^3.1.0
   metadata_god: ^1.1.0
-  flutter_rust_bridge: 2.11.1
   on_audio_query: ^2.9.0
   package_info_plus: any
   palette_generator: ^0.3.3+3
@@ -146,11 +139,9 @@ dev_dependencies:
 
   # Code Generation
   build_runner: ^2.15.0
-  mockito: ^5.4.4
   mocktail: ^1.0.4
   freezed: ^3.2.5
   json_serializable: ^6.7.1
-  riverpod_generator: ^4.0.3
   sqflite_common: ^2.5.4
   sqflite_common_ffi: ^2.4.0+3
 

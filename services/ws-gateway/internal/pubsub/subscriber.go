@@ -58,7 +58,7 @@ func (ps *RedisPubSub) subscribeSingle(ctx context.Context, storeKey, redisKey s
 	}
 
 	ps.Met.ActiveSubscriptions.Add(1)
-	go ps.reader(readerCtx, storeKey, sub, redisKey, false)
+	go ps.reader(readerCtx, readerCancel, storeKey, sub, redisKey, false)
 
 	ps.log.Debug("subscribed", zap.String("topic", storeKey))
 	return nil
@@ -98,7 +98,7 @@ func (ps *RedisPubSub) psubscribeSingle(ctx context.Context, storeKey, pattern s
 	}
 
 	ps.Met.ActiveSubscriptions.Add(1)
-	go ps.reader(readerCtx, storeKey, sub, pattern, true)
+	go ps.reader(readerCtx, readerCancel, storeKey, sub, pattern, true)
 
 	ps.log.Debug("psubscribed", zap.String("topic", storeKey), zap.String("pattern", pattern))
 	return nil
@@ -145,7 +145,7 @@ func (ps *RedisPubSub) unsubscribeSingle(storeKey string) {
 // Exit paths:
 //   - readerCtx cancelled (Unsubscribe or Stop)
 //   - Max reconnect attempts exhausted (after ~5 min total)
-func (ps *RedisPubSub) reader(ctx context.Context, topic string, sub *goredis.PubSub, pattern string, isPattern bool) {
+func (ps *RedisPubSub) reader(ctx context.Context, cancel context.CancelFunc, topic string, sub *goredis.PubSub, pattern string, isPattern bool) {
 	const maxBackoff = 30 * time.Second
 	const maxAttempts = 15
 
@@ -193,9 +193,8 @@ func (ps *RedisPubSub) reader(ctx context.Context, topic string, sub *goredis.Pu
 						continue
 					}
 
-					// Successfully reconnected — update the subscription store.
-					readerCtx, readerCancel := context.WithCancel(ps.ctx)
-					newS := &subscription{sub: newSub, cancel: readerCancel, pattern: pattern, isPattern: isPattern}
+					// Successfully reconnected — update the subscription store with the new sub and same cancel func.
+					newS := &subscription{sub: newSub, cancel: cancel, pattern: pattern, isPattern: isPattern}
 					ps.subscribers.Store(topic, newS)
 					sub = newSub
 					ch = sub.Channel()
@@ -208,7 +207,6 @@ func (ps *RedisPubSub) reader(ctx context.Context, topic string, sub *goredis.Pu
 					)
 
 					// Break out of reconnect loop, continue reading.
-					_ = readerCtx // used by the new subscription's lifecycle
 					goto reconnected
 				}
 

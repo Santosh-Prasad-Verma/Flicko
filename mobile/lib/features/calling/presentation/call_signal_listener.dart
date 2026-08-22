@@ -56,8 +56,7 @@ class _CallSignalListenerState extends ConsumerState<CallSignalListener> {
           authenticated: (user, profile) =>
               profile?.displayName ??
               profile?.username ??
-              user.email?.split('@').first ??
-              'Flicko User',
+              user.email.split('@').first,
           orElse: () => 'Flicko User',
         );
   }

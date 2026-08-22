@@ -297,12 +297,6 @@ func main() {
 	// Prometheus metrics endpoint
 	api.Handle("/metrics", promhttp.Handler()).Methods("GET")
 
-	// Old health check code removed - now using HealthChecker above
-
-	// Protected routes with auth middleware are already initialized above
-	// protected := api.PathPrefix("/").Subrouter()
-	// protected.Use(middleware.Auth)
-
 	// ── Azure ACS VoIP & Video/Streaming endpoints ─────────────────────────
 	permService := services.NewPermissionService(db.Pool(), redisCache)
 	voiceService := services.NewVoiceService(db.Pool(), permService)

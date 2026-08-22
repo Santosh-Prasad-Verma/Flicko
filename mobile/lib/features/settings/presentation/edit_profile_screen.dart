@@ -5,7 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:mobile/core/constants/flicko_colors.dart';
-import 'package:mobile/core/services/appwrite_storage_service.dart';
+import 'package:mobile/data/services/appwrite_storage_service.dart';
 import 'package:mobile/data/models/user_model.dart';
 import 'package:mobile/data/repositories/auth_repository.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';

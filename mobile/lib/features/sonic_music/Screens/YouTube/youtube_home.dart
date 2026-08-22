@@ -48,14 +48,6 @@ class _YouTubeState extends State<YouTube>
   // Hive.box('settings').get('showHistory', defaultValue: true) as bool;
   final TextEditingController _controller = TextEditingController();
 
-  // int _currentPage = 0;
-  // final PageController _pageController = PageController(
-  // viewportFraction:
-  //     (Platform.isWindows || Platform.isLinux || Platform.isMacOS)
-  //         ? 0.385
-  //         : 1.0,
-  // );
-
   @override
   bool get wantKeepAlive => true;
 
@@ -77,22 +69,6 @@ class _YouTubeState extends State<YouTube>
         }
       });
     }
-    // if (headList.isNotEmpty) {
-    // Timer.periodic(const Duration(seconds: 4), (Timer timer) {
-    //   if (_currentPage < headList.length - 1) {
-    //     _currentPage++;
-    //   } else {
-    //     _currentPage = 0;
-    //   }
-    //   if (_pageController.hasClients) {
-    //     _pageController.animateToPage(
-    //       _currentPage,
-    //       duration: const Duration(milliseconds: 350),
-    //       curve: Curves.easeIn,
-    //     );
-    //   }
-    // });
-    // }
     super.initState();
   }
 

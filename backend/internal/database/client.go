@@ -282,21 +282,18 @@ func NewDatabaseClient(ctx context.Context, databaseURL string) (DatabaseClient,
 
 // isReadOnlySQL returns true for pure SELECT statements that can safely be
 // routed to a read replica. It rejects statements containing write keywords
-// (INSERT, UPDATE, DELETE) or row-locking clauses (FOR UPDATE/SHARE).
+// (INSERT, UPDATE, DELETE) or row-locking clauses (FOR UPDATE/SHARE/KEY SHARE/NO KEY UPDATE).
 func isReadOnlySQL(sql string) bool {
-	trimmed := strings.TrimSpace(sql)
-	if len(trimmed) < 6 {
+	fields := strings.Fields(strings.ToUpper(sql))
+	if len(fields) < 2 || fields[0] != "SELECT" {
 		return false
 	}
-	upper := strings.ToUpper(trimmed)
-	if !strings.HasPrefix(upper, "SELECT") {
-		return false
-	}
+	normalized := strings.Join(fields, " ")
 	// Reject SELECT ... row-locking clauses (row locks must hit primary).
-	if strings.Contains(upper, "FOR UPDATE") ||
-		strings.Contains(upper, "FOR NO KEY UPDATE") ||
-		strings.Contains(upper, "FOR SHARE") ||
-		strings.Contains(upper, "FOR KEY SHARE") {
+	if strings.Contains(normalized, "FOR UPDATE") ||
+		strings.Contains(normalized, "FOR NO KEY UPDATE") ||
+		strings.Contains(normalized, "FOR SHARE") ||
+		strings.Contains(normalized, "FOR KEY SHARE") {
 		return false
 	}
 	return true

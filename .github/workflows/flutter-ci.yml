@@ -61,13 +61,14 @@ jobs:
         # Executes all unit and widget tests with retry for transient native asset downloads
         run: |
           for i in 1 2 3; do
-            flutter test && break || {
-              if [ $i -lt 3 ]; then
-                echo "flutter test failed, retrying in 5 seconds (attempt $i/3)..."
-                sleep 5
-              else
-                echo "flutter test failed after 3 attempts."
-                exit 1
-              fi
-            }
+            if flutter test; then
+              break
+            fi
+            if [ "$i" -lt 3 ]; then
+              echo "flutter test failed, retrying in 5 seconds (attempt $i/3)..."
+              sleep 5
+            else
+              echo "flutter test failed after 3 attempts."
+              exit 1
+            fi
           done
