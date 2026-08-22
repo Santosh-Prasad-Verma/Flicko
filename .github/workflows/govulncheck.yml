@@ -22,16 +22,16 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
       - name: Setup Go
-        uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
           go-version: '1.24'
           cache-dependency-path: 'backend/go.sum'
 
       - name: Run govulncheck
-        uses: golang/govulncheck-action@b018f0cdc53695087c8f47de0a66a70117ce7108
+        uses: golang/govulncheck-action@032d45514ae346b1db93c04b0c90b841c370344f
         with:
           go-version-input: '1.24'
           go-package: ./...

@@ -22,7 +22,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout Code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
       - name: Check Deployment Secrets
         id: check-secrets
@@ -38,7 +38,7 @@ jobs:
 
       - name: Deploy via SSH
         if: steps.check-secrets.outputs.has_key == 'true'
-        uses: appleboy/ssh-action@7eaf766715f9fa35d9f63133cca30258768a3a06
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2
         env:
           DB_PASS: ${{ secrets.AZURE_POSTGRES_PASSWORD }}
           DB_HOST: ${{ secrets.AZURE_POSTGRES_HOST }}

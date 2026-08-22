@@ -18,7 +18,7 @@ jobs:
     steps:
       - name: Fetch Dependabot Metadata
         id: metadata
-        uses: dependabot/fetch-metadata@dbb049be45115e51086a4ae8e8eb45d8b894101e
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 

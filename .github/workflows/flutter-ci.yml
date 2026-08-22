@@ -26,20 +26,20 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
       - name: Create Mock Env File
         run: touch .env
 
       - name: Set up Java
         # Required for building Android components/runners if needed in widget testing
-        uses: actions/setup-java@8df10395cd63871d25c7e4014b378c6152b0ab1d
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
         with:
           distribution: 'zulu'
           java-version: '17'
 
       - name: Set up Flutter
-        uses: subosito/flutter-action@44ae065c9134ba3373840e73b0c23b338fa75097
+        uses: subosito/flutter-action@1508160852fb97248640997f7cfb38da241df0ba
         with:
           channel: 'stable'
           cache: true

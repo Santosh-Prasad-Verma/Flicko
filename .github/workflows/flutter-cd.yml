@@ -29,19 +29,19 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
       - name: Create Mock Env File
         run: touch .env
 
       - name: Set up Java
-        uses: actions/setup-java@8df10395cd63871d25c7e4014b378c6152b0ab1d
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
         with:
           distribution: 'zulu'
           java-version: '17'
 
       - name: Set up Flutter
-        uses: subosito/flutter-action@44ae065c9134ba3373840e73b0c23b338fa75097
+        uses: subosito/flutter-action@1508160852fb97248640997f7cfb38da241df0ba
         with:
           channel: 'stable'
           cache: true
@@ -81,7 +81,7 @@ jobs:
 
       # Distribute Android Build to Firebase App Distribution (Beta testers)
       - name: Upload to Firebase App Distribution
-        uses: wzieba/Firebase-Distribution-Github-Activity@b673ab1a3f65057b545d94fcbe65e2365cfd37e5
+        uses: wzieba/Firebase-Distribution-Github-Action@bd494989dd4bec0343f78adee87fe66e48279ad6
         with:
           appId: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
           serviceCredentialsFileContent: ${{ secrets.FIREBASE_CREDENTIALS_JSON }}
@@ -90,7 +90,7 @@ jobs:
 
       # Optionally upload the AAB to Google Play Console
       - name: Upload to Google Play
-        uses: r0adkfv/upload-google-play@cbd019671cf2b4d9fae155452d3a39e802ee6c29
+        uses: r0adkll/upload-google-play@51a803c68734704a4c5be153d14285ec36318337
         with:
           serviceAccountJsonRaw: ${{ secrets.PLAY_STORE_JSON_KEY }}
           packageName: com.flicko.app
@@ -106,13 +106,13 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
       - name: Create Mock Env File
         run: touch .env
 
       - name: Set up Flutter
-        uses: subosito/flutter-action@44ae065c9134ba3373840e73b0c23b338fa75097
+        uses: subosito/flutter-action@1508160852fb97248640997f7cfb38da241df0ba
         with:
           channel: 'stable'
           cache: true
@@ -151,7 +151,7 @@ jobs:
 
       # Distribute iOS Build to TestFlight
       - name: Upload to Apple TestFlight
-        uses: Apple-Actions/upload-testflight-build@448c5e64883f3e9c20a9a957a627fe55fa91aebe
+        uses: Apple-Actions/upload-testflight-build@5e75ff58276689011512ba87a381d93dc67dbcf8
         with:
           app-path: mobile/build/ios/ipa/*.ipa
           issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
