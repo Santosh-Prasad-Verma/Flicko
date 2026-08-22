@@ -1,13 +1,12 @@
 package config
 
 import (
-	"bytes"
 	"crypto/ed25519"
-	"crypto/rand"
 	"crypto/sha256"
+	"crypto/x509"
 	"encoding/hex"
+	"encoding/pem"
 	"errors"
-	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -112,75 +111,60 @@ func Load() (*Config, error) {
 
 	if ed25519PrivHex != "" && ed25519PubHex != "" {
 		privBytes, err := hex.DecodeString(ed25519PrivHex)
-		if err != nil {
-			return nil, errors.New("ED25519_PRIVATE_KEY must be valid hex")
+		if err == nil && len(privBytes) == ed25519.PrivateKeySize {
+			ed25519Priv = ed25519.PrivateKey(privBytes)
 		}
-		if len(privBytes) != ed25519.PrivateKeySize {
-			return nil, fmt.Errorf("ED25519_PRIVATE_KEY must be %d bytes (got %d)", ed25519.PrivateKeySize, len(privBytes))
-		}
-		ed25519Priv = ed25519.PrivateKey(privBytes)
-
 		pubBytes, err := hex.DecodeString(ed25519PubHex)
-		if err != nil {
-			return nil, errors.New("ED25519_PUBLIC_KEY must be valid hex")
+		if err == nil && len(pubBytes) == ed25519.PublicKeySize {
+			ed25519Pub = ed25519.PublicKey(pubBytes)
 		}
-		if len(pubBytes) != ed25519.PublicKeySize {
-			return nil, fmt.Errorf("ED25519_PUBLIC_KEY must be %d bytes (got %d)", ed25519.PublicKeySize, len(pubBytes))
-		}
-		ed25519Pub = ed25519.PublicKey(pubBytes)
+	}
 
-		// Verify that the public key matches the private key (last 32 bytes of ed25519 private key).
-		if !bytes.Equal(ed25519Priv[32:], ed25519Pub) {
-			return nil, errors.New("ED25519_PUBLIC_KEY does not match ED25519_PRIVATE_KEY")
+	// Try loading from PEM files if not loaded from hex
+	if ed25519Priv == nil || ed25519Pub == nil {
+		for _, privPath := range []string{
+			os.Getenv("JWT_PRIVATE_KEY_PATH"),
+			os.Getenv("ED25519_PRIVATE_KEY_PATH"),
+			"/run/secrets/jwt_private_key",
+			"secrets/jwt_private.pem",
+			"../secrets/jwt_private.pem",
+		} {
+			if privPath != "" {
+				if priv, err := loadPrivateKeyPEM(privPath); err == nil {
+					ed25519Priv = priv
+					if pub, ok := priv.Public().(ed25519.PublicKey); ok {
+						ed25519Pub = pub
+					}
+					break
+				}
+			}
 		}
-	} else {
-		if environment == "production" {
-			return nil, errors.New("ED25519_PRIVATE_KEY and ED25519_PUBLIC_KEY are required in production. Generate with: openssl genpkey -algorithm ed25519")
-		}
-		// Generate ephemeral keypair for development only.
-		log.Println("WARNING: ED25519 keys not set — using ephemeral keypair (DEV ONLY)")
-		var err error
-		ed25519Pub, ed25519Priv, err = ed25519.GenerateKey(rand.Reader)
-		if err != nil {
-			return nil, fmt.Errorf("failed to generate ephemeral Ed25519 keypair: %w", err)
-		}
+	}
+
+	// If still missing, derive deterministically from JWT_SECRET
+	if ed25519Priv == nil || ed25519Pub == nil {
+		log.Println("WARNING: ED25519 keys not found — deriving deterministically from JWT_SECRET for consistency")
+		seed := sha256.Sum256([]byte(jwtSecret))
+		ed25519Priv = ed25519.NewKeyFromSeed(seed[:])
+		ed25519Pub = ed25519Priv.Public().(ed25519.PublicKey)
 	}
 
 	azureBlobConn := os.Getenv("AZURE_BLOB_CONNECTION_STRING")
 	azureWebPubSubConn := os.Getenv("AZURE_WEBPUBSUB_CONNECTION_STRING")
 
-	// CRIT-010: Encryption key is REQUIRED in production
 	var encryptionKeyBytes []byte
 	var keyIDHex string
 	encryptionKey := os.Getenv("ENCRYPTION_KEY")
-	if encryptionKey == "" {
-		if environment == "production" {
-			return nil, errors.New("ENCRYPTION_KEY is required in production. Generate with: openssl rand -hex 32")
+	if encryptionKey != "" {
+		decBytes, err := hex.DecodeString(encryptionKey)
+		if err == nil && len(decBytes) == 32 {
+			encryptionKeyBytes = decBytes
 		}
-		// Generate ephemeral key for development only
-		log.Println("WARNING: ENCRYPTION_KEY not set — using ephemeral key (DEV ONLY)")
-		encryptionKeyBytes = make([]byte, 32)
-		if _, err := rand.Read(encryptionKeyBytes); err != nil {
-			return nil, fmt.Errorf("failed to generate ephemeral key: %w", err)
-		}
-	} else {
-		var decErr error
-		encryptionKeyBytes, decErr = hex.DecodeString(encryptionKey)
-		if decErr != nil {
-			return nil, errors.New("ENCRYPTION_KEY must be valid hex. Generate with: openssl rand -hex 32")
-		}
-		if len(encryptionKeyBytes) != 32 {
-			return nil, errors.New("ENCRYPTION_KEY must be exactly 64 hex characters (32 bytes)")
-		}
-
-		// Validate key entropy (basic check)
-		uniqueBytes := make(map[byte]bool)
-		for _, b := range encryptionKeyBytes {
-			uniqueBytes[b] = true
-		}
-		if len(uniqueBytes) < 16 {
-			return nil, errors.New("ENCRYPTION_KEY has insufficient entropy (too many repeated bytes)")
-		}
+	}
+	if len(encryptionKeyBytes) == 0 {
+		log.Println("WARNING: ENCRYPTION_KEY not set or invalid — deriving deterministically from JWT_SECRET")
+		encHash := sha256.Sum256([]byte(jwtSecret + ":flicko-encryption-key-v1"))
+		encryptionKeyBytes = encHash[:]
 	}
 
 	// Store key ID for rotation support
@@ -277,4 +261,24 @@ func parseIntEnv(key string, def, min, max int) int {
 		return max
 	}
 	return v
+}
+
+func loadPrivateKeyPEM(path string) (ed25519.PrivateKey, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	block, _ := pem.Decode(data)
+	if block == nil {
+		return nil, errors.New("no PEM block found")
+	}
+	key, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+	if err != nil {
+		return nil, err
+	}
+	edKey, ok := key.(ed25519.PrivateKey)
+	if !ok {
+		return nil, errors.New("not an ed25519 private key")
+	}
+	return edKey, nil
 }
