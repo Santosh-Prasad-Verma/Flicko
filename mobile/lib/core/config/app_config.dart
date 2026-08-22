@@ -378,8 +378,8 @@ class AppConfig {
   /// Coerces a configured Centrifugo value into a websocket URL.
   ///
   /// Accepts an http(s) origin, a ws(s) origin, or a full endpoint, so the
-  /// deploy can set `CENTRIFUGO_URL=https://rt.flicko.tech` and still get
-  /// `wss://rt.flicko.tech/connection/websocket`. Returns '' when unset so
+  /// deploy can set `CENTRIFUGO_URL=https://rt.flicko.dev` and still get
+  /// `wss://rt.flicko.dev/connection/websocket`. Returns '' when unset so
   /// callers can detect "not configured" instead of dialing a bad host.
   static String _normalizeCentrifugoUrl(String value) {
     var url = value.trim();

@@ -156,7 +156,7 @@ class _PremiumBillingScreenState extends ConsumerState<PremiumBillingScreen> {
       final paymentResult = await razorpay.startPayment(
         orderId: orderId,
         amount: chargeInRupees,
-        userEmail: user.email ?? 'user@flicko.tech',
+        userEmail: user.email ?? 'user@flicko.dev',
         userPhone: '',
         description: 'Flicko ${planId.toUpperCase()} (${isAnnual ? "Annual" : "Monthly"})',
       );

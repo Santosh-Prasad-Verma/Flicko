@@ -8,7 +8,7 @@ import (
 // CORSConfig holds CORS settings.
 type CORSConfig struct {
 	// AllowedOrigins is the exact-match allowlist of browser origins, e.g.
-	// "https://flicko.tech". A request whose Origin is absent from this list
+	// "https://flicko.dev". A request whose Origin is absent from this list
 	// receives no Access-Control-Allow-Origin header and is therefore blocked
 	// by the browser.
 	AllowedOrigins []string

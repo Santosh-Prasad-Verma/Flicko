@@ -117,7 +117,7 @@ jobs:
         env:
           FLICKO_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL || 'https://flicko-test.supabase.co' }}
           FLICKO_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY || 'dummy_anon_key' }}
-          FLICKO_API_BASE_URL: ${{ secrets.E2E_API_BASE_URL || 'https://api.flicko.tech' }}
+          FLICKO_API_BASE_URL: ${{ secrets.E2E_API_BASE_URL || 'https://api.flicko.dev' }}
         with:
           api-level: ${{ github.event.inputs.api_level || '30' }}
           arch: x86_64
