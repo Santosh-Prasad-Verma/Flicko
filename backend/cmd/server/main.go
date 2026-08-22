@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -660,15 +659,15 @@ func main() {
 	protected.Handle("/channels/{channelId}/messages/{messageId}/read", throttler.Throttle(1*time.Second)(http.HandlerFunc(readStateHandler.MarkAsRead))).Methods("POST")
 	protected.HandleFunc("/users/@me/read_states", readStateHandler.GetUserReadStates).Methods("GET")
 
-	// User endpoint - uses actual auth context
-	protected.HandleFunc("/users/@me", func(w http.ResponseWriter, r *http.Request) {
-		userID := r.Context().Value(middleware.GetUserIDKey())
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"id": userID,
-		})
-	}).Methods("GET")
+	// ── User Profile & Settings Endpoints ────────────────────────────────────
+	userSvc := services.NewUserService(db, redisCache)
+	userHandler := handlers.NewUserHandler(userSvc, logger)
+
+	protected.HandleFunc("/users/@me", userHandler.GetMe).Methods("GET")
+	protected.HandleFunc("/users/@me", userHandler.UpdateProfile).Methods("PATCH", "PUT")
+	protected.HandleFunc("/users/search", userHandler.SearchUsers).Methods("GET")
+	protected.HandleFunc("/users/{id}", userHandler.GetUser).Methods("GET")
+	protected.HandleFunc("/users/{id}", userHandler.UpdateProfile).Methods("PATCH", "PUT")
 
 
 	// ── Creator Community Subsystem ──────────────────────────────────────────

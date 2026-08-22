@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"errors"
 	"regexp"
 	"time"
@@ -22,9 +23,9 @@ type User struct {
 	CustomStatus        *string    `json:"custom_status" db:"custom_status"`
 	CustomStatusEmoji   *string    `json:"custom_status_emoji" db:"custom_status_emoji"`
 	CustomStatusExpires *time.Time `json:"custom_status_expires_at" db:"custom_status_expires_at"`
-	AccentColor         string     `json:"accent_color" db:"accent_color"`
-	Badges              []byte     `json:"badges" db:"badges"` // JSONB
-	Flags               int        `json:"flags" db:"flags"`
+	AccentColor         string          `json:"accent_color" db:"accent_color"`
+	Badges              json.RawMessage `json:"badges" db:"badges"` // JSONB
+	Flags               int             `json:"flags" db:"flags"`
 	Verified            bool       `json:"verified" db:"verified"`
 	Theme               string     `json:"theme" db:"theme"`
 	Password            string     `json:"-" db:"password_hash"`

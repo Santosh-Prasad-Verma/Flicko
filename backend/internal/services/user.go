@@ -62,7 +62,20 @@ func (s *userService) GetUser(ctx context.Context, userID string) (*models.User,
 		&user.CreatedAt, &user.UpdatedAt, &user.LastSeen,
 	)
 	if err != nil {
+		// Resilient fallback to users table if profile row is missing or trigger was delayed
+		var fallbackUser models.User
+		fallbackQuery := `SELECT id, COALESCE(email, ''), COALESCE(raw_user_meta_data->>'username', split_part(email, '@', 1), 'User'), created_at, updated_at FROM public.users WHERE id = $1`
+		fbErr := s.db.QueryRow(ctx, fallbackQuery, userID).Scan(&fallbackUser.ID, &fallbackUser.Email, &fallbackUser.Username, &fallbackUser.CreatedAt, &fallbackUser.UpdatedAt)
+		if fbErr == nil {
+			fallbackUser.Discriminator = "0001"
+			fallbackUser.Badges = []byte("[]")
+			return &fallbackUser, nil
+		}
 		return nil, fmt.Errorf("error fetching user: %w", err)
+	}
+
+	if user.Badges == nil || len(user.Badges) == 0 {
+		user.Badges = []byte("[]")
 	}
 
 	// Cache for 1 hour
@@ -131,13 +144,16 @@ func (s *userService) UpdateProfile(ctx context.Context, userID string, updates 
 	if err != nil {
 		return nil, fmt.Errorf("error updating profile: %w", err)
 	}
+	if user.Badges == nil || len(user.Badges) == 0 {
+		user.Badges = []byte("[]")
+	}
 
 	return &user, nil
 }
 
 func (s *userService) SearchUsers(ctx context.Context, query string) ([]*models.User, error) {
 	if s.db == nil {
-		return []*models.User{{ID: "1", Username: "mock_" + query}}, nil
+		return []*models.User{{ID: "1", Username: "mock_" + query, Badges: []byte("[]")}}, nil
 	}
 
 	sqlQuery := `
@@ -166,6 +182,9 @@ func (s *userService) SearchUsers(ctx context.Context, query string) ([]*models.
 		)
 		if err != nil {
 			return nil, fmt.Errorf("error scanning user: %w", err)
+		}
+		if user.Badges == nil || len(user.Badges) == 0 {
+			user.Badges = []byte("[]")
 		}
 		users = append(users, &user)
 	}

@@ -21,8 +21,8 @@ Map<String, dynamic> _$BadgeToJson(_Badge instance) => <String, dynamic>{
     };
 
 _UserModel _$UserModelFromJson(Map<String, dynamic> json) => _UserModel(
-      id: json['id'] as String,
-      username: json['username'] as String,
+      id: (json['id'] as String?) ?? '',
+      username: (json['username'] as String?) ?? (json['email'] as String? ?? 'User'),
       displayName: json['display_name'] as String?,
       avatarUrl: json['avatar'] as String?,
       bannerUrl: json['banner'] as String?,
@@ -34,23 +34,18 @@ _UserModel _$UserModelFromJson(Map<String, dynamic> json) => _UserModel(
       socialLink: json['social_link'] as String?,
       accentColor: json['accent_color'] as String?,
       bannerColors: (json['banner_colors'] as List<dynamic>?)
-          ?.map((e) => e as String)
+          ?.map((e) => e.toString())
           .toList(),
       avatarDecoration: json['avatar_decoration'] as String?,
       onlineStatus: json['online_status'] as String? ?? 'offline',
       customStatus: json['custom_status'] as String?,
       customStatusEmoji: json['custom_status_emoji'] as String?,
-      badges: (json['badges'] as List<dynamic>?)
-              ?.map((e) => Badge.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
+      badges: _parseBadges(json['badges']),
       isStaff: json['is_staff'] as bool? ?? false,
       isPartner: json['is_partner'] as bool? ?? false,
       hasNitro: json['has_nitro'] as bool? ?? false,
       createdAt: _parseDateTime(json['created_at']),
-      updatedAt: json['updated_at'] == null
-          ? null
-          : DateTime.parse(json['updated_at'] as String),
+      updatedAt: _parseNullableDateTime(json['updated_at']),
     );
 
 Map<String, dynamic> _$UserModelToJson(_UserModel instance) =>

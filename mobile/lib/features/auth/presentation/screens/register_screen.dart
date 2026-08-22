@@ -229,9 +229,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         _emailController.text.trim().toLowerCase(),
       );
       
-      setState(() => 
-        _successMessage = 'Confirmation email sent! Check your inbox and spam folder.'
-      );
+      setState(() {
+        _isVerificationEmailSent = true;
+        _successMessage = 'Confirmation email sent! Check your inbox and spam folder.';
+      });
     } catch (e) {
       setState(() => _generalError = 'Could not resend — try again in a minute.');
     } finally {
@@ -273,7 +274,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       }
     } catch (e) {
       debugPrint('Register error: $e');
-      setState(() => _generalError = _sanitizeErrorMessage(e.toString()));
+      setState(() {
+        _generalError = _sanitizeErrorMessage(e.toString());
+        if (e.toString().toLowerCase().contains('verify') || e.toString().toLowerCase().contains('exist')) {
+          _showResend = true;
+        }
+      });
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
