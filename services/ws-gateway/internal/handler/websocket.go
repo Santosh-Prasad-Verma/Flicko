@@ -128,7 +128,14 @@ func (h *WSHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// ── Upgrade ─────────────────────────────────────────────
+	// ── Origin check & Upgrade ──────────────────────────────
+	if !h.checkOrigin(r) {
+		h.log.Warn("rejected cross-origin websocket upgrade", zap.String("origin", r.Header.Get("Origin")))
+		http.Error(w, "forbidden origin", http.StatusForbidden)
+		return
+	}
+
+	// nosemgrep: go.gorilla.security.audit.websocket-missing-origin-check
 	ws, err := h.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		h.log.Warn("upgrade failed", zap.Error(err))

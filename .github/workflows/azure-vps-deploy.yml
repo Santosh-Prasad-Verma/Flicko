@@ -22,21 +22,23 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: Check Deployment Secrets
         id: check-secrets
+        env:
+          HAS_SSH_KEY: ${{ secrets.VPS_SSH_KEY != '' }}
         run: |
-          if [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
-            echo "has_key=false" >> $GITHUB_OUTPUT
+          if [ "$HAS_SSH_KEY" != "true" ]; then
+            echo "has_key=false" >> "$GITHUB_OUTPUT"
             echo "::warning ::VPS_SSH_KEY secret is not configured in GitHub repository settings. Skipping SSH deployment."
           else
-            echo "has_key=true" >> $GITHUB_OUTPUT
+            echo "has_key=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Deploy via SSH
         if: steps.check-secrets.outputs.has_key == 'true'
-        uses: appleboy/ssh-action@v1.2.0
+        uses: appleboy/ssh-action@7eaf766715f9fa35d9f63133cca30258768a3a06
         env:
           DB_PASS: ${{ secrets.AZURE_POSTGRES_PASSWORD }}
           DB_HOST: ${{ secrets.AZURE_POSTGRES_HOST }}

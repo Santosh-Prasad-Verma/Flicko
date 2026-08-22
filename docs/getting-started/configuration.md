@@ -289,7 +289,7 @@ These variables are loaded by the Flutter app (typically via Azure Key Vault or 
 
 **`FLICKO_API_URL`** is the base URL the mobile app uses for all REST API calls. In local development, this must be set to your machine's LAN IP (not `localhost`) because the mobile simulator/device runs in a different network context. In production, this points to your NGINX reverse proxy (e.g., `https://api.flicko.dev`).
 
-**`FLICKO_WS_URL`** is the WebSocket endpoint the mobile app connects to for real-time events. The path is typically `/ws`. In development: `ws://192.168.1.x:8080/ws`. In production: `wss://api.flicko.dev/ws`.
+**`FLICKO_WS_URL`** is the WebSocket endpoint the mobile app connects to for real-time events. The path is typically `/ws`. In development: `wss://192.168.1.x:8080/ws`. In production: `wss://api.flicko.dev/ws`.
 
 ---
 

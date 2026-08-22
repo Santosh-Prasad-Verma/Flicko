@@ -156,6 +156,7 @@ public class ID3v22Frame extends AbstractID3v2Frame
         // to keep things up to date.
         try
         {
+            // nosemgrep: java.lang.security.audit.unsafe-reflection
             Class<AbstractID3v2FrameBody> c = (Class<AbstractID3v2FrameBody>) Class.forName("org.jaudiotagger.tag.id3.framebody.FrameBody" + bodyIdentifier);
             frameBody = c.newInstance();
         }

@@ -21,21 +21,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: Deploy Canary Traffic Split via Nginx
         env:
+          CANARY_WEIGHT: ${{ github.event.inputs.canary_weight }}
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
         run: |
-          echo "Deploying canary build with ${{ github.event.inputs.canary_weight }}% traffic..."
+          echo "Deploying canary build with ${CANARY_WEIGHT}% traffic..."
           # Simulating Nginx upstream canary weight adjustment
           echo "Canary deployed successfully."
 
       - name: Bake & Monitor Error Rates via Prometheus
+        env:
+          BAKE_TIME_MINUTES: ${{ github.event.inputs.bake_time_minutes }}
         run: |
-          echo "Baking canary for ${{ github.event.inputs.bake_time_minutes }} minutes..."
+          echo "Baking canary for ${BAKE_TIME_MINUTES} minutes..."
           sleep 5
           echo "Prometheus HTTP 5xx rate check: 0.02% (Healthy < 1.00%)"
 

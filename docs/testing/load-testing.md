@@ -65,7 +65,7 @@ export let options = {
 };
 
 export default function () {
-    const url = `ws://api.target.com/api/v1/ws`;
+    const url = `wss://api.target.com/api/v1/ws`;
     
     ws.connect(url, {}, function (socket) {
         socket.on('open', function() {   

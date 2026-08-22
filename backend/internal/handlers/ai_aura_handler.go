@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/gorilla/mux"
 	"github.com/flicko-org/flicko-backend/internal/config"
 	"go.uber.org/zap"
 )
@@ -18,10 +19,19 @@ type AIAuraHandler struct {
 }
 
 func NewAIAuraHandler(cfg *config.Config, logger *zap.Logger) *AIAuraHandler {
+	if logger == nil {
+		logger = zap.NewNop()
+	}
 	return &AIAuraHandler{
 		cfg:    cfg,
-		logger: logger,
+		logger: logger.Named("handler.ai_aura"),
 	}
+}
+
+func (h *AIAuraHandler) RegisterRoutes(r *mux.Router) {
+	r.HandleFunc("/aura/chat", h.HandleAuraChat).Methods(http.MethodPost, http.MethodOptions)
+	r.HandleFunc("/aura/gifs", h.HandleGifSearch).Methods(http.MethodGet, http.MethodOptions)
+	r.HandleFunc("/aura/tts", h.HandleTTS).Methods(http.MethodPost, http.MethodOptions)
 }
 
 type auraMessage struct {
@@ -43,13 +53,24 @@ var systemPrompts = map[string]string{
 }
 
 func (h *AIAuraHandler) HandleAuraChat(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
 	var req auraChatReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || len(req.Messages) == 0 {
 		writeError(w, http.StatusBadRequest, "messages array is required")
 		return
 	}
 
-	apiKey := os.Getenv("GEMINI_API_KEY")
+	apiKey := ""
+	if h.cfg != nil && h.cfg.FlickoGeminiAPIKey != "" {
+		apiKey = h.cfg.FlickoGeminiAPIKey
+	}
+	if apiKey == "" {
+		apiKey = os.Getenv("GEMINI_API_KEY")
+	}
 	if apiKey == "" {
 		apiKey = os.Getenv("FLICKO_GEMINI_API_KEY")
 	}
@@ -63,19 +84,21 @@ func (h *AIAuraHandler) HandleAuraChat(w http.ResponseWriter, r *http.Request) {
 		contents := make([]map[string]interface{}, 0, len(req.Messages))
 		for _, m := range req.Messages {
 			role := "user"
-			if m.Role == "assistant" || m.Sender == "assistant" {
+			if m.Role == "assistant" || m.Sender == "assistant" || m.Role == "model" {
 				role = "model"
 			}
 			txt := m.Content
 			if txt == "" {
 				txt = m.Text
 			}
-			contents = append(contents, map[string]interface{}{
-				"role": role,
-				"parts": []map[string]string{
-					{"text": txt},
-				},
-			})
+			if txt != "" {
+				contents = append(contents, map[string]interface{}{
+					"role": role,
+					"parts": []map[string]string{
+						{"text": txt},
+					},
+				})
+			}
 		}
 
 		payload := map[string]interface{}{
@@ -90,7 +113,7 @@ func (h *AIAuraHandler) HandleAuraChat(w http.ResponseWriter, r *http.Request) {
 		}
 
 		jsonBytes, _ := json.Marshal(payload)
-		url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=%s", apiKey)
+		url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=%s", apiKey)
 		resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonBytes))
 		if err == nil && resp.StatusCode == http.StatusOK {
 			defer resp.Body.Close()
@@ -113,9 +136,13 @@ func (h *AIAuraHandler) HandleAuraChat(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"text": "I'm Aura, your AI assistant. I'm operating in fallback mode!"})
 }
 
-type GIFSearchReq struct {
-	Query string `json:"q"`
-	Limit int    `json:"limit"`
+func (h *AIAuraHandler) HandleTTS(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+	// Return 204 No Content so clients smoothly use on-device TTS
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *AIAuraHandler) HandleGifSearch(w http.ResponseWriter, r *http.Request) {

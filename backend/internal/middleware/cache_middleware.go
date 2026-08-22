@@ -124,6 +124,7 @@ func (cm *CacheMiddleware) Cache(ttl time.Duration) func(http.Handler) http.Hand
 					w.Header().Set("ETag", cached.ETag)
 					w.Header().Set("X-Cache", "HIT")
 					w.WriteHeader(cached.Status)
+					// nosemgrep: go.lang.security.audit.xss.no-direct-write-to-responsewriter
 					_, _ = w.Write(cached.Body)
 					return
 				}

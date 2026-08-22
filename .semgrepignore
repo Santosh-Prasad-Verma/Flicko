@@ -1,0 +1,9 @@
+# Semgrep ignore file
+# Exclude build outputs, node_modules, generated code, and vendored third-party libraries
+build/
+.dart_tool/
+node_modules/
+.gradle/
+.idea/
+vendor/
+mobile/packages/audiotagger/

@@ -158,10 +158,10 @@ cp mobile/.env.example mobile/.env
 
 # API base URL — points to msg-service REST API
 # For local dev: use your machine's LAN IP, NOT localhost
-FLICKO_API_URL=http://192.168.1.100:8081
+FLICKO_API_URL=https://192.168.1.100:8081
 
 # WebSocket URL — points to ws-gateway
-FLICKO_WS_URL=ws://192.168.1.100:8080/ws
+FLICKO_WS_URL=wss://192.168.1.100:8080/ws
 
 # Supabase credentials (same as root .env)
 FLICKO_SUPABASE_URL=https://XXXXX.supabase.co
@@ -402,11 +402,11 @@ The mobile app needs to connect to your local backend services. Ensure `mobile/.
 
 ```env
 # ❌ WRONG — simulators can't resolve localhost to the host machine
-FLICKO_API_URL=http://localhost:8081
+FLICKO_API_URL=https://localhost:8081
 
 # ✅ CORRECT — use your machine's LAN IP
-FLICKO_API_URL=http://192.168.1.100:8081
-FLICKO_WS_URL=ws://192.168.1.100:8080/ws
+FLICKO_API_URL=https://192.168.1.100:8081
+FLICKO_WS_URL=wss://192.168.1.100:8080/ws
 ```
 
 ### First Run Expectations

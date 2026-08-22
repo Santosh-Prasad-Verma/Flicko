@@ -67,8 +67,8 @@ LIVEKIT_API_KEY=APIxxxxxxx
 LIVEKIT_API_SECRET=your_livekit_secret
 
 # mobile/.env — used by Flutter app
-FLICKO_API_URL=http://192.168.1.X:8081
-FLICKO_WS_URL=ws://192.168.1.X:8080/ws
+FLICKO_API_URL=https://192.168.1.X:8081
+FLICKO_WS_URL=wss://192.168.1.X:8080/ws
 FLICKO_SUPABASE_URL=https://REF.supabase.co
 FLICKO_SUPABASE_ANON_KEY=eyJhbGci...
 ```

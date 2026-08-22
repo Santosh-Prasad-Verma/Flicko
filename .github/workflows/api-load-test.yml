@@ -21,10 +21,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: Setup k6 Load Testing CLI
-        uses: grafana/setup-k6-action@v1
+        uses: grafana/setup-k6-action@99015c7e0c9044dc8ef864811b75b9f71c3fcbc6
 
       - name: Run k6 Load Test
         run: |
@@ -37,10 +37,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: Setup k6 Load Testing CLI
-        uses: grafana/setup-k6-action@v1
+        uses: grafana/setup-k6-action@99015c7e0c9044dc8ef864811b75b9f71c3fcbc6
 
       - name: Run k6 Realtime WebSocket Test
         run: |

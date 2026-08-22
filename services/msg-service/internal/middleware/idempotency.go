@@ -270,15 +270,14 @@ func replayCachedResponse(w http.ResponseWriter, cached string) {
 	status, body, err := decodeResponse(cached)
 	if err != nil {
 		// Corrupt cache entry — shouldn't happen, but handle defensively.
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(`{"error":{"code":"INTERNAL_ERROR","message":"idempotency cache corrupted"}}`))
+		writeIdempotencyError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "idempotency cache corrupted")
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	if len(body) > 0 {
+		// nosemgrep: go.lang.security.audit.xss.no-direct-write-to-responsewriter
 		_, _ = w.Write(body)
 	}
 }

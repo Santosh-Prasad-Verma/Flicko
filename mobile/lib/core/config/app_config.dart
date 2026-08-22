@@ -175,10 +175,10 @@ class AppConfig {
       final host = apiBaseUrl.replaceAll(RegExp(r'/api/v1/?$'), '');
       final wsHost = host.startsWith('https://')
           ? host.replaceFirst('https://', 'wss://')
-          : host.replaceFirst('http://', 'ws://');
+          : host.replaceFirst('http://', 'wss://');
       realtimeWsUrl = '$wsHost/ws';
     } else {
-      realtimeWsUrl = 'ws://localhost:8080/ws';
+      realtimeWsUrl = 'wss://localhost:8080/ws';
     }
     giphyApiKey = _read(
       _definedGiphyApiKey,
@@ -388,8 +388,8 @@ class AppConfig {
     if (url.startsWith('https://')) {
       url = url.replaceFirst('https://', 'wss://');
     } else if (url.startsWith('http://')) {
-      url = url.replaceFirst('http://', 'ws://');
-    } else if (!url.startsWith('ws://') && !url.startsWith('wss://')) {
+      url = url.replaceFirst('http://', 'wss://');
+    } else if (!url.startsWith('wss://')) {
       // Bare host — assume TLS.
       url = 'wss://$url';
     }

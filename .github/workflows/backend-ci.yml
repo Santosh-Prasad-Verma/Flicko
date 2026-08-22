@@ -22,10 +22,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed
         with:
           go-version: '1.24'
 
@@ -44,14 +44,14 @@ jobs:
   build-and-deploy:
     name: Build Docker Images & Deploy to Azure
     needs: test-and-lint
-    if: github.ref == 'refs/heads/main' && secrets.AZURE_ACR_USERNAME != ''
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: Log in to Azure Container Registry (ACR)
-        uses: azure/docker-login@v2
+        uses: azure/docker-login@160395db18e227fa4b1b369b7654b9d0737a4e69
         with:
           login-server: ${{ secrets.AZURE_ACR_NAME }}.azurecr.io
           username: ${{ secrets.AZURE_ACR_USERNAME }}
@@ -64,12 +64,12 @@ jobs:
           docker push ${{ secrets.AZURE_ACR_NAME }}.azurecr.io/flicko-backend:latest
 
       - name: Azure Login
-        uses: azure/login@v2
+        uses: azure/login@a65d910e84aa56900f946059d3e8e24446419b4b
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Deploy Backend to Azure Container Apps
-        uses: azure/container-apps-deploy-action@v1
+        uses: azure/container-apps-deploy-action@4713c7c25140f7b9f848aa2bfd214ff94eefea98
         with:
           appSource: backend/
           acrName: ${{ secrets.AZURE_ACR_NAME }}

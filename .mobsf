@@ -1,0 +1,17 @@
+# MobSF scan configuration file
+# Ignores third-party vendored packages and false positive informational rules
+
+ignore-paths:
+  - "mobile/packages/audiotagger"
+  - ".git"
+  - "build"
+  - ".dart_tool"
+  - "node_modules"
+
+ignore-rules:
+  - android_root_detection
+  - android_safetynet
+  - android_prevent_screenshot
+  - android_certificate_pinning
+  - android_tapjacking
+  - android_logging

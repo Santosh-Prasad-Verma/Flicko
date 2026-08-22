@@ -405,8 +405,8 @@ CLOUDINARY_API_SECRET=AbCdEfGhIjKlMnOpQrStUvWx
 ```env
 # Example LiveKit configuration
 LIVEKIT_URL=wss://flicko-dev.livekit.cloud
-LIVEKIT_API_KEY=APIxxxxxxxx
-LIVEKIT_API_SECRET=AbCdEfGhIjKlMnOpQrStUvWxYzAbCdEfGhIjKlMnOp
+LIVEKIT_API_KEY=your_livekit_api_key_here
+LIVEKIT_API_SECRET=your_livekit_api_secret_here
 ```
 
 ---

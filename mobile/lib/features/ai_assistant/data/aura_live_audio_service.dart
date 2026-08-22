@@ -63,6 +63,13 @@ class AuraLiveAudioService {
   static const Duration _minInputDuration = Duration(milliseconds: 1000);
   static const Duration _silenceStopDuration = Duration(milliseconds: 1200);
 
+  static bool isValidKey(String key) {
+    final trimmed = key.trim();
+    if (trimmed.isEmpty) return false;
+    if (trimmed == '1fa6f8e6e73afa1b071df94b77450c216f2e4c6d') return false;
+    return trimmed.length >= 20;
+  }
+
   static const String _defaultSystemPrompt = r'''# Role & Identity
 You are Aura, the native AI Voice Companion and Central Command Intelligence inside the Flicko application. You serve dual roles:
 1. Full Application Controller: Executing real-time voice commands to control all aspects of Flicko (messaging, calls, music, navigation, settings, social).

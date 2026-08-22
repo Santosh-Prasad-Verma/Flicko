@@ -14,12 +14,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           fetch-depth: 0 # Fetch all history for accurate changelogs
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@c062e08bd53287ba0ab3644f08fe716b86fa30f6
         with:
           tag_name: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}

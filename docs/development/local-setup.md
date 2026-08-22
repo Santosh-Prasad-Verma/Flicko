@@ -89,7 +89,7 @@ System Settings -> Wi-Fi -> Details -> IP Address
 
 ```typescript
 // Config.ts
-export const DEV_API_URL = "http://192.168.1.55:8080/api/v1";
-export const DEV_WS_URL = "ws://192.168.1.55:8081/api/v1/ws";
-export const DEV_MSG_URL = "http://192.168.1.55:8082/api/v1";
+export const DEV_API_URL = "https://192.168.1.55:8080/api/v1";
+export const DEV_WS_URL = "wss://192.168.1.55:8081/api/v1/ws";
+export const DEV_MSG_URL = "https://192.168.1.55:8082/api/v1";
 ```

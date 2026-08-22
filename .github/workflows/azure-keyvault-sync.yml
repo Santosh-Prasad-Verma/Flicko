@@ -32,10 +32,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: Azure Login
-        uses: azure/login@v2
+        uses: azure/login@a65d910e84aa56900f946059d3e8e24446419b4b
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
         continue-on-error: true

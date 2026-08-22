@@ -4,6 +4,11 @@ services:
   prometheus:
     image: prom/prometheus:v2.45.0
     container_name: flicko-prometheus
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
@@ -22,6 +27,11 @@ services:
   grafana:
     image: grafana/grafana:10.0.3
     container_name: flicko-grafana
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
     volumes:
       - grafana_data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
@@ -42,6 +52,9 @@ services:
   node-exporter:
     image: prom/node-exporter:v1.6.1
     container_name: flicko-node-exporter
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
@@ -60,6 +73,11 @@ services:
   postgres-exporter:
     image: prometheuscommunity/postgres-exporter:v0.12.1
     container_name: flicko-postgres-exporter
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
     environment:
       - DATA_SOURCE_NAME=postgresql://flicko:changeme@db:5432/flickodb?sslmode=disable
     ports:
@@ -72,6 +90,11 @@ services:
   redis-exporter:
     image: oliver006/redis_exporter:v1.52.0
     container_name: flicko-redis-exporter
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
     environment:
       - REDIS_ADDR=redis://redis:6379
     ports:

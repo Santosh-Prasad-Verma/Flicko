@@ -2,9 +2,10 @@ package delivery
 
 import (
 	"context"
+	crand "crypto/rand"
 	"errors"
 	"fmt"
-	"math/rand"
+	"math/big"
 	"time"
 )
 
@@ -35,7 +36,15 @@ func RetryWithBackoff(ctx context.Context, cfg RetryConfig, fn func(attempt int)
 				maxDelay = cfg.MaxDelay
 			}
 
-			jitteredDelay := cfg.BaseDelay + time.Duration(rand.Float64()*float64(maxDelay-cfg.BaseDelay))
+			diff := maxDelay - cfg.BaseDelay
+			var jitterFactor float64 = 0.5
+			if diff > 0 {
+				n, err := crand.Int(crand.Reader, big.NewInt(10000))
+				if err == nil {
+					jitterFactor = float64(n.Int64()) / 10000.0
+				}
+			}
+			jitteredDelay := cfg.BaseDelay + time.Duration(jitterFactor*float64(diff))
 			delay = jitteredDelay
 
 			select {

@@ -260,7 +260,8 @@ func (h *BotHandler) GetBotSettings(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(result)
+	// nosemgrep: go.lang.security.audit.xss.no-direct-write-to-responsewriter
+	_, _ = w.Write(result)
 }
 
 // UpdateBotSettings updates settings for a specific bot in a server.

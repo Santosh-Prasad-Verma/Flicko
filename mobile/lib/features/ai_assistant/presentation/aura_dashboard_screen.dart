@@ -234,8 +234,8 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
         if (meta != null && meta.containsKey('username')) {
           return meta['username'] as String;
         }
-        if (authUser.email != null) {
-          return authUser.email!.split('@').first;
+        if (authUser.email.isNotEmpty) {
+          return authUser.email.split('@').first;
         }
         return 'Buddy';
       },

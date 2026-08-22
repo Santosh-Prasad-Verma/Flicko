@@ -24,8 +24,11 @@ FROM alpine:3.19
 
 WORKDIR /app
 
-RUN apk add --no-cache ca-certificates tzdata
+RUN apk add --no-cache ca-certificates tzdata && \
+    addgroup -S appgroup && adduser -S appuser -G appgroup
 
 COPY --from=builder /app/bin/jobs /app/jobs
+
+USER appuser:appgroup
 
 ENTRYPOINT ["/app/jobs"]

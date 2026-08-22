@@ -2,8 +2,9 @@ package conn
 
 import (
 	"context"
+	crand "crypto/rand"
 	"encoding/json"
-	"math/rand"
+	"math/big"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -614,9 +615,6 @@ func (m *Manager) closeAll() {
 	const batchSize = 50
 	const baseDelay = 100 * time.Millisecond
 
-	// Seed local random generator for jitter calculation
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-
 	for i, client := range clientsToClose {
 		// Send CloseServiceRestart (1012) close control frame to prompt backoff reconnection
 		msg := websocket.FormatCloseMessage(websocket.CloseServiceRestart, "Server is restarting, reconnecting with backoff...")
@@ -629,7 +627,12 @@ func (m *Manager) closeAll() {
 
 		// Introduce randomized batch delays to space out reconnect requests
 		if (i+1)%batchSize == 0 {
-			jitter := time.Duration(r.Intn(50)) * time.Millisecond
+			jitterVal, err := crand.Int(crand.Reader, big.NewInt(50))
+			jitterMs := int64(25)
+			if err == nil {
+				jitterMs = jitterVal.Int64()
+			}
+			jitter := time.Duration(jitterMs) * time.Millisecond
 			time.Sleep(baseDelay + jitter)
 		}
 	}

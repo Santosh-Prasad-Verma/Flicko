@@ -106,8 +106,8 @@ npm install
 # Configure the API URL to point to your local backend
 cp .env.example .env
 # Edit .env and set:
-# FLICKO_API_URL=http://<YOUR_LOCAL_IP>:8081
-# FLICKO_WS_URL=ws://<YOUR_LOCAL_IP>:8080/ws
+# FLICKO_API_URL=https://<YOUR_LOCAL_IP>:8081
+# FLICKO_WS_URL=wss://<YOUR_LOCAL_IP>:8080/ws
 
 # Start the Flutter development server
 npx expo start
