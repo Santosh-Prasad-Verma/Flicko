@@ -25,14 +25,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "9.0.0"
-  analyzer_buffer:
-    dependency: transitive
-    description:
-      name: analyzer_buffer
-      sha256: ff4bd291778c7417fe53fe24ee0d0a1f1ffe281a2d4ea887e7094f16e36eace7
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.3.0"
   app_links:
     dependency: "direct main"
     description:
@@ -376,14 +368,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.0"
-  code_builder:
-    dependency: transitive
-    description:
-      name: code_builder
-      sha256: "6a6cab2ba4680d6423f34a9b972a4c9a94ebe1b62ecec4e1a1f2cba91fd1319d"
-      url: "https://pub.dev"
-    source: hosted
-    version: "4.11.1"
   collection:
     dependency: transitive
     description:
@@ -480,14 +464,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.2"
-  cupertino_icons:
-    dependency: "direct main"
-    description:
-      name: cupertino_icons
-      sha256: "41e005c33bd814be4d3096aff55b1908d419fde52ca656c8c47719ec745873cd"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.0.9"
   dart_des:
     dependency: "direct main"
     description:
@@ -984,7 +960,7 @@ packages:
     source: hosted
     version: "3.3.1"
   flutter_rust_bridge:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: flutter_rust_bridge
       sha256: "37ef40bc6f863652e865f0b2563ea07f0d3c58d8efad803cc01933a4b2ee067e"
@@ -1387,14 +1363,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.20.2"
-  intl_phone_field:
-    dependency: "direct main"
-    description:
-      name: intl_phone_field
-      sha256: "73819d3dfcb68d2c85663606f6842597c3ddf6688ac777f051b17814fe767bbf"
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.2.0"
   io:
     dependency: transitive
     description:
@@ -1420,7 +1388,7 @@ packages:
     source: hosted
     version: "0.7.2"
   json_annotation:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: json_annotation
       sha256: cb09e7dac6210041fad964ed7fbee004f14258b4eca4040f72d1234062ace4c8
@@ -1611,14 +1579,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.0"
-  mockito:
-    dependency: "direct dev"
-    description:
-      name: mockito
-      sha256: eff30d002f0c8bf073b6f929df4483b543133fcafce056870163587b03f1d422
-      url: "https://pub.dev"
-    source: hosted
-    version: "5.6.4"
   mocktail:
     dependency: "direct dev"
     description:
@@ -1907,14 +1867,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.0.2"
-  photo_view:
-    dependency: "direct main"
-    description:
-      name: photo_view
-      sha256: "1fc3d970a91295fbd1364296575f854c9863f225505c28c46e0a03e48960c75e"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.15.0"
   platform:
     dependency: transitive
     description:
@@ -2083,30 +2035,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.2.1"
-  riverpod_analyzer_utils:
-    dependency: transitive
-    description:
-      name: riverpod_analyzer_utils
-      sha256: e55bc08c084a424e1bbdc303fe8ea75daafe4269b68fd0e0f6f1678413715b66
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.0.0-dev.9"
-  riverpod_annotation:
-    dependency: "direct main"
-    description:
-      name: riverpod_annotation
-      sha256: "16471a1260b94e939394d78f1c63a9350936ac4a68c9fbdab40be47268c0b04f"
-      url: "https://pub.dev"
-    source: hosted
-    version: "4.0.2"
-  riverpod_generator:
-    dependency: "direct dev"
-    description:
-      name: riverpod_generator
-      sha256: "6f9220534d7a353b53c875ea191a84d28cb4e52ac420a66a1bd7318329d977b0"
-      url: "https://pub.dev"
-    source: hosted
-    version: "4.0.3"
   rxdart:
     dependency: "direct main"
     description:
@@ -2128,14 +2056,6 @@ packages:
     description:
       name: sentry_flutter
       sha256: "4f0a914d8c37e5015d7b86dd42b92dd265948fd31875b43e62ddfc2e7bea0e41"
-      url: "https://pub.dev"
-    source: hosted
-    version: "9.20.0"
-  sentry_logging:
-    dependency: "direct main"
-    description:
-      name: sentry_logging
-      sha256: "2b5ab3a48249567681fd6c28b68c43efd3d5c0e03f58f787c3f675df6eebe6cd"
       url: "https://pub.dev"
     source: hosted
     version: "9.20.0"

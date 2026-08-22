@@ -1064,7 +1064,7 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
             final paymentService = ref.read(storePaymentServiceProvider);
             final result = await paymentService.processPayment(
               amount: finalAmount,
-              userEmail: user.email ?? '',
+              userEmail: user.email,
               userPhone: profile?.phone ?? '',
               description: 'Flicko Store Purchase - ${widget.paidItems.length} item(s)',
               items: widget.paidItems,

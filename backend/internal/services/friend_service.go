@@ -215,6 +215,7 @@ func (s *friendService) GetFriends(ctx context.Context, userID string) ([]*model
 		FROM public.friendships
 		WHERE user_id = $1
 		ORDER BY created_at DESC
+		LIMIT 500
 	`
 	rows, err := s.db.Query(ctx, query, userUUID)
 	if err != nil {
@@ -222,7 +223,7 @@ func (s *friendService) GetFriends(ctx context.Context, userID string) ([]*model
 	}
 	defer rows.Close()
 
-	var friends []*models.Friendship
+	friends := make([]*models.Friendship, 0, 32)
 	for rows.Next() {
 		f := &models.Friendship{}
 		if err := rows.Scan(&f.UserID, &f.FriendID, &f.Nickname, &f.CreatedAt); err != nil {
@@ -333,14 +334,14 @@ func (s *friendService) GetBlockedUsers(ctx context.Context, userID string) ([]*
 		return nil, fmt.Errorf("invalid uuid")
 	}
 
-	query := `SELECT blocker_id, blocked_id, created_at FROM public.blocks WHERE blocker_id = $1 ORDER BY created_at DESC`
+	query := `SELECT blocker_id, blocked_id, created_at FROM public.blocks WHERE blocker_id = $1 ORDER BY created_at DESC LIMIT 500`
 	rows, err := s.db.Query(ctx, query, userUUID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var blocks []*models.Block
+	blocks := make([]*models.Block, 0, 16)
 	for rows.Next() {
 		b := &models.Block{}
 		if err := rows.Scan(&b.BlockerID, &b.BlockedID, &b.CreatedAt); err != nil {

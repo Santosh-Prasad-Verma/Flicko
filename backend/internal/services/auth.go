@@ -2,8 +2,10 @@ package services
 
 import (
 	"context"
+	"crypto/ed25519"
 	"crypto/rand"
-	"encoding/base64"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -17,9 +19,18 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// Claims represents the JWT payload for Flicko access tokens.
+// This is compatible with the shared/auth.Claims struct used by msg-service
+// and ws-gateway, ensuring cross-service token validation works correctly.
+type Claims struct {
+	jwt.RegisteredClaims
+	Roles    []string `json:"roles,omitempty"`
+	DeviceID string   `json:"did,omitempty"`
+}
+
 type AuthService interface {
 	GenerateToken(userID, email string) (string, error)
-	ValidateToken(tokenString string) (*jwt.RegisteredClaims, error)
+	ValidateToken(tokenString string) (*Claims, error)
 	HashPassword(password string) (string, error)
 	CheckPassword(hash, password string) bool
 	Register(ctx context.Context, username, email, phone, password string) (*models.User, string, error)
@@ -28,20 +39,41 @@ type AuthService interface {
 	ResendVerification(ctx context.Context, email string) error
 }
 
+// signingMethod — Ed25519 (EdDSA), matching services/shared/auth/jwt.go.
+var signingMethod = jwt.SigningMethodEdDSA
+
+const (
+	accessTokenTTL = 24 * time.Hour
+	issuer         = "flicko"
+)
+
 type authService struct {
 	db      database.DatabaseClient
-	secret  []byte
+	privKey ed25519.PrivateKey
+	pubKeys map[string]ed25519.PublicKey // kid → public key
+	kid     string                      // Key ID for the active private key
 	mailSvc *MailService
 }
 
-func NewAuthService(db database.DatabaseClient, jwtSecret string, opts ...AuthOption) AuthService {
-	secret, err := base64.StdEncoding.DecodeString(jwtSecret)
-	if err != nil {
-		secret = []byte(jwtSecret)
-	}
+// keyIDFromPublic derives a deterministic Key ID (kid) from an Ed25519 public key.
+// Compatible with services/shared/auth.KeyIDFromPublic.
+func keyIDFromPublic(pub ed25519.PublicKey) string {
+	h := sha256.Sum256(pub)
+	return hex.EncodeToString(h[:8])
+}
+
+// TestKeyIDFromPublic is exported for test packages to derive kid values.
+func TestKeyIDFromPublic(pub ed25519.PublicKey) string {
+	return keyIDFromPublic(pub)
+}
+
+func NewAuthService(db database.DatabaseClient, privKey ed25519.PrivateKey, pubKey ed25519.PublicKey, opts ...AuthOption) AuthService {
+	kid := keyIDFromPublic(pubKey)
 	svc := &authService{
-		db:     db,
-		secret: secret,
+		db:      db,
+		privKey: privKey,
+		pubKeys: map[string]ed25519.PublicKey{kid: pubKey},
+		kid:     kid,
 	}
 	for _, opt := range opts {
 		opt(svc)
@@ -58,32 +90,64 @@ func WithMailService(mailSvc *MailService) AuthOption {
 }
 
 func (s *authService) GenerateToken(userID, email string) (string, error) {
-	claims := jwt.MapClaims{
-		"sub":   userID,
-		"email": email,
-		"iss":   "flicko-backend",
-		"exp":   time.Now().Add(7 * 24 * time.Hour).Unix(),
-		"iat":   time.Now().Unix(),
+	now := time.Now().UTC()
+	claims := &Claims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			Subject:   userID,
+			Issuer:    issuer,
+			IssuedAt:  jwt.NewNumericDate(now),
+			ExpiresAt: jwt.NewNumericDate(now.Add(accessTokenTTL)),
+		},
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(s.secret)
+	token := jwt.NewWithClaims(signingMethod, claims)
+	token.Header["kid"] = s.kid
+
+	return token.SignedString(s.privKey)
 }
 
-func (s *authService) ValidateToken(tokenString string) (*jwt.RegisteredClaims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &jwt.RegisteredClaims{}, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-		return s.secret, nil
-	})
+func (s *authService) ValidateToken(tokenString string) (*Claims, error) {
+	claims := &Claims{}
 
-	if err == nil {
-		if claims, ok := token.Claims.(*jwt.RegisteredClaims); ok && token.Valid {
-			return claims, nil
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
+		// Verify signing method.
+		if t.Method.Alg() != signingMethod.Alg() {
+			return nil, fmt.Errorf("unexpected signing method: %v", t.Method.Alg())
 		}
+
+		// Extract kid from header.
+		kidRaw, ok := t.Header["kid"]
+		if !ok {
+			return nil, errors.New("token missing kid header")
+		}
+		kid, ok := kidRaw.(string)
+		if !ok || kid == "" {
+			return nil, errors.New("invalid kid header")
+		}
+
+		// Look up key.
+		pub, exists := s.pubKeys[kid]
+		if !exists {
+			return nil, fmt.Errorf("unknown key ID: %s", kid)
+		}
+
+		return pub, nil
+	},
+		jwt.WithValidMethods([]string{signingMethod.Alg()}),
+		jwt.WithIssuer(issuer),
+		jwt.WithIssuedAt(),
+		jwt.WithExpirationRequired(),
+	)
+
+	if err != nil {
+		return nil, err
 	}
-	return nil, err
+
+	if !token.Valid {
+		return nil, errors.New("invalid token")
+	}
+
+	return claims, nil
 }
 
 func (s *authService) HashPassword(password string) (string, error) {
@@ -142,7 +206,7 @@ func (s *authService) Register(ctx context.Context, username, email, phone, pass
 	// The phone parameter is passed as NULL if empty to avoid unique constraint issues.
 	query := `
 		INSERT INTO users (email, phone, encrypted_password, raw_user_meta_data, verification_token, verification_token_expires_at)
-		VALUES ($1, NULLIF($2, ''), $3, jsonb_build_object('username', $4), $5, NOW() + INTERVAL '24 hours')
+		VALUES ($1, NULLIF($2, ''), $3, jsonb_build_object('username', $4), $5, NOW() + INTERVAL '30 minutes')
 		RETURNING id, COALESCE(email, ''), created_at, updated_at
 	`
 
@@ -246,7 +310,7 @@ func (s *authService) ResendVerification(ctx context.Context, email string) erro
 	updateQuery := `
 		UPDATE users
 		SET verification_token = $1,
-		    verification_token_expires_at = NOW() + INTERVAL '24 hours',
+		    verification_token_expires_at = NOW() + INTERVAL '30 minutes',
 		    updated_at = NOW()
 		WHERE email = $2
 	`

@@ -75,14 +75,15 @@ func isInternalServiceRequest(r *http.Request, internalToken string) bool {
 		return false
 	}
 
-	// If INTERNAL_GATEWAY_TOKEN is configured, require it as a shared secret.
-	if internalToken != "" {
-		if r.Header.Get("X-Gateway-Token") != internalToken {
-			return false
-		}
+	// INTERNAL_GATEWAY_TOKEN MUST be configured for internal bypass to work.
+	// If it is empty, refuse all internal bypass requests — this prevents
+	// an attacker from bypassing auth by simply setting X-Flicko-Internal: true
+	// when the env var is accidentally unset.
+	if internalToken == "" {
+		return false
 	}
 
-	return true
+	return r.Header.Get("X-Gateway-Token") == internalToken
 }
 
 // RequireRole returns middleware that checks the authenticated user has

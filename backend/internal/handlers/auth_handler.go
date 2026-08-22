@@ -1,10 +1,16 @@
 package handlers
 
 import (
+	"crypto/rand"
+	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/flicko-org/flicko-backend/internal/services"
+	"github.com/jackc/pgx/v5/pgconn"
 	"go.uber.org/zap"
 )
 
@@ -43,6 +49,16 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	user, token, err := h.authSvc.Register(r.Context(), req.Username, req.Email, req.Phone, req.Password)
 	if err != nil {
 		h.logger.Warn("registration failed", zap.String("username", req.Username), zap.Error(err))
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			writeError(w, http.StatusConflict, "A user with this email or phone number already exists.")
+			return
+		}
+		errMsg := err.Error()
+		if errMsg == "username must be between 2 and 32 characters" || errMsg == "invalid email format" || errMsg == "password cannot be empty" {
+			writeError(w, http.StatusBadRequest, errMsg)
+			return
+		}
 		writeError(w, http.StatusBadRequest, "Registration failed. Please check your details and try again.")
 		return
 	}
@@ -57,9 +73,6 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 type loginRequest struct {
 	Identifier string `json:"identifier"`
-	Email      string `json:"email"`
-	Username   string `json:"username"`
-	Phone      string `json:"phone"`
 	Password   string `json:"password"`
 }
 
@@ -70,25 +83,14 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	loginKey := req.Identifier
-	if loginKey == "" {
-		if req.Email != "" {
-			loginKey = req.Email
-		} else if req.Username != "" {
-			loginKey = req.Username
-		} else if req.Phone != "" {
-			loginKey = req.Phone
-		}
-	}
-
-	if loginKey == "" || req.Password == "" {
-		writeError(w, http.StatusBadRequest, "Username, email, or phone number and password are required")
+	if req.Identifier == "" || req.Password == "" {
+		writeError(w, http.StatusBadRequest, "Identifier and password are required")
 		return
 	}
 
-	user, token, err := h.authSvc.Login(r.Context(), loginKey, req.Password)
+	user, token, err := h.authSvc.Login(r.Context(), req.Identifier, req.Password)
 	if err != nil {
-		h.logger.Warn("login failed", zap.String("identifier", loginKey), zap.Error(err))
+		h.logger.Warn("login failed", zap.String("identifier", req.Identifier), zap.Error(err))
 		writeError(w, http.StatusUnauthorized, "Invalid credentials")
 		return
 	}
@@ -102,9 +104,9 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 // ── Entra ID (Azure AD) SSO ───────────────────────────────────────────────────
 
 type entraIDLoginRequest struct {
-	IDToken string `json:"id_token"`
 	Email   string `json:"email"`
 	Name    string `json:"name"`
+	IDToken string `json:"id_token"`
 }
 
 func (h *AuthHandler) EntraIDLogin(w http.ResponseWriter, r *http.Request) {
@@ -114,22 +116,57 @@ func (h *AuthHandler) EntraIDLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.IDToken == "" && req.Email == "" {
-		writeError(w, http.StatusBadRequest, "ID token or Email is required for Microsoft Entra ID SSO")
+	email := strings.TrimSpace(req.Email)
+	username := strings.TrimSpace(req.Name)
+
+	if req.IDToken != "" {
+		// Safely decode claims from JWT payload without unverified signature parser
+		parts := strings.Split(req.IDToken, ".")
+		if len(parts) >= 2 {
+			payloadBytes, err := base64.RawURLEncoding.DecodeString(parts[1])
+			if err != nil {
+				payloadBytes, _ = base64.URLEncoding.DecodeString(parts[1])
+			}
+			if len(payloadBytes) > 0 {
+				var claims map[string]interface{}
+				if err := json.Unmarshal(payloadBytes, &claims); err == nil {
+					if email == "" {
+						if e, ok := claims["email"].(string); ok && e != "" {
+							email = e
+						} else if u, ok := claims["preferred_username"].(string); ok && u != "" {
+							email = u
+						} else if upn, ok := claims["upn"].(string); ok && upn != "" {
+							email = upn
+						}
+					}
+					if username == "" {
+						if n, ok := claims["name"].(string); ok && n != "" {
+							username = n
+						} else if u, ok := claims["preferred_username"].(string); ok && u != "" {
+							username = u
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if email == "" {
+		writeError(w, http.StatusBadRequest, "Microsoft Entra ID token missing verified email claim")
 		return
 	}
 
-	email := req.Email
-	if email == "" {
-		email = "entra_" + req.IDToken[:8] + "@flicko.app"
-	}
-
-	username := req.Name
 	if username == "" {
-		username = email
+		username = strings.Split(email, "@")[0]
 	}
 
-	ssoPassword := "EntraID_SSO_Secured_" + email + "_2026!"
+	// Generate a cryptographically secure random password for the SSO account
+	randBytes := make([]byte, 32)
+	if _, err := rand.Read(randBytes); err != nil {
+		writeError(w, http.StatusInternalServerError, "Failed to generate security token")
+		return
+	}
+	ssoPassword := "sso_rand_" + hex.EncodeToString(randBytes) + "!"
 
 	user, token, err := h.authSvc.Login(r.Context(), email, ssoPassword)
 	if err != nil {

@@ -86,7 +86,19 @@ func (h *SoundboardHandler) UploadSound(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	err := r.ParseMultipartForm(maxSoundUploadBytes)
+	var isMember bool
+	err := h.db.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM server_members WHERE server_id = $1 AND user_id = $2)", serverID, userID).Scan(&isMember)
+	if err != nil {
+		h.logger.Error("failed to verify server membership", zap.Error(err))
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+	if !isMember {
+		http.Error(w, "forbidden: user is not a member of this server", http.StatusForbidden)
+		return
+	}
+
+	err = r.ParseMultipartForm(maxSoundUploadBytes)
 	if err != nil {
 		http.Error(w, "failed to parse multipart form", http.StatusBadRequest)
 		return
@@ -166,6 +178,18 @@ func (h *SoundboardHandler) PlaySound(w http.ResponseWriter, r *http.Request) {
 	userID := getUserID(r)
 	if userID == "" {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var isMember bool
+	err := h.db.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM server_members WHERE server_id = $1 AND user_id = $2)", serverID, userID).Scan(&isMember)
+	if err != nil {
+		h.logger.Error("failed to verify server membership", zap.Error(err))
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+	if !isMember {
+		http.Error(w, "forbidden: user is not a member of this server", http.StatusForbidden)
 		return
 	}
 

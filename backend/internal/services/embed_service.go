@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/flicko-org/flicko-backend/internal/cache"
@@ -58,37 +59,53 @@ func NewEmbedService(db *pgxpool.Pool, redis cache.CacheLayer) EmbedService {
 }
 
 func (s *embedService) ProcessMessageForEmbeds(ctx context.Context, messageID string, content string) ([]*Embed, error) {
-	urls := s.urlRegex.FindAllString(content, 5) // process up to 5 URLs
+	urls := s.urlRegex.FindAllString(content, 3) // process up to 3 URLs to prevent saturation
 	if len(urls) == 0 {
 		return nil, nil // No URLs found
 	}
 
-	var embeds []*Embed
+	type embedResult struct {
+		embed *Embed
+		err   error
+	}
+
+	resChan := make(chan embedResult, len(urls))
+	var wg sync.WaitGroup
 
 	for _, u := range urls {
-		embed, err := s.fetchAndCacheEmbed(ctx, u)
-		if err != nil {
-			log.Printf("[Embed] Failed to fetch embed for %s: %v", u, err)
+		wg.Add(1)
+		go func(targetURL string) {
+			defer wg.Done()
+			fetchCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+			defer cancel()
+			emb, err := s.fetchAndCacheEmbed(fetchCtx, targetURL)
+			resChan <- embedResult{embed: emb, err: err}
+		}(u)
+	}
+
+	wg.Wait()
+	close(resChan)
+
+	var embeds []*Embed
+	for res := range resChan {
+		if res.err != nil {
+			log.Printf("[Embed] Failed to fetch embed: %v", res.err)
 			continue
 		}
-		if embed != nil {
-			embed.MessageID = messageID
-			embed.ID = uuid.New().String()
-
-			// Insert embed record
-			// We assume the caller handles the transaction or we insert immediately.
-			// Implementing 3.5: "Insert embed record with type, title..."
+		if res.embed != nil {
+			res.embed.MessageID = messageID
+			res.embed.ID = uuid.New().String()
 
 			query := `
 				INSERT INTO public.embeds (id, message_id, type, title, description, url, image_url, video_url)
 				VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 			`
-			_, err := s.db.Exec(ctx, query, embed.ID, embed.MessageID, embed.Type, embed.Title, embed.Description, embed.URL, embed.ImageURL, embed.VideoURL)
+			_, err := s.db.Exec(ctx, query, res.embed.ID, res.embed.MessageID, res.embed.Type, res.embed.Title, res.embed.Description, res.embed.URL, res.embed.ImageURL, res.embed.VideoURL)
 			if err != nil {
 				log.Printf("[Embed] Failed to persist embed to DB: %v", err)
 				continue
 			}
-			embeds = append(embeds, embed)
+			embeds = append(embeds, res.embed)
 		}
 	}
 

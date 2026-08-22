@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -279,15 +280,80 @@ func NewDatabaseClient(ctx context.Context, databaseURL string) (DatabaseClient,
 	}, nil
 }
 
+// isReadOnlySQL returns true for pure SELECT statements that can safely be
+// routed to a read replica. It rejects statements containing write keywords
+// (INSERT, UPDATE, DELETE) or row-locking clauses (FOR UPDATE/SHARE/KEY SHARE/NO KEY UPDATE).
+// SQL comments (block /* */ and line --) are stripped before analysis to prevent
+// them from hiding locking keywords (e.g., "SELECT FOR/**/UPDATE" or "SELECT FOR--\nUPDATE").
+func isReadOnlySQL(sql string) bool {
+	// Strip SQL comments before tokenizing.
+	stripped := stripSQLComments(sql)
+	fields := strings.Fields(strings.ToUpper(stripped))
+	if len(fields) < 2 || fields[0] != "SELECT" {
+		return false
+	}
+	normalized := strings.Join(fields, " ")
+	// Reject SELECT ... row-locking clauses (row locks must hit primary).
+	if strings.Contains(normalized, "FOR UPDATE") ||
+		strings.Contains(normalized, "FOR NO KEY UPDATE") ||
+		strings.Contains(normalized, "FOR SHARE") ||
+		strings.Contains(normalized, "FOR KEY SHARE") {
+		return false
+	}
+	return true
+}
+
+// stripSQLComments removes PostgreSQL block (/* */) and line (--) comments
+// from a SQL string, replacing them with spaces to preserve token boundaries.
+func stripSQLComments(sql string) string {
+	var result strings.Builder
+	result.Grow(len(sql))
+	i := 0
+	for i < len(sql) {
+		// Check for block comment /* */
+		if i+1 < len(sql) && sql[i] == '/' && sql[i+1] == '*' {
+			result.WriteByte(' ') // Replace comment start with space
+			i += 2
+			// Skip until we find */
+			for i < len(sql) {
+				if i+1 < len(sql) && sql[i] == '*' && sql[i+1] == '/' {
+					i += 2
+					break
+				}
+				i++
+			}
+			continue
+		}
+		// Check for line comment --
+		if i+1 < len(sql) && sql[i] == '-' && sql[i+1] == '-' {
+			result.WriteByte(' ') // Replace comment start with space
+			i += 2
+			// Skip until end of line or end of string
+			for i < len(sql) && sql[i] != '\n' && sql[i] != '\r' {
+				i++
+			}
+			// Skip the newline if present
+			if i < len(sql) && (sql[i] == '\n' || sql[i] == '\r') {
+				i++
+			}
+			continue
+		}
+		// Regular character
+		result.WriteByte(sql[i])
+		i++
+	}
+	return result.String()
+}
+
 // Query with automatic timeout, slow query logging, and circuit breaking.
 func (c *pgxClient) Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error) {
 	if !c.cb.AllowRequest() {
 		return nil, errors.New("database circuit breaker is open")
 	}
 
-	// Route queries to replica pool
+	// Route only pure read-only SELECTs to replica pool.
 	targetPool := c.pool
-	if c.replicaPool != nil {
+	if c.replicaPool != nil && isReadOnlySQL(sql) {
 		targetPool = c.replicaPool
 	}
 
@@ -331,9 +397,9 @@ func (c *pgxClient) QueryRow(ctx context.Context, sql string, args ...any) pgx.R
 		}
 	}
 
-	// Route queries to replica pool
+	// Route only pure read-only SELECTs to replica pool.
 	targetPool := c.pool
-	if c.replicaPool != nil {
+	if c.replicaPool != nil && isReadOnlySQL(sql) {
 		targetPool = c.replicaPool
 	}
 

@@ -11,6 +11,7 @@
 package conn
 
 import (
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -62,7 +63,8 @@ type Client struct {
 	Send chan []byte
 
 	// Channels tracks which channel IDs this client is subscribed to.
-	Channels map[string]bool
+	ChannelsMu sync.RWMutex
+	Channels   map[string]bool
 
 	// CreatedAt is the time the client connected.
 	CreatedAt time.Time
@@ -96,6 +98,31 @@ func NewClient(id, sessionID, userID string, conn *websocket.Conn, mgr *Manager,
 	}
 	c.lastActive.Store(time.Now())
 	return c
+}
+
+// AddChannel thread-safely marks a channel as subscribed.
+func (c *Client) AddChannel(channelID string) {
+	c.ChannelsMu.Lock()
+	defer c.ChannelsMu.Unlock()
+	c.Channels[channelID] = true
+}
+
+// RemoveChannel thread-safely unmarks a channel subscription.
+func (c *Client) RemoveChannel(channelID string) {
+	c.ChannelsMu.Lock()
+	defer c.ChannelsMu.Unlock()
+	delete(c.Channels, channelID)
+}
+
+// GetChannels returns a snapshot copy of subscribed channel IDs.
+func (c *Client) GetChannels() []string {
+	c.ChannelsMu.RLock()
+	defer c.ChannelsMu.RUnlock()
+	chans := make([]string, 0, len(c.Channels))
+	for ch := range c.Channels {
+		chans = append(chans, ch)
+	}
+	return chans
 }
 
 // readPump runs in its own goroutine per connection.

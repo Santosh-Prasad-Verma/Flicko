@@ -216,7 +216,7 @@ func main() {
 	}
 	mailService := services.NewMailService(mailGatewayURL, internalToken, logger)
 
-	authService := services.NewAuthService(db, cfg.JWTSecret, services.WithMailService(mailService))
+	authService := services.NewAuthService(db, cfg.Ed25519PrivateKey, cfg.Ed25519PublicKey, services.WithMailService(mailService))
 	middleware.SetAuthService(authService)
 
 	// 4. Setup Router
@@ -247,13 +247,18 @@ func main() {
 	// MED-007: Filter sensitive data from logs
 	api.Use(middleware.RequestFilterMiddleware(logger))
 
+	// Strict limiters for high-risk public/auth endpoints
+	verifyEmailLimiter := middleware.NewStrictRateLimiter(redisCache.GetRedisClient(), 5, 5*time.Minute, logger, "verify-email")
+	resendVerificationLimiter := middleware.NewStrictRateLimiter(redisCache.GetRedisClient(), 3, 15*time.Minute, logger, "resend-verification")
+	authRateLimiter := middleware.NewStrictRateLimiter(redisCache.GetRedisClient(), 10, 1*time.Minute, logger, "auth-login")
+
 	// Register Public Auth Endpoints
 	authHandler := handlers.NewAuthHandler(authService, logger)
-	api.HandleFunc("/auth/register", authHandler.Register).Methods("POST", "OPTIONS")
-	api.HandleFunc("/auth/login", authHandler.Login).Methods("POST", "OPTIONS")
-	api.HandleFunc("/auth/entra-id", authHandler.EntraIDLogin).Methods("POST", "OPTIONS")
-	api.HandleFunc("/auth/verify-email", authHandler.VerifyEmail).Methods("POST", "OPTIONS")
-	api.HandleFunc("/auth/resend-verification", authHandler.ResendVerification).Methods("POST", "OPTIONS")
+	api.Handle("/auth/register", authRateLimiter.Limit(http.HandlerFunc(authHandler.Register))).Methods("POST", "OPTIONS")
+	api.Handle("/auth/login", authRateLimiter.Limit(http.HandlerFunc(authHandler.Login))).Methods("POST", "OPTIONS")
+	api.Handle("/auth/entra-id", authRateLimiter.Limit(http.HandlerFunc(authHandler.EntraIDLogin))).Methods("POST", "OPTIONS")
+	api.Handle("/auth/verify-email", verifyEmailLimiter.Limit(http.HandlerFunc(authHandler.VerifyEmail))).Methods("POST", "OPTIONS")
+	api.Handle("/auth/resend-verification", resendVerificationLimiter.Limit(http.HandlerFunc(authHandler.ResendVerification))).Methods("POST", "OPTIONS")
 
 	// CRIT-002: Replace memory-based rate limiter with distributed Redis-backed limiter
 	apiLimiter := middleware.NewDistributedRateLimiter(redisCache.GetRedisClient(), 50, logger, "api")
@@ -291,12 +296,6 @@ func main() {
 
 	// Prometheus metrics endpoint
 	api.Handle("/metrics", promhttp.Handler()).Methods("GET")
-
-	// Old health check code removed - now using HealthChecker above
-
-	// Protected routes with auth middleware are already initialized above
-	// protected := api.PathPrefix("/").Subrouter()
-	// protected.Use(middleware.Auth)
 
 	// ── Azure ACS VoIP & Video/Streaming endpoints ─────────────────────────
 	permService := services.NewPermissionService(db.Pool(), redisCache)
@@ -365,11 +364,9 @@ func main() {
 	stageHandler := handlers.NewStageHandler(db.Pool(), logger)
 	voiceAdminHandler := handlers.NewVoiceAdminHandler(db.Pool(), logger)
 	adminPromoHandler := handlers.NewAdminPromoHandler(db.Pool(), logger, nil, mailService)
-	r.HandleFunc("/promo", handlers.ServePromoAdminUI).Methods("GET")
-	r.HandleFunc("/admin/promo", handlers.ServePromoAdminUI).Methods("GET")
-	api.HandleFunc("/admin/promo/users", adminPromoHandler.ListUsers).Methods("GET")
-	api.HandleFunc("/admin/promo/templates", adminPromoHandler.ListTemplates).Methods("GET")
-	api.HandleFunc("/admin/promo/send-batch", adminPromoHandler.SendBatch).Methods("POST")
+	protected.HandleFunc("/admin/promo/users", adminPromoHandler.ListUsers).Methods("GET")
+	protected.HandleFunc("/admin/promo/templates", adminPromoHandler.ListTemplates).Methods("GET")
+	protected.HandleFunc("/admin/promo/send-batch", adminPromoHandler.SendBatch).Methods("POST")
 	premiumHandler := handlers.NewPremiumHandler(db.Pool(), logger, mailService, cfg.RazorpayKeyID, cfg.RazorpayKeySecret)
 	appInstallHandler := handlers.NewAppInstallHandler(db.Pool(), logger)
 	interactionsHandler := handlers.NewInteractionsHandler(db.Pool(), logger)
@@ -383,24 +380,18 @@ func main() {
 	channelBgHandler := handlers.NewChannelBackgroundHandler(db.Pool(), channelBgService, logger)
 	channelBgHandler.RegisterRoutes(protected)
 
-	// AI Catch-Me-Up summary
+	// AI Catch-Me-Up summary (Google Gemini)
 	llmClient := llm.New(llm.Config{
-		GroqAPIKey:    cfg.GroqAPIKey,
-		GroqBaseURL:   cfg.GroqBaseURL,
-		GroqModel:     cfg.GroqModel,
-		OllamaBaseURL: cfg.OllamaBaseURL,
-		OllamaModel:   cfg.OllamaModel,
+		GeminiAPIKey:  cfg.GeminiAPIKey,
+		GeminiBaseURL: cfg.GeminiBaseURL,
+		GeminiModel:   cfg.GeminiModel,
 		HTTPTimeout:   cfg.AIRequestTimeout,
 	}, logger)
 	summaryRepo := repo.NewAISummaryRepo(db)
 	summaryCache := message_summary.NewCacheStore(redisCache)
 	summaryRL := message_summary.NewRateLimit(redisCache)
 	summaryCfg := message_summary.DefaultConfig()
-	if cfg.GroqAPIKey != "" {
-		summaryCfg.ModelName = "groq:" + cfg.GroqModel
-	} else {
-		summaryCfg.ModelName = "ollama:" + cfg.OllamaModel
-	}
+	summaryCfg.ModelName = "gemini:" + cfg.GeminiModel
 	summarySvc := message_summary.New(db, summaryRepo, summaryCache, summaryRL, llmClient, summaryCfg, logger)
 	aiSummaryHandler := handlers.NewAISummaryHandler(summarySvc, logger)
 	if cfg.AIMessageSummaryEnabled {
@@ -420,8 +411,7 @@ func main() {
 		translateHandler.RegisterRoutes(protected)
 	}
 
-	// AI Moderation (Llama-Guard via Groq + Ollama fallback). Reuses the
-	// shared LLM client since it speaks OpenAI-compatible chat completions.
+	// AI Moderation (powered by Google Gemini)
 	moderationSvc := moderation.New(db, redisCache, llmClient, moderation.DefaultConfig(), logger)
 	moderationHandler := handlers.NewAIModerationHandler(moderationSvc, logger)
 	if cfg.AIModerationEnabled {
@@ -430,7 +420,6 @@ func main() {
 
 	// AI Aura Assistant (Chat, TTS, GIF endpoints)
 	aiAuraHandler := handlers.NewAIAuraHandler(cfg, logger)
-	aiAuraHandler.RegisterRoutes(api)
 	aiAuraHandler.RegisterRoutes(protected)
 	logger.Info("AIAuraHandler routes registered (/aura/chat, /aura/gifs, /aura/tts)")
 	protected.Handle("/activities/catalog", cacheMiddleware.Cache(middleware.CacheLong)(http.HandlerFunc(activityHandler.GetCatalog))).Methods("GET")

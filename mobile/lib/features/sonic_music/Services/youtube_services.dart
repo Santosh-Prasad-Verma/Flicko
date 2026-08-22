@@ -19,6 +19,7 @@
 
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:mobile/features/sonic_music/Services/yt_music.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -137,49 +138,52 @@ class YouTubeServices {
     return metadata;
   }
 
-  Map? _extractInitialData(String html) {
-    final markers = [
-      'var ytInitialData =',
-      'window["ytInitialData"] =',
-      'ytInitialData =',
-    ];
-    for (final marker in markers) {
-      final markerIndex = html.indexOf(marker);
-      if (markerIndex == -1) continue;
+  Future<Map?> _extractInitialData(String html) async {
+    return await Isolate.run(() {
+      final markers = [
+        'var ytInitialData =',
+        'window["ytInitialData"] =',
+        'ytInitialData =',
+      ];
+      for (final marker in markers) {
+        final markerIndex = html.indexOf(marker);
+        if (markerIndex == -1) continue;
 
-      final start = html.indexOf('{', markerIndex);
-      if (start == -1) continue;
+        final start = html.indexOf('{', markerIndex);
+        if (start == -1) continue;
 
-      var depth = 0;
-      var inString = false;
-      var escaped = false;
-      for (var i = start; i < html.length; i++) {
-        final char = html[i];
-        if (escaped) {
-          escaped = false;
-          continue;
-        }
-        if (char == '\\') {
-          escaped = true;
-          continue;
-        }
-        if (char == '"') {
-          inString = !inString;
-          continue;
-        }
-        if (inString) continue;
-        if (char == '{') depth++;
-        if (char == '}') {
-          depth--;
-          if (depth == 0) {
-            final jsonText = html.substring(start, i + 1);
-            final decoded = json.decode(jsonText);
-            return decoded is Map ? decoded : null;
+        var depth = 0;
+        var inString = false;
+        var escaped = false;
+        final len = html.length;
+        for (var i = start; i < len; i++) {
+          final code = html.codeUnitAt(i);
+          if (escaped) {
+            escaped = false;
+            continue;
+          }
+          if (code == 92) { // '\\'
+            escaped = true;
+            continue;
+          }
+          if (code == 34) { // '"'
+            inString = !inString;
+            continue;
+          }
+          if (inString) continue;
+          if (code == 123) depth++; // '{'
+          if (code == 125) {        // '}'
+            depth--;
+            if (depth == 0) {
+              final jsonText = html.substring(start, i + 1);
+              final decoded = json.decode(jsonText);
+              return decoded is Map ? decoded : null;
+            }
           }
         }
       }
-    }
-    return null;
+      return null;
+    });
   }
 
   Future<Map<String, List>> getMusicHome() async {
@@ -192,7 +196,7 @@ class YouTubeServices {
       if (response.statusCode != 200) {
         return {};
       }
-      final Map? data = _extractInitialData(response.body);
+      final Map? data = await _extractInitialData(response.body);
       if (data == null) {
         Logger.root.warning('Unable to parse YouTube Music home payload');
         return {};
@@ -468,49 +472,6 @@ class YouTubeServices {
           (data?['subtitle'] ?? '') != '' ? data!['subtitle'] : video.author,
       'perma_url': video.url,
     };
-    // For invidous
-    // if (video['liveNow'] == true) return null;
-    // try {
-    //   final Uri link = Uri.https(
-    //     'invidious.snopyta.org',
-    //     'api/v1/videos/${video["videoId"]}',
-    //   );
-    //   final Response response = await get(link, headers: headers);
-    //   if (response.statusCode != 200) {
-    //     return {};
-    //   }
-    //   final jsonData = jsonDecode(response.body) as Map;
-    //   final urls = (jsonData['adaptiveFormats'] as List)
-    //       .where((e) => e['container'] == 'm4a');
-
-    //   return {
-    //     'id': jsonData['videoId'],
-    //     'album': jsonData['author'],
-    //     'duration': jsonData['lengthSeconds'],
-    //     'title': jsonData['title'],
-    //     'artist': jsonData['author'],
-    //     'image': jsonData['videoThumbnails'][0]['url'],
-    //     'secondImage': jsonData['videoThumbnails'][2]?['url'],
-    //     'language': 'YouTube',
-    //     'genre': 'YouTube',
-    //     'url':
-    //         'https://yewtu.be/latest_version?id=${video["videoId"]}&itag=${quality == "High" ? 140 : 139}&local=true&listen=1',
-    //     'lowUrl':
-    //         'https://yewtu.be/latest_version?id=09cZRYupO4s&itag=139&local=true&listen=1',
-    //     'highUrl':
-    //         'https://yewtu.be/latest_version?id=09cZRYupO4s&itag=140&local=true&listen=1',
-    //     'year': jsonData['published'].toString().yearFromEpoch,
-    //     '320kbps': 'false',
-    //     'has_lyrics': 'false',
-    //     'release_date': jsonData['published'].toString().dateFromEpoch,
-    //     'album_id': jsonData['authorId'].toString(),
-    //     'artist_id': jsonData['authorId'].toString(),
-    //     'subtitle': jsonData['author'],
-    //     'perma_url': 'https://youtube.com/watch?v=${jsonData["videoId"]}',
-    //   };
-    // } catch (e) {
-    //   return {};
-    // }
   }
 
   Future<List<Map>> fetchSearchResults(String query) async {
@@ -527,64 +488,6 @@ class YouTubeServices {
         'allowViewAll': false,
       }
     ];
-    // return searchResults;
-
-    // For parsing html
-    // Uri link = Uri.https(searchAuthority, searchPath, {"search_query": query});
-    // final Response response = await get(link);
-    // if (response.statusCode != 200) {
-    // return [];
-    // }
-    // List searchResults = RegExp(
-    // r'\"videoId\"\:\"(.*?)\",\"thumbnail\"\:\{\"thumbnails\"\:\[\{\"url\"\:\"(.*?)".*?\"title\"\:\{\"runs\"\:\[\{\"text\"\:\"(.*?)\"\}\].*?\"longBylineText\"\:\{\"runs\"\:\[\{\"text\"\:\"(.*?)\",.*?\"lengthText\"\:\{\"accessibility\"\:\{\"accessibilityData\"\:\{\"label\"\:\"(.*?)\"\}\},\"simpleText\"\:\"(.*?)\"\},\"viewCountText\"\:\{\"simpleText\"\:\"(.*?) views\"\}.*?\"commandMetadata\"\:\{\"webCommandMetadata\"\:\{\"url\"\:\"(/watch?.*?)\".*?\"shortViewCountText\"\:\{\"accessibility\"\:\{\"accessibilityData\"\:\{\"label\"\:\"(.*?) views\"\}\},\"simpleText\"\:\"(.*?) views\"\}.*?\"channelThumbnailSupportedRenderers\"\:\{\"channelThumbnailWithLinkRenderer\"\:\{\"thumbnail\"\:\{\"thumbnails\"\:\[\{\"url\"\:\"(.*?)\"')
-    // .allMatches(response.body)
-    // .map((m) {
-    // List<String> parts = m[6].toString().split(':');
-    // int dur;
-    // if (parts.length == 3)
-    // dur = int.parse(parts[0]) * 60 * 60 +
-    // int.parse(parts[1]) * 60 +
-    // int.parse(parts[2]);
-    // if (parts.length == 2)
-    // dur = int.parse(parts[0]) * 60 + int.parse(parts[1]);
-    // if (parts.length == 1) dur = int.parse(parts[0]);
-
-    // return {
-    //   'id': m[1],
-    //   'image': m[2],
-    //   'title': m[3],
-    //     'longLength': m[5],
-    //     'length': m[6],
-    //     'totalViewsCount': m[7],
-    //     'url': 'https://www.youtube.com' + m[8],
-    //     'album': '',
-    //     'channelName': m[4],
-    //     'channelImage': m[11],
-    //     'duration': dur.toString(),
-    //     'longViews': m[9] + ' views',
-    //     'views': m[10] + ' views',
-    //     'artist': '',
-    //     "year": '',
-    //     "language": '',
-    //     "320kbps": '',
-    //     "has_lyrics": '',
-    //     "release_date": '',
-    //     "album_id": '',
-    //     'subtitle': '',
-    //   };
-    // }).toList();
-    // For invidous
-    // try {
-    //   final Uri link =
-    //       Uri.https('invidious.snopyta.org', 'api/v1/search', {'q': query});
-    //   final Response response = await get(link, headers: headers);
-    //   if (response.statusCode != 200) {
-    //     return [];
-    //   }
-    //   return jsonDecode(response.body) as List;
-    // } catch (e) {
-    //   return [];
-    // }
   }
 
   String getExpireAt(String url) {

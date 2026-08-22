@@ -48,10 +48,27 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y libsqlite3-dev sqlite3
+
       - name: Static Analysis
         # Verifies static compilation, syntax correctness, and import health
         run: flutter analyze --no-fatal-warnings --no-fatal-infos
 
       - name: Run Tests
-        # Executes all unit and widget tests
-        run: flutter test
+        # Executes all unit and widget tests with retry for transient native asset downloads
+        run: |
+          for i in 1 2 3; do
+            if flutter test; then
+              break
+            fi
+            if [ "$i" -lt 3 ]; then
+              echo "flutter test failed, retrying in 5 seconds (attempt $i/3)..."
+              sleep 5
+            else
+              echo "flutter test failed after 3 attempts."
+              exit 1
+            fi
+          done

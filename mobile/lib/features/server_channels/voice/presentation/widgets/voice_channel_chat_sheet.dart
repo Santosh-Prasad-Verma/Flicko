@@ -64,7 +64,7 @@ class _VoiceChannelChatSheetState extends ConsumerState<VoiceChannelChatSheet> {
 
     final String username = currentAuthUser?.userMetadata?['username'] as String? ?? 
                            currentAuthUser?.userMetadata?['display_name'] as String? ?? 
-                           currentAuthUser?.email?.split('@').first ?? 'User';
+                           currentAuthUser?.email.split('@').first ?? 'User';
     final String? avatarUrl = currentAuthUser?.userMetadata?['avatar_url'] as String? ?? 
                              currentAuthUser?.userMetadata?['avatar'] as String?;
     final String userId = currentAuthUser?.id ?? '';

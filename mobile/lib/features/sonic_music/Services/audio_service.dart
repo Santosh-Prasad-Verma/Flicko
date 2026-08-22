@@ -474,43 +474,6 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
     }
     Logger.root.info('player | received new link for ${newData['title']}');
     final MediaItem newItem = MediaItemConverter.mapToMediaItem(newData);
-    // final String? boxName = mediaItem.extras!['playlistBox']?.toString();
-    // if (boxName != null) {
-    //   Logger.root.info('linked with playlist $boxName');
-    //   if (Hive.box(mediaItem.extras!['playlistBox'].toString())
-    //       .containsKey(mediaItem.id)) {
-    //     Logger.root.info('updating item in playlist $boxName');
-    //     Hive.box(mediaItem.extras!['playlistBox'].toString()).put(
-    //       mediaItem.id,
-    //       MediaItemConverter.mediaItemToMap(newItem),
-    //     );
-    //     // put(
-    //     //   mediaItem.id,
-    //     //   MediaItemConverter.mediaItemToMap(newItem),
-    //     // );
-    //   }
-    // }
-    // Logger.root.info('player | inserting refreshed item');
-    // late AudioSource audioSource;
-    // if (cacheSong) {
-    //   audioSource = LockCachingAudioSource(
-    //     Uri.parse(
-    //       newItem.extras!['url'].toString(),
-    //     ),
-    //   );
-    // } else {
-    //   audioSource = AudioSource.uri(
-    //     Uri.parse(
-    //       newItem.extras!['url'].toString(),
-    //     ),
-    //   );
-    // }
-    // final index = queue.value.indexWhere((item) => item.id == newItem.id);
-    // _mediaItemExpando[audioSource] = newItem;
-    // _playlist
-    // .removeAt(index)
-    // .then((value) =>
-    // _playlist.insert(index, audioSource));
     addQueueItem(newItem);
   }
 
@@ -893,26 +856,6 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
     } catch (e) {
       Logger.root.severe('Error adding sources in updateQueue: $e');
     }
-    // addLastQueue(newQueue);
-    // stationId = '';
-    // stationNames = newQueue.map((e) => e.id).toList();
-    // SaavnAPI()
-    //     .createRadio(names: stationNames, stationType: stationType)
-    //     .then((value) async {
-    //   stationId = value;
-    //   final List songsList = await SaavnAPI()
-    //       .getRadioSongs(stationId: stationId!, count: 20 - newQueue.length);
-
-    //   for (int i = 0; i < songsList.length; i++) {
-    //     final element = MediaItemConverter.mapToMediaItem(
-    //       songsList[i] as Map,
-    //       addedByAutoplay: true,
-    //     );
-    //     if (!queue.value.contains(element)) {
-    //       addQueueItem(element);
-    //     }
-    //   }
-    // });
   }
 
   @override

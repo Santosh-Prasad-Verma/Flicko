@@ -29,7 +29,7 @@ class BillingHistoryScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authNotifierProvider);
     final userEmail = authState.maybeWhen(
-      authenticated: (authUser, userProfile) => authUser.email ?? '',
+      authenticated: (authUser, userProfile) => authUser.email,
       orElse: () => '',
     );
     final username = authState.maybeWhen(

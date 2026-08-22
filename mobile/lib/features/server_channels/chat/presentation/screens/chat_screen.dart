@@ -92,9 +92,25 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   void _onScroll() {
+    if (!_scrollController.hasClients) return;
     if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
-      ref.read(chatNotifierProvider(widget.channelId).notifier).fetchMore();
+      final state = ref.read(chatNotifierProvider(widget.channelId));
+      if (!state.isFetchingMore && !state.isLoading && state.hasMore) {
+        ref.read(chatNotifierProvider(widget.channelId).notifier).fetchMore();
+      }
     }
+  }
+
+  List<FlickoMessage> _getFilteredMessages(List<FlickoMessage> messages) {
+    if (!_isSearching || _searchController.text.trim().isEmpty) {
+      return messages;
+    }
+    final query = _searchController.text.trim().toLowerCase();
+    return messages.where((m) {
+      if (m.content.toLowerCase().contains(query)) return true;
+      final authorName = (m.author?.displayName ?? m.author?.username ?? '').toLowerCase();
+      return authorName.contains(query);
+    }).toList(growable: false);
   }
 
   /// Best-effort scroll to a cited message. The list is `reverse: true` so
@@ -411,9 +427,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                               }
                             }
 
-                            final filteredMessages = _isSearching && _searchController.text.trim().isNotEmpty
-                                ? chatState.messages.where((m) => m.content.toLowerCase().contains(_searchController.text.trim().toLowerCase()) || (m.author?.displayName ?? m.author?.username ?? '').toLowerCase().contains(_searchController.text.trim().toLowerCase())).toList()
-                                : chatState.messages;
+                            final filteredMessages = _getFilteredMessages(chatState.messages);
 
                             return ListView.builder(
                               controller: _scrollController,

@@ -197,13 +197,32 @@ func (r *pgMessageRepo) GetByChannel(ctx context.Context, channelID string, befo
 			ORDER BY created_at DESC
 			LIMIT $2`
 		rows, err = r.pool.Query(ctx, q, channelID, limit)
+	} else if _, parseErr := time.Parse(time.RFC3339Nano, before); parseErr == nil {
+		const q = `
+			SELECT id, channel_id, author_id, content, attachments, embeds,
+			       pinned, type, reply_to_id, edited, edited_at, created_at, updated_at
+			FROM messages
+			WHERE channel_id = $1 AND created_at < $2
+			ORDER BY created_at DESC
+			LIMIT $3`
+		rows, err = r.pool.Query(ctx, q, channelID, before, limit)
+	} else if _, parseErr := time.Parse(time.RFC3339, before); parseErr == nil {
+		const q = `
+			SELECT id, channel_id, author_id, content, attachments, embeds,
+			       pinned, type, reply_to_id, edited, edited_at, created_at, updated_at
+			FROM messages
+			WHERE channel_id = $1 AND created_at < $2
+			ORDER BY created_at DESC
+			LIMIT $3`
+		rows, err = r.pool.Query(ctx, q, channelID, before, limit)
 	} else {
+		// 'before' cursor is a message ID
 		const q = `
 			SELECT id, channel_id, author_id, content, attachments, embeds,
 			       pinned, type, reply_to_id, edited, edited_at, created_at, updated_at
 			FROM messages
 			WHERE channel_id = $1 AND created_at < (
-				SELECT created_at FROM messages WHERE id = $2
+				SELECT created_at FROM messages WHERE id = $2 LIMIT 1
 			)
 			ORDER BY created_at DESC
 			LIMIT $3`
@@ -396,7 +415,7 @@ func (r *pgMessageRepo) Search(ctx context.Context, channelID, query, before str
 			 FROM messages
 			 WHERE channel_id = $1
 			   AND content ILIKE $2 ESCAPE '\'
-			   AND created_at < (SELECT created_at FROM messages WHERE id = $3)
+			   AND created_at < $3
 			 ORDER BY created_at DESC
 			 LIMIT $4`,
 			channelID, pattern, before, limit,

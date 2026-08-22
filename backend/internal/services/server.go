@@ -407,19 +407,21 @@ func (s *serverService) GetServerMembers(ctx context.Context, serverID string) (
 		return nil, fmt.Errorf("invalid server id: %w", err)
 	}
 
+	const maxMembersCap = 1000
 	query := `
 		SELECT id, server_id, user_id, nickname, roles, joined_at, timeout_until, communication_disabled_until
 		FROM public.server_members
 		WHERE server_id = $1
 		ORDER BY joined_at ASC
+		LIMIT $2
 	`
-	rows, err := s.db.Query(ctx, query, serverUUID)
+	rows, err := s.db.Query(ctx, query, serverUUID, maxMembersCap)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching server members: %w", err)
 	}
 	defer rows.Close()
 
-	var members []*models.Member
+	members := make([]*models.Member, 0, 64)
 	for rows.Next() {
 		var m models.Member
 		err := rows.Scan(&m.ID, &m.ServerID, &m.UserID, &m.Nickname, &m.Roles, &m.JoinedAt, &m.TimeoutUntil, &m.CommunicationDisabledUntil)

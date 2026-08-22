@@ -40,7 +40,48 @@ type batchSendReq struct {
 	CustomBody string   `json:"custom_body,omitempty"`
 }
 
+func (h *AdminPromoHandler) isAdmin(r *http.Request, userID string) (bool, error) {
+	var isAdmin bool
+	err := h.db.QueryRow(r.Context(), `
+		SELECT (
+			(COALESCE(u.raw_app_meta_data->>'is_admin', 'false') = 'true') OR
+			(COALESCE(u.raw_user_meta_data->>'is_admin', 'false') = 'true') OR
+			(COALESCE(u.raw_user_meta_data->>'role', '') = 'admin') OR
+			(COALESCE(p.flags, 0) & 1 > 0)
+		)
+		FROM public.users u
+		LEFT JOIN public.profiles p ON p.id = u.id
+		WHERE u.id = $1
+	`, userID).Scan(&isAdmin)
+	if err != nil {
+		var flags int
+		pErr := h.db.QueryRow(r.Context(), `SELECT COALESCE(flags, 0) FROM public.profiles WHERE id = $1`, userID).Scan(&flags)
+		if pErr == nil {
+			return (flags & 1) > 0, nil
+		}
+		return false, err
+	}
+	return isAdmin, nil
+}
+
 func (h *AdminPromoHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
+	userID := getUserID(r)
+	if userID == "" {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	isAdmin, err := h.isAdmin(r, userID)
+	if err != nil {
+		h.logger.Error("failed to verify admin authorization", zap.String("userID", userID), zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to verify permissions")
+		return
+	}
+	if !isAdmin {
+		writeError(w, http.StatusForbidden, "forbidden: administrator privileges required")
+		return
+	}
+
 	rows, err := h.db.Query(r.Context(), `
 		SELECT id, email, username, created_at
 		FROM public.users
@@ -70,6 +111,23 @@ func (h *AdminPromoHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AdminPromoHandler) ListTemplates(w http.ResponseWriter, r *http.Request) {
+	userID := getUserID(r)
+	if userID == "" {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	isAdmin, err := h.isAdmin(r, userID)
+	if err != nil {
+		h.logger.Error("failed to verify admin authorization", zap.String("userID", userID), zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to verify permissions")
+		return
+	}
+	if !isAdmin {
+		writeError(w, http.StatusForbidden, "forbidden: administrator privileges required")
+		return
+	}
+
 	templatesList := []map[string]string{
 		{"id": "flicko_plus.html", "name": "Flicko+ Premium Promotion", "type": "promotional"},
 		{"id": "upgrade.html", "name": "Feature Upgrade Announcement", "type": "promotional"},
@@ -83,9 +141,31 @@ func (h *AdminPromoHandler) ListTemplates(w http.ResponseWriter, r *http.Request
 }
 
 func (h *AdminPromoHandler) SendBatch(w http.ResponseWriter, r *http.Request) {
+	userID := getUserID(r)
+	if userID == "" {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	isAdmin, err := h.isAdmin(r, userID)
+	if err != nil {
+		h.logger.Error("failed to verify admin authorization", zap.String("userID", userID), zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to verify permissions")
+		return
+	}
+	if !isAdmin {
+		writeError(w, http.StatusForbidden, "forbidden: administrator privileges required")
+		return
+	}
+
 	var req batchSendReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || len(req.Recipients) == 0 {
 		writeError(w, http.StatusBadRequest, "recipients array and template are required")
+		return
+	}
+
+	if len(req.Recipients) > 100 {
+		writeError(w, http.StatusBadRequest, "batch size cannot exceed 100 recipients per request")
 		return
 	}
 

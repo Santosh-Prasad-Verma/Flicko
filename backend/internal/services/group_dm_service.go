@@ -74,12 +74,18 @@ func (s *groupDMService) CreateGroupDM(ctx context.Context, creatorID string, pa
 		return nil, fmt.Errorf("failed to create group dm: %w", err)
 	}
 
-	// 3. Insert group_dm_participants
+	// 3. Batch insert group_dm_participants
+	participantUUIDs := make([]uuid.UUID, 0, len(uniqueParticipants))
 	for _, pUUID := range uniqueParticipants {
-		_, err := tx.Exec(ctx, "INSERT INTO public.group_dm_participants (group_dm_id, user_id) VALUES ($1, $2)", groupID, pUUID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to add participant %s: %w", pUUID, err)
-		}
+		participantUUIDs = append(participantUUIDs, pUUID)
+	}
+
+	_, err = tx.Exec(ctx, `
+		INSERT INTO public.group_dm_participants (group_dm_id, user_id)
+		SELECT $1, unnest($2::uuid[])
+	`, groupID, participantUUIDs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to add participants: %w", err)
 	}
 
 	if err := tx.Commit(ctx); err != nil {

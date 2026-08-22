@@ -217,6 +217,10 @@ func (h *E2EEHandler) ListAuditLogs(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "subjectId path parameter required")
 		return
 	}
+	if peerUserID != uid {
+		writeError(w, http.StatusForbidden, "forbidden: cannot view audit logs of other users")
+		return
+	}
 	logs, err := h.audit.List(r.Context(), peerUserID, 50)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())

@@ -9,25 +9,18 @@ import (
 	"go.uber.org/zap"
 )
 
-// Subscribe begins listening on the given topic. If this is the first
-// local client for the channel the gateway creates Redis Pub/Sub
-// subscriptions for both the channel topic AND the typing topic and
-// launches reader goroutines for each.
+// Subscribe begins listening on the given topic. Uses a single Redis
+// PSUBSCRIBE with a pattern that covers the channel, DM, and typing
+// topics, reducing the number of Redis connections from 3 per channel
+// to 1 per channel.
 //
 // Idempotent: calling Subscribe twice for the same topic is a no-op.
 // Satisfies EventBus.Subscribe.
 func (ps *RedisPubSub) Subscribe(ctx context.Context, topic string) error {
-	// Subscribe to the main channel topic (messages from msg-service).
-	if err := ps.subscribeSingle(ctx, topic, PrefixChannel+topic); err != nil {
-		return err
-	}
-	// Also subscribe to DM topic for the same channelID (DM channels
-	// publish to rt:dm:{channelID}).
-	_ = ps.subscribeSingle(ctx, "dm:"+topic, PrefixDM+topic)
-	// Also subscribe to typing topic so cross-gateway typing events
-	// reach local clients.
-	_ = ps.subscribeSingle(ctx, "typing:"+topic, PrefixTyping+topic)
-	return nil
+	// Use PSUBSCRIBE with a pattern that matches all three prefixes for this channel:
+	//   rt:channel:{topic}, rt:dm:{topic}, rt:typing:{topic}
+	// The pattern rt:*:{topic} consolidates all three into one subscription + one reader goroutine.
+	return ps.psubscribeSingle(ctx, topic, "rt:*:"+topic)
 }
 
 // subscribeSingle creates a single Redis Pub/Sub subscription.
@@ -53,7 +46,7 @@ func (ps *RedisPubSub) subscribeSingle(ctx context.Context, storeKey, redisKey s
 	}
 
 	readerCtx, readerCancel := context.WithCancel(ps.ctx)
-	s := &subscription{sub: sub, cancel: readerCancel}
+	s := &subscription{sub: sub, cancel: readerCancel, pattern: redisKey, isPattern: false}
 
 	// LoadOrStore handles the race where two goroutines try to subscribe
 	// to the same channel concurrently.
@@ -65,22 +58,59 @@ func (ps *RedisPubSub) subscribeSingle(ctx context.Context, storeKey, redisKey s
 	}
 
 	ps.Met.ActiveSubscriptions.Add(1)
-	go ps.reader(readerCtx, storeKey, sub)
+	go ps.reader(readerCtx, readerCancel, storeKey, sub, redisKey, false)
 
 	ps.log.Debug("subscribed", zap.String("topic", storeKey))
 	return nil
 }
 
-// Unsubscribe stops listening on the given topic and its associated
-// DM and typing subscriptions. The reader goroutines are cancelled
-// and the Redis PubSub objects are closed.
+// psubscribeSingle creates a single Redis Pub/Sub pattern subscription.
+// Uses PSUBSCRIBE instead of SUBSCRIBE, allowing wildcard patterns like
+// "rt:*:{channelID}" to match multiple Redis channels in one subscription.
+func (ps *RedisPubSub) psubscribeSingle(ctx context.Context, storeKey, pattern string) error {
+	// Fast path: already subscribed.
+	if _, loaded := ps.subscribers.Load(storeKey); loaded {
+		return nil
+	}
+
+	// Create Redis pattern subscription.
+	sub := ps.rdb.PSubscribe(ctx, pattern)
+
+	// Validate the subscription was created successfully.
+	_, err := sub.Receive(ctx)
+	if err != nil {
+		sub.Close()
+		ps.log.Error("psubscribe failed",
+			zap.String("topic", storeKey),
+			zap.String("pattern", pattern),
+			zap.Error(err),
+		)
+		return err
+	}
+
+	readerCtx, readerCancel := context.WithCancel(ps.ctx)
+	s := &subscription{sub: sub, cancel: readerCancel, pattern: pattern, isPattern: true}
+
+	if _, loaded := ps.subscribers.LoadOrStore(storeKey, s); loaded {
+		readerCancel()
+		sub.Close()
+		return nil
+	}
+
+	ps.Met.ActiveSubscriptions.Add(1)
+	go ps.reader(readerCtx, readerCancel, storeKey, sub, pattern, true)
+
+	ps.log.Debug("psubscribed", zap.String("topic", storeKey), zap.String("pattern", pattern))
+	return nil
+}
+
+// Unsubscribe stops listening on the given topic. With the consolidated
+// PSUBSCRIBE approach, there is only one subscription per channel (the
+// pattern subscription), so we only need to clean up one entry.
 //
 // Satisfies EventBus.Unsubscribe.
 func (ps *RedisPubSub) Unsubscribe(topic string) error {
-	// Unsubscribe from the main channel, DM, and typing topics.
-	for _, key := range []string{topic, "dm:" + topic, "typing:" + topic} {
-		ps.unsubscribeSingle(key)
-	}
+	ps.unsubscribeSingle(topic)
 	return nil
 }
 
@@ -115,7 +145,7 @@ func (ps *RedisPubSub) unsubscribeSingle(storeKey string) {
 // Exit paths:
 //   - readerCtx cancelled (Unsubscribe or Stop)
 //   - Max reconnect attempts exhausted (after ~5 min total)
-func (ps *RedisPubSub) reader(ctx context.Context, topic string, sub *goredis.PubSub) {
+func (ps *RedisPubSub) reader(ctx context.Context, cancel context.CancelFunc, topic string, sub *goredis.PubSub, pattern string, isPattern bool) {
 	const maxBackoff = 30 * time.Second
 	const maxAttempts = 15
 
@@ -127,6 +157,8 @@ func (ps *RedisPubSub) reader(ctx context.Context, topic string, sub *goredis.Pu
 				// Channel closed — attempt reconnect.
 				ps.log.Warn("reader: channel closed, attempting reconnect",
 					zap.String("topic", topic),
+					zap.String("pattern", pattern),
+					zap.Bool("is_pattern", isPattern),
 				)
 				sub.Close()
 
@@ -138,13 +170,19 @@ func (ps *RedisPubSub) reader(ctx context.Context, topic string, sub *goredis.Pu
 					case <-time.After(backoff):
 					}
 
-					// Figure out the Redis key from the topic store key.
-					redisKey := ps.storeKeyToRedisKey(topic)
-					newSub := ps.rdb.Subscribe(ctx, redisKey)
+					var newSub *goredis.PubSub
+					if isPattern {
+						newSub = ps.rdb.PSubscribe(ctx, pattern)
+					} else {
+						newSub = ps.rdb.Subscribe(ctx, pattern)
+					}
+
 					if _, err := newSub.Receive(ctx); err != nil {
 						newSub.Close()
 						ps.log.Warn("reconnect attempt failed",
 							zap.String("topic", topic),
+							zap.String("pattern", pattern),
+							zap.Bool("is_pattern", isPattern),
 							zap.Int("attempt", attempt+1),
 							zap.Error(err),
 						)
@@ -155,20 +193,46 @@ func (ps *RedisPubSub) reader(ctx context.Context, topic string, sub *goredis.Pu
 						continue
 					}
 
-					// Successfully reconnected — update the subscription store.
-					readerCtx, readerCancel := context.WithCancel(ps.ctx)
-					newS := &subscription{sub: newSub, cancel: readerCancel}
+					// Successfully reconnected — atomically verify the original subscription is still active
+					// before installing the replacement. If it was concurrently unsubscribed or replaced,
+					// close newSub and abort reconnect to prevent zombie subscriptions.
+					val, loaded := ps.subscribers.Load(topic)
+					if !loaded {
+						// Subscription was removed (unsubscribed) during reconnect — abort.
+						newSub.Close()
+						ps.log.Info("reconnect aborted: subscription was removed",
+							zap.String("topic", topic),
+							zap.String("pattern", pattern),
+							zap.Bool("is_pattern", isPattern),
+						)
+						return
+					}
+					oldSub := val.(*subscription)
+					if oldSub.sub != sub {
+						// Subscription was replaced during reconnect (concurrent resubscribe) — abort.
+						newSub.Close()
+						ps.log.Info("reconnect aborted: subscription was replaced",
+							zap.String("topic", topic),
+							zap.String("pattern", pattern),
+							zap.Bool("is_pattern", isPattern),
+						)
+						return
+					}
+
+					// Original subscription is still active — safe to replace with new connection.
+					newS := &subscription{sub: newSub, cancel: cancel, pattern: pattern, isPattern: isPattern}
 					ps.subscribers.Store(topic, newS)
 					sub = newSub
 					ch = sub.Channel()
 
 					ps.log.Info("reconnected to topic",
 						zap.String("topic", topic),
+						zap.String("pattern", pattern),
+						zap.Bool("is_pattern", isPattern),
 						zap.Int("attempts", attempt+1),
 					)
 
 					// Break out of reconnect loop, continue reading.
-					_ = readerCtx // used by the new subscription's lifecycle
 					goto reconnected
 				}
 

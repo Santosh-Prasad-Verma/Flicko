@@ -1,6 +1,8 @@
 package config
 
 import (
+	"bytes"
+	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
@@ -37,12 +39,10 @@ type Config struct {
 	E2EEV2Enabled        bool
 	E2EEV2RolloutPercent int // 0..100; clients with hash(user_id)%100 < this opt in
 
-	// AI / LLM (used by message-summary, chat-assistant, etc.)
-	GroqAPIKey      string // optional; if empty, only Ollama is used
-	GroqBaseURL     string // default https://api.groq.com/openai/v1
-	GroqModel       string // default llama-3.3-70b-versatile
-	OllamaBaseURL   string // default http://ollama:11434
-	OllamaModel     string // default llama3.1:8b
+	// AI / LLM (Google Gemini for message-summary, Aura assistant, moderation)
+	GeminiAPIKey     string
+	GeminiBaseURL    string // default https://generativelanguage.googleapis.com/v1beta/openai
+	GeminiModel      string // default gemini-2.5-flash
 	AIRequestTimeout time.Duration // default 12s
 
 	// Feature flags
@@ -61,6 +61,12 @@ type Config struct {
 	AstraDBEndpoint string
 	AstraDBToken    string
 	FlickoGeminiAPIKey string
+
+	// Ed25519 signing keys for cross-service JWT auth.
+	// In production: loaded from ED25519_PRIVATE_KEY / ED25519_PUBLIC_KEY env vars (hex-encoded).
+	// In development: ephemeral keypair generated at startup.
+	Ed25519PrivateKey ed25519.PrivateKey
+	Ed25519PublicKey  ed25519.PublicKey
 }
 
 func Load() (*Config, error) {
@@ -95,6 +101,49 @@ func Load() (*Config, error) {
 	portWS := os.Getenv("PORT_WS")
 	if portWS == "" {
 		portWS = "8081"
+	}
+
+	// Ed25519 signing keypair for JWT tokens (cross-service compatible with shared/auth).
+	var ed25519Priv ed25519.PrivateKey
+	var ed25519Pub ed25519.PublicKey
+
+	ed25519PrivHex := os.Getenv("ED25519_PRIVATE_KEY")
+	ed25519PubHex := os.Getenv("ED25519_PUBLIC_KEY")
+
+	if ed25519PrivHex != "" && ed25519PubHex != "" {
+		privBytes, err := hex.DecodeString(ed25519PrivHex)
+		if err != nil {
+			return nil, errors.New("ED25519_PRIVATE_KEY must be valid hex")
+		}
+		if len(privBytes) != ed25519.PrivateKeySize {
+			return nil, fmt.Errorf("ED25519_PRIVATE_KEY must be %d bytes (got %d)", ed25519.PrivateKeySize, len(privBytes))
+		}
+		ed25519Priv = ed25519.PrivateKey(privBytes)
+
+		pubBytes, err := hex.DecodeString(ed25519PubHex)
+		if err != nil {
+			return nil, errors.New("ED25519_PUBLIC_KEY must be valid hex")
+		}
+		if len(pubBytes) != ed25519.PublicKeySize {
+			return nil, fmt.Errorf("ED25519_PUBLIC_KEY must be %d bytes (got %d)", ed25519.PublicKeySize, len(pubBytes))
+		}
+		ed25519Pub = ed25519.PublicKey(pubBytes)
+
+		// Verify that the public key matches the private key (last 32 bytes of ed25519 private key).
+		if !bytes.Equal(ed25519Priv[32:], ed25519Pub) {
+			return nil, errors.New("ED25519_PUBLIC_KEY does not match ED25519_PRIVATE_KEY")
+		}
+	} else {
+		if environment == "production" {
+			return nil, errors.New("ED25519_PRIVATE_KEY and ED25519_PUBLIC_KEY are required in production. Generate with: openssl genpkey -algorithm ed25519")
+		}
+		// Generate ephemeral keypair for development only.
+		log.Println("WARNING: ED25519 keys not set — using ephemeral keypair (DEV ONLY)")
+		var err error
+		ed25519Pub, ed25519Priv, err = ed25519.GenerateKey(rand.Reader)
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate ephemeral Ed25519 keypair: %w", err)
+		}
 	}
 
 	azureBlobConn := os.Getenv("AZURE_BLOB_CONNECTION_STRING")
@@ -138,6 +187,11 @@ func Load() (*Config, error) {
 	keyID := sha256.Sum256(encryptionKeyBytes)
 	keyIDHex = hex.EncodeToString(keyID[:8])
 
+	geminiKey := os.Getenv("FLICKO_GEMINI_API_KEY")
+	if geminiKey == "" {
+		geminiKey = os.Getenv("GEMINI_API_KEY")
+	}
+
 	cfg := &Config{
 		DatabaseURL:                    dbURL,
 		RedisURL:                       redisURL,
@@ -163,36 +217,22 @@ func Load() (*Config, error) {
 		E2EEV2RolloutPercent: parseIntEnv("E2EE_V2_ROLLOUT_PERCENT", 0, 0, 100),
 		AstraDBEndpoint:    envOr("ASTRA_DB_API_ENDPOINT", ""),
 		AstraDBToken:       envOr("ASTRA_DB_APPLICATION_TOKEN", ""),
-		FlickoGeminiAPIKey: os.Getenv("FLICKO_GEMINI_API_KEY"),
+		FlickoGeminiAPIKey: geminiKey,
+		GeminiAPIKey:       geminiKey,
+		GeminiBaseURL:      envOr("GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai"),
+		GeminiModel:        envOr("GEMINI_MODEL", envOr("FLICKO_GEMINI_TEXT_MODEL", "gemini-2.5-flash")),
+		AIRequestTimeout:   time.Duration(parseIntEnv("AI_REQUEST_TIMEOUT_SECONDS", 12, 1, 120)) * time.Second,
+		AIMessageSummaryEnabled: parseBoolEnv("FEATURE_AI_MESSAGE_SUMMARY", false),
+		AIAutoTranslateEnabled:  parseBoolEnv("FEATURE_AI_AUTO_TRANSLATE", false),
+		AIModerationEnabled:     parseBoolEnv("FEATURE_AI_MODERATION", false),
+		ActivitiesWatchTogetherEnabled: parseBoolEnv("FEATURE_ACTIVITIES_WATCH_TOGETHER", true),
+		ActivitiesMusicPartyEnabled:    parseBoolEnv("FEATURE_ACTIVITIES_MUSIC_PARTY", true),
+		LibreTranslateBaseURL: envOr("LIBRETRANSLATE_BASE_URL", "http://libretranslate:5000"),
+		LibreTranslateAPIKey:  os.Getenv("LIBRETRANSLATE_API_KEY"),
+		DeepLAPIKey:           os.Getenv("DEEPL_API_KEY"),
+		Ed25519PrivateKey:     ed25519Priv,
+		Ed25519PublicKey:      ed25519Pub,
 	}
-
-	groqKey := os.Getenv("GROQ_API_KEY")
-	groqBaseURL := envOr("GROQ_BASE_URL", "https://api.groq.com/openai/v1")
-	groqModel := envOr("GROQ_MODEL", "llama-3.3-70b-versatile")
-
-	if groqKey == "" {
-		if xaiKey := os.Getenv("XAI_API_KEY"); xaiKey != "" {
-			groqKey = xaiKey
-			groqBaseURL = "https://api.x.ai/v1"
-			groqModel = "grok-beta"
-		}
-	}
-
-	cfg.GroqAPIKey = groqKey
-	cfg.GroqBaseURL = groqBaseURL
-	cfg.GroqModel = groqModel
-
-	cfg.OllamaBaseURL = envOr("OLLAMA_BASE_URL", "http://ollama:11434")
-	cfg.OllamaModel = envOr("OLLAMA_MODEL", "llama3.1:8b")
-	cfg.AIRequestTimeout = time.Duration(parseIntEnv("AI_REQUEST_TIMEOUT_SECONDS", 12, 1, 120)) * time.Second
-	cfg.AIMessageSummaryEnabled = parseBoolEnv("FEATURE_AI_MESSAGE_SUMMARY", false)
-	cfg.AIAutoTranslateEnabled = parseBoolEnv("FEATURE_AI_AUTO_TRANSLATE", false)
-	cfg.AIModerationEnabled = parseBoolEnv("FEATURE_AI_MODERATION", false)
-	cfg.ActivitiesWatchTogetherEnabled = parseBoolEnv("FEATURE_ACTIVITIES_WATCH_TOGETHER", true)
-	cfg.ActivitiesMusicPartyEnabled = parseBoolEnv("FEATURE_ACTIVITIES_MUSIC_PARTY", true)
-	cfg.LibreTranslateBaseURL = envOr("LIBRETRANSLATE_BASE_URL", "http://libretranslate:5000")
-	cfg.LibreTranslateAPIKey = os.Getenv("LIBRETRANSLATE_API_KEY")
-	cfg.DeepLAPIKey = os.Getenv("DEEPL_API_KEY")
 
 	return cfg, nil
 }

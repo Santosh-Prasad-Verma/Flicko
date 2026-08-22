@@ -25,48 +25,46 @@ class MessageDripCard extends ConsumerStatefulWidget {
 }
 
 class _MessageDripCardState extends ConsumerState<MessageDripCard> with TickerProviderStateMixin {
-  late AnimationController _glintController;
-  late AnimationController _glitchController;
+  AnimationController? _glintController;
+  AnimationController? _glitchController;
   Timer? _glitchTimer;
   double _glitchIntensity = 0.0;
   final math.Random _random = math.Random();
 
-  @override
-  void initState() {
-    super.initState();
-    // Continuous loop for specular gold sweep
-    _glintController = AnimationController(
+  void _initGoldGlintIfNeeded() {
+    _glintController ??= AnimationController(
       vsync: this,
       duration: const Duration(seconds: 3),
     )..repeat();
+  }
 
-    // Glitch trigger controller
-    _glitchController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
-
-    // Periodically trigger a quick wobbly glitch effect
-    _glitchTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
-      if (mounted) {
-        setState(() {
-          _glitchIntensity = 1.0;
-        });
-        _glitchController.forward(from: 0.0).then((_) {
-          if (mounted) {
-            setState(() {
-              _glitchIntensity = 0.0;
-            });
-          }
-        });
-      }
-    });
+  void _initCyberGlitchIfNeeded() {
+    if (_glitchController == null) {
+      _glitchController = AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 300),
+      );
+      _glitchTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
+        if (mounted && _glitchController != null) {
+          setState(() {
+            _glitchIntensity = 1.0;
+          });
+          _glitchController!.forward(from: 0.0).then((_) {
+            if (mounted) {
+              setState(() {
+                _glitchIntensity = 0.0;
+              });
+            }
+          });
+        }
+      });
+    }
   }
 
   @override
   void dispose() {
-    _glintController.dispose();
-    _glitchController.dispose();
+    _glintController?.dispose();
+    _glitchController?.dispose();
     _glitchTimer?.cancel();
     super.dispose();
   }
@@ -90,11 +88,13 @@ class _MessageDripCardState extends ConsumerState<MessageDripCard> with TickerPr
     // Render based on custom style
     switch (resolvedId) {
       case 'toxic-hazard-card':
-        return _buildToxicHazardCard();
+        return RepaintBoundary(child: _buildToxicHazardCard());
       case 'cyber-glitch-card':
-        return _buildCyberGlitchCard();
+        _initCyberGlitchIfNeeded();
+        return RepaintBoundary(child: _buildCyberGlitchCard());
       case 'specular-gold-card':
-        return _buildSpecularGoldCard();
+        _initGoldGlintIfNeeded();
+        return RepaintBoundary(child: _buildSpecularGoldCard());
       default:
         return widget.child;
     }
@@ -129,14 +129,21 @@ class _MessageDripCardState extends ConsumerState<MessageDripCard> with TickerPr
   }
 
   Widget _buildCyberGlitchCard() {
+    if (_glitchController == null) {
+      return Container(
+        margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        child: widget.child,
+      );
+    }
     return AnimatedBuilder(
-      animation: _glitchController,
+      animation: _glitchController!,
       builder: (context, child) {
         // Calculate offset twitch when glitching
         double offsetX = 0.0;
         double offsetY = 0.0;
         if (_glitchIntensity > 0) {
-          final t = _glitchController.value;
+          final t = _glitchController!.value;
           if (t < 0.3) {
             offsetX = _random.nextDouble() * 4 - 2;
             offsetY = _random.nextDouble() * 3 - 1.5;
@@ -204,8 +211,15 @@ class _MessageDripCardState extends ConsumerState<MessageDripCard> with TickerPr
   }
 
   Widget _buildSpecularGoldCard() {
+    if (_glintController == null) {
+      return Container(
+        margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        child: widget.child,
+      );
+    }
     return AnimatedBuilder(
-      animation: _glintController,
+      animation: _glintController!,
       builder: (context, child) {
         return Container(
           margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
@@ -225,7 +239,7 @@ class _MessageDripCardState extends ConsumerState<MessageDripCard> with TickerPr
             ],
           ),
           child: CustomPaint(
-            painter: GoldGlintPainter(progress: _glintController.value),
+            painter: GoldGlintPainter(progress: _glintController!.value),
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
               child: widget.child,

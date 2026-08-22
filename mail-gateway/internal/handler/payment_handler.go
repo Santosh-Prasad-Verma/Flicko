@@ -110,7 +110,7 @@ func (h *PaymentHandler) HandleVerifyPayment(w http.ResponseWriter, r *http.Requ
 	mac.Write([]byte(payload))
 	expectedSignature := hex.EncodeToString(mac.Sum(nil))
 
-	if expectedSignature != body.RazorpaySignature {
+	if !hmac.Equal([]byte(expectedSignature), []byte(body.RazorpaySignature)) {
 		slog.Warn("invalid payment signature", "order_id", body.RazorpayOrderID)
 		h.respondError(w, "invalid payment signature", http.StatusUnauthorized)
 		return

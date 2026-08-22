@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:appwrite/appwrite.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as path;
 import 'package:mobile/core/config/app_config.dart';
 
@@ -81,6 +82,28 @@ class AppwriteStorageService {
     }
   }
 
+  static String get bucketId => AppConfig.appwriteBucketId.isEmpty ? 'attachments' : AppConfig.appwriteBucketId;
+
+  Future<String> uploadAttachment(
+      File file, String userId, String channelId) async {
+    final fileName = '${userId}_${DateTime.now().millisecondsSinceEpoch}';
+
+    try {
+      final result = await _storage.createFile(
+        bucketId: bucketId,
+        fileId: ID.unique(),
+        file: InputFile.fromPath(path: file.path, filename: fileName),
+      );
+
+      final String fileUrl =
+          '${AppConfig.appwritePublicEndpoint}/storage/buckets/$bucketId/files/${result.$id}/view?project=${AppConfig.appwriteProjectId}';
+
+      return fileUrl;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   /// Check if Appwrite is properly configured
   bool get isConfigured {
     return AppConfig.appwriteProjectId.isNotEmpty &&
@@ -88,3 +111,14 @@ class AppwriteStorageService {
         AppConfig.appwriteBucketId.isNotEmpty;
   }
 }
+
+final appwriteClientProvider = Provider<Client>((ref) {
+  final client = Client()
+    ..setEndpoint(AppConfig.appwritePublicEndpoint)
+    ..setProject(AppConfig.appwriteProjectId);
+  return client;
+});
+
+final appwriteStorageServiceProvider = Provider<AppwriteStorageService>((ref) {
+  return AppwriteStorageService.instance;
+});

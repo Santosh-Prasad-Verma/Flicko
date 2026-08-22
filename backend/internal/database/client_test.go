@@ -124,3 +124,84 @@ func TestPgxClient_CircuitBreakerFailureFast(t *testing.T) {
 	err = row.Scan(&val)
 	assert.Error(t, err)
 }
+
+func TestIsReadOnlySQL_CommentsWithLockingClauses(t *testing.T) {
+	tests := []struct {
+		name     string
+		sql      string
+		expected bool
+	}{
+		{
+			name:     "plain SELECT is read-only",
+			sql:      "SELECT * FROM users",
+			expected: true,
+		},
+		{
+			name:     "SELECT with FOR UPDATE is not read-only",
+			sql:      "SELECT * FROM users FOR UPDATE",
+			expected: false,
+		},
+		{
+			name:     "SELECT with block comment between FOR and UPDATE",
+			sql:      "SELECT * FROM users FOR/* comment */UPDATE",
+			expected: false,
+		},
+		{
+			name:     "SELECT with block comment with spaces between FOR and UPDATE",
+			sql:      "SELECT * FROM users FOR /* comment */ UPDATE",
+			expected: false,
+		},
+		{
+			name:     "SELECT with nested block comment obscuring locking clause",
+			sql:      "SELECT * FROM users FOR/**/UPDATE",
+			expected: false,
+		},
+		{
+			name:     "SELECT with line comment between SELECT and FOR UPDATE",
+			sql:      "SELECT * FROM users -- comment\nFOR UPDATE",
+			expected: false,
+		},
+		{
+			name:     "SELECT with line comment after FOR, UPDATE on next line",
+			sql:      "SELECT * FROM users FOR-- comment\nUPDATE",
+			expected: false,
+		},
+		{
+			name:     "SELECT FOR SHARE with block comment",
+			sql:      "SELECT * FROM users FOR/*test*/SHARE",
+			expected: false,
+		},
+		{
+			name:     "SELECT FOR KEY SHARE with line comment",
+			sql:      "SELECT * FROM users FOR--\nKEY SHARE",
+			expected: false,
+		},
+		{
+			name:     "SELECT FOR NO KEY UPDATE with block comment",
+			sql:      "SELECT * FROM users FOR /* x */ NO KEY UPDATE",
+			expected: false,
+		},
+		{
+			name:     "plain SELECT with harmless comment",
+			sql:      "SELECT /* get all */ * FROM users",
+			expected: true,
+		},
+		{
+			name:     "plain SELECT with line comment",
+			sql:      "SELECT * FROM users -- get all",
+			expected: true,
+		},
+		{
+			name:     "multiple block comments in safe SELECT",
+			sql:      "SELECT /* a */ * /* b */ FROM /* c */ users",
+			expected: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := isReadOnlySQL(tt.sql)
+			assert.Equal(t, tt.expected, result, "SQL: %s", tt.sql)
+		})
+	}
+}
