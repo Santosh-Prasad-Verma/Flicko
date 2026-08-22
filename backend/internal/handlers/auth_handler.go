@@ -73,6 +73,8 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 type loginRequest struct {
 	Identifier string `json:"identifier"`
+	Email      string `json:"email"`
+	Username   string `json:"username"`
 	Password   string `json:"password"`
 }
 
@@ -83,14 +85,22 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Identifier == "" || req.Password == "" {
+	identifier := strings.TrimSpace(req.Identifier)
+	if identifier == "" {
+		identifier = strings.TrimSpace(req.Email)
+	}
+	if identifier == "" {
+		identifier = strings.TrimSpace(req.Username)
+	}
+
+	if identifier == "" || req.Password == "" {
 		writeError(w, http.StatusBadRequest, "Identifier and password are required")
 		return
 	}
 
-	user, token, err := h.authSvc.Login(r.Context(), req.Identifier, req.Password)
+	user, token, err := h.authSvc.Login(r.Context(), identifier, req.Password)
 	if err != nil {
-		h.logger.Warn("login failed", zap.String("identifier", req.Identifier), zap.Error(err))
+		h.logger.Warn("login failed", zap.String("identifier", identifier), zap.Error(err))
 		writeError(w, http.StatusUnauthorized, "Invalid credentials")
 		return
 	}
