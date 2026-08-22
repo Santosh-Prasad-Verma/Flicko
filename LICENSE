@@ -19,3 +19,44 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+
+## 📜 Supplementary Terms, Brand Guidelines & Disclaimers
+
+> **Plain English TL;DR:**  
+> You have full freedom to inspect, fork, modify, deploy, and commercialize the Flicko codebase under the permissive MIT license. However, the Flicko name, logo, and brand assets are protected trademarks. If you launch your own independent service, you must rebrand it. The maintainers provide this software "as is" with zero liability.
+
+---
+
+### 1. 🏷️ Trademark, Name & Brand Identity
+The MIT License grants rights to the underlying **source code and documentation only**. It does **not** grant rights to use the trademarked identity, brand assets, or logos of the Flicko project.
+
+- **Brand Protection**: The names `"Flicko"`, `"Flicko App"`, `"Sonic Music"`, `"Aura AI"`, as well as associated logos, mascot art, iconography, sound marks, and visual design assets are exclusive proprietary marks of the project maintainers.
+- **Forks & Derivative Works**: You are encouraged to build exciting products using this codebase. However, if you host a public instance, publish a mobile app, or distribute a derivative fork, you must remove all official Flicko branding, logos, and marketing imagery, and choose an independent name and identity.
+- **No Implied Endorsement**: You may not use the Flicko name or marks in any manner that implies sponsorship, official partnership, or endorsement by the Flicko maintainers without prior written consent.
+
+---
+
+### 2. 🤝 Contributions & Inbound Intellectual Property
+We welcome and celebrate open-source contributions from the global community. To keep the project unencumbered and freely accessible:
+
+- **Licensing of Contributions**: Every Pull Request, commit, code submission, or documentation patch provided to this repository is licensed under the identical terms of the **MIT License**.
+- **Originality & Authority**: By submitting a contribution, you represent and warrant that you are the sole author of the work, or hold the necessary rights and authority to grant this license free of encumbrance, patent claims, or proprietary restrictions.
+
+---
+
+### 3. 📦 Third-Party Dependencies & Open-Source Libraries
+Flicko leverages world-class open-source libraries across the Go microservices backend and Flutter mobile client:
+
+- **Independent Licenses**: Third-party packages, modules, and container assets bundled or referenced by this project are governed by their respective upstream licenses (including Apache-2.0, BSD-3-Clause, MPL-2.0, and MIT).
+- **Compliance**: This license does not supersede or modify the terms of any third-party dependency. When distributing binary builds or container images, you are responsible for maintaining compliance with the license notices of all bundled components.
+
+---
+
+### 4. ⚖️ Cryptographic, Security & Liability Disclaimers
+- **Provided "As Is"**: The software is delivered on an "as is" and "as available" basis. The maintainers make no guarantees regarding uptime, suitability for a particular purpose, or fitness for high-availability production without independent testing and security review.
+- **End-to-End Encryption (E2EE) & Data Compliance**: Flicko includes cryptographic algorithms, key exchange protocols, and security primitives. Operators deploying Flicko assume full legal and operational responsibility for compliance with applicable local export controls, cryptographic regulations, and data privacy frameworks (such as GDPR, HIPAA, or CCPA).
+- **Absolute Limitation of Liability**: Under no circumstances shall the authors, copyright holders, or contributors be held liable for any direct, indirect, incidental, punitive, or consequential damages (including, but not limited to, data loss, service interruption, security vulnerabilities, or loss of revenue) resulting from the installation, use, or modification of this software.
+
+
