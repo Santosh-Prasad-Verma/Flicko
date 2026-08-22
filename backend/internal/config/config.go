@@ -1,6 +1,7 @@
 package config
 
 import (
+	"bytes"
 	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/sha256"
@@ -127,9 +128,14 @@ func Load() (*Config, error) {
 			return nil, fmt.Errorf("ED25519_PUBLIC_KEY must be %d bytes (got %d)", ed25519.PublicKeySize, len(pubBytes))
 		}
 		ed25519Pub = ed25519.PublicKey(pubBytes)
+
+		// Verify that the public key matches the private key (last 32 bytes of ed25519 private key).
+		if !bytes.Equal(ed25519Priv[32:], ed25519Pub) {
+			return nil, errors.New("ED25519_PUBLIC_KEY does not match ED25519_PRIVATE_KEY")
+		}
 	} else {
 		if environment == "production" {
-			return nil, errors.New("ED25519_PRIVATE_KEY and ED25519_PUBLIC_KEY are required in production. Generate with: go run crypto/ed25519 generate")
+			return nil, errors.New("ED25519_PRIVATE_KEY and ED25519_PUBLIC_KEY are required in production. Generate with: openssl genpkey -algorithm ed25519")
 		}
 		// Generate ephemeral keypair for development only.
 		log.Println("WARNING: ED25519 keys not set — using ephemeral keypair (DEV ONLY)")

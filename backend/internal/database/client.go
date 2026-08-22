@@ -292,8 +292,11 @@ func isReadOnlySQL(sql string) bool {
 	if !strings.HasPrefix(upper, "SELECT") {
 		return false
 	}
-	// Reject SELECT ... FOR UPDATE/SHARE (row locks must hit primary).
-	if strings.Contains(upper, "FOR UPDATE") || strings.Contains(upper, "FOR SHARE") {
+	// Reject SELECT ... row-locking clauses (row locks must hit primary).
+	if strings.Contains(upper, "FOR UPDATE") ||
+		strings.Contains(upper, "FOR NO KEY UPDATE") ||
+		strings.Contains(upper, "FOR SHARE") ||
+		strings.Contains(upper, "FOR KEY SHARE") {
 		return false
 	}
 	return true

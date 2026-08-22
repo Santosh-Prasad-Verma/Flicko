@@ -40,10 +40,45 @@ type batchSendReq struct {
 	CustomBody string   `json:"custom_body,omitempty"`
 }
 
+func (h *AdminPromoHandler) isAdmin(r *http.Request, userID string) (bool, error) {
+	var isAdmin bool
+	err := h.db.QueryRow(r.Context(), `
+		SELECT (
+			(COALESCE(u.raw_app_meta_data->>'is_admin', 'false') = 'true') OR
+			(COALESCE(u.raw_user_meta_data->>'is_admin', 'false') = 'true') OR
+			(COALESCE(u.raw_user_meta_data->>'role', '') = 'admin') OR
+			(COALESCE(p.flags, 0) & 1 > 0)
+		)
+		FROM public.users u
+		LEFT JOIN public.profiles p ON p.id = u.id
+		WHERE u.id = $1
+	`, userID).Scan(&isAdmin)
+	if err != nil {
+		var flags int
+		pErr := h.db.QueryRow(r.Context(), `SELECT COALESCE(flags, 0) FROM public.profiles WHERE id = $1`, userID).Scan(&flags)
+		if pErr == nil {
+			return (flags & 1) > 0, nil
+		}
+		return false, err
+	}
+	return isAdmin, nil
+}
+
 func (h *AdminPromoHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
 	userID := getUserID(r)
 	if userID == "" {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	isAdmin, err := h.isAdmin(r, userID)
+	if err != nil {
+		h.logger.Error("failed to verify admin authorization", zap.String("userID", userID), zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to verify permissions")
+		return
+	}
+	if !isAdmin {
+		writeError(w, http.StatusForbidden, "forbidden: administrator privileges required")
 		return
 	}
 
@@ -82,6 +117,17 @@ func (h *AdminPromoHandler) ListTemplates(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	isAdmin, err := h.isAdmin(r, userID)
+	if err != nil {
+		h.logger.Error("failed to verify admin authorization", zap.String("userID", userID), zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to verify permissions")
+		return
+	}
+	if !isAdmin {
+		writeError(w, http.StatusForbidden, "forbidden: administrator privileges required")
+		return
+	}
+
 	templatesList := []map[string]string{
 		{"id": "flicko_plus.html", "name": "Flicko+ Premium Promotion", "type": "promotional"},
 		{"id": "upgrade.html", "name": "Feature Upgrade Announcement", "type": "promotional"},
@@ -98,6 +144,17 @@ func (h *AdminPromoHandler) SendBatch(w http.ResponseWriter, r *http.Request) {
 	userID := getUserID(r)
 	if userID == "" {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	isAdmin, err := h.isAdmin(r, userID)
+	if err != nil {
+		h.logger.Error("failed to verify admin authorization", zap.String("userID", userID), zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to verify permissions")
+		return
+	}
+	if !isAdmin {
+		writeError(w, http.StatusForbidden, "forbidden: administrator privileges required")
 		return
 	}
 

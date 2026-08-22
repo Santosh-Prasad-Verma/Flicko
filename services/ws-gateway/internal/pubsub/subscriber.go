@@ -46,7 +46,7 @@ func (ps *RedisPubSub) subscribeSingle(ctx context.Context, storeKey, redisKey s
 	}
 
 	readerCtx, readerCancel := context.WithCancel(ps.ctx)
-	s := &subscription{sub: sub, cancel: readerCancel}
+	s := &subscription{sub: sub, cancel: readerCancel, pattern: redisKey, isPattern: false}
 
 	// LoadOrStore handles the race where two goroutines try to subscribe
 	// to the same channel concurrently.
@@ -58,7 +58,7 @@ func (ps *RedisPubSub) subscribeSingle(ctx context.Context, storeKey, redisKey s
 	}
 
 	ps.Met.ActiveSubscriptions.Add(1)
-	go ps.reader(readerCtx, storeKey, sub)
+	go ps.reader(readerCtx, storeKey, sub, redisKey, false)
 
 	ps.log.Debug("subscribed", zap.String("topic", storeKey))
 	return nil
@@ -89,7 +89,7 @@ func (ps *RedisPubSub) psubscribeSingle(ctx context.Context, storeKey, pattern s
 	}
 
 	readerCtx, readerCancel := context.WithCancel(ps.ctx)
-	s := &subscription{sub: sub, cancel: readerCancel}
+	s := &subscription{sub: sub, cancel: readerCancel, pattern: pattern, isPattern: true}
 
 	if _, loaded := ps.subscribers.LoadOrStore(storeKey, s); loaded {
 		readerCancel()
@@ -98,7 +98,7 @@ func (ps *RedisPubSub) psubscribeSingle(ctx context.Context, storeKey, pattern s
 	}
 
 	ps.Met.ActiveSubscriptions.Add(1)
-	go ps.reader(readerCtx, storeKey, sub)
+	go ps.reader(readerCtx, storeKey, sub, pattern, true)
 
 	ps.log.Debug("psubscribed", zap.String("topic", storeKey), zap.String("pattern", pattern))
 	return nil
@@ -145,7 +145,7 @@ func (ps *RedisPubSub) unsubscribeSingle(storeKey string) {
 // Exit paths:
 //   - readerCtx cancelled (Unsubscribe or Stop)
 //   - Max reconnect attempts exhausted (after ~5 min total)
-func (ps *RedisPubSub) reader(ctx context.Context, topic string, sub *goredis.PubSub) {
+func (ps *RedisPubSub) reader(ctx context.Context, topic string, sub *goredis.PubSub, pattern string, isPattern bool) {
 	const maxBackoff = 30 * time.Second
 	const maxAttempts = 15
 
@@ -157,6 +157,8 @@ func (ps *RedisPubSub) reader(ctx context.Context, topic string, sub *goredis.Pu
 				// Channel closed — attempt reconnect.
 				ps.log.Warn("reader: channel closed, attempting reconnect",
 					zap.String("topic", topic),
+					zap.String("pattern", pattern),
+					zap.Bool("is_pattern", isPattern),
 				)
 				sub.Close()
 
@@ -168,13 +170,19 @@ func (ps *RedisPubSub) reader(ctx context.Context, topic string, sub *goredis.Pu
 					case <-time.After(backoff):
 					}
 
-					// Figure out the Redis key from the topic store key.
-					redisKey := ps.storeKeyToRedisKey(topic)
-					newSub := ps.rdb.Subscribe(ctx, redisKey)
+					var newSub *goredis.PubSub
+					if isPattern {
+						newSub = ps.rdb.PSubscribe(ctx, pattern)
+					} else {
+						newSub = ps.rdb.Subscribe(ctx, pattern)
+					}
+
 					if _, err := newSub.Receive(ctx); err != nil {
 						newSub.Close()
 						ps.log.Warn("reconnect attempt failed",
 							zap.String("topic", topic),
+							zap.String("pattern", pattern),
+							zap.Bool("is_pattern", isPattern),
 							zap.Int("attempt", attempt+1),
 							zap.Error(err),
 						)
@@ -187,13 +195,15 @@ func (ps *RedisPubSub) reader(ctx context.Context, topic string, sub *goredis.Pu
 
 					// Successfully reconnected — update the subscription store.
 					readerCtx, readerCancel := context.WithCancel(ps.ctx)
-					newS := &subscription{sub: newSub, cancel: readerCancel}
+					newS := &subscription{sub: newSub, cancel: readerCancel, pattern: pattern, isPattern: isPattern}
 					ps.subscribers.Store(topic, newS)
 					sub = newSub
 					ch = sub.Channel()
 
 					ps.log.Info("reconnected to topic",
 						zap.String("topic", topic),
+						zap.String("pattern", pattern),
+						zap.Bool("is_pattern", isPattern),
 						zap.Int("attempts", attempt+1),
 					)
 

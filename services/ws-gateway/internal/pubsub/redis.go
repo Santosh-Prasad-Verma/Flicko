@@ -27,8 +27,10 @@ DefaultWorkerChanSize = 10_000
 // subscription tracks a single Redis Pub/Sub subscription and the
 // cancel function for its reader goroutine.
 type subscription struct {
-sub    *goredis.PubSub
-cancel context.CancelFunc
+	sub       *goredis.PubSub
+	cancel    context.CancelFunc
+	pattern   string
+	isPattern bool
 }
 
 // RedisPubSub implements EventBus using Redis Pub/Sub.

@@ -43,7 +43,7 @@ type AuthService interface {
 var signingMethod = jwt.SigningMethodEdDSA
 
 const (
-	accessTokenTTL = 15 * time.Minute
+	accessTokenTTL = 24 * time.Hour
 	issuer         = "flicko"
 )
 

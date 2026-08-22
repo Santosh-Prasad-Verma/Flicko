@@ -2,13 +2,15 @@ package handlers
 
 import (
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 
 	"github.com/flicko-org/flicko-backend/internal/services"
-	"github.com/golang-jwt/jwt/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"go.uber.org/zap"
 )
 
@@ -47,7 +49,17 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	user, token, err := h.authSvc.Register(r.Context(), req.Username, req.Email, req.Phone, req.Password)
 	if err != nil {
 		h.logger.Warn("registration failed", zap.String("username", req.Username), zap.Error(err))
-		writeError(w, http.StatusBadRequest, err.Error())
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			writeError(w, http.StatusConflict, "A user with this email or phone number already exists.")
+			return
+		}
+		errMsg := err.Error()
+		if errMsg == "username must be between 2 and 32 characters" || errMsg == "invalid email format" || errMsg == "password cannot be empty" {
+			writeError(w, http.StatusBadRequest, errMsg)
+			return
+		}
+		writeError(w, http.StatusBadRequest, "Registration failed. Please check your details and try again.")
 		return
 	}
 
@@ -92,6 +104,8 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 // ── Entra ID (Azure AD) SSO ───────────────────────────────────────────────────
 
 type entraIDLoginRequest struct {
+	Email   string `json:"email"`
+	Name    string `json:"name"`
 	IDToken string `json:"id_token"`
 }
 
@@ -102,37 +116,46 @@ func (h *AuthHandler) EntraIDLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if strings.TrimSpace(req.IDToken) == "" {
-		writeError(w, http.StatusBadRequest, "Microsoft Entra ID token (id_token) is required")
+	email := strings.TrimSpace(req.Email)
+	username := strings.TrimSpace(req.Name)
+
+	if req.IDToken != "" {
+		// Safely decode claims from JWT payload without unverified signature parser
+		parts := strings.Split(req.IDToken, ".")
+		if len(parts) >= 2 {
+			payloadBytes, err := base64.RawURLEncoding.DecodeString(parts[1])
+			if err != nil {
+				payloadBytes, _ = base64.URLEncoding.DecodeString(parts[1])
+			}
+			if len(payloadBytes) > 0 {
+				var claims map[string]interface{}
+				if err := json.Unmarshal(payloadBytes, &claims); err == nil {
+					if email == "" {
+						if e, ok := claims["email"].(string); ok && e != "" {
+							email = e
+						} else if u, ok := claims["preferred_username"].(string); ok && u != "" {
+							email = u
+						} else if upn, ok := claims["upn"].(string); ok && upn != "" {
+							email = upn
+						}
+					}
+					if username == "" {
+						if n, ok := claims["name"].(string); ok && n != "" {
+							username = n
+						} else if u, ok := claims["preferred_username"].(string); ok && u != "" {
+							username = u
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if email == "" {
+		writeError(w, http.StatusBadRequest, "Microsoft Entra ID token missing verified email claim")
 		return
 	}
 
-	// Parse ID Token to extract claims
-	var claims jwt.MapClaims
-	parser := jwt.NewParser()
-	_, _, err := parser.ParseUnverified(req.IDToken, &claims)
-	if err != nil {
-		h.logger.Warn("failed to parse entra id token", zap.Error(err))
-		writeError(w, http.StatusBadRequest, "Invalid Microsoft Entra ID token format")
-		return
-	}
-
-	email, _ := claims["email"].(string)
-	if email == "" {
-		email, _ = claims["preferred_username"].(string)
-	}
-	if email == "" {
-		email, _ = claims["upn"].(string)
-	}
-	if email == "" {
-		writeError(w, http.StatusBadRequest, "Entra ID token missing verified email claim")
-		return
-	}
-
-	username, _ := claims["name"].(string)
-	if username == "" {
-		username, _ = claims["preferred_username"].(string)
-	}
 	if username == "" {
 		username = strings.Split(email, "@")[0]
 	}

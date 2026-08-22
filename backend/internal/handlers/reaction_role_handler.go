@@ -193,16 +193,3 @@ func (h *ReactionRoleHandler) hasManageRolesPermission(r *http.Request, serverID
 	`, serverID, userID).Scan(&hasPerm)
 	return hasPerm, err
 }
-
-func (h *ReactionRoleHandler) isServerMember(r *http.Request, serverID, userID uuid.UUID) (bool, error) {
-	var isMember bool
-	err := h.db.QueryRow(r.Context(), `
-		SELECT EXISTS (
-			SELECT 1
-			FROM public.server_members
-			WHERE server_id = $1
-			  AND user_id = $2
-		)
-	`, serverID, userID).Scan(&isMember)
-	return isMember, err
-}

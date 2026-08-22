@@ -75,19 +75,13 @@ Flicko backend is modularized into specialized services:
 
 ```bash
 # 1. Main Backend API & Bot Framework (port 8080)
-cd backend
-go mod download
-go run ./cmd/server
+cd backend && go run ./cmd/server
 
-# 2. WebSocket Gateway (port 8081)
-cd services/ws-gateway
-go mod download
-go run ./cmd/gateway
+# In a separate terminal - 2. WebSocket Gateway (port 8081)
+cd services/ws-gateway && go run ./cmd/gateway
 
-# 3. Messaging Service
-cd services/msg-service
-go mod download
-go run ./cmd/server
+# In a separate terminal - 3. Messaging Service
+cd services/msg-service && go run ./cmd/server
 ```
 
 Or spin up the full local stack with Docker Compose:

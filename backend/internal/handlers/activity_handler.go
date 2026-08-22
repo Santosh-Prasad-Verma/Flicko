@@ -2,12 +2,14 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 )
@@ -500,7 +502,12 @@ func (h *ActivityHandler) Launch(w http.ResponseWriter, r *http.Request) {
 	var isMember bool
 	if err = tx.QueryRow(r.Context(), `
 		SELECT EXISTS(SELECT 1 FROM public.server_members WHERE server_id = $1 AND user_id = $2)
-	`, serverUUID, userUUID).Scan(&isMember); err != nil || !isMember {
+	`, serverUUID, userUUID).Scan(&isMember); err != nil {
+		h.logger.Error("failed to check server membership", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to launch activity")
+		return
+	}
+	if !isMember {
 		writeError(w, http.StatusForbidden, "user is not a member of this server")
 		return
 	}
@@ -588,14 +595,24 @@ func (h *ActivityHandler) Join(w http.ResponseWriter, r *http.Request) {
 	if err = h.db.QueryRow(r.Context(), `
 		SELECT server_id FROM public.activity_sessions WHERE id = $1
 	`, sessionUUID).Scan(&serverUUID); err != nil {
-		writeError(w, http.StatusNotFound, "activity session not found")
+		if errors.Is(err, pgx.ErrNoRows) {
+			writeError(w, http.StatusNotFound, "activity session not found")
+			return
+		}
+		h.logger.Error("failed to query activity session", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to join activity session")
 		return
 	}
 
 	var isMember bool
 	if err = h.db.QueryRow(r.Context(), `
 		SELECT EXISTS(SELECT 1 FROM public.server_members WHERE server_id = $1 AND user_id = $2)
-	`, serverUUID, userUUID).Scan(&isMember); err != nil || !isMember {
+	`, serverUUID, userUUID).Scan(&isMember); err != nil {
+		h.logger.Error("failed to check server membership", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to join activity session")
+		return
+	}
+	if !isMember {
 		writeError(w, http.StatusForbidden, "user is not a member of this server")
 		return
 	}
@@ -806,7 +823,12 @@ func (h *ActivityHandler) UpdateState(w http.ResponseWriter, r *http.Request) {
 	if err = tx.QueryRow(r.Context(), `
 		SELECT host_user_id FROM public.activity_sessions WHERE id = $1
 	`, sessionUUID).Scan(&hostUserID); err != nil {
-		writeError(w, http.StatusNotFound, "activity session not found")
+		if errors.Is(err, pgx.ErrNoRows) {
+			writeError(w, http.StatusNotFound, "activity session not found")
+			return
+		}
+		h.logger.Error("failed to query activity session host", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "failed to update activity state")
 		return
 	}
 	if hostUserID != userUUID {
