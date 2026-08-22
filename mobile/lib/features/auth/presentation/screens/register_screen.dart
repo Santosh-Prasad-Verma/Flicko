@@ -224,10 +224,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     });
 
     try {
-      final supabase = Supabase.instance.client;
-      await supabase.auth.resend(
-        type: OtpType.signup,
-        email: _emailController.text.trim().toLowerCase(),
+      await ref.read(authRepositoryProvider).resendVerification(
+        _emailController.text.trim().toLowerCase(),
       );
       
       setState(() => 
@@ -236,7 +234,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     } catch (e) {
       setState(() => _generalError = 'Could not resend — try again in a minute.');
     } finally {
-      setState(() => _resendLoading = false);
+      if (mounted) {
+        setState(() => _resendLoading = false);
+      }
     }
   }
 
@@ -250,26 +250,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     });
 
     try {
-      // Final server-side username uniqueness check
-      final trimmedUsername = _usernameController.text.trim();
-      final supabase = Supabase.instance.client;
-      final existing = await supabase
-          .from('profiles')
-          .select('id')
-          .ilike('username', trimmedUsername)
-          .limit(1);
-          
-      if (existing.isNotEmpty) {
-        setState(() => _usernameError = 'Username is already taken');
-        setState(() => _isLoading = false);
-        return;
-      }
-
       // HIGH-002: Sanitize and validate inputs
       final sanitizedEmail = _emailController.text.trim().toLowerCase();
+      final trimmedUsername = _usernameController.text.trim();
       final sanitizedUsername = trimmedUsername.replaceAll(RegExp(r'[^\w.-]'), '');
-      final sanitizedName = trimmedUsername.replaceAll(RegExp(r'''[<>"'&]'''), '');
-      final sanitizedDisplayName = sanitizedName.length > 32 ? sanitizedName.substring(0, 32) : sanitizedName;
 
       if (sanitizedUsername != trimmedUsername) {
         setState(() => _usernameError = 'Username contains invalid characters (only letters, numbers, _ . - allowed)');
@@ -277,72 +261,22 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         return;
       }
 
-      final response = await supabase.auth.signUp(
-        email: sanitizedEmail,
-        password: _passwordController.text,
-        data: {
-          'username': sanitizedUsername,
-          'display_name': sanitizedDisplayName,
-        },
+      await ref.read(authNotifierProvider.notifier).signUp(
+        sanitizedEmail,
+        _passwordController.text,
+        sanitizedUsername,
       );
 
-      if (response.user == null) {
-        // Supabase returns error when email confirmation is enabled but SMTP isn't configured
-        // Try auto sign-in since account may have been created
-        try {
-          final signInResponse = await supabase.auth.signInWithPassword(
-            email: sanitizedEmail,
-            password: _passwordController.text,
-          );
-          
-          if (signInResponse.user != null) {
-            // Auth state automatically updated via authNotifierProvider listener
-            if (mounted) {
-              context.go('/');
-            }
-            return;
-          }
-        } catch (_) {
-          // Auto sign-in failed
-        }
-        
-        setState(() {
-          _showResend = true;
-          _isVerificationEmailSent = true;
-          _successMessage = 'Account created! A confirmation link has been sent to your email. Check your spam folder too.';
-        });
-        return;
-      }
-
-      // Registration successful
-      if (response.session != null) {
-        // Auth state automatically updated via authNotifierProvider listener
-        if (mounted) {
-          context.go('/');
-        }
-      } else {
-        setState(() {
-          _showResend = true;
-          _isVerificationEmailSent = true;
-          _successMessage = 'Account created! A confirmation link has been sent to your email. Check your spam folder too.';
-        });
-      }
-    } on AuthException catch (e) {
-      final isEmailDeliveryError = RegExp(r'confirm|email', caseSensitive: false).hasMatch(e.message);
-      if (isEmailDeliveryError) {
-        setState(() {
-          _showResend = true;
-          _isVerificationEmailSent = true;
-          _successMessage = 'Account created! A confirmation link has been sent to your email. Check your spam folder too.';
-        });
-      } else {
-        setState(() => _generalError = _sanitizeErrorMessage(e.message));
+      if (mounted) {
+        context.go('/');
       }
     } catch (e) {
       debugPrint('Register error: $e');
       setState(() => _generalError = _sanitizeErrorMessage(e.toString()));
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -371,10 +305,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           response = AppOAuthResponse(success: false, error: 'Unknown provider');
       }
 
-      if (!response.success || response.user == null) {
+      if (!response.success) {
         setState(() => _generalError = response.error ?? 'OAuth sign-in failed');
         return;
       }
+
+      if (response.pending) return;
 
       if (mounted) {
         context.go('/');
@@ -382,7 +318,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     } catch (e) {
       setState(() => _generalError = 'OAuth sign-up failed. Please try again.');
     } finally {
-      setState(() => _oauthLoading = null);
+      if (mounted) {
+        setState(() => _oauthLoading = null);
+      }
     }
   }
 

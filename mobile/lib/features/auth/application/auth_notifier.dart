@@ -148,40 +148,45 @@ class AuthNotifier extends Notifier<AuthState> {
     }
   }
 
+  String? get _currentUserId => state.maybeWhen(
+    authenticated: (user, _) => user.id,
+    orElse: () => null,
+  );
+
   Future<void> changeEmail(String newEmail) async {
-    final userId = _repository.currentUser?.id;
+    final userId = _currentUserId;
     if (userId == null) throw Exception('Not authenticated');
     await _repository.changeEmail(newEmail);
   }
 
   Future<void> changeUsername(String newUsername) async {
-    final userId = _repository.currentUser?.id;
+    final userId = _currentUserId;
     if (userId == null) throw Exception('Not authenticated');
     await _repository.updateProfile(userId, {'username': newUsername});
     await refreshProfile();
   }
 
   Future<void> changePassword(String newPassword) async {
-    final userId = _repository.currentUser?.id;
+    final userId = _currentUserId;
     if (userId == null) throw Exception('Not authenticated');
     await _repository.changePassword(newPassword);
   }
 
   Future<void> updatePhone(String phone) async {
-    final userId = _repository.currentUser?.id;
+    final userId = _currentUserId;
     if (userId == null) throw Exception('Not authenticated');
     await _repository.updatePhone(userId, phone);
     await refreshProfile();
   }
 
   Future<void> disableAccount() async {
-    final userId = _repository.currentUser?.id;
+    final userId = _currentUserId;
     if (userId == null) throw Exception('Not authenticated');
     await _repository.disableAccount(userId);
   }
 
   Future<void> deleteAccount() async {
-    final userId = _repository.currentUser?.id;
+    final userId = _currentUserId;
     if (userId == null) throw Exception('Not authenticated');
     await _repository.deleteAccount(userId);
   }
@@ -189,7 +194,7 @@ class AuthNotifier extends Notifier<AuthState> {
   /// Re-fetches the profile from the DB and updates state in-place.
   /// Use this after saving profile edits instead of invalidating the provider.
   Future<void> refreshProfile() async {
-    final userId = _repository.currentUser?.id;
+    final userId = _currentUserId;
     if (userId == null) return;
     await _fetchProfile(userId);
   }

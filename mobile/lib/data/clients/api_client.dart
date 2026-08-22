@@ -29,14 +29,20 @@ class AuthException implements Exception {
   String toString() => 'AuthException: $message';
 }
 
+class AuthResponse {
+  final AuthUser? user;
+  final Session? session;
+  const AuthResponse({this.user, this.session});
+}
+
 enum OtpType { signup }
 
 class ApiAuth {
   AuthUser? get currentUser => null;
   Session? get currentSession => null;
   Stream<dynamic> get onAuthStateChange => const Stream.empty();
-  Future<dynamic> signInWithPassword({required String email, required String password}) async => null;
-  Future<dynamic> signUp({required String email, required String password, Map<String, dynamic>? data}) async => null;
+  Future<AuthResponse> signInWithPassword({required String email, required String password}) async => const AuthResponse();
+  Future<AuthResponse> signUp({required String email, required String password, Map<String, dynamic>? data}) async => const AuthResponse();
   Future<void> resetPasswordForEmail(String email, {String? redirectTo}) async {}
   Future<void> resend({required OtpType type, required String email}) async {}
   Future<void> signOut() async {}

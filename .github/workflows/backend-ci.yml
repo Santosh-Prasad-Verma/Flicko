@@ -27,7 +27,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
-          go-version: '1.25'
+          go-version: '1.24'
 
       - name: Test Go Backend
         run: |
@@ -52,7 +52,11 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Check Azure Deployment Secrets
+      - name: Build Backend Docker Image (Local Validation)
+        run: |
+          docker build -t flicko-backend:${{ github.sha }} -f backend/Dockerfile backend/
+
+      - name: Check Azure Deployment Credentials
         id: check-deploy
         env:
           HAS_CREDS: ${{ secrets.AZURE_CREDENTIALS != '' && secrets.AZURE_ACR_NAME != '' }}
@@ -61,7 +65,7 @@ jobs:
             echo "can_deploy=true" >> "$GITHUB_OUTPUT"
           else
             echo "can_deploy=false" >> "$GITHUB_OUTPUT"
-            echo "::warning ::AZURE_CREDENTIALS or AZURE_ACR_NAME secret is not configured. Skipping ACR build and deploy."
+            echo "::notice ::AZURE_CREDENTIALS or AZURE_ACR_NAME secret is not configured. Built Docker image successfully (VPS deployment is managed by azure-vps-deploy.yml)."
           fi
 
       - name: Azure Login
@@ -70,23 +74,35 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Log in to Azure Container Registry (ACR)
+      - name: Verify Azure Container Registry (ACR)
+        id: check-acr
         if: steps.check-deploy.outputs.can_deploy == 'true'
+        run: |
+          if az acr show --name "${{ secrets.AZURE_ACR_NAME }}" >/dev/null 2>&1; then
+            echo "acr_exists=true" >> "$GITHUB_OUTPUT"
+            echo "ACR '${{ secrets.AZURE_ACR_NAME }}' verified in Azure subscription."
+          else
+            echo "acr_exists=false" >> "$GITHUB_OUTPUT"
+            echo "::notice ::Azure Container Registry '${{ secrets.AZURE_ACR_NAME }}' not found in active subscription. Skipping ACR push & Container Apps deploy (VPS deployment runs via azure-vps-deploy.yml)."
+          fi
+
+      - name: Log in to Azure Container Registry (ACR)
+        if: steps.check-deploy.outputs.can_deploy == 'true' && steps.check-acr.outputs.acr_exists == 'true'
         run: |
           az acr login --name "${{ secrets.AZURE_ACR_NAME }}"
 
-      - name: Build and Push Backend Container
-        if: steps.check-deploy.outputs.can_deploy == 'true'
+      - name: Push Backend Container to ACR
+        if: steps.check-deploy.outputs.can_deploy == 'true' && steps.check-acr.outputs.acr_exists == 'true'
         run: |
-          docker build -t ${{ secrets.AZURE_ACR_NAME }}.azurecr.io/flicko-backend:${{ github.sha }} -t ${{ secrets.AZURE_ACR_NAME }}.azurecr.io/flicko-backend:latest -f backend/Dockerfile backend/
+          docker tag flicko-backend:${{ github.sha }} ${{ secrets.AZURE_ACR_NAME }}.azurecr.io/flicko-backend:${{ github.sha }}
+          docker tag flicko-backend:${{ github.sha }} ${{ secrets.AZURE_ACR_NAME }}.azurecr.io/flicko-backend:latest
           docker push ${{ secrets.AZURE_ACR_NAME }}.azurecr.io/flicko-backend:${{ github.sha }}
           docker push ${{ secrets.AZURE_ACR_NAME }}.azurecr.io/flicko-backend:latest
 
       - name: Deploy Backend to Azure Container Apps
-        if: steps.check-deploy.outputs.can_deploy == 'true'
+        if: steps.check-deploy.outputs.can_deploy == 'true' && steps.check-acr.outputs.acr_exists == 'true'
         uses: azure/container-apps-deploy-action@8dff69dac3367c32ceb2690d8f13adbeab462703
         with:
-          appSource: backend/
           acrName: ${{ secrets.AZURE_ACR_NAME }}
           containerAppName: flicko-backend-app
           resourceGroup: flicko-rg

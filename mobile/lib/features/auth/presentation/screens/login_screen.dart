@@ -112,43 +112,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         return;
       }
 
-      final supabase = Supabase.instance.client;
-      final response = await supabase.auth.signInWithPassword(
-        email: sanitizedEmail,
-        password: sanitizedPassword,
+      await ref.read(authNotifierProvider.notifier).signIn(
+        sanitizedEmail,
+        sanitizedPassword,
       );
-
-      if (response.user == null) {
-        setState(() => _generalError = 'Login failed. Please try again.');
-        return;
-      }
-
-      // Auth state automatically updated via authNotifierProvider listener
 
       if (mounted) {
         context.go('/');
       }
-    } on AuthException catch (e) {
-      // CRIT-008: Don't expose detailed error messages
-      final isEmailNotConfirmed = 
-          RegExp(r'email.*not.*confirm|not.*confirm.*email|confirm.*email', caseSensitive: false)
-              .hasMatch(e.message);
-      
-      if (isEmailNotConfirmed) {
-        setState(() {
-          _showEmailNotConfirmed = true;
-          _generalError = 'Your email address has not been verified yet. Please check your inbox (and spam folder) for the verification link.';
-        });
-      } else if (e.message.contains('Invalid login credentials')) {
-        setState(() => _generalError = 'Invalid email or password');
-      } else {
-        setState(() => _generalError = 'Login failed. Please try again.');
-      }
     } catch (e) {
       debugPrint('Login error: $e');
-      setState(() => _generalError = 'An unexpected error occurred. Please try again.');
+      final errorMsg = e.toString();
+      if (errorMsg.contains('Invalid credentials') || errorMsg.contains('401')) {
+        setState(() => _generalError = 'Invalid email or password');
+      } else {
+        setState(() => _generalError = errorMsg.replaceAll(RegExp(r'^Exception:\s*'), '').trim());
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -161,10 +144,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     });
 
     try {
-      final supabase = Supabase.instance.client;
-      await supabase.auth.resend(
-        type: OtpType.signup,
-        email: _emailController.text.trim().toLowerCase(),
+      await ref.read(authRepositoryProvider).resendVerification(
+        _emailController.text.trim().toLowerCase(),
       );
       
       setState(() => 
@@ -173,7 +154,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } catch (e) {
       setState(() => _resendMessage = 'Could not resend — try again in a minute.');
     } finally {
-      setState(() => _resendLoading = false);
+      if (mounted) {
+        setState(() => _resendLoading = false);
+      }
     }
   }
 

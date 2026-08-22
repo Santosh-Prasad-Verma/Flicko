@@ -71,6 +71,17 @@ class AuthRepository {
     }
   }
 
+  Future<void> resendVerification(String email) async {
+    await _dio.post('/api/v1/auth/resend-verification', data: {'email': email});
+  }
+
+  Future<void> verifyEmail({required String email, required String token}) async {
+    await _dio.post('/api/v1/auth/verify-email', data: {
+      'email': email,
+      'token': token,
+    });
+  }
+
   Future<void> signOut() async {
     await _secureStorage.delete(key: 'auth_token');
   }
