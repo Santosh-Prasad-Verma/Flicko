@@ -8,7 +8,7 @@
 
 ## 1. Problem
 
-Discord shipped Soundboard in 2023; it's now a default expectation for any chat-with-voice product. Flicko has voice channels (LiveKit-backed) and stickers, but no way for a member in voice to play a short audio clip the whole room hears. This is the single most-asked-about voice feature in our community Discord (147 references in 6 months).
+Discord shipped Soundboard in 2023; it's now a default expectation for any chat-with-voice product. Flicko has voice channels (Azure ACS-backed) and stickers, but no way for a member in voice to play a short audio clip the whole room hears. This is the single most-asked-about voice feature in our community Discord (147 references in 6 months).
 
 The unlock isn't just parity. Custom community-uploaded clips are the *culture* of a server: in-jokes, hype clips, walk-on music, "ding" reactions. Without it, voice channels feel sterile compared to the rest of the platform.
 
@@ -39,7 +39,7 @@ Top 3 jobs-to-be-done:
 - Per-clip emoji label and name.
 - Per-role permission: who can play, who can upload, who can manage.
 - Per-user cooldown via Redis (default 5 s, mod-configurable 1–60 s).
-- Playback fan-out via LiveKit data tracks; clients render audio plus a visual chip.
+- Playback fan-out via Azure ACS data tracks; clients render audio plus a visual chip.
 - Recent-clips drawer per voice channel.
 
 **Non-Goals (out of scope for v1)**
@@ -54,7 +54,7 @@ Top 3 jobs-to-be-done:
 - [x] `soundboard_clips` + `soundboard_default_clips` tables.
 - [x] Appwrite bucket `soundboard-clips` with original + opus variants.
 - [x] REST: list, upload, update, delete, play.
-- [x] LiveKit data-track event `soundboard.play` published by backend after permission + cooldown checks.
+- [x] Azure ACS data-track event `soundboard.play` published by backend after permission + cooldown checks.
 - [x] Redis cooldown key `sb:cd:{server_id}:{user_id}` (TTL = configured cooldown).
 - [x] Flutter: clip grid sheet attached to voice room overflow; recent drawer; haptics on play.
 - [x] Visual indicator for hearing-impaired members.
@@ -70,13 +70,13 @@ Top 3 jobs-to-be-done:
 | Voice DAU lift after launch | +12% within 60d | A/B with 5% holdout |
 | Cooldown-hit rate | <8% of attempts (signals overload) | service log |
 | Storage cost / server / month | <$0.005 | Appwrite |
-| Playback latency (button tap → all peers hear) | p95 <250 ms | LiveKit telemetry |
+| Playback latency (button tap → all peers hear) | p95 <250 ms | Azure ACS telemetry |
 | Reports per 1k plays | <2 | moderation log |
 
 ## 6. Open Questions / Risks
 
-- **Bandwidth:** opus at 32 kbps × N peers. With 30-peer rooms and 4 plays/min, that's negligible (LiveKit handles SFU fan-out).
-- **Echo / mix:** clip plays through *member's local audio output*, not microphone. Verified: LiveKit data track + remote audio element pattern (no mic re-capture).
+- **Bandwidth:** opus at 32 kbps × N peers. With 30-peer rooms and 4 plays/min, that's negligible (Azure ACS handles SFU fan-out).
+- **Echo / mix:** clip plays through *member's local audio output*, not microphone. Verified: Azure ACS data track + remote audio element pattern (no mic re-capture).
 - **Abuse:** loud/jumpscare clips. Mitigation: server-side normalize loudness to -16 LUFS; mods can disable a clip server-wide; report flow.
 - **Plus gating:** Discord locks Soundboard slots behind Nitro tiers. We give 48 free + 96 with Plus. Clear and generous.
 
@@ -99,7 +99,7 @@ Top 3 jobs-to-be-done:
 
 ## 9. Dependencies
 
-- LiveKit (live; already used for voice).
+- Azure ACS (live; already used for voice).
 - `services/voice_service.go` for room metadata.
 - `services/permissions_service.go` for role checks.
 - `services/audio_normalize_service.go` (new, ffmpeg).

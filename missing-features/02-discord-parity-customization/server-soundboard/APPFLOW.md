@@ -10,7 +10,7 @@ sequenceDiagram
     participant PERM as permissions_service
     participant CD as Redis cooldown
     participant DB as Postgres
-    participant LK as LiveKit SFU
+    participant LK as Azure ACS SFU
     participant P1 as Liam (peer)
     participant P2 as Maya (peer)
 
@@ -98,7 +98,7 @@ sequenceDiagram
 1. Priya is in `voice-1`, listening to Liam.
 2. Taps "GG" chip in soundboard sheet.
 3. Backend authorizes in 30 ms. Cooldown set to 5 s.
-4. LiveKit fans out data event in <80 ms.
+4. Azure ACS fans out data event in <80 ms.
 5. Liam and Maya hear "GG" via their own `just_audio` instance; banner shows "🏆 GG by Priya".
 6. Cooldown ring drains on Priya's chip.
 
@@ -135,18 +135,18 @@ sequenceDiagram
 2. Mod sees "Get Plus → 96 slots" link in settings.
 3. Tap deep-links to existing premium upsell.
 
-### J8 — LiveKit SFU drops connection mid-play
+### J8 — Azure ACS SFU drops connection mid-play
 1. Priya plays "Hype". Backend authorizes, publishes data.
 2. SFU times out reaching Liam's peer.
 3. Liam reconnects 2 s later; missed event; service exposes `recent_clips` GET so Liam can replay last 10 if curious. By default the old clip does not catch-up auto-play.
 
 ## 4. Edge Cases
 
-- **Offline at play:** chip is dimmed when no LiveKit connection; tap shows "Reconnecting…".
+- **Offline at play:** chip is dimmed when no Azure ACS connection; tap shows "Reconnecting…".
 - **Multiple plays at same instant:** server processes one, the other gets 429.
-- **Voice is recording (LiveKit egress):** clip plays normally, audit log notes it.
+- **Voice is recording (Azure ACS egress):** clip plays normally, audit log notes it.
 - **Stale cooldown after Redis flush:** in-memory fallback caps at 5 s/user; degraded but safe.
-- **Rate-limit globally per server:** max 10 plays/sec server-wide (prevents 100-member room from hitting LiveKit fan-out cliff). Excess plays return 429 `server_rate_limited`.
+- **Rate-limit globally per server:** max 10 plays/sec server-wide (prevents 100-member room from hitting Azure ACS fan-out cliff). Excess plays return 429 `server_rate_limited`.
 - **Clip duration overrun (file exceeds 5s due to transcode error):** worker truncates at 5.0s and logs `truncated=true`.
 - **Permission revoked mid-session:** member's tap returns 403; chip greys.
 

@@ -11,7 +11,7 @@
 │        │                                       ▼                  │
 │        │                              POST /soundboard/play        │
 │        │                                                          │
-│   LiveKitRoom ◄── data-track event 'soundboard.play' ──► AudioMix │
+│   Azure ACSRoom ◄── data-track event 'soundboard.play' ──► AudioMix │
 │                                                                   │
 └──────────────────────────────────────────────────────────────────┘
                               │
@@ -28,7 +28,7 @@
 │        ├─ audio_normalize_service (ffmpeg) — async                │
 │        ├─ moderation_service (hash check)                         │
 │        ├─ appwrite_client                                         │
-│        └─ livekit_client.PublishData()                            │
+│        └─ azure_communication_calling.PublishData()                            │
 │                                                                   │
 │        ▼                                                          │
 │   Postgres soundboard_clips, soundboard_default_clips             │
@@ -36,13 +36,13 @@
                               │
                               ▼
                         ┌───────────┐
-                        │ LiveKit   │ fans out data-track event
+                        │ Azure ACS   │ fans out data-track event
                         │ SFU       │ peers fetch clip URL via
                         │           │ signed token, decode, mix
                         └───────────┘
 ```
 
-Audio bytes are NOT pushed through LiveKit data tracks. Only an event `{clip_id, played_by, started_at}` is broadcast, and each peer fetches the opus URL (cached on edge / device) and plays locally. This keeps SFU bandwidth flat regardless of room size.
+Audio bytes are NOT pushed through Azure ACS data tracks. Only an event `{clip_id, played_by, started_at}` is broadcast, and each peer fetches the opus URL (cached on edge / device) and plays locally. This keeps SFU bandwidth flat regardless of room size.
 
 ## 2. Components
 
@@ -61,11 +61,11 @@ Audio bytes are NOT pushed through LiveKit data tracks. Only an event `{clip_id,
   - `domain/` entities (`SoundboardClip`, `Cooldown`).
   - `application/` providers (`soundboardClipsProvider(serverId)`, `playClipProvider`, `recentClipsProvider`).
   - `presentation/` `SoundboardSheet` (replaces stub at `mobile/lib/features/voice/presentation/soundboard_sheet.dart`), `ClipUploadScreen`, `ClipManageScreen`, `ClipChip`.
-- **Audio mixer:** `mobile/lib/features/voice/services/soundboard_audio_mixer.dart` — uses `just_audio` to play opus alongside LiveKit voice; ducks 25% on spike.
+- **Audio mixer:** `mobile/lib/features/voice/services/soundboard_audio_mixer.dart` — uses `just_audio` to play opus alongside Azure ACS voice; ducks 25% on spike.
 
 ### Infra
 - DB: Postgres tables in `SCHEMA.md`.
-- Realtime: LiveKit data tracks on existing room sid, plus Centrifugo `server:{server_id}` for library updates.
+- Realtime: Azure ACS data tracks on existing room sid, plus Centrifugo `server:{server_id}` for library updates.
 - Cache: Redis keys `sb:cd:{server_id}:{user_id}`, `sb:lib:{server_id}` (5m), `sb:recent:{room_sid}` (LIST trim 10).
 - Storage: Appwrite bucket `soundboard-clips` (original + opus).
 - Audio: ffmpeg via `os/exec` for transcode + LUFS normalize.
@@ -85,7 +85,7 @@ PATCH  /api/v1/servers/:sid/soundboard/settings   per-role perms + cooldown
 POST   /api/v1/soundboard/clips/:cid/report       member report
 ```
 
-### LiveKit data-track payload
+### Azure ACS data-track payload
 
 ```jsonc
 {
@@ -129,7 +129,7 @@ Three new permission bits added to `PermissionFlags`:
 - `SOUNDBOARD_UPLOAD` (default: roles with `MANAGE_MESSAGES`)
 - `SOUNDBOARD_MANAGE` (default: roles with `MANAGE_SERVER`)
 
-Members must have `SOUNDBOARD_PLAY` for the channel/server AND be currently joined to the LiveKit room targeted.
+Members must have `SOUNDBOARD_PLAY` for the channel/server AND be currently joined to the Voice room targeted.
 
 RLS in `SCHEMA.md`.
 
@@ -150,11 +150,11 @@ RLS in `SCHEMA.md`.
 
 ## 6. Dependencies
 
-- LiveKit Go SDK (already integrated): `github.com/livekit/protocol` for data-track API.
+- Azure ACS Go SDK (already integrated): `github.com/azure_acs/protocol` for data-track API.
 - `os/exec` ffmpeg — version pinned in Dockerfile.
 - `github.com/redis/go-redis/v9` (existing).
 - Existing `services/permissions_service.go`, `services/voice_service.go`, `services/moderation_service.go`.
-- Mobile: `just_audio: ^0.10.0`, `livekit_client: ^2.4.0` (already in `mobile/pubspec.yaml`).
+- Mobile: `just_audio: ^0.10.0`, `azure_communication_calling: ^2.4.0` (already in `mobile/pubspec.yaml`).
 
 ## 7. Observability
 
@@ -172,7 +172,7 @@ RLS in `SCHEMA.md`.
 
 | Failure | Impact | Mitigation |
 |---------|--------|------------|
-| LiveKit data publish fails | clip plays only locally | retry 1× then mark play failed; UI greys chip briefly |
+| Azure ACS data publish fails | clip plays only locally | retry 1× then mark play failed; UI greys chip briefly |
 | Appwrite slow → clip URL 404 | peer can't fetch | each peer falls back to BlurHash-style "🔊 unavailable" chip; reportable |
 | Cooldown Redis down | naive UI state would allow spam | service falls back to 5s in-memory cap per process; degraded but safe |
 | Transcode worker crash | upload stuck `processing` | retry 3× then mark `failed`; mod can re-upload |
@@ -181,6 +181,6 @@ RLS in `SCHEMA.md`.
 
 ## 9. Security & Privacy
 
-- Clip URLs are short-lived signed Appwrite URLs (1h) issued per LiveKit room session.
-- Recording detection: not blocked but logged as `clip_played_in_recorded_room` (LiveKit egress flag).
+- Clip URLs are short-lived signed Appwrite URLs (1h) issued per Voice room session.
+- Recording detection: not blocked but logged as `clip_played_in_recorded_room` (Azure ACS egress flag).
 - Stripping EXIF / metadata is a no-op for audio, but ffmpeg transcode rewrites container so any private id3 tags are dropped.

@@ -7,7 +7,7 @@ sequenceDiagram
     participant H as Host
     participant P as Player
     participant API as Go Backend
-    participant LK as LiveKit Data
+    participant LK as Azure ACS Data
     participant DB as Supabase
 
     H->>API: POST /activities/gartic/sessions

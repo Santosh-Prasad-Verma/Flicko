@@ -6,7 +6,7 @@
 |-------|------|----------|-------|
 | 0 | Spec freeze | 2d | PM/Design |
 | 1 | DB migration `133` | 1d | Backend |
-| 2 | LiveKit Track Egress sink | 3d | Voice |
+| 2 | Azure ACS Track Egress sink | 3d | Voice |
 | 3 | whisper.cpp cgo wrapper + pool | 4d | Backend |
 | 4 | silero-vad ONNX runtime | 2d | Backend |
 | 5 | Segmenter + publisher | 3d | Backend |
@@ -24,7 +24,7 @@ Total: ~36 dev days; ~6 weeks.
 - [ ] `supabase/migrations/133_ai_voice_captions.up.sql` (+ down)
 - [ ] `backend/internal/models/voice_transcript.go`
 - [ ] `backend/internal/repo/voice_transcript_repo.go`
-- [ ] `backend/internal/services/ai/voice_transcription/livekit_egress.go` — connect as Egress sink, decode Opus → PCM
+- [ ] `backend/internal/services/ai/voice_transcription/azure_acs_egress.go` — connect as Egress sink, decode Opus → PCM
 - [ ] `backend/internal/services/ai/voice_transcription/vad.go` — silero-vad ONNX
 - [ ] `backend/internal/services/ai/voice_transcription/whisper_pool.go` — worker pool wrapping whisper.cpp cgo
 - [ ] `backend/internal/services/ai/voice_transcription/segmenter.go`
@@ -84,7 +84,7 @@ backend/
   internal/repo/voice_transcript_repo.go                                    (new)
   internal/services/ai/voice_transcription/orchestrator.go                  (new)
   internal/services/ai/voice_transcription/worker.go                        (new)
-  internal/services/ai/voice_transcription/livekit_egress.go                (new)
+  internal/services/ai/voice_transcription/azure_acs_egress.go                (new)
   internal/services/ai/voice_transcription/vad.go                           (new)
   internal/services/ai/voice_transcription/whisper_pool.go                  (new)
   internal/services/ai/voice_transcription/segmenter.go                     (new)
@@ -143,7 +143,7 @@ infra/
 
 ## 9. Dependencies / Blockers
 
-- Depends on: LiveKit Track Egress, Centrifugo, NATS
+- Depends on: Azure ACS Track Egress, Centrifugo, NATS
 - Blocks: `ai-meeting-notes` (reuses transcripts)
 - External: none
 

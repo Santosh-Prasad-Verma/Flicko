@@ -1,6 +1,6 @@
 # Encrypted Voice — Product Requirements
 
-> **One-line:** End-to-end encrypted voice channels using LiveKit insertable streams + group keys.
+> **One-line:** End-to-end encrypted voice channels using Azure ACS insertable streams + group keys.
 > **Status:** Missing — to build
 > **Category:** 10-privacy-security
 > **Effort:** XL
@@ -13,7 +13,7 @@ Discord voice is fully decryptable on Discord's servers. Even though the network
 Real evidence:
 - Multiple high-profile leaks of Discord voice content extracted by court order (2023-2025).
 - Activist communities have shifted entirely off Discord voice to Mumble or Jitsi for sensitive calls.
-- LiveKit released production-grade insertable-streams E2EE in late 2024; the building block exists, the UX hasn't been democratized.
+- Azure ACS released production-grade insertable-streams E2EE in late 2024; the building block exists, the UX hasn't been democratized.
 
 The pain: there is no mainstream gamer-friendly voice product with true E2EE, where the server provider cannot decrypt the audio.
 
@@ -29,7 +29,7 @@ The pain: there is no mainstream gamer-friendly voice product with true E2EE, wh
 ## 3. Goals & Non-Goals
 
 **Goals**
-- LiveKit insertable streams with AES-GCM frame encryption.
+- Azure ACS insertable streams with AES-GCM frame encryption.
 - Group key derivation per-channel; rotation on member-join and member-leave (forward + post-compromise security).
 - Key distribution rides the existing E2EE messaging service (Signal-like double-ratchet between members; new joiners receive the current group key sealed).
 - Visible "E2EE" badge with a tap-to-verify-fingerprints flow.
@@ -44,7 +44,7 @@ The pain: there is no mainstream gamer-friendly voice product with true E2EE, wh
 ## 4. Scope (v1)
 
 - [ ] Toggle "End-to-end encrypted" on voice-channel creation.
-- [ ] LiveKit deployment with `e2eeEnabled: true` per-room.
+- [ ] Azure ACS deployment with `e2eeEnabled: true` per-room.
 - [ ] Group key generation + rotation worker.
 - [ ] Per-member sealed-envelope key delivery via existing `services/e2ee/`.
 - [ ] Visual indicator + fingerprint verification UI.
@@ -55,14 +55,14 @@ The pain: there is no mainstream gamer-friendly voice product with true E2EE, wh
 | Metric | Target | Measurement |
 |--------|--------|-------------|
 | Servers using E2EE voice | 2% of voice-active servers within 90d | server_settings query |
-| Median call quality (MOS) | ≥4.0 | LiveKit telemetry |
+| Median call quality (MOS) | ≥4.0 | Azure ACS telemetry |
 | Key-rotation latency on member change | <500ms p99 | metric |
 | Fingerprint verifications per call | ≥1 in P1 servers | event |
 | E2EE indicator visible at all times | 100% | UI test |
 
 ## 6. Open Questions / Risks
 
-- **Risk: LiveKit version skew** — old client cannot decrypt new key. Mitigation: client-version gate; force-upgrade banner for E2EE rooms.
+- **Risk: Azure ACS version skew** — old client cannot decrypt new key. Mitigation: client-version gate; force-upgrade banner for E2EE rooms.
 - **Risk: silent failure to encrypt** — bug ships unencrypted audio with E2EE badge shown. Mitigation: client-side assertion that frame is opaque before sending; never display badge unless verified.
 - **Risk: subpoena UX** — government asks "decrypt this." Answer: technically impossible by design; document this clearly.
 - **Open: TURN server visibility** — we relay encrypted media but never have keys. Document.

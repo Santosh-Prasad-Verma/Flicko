@@ -8,7 +8,7 @@ sequenceDiagram
     participant API as Go API
     participant DB as Postgres
     participant R as Redis
-    participant LK as LiveKit
+    participant LK as Azure ACS
     participant SP as Spotify
     participant L as Listener (Flutter)
 

@@ -5,7 +5,7 @@
 ```mermaid
 sequenceDiagram
     participant Sp as Speaker (alice)
-    participant LK as LiveKit SFU
+    participant LK as Azure ACS SFU
     participant EG as Track Egress
     participant W  as Caption worker
     participant V  as silero-vad

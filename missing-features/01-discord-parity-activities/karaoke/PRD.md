@@ -21,7 +21,7 @@ Singing on a video call is awkward. Audio drifts, lyrics aren't synced, and ther
 **In scope (v1)**
 - Curated karaoke catalog of ~200 royalty-free / public-domain backing tracks plus user-submitted MP3 with cleared rights toggled in upload.
 - Synchronized LRC-style lyrics scroll across all listeners.
-- Mic capture from active singer; relayed via existing voice channel (LiveKit audio).
+- Mic capture from active singer; relayed via existing voice channel (Azure ACS audio).
 - Server-side pitch scoring worker (Python + librosa) returns score within 6 s of song end.
 - Singer queue with rotation + "skip" democracy.
 - Score history per user; weekly leaderboard per voice room.
@@ -52,7 +52,7 @@ Singing on a video call is awkward. Audio drifts, lyrics aren't synced, and ther
 ## Risks & Mitigations
 - **Music rights** — start with PD + CC catalog only. User uploads require self-attestation checkbox; takedown queue.
 - **Pitch worker cost** — process audio at 16 kHz, mono, downsampled; one worker on free Fly.io VM handles serial requests, queue depth bounded.
-- **Voice quality** — rely on LiveKit's existing AEC; provide "mic check" preview.
+- **Voice quality** — rely on Azure ACS's existing AEC; provide "mic check" preview.
 - **Social anxiety** — "stealth mode" lets shy singers sing with score hidden.
 
 ## Release Gate

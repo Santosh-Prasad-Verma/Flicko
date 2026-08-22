@@ -4,14 +4,14 @@
 
 ### `voice_regions`
 
-Catalog of deployed LiveKit regions with health + load.
+Catalog of deployed Azure ACS regions with health + load.
 
 ```sql
 CREATE TABLE voice_regions (
   code              TEXT PRIMARY KEY,                 -- 'na-east', 'eu-west'
   display_name      TEXT NOT NULL,
   ws_url            TEXT NOT NULL,                    -- 'wss://na-east.voice.flicko.app'
-  api_url           TEXT NOT NULL,                    -- internal LiveKit API
+  api_url           TEXT NOT NULL,                    -- internal Azure ACS API
   health_url        TEXT NOT NULL,                    -- 'https://na-east.voice.flicko.app/health'
   enabled           BOOLEAN NOT NULL DEFAULT false,
   draining          BOOLEAN NOT NULL DEFAULT false,

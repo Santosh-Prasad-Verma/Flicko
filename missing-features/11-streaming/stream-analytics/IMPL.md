@@ -17,7 +17,7 @@
 - [ ] `supabase/migrations/234_stream_analytics.up.sql` (with pg_partman)
 - [ ] `backend/internal/services/streaming/analytics/{ingest,aggregator,mv_refresher,exporter}.go`
 - [ ] `backend/internal/handlers/analytics_handler.go`
-- [ ] LiveKit webhook subscription in existing `webhook_service.go`
+- [ ] Azure ACS webhook subscription in existing `webhook_service.go`
 - [ ] Permission: `STREAM_VIEW_ANALYTICS` (default streamer + admin)
 - [ ] Metrics + Sentry hooks
 

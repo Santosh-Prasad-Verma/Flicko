@@ -4,7 +4,7 @@
 
 ```
 +------------------+       +------------------+       +------------------+
-|  Flutter Client  |<----->|  LiveKit Cloud   |<----->|  Flutter Client  |
+|  Flutter Client  |<----->|  Azure ACS Cloud   |<----->|  Flutter Client  |
 |  (Host)          |  data |  data channel    |  data |  (Viewer)        |
 |                  |  ch   |  topic: wt-sync  |  ch   |                  |
 +------------------+       +------------------+       +------------------+
@@ -28,7 +28,7 @@
 ```
 
 ## Data Plane vs Control Plane
-- **Data plane (low latency)** — LiveKit room data channel `wt-sync`, payload SyncFrame, fan-out via SFU. Used for play/pause/seek/rate/heartbeat.
+- **Data plane (low latency)** — Voice room data channel `wt-sync`, payload SyncFrame, fan-out via SFU. Used for play/pause/seek/rate/heartbeat.
 - **Control plane (durable)** — REST + Centrifugo. Used for create/join/leave, chat-level events, persisted state.
 
 ## REST Routes
@@ -67,12 +67,12 @@ Response 201
 {
   "id": "wt_01HX...",
   "host_user_id": "u_12",
-  "livekit_topic": "wt-sync",
+  "azure_acs_topic": "wt-sync",
   "anchor": { "position_ms": 0, "playing": false, "rate": 1.0, "ts": 1733000000123 }
 }
 ```
 
-LiveKit data payload (SyncFrame, msgpack)
+Azure ACS data payload (SyncFrame, msgpack)
 ```json
 {
   "v": 1,
@@ -128,7 +128,7 @@ Logs: structured JSON, `session_id`, `user_id`, `seq`, `latency_ms`.
 Alerts:
 - Drift p95 > 750 ms over 10 min.
 - Anchor publish failures > 1% over 5 min.
-- LiveKit token mint failures > 5/min.
+- Azure ACS voice token mint failures > 5/min.
 
 ## Security
 - Only voice-room members can create/join.
@@ -137,6 +137,6 @@ Alerts:
 - Signed URLs for Appwrite media; viewer never sees direct URL until joined.
 
 ## Failure Modes
-- LiveKit dial failure → fall back to Centrifugo `wt-sync-fallback` channel (degrades p99 to ~400 ms).
+- Azure ACS dial failure → fall back to Centrifugo `wt-sync-fallback` channel (degrades p99 to ~400 ms).
 - Redis loss → state rebuilt from Postgres + last LK message; viewers stay connected.
 - Postgres write fail on anchor → retain in Redis, retry async; not blocking.

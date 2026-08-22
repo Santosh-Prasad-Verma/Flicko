@@ -13,13 +13,13 @@
    │ Member A   │                                  │ Member B   │
    │  Mobile    │                                  │  Mobile    │
    │            │  ◄── group key (derived) ──►     │            │
-   │  LiveKit   │                                  │  LiveKit   │
+   │  Azure ACS   │                                  │  Azure ACS   │
    │  client    │  insertable streams encrypt/dec  │  client    │
    └─────┬──────┘                                  └──────┬─────┘
          │ ciphertext frames (SFU never decrypts)         │
          ▼                                                ▼
               ┌──────────────────────────────────────┐
-              │       LiveKit SFU (relay only)       │
+              │       Azure ACS SFU (relay only)       │
               │       sees opaque RTP payloads       │
               └──────────────────────────────────────┘
                             │
@@ -36,7 +36,7 @@
 
 - **Service:** `internal/services/privacy/encrypted_voice/service.go`
 - **Worker:** `internal/services/privacy/encrypted_voice/key_rotation_worker.go`
-- **Handler:** `internal/handlers/encrypted_voice_handler.go` (issue LiveKit token w/ E2EE-required claim)
+- **Handler:** `internal/handlers/encrypted_voice_handler.go` (issue Azure ACS voice token w/ E2EE-required claim)
 - **Model:** `internal/models/encrypted_voice.go` (`E2EEVoiceChannel`, `GroupKeyEpoch`)
 - **Repo:** `internal/repo/encrypted_voice_repo.go`
 - **Sealing helper:** delegates to `services/e2ee/key_manager.go::SealForRecipient(envelope)`
@@ -44,15 +44,15 @@
 ### Mobile (Flutter) — extends `features/e2ee/`
 
 - **Feature folder:** `mobile/lib/features/privacy/encrypted_voice/`
-  - `data/`: LiveKit room wrapper, group-key store
+  - `data/`: Voice room wrapper, group-key store
   - `domain/`: `GroupKeyEpoch`, `EncryptedVoiceChannel`, `EnsureKeyMaterialUsecase`
   - `application/`: `e2eeVoiceJoinProvider`, `e2eeIndicatorProvider`
   - `presentation/`: `EncryptedVoiceChannelScreen`, `E2EEBadge`, `FingerprintVerifySheet`
 
 ### Infra
 
-- LiveKit cluster (self-hosted): per-room `enabledE2EE: true`, no recording add-ons attached.
-- Realtime: LiveKit's own signaling for media; key-rotation events via Centrifugo `voice:e2ee:<channel_id>`.
+- Azure ACS cluster (self-hosted): per-room `enabledE2EE: true`, no recording add-ons attached.
+- Realtime: Azure ACS's own signaling for media; key-rotation events via Centrifugo `voice:e2ee:<channel_id>`.
 - Cache: Redis ephemeral `e2ee:voice:epoch:<channel_id>` (TTL 1h) — current epoch number, never the key.
 - Storage: none. The key never reaches the server.
 
@@ -61,7 +61,7 @@
 ### REST
 ```
 POST /api/v1/voice/e2ee/channels                  create E2EE voice channel
-POST /api/v1/voice/e2ee/channels/:id/token        get LiveKit token + sealed group key envelope
+POST /api/v1/voice/e2ee/channels/:id/token        get Azure ACS voice token + sealed group key envelope
 POST /api/v1/voice/e2ee/channels/:id/rotate       force key rotation (admin)
 GET  /api/v1/voice/e2ee/channels/:id/fingerprints get participant fingerprint list
 ```
@@ -75,8 +75,8 @@ GET  /api/v1/voice/e2ee/channels/:id/fingerprints get participant fingerprint li
 // POST /api/v1/voice/e2ee/channels/:id/token
 // response
 {
-  "livekit_token": "eyJhbGciOi...",
-  "livekit_url": "wss://lk.flicko.io",
+  "azure_acs_token": "eyJhbGciOi...",
+  "azure_acs_url": "wss://lk.flicko.io",
   "epoch": 14,
   "sealed_envelope": "base64-of-libsodium-sealed-box-containing-group-key",
   "participant_fingerprints": [
@@ -89,7 +89,7 @@ GET  /api/v1/voice/e2ee/channels/:id/fingerprints get participant fingerprint li
 
 - Required scope: `voice.e2ee.join`.
 - Server admin can mark channel as E2EE; members must have a published E2EE identity key (`services/e2ee/identity_keys` table) before joining; if missing, prompt to set up E2EE first.
-- LiveKit token issued only after server verifies member is in `channel_members` AND has a valid identity key.
+- Azure ACS voice token issued only after server verifies member is in `channel_members` AND has a valid identity key.
 - RLS denies non-members from reading sealed envelopes.
 
 ## 5. Non-Functional Requirements
@@ -105,8 +105,8 @@ GET  /api/v1/voice/e2ee/channels/:id/fingerprints get participant fingerprint li
 
 ## 6. Dependencies
 
-- LiveKit server v1.7+ with E2EE flag.
-- LiveKit Flutter SDK ≥2.0 with insertable-streams support.
+- Azure ACS server v1.7+ with E2EE flag.
+- Azure ACS Flutter SDK ≥2.0 with insertable-streams support.
 - Existing `services/e2ee/` for double-ratchet identity keys.
 - libsodium (Flutter `cryptography` package or native binding) for sealed-box envelopes.
 
@@ -121,7 +121,7 @@ GET  /api/v1/voice/e2ee/channels/:id/fingerprints get participant fingerprint li
 
 | Failure | Impact | Mitigation |
 |---------|--------|------------|
-| LiveKit SFU goes down | call drops | LiveKit cluster failover; reconnect logic |
+| Azure ACS SFU goes down | call drops | Azure ACS cluster failover; reconnect logic |
 | Identity key missing for joiner | join blocked | Force user through E2EE setup flow |
 | Group-size > 30 | join refused | UI explains limit; suggest splitting |
 | Old client cannot decrypt new epoch | one user silent | banner "update required for E2EE" |
@@ -134,7 +134,7 @@ GET  /api/v1/voice/e2ee/channels/:id/fingerprints get participant fingerprint li
 - A2: Network adversary on TLS path. TLS protects metadata; payload also encrypted by group key.
 - A3: Compromised participant. Has access while in room; once removed and key rotated, has no access to subsequent audio (PCS).
 - A4: Government subpoena. We can hand over membership and ciphertext only. Document this clearly in transparency report.
-- A5: Side-channel: traffic-analysis of voice-activity patterns. Mitigation: LiveKit's RTP padding and constant-bitrate codecs. Documented as residual risk.
+- A5: Side-channel: traffic-analysis of voice-activity patterns. Mitigation: Azure ACS's RTP padding and constant-bitrate codecs. Documented as residual risk.
 
 **Assets**
 - Group keys (live in client memory only).

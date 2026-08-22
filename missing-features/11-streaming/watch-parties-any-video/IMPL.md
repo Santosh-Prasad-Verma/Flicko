@@ -7,7 +7,7 @@
 | 1 | Migration 235 + provider table | 1 |
 | 2 | URL detection + oembed probe | 2 |
 | 3 | Backend service + handler | 3 |
-| 4 | LiveKit data-channel sync engine | 4 |
+| 4 | voice data-channel sync engine | 4 |
 | 5 | Mobile UI: party tile, player, controls | 5 |
 | 6 | Drift correction tuning | 2 |
 | 7 | Edge case + provider matrix QA | 3 |
@@ -20,7 +20,7 @@
 - [ ] `backend/internal/services/streaming/watchparty/oembed_cache.go`
 - [ ] `backend/internal/services/streaming/watchparty/sweeper.go` (pg_cron 1m)
 - [ ] `backend/internal/handlers/watch_party_handler.go`
-- [ ] LiveKit data-channel `wp-control` publisher in livekit_service.go extension
+- [ ] voice data-channel `wp-control` publisher in azure_acs_service.go extension
 - [ ] Permission: CONNECT + SPEAK in voice channel (or CHAT_VOICE_PARTY for text-only parties)
 
 ## Mobile
@@ -63,4 +63,4 @@ supabase/migrations/235_watch_parties.up.sql                 (new)
 | Provider deprecation | pluggable provider table + tests |
 
 ## Cost
-$0. No new infra. Reuses LiveKit data channel.
+$0. No new infra. Reuses voice data channel.

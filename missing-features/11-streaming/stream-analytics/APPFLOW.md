@@ -4,7 +4,7 @@
 sequenceDiagram
     participant V as Viewer
     participant CL as Client
-    participant LK as LiveKit
+    participant LK as Azure ACS
     participant API as Backend
     participant N as NATS
     participant R as Redis

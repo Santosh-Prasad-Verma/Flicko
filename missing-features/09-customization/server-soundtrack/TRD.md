@@ -8,7 +8,7 @@ Goals:
 - Per-server ambient audio that loops indefinitely without operator intervention.
 - Curated, license-clean track library (CC0 / royalty-free) managed by platform admins.
 - Per-member mute that survives across sessions and devices.
-- Negligible impact on voice channel intelligibility (LiveKit ducking).
+- Negligible impact on voice channel intelligibility (Azure ACS ducking).
 
 Non-Goals:
 - User-uploaded tracks (out of scope; covered by separate "custom audio" feature).
@@ -24,11 +24,11 @@ Non-Goals:
 |              |             |  /soundtrack      |            |  (mig 211)  |
 +------+-------+             +---------+---------+            +------+------+
        |                               |                             |
-       | LiveKit SFU                   | publish event               | RLS
+       | Azure ACS SFU                   | publish event               | RLS
        | (low-pri audio)               v                             |
        v                       +-----------------+                   |
 +--------------+               |   Centrifugo    |                   |
-|  LiveKit     |<------------- |   pub/sub       |                   |
+|  Azure ACS     |<------------- |   pub/sub       |                   |
 |  Cloud       |   ingest      | server.{id}.    |                   |
 +------+-------+               | soundtrack      |                   |
        ^                       +-----------------+                   |
@@ -44,7 +44,7 @@ Non-Goals:
 
 Components:
 - Go service `internal/soundtrack` exposes REST + Centrifugo publisher.
-- LiveKit ingests the looping Opus stream as a low-priority audio track on the server's room (`audio_priority=4`).
+- Azure ACS ingests the looping Opus stream as a low-priority audio track on the server's room (`audio_priority=4`).
 - Appwrite bucket `soundtracks` holds OGG/Opus masters; signed URLs issued to clients (TTL 1h).
 - Redis caches `soundtrack:server:{server_id}` for hot-path reads (TTL 300s, invalidated on update).
 

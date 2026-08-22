@@ -8,8 +8,8 @@ sequenceDiagram
     participant M as Mobile (Flutter)
     participant API as Go Backend
     participant Reg as Region Registry (DB)
-    participant LK_AP as LiveKit APAC
-    participant LK_NA as LiveKit NA
+    participant LK_AP as Azure ACS APAC
+    participant LK_NA as Azure ACS NA
 
     U->>M: tap "Join voice channel"
     M->>API: GET /api/v1/voice/regions
@@ -61,7 +61,7 @@ sequenceDiagram
 ### J3 — Cross-region call (federation)
 1. Tokyo user (Yuki) and NY user (Alex) join the same channel.
 2. Yuki connects to ap-southeast; Alex connects to na-east.
-3. LiveKit federation bridges the two rooms.
+3. Azure ACS federation bridges the two rooms.
 4. Yuki sees Alex's video with na-east → ap-southeast latency (~150ms cross-Pacific). Acceptable; the alternative (one of them on the wrong-side region) would be far worse for one of them.
 
 ### J4 — Manual override
@@ -86,7 +86,7 @@ sequenceDiagram
 - **VPN user:** ping reflects VPN exit, not actual location. Acceptable; user asked for that route.
 - **Mobile network jitter:** smooth scores using EMA over 3 pings; don't switch on a single spike.
 - **Region full (capacity):** server returns "redirect" to next-best with note.
-- **Federation unavailable** (LiveKit limit): pick the aggregate-best region for all participants in the room.
+- **Federation unavailable** (Azure ACS limit): pick the aggregate-best region for all participants in the room.
 - **First joiner sets the room region** in v1 (simplest); other joiners federate or migrate room post-launch.
 - **Zero pings succeeded:** fallback to default region (na-east) with degraded banner.
 - **WebRTC ICE candidate failure:** retry with relay-only mode (TURN forced).
@@ -96,7 +96,7 @@ sequenceDiagram
 ## 5. Background / Async
 
 - **Health-check cron:** every 30s, central worker pings each region's `/health` from multiple datacenters; updates `voice_regions.last_health_check` and `health_score`.
-- **Capacity sync:** each LiveKit instance reports CPU/connections every 60s.
+- **Capacity sync:** each Azure ACS instance reports CPU/connections every 60s.
 - **Session metrics:** every call posts an end-summary (region used, p50/p99 RTT, jitter, MoS) to `voice_session_metrics`.
 - **Stale candidate prune:** if a region missed 3 health-checks, marked `degraded`; if 10, marked `down`.
 

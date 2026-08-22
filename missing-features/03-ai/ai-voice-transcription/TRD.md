@@ -4,7 +4,7 @@
 
 ```
    ┌────────────────────────────────────────────────────────────┐
-   │  LiveKit / SFU (existing voice infra)                     │
+   │  Azure ACS / SFU (existing voice infra)                     │
    │  per-participant track => RTP G.711/Opus                  │
    └─────────────┬──────────────────────────────────────────────┘
                  │
@@ -43,7 +43,7 @@ Pipeline:
 - `backend/internal/services/ai/voice_transcription/whisper_pool.go` — worker pool wrapping `whisper.cpp` via cgo (`github.com/mutablelogic/go-whisper` or homegrown bindings)
 - `backend/internal/services/ai/voice_transcription/segmenter.go` — utterance assembly
 - `backend/internal/services/ai/voice_transcription/publisher.go` — Centrifugo publish + Postgres append
-- `backend/internal/services/ai/voice_transcription/livekit_egress.go` — connects as Egress sink
+- `backend/internal/services/ai/voice_transcription/azure_acs_egress.go` — connects as Egress sink
 - `backend/internal/handlers/ai_captions_handler.go` — REST: enable/disable, get transcript
 - `backend/internal/models/voice_transcript.go`
 - `backend/internal/repo/voice_transcript_repo.go`
@@ -126,7 +126,7 @@ GET  /api/v1/ai/captions/sessions/:session_id/export.txt
 
 ## 6. Dependencies
 
-- LiveKit Egress already deployed
+- Azure Media Egress already deployed
 - Centrifugo already deployed
 - New libs:
   - Go: `github.com/yalue/onnxruntime_go v1.16.x` (silero), custom whisper.cpp cgo wrapper
@@ -151,7 +151,7 @@ GET  /api/v1/ai/captions/sessions/:session_id/export.txt
 | Failure | Impact | Mitigation |
 |---------|--------|------------|
 | Whisper queue saturated | dropped captions | scale worker pool; downgrade to `tiny.en`; show "captions degraded" banner |
-| LiveKit Egress disconnect | captions stop | reconnect with backoff; backfill transcript from rolling buffer |
+| Azure Media Egress disconnect | captions stop | reconnect with backoff; backfill transcript from rolling buffer |
 | ONNX init fail | VAD broken | fallback to RMS-energy VAD (lossy but functional) |
 | Speaker switch mid-segment | mis-attribution | per-track isolation prevents this; verified in tests |
 | User on slow network | partial captions | client buffers `partial` events and replaces on `final` |

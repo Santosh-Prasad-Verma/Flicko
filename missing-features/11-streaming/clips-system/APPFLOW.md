@@ -10,7 +10,7 @@ sequenceDiagram
     participant DB as Postgres (clips)
     participant NATS
     participant Worker as ffmpeg-worker
-    participant Buf as LiveKit Egress hot buffer (Appwrite)
+    participant Buf as Azure Media Egress hot buffer (Appwrite)
     participant AW as Appwrite (clips-hot)
     participant CDN
 

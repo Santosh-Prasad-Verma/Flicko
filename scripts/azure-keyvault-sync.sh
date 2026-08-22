@@ -74,7 +74,7 @@ case "$ENV_FILE" in
     audit)
         echo "🔍 Auditing Azure Key Vault ($VAULT_NAME) integrity..."
         MISSING=0
-        REQUIRED_KEYS=("DATABASE-URL" "REDIS-URL" "JWT-SECRET" "AZURE-BLOB-CONNECTION-STRING" "AZURE-COMMUNICATION-CONNECTION-STRING" "LIVEKIT-API-KEY" "FLICKO-GEMINI-LIVE-MODEL")
+        REQUIRED_KEYS=("DATABASE-URL" "REDIS-URL" "JWT-SECRET" "AZURE-BLOB-CONNECTION-STRING" "AZURE-COMMUNICATION-CONNECTION-STRING" "FLICKO-GEMINI-LIVE-MODEL")
 
         for key in "${REQUIRED_KEYS[@]}"; do
             if az keyvault secret show --vault-name "$VAULT_NAME" --name "$key" &> /dev/null; then

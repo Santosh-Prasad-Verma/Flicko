@@ -33,7 +33,7 @@ Flicko members already gather in voice and stage channels but cannot watch video
 - **Provider detection**: paste a URL, the client calls `POST /watch-parties/resolve` which returns `{provider, external_id, duration_seconds, thumbnail_url, embeddable: true}` or a structured error.
 - **Party lifecycle**: states are `scheduled`, `live`, `paused`, `ended`. Hosts can schedule up to 7 days ahead; ended parties are read-only and retained for 30 days.
 - **Host election**: if the host's heartbeat lapses for 8 seconds, the participant with the lowest `joined_at` who is still connected is promoted. Promotion is idempotent; ties break on `participant_id` lexicographic order.
-- **Drift correction**: every 2 seconds the host broadcasts `{position_ms, playback_rate, wall_clock_ms}` over the LiveKit data channel. Clients drifting more than 600 ms hard-seek; clients drifting 200 to 600 ms nudge `playbackRate` to 0.95 or 1.05 until aligned.
+- **Drift correction**: every 2 seconds the host broadcasts `{position_ms, playback_rate, wall_clock_ms}` over the voice data channel. Clients drifting more than 600 ms hard-seek; clients drifting 200 to 600 ms nudge `playbackRate` to 0.95 or 1.05 until aligned.
 - **Chat sidebar**: lives inside the party panel, posts to a synthetic `watch_party:<id>` topic on the existing chat infra, inherits parent channel moderation.
 - **Reactions**: timestamped emoji bursts ("3:14 fire") replayed in the timeline scrubber.
 - **Permissions**: `start_watch_party`, `join_watch_party`, `moderate_watch_party` per role; defaults grant `start` and `join` to `@everyone`.
@@ -45,8 +45,8 @@ Flicko members already gather in voice and stage channels but cannot watch video
 - Host-disconnect freezes resolved within 5 seconds in at least 99 percent of cases.
 
 ## Constraints and Assumptions
-- LiveKit rooms are reused: a watch-party room ID matches the linked voice channel's room when present, otherwise a synthetic room `wp_<party_id>` is provisioned on demand.
-- Participant cap: 250 concurrent per party (LiveKit data-channel fan-out budget). Parties exceeding 200 active participants stop relaying reactions individually and switch to aggregated counters.
+- Voice rooms are reused: a watch-party room ID matches the linked voice channel's room when present, otherwise a synthetic room `wp_<party_id>` is provisioned on demand.
+- Participant cap: 250 concurrent per party (voice data-channel fan-out budget). Parties exceeding 200 active participants stop relaying reactions individually and switch to aggregated counters.
 - Provider terms-of-service: YouTube IFrame API requires the embed UI to remain visible; we never strip controls. Twitch embeds require parent domain registration; we ship a per-environment allow-list.
 - The MP4 provider only accepts URLs returning `Content-Type: video/mp4` or `application/vnd.apple.mpegurl` over HTTPS with CORS allowing our origin.
 

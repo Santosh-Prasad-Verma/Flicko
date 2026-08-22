@@ -2,7 +2,7 @@
 
 ```mermaid
 sequenceDiagram
-    participant LK as LiveKit
+    participant LK as Azure ACS
     participant API as Backend
     participant W as Worker
     participant WS as Whisper

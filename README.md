@@ -712,7 +712,7 @@ The codebase integrates security scanners and linting checks:
 ## 🗺️ Limitations & Future Roadmap
 
 ### Current Limitations
-* **SFU Group Call Scaling**: High-concurrency video conferences (>50 active video feeds in a single room) currently depend on external Azure ACS or LiveKit instances.
+* **SFU Group Call Scaling**: High-concurrency video conferences (>50 active video feeds in a single room) currently depend on external Azure ACS calling instances.
 * **Full E2EE Group Channels**: E2EE is fully implemented for 1-on-1 direct messages and voice SFU key exchange; multi-member guild channels currently operate via standard TLS + database RLS.
 
 ### Future Roadmap

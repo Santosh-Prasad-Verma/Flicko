@@ -9,13 +9,13 @@ sequenceDiagram
     participant API as Go Backend
     participant W as Rotation Worker
     participant DB as Postgres
-    participant SFU as LiveKit SFU
+    participant SFU as Azure ACS SFU
     participant P as Other Participant
 
     U->>M: tap E2EE channel "Strategy Room"
     M->>API: POST /voice/e2ee/channels/:id/token
     API->>DB: verify membership + identity key
-    API->>API: issue LiveKit token (e2ee=true)
+    API->>API: issue Azure ACS voice token (e2ee=true)
     API-->>M: { token, epoch, sealed_envelope, fingerprints }
     M->>M: open envelope (libsodium box_seal_open)
     M->>M: derive group key, set on KeyProvider
@@ -149,7 +149,7 @@ What Flicko sees (server):
   - call duration
   - sealed envelopes (cannot open them; only recipient can)
   - public identity keys
-  - LiveKit-relayed RTP packets (opaque payloads)
+  - Azure ACS-relayed RTP packets (opaque payloads)
 
 What Flicko cannot see:
   - audio content (encrypted by group key not held by server)

@@ -8,7 +8,7 @@ sequenceDiagram
     participant API as Go API
     participant DB as Postgres
     participant R as Redis
-    participant LK as LiveKit
+    participant LK as Azure ACS
     participant V as Viewer (Flutter)
 
     H->>API: POST /wt/sessions {room_id, media}
@@ -37,7 +37,7 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant H as Host
-    participant LK as LiveKit
+    participant LK as Azure ACS
     participant API as Go API
     participant V1 as Viewer A (oldest)
     participant V2 as Viewer B
@@ -102,7 +102,7 @@ JOINING -> SUBSCRIBED -> PLAYING -> (DRIFTING <-> SYNCED) -> LEFT
 - Outgoing host's controls disable in 80 ms; new host's enable on token refresh ack.
 
 ### Host Crashes
-- Webhook from LiveKit; election runs after 3 s grace.
+- Webhook from Azure ACS; election runs after 3 s grace.
 - If no eligible viewer (everyone left), session moves to ENDED.
 
 ### Sync Drift > 500 ms
@@ -125,7 +125,7 @@ JOINING -> SUBSCRIBED -> PLAYING -> (DRIFTING <-> SYNCED) -> LEFT
 - POST /join returns 403; client shows "You don't have access to this room."
 
 ### Region Mismatch
-- LiveKit Cloud auto-routes; if dial fails twice, fallback to Centrifugo path with banner "Reduced sync quality."
+- Azure ACS Cloud auto-routes; if dial fails twice, fallback to Centrifugo path with banner "Reduced sync quality."
 
 ### Battery Saver Mode (Mobile)
 - iOS / Android may throttle JS / video timers. Heartbeat raised to 2 s when app reports `lowPowerMode=true`.

@@ -18,7 +18,7 @@ Our own support tickets repeatedly ask:
 - "How do I stream my PS5 here without a capture card on my PC?" (412 hits)
 - "Why does Go Live cap at 720p60 when my upload is 50 Mbps?" (290 hits)
 
-Flicko already runs LiveKit for voice/video. LiveKit ships an Ingress service that accepts RTMP/SRT/WHIP and republishes as a SFU track. By exposing a per-channel ingress URL + stream key we get Twitch-grade ingest essentially for free; viewers consume the same SFU track in-app or fall back to an HLS rendition served by the existing LiveKit Egress.
+Flicko already runs Azure ACS for voice/video. Azure ACS ships an Ingress service that accepts RTMP/SRT/WHIP and republishes as a SFU track. By exposing a per-channel ingress URL + stream key we get Twitch-grade ingest essentially for free; viewers consume the same SFU track in-app or fall back to an HLS rendition served by the existing Azure Media Egress.
 
 ## 2. Users & Use Cases
 
@@ -51,7 +51,7 @@ Flicko already runs LiveKit for voice/video. LiveKit ships an Ingress service th
 
 - [ ] Server setting: enable streaming + per-channel toggle.
 - [ ] `streams` row created lazily on first publish; deleted 24 h after disconnect if no VOD.
-- [ ] Ingress endpoint provisioned via LiveKit Ingress API (RTMP_INPUT, WHIP_INPUT).
+- [ ] Ingress endpoint provisioned via Azure Media Ingress API (RTMP_INPUT, WHIP_INPUT).
 - [ ] Stream key stored hashed (argon2id) — only the prefix is shown after the first reveal.
 - [ ] Live indicator on channel; viewer count via Centrifugo `stream:<id>`.
 - [ ] HLS playlist served at `https://hls.flicko.app/s/<id>.m3u8` with signed cookie auth.
@@ -63,17 +63,17 @@ Flicko already runs LiveKit for voice/video. LiveKit ships an Ingress service th
 | Metric | Target | Measurement |
 |--------|--------|-------------|
 | Streams started / week | 5,000 within 60 d | `streams.created` event |
-| Median ingest bitrate | ≥4.5 Mbps | LiveKit metrics |
+| Median ingest bitrate | ≥4.5 Mbps | Azure ACS metrics |
 | Viewer p99 join latency | <3 s | client OTel |
-| % concurrent streams reaching ABR | ≥70% | LiveKit Egress |
+| % concurrent streams reaching ABR | ≥70% | Azure Media Egress |
 | Cost per concurrent viewer-hour | <$0.0009 | infra spend / `stream_metrics` |
 
 ## 6. Open Questions / Risks
 
 - **Stream-key leakage** — store hashed, rotate on suspicious geo change, kill-switch on >3 simultaneous publishers per key.
-- **Ingest region selection** — map streamer's RTT to nearest LiveKit Cloud region; document the four regions in the UI.
+- **Ingest region selection** — map streamer's RTT to nearest Azure ACS Cloud region; document the four regions in the UI.
 - **DMCA pass-through** — we do not transcode audio for fingerprinting in v1; legal sign-off required before GA.
-- **Console encoders** stuck on RTMP-FLV — confirm LiveKit Ingress accepts vanilla FLV-AAC.
+- **Console encoders** stuck on RTMP-FLV — confirm Azure Media Ingress accepts vanilla FLV-AAC.
 
 ## 7. Competitive Landscape
 

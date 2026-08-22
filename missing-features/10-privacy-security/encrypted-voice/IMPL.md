@@ -8,8 +8,8 @@
 | 1 | DB migration 217 + epoch trigger | 2d | Backend |
 | 2 | Key-rotation worker | 5d | Backend |
 | 3 | Token-issuance handler with E2EE claim | 3d | Backend |
-| 4 | LiveKit cluster config + per-room E2EE flag | 3d | DevOps |
-| 5 | Mobile LiveKit insertable-streams hookup | 7d | Mobile |
+| 4 | Azure ACS cluster config + per-room E2EE flag | 3d | DevOps |
+| 5 | Mobile Azure ACS insertable-streams hookup | 7d | Mobile |
 | 6 | Mobile sealing/unsealing + epoch tracking | 5d | Mobile |
 | 7 | Mobile E2EE badge + fingerprint UI | 4d | Mobile |
 | 8 | QA + crypto audit + chaos testing | 7d | QA/Sec |
@@ -32,7 +32,7 @@ Total: ~49 working days, two backend + one mobile + one DevOps.
   - [ ] Picks a fresh group key (libsodium secretstream key, 32 bytes), seals once per recipient via `crypto_box_seal`.
   - [ ] Inserts envelope rows.
   - [ ] **Critical:** the unsealed group key never leaves the worker process; goroutine-local; explicit `runtime.KeepAlive` then `crypto/subtle.ConstantTimeCompare`-backed wipe.
-- [ ] LiveKit token issuance: token must claim `e2ee: true` and the room name; backend never has the key.
+- [ ] Azure ACS voice token issuance: token must claim `e2ee: true` and the room name; backend never has the key.
 - [ ] Handler `internal/handlers/encrypted_voice_handler.go`.
 - [ ] Wire routes in `cmd/server/main.go`.
 - [ ] Permission middleware: ensure user has identity key set up.
@@ -46,24 +46,24 @@ Total: ~49 working days, two backend + one mobile + one DevOps.
 ## 3. Mobile Tasks
 
 - [ ] Feature folder `mobile/lib/features/privacy/encrypted_voice/`.
-- [ ] LiveKit Flutter SDK upgrade to ≥2.0.
-- [ ] Wrapper around LiveKit `Room` enabling insertable streams + group-key callback.
+- [ ] Azure ACS Flutter SDK upgrade to ≥2.0.
+- [ ] Wrapper around Azure ACS `Room` enabling insertable streams + group-key callback.
 - [ ] `EncryptedVoiceRepository` to fetch token + sealed envelope from backend.
 - [ ] Open envelope locally with libsodium `crypto_box_seal_open`.
-- [ ] Set group key on LiveKit `KeyProvider` for the current epoch.
+- [ ] Set group key on Azure ACS `KeyProvider` for the current epoch.
 - [ ] On `voice.e2ee.epoch_changed` Centrifugo event: re-fetch envelope, swap key on `KeyProvider` for new epoch.
 - [ ] Domain: `GroupKeyEpoch`, `EncryptedVoiceChannel`, `Fingerprint`.
 - [ ] Application: `e2eeVoiceJoinProvider`, `e2eeIndicatorProvider`, `fingerprintsProvider`.
 - [ ] Presentation: `EncryptedVoiceChannelScreen`, `E2EEBadge`, `FingerprintVerifySheet`.
 - [ ] Routing: same voice-channel route, just E2EE-aware.
 - [ ] L10n keys (~20 new).
-- [ ] Tests: unit (sealing/unsealing roundtrip), widget (badge + sheet), integration with mock LiveKit room.
+- [ ] Tests: unit (sealing/unsealing roundtrip), widget (badge + sheet), integration with mock Voice room.
 - [ ] Force-upgrade banner if `client_version < e2ee_min_client_version`.
 - [ ] Pre-send assertion: never start publishing audio if `KeyProvider` is unset.
 
 ## 4. AI / Infra Tasks
 
-- [ ] LiveKit cluster: enable E2EE flag globally; configure DTX off (forward secrecy concerns w/ silence frames).
+- [ ] Azure ACS cluster: enable E2EE flag globally; configure DTX off (forward secrecy concerns w/ silence frames).
 - [ ] Disable any recording / transcription / VAD / AI-moderation hook on E2EE rooms at the SFU layer.
 - [ ] Document operator runbook: "what to do if subpoenaed for an E2EE call."
 
@@ -88,13 +88,13 @@ supabase/
   migrations/217_encrypted_voice.up.sql                             (new)
   migrations/217_encrypted_voice.down.sql                           (new)
 infra/
-  livekit/server.yaml                                               (edit)
+  azure_acs/server.yaml                                               (edit)
 ```
 
 ## 6. Test Plan
 
 - **Unit:** sealing/unsealing roundtrip; epoch monotonicity; rotation reason classification.
-- **Integration:** mock LiveKit room; member joins, key rotates, old key cannot decrypt new frames.
+- **Integration:** mock Voice room; member joins, key rotates, old key cannot decrypt new frames.
 - **Crypto audit:** external review of sealing flow + envelope format.
 - **Chaos:** member churn (join+leave 1 Hz) for 5 minutes; verify no decryption gaps lasting >1s.
 - **E2E:** Maestro flow — two devices join, exchange audio, third joins → epoch bumps → all hear each other; one leaves → epoch bumps → leaver cannot decrypt.
@@ -120,8 +120,8 @@ infra/
 ## 9. Dependencies / Blockers
 
 - Existing `services/e2ee/` identity-key infrastructure must be rolled out to all clients before this feature.
-- LiveKit cluster upgrade.
-- LiveKit Flutter SDK upgrade.
+- Azure ACS cluster upgrade.
+- Azure ACS Flutter SDK upgrade.
 - libsodium binding stable in Flutter target platforms.
 
 ## 10. Risks
@@ -131,13 +131,13 @@ infra/
 | Group key leaks via logs | Low | Critical | log-redactor + grep test in CI |
 | Old client sees E2EE badge but doesn't encrypt | Med | Critical | min-client-version enforcement |
 | Key-rotation race during fast churn | Med | Med | per-channel mutex in worker |
-| LiveKit upstream regression | Low | High | pin known-good version; verify in staging on every upgrade |
+| Azure ACS upstream regression | Low | High | pin known-good version; verify in staging on every upgrade |
 
 ## 11. Cost Model
 
 | Component | Free tier? | Estimated $ at 100k DAU |
 |-----------|-----------|--------------------------|
-| LiveKit SFU (self-hosted) | n/a | $400/mo |
+| Azure ACS SFU (self-hosted) | n/a | $400/mo |
 | Compute (rotation worker) | Railway free | $0 |
 | DB rows | small | $0 |
 | **Total** | | **~$400/mo at 100k DAU** |

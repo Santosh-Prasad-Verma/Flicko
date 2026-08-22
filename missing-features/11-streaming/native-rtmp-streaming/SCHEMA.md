@@ -23,8 +23,8 @@ CREATE TABLE streams (
   server_id     UUID NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
   channel_id    UUID NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
   user_id       UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  livekit_room  TEXT NOT NULL,                  -- channel-id mirror
-  ingress_id    TEXT,                           -- LiveKit Ingress ID
+  azure_acs_room  TEXT NOT NULL,                  -- channel-id mirror
+  ingress_id    TEXT,                           -- Azure Media Ingress ID
   state         stream_state NOT NULL DEFAULT 'pending',
   protocol      stream_protocol,
   title         TEXT,

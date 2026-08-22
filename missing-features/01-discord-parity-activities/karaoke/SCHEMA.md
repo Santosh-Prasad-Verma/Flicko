@@ -238,7 +238,7 @@ CREATE POLICY karaoke_cheers_session_read ON karaoke_cheers
 - User-submitted backing tracks pending review.
 
 `kk-recordings`
-- Private; LiveKit Egress writes mic recordings here.
+- Private; Azure Media Egress writes mic recordings here.
 - Lifecycle: 7 d retention, then auto-delete.
 - Permissions: worker read; user can request own recording with signed URL.
 

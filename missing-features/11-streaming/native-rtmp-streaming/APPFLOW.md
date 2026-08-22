@@ -9,8 +9,8 @@ sequenceDiagram
     participant App as Mobile (Flutter)
     participant API as Go Backend
     participant DB as Supabase
-    participant LK as LiveKit Ingress
-    participant SFU as LiveKit SFU
+    participant LK as Azure Media Ingress
+    participant SFU as Azure ACS SFU
     participant CDN as Bunny / HLS
     participant RT as Centrifugo
     participant Viewer
@@ -86,7 +86,7 @@ Idempotent transitions; webhook handler upserts on `(stream_id, kind, occurred_a
 
 ### J4 — Key leak
 1. Two encoders publish with the same key.
-2. The first publish is honoured; the second is rejected at LiveKit Ingress.
+2. The first publish is honoured; the second is rejected at Azure Media Ingress.
 3. Backend service receives the duplicate-publish webhook, auto-rotates the key, force-disconnects all publishers, and notifies the owner via push.
 
 ### J5 — Moderator kill
@@ -106,8 +106,8 @@ Idempotent transitions; webhook handler upserts on `(stream_id, kind, occurred_a
 
 ## 5. Background / Async
 
-- `health_worker` ticks every 15 s — reconciles `streams.state` with LiveKit Ingress; idempotency key `stream:<id>:tick:<minute>`.
-- Webhook retries: LiveKit retries 5 times with backoff; we accept duplicates because each row is keyed by `(stream_id, kind, occurred_at)`.
+- `health_worker` ticks every 15 s — reconciles `streams.state` with Azure Media Ingress; idempotency key `stream:<id>:tick:<minute>`.
+- Webhook retries: Azure ACS retries 5 times with backoff; we accept duplicates because each row is keyed by `(stream_id, kind, occurred_at)`.
 - Cleanup cron `0 */1 * * *` — kills `pending` rows older than 15 min and revokes their stream keys.
 - Failure policy: 3 retries with exponential backoff, then DLQ subject `flicko.stream.events.dlq`.
 

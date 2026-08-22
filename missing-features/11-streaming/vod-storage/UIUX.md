@@ -28,7 +28,7 @@ Full-bleed video on top, metadata + chapter rail below.
 | Chapters                                                    |
 | 00:00  Cold open                                            |
 | 04:12  Why HLS over DASH                                    |
-| 27:50  Wiring LiveKit Egress              <- current        |
+| 27:50  Wiring Azure Media Egress              <- current        |
 | 1:14:09  Q&A                                                |
 +-------------------------------------------------------------+
 | Tip   Clip   Share   Save                                   |

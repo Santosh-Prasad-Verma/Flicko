@@ -27,7 +27,7 @@ type tokenRequest struct {
 }
 
 // GenerateToken handles POST /v1/voice/token.
-// Generates a LiveKit access token for the requesting user.
+// Generates an Azure ACS / voice access token for the requesting user.
 func (h *VoiceHandler) GenerateToken(w http.ResponseWriter, r *http.Request) {
 	userID := auth.UserIDFromContext(r.Context())
 

@@ -17,7 +17,7 @@ Flicko currently terminates a live stream the moment the broadcaster ends it. Vi
 ## Scope
 
 In:
-- Auto-record every public live stream via LiveKit Egress (HLS, fMP4, 6s segments)
+- Auto-record every public live stream via Azure Media Egress (HLS, fMP4, 6s segments)
 - Hot tier on Appwrite Storage for the first 7 days, with `chunkedUpload` resumable writes
 - Cold tier promotion to Cloudflare R2 after 7 days, with HLS rewrite to point at R2 origin
 - VOD player (HLS.js on web, AVPlayer/ExoPlayer via `video_player` on mobile)
@@ -55,7 +55,7 @@ Differentiator: indefinite cold-tier retention plus auto-chapters at the free ti
 
 ## Risks
 
-- LiveKit Egress disconnects mid-stream and we lose the tail. Mitigation: Egress restarts on segment-watcher gap > 30 s, partial VOD is still saved.
+- Azure Media Egress disconnects mid-stream and we lose the tail. Mitigation: Egress restarts on segment-watcher gap > 30 s, partial VOD is still saved.
 - Appwrite chunked upload throttles at high concurrency. Mitigation: presigned PUT to R2 as a fallback hot tier when concurrent streams > 500.
 - Whisper costs scale with stream-hour. Mitigation: transcribe at 0.5x with `tiny.en` for chapter boundaries; only upgrade to `small` for streams with > 1k peak viewers.
 

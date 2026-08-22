@@ -305,11 +305,10 @@ func (s *mpService) JoinSession(ctx context.Context, id string, userID uuid.UUID
 	})
 
 	return &JoinSessionResponse{
-		Session:      session,
-		Queue:        queue,
-		Anchor:       anchor,
-		VoiceToken:   token,
-		LiveKitToken: token,
+		Session:    session,
+		Queue:      queue,
+		Anchor:     anchor,
+		VoiceToken: token,
 	}, nil
 }
 

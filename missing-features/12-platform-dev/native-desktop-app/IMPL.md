@@ -29,7 +29,7 @@
   - `tauri-plugin-notification`
   - `tauri-plugin-deep-link` for `flicko://`
   - `tauri-plugin-shell` for `start` actions
-- Custom plugin `voice-bridge` to expose LiveKit Rust SDK directly (lower CPU than browser WebRTC).
+- Custom plugin `voice-bridge` to expose Azure ACS Rust SDK directly (lower CPU than browser WebRTC).
 
 ## CI/CD
 - GitHub Actions: build mac arm64+x86_64, win x86_64, linux x86_64.

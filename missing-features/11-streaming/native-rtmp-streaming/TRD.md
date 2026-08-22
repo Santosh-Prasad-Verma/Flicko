@@ -5,14 +5,14 @@
 ```
                     ┌────────────┐
    OBS / PS5 / SRT  │            │   ingress.create()
- ──────────────────▶│  LiveKit   │◀──────────────────┐
+ ──────────────────▶│  Azure ACS   │◀──────────────────┐
    rtmp://ingest/   │  Ingress   │                   │
                     │            │                   │
                     └─────┬──────┘                   │
                           │ track published          │
                           ▼                          │
                   ┌──────────────┐                   │
-                  │  LiveKit SFU │                   │
+                  │  Azure ACS SFU │                   │
                   └───┬───────┬──┘                   │
         WebRTC (low)  │       │  ABR Egress (HLS)    │
                       ▼       ▼                      │
@@ -25,21 +25,21 @@
                 stream:<id>          (extends existing)
 ```
 
-Two playback paths — SFU for in-app low-latency, HLS for embeds, browsers without WebRTC, and bandwidth fallback. The same source stream feeds both; LiveKit Egress takes care of the ABR ladder and writes segments to Bunny CDN backed by R2.
+Two playback paths — SFU for in-app low-latency, HLS for embeds, browsers without WebRTC, and bandwidth fallback. The same source stream feeds both; Azure Media Egress takes care of the ABR ladder and writes segments to Bunny CDN backed by R2.
 
 ## 2. Components
 
 ### Backend (Go)
 - **Service:** `backend/internal/services/streaming/native_rtmp/service.go` — extends `stream_service.go` with `CreateIngress`, `RotateKey`, `Revoke`.
-- **Worker:** `backend/internal/services/streaming/native_rtmp/health_worker.go` — polls LiveKit Ingress every 15 s, reconciles `streams.state`.
+- **Worker:** `backend/internal/services/streaming/native_rtmp/health_worker.go` — polls Azure Media Ingress every 15 s, reconciles `streams.state`.
 - **Handler:** `backend/internal/handlers/streaming/native_rtmp_handler.go`.
 - **Models:** `backend/internal/models/stream.go` (shared with `vod-storage`).
-- **Webhook:** `backend/internal/handlers/streaming/livekit_webhook.go` — receives `ingress_started`, `ingress_ended`, `track_published`.
+- **Webhook:** `backend/internal/handlers/streaming/azure_acs_webhook.go` — receives `ingress_started`, `ingress_ended`, `track_published`.
 - **Repo:** `backend/internal/repo/stream_repo.go`.
 
 ### Mobile (Flutter)
 - `mobile/lib/features/streaming/native_rtmp/`
-  - `data/`: `stream_dto.dart`, `stream_repository.dart`, `livekit_remote_datasource.dart`.
+  - `data/`: `stream_dto.dart`, `stream_repository.dart`, `azure_acs_remote_datasource.dart`.
   - `domain/`: `stream.dart`, `usecases/start_stream.dart`, `usecases/get_stream_key.dart`.
   - `application/`: `stream_provider.dart`, `viewer_provider.dart`, `key_provider.dart`.
   - `presentation/`: `stream_setup_sheet.dart`, `stream_view_screen.dart`, `live_indicator.dart`.
@@ -128,16 +128,16 @@ GET    /api/v1/channels/:cid/streams/active        most recent active stream
 | Concurrent streams per server (free tier) | 3 |
 | Concurrent viewers per stream (free tier) | 500 |
 | Storage cost per stream-hour | $0 (no VOD) |
-| Compute cost per viewer-hour | <$0.0009 (Bunny + LiveKit) |
-| GDPR | EU streamers routed to LiveKit Cloud `eu-west` |
+| Compute cost per viewer-hour | <$0.0009 (Bunny + Azure ACS) |
+| GDPR | EU streamers routed to Azure ACS Cloud `eu-west` |
 
 ## 6. Dependencies
 
-- LiveKit Cloud — Ingress + Egress + SFU (existing contract).
+- Azure ACS Cloud — Ingress + Egress + SFU (existing contract).
 - Bunny CDN — HLS edge (existing contract, $0.01/GB).
 - Cloudflare R2 — origin store for HLS segments (existing).
-- `livekit-sdk-go v2.6.0`, `livekit-server-sdk` for ingress.
-- Mobile: `livekit_client: ^2.4.5`, `better_player: ^0.0.84`.
+- `azure_acs-sdk-go v2.6.0`, `azure_acs-server-sdk` for ingress.
+- Mobile: `azure_communication_calling: ^2.4.5`, `better_player: ^0.0.84`.
 
 ## 7. Observability
 
@@ -154,7 +154,7 @@ GET    /api/v1/channels/:cid/streams/active        most recent active stream
 
 | Failure | Impact | Mitigation |
 |---------|--------|------------|
-| LiveKit Ingress region down | streamers in region cannot publish | DNS fail-over to nearest region; UI shows banner |
+| Azure Media Ingress region down | streamers in region cannot publish | DNS fail-over to nearest region; UI shows banner |
 | HLS CDN slow | viewers stutter | client falls back to SFU automatically |
 | Stream-key leak | unauthorized publish | one-publisher-per-key check; auto-revoke on duplicate |
 | Webhook lost | stale `streams.state=live` | health worker reconciles every 15 s |

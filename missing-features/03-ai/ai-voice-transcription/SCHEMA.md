@@ -41,7 +41,7 @@ CREATE TABLE voice_caption_sessions (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   channel_id      UUID NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
   server_id       UUID NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
-  livekit_room    TEXT NOT NULL,
+  azure_acs_room    TEXT NOT NULL,
   started_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
   ended_at        TIMESTAMPTZ,
   worker_id       TEXT,

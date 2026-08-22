@@ -5,7 +5,7 @@
 - Migration `122_karaoke.sql`.
 - Seed catalog: 100 PD/CC songs with curated LRC + MIDI guides via `scripts/seed_karaoke_catalog.go`.
 - Provision Fly.io free VM for pitch worker (`flicko-karaoke-worker`).
-- Env: `LIVEKIT_EGRESS_API`, `APPWRITE_BUCKET_KK_RECORDINGS`, `WORKER_REDIS_URL`.
+- Env: `AZURE_MEDIA_EGRESS_API`, `APPWRITE_BUCKET_KK_RECORDINGS`, `WORKER_REDIS_URL`.
 
 ## Phase 1 — Backend Skeleton (week 1)
 - Module: `backend/internal/activities/karaoke/`
@@ -22,7 +22,7 @@
 
 ## Phase 2 — Catalog + Egress (week 2)
 - Catalog admin endpoints: `POST /admin/songs/review`.
-- LiveKit Egress wiring: track-egress per singer's mic, output to Appwrite via S3-compat.
+- Azure Media Egress wiring: track-egress per singer's mic, output to Appwrite via S3-compat.
 - Test loop: simulated singer publishes a 30 s WAV, recording lands in bucket.
 
 ## Phase 3 — Pitch Worker (week 3)
@@ -82,7 +82,7 @@
 - [ ] Cron: leaderboards weekly snapshot.
 
 ## Mobile Task List
-- [ ] Add packages: `livekit_client`, `audioplayers`, `just_audio`, `permission_handler`, `flutter_riverpod`.
+- [ ] Add packages: `azure_communication_calling`, `audioplayers`, `just_audio`, `permission_handler`, `flutter_riverpod`.
 - [ ] Mic permission request flow with explainer modal.
 - [ ] LRC parser + tests.
 - [ ] Lyric scroller widget driven by line_index stream.
@@ -122,7 +122,7 @@
 Rollback: flag off; in-flight songs complete, no new sessions.
 
 ## Cost Model ($0)
-- LiveKit Cloud free: voice channel already used; Egress free for limited minutes (50/mo). Mitigation: only enable Egress when at least one signer signed up (avoid recording empty rooms).
+- Azure ACS Cloud free: voice channel already used; Egress free for limited minutes (50/mo). Mitigation: only enable Egress when at least one signer signed up (avoid recording empty rooms).
 - Supabase free: tables small; LRC + MIDI not stored in DB.
 - Appwrite Storage: 2 GB free. Recordings auto-purged after 7 d. ~3 MB/song; 600 songs/mo cap fits in 2 GB.
 - Upstash Redis free: queue depth low; ~10 ops/song.

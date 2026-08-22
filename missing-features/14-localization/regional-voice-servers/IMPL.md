@@ -27,7 +27,7 @@
 - [ ] Health worker `backend/internal/services/i18n/regional-voice-servers/health_worker.go`
 - [ ] Sessions handler `backend/internal/handlers/voice/sessions_handler.go`
 - [ ] Regions handler `backend/internal/handlers/voice/regions_handler.go`
-- [ ] Token mint via LiveKit SDK (`livekit-server-sdk-go`)
+- [ ] Token mint via Azure ACS SDK (`azure_acs-server-sdk-go`)
 - [ ] Failover endpoint `POST /sessions/:id/failover`
 - [ ] Server admin pin endpoint
 - [ ] User pin endpoint
@@ -40,7 +40,7 @@
 - [ ] `mobile/lib/core/voice/ping/ping_test.dart`
 - [ ] `mobile/lib/core/voice/data/voice_region_repository.dart`
 - [ ] `mobile/lib/core/voice/application/region_picker_provider.dart`
-- [ ] `mobile/lib/core/voice/application/voice_session_provider.dart` (uses `livekit_client`)
+- [ ] `mobile/lib/core/voice/application/voice_session_provider.dart` (uses `azure_communication_calling`)
 - [ ] `mobile/lib/core/voice/presentation/voice_settings_screen.dart`
 - [ ] `mobile/lib/core/voice/presentation/quality_banner.dart`
 - [ ] Wire into existing voice channel screen `mobile/lib/features/server_channels/voice/`
@@ -50,11 +50,11 @@
 
 ## 4. Infra Tasks
 
-- [ ] Terraform module `infra/livekit/<region>/`
-  - cluster (Hetzner k8s or LiveKit Cloud project per region)
+- [ ] Terraform module `infra/azure_acs/<region>/`
+  - cluster (Hetzner k8s or Azure ACS Cloud project per region)
   - ingress + TLS via Let's Encrypt
   - per-region Redis
-  - secrets (LiveKit API key/secret)
+  - secrets (Azure ACS API key/secret)
 - [ ] DNS: `<region>.voice.flicko.app` → ingress
 - [ ] Cloudflare Worker `cf/voice-health/index.ts` for health-check fanout
 - [ ] Monitoring: Prometheus federation across regions
@@ -76,14 +76,14 @@ mobile/
   lib/core/voice/...                                          (new tree)
   lib/features/server_channels/voice/...                      (edit)
   lib/features/settings/presentation/voice_settings_screen.dart (new)
-  pubspec.yaml                                                 (edit — add livekit_client)
+  pubspec.yaml                                                 (edit — add azure_communication_calling)
 infra/
-  livekit/na-east/...                                         (new)
-  livekit/na-west/...                                         (new)
-  livekit/eu-west/...                                         (new)
-  livekit/ap-southeast/...                                    (new)
-  livekit/ap-south/...                                        (new)
-  livekit/sa-east/...                                         (new)
+  azure_acs/na-east/...                                         (new)
+  azure_acs/na-west/...                                         (new)
+  azure_acs/eu-west/...                                         (new)
+  azure_acs/ap-southeast/...                                    (new)
+  azure_acs/ap-south/...                                        (new)
+  azure_acs/sa-east/...                                         (new)
 cf/
   voice-health/index.ts                                       (new)
 supabase/
@@ -95,7 +95,7 @@ supabase/
 
 - Unit: picker — synthetic scores, edge cases (single participant, all-same-RTT, partial failure).
 - Property: monotonic improvement — adding a faster region should never worsen aggregate score.
-- Integration: spin LiveKit dev; assert token works; assert federation across two dev clusters.
+- Integration: spin Azure ACS dev; assert token works; assert federation across two dev clusters.
 - E2E: Maestro flow joins voice in 3 different region overrides; verify metric exposed.
 - Chaos: kill one region in staging; assert next-best chosen and failover time < 5s.
 - Load: k6 — 1000 concurrent joins; observe p99 connect time.
@@ -121,13 +121,13 @@ supabase/
 
 - Depends on: `multi-language-50` (region defaults), existing voice channel feature.
 - Blocks: nothing critical.
-- External: LiveKit Cloud account upgrade for federation; Cloudflare Workers free tier.
+- External: Azure ACS Cloud account upgrade for federation; Cloudflare Workers free tier.
 
 ## 10. Risks
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|------------|--------|------------|
-| Cost overrun on LiveKit Cloud | Medium | Medium | Plan self-host migration path (Hetzner) |
+| Cost overrun on Azure ACS Cloud | Medium | Medium | Plan self-host migration path (Hetzner) |
 | Federation flakiness | Medium | High | Phase rollout; fallback to single-region picks |
 | BGP routing surprise | Low | Medium | Multi-region health check from multiple datacenters |
 | User confusion over manual region pin | Low | Low | Clear UX copy; default Auto |
@@ -137,12 +137,12 @@ supabase/
 
 | Component | Free? | Estimated $ at 100k DAU |
 |-----------|-------|--------------------------|
-| LiveKit Cloud Build plan | starts $50/mo + usage | ~$300/mo realistic |
+| Azure ACS Cloud Build plan | starts $50/mo + usage | ~$300/mo realistic |
 | Self-host on Hetzner (alt) | ~$60/mo per region × 6 | $360/mo |
 | Cloudflare Workers | free tier | $0 |
-| TURN bandwidth | included w/ LiveKit | $0 |
+| TURN bandwidth | included w/ Azure ACS | $0 |
 | Redis per region | shared with existing | $0 |
-| **Total (LiveKit Cloud)** | | **~$300/mo** |
+| **Total (Azure ACS Cloud)** | | **~$300/mo** |
 
 ## 12. Done Definition
 

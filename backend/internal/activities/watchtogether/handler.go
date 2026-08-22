@@ -117,7 +117,7 @@ func (h *Handler) HandleJoin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Wait, we need a username for LiveKit tokens.
+	// We need a username for participant identification.
 	// In the future, this can be retrieved from profiles. For the REST skeleton, we can fallback to the userID or parse a query param.
 	// Let's check query parameter `username` or use a default "Viewer".
 	userName := r.URL.Query().Get("username")

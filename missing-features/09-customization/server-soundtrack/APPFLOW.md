@@ -14,7 +14,7 @@ sequenceDiagram
     participant Audit as audit_log
     participant Cent as Centrifugo
     participant AW as Appwrite Storage
-    participant LK as LiveKit SFU
+    participant LK as Azure ACS SFU
     participant Member as Member (Flutter)
 
     Admin->>API: PUT /servers/:id/soundtrack {track_id, vol, fade}
@@ -48,7 +48,7 @@ sequenceDiagram
 Notes on the sequence:
 - Step 5 uses an optimistic version: the server stores `version` and clients keep `last_seen_version`. The push includes only `version`; clients decide whether to refetch.
 - Step 14 uses an HTTP range request so the client can begin playback while the rest streams.
-- LiveKit is not the source of the music; it is only the voice channel mixer that informs the duck signal.
+- Azure ACS is not the source of the music; it is only the voice channel mixer that informs the duck signal.
 
 ## 2. State machine (per client, per server)
 
@@ -150,7 +150,7 @@ If the override write fails (offline), the local mute is queued in the outbox an
 
 ### 3.7 Voice channel ducking
 
-- LiveKit emits `participant.is_speaking` events.
+- Azure ACS emits `participant.is_speaking` events.
 - Client subscribes; whenever any speaker is active in the user's current room, the soundtrack gain is multiplied by `10^(-6/20)` (a -6 dB duck) over 120 ms.
 - On silence (700 ms hangover), gain ramps back over 240 ms.
 - If the user is not in a voice channel, no ducking is applied.
