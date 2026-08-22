@@ -8,7 +8,7 @@ sequenceDiagram
     participant L as Listener (Flutter)
     participant API as Go API
     participant DB as Postgres
-    participant LK as LiveKit
+    participant LK as Azure ACS
     participant EG as LK Egress
     participant AW as Appwrite Storage
     participant Q as Redis (jobs)
@@ -50,7 +50,7 @@ sequenceDiagram
 sequenceDiagram
     participant L as Listener (joining late)
     participant API as Go API
-    participant LK as LiveKit
+    participant LK as Azure ACS
 
     L->>API: POST /kk/sessions/{id}/join
     API-->>L: 200 {lk_token, current_song, anchor, lrc_url}
@@ -136,7 +136,7 @@ QUEUED -> RUNNING -> SUCCEEDED
 ### Voice Channel Members > 25
 - v1 cap; new members can listen but not sign up to sing until queue opens slot.
 
-### LiveKit Audio Quality Drops
+### Azure ACS Audio Quality Drops
 - Banner "Network is rough — quality may suffer". No app intervention; user adjusts.
 
 ### Concurrent Sessions in Same Voice Room

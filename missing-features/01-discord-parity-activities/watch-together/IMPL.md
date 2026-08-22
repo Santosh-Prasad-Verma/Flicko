@@ -3,7 +3,7 @@
 ## Phase 0 — Foundation (week 0)
 - Add feature flag `activities.watch_together.enabled` in Supabase `feature_flags`.
 - Migration `120_watch_together.sql` applied.
-- LiveKit project room template `wt-room` configured with data-channel grants.
+- Azure ACS project room template `wt-room` configured with data-channel grants.
 - Add structured logger fields `feature=wt`.
 
 ## Phase 1 — Backend Skeleton (week 1)
@@ -13,7 +13,7 @@
   - `service.go` — domain logic.
   - `repo.go` — Postgres queries (sqlc).
   - `redis.go` — hot-state cache.
-  - `livekit.go` — token mint + grants.
+  - `azure_acs.go` — token mint + grants.
   - `events.go` — Centrifugo publishers.
 - Implement `POST /sessions`, `POST /join`, `GET /sessions/:id`, `DELETE /sessions/:id`.
 - Wire into `backend/internal/gaming/module.go` registration pattern (mirror existing module loader).
@@ -35,12 +35,12 @@
   - `mobile/lib/features/activities/watch_together/providers/wt_session_provider.dart`
   - `mobile/lib/features/activities/watch_together/providers/wt_player_controller.dart`
   - `mobile/lib/features/activities/watch_together/data/wt_repository.dart`
-  - `mobile/lib/features/activities/watch_together/data/livekit_data_channel.dart`
+  - `mobile/lib/features/activities/watch_together/data/azure_acs_data_channel.dart`
 - Use `youtube_player_iframe` for YT, `video_player` for MP4/HLS, `webview_flutter` for Vimeo.
 - Riverpod state: `wtSessionProvider`, `wtPlayerProvider`, `wtParticipantsProvider`.
 
 ## Phase 4 — Host Election + Handoff (week 4)
-- LiveKit webhook endpoint `POST /webhooks/livekit` parses `participant_left`.
+- Azure ACS webhook endpoint `POST /webhooks/azure_acs` parses `participant_left`.
 - Election job using Redis `SETNX wt:s:{id}:host_lock` 5 s.
 - Manual handoff `POST /sessions/:id/host`.
 - Mobile: "You're the host now" modal + control unlock.
@@ -75,7 +75,7 @@
 - [ ] Cron job (every 5 min): purge `state IN ('ended')` older than 24 h.
 
 ## Mobile Task List
-- [ ] Add packages to `pubspec.yaml`: `youtube_player_iframe`, `video_player`, `livekit_client`, `msgpack_dart`.
+- [ ] Add packages to `pubspec.yaml`: `youtube_player_iframe`, `video_player`, `azure_communication_calling`, `msgpack_dart`.
 - [ ] Wire route `/activities/watch-together/:sessionId` in `app_router.dart`.
 - [ ] Implement source picker with allowlist validation client-side.
 - [ ] Implement drift engine with rate-correction and hard-seek tiers.
@@ -87,7 +87,7 @@
 ## Test Plan
 - **Unit (Go)**: drift math, election tie-break, allowlist regex, rate limiter.
 - **Unit (Dart)**: SyncFrame encode/decode, drift_engine state transitions.
-- **Integration**: end-to-end with a stub LK server using `livekit-server` Docker.
+- **Integration**: end-to-end with a stub LK server using `azure_acs-server` Docker.
 - **E2E**: Patrol test scripts on Android emulator and iOS simulator.
 - **Soak**: 12 viewers, 90 min movie, drift p95 logged.
 - **Chaos**: random LK disconnects every 30 s, assert auto-recovery.
@@ -105,7 +105,7 @@
 Rollback: flip `activities.watch_together.enabled = false`. Existing sessions complete; no new ones start.
 
 ## Cost Model ($0)
-- LiveKit Cloud free tier: 100 monthly active participants, 10 GB bandwidth — covers ~150 sessions/mo.
+- Azure ACS Cloud free tier: 100 monthly active participants, 10 GB bandwidth — covers ~150 sessions/mo.
 - Supabase free: 500 MB DB; tables write < 1 MB/session.
 - Upstash Redis free: 10k commands/day; ~1 anchor/5 s × 12 viewers × 100 sessions ≈ 28k/day at peak. Mitigation: anchor only on Postgres, not Redis writes for every heartbeat; use Redis only for hot state (4 writes/session lifecycle).
 - Appwrite Storage free: 2 GB; user-uploaded recordings opt-in.

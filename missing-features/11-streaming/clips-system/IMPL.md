@@ -16,7 +16,7 @@ Goal: clip create -> ready MP4 URL via API in p95 <= 9 s.
   - [ ] `POST /clips/:slug/view` handler: writes `clip_views`, increments `view_count` via debounce (max 1/viewer/clip/day).
   - [ ] `POST /clips/:slug/like` / `DELETE /clips/:slug/like`.
 - [ ] `backend/internal/clips/worker/main.go` — separate binary, NATS consumer of `flicko.clips.transcode`, queue group `clip-workers`.
-  - [ ] Resolve segment range from `vod_segments` (vod source) or LiveKit Egress hot buffer (live source).
+  - [ ] Resolve segment range from `vod_segments` (vod source) or Azure Media Egress hot buffer (live source).
   - [ ] Build a concat list, run ffmpeg with `-c copy` if t_start aligns with IDR else reencode.
   - [ ] Generate thumbnail with `ffmpeg -ss <half> -frames:v 1 -vf scale=480:-2`.
   - [ ] Upload mp4 + thumb to Appwrite bucket `clips-hot`.
@@ -27,7 +27,7 @@ Goal: clip create -> ready MP4 URL via API in p95 <= 9 s.
 ### Tests
 
 - Unit: ffmpeg copy-mode vs reencode decision logic.
-- Integration: spawn LiveKit + ffmpeg-worker, push 3 min stream, fire 10 clip requests at random offsets, assert all reach `ready` with valid mp4 (mediainfo check).
+- Integration: spawn Azure ACS + ffmpeg-worker, push 3 min stream, fire 10 clip requests at random offsets, assert all reach `ready` with valid mp4 (mediainfo check).
 - Load: 100 concurrent clip requests, p95 <= 9 s, error rate <= 0.5%.
 
 ### Exit criteria

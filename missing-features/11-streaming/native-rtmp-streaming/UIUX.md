@@ -130,7 +130,7 @@
 - Tokens: `colorScheme.surface`, `textTheme.bodyLarge`.
 
 ### `<StreamPlayer>`
-- Wraps LiveKit SFU first; falls back to `better_player` HLS after 1.5 s without first frame.
+- Wraps Azure ACS SFU first; falls back to `better_player` HLS after 1.5 s without first frame.
 - Props: `streamId`, `quality` (auto/manual), `onClipPressed`.
 
 ### `<LiveBadge>`

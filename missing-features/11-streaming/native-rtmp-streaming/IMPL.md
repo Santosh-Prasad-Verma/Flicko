@@ -4,7 +4,7 @@
 
 | Phase | Goal | Duration | Owner |
 |-------|------|----------|-------|
-| 0 | Spec freeze + LiveKit Ingress sandbox sign-off | 3 d | PM / Infra |
+| 0 | Spec freeze + Azure Media Ingress sandbox sign-off | 3 d | PM / Infra |
 | 1 | DB schema + migration 230 | 2 d | Backend |
 | 2 | Service + ingress provisioning + key rotation | 8 d | Backend |
 | 3 | Mobile setup sheet + viewer player | 10 d | Mobile |
@@ -20,12 +20,12 @@
 - [ ] `backend/internal/models/stream.go` — `Stream`, `StreamKey`, `StreamEvent`, enums.
 - [ ] `backend/internal/repo/stream_repo.go` — CRUD + atomic upsert by `(channel_id, state)`.
 - [ ] `backend/internal/services/streaming/native_rtmp/service.go`
-  - `CreateIngress(ctx, req)` — calls LiveKit Ingress API, hashes key (argon2id), writes `stream_keys` row.
+  - `CreateIngress(ctx, req)` — calls Azure Media Ingress API, hashes key (argon2id), writes `stream_keys` row.
   - `RotateKey(ctx, channelID)` — soft-revokes old, creates new, publishes `stream.key_rotated`.
   - `EndStream(ctx, streamID, reason)`
 - [ ] `backend/internal/services/streaming/native_rtmp/health_worker.go` — 15 s tick, reconciles state.
 - [ ] `backend/internal/handlers/streaming/native_rtmp_handler.go` — REST routes.
-- [ ] `backend/internal/handlers/streaming/livekit_webhook.go` — signature verify, idempotency on `(stream_id, kind, occurred_at)`.
+- [ ] `backend/internal/handlers/streaming/azure_acs_webhook.go` — signature verify, idempotency on `(stream_id, kind, occurred_at)`.
 - [ ] Service tests (table-driven, ≥85% coverage on argon2id paths).
 - [ ] Handler tests with `httptest`.
 - [ ] Wire routes in `backend/cmd/server/main.go` under `/api/v1/streams` and `/api/v1/channels/:cid/streams`.
@@ -38,7 +38,7 @@
 ## 3. Mobile Tasks
 
 - [ ] Feature folder `mobile/lib/features/streaming/native_rtmp/`.
-- [ ] Data: `stream_dto.dart`, `stream_repository.dart`, `livekit_remote_datasource.dart`, `centrifugo_stream_datasource.dart`.
+- [ ] Data: `stream_dto.dart`, `stream_repository.dart`, `azure_acs_remote_datasource.dart`, `centrifugo_stream_datasource.dart`.
 - [ ] Domain: `stream.dart`, usecases `start_stream`, `get_stream_key`, `rotate_key`, `end_stream`.
 - [ ] Application: `stream_provider.dart`, `viewer_provider.dart`, `key_provider.dart`.
 - [ ] Presentation: `stream_setup_sheet.dart`, `stream_view_screen.dart`, `live_indicator.dart`, `bitrate_chart.dart`.
@@ -49,7 +49,7 @@
 
 ## 4. AI / Infra Tasks
 
-- [ ] LiveKit Ingress webhook signing key rotated and stored in Doppler.
+- [ ] Azure Media Ingress webhook signing key rotated and stored in Doppler.
 - [ ] Bunny CDN pull-zone `hls.flicko.app` configured.
 - [ ] Cost guardrails: per-server quota of 10 concurrent streams enforced in service.
 - [ ] Eval harness skipped — no AI prompts in v1.
@@ -63,7 +63,7 @@ backend/
   internal/services/streaming/native_rtmp/service.go          (new)
   internal/services/streaming/native_rtmp/health_worker.go    (new)
   internal/handlers/streaming/native_rtmp_handler.go          (new)
-  internal/handlers/streaming/livekit_webhook.go              (new)
+  internal/handlers/streaming/azure_acs_webhook.go              (new)
   cmd/server/main.go                                          (edit)
 mobile/
   lib/features/streaming/native_rtmp/...                      (new tree)
@@ -76,7 +76,7 @@ supabase/
 ## 6. Test Plan
 
 - Unit: ≥85% on service.go and key-hash paths.
-- Integration: testcontainers Postgres + Redis + a local mock LiveKit Ingress (record / replay HTTP).
+- Integration: testcontainers Postgres + Redis + a local mock Azure Media Ingress (record / replay HTTP).
 - E2E: Maestro flow `stream/go_live.yaml` — open setup, copy key, mock OBS publish, see live state.
 - Load: k6 with 200 concurrent streams, 100 viewers each — hold 10 min.
 - Accessibility: axe-flutter on viewer + setup screens; manual VoiceOver pass.
@@ -101,15 +101,15 @@ supabase/
 
 ## 9. Dependencies / Blockers
 
-- Depends on: existing LiveKit Cloud contract, Bunny CDN pull-zone.
+- Depends on: existing Azure ACS Cloud contract, Bunny CDN pull-zone.
 - Blocks: `vod-storage`, `clips-system`, `stream-donations`, `stream-analytics`.
-- External: LiveKit Ingress feature parity for SRT in `eu-west` (confirmed 2026-Q2).
+- External: Azure Media Ingress feature parity for SRT in `eu-west` (confirmed 2026-Q2).
 
 ## 10. Risks
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|------------|--------|------------|
-| LiveKit Ingress regional outage | M | H | DNS fail-over + UI banner |
+| Azure Media Ingress regional outage | M | H | DNS fail-over + UI banner |
 | Stream-key leak | M | H | one-publisher check, auto-revoke |
 | HLS egress cost overrun | L | H | per-server quota + Prometheus alert |
 | Encoder reconnect storm | L | M | backoff + cap retries |
@@ -119,8 +119,8 @@ supabase/
 
 | Component | Free tier? | Estimated $ at 100k DAU |
 |-----------|-----------|--------------------------|
-| LiveKit SFU | partial | $1,200 / mo |
-| LiveKit Ingress | partial | $400 / mo |
+| Azure ACS SFU | partial | $1,200 / mo |
+| Azure Media Ingress | partial | $400 / mo |
 | Bunny CDN | none | $900 / mo |
 | R2 (no VOD here) | yes | $0 |
 | **Total** | | **~$2,500 / mo** |

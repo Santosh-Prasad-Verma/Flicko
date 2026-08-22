@@ -4,7 +4,7 @@
 
 ```
 +------------------+        +-------------------+        +------------------+
-|  Singer (Flutter)|  audio |  LiveKit Cloud    |  audio |  Listener        |
+|  Singer (Flutter)|  audio |  Azure ACS Cloud    |  audio |  Listener        |
 |  mic publish     |<------>|  (voice channel + |<------>|  ear monitor +   |
 |                  |  data  |   data: kk-sync)  |  data  |  lyric sync      |
 +--------+---------+        +-----+-------------+        +------------------+
@@ -13,7 +13,7 @@
          | recording egress       |
          v                        v
 +----------------+        +-------------------+        +-------------------+
-| LiveKit Egress |  WAV   | Go API /api/v1/kk |<-----> | Postgres          |
+| Azure Media Egress |  WAV   | Go API /api/v1/kk |<-----> | Postgres          |
 | (track recorder|------->|                   |        | karaoke_*         |
 |   to S3-compat |        +---+---------------+        +-------------------+
 |   = Appwrite)  |            |
@@ -66,7 +66,7 @@ POST `/sessions/:id/queue`
 }
 ```
 
-LiveKit data payload (LyricAnchor)
+Azure ACS data payload (LyricAnchor)
 ```json
 {
   "v": 1,
@@ -99,7 +99,7 @@ POST `/sessions/:id/scoring/result` (internal)
 ## Pitch Scoring Worker
 - Language: Python 3.11, libs `librosa`, `numpy`, `scipy`, `redis`.
 - Runs on Fly.io free VM (256 MB RAM is tight; cap concurrent jobs at 1).
-- Input: mono 16 kHz WAV from Egress (LiveKit records track to Appwrite Storage), reference pitch sequence from song's LRC + MIDI guide track.
+- Input: mono 16 kHz WAV from Egress (Azure ACS records track to Appwrite Storage), reference pitch sequence from song's LRC + MIDI guide track.
 - Pipeline: VAD → pitch estimate (pyin) → DTW align to reference → per-line accuracy → weighted score.
 - Output: 0-100 + breakdown.
 - Job queue: Redis list `kk:score:jobs`; worker pops, processes, posts to API.

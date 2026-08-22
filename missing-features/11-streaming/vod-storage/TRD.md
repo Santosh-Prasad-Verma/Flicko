@@ -4,12 +4,12 @@
 
 ```
                  +-----------------+
-  Live RTMP -->  |  LiveKit Ingress | -- WebRTC --> viewers (live)
+  Live RTMP -->  |  Azure Media Ingress | -- WebRTC --> viewers (live)
                  +--------+--------+
                           |
                           v
                  +-----------------+
-                 |  LiveKit Egress |  HLS, 6s fMP4 segments
+                 |  Azure Media Egress |  HLS, 6s fMP4 segments
                  +--------+--------+
                           |
                           v  segments + master.m3u8
@@ -59,7 +59,7 @@ All under `/api/v1/vod`. Auth via JWT cookie or `Authorization: Bearer`.
 
 Internal (NATS):
 - `flicko.vod.segment_written` — published by recorder per segment
-- `flicko.vod.finalize` — published when LiveKit Egress closes
+- `flicko.vod.finalize` — published when Azure Media Egress closes
 - `flicko.vod.archive` — cron-triggered for promotion to R2
 - `flicko.vod.transcribe` — fan-out to Whisper worker
 
@@ -93,7 +93,7 @@ Alerts:
 
 ## Encoding Profile
 
-LiveKit Egress preset:
+Azure Media Egress preset:
 - Container: HLS (fMP4)
 - Segment: 6 s, `keyframe_interval = 2 s`
 - Codec: H.264 high@4.1, AAC-LC 128 kbps stereo

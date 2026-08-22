@@ -31,7 +31,7 @@ For Flicko's gaming guilds, study groups, and remote teams, captioning is an acc
 - Whisper.cpp `small.en` (244MB) for English; `medium` (769MB) for multilingual servers
 - Push captions via Centrifugo channel `voice_captions:<channel_id>`
 - Persist transcript per session for late-join + post-session export
-- Speaker diarization via LiveKit's per-track audio (no diarization model needed)
+- Speaker diarization via Azure ACS's per-track audio (no diarization model needed)
 
 **Non-Goals**
 - Closed-caption stylization (just text)

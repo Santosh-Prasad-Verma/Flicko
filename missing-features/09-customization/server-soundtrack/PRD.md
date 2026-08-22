@@ -10,7 +10,7 @@
 
 Discord servers feel quiet and impersonal beyond text and voice channels. Users describe wanting a "lobby vibe" that sets a tone — coffee-shop ambience for study servers, lo-fi for chill servers, dungeon-crawl drones for tabletop servers. Today users blast Spotify in a voice channel as a hacky proxy, which uses gobs of CPU and copyright-rough.
 
-Flicko's wedge: a curated library of royalty-free ambient tracks that loop quietly in a server, audible while you browse text/posts, separate from voice calls, with one-tap mute and per-user volume. LiveKit handles the audio track ingest as a low-priority server-wide stream. Owners pick or upload to the curated set; v1 is curate-only with maybe 80 tracks across genres.
+Flicko's wedge: a curated library of royalty-free ambient tracks that loop quietly in a server, audible while you browse text/posts, separate from voice calls, with one-tap mute and per-user volume. Azure ACS handles the audio track ingest as a low-priority server-wide stream. Owners pick or upload to the curated set; v1 is curate-only with maybe 80 tracks across genres.
 
 ## 2. Users & Use Cases
 
@@ -41,7 +41,7 @@ Flicko's wedge: a curated library of royalty-free ambient tracks that loop quiet
 
 - [ ] Track library table seeded with 80 royalty-free clips.
 - [ ] Owner setting: pick track + default volume (0-100, default 30).
-- [ ] LiveKit room per server with single ambient track.
+- [ ] Voice room per server with single ambient track.
 - [ ] Mobile player widget docked under server header; collapsible.
 - [ ] Auto-pause logic on call join, app background, low-power mode.
 - [ ] Member preferences: mute per server, global "no soundtracks", volume slider.
@@ -52,16 +52,16 @@ Flicko's wedge: a curated library of royalty-free ambient tracks that loop quiet
 |--------|--------|-------------|
 | Servers with soundtrack on | 8% within 30d | DB count `server_soundtracks.enabled=true` |
 | Member retention with soundtrack | +5pp vs control | A/B cohort |
-| Audio bitrate cost per server | <$0.02/mo | LiveKit bandwidth |
+| Audio bitrate cost per server | <$0.02/mo | Azure ACS bandwidth |
 | Mute rate (per session) | <30% | client event |
-| Cost per server | <$0.05/mo | LiveKit free tier coverage |
+| Cost per server | <$0.05/mo | Azure ACS free tier coverage |
 
 ## 6. Open Questions / Risks
 
 - Will background audio drain battery? Yes some — pause on background mitigates.
 - Royalty-free does *not* mean unlicensed; track each track's license URL and attribution; show attribution on long-press track name.
 - Auto-pause heuristics: `AudioSession.interruption` on iOS, `AudioFocus` on Android.
-- LiveKit room cost per server is non-trivial; defer to single shared "soundtrack" room per server only when ≥1 listener present.
+- Voice room cost per server is non-trivial; defer to single shared "soundtrack" room per server only when ≥1 listener present.
 
 ## 7. Competitive Landscape
 

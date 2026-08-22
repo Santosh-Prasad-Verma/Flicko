@@ -180,5 +180,5 @@ write: user:{owner}
 
 ## Centrifugo Channels
 - `room:{room_id}:wt` — broadcast session lifecycle (created, ended, host-changed).
-- `wt:{session_id}:fallback` — used only when LiveKit unavailable.
+- `wt:{session_id}:fallback` — used only when Azure ACS unavailable.
 - `user:{user_id}:wt` — private notifications (you-are-host, you-were-kicked).

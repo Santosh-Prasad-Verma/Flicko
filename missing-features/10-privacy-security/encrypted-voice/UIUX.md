@@ -140,6 +140,6 @@ Voice: matter-of-fact, technical when needed but never alarming.
 
 ## 12. Privacy-specific UX rules
 
-- Never display "encrypted" before the client has actually loaded a group key and bound it to the LiveKit `KeyProvider`. The badge is fed by an observable that flips only after that hookup.
+- Never display "encrypted" before the client has actually loaded a group key and bound it to the Azure ACS `KeyProvider`. The badge is fed by an observable that flips only after that hookup.
 - If encryption fails mid-call, drop audio publish immediately, surface the error, and prompt to rejoin. Do not continue with unencrypted audio while showing the badge.
 - Recording, transcription, AI-moderation features are visually absent in E2EE rooms — the buttons do not exist, not just disabled, to make the property obvious.

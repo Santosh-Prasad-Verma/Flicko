@@ -2,7 +2,7 @@
 
 Thank you for your interest in contributing to Flicko! This guide covers everything you need to know to contribute effectively to the project, from setting up your development environment to submitting a polished pull request.
 
-Flicko is a high-performance real-time communication platform built with **Go microservices**, a **Flutter mobile client**, **Redis**, **PostgreSQL**, and **LiveKit SFU** for real-time audio/video.
+Flicko is a high-performance real-time communication platform built with **Go microservices**, a **Flutter mobile client**, **Redis**, **PostgreSQL**, and **Azure Communication Services (ACS) VoIP / WebRTC** for real-time audio/video.
 
 ---
 
@@ -18,12 +18,6 @@ Flicko is a high-performance real-time communication platform built with **Go mi
 - [How to Add a New API Endpoint](#how-to-add-a-new-api-endpoint)
 - [How to Add a New Bot Command](#how-to-add-a-new-bot-command)
 - [How to Create a Database Migration](#how-to-create-a-database-migration)
-- [How to Add a New Riverpod Notifier & State](#how-to-add-a-new-riverpod-notifier--state)
-- [How to Add a New Flutter Screen](#how-to-add-a-new-flutter-screen)
-- [Go Code Style Guide](#go-code-style-guide)
-- [Flutter / Dart Code Style Guide](#flutter--dart-code-style-guide)
-- [Commit Conventions](#commit-conventions)
-- [Pull Request Process](#pull-request-process)
 - [Testing Requirements](#testing-requirements)
 - [Common Pitfalls](#common-pitfalls)
 - [Getting Help](#getting-help)
@@ -127,7 +121,7 @@ graph TD
     Backend --> Postgres[(PostgreSQL DB)]
     Backend --> Redis[(Redis Cache / PubSub)]
     WSGateway --> Redis
-    Backend --> LiveKit[LiveKit SFU - Audio/Video]
+    Backend --> AzureACS[Azure ACS - VoIP Audio & Video]
 ```
 
 ---

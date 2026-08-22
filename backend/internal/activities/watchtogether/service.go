@@ -206,9 +206,8 @@ func (s *wtService) JoinSession(ctx context.Context, id string, userID uuid.UUID
 	}
 
 	return &JoinSessionResponse{
-		Session:      wt,
-		VoiceToken:   token,
-		LiveKitToken: token,
+		Session:    wt,
+		VoiceToken: token,
 	}, nil
 }
 

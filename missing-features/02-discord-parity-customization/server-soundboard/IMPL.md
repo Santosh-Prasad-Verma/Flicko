@@ -4,12 +4,12 @@
 
 | Phase | Goal | Duration | Owner |
 |-------|------|----------|-------|
-| 0 | Spec freeze, design review, ffmpeg + LiveKit data-track spike | 2d | PM/Design + 1 BE |
+| 0 | Spec freeze, design review, ffmpeg + Azure ACS data-track spike | 2d | PM/Design + 1 BE |
 | 1 | DB migration `127_server_soundboard` | 1d | Backend |
 | 2 | Service + handler + cooldown + permissions | 2d | Backend |
 | 3 | Transcode worker (NATS + ffmpeg) | 1.5d | Backend |
 | 4 | Default clips: curate 24 clips, seed table, ingest job | 1.5d | Content + BE |
-| 5 | LiveKit data-track wire-up (server publish + client subscribe) | 1d | Both |
+| 5 | Azure ACS data-track wire-up (server publish + client subscribe) | 1d | Both |
 | 6 | Mobile soundboard sheet (extend existing stub) | 2d | Mobile |
 | 7 | Mobile upload + manage screens | 1.5d | Mobile |
 | 8 | Mobile in-call visual indicator + audio mixer | 1.5d | Mobile |
@@ -35,7 +35,7 @@ Total: ~22 working days.
 - [ ] Handler `backend/internal/handlers/soundboard_handler.go`.
 - [ ] Wire routes in `backend/cmd/server/main.go`.
 - [ ] Permission middleware: extend `permissions_service.go::HasServerPermission` to accept `SOUNDBOARD_PLAY|UPLOAD|MANAGE`.
-- [ ] LiveKit publish helper `backend/internal/services/voice/livekit_data.go::PublishSoundboardPlay`.
+- [ ] Azure ACS publish helper `backend/internal/services/voice/azure_acs_data.go::PublishSoundboardPlay`.
 - [ ] Centrifugo publishes for library updates.
 - [ ] Audit log entries on every state change.
 - [ ] Metrics + Sentry tags.
@@ -47,7 +47,7 @@ Total: ~22 working days.
 ## 3. Mobile Tasks
 
 - [ ] Feature folder `mobile/lib/features/server_soundboard/`.
-- [ ] Data: dto + repository + datasource (HTTPS + LiveKit data subscribe).
+- [ ] Data: dto + repository + datasource (HTTPS + Azure ACS data subscribe).
 - [ ] Domain: entity (`SoundboardClip`, `Cooldown`, `PlayResult`), usecases.
 - [ ] Application:
   - `soundboardClipsProvider(serverId)`,
@@ -59,9 +59,9 @@ Total: ~22 working days.
   - new `clip_upload_screen.dart`, `clip_manage_screen.dart`, `soundboard_settings_screen.dart`,
   - widgets: `clip_chip.dart`, `cooldown_ring.dart`, `recent_clips_drawer.dart`, `visual_play_indicator.dart`.
 - [ ] Audio mixer `mobile/lib/features/voice/services/soundboard_audio_mixer.dart`:
-  - subscribes to LiveKit data-track topic `soundboard.play`,
+  - subscribes to Azure ACS data-track topic `soundboard.play`,
   - resolves signed URL, plays via `just_audio`,
-  - ducks the LiveKit voice mix by 25% during playback,
+  - ducks the Azure ACS voice mix by 25% during playback,
   - never plays clip the local user just triggered (avoids double-fire).
 - [ ] Routing: add to `mobile/lib/core/router/app_router.dart`.
 - [ ] L10n keys in `mobile/lib/l10n/app_en.arb` (~22 strings).
@@ -92,7 +92,7 @@ backend/
   internal/services/soundboard/transcode_worker.go              (new)
   internal/services/soundboard/autodisable_worker.go            (new)
   internal/services/soundboard/default_loader.go                (new)
-  internal/services/voice/livekit_data.go                       (edit)
+  internal/services/voice/azure_acs_data.go                       (edit)
   internal/services/permissions_service.go                      (edit)
   internal/handlers/soundboard_handler.go                       (new)
   internal/handlers/soundboard_handler_test.go                  (new)
@@ -114,7 +114,7 @@ supabase/
 ## 6. Test Plan
 
 - Unit: service ≥80%, cooldown ≥95%, normalize ≥80%.
-- Integration: Postgres + Redis + NATS + LiveKit-test-server (containerized) — full upload→transcode→play→fan-out.
+- Integration: Postgres + Redis + NATS + Azure ACS-test-server (containerized) — full upload→transcode→play→fan-out.
 - Golden: chip grid in dark/light/AMOLED at 4 cell sizes.
 - E2E (Patrol): mod uploads, member plays in voice room, verifies all peers hear.
 - Load: k6 — 200 plays/sec sustained 5 min; verify p95 latency.
@@ -140,7 +140,7 @@ supabase/
 
 ## 9. Dependencies / Blockers
 
-- Depends on: LiveKit (live), Redis (live), Appwrite (live), `voice_service`, `permissions_service`, `moderation_service` hash check.
+- Depends on: Azure ACS (live), Redis (live), Appwrite (live), `voice_service`, `permissions_service`, `moderation_service` hash check.
 - Blocks: nothing critical.
 - External: ffmpeg system package on Railway image (already present for voice transcode).
 
@@ -149,11 +149,11 @@ supabase/
 | Risk | Likelihood | Impact | Mitigation |
 |------|------------|--------|------------|
 | Spam plays even with cooldown | M | M | Per-server global rate cap; auto-disable on reports |
-| LiveKit data-track loss in giant rooms | L | M | Server logs play; `recent` endpoint as fallback |
+| Azure ACS data-track loss in giant rooms | L | M | Server logs play; `recent` endpoint as fallback |
 | ffmpeg crash on malformed file | M | M | Process isolation; 8s hard timeout; retry once |
 | NSFW audio uploaded | M | H | Hash check + report flow + auto-disable |
 | Cooldown Redis flush | L | L | In-process fallback cap 5s/user |
-| Mobile `just_audio` plugin collision with LiveKit audio session | M | M | Mixer service centralizes both; manual session category set |
+| Mobile `just_audio` plugin collision with Azure ACS audio session | M | M | Mixer service centralizes both; manual session category set |
 
 ## 11. Cost Model
 
@@ -163,7 +163,7 @@ supabase/
 | Postgres rows | Supabase free | $0 (<50MB) |
 | Appwrite storage (5k servers × 12 clips × 32 KB opus) | Appwrite free | $0 (<2 GB) |
 | Egress (CDN cached aggressively) | Cloudflare free | $0 |
-| LiveKit data tracks | included | $0 |
+| Azure ACS data tracks | included | $0 |
 | **Total** | | **<$1/mo** |
 
 ## 12. Done Definition
@@ -171,7 +171,7 @@ supabase/
 - [ ] All tasks above checked.
 - [ ] Migration applied to staging and dogfood.
 - [ ] 24 default clips seeded and loadable.
-- [ ] LiveKit data-track end-to-end tested with 4 peers.
+- [ ] Azure ACS data-track end-to-end tested with 4 peers.
 - [ ] Code merged to main behind flag.
 - [ ] Metrics dashboard live.
 - [ ] Beta feedback ≥ 4.0/5 (n ≥ 30 servers).

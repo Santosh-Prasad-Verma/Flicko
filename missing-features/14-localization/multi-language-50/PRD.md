@@ -42,7 +42,7 @@ We need a *zero-budget* path to 50+ supported locales that volunteer translators
 - Translation of user-generated content (UGC) — that is a separate feature [`auto-translate-messages`].
 - Right-to-left mirroring — covered by sibling feature `rtl-support`.
 - Locale-specific number/currency formatting beyond what `intl` ships — covered by `multi-currency`.
-- Voice/TTS localization (different LiveKit voices per language).
+- Voice/TTS localization (different Azure ACS voices per language).
 
 ## 4. Scope (v1)
 

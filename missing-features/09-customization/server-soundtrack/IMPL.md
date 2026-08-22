@@ -7,7 +7,7 @@
 | 0 | Spec freeze + license audit of seed tracks | 4d | PM/Legal |
 | 1 | DB migration 211 | 1d | Backend |
 | 2 | Track ingest pipeline + storage | 3d | Backend |
-| 3 | LiveKit ambient track manager | 5d | Backend |
+| 3 | Azure ACS ambient track manager | 5d | Backend |
 | 4 | Owner settings handler | 2d | Backend |
 | 5 | Mobile player widget + audio session | 5d | Mobile |
 | 6 | Member volume / mute settings | 2d | Mobile |
@@ -28,7 +28,7 @@ Total: ~37d.
   - Server pick/clear/volume.
   - Member pref set.
   - Track listing.
-- [ ] LiveKit manager `backend/internal/services/soundtrack/livekit_manager.go`:
+- [ ] Azure ACS manager `backend/internal/services/soundtrack/azure_acs_manager.go`:
   - Create/destroy ambient room on demand.
   - Publish ambient track from server-side ingest of audio file.
   - Looping logic.
@@ -45,7 +45,7 @@ Total: ~37d.
 ## 3. Mobile Tasks
 
 - [ ] Feature folder `mobile/lib/features/soundtrack/`.
-- [ ] Data: dto + repository + datasource + LiveKit subscriber.
+- [ ] Data: dto + repository + datasource + Azure ACS subscriber.
 - [ ] Domain: entities + usecases.
 - [ ] Application: providers `soundtrack_provider.dart`, `soundtrack_volume_provider.dart`.
 - [ ] Presentation:
@@ -69,7 +69,7 @@ Total: ~37d.
 ```
 backend/
   internal/services/soundtrack/service.go         (new)
-  internal/services/soundtrack/livekit_manager.go (new)
+  internal/services/soundtrack/azure_acs_manager.go (new)
   internal/jobs/soundtrack_ingest.go              (new)
   internal/handlers/soundtrack_handler.go         (new)
   internal/models/soundtrack_track.go             (new)
@@ -88,7 +88,7 @@ supabase/
 ## 6. Test Plan
 
 - Unit: provider transitions; auto-pause matrix (call/background/battery saver).
-- Integration: LiveKit room create/destroy, track switch, member subscribe.
+- Integration: Voice room create/destroy, track switch, member subscribe.
 - E2E: owner picks track → member sees player bar → mute → auto-pause on call.
 - Load: 100 concurrent rooms with 50 listeners each; CPU + bandwidth profiled.
 - Accessibility: player bar reachable by keyboard, mute announced.
@@ -104,12 +104,12 @@ supabase/
 ## 8. Rollback Plan
 
 1. Disable flag — server soundtracks stop, members stop subscribing.
-2. LiveKit rooms torn down by manager on flag flip.
+2. Voice rooms torn down by manager on flag flip.
 3. Leave data; re-enable later.
 
 ## 9. Dependencies / Blockers
 
-- Depends on: existing LiveKit infra (already used for voice).
+- Depends on: existing Azure ACS infra (already used for voice).
 - Depends on: legal sign-off on seed tracks.
 - Blocks: nothing.
 
@@ -117,7 +117,7 @@ supabase/
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|------------|--------|------------|
-| LiveKit cost overrun | M | H | shared room only when listeners present |
+| Azure ACS cost overrun | M | H | shared room only when listeners present |
 | License issue with seed tracks | L | H | track license URL + audit before seed |
 | Battery drain | M | M | auto-pause on background + low-power |
 | Audio ducking fights with TTS / voice | M | M | audio_session category mixed-with-others |
@@ -127,7 +127,7 @@ supabase/
 
 | Component | Free tier? | Estimated $ at 100k DAU |
 |-----------|-----------|--------------------------|
-| LiveKit | self-hosted | $0 (VM cost amortized) |
+| Azure ACS | self-hosted | $0 (VM cost amortized) |
 | Storage | Appwrite free | $0 |
 | Egress | counts | ~$50/mo if 8% adoption |
 | DB | Supabase free | $0 |

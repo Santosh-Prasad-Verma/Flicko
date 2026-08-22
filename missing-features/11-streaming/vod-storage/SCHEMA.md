@@ -28,7 +28,7 @@ CREATE TABLE vods (
   visibility      vod_visibility NOT NULL DEFAULT 'public',
   tier            vod_tier NOT NULL DEFAULT 'hot',
 
-  -- LiveKit egress
+  -- Azure ACS egress
   egress_id       text,
   egress_room     text,
 

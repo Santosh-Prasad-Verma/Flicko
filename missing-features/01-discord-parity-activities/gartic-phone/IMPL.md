@@ -7,7 +7,7 @@
 | 1 | Schema + migration 123 | 1 |
 | 2 | Backend service + handlers + advance worker | 5 |
 | 3 | Mobile lobby + canvas + caption screens | 6 |
-| 4 | LiveKit data-channel sync + reveal | 3 |
+| 4 | voice data-channel sync + reveal | 3 |
 | 5 | QA + a11y + golden tests | 3 |
 | 6 | Beta on internal servers | 3 |
 | 7 | GA | 1 |
@@ -18,7 +18,7 @@
 - [ ] `backend/internal/services/activities/gartic/service.go`
 - [ ] `backend/internal/services/activities/gartic/advance_worker.go` (1 s tick, advances phase on deadline)
 - [ ] `backend/internal/handlers/gartic_handler.go` (POST /activities/gartic/sessions, /:id/join, /:id/start, /:id/prompts, /:id/drawings, /:id/captions, /:id/end)
-- [ ] LiveKit data-channel publisher in `livekit_service.go` extension: `BroadcastGarticState(sessionID)`
+- [ ] voice data-channel publisher in `azure_acs_service.go` extension: `BroadcastGarticState(sessionID)`
 - [ ] Permission: requires CONNECT + SPEAK in voice channel
 - [ ] Audit log entries on session start/end
 - [ ] Metrics: `flicko_gartic_sessions_started_total`, `flicko_gartic_round_seconds`, `flicko_gartic_active_sessions`
@@ -27,7 +27,7 @@
 ## 3. Mobile Tasks
 - [ ] `mobile/lib/features/activities/gartic_phone/` tree (data/domain/application/presentation)
 - [ ] DTOs: GarticSession, GarticChain, GarticArtifact
-- [ ] Repository: `GarticRepository` calling REST + listening to LiveKit data-channel
+- [ ] Repository: `GarticRepository` calling REST + listening to voice data-channel
 - [ ] Riverpod providers: `garticSessionProvider(sessionId)`, `garticPhaseProvider`
 - [ ] Screens: `GarticLobbyScreen`, `GarticPromptScreen`, `GarticDrawingScreen`, `GarticCaptionScreen`, `GarticRevealScreen`
 - [ ] Widgets: `DrawingCanvas` (using `signature` package), `CountdownBar`, `ChainCarousel`
@@ -69,7 +69,7 @@ supabase/migrations/123_gartic_phone.down.sql        (new)
 ## 8. Dependencies
 - Existing voice channel infra.
 - Appwrite bucket creation.
-- LiveKit data-channel pub/sub.
+- voice data-channel pub/sub.
 
 ## 9. Risks
 | Risk | L | I | Mitigation |
@@ -84,7 +84,7 @@ supabase/migrations/123_gartic_phone.down.sql        (new)
 | Compute | $0 (existing pods) |
 | DB | $0 (Supabase free tier) |
 | Storage | <$1 (1 % play, 200 KB avg, 30 d retention) |
-| LiveKit data | $0 (existing) |
+| Azure ACS data | $0 (existing) |
 | **Total** | **<$1/mo** |
 
 ## 11. Done Definition

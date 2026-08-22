@@ -11,7 +11,7 @@
         | LK data (mp-sync)                                        |
         v                                                          v
 +--------------------+    +------------------------+    +-------------------+
-|  LiveKit Cloud     |<-->|  Go Service /api/v1/mp |<-->|  Postgres         |
+|  Azure ACS Cloud     |<-->|  Go Service /api/v1/mp |<-->|  Postgres         |
 |  data: mp-sync     |    |  Chi router            |    |  mp_sessions      |
 +--------------------+    +------------------------+    |  mp_queue         |
                                   |          |          +-------------------+
@@ -26,7 +26,7 @@
 - **DJ** authenticates Spotify (OAuth Authorization Code with PKCE), holds the active playback device, drives the queue.
 - **Listeners (Premium)** connect their Spotify devices and play the same URI at the same position.
 - **Listeners (Free)** play 30 s preview MP3 (no Spotify auth needed) via `audioplayers`.
-- **LiveKit data channel `mp-sync`** carries `TrackAnchor` frames; durable state lives in Redis + Postgres.
+- **voice data channel `mp-sync`** carries `TrackAnchor` frames; durable state lives in Redis + Postgres.
 
 ## REST Routes
 Base: `/api/v1/mp`
@@ -73,7 +73,7 @@ POST `/sessions/:id/queue`
 }
 ```
 
-LiveKit data payload (TrackAnchor)
+Azure ACS data payload (TrackAnchor)
 ```json
 {
   "v": 1,

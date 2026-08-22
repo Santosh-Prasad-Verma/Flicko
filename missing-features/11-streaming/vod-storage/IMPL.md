@@ -9,7 +9,7 @@ Goal: every public stream produces a playable HLS VOD within 5 minutes of stream
 ### Backend
 
 - [ ] Apply migration `230_vod_storage.sql` (vods, vod_segments, vod_chapters, RLS, indexes).
-- [ ] `backend/internal/vod/recorder/`: NATS subscriber for `livekit.egress.*`. Maintains an in-memory map of active egresses keyed by `egress_id`.
+- [ ] `backend/internal/vod/recorder/`: NATS subscriber for `azure_acs.egress.*`. Maintains an in-memory map of active egresses keyed by `egress_id`.
 - [ ] `recorder.HandleSegment`: chunkedUpload to Appwrite bucket `vod-hot`, returns `hot_url + etag`, then `INSERT INTO vod_segments`.
 - [ ] `recorder.HandleClose`: writes master.m3u8 to Appwrite, updates `vods.status='ready'`, publishes `flicko.vod.finalize`.
 - [ ] `backend/internal/handlers/vod/get.go`: `GET /vods/:id` — joins vods + chapters + signed manifest URL.
@@ -31,7 +31,7 @@ Goal: every public stream produces a playable HLS VOD within 5 minutes of stream
 - Go: `recorder_test.go` with in-memory NATS + fake Appwrite client. Verify segment idempotency on dup NATS deliveries.
 - Go: `handlers/vod/get_test.go` for RLS edge cases (subscriber-only, deleted, errored).
 - Flutter: widget test for `vod_player_screen` happy path + error path.
-- E2E: spawn LiveKit locally, push 30 s of test video, assert a VOD row reaches `status=ready` and the manifest plays in headless Chrome.
+- E2E: spawn Azure ACS locally, push 30 s of test video, assert a VOD row reaches `status=ready` and the manifest plays in headless Chrome.
 
 ### Exit criteria
 
@@ -104,7 +104,7 @@ Goal: every public stream produces a playable HLS VOD within 5 minutes of stream
 
 ## $0 Cost Path
 
-- LiveKit OSS self-hosted on existing K3s cluster.
+- Azure ACS OSS self-hosted on existing K3s cluster.
 - Appwrite OSS already running for hot media; reuse the existing bucket replication.
 - R2 free tier: 10 GB storage + 1 M Class A ops/mo covers MVP for ~30 creators streaming 4 h/wk each.
 - Whisper.cpp on the existing GPU spot instance during off-peak (2-7 AM) with NATS backpressure; CPU fallback on idle workers.

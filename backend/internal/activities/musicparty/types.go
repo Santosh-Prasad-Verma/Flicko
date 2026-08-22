@@ -193,11 +193,10 @@ type JoinRequest struct {
 // ── REST Responses ─────────────────────────────────────────────
 
 type JoinSessionResponse struct {
-	Session      *MPSession     `json:"session"`
-	Queue        []*MPQueueItem `json:"queue"`
-	Anchor       *AnchorState   `json:"anchor,omitempty"`
-	VoiceToken   string         `json:"voice_token"`
-	LiveKitToken string         `json:"livekit_token,omitempty"`
+	Session    *MPSession     `json:"session"`
+	Queue      []*MPQueueItem `json:"queue"`
+	Anchor     *AnchorState   `json:"anchor,omitempty"`
+	VoiceToken string         `json:"voice_token"`
 }
 
 type AnchorState struct {
@@ -216,7 +215,7 @@ type SkipVoteStatus struct {
 	Reached      bool    `json:"reached"`
 }
 
-// ── LiveKit Data Channel ───────────────────────────────────────
+// ── Voice & Activity Data Sync ───────────────────────────────────────
 
 type SyncFrame struct {
 	Version   int    `json:"v"`

@@ -11,7 +11,7 @@ voice session end → trigger → fetch egress audio →
 
 ## Components
 - Backend: `backend/internal/services/ai/meeting_notes/{trigger,fetch,transcribe,summarize,publish}.go`
-- Egress consumer (LiveKit Egress webhook).
+- Egress consumer (Azure Media Egress webhook).
 - Whisper.cpp or whisper.cpp+pyannote container worker.
 - Groq client wrapper.
 - Reuses `task_service` for action items.

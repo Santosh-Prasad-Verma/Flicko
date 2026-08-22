@@ -25,7 +25,7 @@
               +--------+----------+                              +----------+--------+
                        |                                                    |
                        | 1) pull HLS segments around (now - N) .. now       |
-                       |    from LiveKit Egress hot path or vod_segments    |
+                       |    from Azure Media Egress hot path or vod_segments    |
                        | 2) ffmpeg concat + trim + mux MP4 + thumbnail      |
                        | 3) chunkedUpload to Appwrite bucket clips-hot      |
                        | 4) UPDATE clips SET status=ready, mp4_url=...      |
@@ -36,7 +36,7 @@
                   CDN -> viewers
 ```
 
-In-flight live clip path uses the LiveKit Egress segment ring buffer (last 5 minutes) which `vod-recorder` already writes to Appwrite. The clip worker reads from that buffer; for clips beyond 5 minutes back or when the stream has ended, it reads from `vod_segments`.
+In-flight live clip path uses the Azure Media Egress segment ring buffer (last 5 minutes) which `vod-recorder` already writes to Appwrite. The clip worker reads from that buffer; for clips beyond 5 minutes back or when the stream has ended, it reads from `vod_segments`.
 
 ## REST Routes
 
@@ -104,7 +104,7 @@ ffmpeg -ss <t_start> -i <concat_list.txt> -t <duration> \
        <out.mp4>
 ```
 
-For inputs already H.264 with aligned keyframes (always true since LiveKit egress uses 2 s GOP), we use `-c copy` when t_start hits a keyframe boundary, dropping CPU cost ~10x. The worker checks segment IDR locations and chooses copy vs reencode.
+For inputs already H.264 with aligned keyframes (always true since Azure ACS egress uses 2 s GOP), we use `-c copy` when t_start hits a keyframe boundary, dropping CPU cost ~10x. The worker checks segment IDR locations and chooses copy vs reencode.
 
 Average clip render: 60 s clip ~ 1.4 s wall on a 4-vCPU worker (copy mode), ~4.5 s on reencode.
 

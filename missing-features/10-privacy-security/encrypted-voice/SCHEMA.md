@@ -159,7 +159,7 @@ COMMIT;
 |-----|-------|-----|
 | `e2ee:voice:epoch:<channel_id>` | int | 1h |
 | `e2ee:voice:fingerprint:<user_id>` | string | 24h |
-| `e2ee:voice:livekit_token:<user_id>:<channel_id>` | JWT | 5m |
+| `e2ee:voice:azure_acs_token:<user_id>:<channel_id>` | JWT | 5m |
 
 **Important:** keys themselves are *never* cached. Only metadata.
 
@@ -173,14 +173,14 @@ Not applicable.
 
 ## 8. Object Storage
 
-No persistent media storage. LiveKit relays only. Recording bucket is explicitly *not* configured for E2EE channels.
+No persistent media storage. Azure ACS relays only. Recording bucket is explicitly *not* configured for E2EE channels.
 
 ## 9. Data Retention
 
 - Sealed envelopes: retained until consumed by recipient + 24h (replay protection grace), then hard-deleted.
 - Epoch records: retained 90d for debugging then archived.
 - Fingerprints: retained as long as user account exists.
-- LiveKit metadata (call duration, participant list): 90d.
+- Azure ACS metadata (call duration, participant list): 90d.
 - **Audio content: never stored.**
 
 ## 10. Sample Queries

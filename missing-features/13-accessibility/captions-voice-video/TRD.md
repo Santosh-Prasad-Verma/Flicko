@@ -5,7 +5,7 @@
 ```
 ┌────────────────────────────────────────────────────────────────────┐
 │ Speaker (Mobile)                                                   │
-│   mic → SFU (LiveKit/Janus) → audio frames                        │
+│   mic → SFU (Azure ACS/Janus) → audio frames                        │
 └────────────────────────────────────────────────────────────────────┘
                                 │
                                 ▼
@@ -140,7 +140,7 @@ PATCH  /api/v1/users/me/preferences                  caption prefs
 
 ## 6. Dependencies
 
-- Existing services: `voice_service` (LiveKit/Janus SFU), `centrifugo`, `nats_publisher`, `safety_service` (PII redaction).
+- Existing services: `voice_service` (Azure ACS/Janus SFU), `centrifugo`, `nats_publisher`, `safety_service` (PII redaction).
 - New backend: ASR streaming client.
 - External APIs: Groq Whisper streaming.
 - Mobile package: existing `web_socket_channel`.

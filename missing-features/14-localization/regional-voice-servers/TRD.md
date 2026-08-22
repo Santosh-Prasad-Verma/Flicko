@@ -12,7 +12,7 @@
         │                          │                              │
         ▼                          ▼                              ▼
 ┌──────────────┐           ┌──────────────┐              ┌──────────────┐
-│ LiveKit      │           │ LiveKit      │              │ LiveKit      │
+│ Azure ACS      │           │ Azure ACS      │              │ Azure ACS      │
 │ na-east      │  feder.   │ eu-west      │     feder.   │ ap-southeast │
 │ (us-east-1)  │◀─────────▶│ (Frankfurt)  │◀────────────▶│ (Tokyo)      │
 └──────┬───────┘           └──────┬───────┘              └──────┬───────┘
@@ -51,7 +51,7 @@ Six regions:
 - **Worker:** `backend/internal/services/i18n/regional-voice-servers/health_worker.go` (every 30s)
 - **Handlers:** `backend/internal/handlers/voice/sessions_handler.go`, `regions_handler.go`
 - **Repo:** `voice_regions_repo.go`, `voice_session_metrics_repo.go`
-- **LiveKit SDK:** `github.com/livekit/server-sdk-go v2.0`
+- **Azure ACS SDK:** `github.com/azure_acs/server-sdk-go v2.0`
 
 ### Mobile (Flutter)
 - **Cross-cutting:** `mobile/lib/core/voice/`
@@ -60,15 +60,15 @@ Six regions:
   - `application/voice_session_provider.dart`
   - `presentation/voice_settings_screen.dart`
   - `presentation/quality_banner.dart`
-- **LiveKit SDK:** `livekit_client: ^2.4.0`
+- **Azure ACS SDK:** `azure_communication_calling: ^2.4.0`
 - **Ping test util:** `mobile/lib/core/voice/ping/ping_test.dart` — parallel HTTPS HEAD with `Stopwatch`
 
 ### Infra (Terraform / Kubernetes manifests in `infra/`)
-- `infra/livekit/<region>/`: per-region cluster (helm values, ingress)
+- `infra/azure_acs/<region>/`: per-region cluster (helm values, ingress)
 - Cloudflare DNS: `<region>.voice.flicko.app` → regional ingress
-- TURN server: bundled with LiveKit
+- TURN server: bundled with Azure ACS
 - Health check: `/health` returns JSON with version + load
-- Regional Redis for LiveKit session state
+- Regional Redis for Azure ACS session state
 
 ## 3. API Contracts
 
@@ -131,7 +131,7 @@ POST   /api/v1/voice/sessions/:id/failover         move room to next-best region
 ## 4. Permissions & Auth
 
 - All voice endpoints require user JWT.
-- LiveKit access tokens minted server-side with strict TTL (1h, refresh on demand).
+- Azure ACS access tokens minted server-side with strict TTL (1h, refresh on demand).
 - Server admin pin: requires `voice.admin` server role.
 - Health endpoint public (only returns boolean + load%).
 
@@ -156,12 +156,12 @@ POST   /api/v1/voice/sessions/:id/failover         move room to next-best region
 - `profile_service` (user pin)
 
 ### New libraries
-- Go: `github.com/livekit/server-sdk-go v2.0` — token + room mgmt
-- Flutter: `livekit_client: ^2.4.0`
+- Go: `github.com/azure_acs/server-sdk-go v2.0` — token + room mgmt
+- Flutter: `azure_communication_calling: ^2.4.0`
 - Flutter: `http: ^1.2.0` for ping test (already in project)
 
 ### External
-- LiveKit Cloud (or self-hosted on Hetzner) for media plane
+- Azure ACS Cloud (or self-hosted on Hetzner) for media plane
 - Cloudflare for edge DNS + health proxy
 - (Optional) Hetzner / Fly.io for self-host edges later
 
@@ -174,7 +174,7 @@ POST   /api/v1/voice/sessions/:id/failover         move room to next-best region
   - `flicko_voice_failover_total{from,to}` — counter
   - `flicko_voice_session_duration_seconds{region}` — histogram
 - Logs: WARN on health-check fail; ERROR on no-region-available
-- Traces: OTel span on session-create wrapping picker → token-mint → LiveKit-call
+- Traces: OTel span on session-create wrapping picker → token-mint → Azure ACS-call
 - Dashboards: Grafana board "voice.regions" — health, load, picks, failover
 
 ## 8. Failure Modes & Mitigation
@@ -216,7 +216,7 @@ func PickRegion(scores map[participantID]map[regionCode]Score, healthy []string)
 - Backend pulls KV every 30s, updates `voice_regions` table.
 
 ### Federation
-- LiveKit Cloud: federation auto.
+- Azure ACS Cloud: federation auto.
 - Self-host: configure inter-cluster mesh via NATS-JetStream + media bridge.
 
 ### Token issuance
@@ -243,7 +243,7 @@ Future<Score> _pingOnce(Region r) async {
 ## 10. Testing Strategy
 
 - Unit (Go): picker correctness on randomized scores; assert "worst case" minimization.
-- Integration: spin LiveKit dev cluster; assert tokens work cross-region.
+- Integration: spin Azure ACS dev cluster; assert tokens work cross-region.
 - Load: k6 — 1000 simultaneous joins from synthetic clients across 3 regions.
 - Failover drill: kill one region in staging; assert failover < 5s.
 - E2E (Maestro): join voice channel from emulator with location override; assert region selected.

@@ -1,18 +1,18 @@
 # TRD: Watch Parties for Any Video
 
 ## Architecture Overview
-Watch parties are a coordination layer over existing infrastructure. Flicko never proxies media: every client fetches the source from its provider directly. The backend is responsible for party lifecycle, host election, participant tracking, and authoritative timestamps that survive host churn. LiveKit data channels deliver low-latency sync messages; Postgres (via Supabase) is the durable store; Redis pub/sub fans out party events to the gateway WebSocket.
+Watch parties are a coordination layer over existing infrastructure. Flicko never proxies media: every client fetches the source from its provider directly. The backend is responsible for party lifecycle, host election, participant tracking, and authoritative timestamps that survive host churn. voice data channels deliver low-latency sync messages; Postgres (via Supabase) is the durable store; Redis pub/sub fans out party events to the gateway WebSocket.
 
 ```
 Client (Flutter)
   |- ProviderPlayer (YouTube IFrame / Twitch Embed / Vimeo / video_player)
-  |- LiveKit DataChannel (sync ticks, reactions)
+  |- Voice DataChannel (sync ticks, reactions)
   |- Gateway WS (chat sidebar, presence, lifecycle)
 Backend (Go)
   |- watch_parties module: REST + gateway events
   |- host_election worker: heartbeat scanner
   |- provider resolver: oEmbed + URL parsers
-LiveKit (data channel only for sync)
+Azure ACS (data channel only for sync)
 Supabase Postgres (parties, participants, providers)
 ```
 
@@ -44,7 +44,7 @@ type ResolvedMedia struct {
 Implementations: `youtube`, `twitch`, `vimeo`, `mp4`. Registry sits in `provider_resolver.go` keyed by hostname patterns. Unknown URLs fall through to `mp4` with a `HEAD` probe to validate `Content-Type`. The resolved record is cached in `watch_party_providers` for 24 hours so a repeated paste does not retrigger oEmbed calls.
 
 ## Sync Protocol
-The host emits a `tick` payload every 2 seconds on the LiveKit data channel topic `wp.sync`:
+The host emits a `tick` payload every 2 seconds on the voice data channel topic `wp.sync`:
 
 ```json
 {
@@ -72,7 +72,7 @@ A backend goroutine scans `watch_party_participants` every second for parties wh
 
 ## REST Endpoints
 - `POST /api/v1/watch-parties/resolve` body `{url}` returns provider metadata.
-- `POST /api/v1/watch-parties` body `{server_id, channel_id, provider, external_id, scheduled_for?}` creates a party, returns its ID and the LiveKit token.
+- `POST /api/v1/watch-parties` body `{server_id, channel_id, provider, external_id, scheduled_for?}` creates a party, returns its ID and the Azure ACS voice token.
 - `POST /api/v1/watch-parties/:id/join` returns a join token and the latest authoritative tick.
 - `POST /api/v1/watch-parties/:id/command` body `{command, payload}` host-only commands.
 - `POST /api/v1/watch-parties/:id/leave` removes the participant; if host, triggers immediate election.
@@ -89,14 +89,14 @@ Pushed over the existing WebSocket gateway:
 - `watch_party.command` (mirror of host commands for late joiners)
 
 ## Performance and Capacity
-- Tick fan-out is handled by LiveKit; backend cost is fixed per party at roughly 0.5 RPS for heartbeats.
+- Tick fan-out is handled by Azure ACS; backend cost is fixed per party at roughly 0.5 RPS for heartbeats.
 - 250 concurrent participants per party. Beyond that, reactions are aggregated server-side every 2 seconds into bucketed counters.
 - Provider resolver cache hit ratio target above 80 percent within a server.
 
 ## Failure Modes
 - **Provider down**: resolver returns `provider_unavailable`; client suggests retry with a different URL.
 - **Live source ends**: client emits `source_ended`; backend pauses party and prompts host.
-- **LiveKit data channel disconnect**: client falls back to gateway WS sync ticks at 1 Hz with a banner indicating degraded sync.
+- **voice data channel disconnect**: client falls back to gateway WS sync ticks at 1 Hz with a banner indicating degraded sync.
 - **Postgres write failure during election**: election retries up to 3 times with jittered backoff; failure marks the party `paused`.
 
 ## Security

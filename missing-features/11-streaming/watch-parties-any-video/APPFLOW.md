@@ -7,7 +7,7 @@ sequenceDiagram
     participant H as Host
     participant API as Backend
     participant DB as Supabase
-    participant LK as LiveKit DataChannel
+    participant LK as Voice DataChannel
     participant V as Viewers
 
     H->>API: POST /watch-parties {url, channel_id}

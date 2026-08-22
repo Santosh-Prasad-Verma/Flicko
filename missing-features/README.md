@@ -13,8 +13,8 @@ This directory contains a per-feature build dossier for everything not yet imple
 
 ## Stack assumptions
 
-- **Backend:** Go (Chi), Azure Postgres, Centrifugo, Azure Managed Redis, LiveKit, Azure Blob Storage, Azure Key Vault secrets
-- **Mobile:** Flutter, Riverpod, Hive/Isar, Firebase FCM, Supabase Realtime, LiveKit client
+- **Backend:** Go (Chi), Azure Postgres, Centrifugo, Azure Managed Redis, Azure ACS, Azure Blob Storage, Azure Key Vault secrets
+- **Mobile:** Flutter, Riverpod, Hive/Isar, Firebase FCM, Supabase Realtime, Azure ACS VoIP client
 - **AI:** Ollama (self-hosted) + Groq (cloud free), Whisper, LibreTranslate, Stable Diffusion / Pollinations
 - **Search:** Meilisearch (lexical) + Qdrant (vector)
 - **All choices target $0 monthly cost during build**

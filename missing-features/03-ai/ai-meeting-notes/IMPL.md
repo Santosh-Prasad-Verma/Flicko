@@ -5,7 +5,7 @@
 |---|------|------|
 | 0 | Spec + privacy review | 3 |
 | 1 | Migration 138 | 1 |
-| 2 | LiveKit Egress hookup | 3 |
+| 2 | Azure Media Egress hookup | 3 |
 | 3 | Whisper + diarization worker | 5 |
 | 4 | Groq summarizer + structured prompt | 3 |
 | 5 | Publisher | 2 |
@@ -19,7 +19,7 @@
 - [ ] `backend/internal/services/ai/meeting_notes/{trigger,fetch,transcribe,summarize,publish}.go`
 - [ ] `backend/internal/services/ai/meeting_notes/prompts/summarize.md`
 - [ ] `backend/internal/handlers/meeting_notes_handler.go`
-- [ ] LiveKit Egress webhook handler
+- [ ] Azure Media Egress webhook handler
 - [ ] Worker pod with Whisper.cpp + pyannote
 - [ ] Metrics + Sentry
 

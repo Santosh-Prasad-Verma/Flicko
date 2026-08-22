@@ -18,7 +18,7 @@ The funniest, most surprising, and most viral moments of a stream happen in 5 to
 
 In:
 - "Clip the last N seconds" button in the live player (30 / 60 / 90 default; 5-300 s allowed for creator and mods).
-- Server-side clip job: pull last-N from LiveKit Egress segment buffer or from in-progress VOD, ffmpeg trim to MP4 (H.264 + AAC, faststart).
+- Server-side clip job: pull last-N from Azure Media Egress segment buffer or from in-progress VOD, ffmpeg trim to MP4 (H.264 + AAC, faststart).
 - NATS subject `flicko.clips.transcode` fan-out to ffmpeg workers.
 - Auto-thumbnail at 50% of clip duration, plus an "edit thumbnail" frame picker.
 - Auto-title from chapter context if available, else "Clip from <stream title>".

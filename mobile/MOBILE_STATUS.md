@@ -4,7 +4,7 @@ This report summarizes the progress of the React Native (Expo) to Flutter migrat
 
 ## 📊 Overview
 - **Objective**: 100% feature parity with the React Native codebase.
-- **Architecture**: Riverpod (State Management), GoRouter (Navigation), Supabase (Auth/Database), LiveKit (Voice/Video).
+- **Architecture**: Riverpod (State Management), GoRouter (Navigation), Supabase (Auth/Database), Azure ACS VoIP (Voice/Video).
 - **Current Completion**: ~78% (Core loops + High Priority screens implemented).
 
 ---
@@ -28,7 +28,7 @@ This report summarizes the progress of the React Native (Expo) to Flutter migrat
 - **Interactive Features**: Message grouping, sender metadata, and real-time message broadcasting.
 - **Server Management**: Discovery list, Server creation dialogs, and joining logic.
 
-### 4. Voice Chat (LiveKit)
+### 4. Voice Chat (Azure ACS VoIP / WebRTC)
 - **Voice Controller**: Sophisticated session management for audio-only rooms.
 - **Active UI**: `VoiceHUD` floating bar and `ActiveSpeakerIndicator` (green rings) for speaking users.
 - **Permission Flow**: Integrated hardware access requests with graceful error handling and settings deep-links.

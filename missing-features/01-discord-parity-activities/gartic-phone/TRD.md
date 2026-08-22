@@ -4,7 +4,7 @@
 
 ```
 +------------------+        +-------------------+        +------------------+
-|  Player A        |  data  |  LiveKit Cloud    |  data  |  Player B        |
+|  Player A        |  data  |  Azure ACS Cloud    |  data  |  Player B        |
 |  (Flutter)       |<------>|  topic: gp-sync   |<------>|  (Flutter)       |
 +--------+---------+        +-----+-------------+        +--------+---------+
          |                        |                              |
@@ -88,7 +88,7 @@ POST `/sessions/:id/rounds/:roundId/submit` (drawing)
 }
 ```
 
-LiveKit data payload (RoundEvent)
+Azure ACS data payload (RoundEvent)
 ```json
 {
   "v": 1,

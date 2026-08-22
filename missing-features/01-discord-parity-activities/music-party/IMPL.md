@@ -22,7 +22,7 @@
 
 ## Phase 2 — Sync + Anchor (week 2)
 - Anchor publish/get endpoints.
-- LiveKit data channel `mp-sync` with TrackAnchor msgpack.
+- voice data channel `mp-sync` with TrackAnchor msgpack.
 - Drift logic on listener client.
 
 ## Phase 3 — Mobile Player (week 3)
@@ -76,7 +76,7 @@
 - [ ] Cron: purge ended sessions older than 24 h.
 
 ## Mobile Task List
-- [ ] Add packages: `flutter_spotify_remote`, `audioplayers`, `livekit_client`, `msgpack_dart`.
+- [ ] Add packages: `flutter_spotify_remote`, `audioplayers`, `azure_communication_calling`, `msgpack_dart`.
 - [ ] Spotify auth provider with token storage in secure storage.
 - [ ] Now playing screen: DJ vs Listener variants.
 - [ ] Queue list with drag-handle reorder (DJ only).
@@ -90,7 +90,7 @@
 ## Test Plan
 - **Unit (Go)**: rotation tie-break, vote threshold math, Redis sorted-set queue ops, allowlist URI parsing.
 - **Unit (Dart)**: drift_engine for music, queue ordering, Spotify auth state machine.
-- **Integration**: wiremock Spotify API + livekit-server Docker.
+- **Integration**: wiremock Spotify API + azure_acs-server Docker.
 - **E2E**: Patrol test creates session, adds 3 tracks, plays, vote-skips.
 - **Soak**: 25 listeners, 60 min, drift p95 logged.
 - **Chaos**: kill DJ, revoke token, network drop; assert recovery.
@@ -109,7 +109,7 @@ Rollback: flag off, in-flight sessions complete, no new ones.
 
 ## Cost Model ($0)
 - Spotify Web Playback / App Remote: free for end users with their own accounts.
-- LiveKit Cloud free tier: 100 MAU + 10 GB bandwidth (data channel ≪ video; ample headroom).
+- Azure ACS Cloud free tier: 100 MAU + 10 GB bandwidth (data channel ≪ video; ample headroom).
 - Supabase free: tables small (track rows < 500 B).
 - Upstash Redis free: ~5 ops/track + 1 anchor/4 s × 25 listeners × 50 sessions ≈ 25k ops/day at peak. Stay under 10k/day on average by skipping anchor writes when state unchanged.
 - Appwrite Storage free: 2 GB; album-art cache fits comfortably.

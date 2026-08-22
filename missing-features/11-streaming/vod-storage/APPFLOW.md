@@ -6,7 +6,7 @@
 sequenceDiagram
     autonumber
     participant Streamer
-    participant LiveKit as LiveKit Ingress+Egress
+    participant Azure ACS as Azure Media Ingress+Egress
     participant Rec as vod-recorder (Go)
     participant AW as Appwrite Storage (hot)
     participant DB as Postgres (vods, vod_segments)
@@ -14,17 +14,17 @@ sequenceDiagram
     participant Whisper as whisper-worker
     participant Viewer
 
-    Streamer->>LiveKit: RTMP publish
-    LiveKit-->>Rec: Egress started (HLS)
+    Streamer->>Azure ACS: RTMP publish
+    Azure ACS-->>Rec: Egress started (HLS)
     Rec->>DB: INSERT vods (status=recording)
     loop every 6s segment
-        LiveKit-->>Rec: segment_N.m4s + master.m3u8
+        Azure ACS-->>Rec: segment_N.m4s + master.m3u8
         Rec->>AW: chunkedUpload(segment_N.m4s)
         Rec->>DB: INSERT vod_segments(seq=N, hot_url=...)
         Rec->>NATS: flicko.vod.segment_written
     end
-    Streamer->>LiveKit: end stream
-    LiveKit-->>Rec: egress closed
+    Streamer->>Azure ACS: end stream
+    Azure ACS-->>Rec: egress closed
     Rec->>DB: UPDATE vods SET status=ready, ended_at=now()
     Rec->>NATS: flicko.vod.finalize
     NATS-->>Whisper: deliver finalize event
@@ -114,7 +114,7 @@ A `gone` segment is one whose row remains for accounting but the bytes are delet
 
 ## Edge Cases
 
-1. **Egress crash mid-stream**: `vod-recorder` watches NATS heartbeat from LiveKit. If gap > 30 s, it inserts a sentinel `vod_segments` row with `is_gap=true`. On finalize, status flips to `ready` regardless. Player reads `is_gap` and inserts an HLS discontinuity.
+1. **Egress crash mid-stream**: `vod-recorder` watches NATS heartbeat from Azure ACS. If gap > 30 s, it inserts a sentinel `vod_segments` row with `is_gap=true`. On finalize, status flips to `ready` regardless. Player reads `is_gap` and inserts an HLS discontinuity.
 
 2. **Creator deletes during recording**: status moves `recording -> errored`, the recorder swallows further segments, and a tombstone is written. The R2 archiver skips errored VODs.
 

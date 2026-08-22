@@ -7,7 +7,7 @@ This roadmap tracks the completion of all features for the Flicko Flutter applic
 **Final Status:**
 - **Completion:** 100% ✅
 - **Lines of Code:** 53,248 (Flutter) vs 64,000 (React Native)
-- **Architecture:** Riverpod State Management, GoRouter, Supabase (Auth/Realtime), Appwrite (Storage), LiveKit (Voice/Video).
+- **Architecture:** Riverpod State Management, GoRouter, Supabase (Auth/Realtime), Appwrite (Storage), Azure ACS VoIP (Voice/Video).
 
 ---
 
@@ -15,7 +15,7 @@ This roadmap tracks the completion of all features for the Flicko Flutter applic
 
 - ✅ **Auth System:** Login, Register, Password Reset, OAuth (Google/Apple), Biometrics.
 - ✅ **Messaging Engine:** Text, Markdown, Image/GIF/Voice uploads, Reactions, Editing, Deletion, Threading, Search.
-- ✅ **Voice & Video:** LiveKit integration, Video Grid, Screen Sharing, Voice HUD, Soundboard UI, Activity Picker.
+- ✅ **Voice & Video:** Azure ACS VoIP integration, Video Grid, Screen Sharing, Voice HUD, Soundboard UI, Activity Picker.
 - ✅ **Presence:** Real-time online/idle/dnd status, Typing indicators, Push Notifications (FCM).
 - ✅ **Server/DM Shell:** Navigation rail, Channel sidebars, Server Discovery, Server Creation.
 - ✅ **Profile Management:** Edit profile, Public profiles, Mutual servers, Private notes, Block/Report.

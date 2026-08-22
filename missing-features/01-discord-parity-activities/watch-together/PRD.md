@@ -31,7 +31,7 @@ Friends in a Flicko voice channel currently have to count down "3, 2, 1, play" o
 - DRM-protected content (Netflix, Prime). Out of scope forever — legally hostile.
 - Picture-in-picture multi-stream.
 - Subtitles upload by users (later — likely v2 with WebVTT).
-- More than 12 simultaneous viewers (LiveKit free tier ceiling).
+- More than 12 simultaneous viewers (Azure ACS free tier ceiling).
 - Server-side transcoding.
 
 ## Success Metrics
@@ -49,7 +49,7 @@ Friends in a Flicko voice channel currently have to count down "3, 2, 1, play" o
 | Scener | Free w/ ads | Netflix, HBO | 10 | Browser extension | Requires desktop |
 | Teleparty | Free | Netflix, Disney+ | 50 | Extension | No mobile |
 | Kosmi | Free | YouTube, custom | 10 | WebRTC + manual sync | Buggy mobile |
-| **Flicko Watch Together** | **$0** | **YouTube, Vimeo, MP4/HLS, Appwrite** | **12** | **LiveKit data channel** | **Mobile-first** |
+| **Flicko Watch Together** | **$0** | **YouTube, Vimeo, MP4/HLS, Appwrite** | **12** | **voice data channel** | **Mobile-first** |
 
 ## Risks & Mitigations
 - **YouTube ToS** — only public videos, embed-only, no scraping. Display creator credit.
