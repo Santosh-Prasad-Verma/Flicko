@@ -542,3 +542,125 @@ func TestGatewayRouting(t *testing.T) {
 		t.Errorf("got payload %q, want %q", deliveredPayload.Load(), "hello-private")
 	}
 }
+
+func TestUnsubscribeDuringReconnect(t *testing.T) {
+	// Regression test for the reconnect race condition: if a subscription is
+	// unsubscribed while a reconnect is in progress, the reconnect should detect
+	// this and abort rather than reinstalling a zombie subscription.
+	rdb, mr, rec := setup(t)
+	ps := newPS(t, rdb, rec, 2)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	if err := ps.Start(ctx); err != nil {
+		t.Fatal(err)
+	}
+	defer ps.Stop()
+
+	// Subscribe to a channel
+	if err := ps.Subscribe(ctx, "reconnect-test"); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(50 * time.Millisecond)
+
+	// Verify subscription is active
+	snap := ps.MetricSnapshot()
+	if snap.ActiveSubscriptions != 1 {
+		t.Fatalf("expected 1 active subscription, got %d", snap.ActiveSubscriptions)
+	}
+
+	// Simulate Redis connection failure by restarting miniredis.
+	// This will cause the reader goroutine to detect channel closure and attempt reconnect.
+	mr.Close()
+
+	// Give the reader time to detect the closure and start reconnecting
+	time.Sleep(100 * time.Millisecond)
+
+	// While reconnect is in progress, unsubscribe
+	if err := ps.Unsubscribe("reconnect-test"); err != nil {
+		t.Fatal(err)
+	}
+
+	// Restart miniredis to allow reconnect attempts to succeed
+	mr.Restart()
+
+	// Wait for reconnect attempts to complete
+	time.Sleep(2 * time.Second)
+
+	// Verify that the subscription remains unsubscribed (no zombie subscription)
+	snap = ps.MetricSnapshot()
+	if snap.ActiveSubscriptions != 0 {
+		t.Errorf("expected 0 active subscriptions after unsubscribe during reconnect, got %d", snap.ActiveSubscriptions)
+	}
+
+	// Publish a message — should not be delivered since we unsubscribed
+	if err := ps.Publish(ctx, "reconnect-test", []byte("zombie-test")); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(200 * time.Millisecond)
+
+	if rec.Len() != 0 {
+		t.Errorf("expected 0 messages after unsubscribe during reconnect, got %d", rec.Len())
+	}
+}
+
+func TestResubscribeDuringReconnect(t *testing.T) {
+	// Regression test for the reconnect race condition: if a subscription is
+	// unsubscribed and then re-subscribed while a reconnect is in progress,
+	// the reconnect should detect the subscription was replaced and abort.
+	rdb, mr, rec := setup(t)
+	ps := newPS(t, rdb, rec, 2)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	if err := ps.Start(ctx); err != nil {
+		t.Fatal(err)
+	}
+	defer ps.Stop()
+
+	// Subscribe to a channel
+	if err := ps.Subscribe(ctx, "resubscribe-test"); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(50 * time.Millisecond)
+
+	// Simulate Redis connection failure
+	mr.Close()
+	time.Sleep(100 * time.Millisecond)
+
+	// While reconnect is in progress, unsubscribe and resubscribe
+	if err := ps.Unsubscribe("resubscribe-test"); err != nil {
+		t.Fatal(err)
+	}
+
+	// Restart miniredis before resubscribing
+	mr.Restart()
+	time.Sleep(100 * time.Millisecond)
+
+	if err := ps.Subscribe(ctx, "resubscribe-test"); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(100 * time.Millisecond)
+
+	// Wait for any stale reconnect attempts to complete
+	time.Sleep(2 * time.Second)
+
+	// Should have exactly 1 active subscription (the new one)
+	snap := ps.MetricSnapshot()
+	if snap.ActiveSubscriptions != 1 {
+		t.Errorf("expected 1 active subscription after resubscribe, got %d", snap.ActiveSubscriptions)
+	}
+
+	// Publish a message — should be delivered exactly once
+	if err := ps.Publish(ctx, "resubscribe-test", []byte("resubscribe-msg")); err != nil {
+		t.Fatal(err)
+	}
+
+	waitFor(t, 2*time.Second, func() bool { return rec.Len() >= 1 })
+
+	if rec.Len() != 1 {
+		t.Errorf("expected 1 message after resubscribe during reconnect, got %d (duplicate delivery indicates zombie subscription)", rec.Len())
+	}
+}

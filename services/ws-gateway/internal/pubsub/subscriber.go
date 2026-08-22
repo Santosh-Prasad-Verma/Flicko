@@ -193,7 +193,33 @@ func (ps *RedisPubSub) reader(ctx context.Context, cancel context.CancelFunc, to
 						continue
 					}
 
-					// Successfully reconnected — update the subscription store with the new sub and same cancel func.
+					// Successfully reconnected — atomically verify the original subscription is still active
+					// before installing the replacement. If it was concurrently unsubscribed or replaced,
+					// close newSub and abort reconnect to prevent zombie subscriptions.
+					val, loaded := ps.subscribers.Load(topic)
+					if !loaded {
+						// Subscription was removed (unsubscribed) during reconnect — abort.
+						newSub.Close()
+						ps.log.Info("reconnect aborted: subscription was removed",
+							zap.String("topic", topic),
+							zap.String("pattern", pattern),
+							zap.Bool("is_pattern", isPattern),
+						)
+						return
+					}
+					oldSub := val.(*subscription)
+					if oldSub.sub != sub {
+						// Subscription was replaced during reconnect (concurrent resubscribe) — abort.
+						newSub.Close()
+						ps.log.Info("reconnect aborted: subscription was replaced",
+							zap.String("topic", topic),
+							zap.String("pattern", pattern),
+							zap.Bool("is_pattern", isPattern),
+						)
+						return
+					}
+
+					// Original subscription is still active — safe to replace with new connection.
 					newS := &subscription{sub: newSub, cancel: cancel, pattern: pattern, isPattern: isPattern}
 					ps.subscribers.Store(topic, newS)
 					sub = newSub

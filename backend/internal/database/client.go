@@ -283,8 +283,12 @@ func NewDatabaseClient(ctx context.Context, databaseURL string) (DatabaseClient,
 // isReadOnlySQL returns true for pure SELECT statements that can safely be
 // routed to a read replica. It rejects statements containing write keywords
 // (INSERT, UPDATE, DELETE) or row-locking clauses (FOR UPDATE/SHARE/KEY SHARE/NO KEY UPDATE).
+// SQL comments (block /* */ and line --) are stripped before analysis to prevent
+// them from hiding locking keywords (e.g., "SELECT FOR/**/UPDATE" or "SELECT FOR--\nUPDATE").
 func isReadOnlySQL(sql string) bool {
-	fields := strings.Fields(strings.ToUpper(sql))
+	// Strip SQL comments before tokenizing.
+	stripped := stripSQLComments(sql)
+	fields := strings.Fields(strings.ToUpper(stripped))
 	if len(fields) < 2 || fields[0] != "SELECT" {
 		return false
 	}
@@ -297,6 +301,48 @@ func isReadOnlySQL(sql string) bool {
 		return false
 	}
 	return true
+}
+
+// stripSQLComments removes PostgreSQL block (/* */) and line (--) comments
+// from a SQL string, replacing them with spaces to preserve token boundaries.
+func stripSQLComments(sql string) string {
+	var result strings.Builder
+	result.Grow(len(sql))
+	i := 0
+	for i < len(sql) {
+		// Check for block comment /* */
+		if i+1 < len(sql) && sql[i] == '/' && sql[i+1] == '*' {
+			result.WriteByte(' ') // Replace comment start with space
+			i += 2
+			// Skip until we find */
+			for i < len(sql) {
+				if i+1 < len(sql) && sql[i] == '*' && sql[i+1] == '/' {
+					i += 2
+					break
+				}
+				i++
+			}
+			continue
+		}
+		// Check for line comment --
+		if i+1 < len(sql) && sql[i] == '-' && sql[i+1] == '-' {
+			result.WriteByte(' ') // Replace comment start with space
+			i += 2
+			// Skip until end of line or end of string
+			for i < len(sql) && sql[i] != '\n' && sql[i] != '\r' {
+				i++
+			}
+			// Skip the newline if present
+			if i < len(sql) && (sql[i] == '\n' || sql[i] == '\r') {
+				i++
+			}
+			continue
+		}
+		// Regular character
+		result.WriteByte(sql[i])
+		i++
+	}
+	return result.String()
 }
 
 // Query with automatic timeout, slow query logging, and circuit breaking.
