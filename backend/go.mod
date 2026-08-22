@@ -6,7 +6,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
-	github.com/hibiken/asynq v0.25.1
+	github.com/hibiken/asynq v0.26.0
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/prometheus/client_golang v1.22.0
 	github.com/razorpay/razorpay-go v1.3.4
@@ -20,7 +20,7 @@ require (
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.55.0
 	golang.org/x/net v0.58.0
-	golang.org/x/time v0.10.0
+	golang.org/x/time v0.14.0
 )
 
 require (
