@@ -35,7 +35,7 @@ jobs:
           if [ "$HAS_AZURE_CREDS" = "true" ]; then
             echo "method=azure" >> "$GITHUB_OUTPUT"
             echo "Deployment method: Azure CLI RunCommand (Native Agent)"
-          elif echo "$SSH_KEY" | grep -q -- "-----BEGIN"; then
+          elif echo "$SSH_KEY" | grep -qE -- "-----BEGIN (RSA|OPENSSH|EC|DSA) PRIVATE KEY-----"; then
             echo "method=ssh" >> "$GITHUB_OUTPUT"
             echo "Deployment method: SSH Key"
           else
@@ -58,14 +58,19 @@ jobs:
             --name "${{ secrets.AZURE_VM_NAME || 'Flicko-Server' }}" \
             --command-id RunShellScript \
             --scripts "
+              set -euo pipefail
               export HOME=/home/Tarun
               export USER=Tarun
               cd /home/Tarun/Flicko || cd ~/Flicko
               git config --global --add safe.directory /home/Tarun/Flicko
-              git fetch origin main
-              git reset --hard origin/main
-              docker compose -f docker-compose.prod.yml up -d --build
-              docker compose -f docker-compose.prod.yml ps
+              sudo -u Tarun -H bash -lc '
+                set -euo pipefail
+                cd /home/Tarun/Flicko
+                git fetch origin main
+                git reset --hard origin/main
+                docker compose -f docker-compose.prod.yml up -d --build
+                docker compose -f docker-compose.prod.yml ps
+              '
             "
 
       - name: Deploy via SSH
