@@ -23,21 +23,53 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
 
-      - name: Check Deployment Secrets
-        id: check-secrets
+      - name: Check Deployment Method
+        id: check-method
         env:
-          HAS_SSH_KEY: ${{ secrets.VPS_SSH_KEY != '' }}
+          HAS_AZURE_CREDS: ${{ secrets.AZURE_CREDENTIALS != '' }}
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
         run: |
-          if [ "$HAS_SSH_KEY" != "true" ]; then
-            echo "has_key=false" >> "$GITHUB_OUTPUT"
-            echo "::warning ::VPS_SSH_KEY secret is not configured in GitHub repository settings. Skipping SSH deployment."
+          if [ "$HAS_AZURE_CREDS" = "true" ]; then
+            echo "method=azure" >> "$GITHUB_OUTPUT"
+            echo "Deployment method: Azure CLI RunCommand (Native Agent)"
+          elif echo "$SSH_KEY" | grep -q -- "-----BEGIN"; then
+            echo "method=ssh" >> "$GITHUB_OUTPUT"
+            echo "Deployment method: SSH Key"
           else
-            echo "has_key=true" >> "$GITHUB_OUTPUT"
+            echo "method=none" >> "$GITHUB_OUTPUT"
+            echo "::warning ::Neither AZURE_CREDENTIALS nor a valid PEM-formatted VPS_SSH_KEY is configured. Skipping automated deployment."
           fi
 
+      - name: Azure Login
+        if: steps.check-method.outputs.method == 'azure'
+        uses: azure/login@f5d393ae46f8fde4be8b75f32e3fc50e654ad0ca
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy to Azure VM via Azure CLI
+        if: steps.check-method.outputs.method == 'azure'
+        run: |
+          echo "=== Deploying to Azure VM via RunCommand ==="
+          az vm run-command invoke \
+            --resource-group "${{ secrets.AZURE_VM_RG || 'FLICKO' }}" \
+            --name "${{ secrets.AZURE_VM_NAME || 'Flicko-Server' }}" \
+            --command-id RunShellScript \
+            --scripts "
+              export HOME=/home/Tarun
+              export USER=Tarun
+              cd /home/Tarun/Flicko || cd ~/Flicko
+              git config --global --add safe.directory /home/Tarun/Flicko
+              git fetch origin main
+              git reset --hard origin/main
+              docker compose -f docker-compose.prod.yml up -d --build
+              docker compose -f docker-compose.prod.yml ps
+            "
+
       - name: Deploy via SSH
-        if: steps.check-secrets.outputs.has_key == 'true'
+        if: steps.check-method.outputs.method == 'ssh'
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2
         env:
           DB_PASS: ${{ secrets.AZURE_POSTGRES_PASSWORD }}
@@ -77,24 +109,10 @@ jobs:
 
             # Rebuild and restart containers
             echo "--- Rebuilding Docker containers ---"
-            docker compose -f docker-compose.prod.yml build --no-cache backend mail-gateway
-            
-            echo "--- Rolling restart (zero-downtime) ---"
-            docker compose -f docker-compose.prod.yml up -d --force-recreate backend mail-gateway
-
-            # Wait for containers to be healthy
-            echo "--- Waiting for health checks ---"
-            sleep 10
+            docker compose -f docker-compose.prod.yml up -d --build
 
             # Health check
             echo "--- Running health checks ---"
             docker compose -f docker-compose.prod.yml ps
-
-            # Check mail-gateway health
-            if curl -sf http://localhost:8082/health > /dev/null 2>&1; then
-              echo "✅ Mail Gateway is healthy"
-            else
-              echo "⚠️ Mail Gateway health check failed (may still be starting)"
-            fi
 
             echo "=== Flicko Deployment Complete ==="
