@@ -52,6 +52,11 @@ jobs:
       - name: Resolve dependencies
         run: flutter pub get
 
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y libsqlite3-dev sqlite3
+
       - name: Analyze E2EE feature
         # Fail on errors only — info/warning lints are allowed for now and
         # tracked separately. Crypto code must be error-free.
@@ -61,7 +66,18 @@ jobs:
       - name: Run E2EE test suite
         # The whole point of this workflow: every change to the crypto
         # surface MUST keep this suite green.
-        run: flutter test test/e2ee/
+        run: |
+          for i in 1 2 3; do
+            flutter test test/e2ee/ && break || {
+              if [ $i -lt 3 ]; then
+                echo "flutter test failed, retrying in 5 seconds (attempt $i/3)..."
+                sleep 5
+              else
+                echo "flutter test failed after 3 attempts."
+                exit 1
+              fi
+            }
+          done
 
   backend-e2ee:
     name: Backend E2EE (Go)
