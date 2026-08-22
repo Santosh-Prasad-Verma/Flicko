@@ -45,10 +45,10 @@ jobs:
           HAS_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN != '' }}
         run: |
           if [ "$HAS_TOKEN" != "true" ]; then
-            echo "has_token=false" >> $GITHUB_OUTPUT
+            echo "has_token=false" >> "$GITHUB_OUTPUT"
             echo "::warning ::CODACY_PROJECT_TOKEN is not configured. Skipping Codacy analysis."
           else
-            echo "has_token=true" >> $GITHUB_OUTPUT
+            echo "has_token=true" >> "$GITHUB_OUTPUT"
           fi
 
       # Execute Codacy Analysis CLI and generate a SARIF output with the security issues identified during the analysis

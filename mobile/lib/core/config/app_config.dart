@@ -388,9 +388,11 @@ class AppConfig {
     if (url.startsWith('https://')) {
       url = url.replaceFirst('https://', 'wss://');
     } else if (url.startsWith('http://')) {
-      url = url.replaceFirst('http://', 'wss://');
-    } else if (!url.startsWith('wss://')) {
-      // Bare host — assume TLS.
+      url = url.replaceFirst('http://', 'ws://');
+    } else if (url.startsWith('ws://') || url.startsWith('wss://')) {
+      // Already ws or wss scheme, preserve it
+    } else {
+      // Bare host — default to wss
       url = 'wss://$url';
     }
 
