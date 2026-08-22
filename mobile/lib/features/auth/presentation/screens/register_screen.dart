@@ -7,6 +7,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/data/clients/api_client.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/data/services/oauth_service.dart';
+import 'package:mobile/features/auth/application/auth_notifier.dart';
+import 'package:mobile/data/repositories/auth_repository.dart';
 import 'package:mobile/features/shared/presentation/widgets/keyboard_dismiss_on_tap.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mobile/core/services/username_availability_service.dart';
