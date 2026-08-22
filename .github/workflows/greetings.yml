@@ -18,6 +18,25 @@ jobs:
         uses: actions/first-interaction@1c4688942c71f71d4f5502a26ea67c331730fa4d
         continue-on-error: true
         with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          issue-message: "Welcome to Flicko! Thanks for opening an issue."
-          pr-message: "Welcome to Flicko! Thanks for contributing your first pull request."
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          issue_message: |
+            👋 **Welcome to Flicko!** 🎉
+
+            Thank you for opening your first issue in the Flicko repository! We truly appreciate you taking the time to help make Flicko better.
+
+            - 🔍 **Next Steps**: A maintainer will review your issue shortly.
+            - 💡 **Extra Context**: If you have relevant logs, screenshots, or steps to reproduce, please make sure they are included.
+            - 📖 Feel free to check out our [Contributing Guidelines](https://github.com/Santosh-Prasad-Verma/Flicko/blob/main/CONTRIBUTING.md).
+
+            *Happy building with Flicko!* 🚀
+
+          pr_message: |
+            🚀 **Welcome to the Flicko Community!** 🎉
+
+            Thank you for creating your first Pull Request! Your contribution helps make Flicko faster, more secure, and feature-rich.
+
+            - ⚙️ **CI Pipelines**: Automated linting, test suites, and security scans are currently running on your changes.
+            - 🔍 **Code Review**: A project maintainer will review your pull request shortly.
+            - 💡 **Tip**: Please make sure your branch is synchronized with `main` and all tests pass.
+
+            Thank you for building the future of real-time communication with us! 🌟
