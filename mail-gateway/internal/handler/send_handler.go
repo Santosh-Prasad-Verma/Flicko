@@ -126,6 +126,11 @@ func (h *SendHandler) HandleSend(w http.ResponseWriter, r *http.Request) {
 		avatarURL = fmt.Sprintf("https://ui-avatars.com/api/?name=%s&background=535cec&color=fff&size=128", url.QueryEscape(username))
 	}
 
+	actionURL := ""
+	if req.Type == "verify" && req.Token != "" {
+		actionURL = fmt.Sprintf("%s/api/v1/auth/verify-email?email=%s&token=%s", h.cfg.AppURL, url.QueryEscape(req.To), url.QueryEscape(req.Token))
+	}
+
 	// Step 5: Build job
 	job := models.EmailJob{
 		ID:           fmt.Sprintf("%s-%d", req.Type, time.Now().UnixNano()),
@@ -138,6 +143,7 @@ func (h *SendHandler) HandleSend(w http.ResponseWriter, r *http.Request) {
 			AvatarURL:     avatarURL,
 			Subject:       subject,
 			Token:         req.Token,
+			ActionURL:     actionURL,
 			AppName:       h.cfg.AppName,
 			AppURL:        h.cfg.AppURL,
 			MemberSince:   time.Now().Format("January 02, 2006"),

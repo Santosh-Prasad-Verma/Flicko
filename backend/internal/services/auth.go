@@ -16,6 +16,7 @@ import (
 	"github.com/flicko-org/flicko-backend/internal/database"
 	"github.com/flicko-org/flicko-backend/internal/models"
 	"github.com/golang-jwt/jwt/v5"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -234,7 +235,11 @@ func (s *authService) Register(ctx context.Context, username, email, phone, pass
 	// Send verification email (not welcome email) — verification must happen first
 	if s.mailSvc != nil && user.Email != "" {
 		go func(toEmail, toUsername, code string) {
-			_ = s.mailSvc.SendVerificationEmail(toEmail, toUsername, code)
+			if err := s.mailSvc.SendVerificationEmail(toEmail, toUsername, code); err != nil {
+				zap.L().Error("failed to send verification email during register", zap.String("email", toEmail), zap.Error(err))
+			} else {
+				zap.L().Info("verification email dispatched", zap.String("email", toEmail))
+			}
 		}(user.Email, user.Username, verificationCode)
 	}
 
@@ -256,7 +261,7 @@ func (s *authService) VerifyEmail(ctx context.Context, email, token string) erro
 		    updated_at = NOW()
 		WHERE email = $1
 		  AND verification_token = $2
-		  AND verification_token_expires_at > NOW()
+		  AND (verification_token_expires_at IS NULL OR verification_token_expires_at > NOW())
 		  AND email_confirmed_at IS NULL
 	`
 
@@ -322,7 +327,11 @@ func (s *authService) ResendVerification(ctx context.Context, email string) erro
 	// Send verification email
 	if s.mailSvc != nil {
 		go func(toEmail, toUsername, code string) {
-			_ = s.mailSvc.SendVerificationEmail(toEmail, toUsername, code)
+			if err := s.mailSvc.SendVerificationEmail(toEmail, toUsername, code); err != nil {
+				zap.L().Error("failed to resend verification email", zap.String("email", toEmail), zap.Error(err))
+			} else {
+				zap.L().Info("resend verification email dispatched", zap.String("email", toEmail))
+			}
 		}(email, username, verificationCode)
 	}
 

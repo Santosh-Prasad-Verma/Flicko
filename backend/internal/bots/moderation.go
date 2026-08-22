@@ -727,6 +727,9 @@ func (b *ModerationBot) expirePunishments() error {
 		 WHERE active = true AND expires_at <= NOW()
 		 RETURNING server_id, user_id, type`)
 	if err != nil {
+		if strings.Contains(err.Error(), "temp_punishments") || strings.Contains(err.Error(), "42P01") {
+			return nil
+		}
 		return err
 	}
 	defer rows.Close()

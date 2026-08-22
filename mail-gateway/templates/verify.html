@@ -14,7 +14,17 @@
   </tr>
   {{template "subtitle" "ONE LAST STEP TO JOIN THE FLICKO COMMUNITY."}}
   {{template "greeting" .}}
-  {{template "paragraph" "Tap the button below to verify your account instantly and complete your registration."}}
+  {{template "paragraph" "Tap the button below or enter your verification code to confirm your email and complete your registration."}}
+
+  {{if .Token}}
+  <tr>
+    <td align="center" style="padding-bottom:24px;">
+      <div style="display:inline-block;background-color:#1E1F22;border:2px solid #52B788;border-radius:8px;padding:12px 28px;letter-spacing:6px;font-size:28px;font-weight:900;color:#52B788;font-family:monospace;">
+        {{.Token}}
+      </div>
+    </td>
+  </tr>
+  {{end}}
 
   {{if .ActionURL}}
   <tr>

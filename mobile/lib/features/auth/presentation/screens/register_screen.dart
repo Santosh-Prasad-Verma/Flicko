@@ -826,12 +826,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           children: [
             const Icon(Icons.check_circle_rounded, color: Color(FlickoColors.brandLime), size: 14),
             const SizedBox(width: 6),
-            Text(
-              'Username is available',
-              style: GoogleFonts.inter(
-                color: const Color(FlickoColors.brandLime),
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
+            Expanded(
+              child: Text(
+                'Username is available',
+                style: GoogleFonts.inter(
+                  color: const Color(FlickoColors.brandLime),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ],
@@ -849,12 +851,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               children: [
                 const Icon(Icons.cancel_rounded, color: Color(FlickoColors.danger), size: 14),
                 const SizedBox(width: 6),
-                Text(
-                  _usernameError ?? 'Username is already taken',
-                  style: GoogleFonts.inter(
-                    color: const Color(FlickoColors.danger),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                Expanded(
+                  child: Text(
+                    _usernameError ?? 'Username is already taken',
+                    style: GoogleFonts.inter(
+                      color: const Color(FlickoColors.danger),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],
