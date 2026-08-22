@@ -256,7 +256,7 @@ func main() {
 	api.Handle("/auth/register", authRateLimiter.Limit(http.HandlerFunc(authHandler.Register))).Methods("POST", "OPTIONS")
 	api.Handle("/auth/login", authRateLimiter.Limit(http.HandlerFunc(authHandler.Login))).Methods("POST", "OPTIONS")
 	api.Handle("/auth/entra-id", authRateLimiter.Limit(http.HandlerFunc(authHandler.EntraIDLogin))).Methods("POST", "OPTIONS")
-	api.Handle("/auth/verify-email", verifyEmailLimiter.Limit(http.HandlerFunc(authHandler.VerifyEmail))).Methods("POST", "OPTIONS")
+	api.Handle("/auth/verify-email", verifyEmailLimiter.Limit(http.HandlerFunc(authHandler.VerifyEmail))).Methods("GET", "POST", "OPTIONS")
 	api.Handle("/auth/resend-verification", resendVerificationLimiter.Limit(http.HandlerFunc(authHandler.ResendVerification))).Methods("POST", "OPTIONS")
 
 	// CRIT-002: Replace memory-based rate limiter with distributed Redis-backed limiter

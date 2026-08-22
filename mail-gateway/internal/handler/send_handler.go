@@ -40,6 +40,9 @@ type SendRequest struct {
 	// Token is the verification code for verify emails
 	Token string `json:"token,omitempty"`
 
+	// ActionURL is an optional custom CTA link
+	ActionURL string `json:"action_url,omitempty"`
+
 	// AvatarURL is an optional profile picture URL
 	AvatarURL string `json:"avatar_url,omitempty"`
 
@@ -48,6 +51,24 @@ type SendRequest struct {
 
 	// TotalAmount is the formatted price for receipts
 	TotalAmount string `json:"total_amount,omitempty"`
+
+	// BillingCycle is the billing frequency (e.g. "MONTHLY", "ANNUAL")
+	BillingCycle string `json:"billing_cycle,omitempty"`
+
+	// Device info for security alerts
+	Device string `json:"device,omitempty"`
+
+	// Location info for security alerts
+	Location string `json:"location,omitempty"`
+
+	// IPAddress for security alerts
+	IPAddress string `json:"ip_address,omitempty"`
+
+	// Timestamp for security/event logs
+	Timestamp string `json:"timestamp,omitempty"`
+
+	// Message for generic notifications
+	Message string `json:"message,omitempty"`
 }
 
 // NewSendHandler creates a new SendHandler. apiKey must match the header
@@ -126,9 +147,38 @@ func (h *SendHandler) HandleSend(w http.ResponseWriter, r *http.Request) {
 		avatarURL = fmt.Sprintf("https://ui-avatars.com/api/?name=%s&background=535cec&color=fff&size=128", url.QueryEscape(username))
 	}
 
-	actionURL := ""
-	if req.Type == "verify" && req.Token != "" {
-		actionURL = fmt.Sprintf("%s/api/v1/auth/verify-email?email=%s&token=%s", h.cfg.AppURL, url.QueryEscape(req.To), url.QueryEscape(req.Token))
+	actionURL := req.ActionURL
+	if actionURL == "" {
+		switch req.Type {
+		case "verify":
+			if req.Token != "" {
+				actionURL = fmt.Sprintf("%s/api/v1/auth/verify-email?email=%s&token=%s", h.cfg.AppURL, url.QueryEscape(req.To), url.QueryEscape(req.Token))
+			} else {
+				actionURL = h.cfg.AppURL
+			}
+		case "reset":
+			if req.Token != "" {
+				actionURL = fmt.Sprintf("%s/reset-password?email=%s&token=%s", h.cfg.AppURL, url.QueryEscape(req.To), url.QueryEscape(req.Token))
+			} else {
+				actionURL = h.cfg.AppURL
+			}
+		case "magic_link":
+			if req.Token != "" {
+				actionURL = fmt.Sprintf("%s/api/v1/auth/magic-login?token=%s", h.cfg.AppURL, url.QueryEscape(req.Token))
+			} else {
+				actionURL = h.cfg.AppURL
+			}
+		case "welcome", "flicko_plus", "upgrade":
+			actionURL = h.cfg.AppURL
+		case "security_alert", "password_changed":
+			actionURL = fmt.Sprintf("%s/settings/security", h.cfg.AppURL)
+		case "payment_failed":
+			actionURL = fmt.Sprintf("%s/settings/billing", h.cfg.AppURL)
+		default:
+			if h.cfg.AppURL != "" {
+				actionURL = h.cfg.AppURL
+			}
+		}
 	}
 
 	// Step 5: Build job
@@ -149,6 +199,12 @@ func (h *SendHandler) HandleSend(w http.ResponseWriter, r *http.Request) {
 			MemberSince:   time.Now().Format("January 02, 2006"),
 			TransactionID: req.TransactionID,
 			TotalAmount:   req.TotalAmount,
+			BillingCycle:  req.BillingCycle,
+			Device:        req.Device,
+			Location:      req.Location,
+			IPAddress:     req.IPAddress,
+			Timestamp:     req.Timestamp,
+			Message:       req.Message,
 			Year:          time.Now().Year(),
 		},
 		CreatedAt: time.Now(),
@@ -164,6 +220,7 @@ func (h *SendHandler) HandleSend(w http.ResponseWriter, r *http.Request) {
 	slog.Info("send endpoint: email queued",
 		"type", req.Type,
 		"to", req.To,
+		"action_url", actionURL,
 	)
 
 	w.Header().Set("Content-Type", "application/json")
@@ -182,12 +239,60 @@ func (h *SendHandler) routeSendType(sendType string) (templateName, subject stri
 		return "verify",
 			fmt.Sprintf("Verify your %s account", h.cfg.AppName),
 			nil
+	case "reset":
+		return "reset",
+			fmt.Sprintf("Reset your %s password", h.cfg.AppName),
+			nil
+	case "magic_link", "magiclink":
+		return "magic_link",
+			fmt.Sprintf("Your %s login link", h.cfg.AppName),
+			nil
+	case "email_change", "confirm_email_change":
+		return "confirm_email_change",
+			fmt.Sprintf("Confirm your new email for %s", h.cfg.AppName),
+			nil
+	case "invite":
+		return "invite",
+			fmt.Sprintf("You've been invited to %s", h.cfg.AppName),
+			nil
+	case "reauthentication":
+		return "reauthentication",
+			fmt.Sprintf("Confirm your identity on %s", h.cfg.AppName),
+			nil
+	case "password_changed":
+		return "password_changed",
+			fmt.Sprintf("Your %s password was updated", h.cfg.AppName),
+			nil
+	case "security_alert":
+		return "security_alert",
+			fmt.Sprintf("Security alert: New sign-in to your %s account", h.cfg.AppName),
+			nil
 	case "flicko_plus":
 		return "flicko_plus",
 			fmt.Sprintf("✨ Welcome to %s Plus — You're in!", h.cfg.AppName),
 			nil
+	case "upgrade":
+		return "upgrade",
+			fmt.Sprintf("Your %s subscription has been updated", h.cfg.AppName),
+			nil
+	case "account_deleted":
+		return "account_deleted",
+			fmt.Sprintf("Your %s account has been deleted", h.cfg.AppName),
+			nil
+	case "notification":
+		return "notification",
+			fmt.Sprintf("Notification from %s", h.cfg.AppName),
+			nil
+	case "subscription_canceled":
+		return "subscription_canceled",
+			fmt.Sprintf("Your %s subscription was canceled", h.cfg.AppName),
+			nil
+	case "payment_failed":
+		return "payment_failed",
+			fmt.Sprintf("Payment failed for your %s subscription", h.cfg.AppName),
+			nil
 	default:
-		return "", "", fmt.Errorf("unknown send type: %q (supported: welcome, verify, flicko_plus)", sendType)
+		return "", "", fmt.Errorf("unknown send type: %q", sendType)
 	}
 }
 

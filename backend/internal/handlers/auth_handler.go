@@ -193,24 +193,50 @@ type verifyEmailRequest struct {
 }
 
 func (h *AuthHandler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
-	var req verifyEmailRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "Invalid request body")
-		return
+	var email, token string
+
+	if r.Method == http.MethodGet {
+		email = r.URL.Query().Get("email")
+		token = r.URL.Query().Get("token")
+	} else {
+		var req verifyEmailRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err == nil {
+			email = req.Email
+			token = req.Token
+		}
 	}
 
-	if req.Email == "" || req.Token == "" {
+	if email == "" || token == "" {
+		if r.Method == http.MethodGet {
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Verification Failed — Flicko</title><style>body{margin:0;padding:0;background:#000;color:#fff;font-family:-apple-system,BlinkMacSystemFont,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;}.card{background:#0a0a0a;border:2px solid #ff5252;box-shadow:8px 8px 0 #3d1f1f;max-width:440px;width:90%;padding:40px 24px;text-align:center;box-sizing:border-box;}.icon{width:64px;height:64px;background:#ff5252;color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:32px;font-weight:900;line-height:64px;}h1{font-size:24px;font-weight:900;letter-spacing:1px;margin:0 0 12px;text-transform:uppercase;color:#ff8a8a;}p{color:#aaa;font-size:14px;line-height:1.6;margin:0 0 28px;}.btn{display:inline-block;background:#52B788;color:#000;font-weight:900;font-size:15px;padding:14px 32px;text-decoration:none;text-transform:uppercase;letter-spacing:1.5px;border:2px solid #000;}</style></head><body><div class="card"><div class="icon">✕</div><h1>MISSING PARAMETERS</h1><p>Email and verification code are required. Please open the link from your verification email or enter the code in the Flicko app.</p><a href="https://flicko.dev" class="btn">GO TO FLICKO</a></div></body></html>`))
+			return
+		}
 		writeError(w, http.StatusBadRequest, "Email and verification code are required")
 		return
 	}
 
-	err := h.authSvc.VerifyEmail(r.Context(), req.Email, req.Token)
+	err := h.authSvc.VerifyEmail(r.Context(), email, token)
 	if err != nil {
 		h.logger.Warn("email verification failed",
-			zap.String("email", req.Email),
+			zap.String("email", email),
 			zap.Error(err),
 		)
+		if r.Method == http.MethodGet {
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Verification Failed — Flicko</title><style>body{margin:0;padding:0;background:#000;color:#fff;font-family:-apple-system,BlinkMacSystemFont,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;}.card{background:#0a0a0a;border:2px solid #ff5252;box-shadow:8px 8px 0 #3d1f1f;max-width:440px;width:90%;padding:40px 24px;text-align:center;box-sizing:border-box;}.icon{width:64px;height:64px;background:#ff5252;color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:32px;font-weight:900;line-height:64px;}h1{font-size:24px;font-weight:900;letter-spacing:1px;margin:0 0 12px;text-transform:uppercase;color:#ff8a8a;}p{color:#aaa;font-size:14px;line-height:1.6;margin:0 0 28px;}.btn{display:inline-block;background:#52B788;color:#000;font-weight:900;font-size:15px;padding:14px 32px;text-decoration:none;text-transform:uppercase;letter-spacing:1.5px;border:2px solid #000;}</style></head><body><div class="card"><div class="icon">✕</div><h1>VERIFICATION FAILED</h1><p>` + err.Error() + `. Please request a new verification code from the Flicko app.</p><a href="https://flicko.dev" class="btn">GO TO FLICKO</a></div></body></html>`))
+			return
+		}
 		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if r.Method == http.MethodGet {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Email Verified — Flicko</title><style>body{margin:0;padding:0;background:#000;color:#fff;font-family:-apple-system,BlinkMacSystemFont,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;}.card{background:#0a0a0a;border:2px solid #52B788;box-shadow:8px 8px 0 #1f3d2f;max-width:440px;width:90%;padding:40px 24px;text-align:center;box-sizing:border-box;}.icon{width:64px;height:64px;background:#52B788;color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:32px;font-weight:900;line-height:64px;}h1{font-size:26px;font-weight:900;letter-spacing:1px;margin:0 0 12px;text-transform:uppercase;color:#52B788;}p{color:#aaa;font-size:14px;line-height:1.6;margin:0 0 28px;}.btn{display:inline-block;background:#52B788;color:#000;font-weight:900;font-size:15px;padding:14px 32px;text-decoration:none;text-transform:uppercase;letter-spacing:1.5px;border:2px solid #000;box-shadow:4px 4px 0 #fff;}</style></head><body><div class="card"><div class="icon">✓</div><h1>EMAIL VERIFIED</h1><p>Your Flicko account is now active and verified! You can return to the Flicko app and sign in.</p><a href="https://flicko.dev" class="btn">OPEN FLICKO</a></div></body></html>`))
 		return
 	}
 

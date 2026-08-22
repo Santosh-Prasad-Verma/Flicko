@@ -63,7 +63,7 @@
         <tr><td style="background-color:#FFFFFF;padding:0;">
           <table role="presentation" cellspacing="0" cellpadding="0">
             <tr><td style="background-color:#000000;padding:0;transform:translate(-6px,-6px);">
-              <a href="io.flicko.app://login-callback/" style="display:inline-block;background-color:#52B788;color:#000000 !important;text-decoration:none;font-weight:900;font-size:16px;padding:18px 40px;text-transform:uppercase;letter-spacing:1.5px;border:3px solid #000000;">
+              <a href="{{if .ActionURL}}{{.ActionURL}}{{else if .AppURL}}{{.AppURL}}{{else}}https://flicko.dev{{end}}" style="display:inline-block;background-color:#52B788;color:#000000 !important;text-decoration:none;font-weight:900;font-size:16px;padding:18px 40px;text-transform:uppercase;letter-spacing:1.5px;border:3px solid #000000;">
                 OPEN FLICKO
               </a>
             </td></tr>
