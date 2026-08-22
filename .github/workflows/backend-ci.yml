@@ -49,26 +49,41 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Check Azure Deployment Secrets
+        id: check-deploy
+        env:
+          HAS_CREDS: ${{ secrets.AZURE_CREDENTIALS != '' && secrets.AZURE_ACR_NAME != '' }}
+        run: |
+          if [ "$HAS_CREDS" = "true" ]; then
+            echo "can_deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "can_deploy=false" >> "$GITHUB_OUTPUT"
+            echo "::warning ::AZURE_CREDENTIALS or AZURE_ACR_NAME secret is not configured. Skipping ACR build and deploy."
+          fi
+
+      - name: Azure Login
+        if: steps.check-deploy.outputs.can_deploy == 'true'
+        uses: azure/login@f5d393ae46f8fde4be8b75f32e3fc50e654ad0ca
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Log in to Azure Container Registry (ACR)
-        uses: azure/docker-login@15c4aadf093404726ab2ff205b2cdd33fa6d054c
-        with:
-          login-server: ${{ secrets.AZURE_ACR_NAME }}.azurecr.io
-          username: ${{ secrets.AZURE_ACR_USERNAME }}
-          password: ${{ secrets.AZURE_ACR_PASSWORD }}
+        if: steps.check-deploy.outputs.can_deploy == 'true'
+        run: |
+          az acr login --name "${{ secrets.AZURE_ACR_NAME }}"
 
       - name: Build and Push Backend Container
+        if: steps.check-deploy.outputs.can_deploy == 'true'
         run: |
           docker build -t ${{ secrets.AZURE_ACR_NAME }}.azurecr.io/flicko-backend:${{ github.sha }} -t ${{ secrets.AZURE_ACR_NAME }}.azurecr.io/flicko-backend:latest -f backend/Dockerfile backend/
           docker push ${{ secrets.AZURE_ACR_NAME }}.azurecr.io/flicko-backend:${{ github.sha }}
           docker push ${{ secrets.AZURE_ACR_NAME }}.azurecr.io/flicko-backend:latest
 
-      - name: Azure Login
-        uses: azure/login@f5d393ae46f8fde4be8b75f32e3fc50e654ad0ca
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
       - name: Deploy Backend to Azure Container Apps
+        if: steps.check-deploy.outputs.can_deploy == 'true'
         uses: azure/container-apps-deploy-action@8dff69dac3367c32ceb2690d8f13adbeab462703
         with:
           appSource: backend/
