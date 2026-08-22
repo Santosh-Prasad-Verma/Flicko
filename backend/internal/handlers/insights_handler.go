@@ -40,21 +40,25 @@ func (h *InsightsHandler) GetServerInsights(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	var isMember bool
+	var hasPermission bool
 	if err = h.db.QueryRow(r.Context(), `
-		SELECT EXISTS (
+		SELECT (s.owner_id = $2 OR EXISTS (
 			SELECT 1
-			FROM public.server_members
-			WHERE server_id = $1
-			  AND user_id = $2
-		)
-	`, serverUUID, userUUID).Scan(&isMember); err != nil {
-		h.logger.Error("failed checking membership for insights", zap.Error(err))
+			FROM public.member_roles mr
+			JOIN public.roles r ON r.id = mr.role_id
+			WHERE mr.server_id = $1 AND mr.user_id = $2
+			  AND ((COALESCE(r.permissions, 0) & 32) > 0
+			    OR (COALESCE(r.permissions, 0) & 8) > 0)
+		))
+		FROM public.servers s
+		WHERE s.id = $1
+	`, serverUUID, userUUID).Scan(&hasPermission); err != nil {
+		h.logger.Error("failed checking permissions for insights", zap.Error(err))
 		writeError(w, http.StatusInternalServerError, "failed to fetch server insights")
 		return
 	}
-	if !isMember {
-		writeError(w, http.StatusForbidden, "forbidden")
+	if !hasPermission {
+		writeError(w, http.StatusForbidden, "insufficient permissions: MANAGE_SERVER required to view server insights")
 		return
 	}
 

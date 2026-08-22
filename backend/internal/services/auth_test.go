@@ -2,6 +2,8 @@ package services_test
 
 import (
 	"context"
+	"crypto/ed25519"
+	"crypto/rand"
 	"testing"
 	"time"
 
@@ -9,8 +11,19 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// testKeypair returns a fresh Ed25519 keypair for testing.
+func testKeypair(t *testing.T) (ed25519.PublicKey, ed25519.PrivateKey) {
+	t.Helper()
+	pub, priv, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatalf("failed to generate test keypair: %v", err)
+	}
+	return pub, priv
+}
+
 func TestAuthService_PasswordHashing(t *testing.T) {
-	svc := services.NewAuthService(nil, "supersecretkey")
+	pub, priv := testKeypair(t)
+	svc := services.NewAuthService(nil, priv, pub)
 
 	hash, err := svc.HashPassword("validpassword123")
 	assert.NoError(t, err)
@@ -21,7 +34,8 @@ func TestAuthService_PasswordHashing(t *testing.T) {
 }
 
 func TestAuthService_PasswordHashTooShort(t *testing.T) {
-	svc := services.NewAuthService(nil, "supersecretkey")
+	pub, priv := testKeypair(t)
+	svc := services.NewAuthService(nil, priv, pub)
 
 	_, err := svc.HashPassword("short")
 	assert.Error(t, err)
@@ -29,7 +43,8 @@ func TestAuthService_PasswordHashTooShort(t *testing.T) {
 }
 
 func TestAuthService_JWTGenerationValidation(t *testing.T) {
-	svc := services.NewAuthService(nil, "supersecretkeylength32byteshere123!@")
+	pub, priv := testKeypair(t)
+	svc := services.NewAuthService(nil, priv, pub)
 
 	token, err := svc.GenerateToken("user-123", "test@flicko.test")
 	assert.NoError(t, err)
@@ -38,13 +53,15 @@ func TestAuthService_JWTGenerationValidation(t *testing.T) {
 	claims, err := svc.ValidateToken(token)
 	assert.NoError(t, err)
 	assert.Equal(t, "user-123", claims.Subject)
+	assert.Equal(t, "flicko", claims.Issuer)
 
 	// Validate Expiration manually via time functions
 	assert.True(t, claims.ExpiresAt.Time.After(time.Now()))
 }
 
 func TestAuthService_RegistrationValidation(t *testing.T) {
-	svc := services.NewAuthService(nil, "key")
+	pub, priv := testKeypair(t)
+	svc := services.NewAuthService(nil, priv, pub)
 	ctx := context.Background()
 
 	_, _, err := svc.Register(ctx, "a", "valid@email.com", "A Name", "password123")
@@ -57,7 +74,8 @@ func TestAuthService_RegistrationValidation(t *testing.T) {
 }
 
 func TestAuthService_VerifyEmailValidation(t *testing.T) {
-	svc := services.NewAuthService(nil, "key")
+	pub, priv := testKeypair(t)
+	svc := services.NewAuthService(nil, priv, pub)
 	ctx := context.Background()
 
 	err := svc.VerifyEmail(ctx, "", "123456")
@@ -70,11 +88,11 @@ func TestAuthService_VerifyEmailValidation(t *testing.T) {
 }
 
 func TestAuthService_ResendVerificationValidation(t *testing.T) {
-	svc := services.NewAuthService(nil, "key")
+	pub, priv := testKeypair(t)
+	svc := services.NewAuthService(nil, priv, pub)
 	ctx := context.Background()
 
 	err := svc.ResendVerification(ctx, "")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "email is required")
 }
-

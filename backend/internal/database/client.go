@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -279,15 +280,34 @@ func NewDatabaseClient(ctx context.Context, databaseURL string) (DatabaseClient,
 	}, nil
 }
 
+// isReadOnlySQL returns true for pure SELECT statements that can safely be
+// routed to a read replica. It rejects statements containing write keywords
+// (INSERT, UPDATE, DELETE) or row-locking clauses (FOR UPDATE/SHARE).
+func isReadOnlySQL(sql string) bool {
+	trimmed := strings.TrimSpace(sql)
+	if len(trimmed) < 6 {
+		return false
+	}
+	upper := strings.ToUpper(trimmed)
+	if !strings.HasPrefix(upper, "SELECT") {
+		return false
+	}
+	// Reject SELECT ... FOR UPDATE/SHARE (row locks must hit primary).
+	if strings.Contains(upper, "FOR UPDATE") || strings.Contains(upper, "FOR SHARE") {
+		return false
+	}
+	return true
+}
+
 // Query with automatic timeout, slow query logging, and circuit breaking.
 func (c *pgxClient) Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error) {
 	if !c.cb.AllowRequest() {
 		return nil, errors.New("database circuit breaker is open")
 	}
 
-	// Route queries to replica pool
+	// Route only pure read-only SELECTs to replica pool.
 	targetPool := c.pool
-	if c.replicaPool != nil {
+	if c.replicaPool != nil && isReadOnlySQL(sql) {
 		targetPool = c.replicaPool
 	}
 
@@ -331,9 +351,9 @@ func (c *pgxClient) QueryRow(ctx context.Context, sql string, args ...any) pgx.R
 		}
 	}
 
-	// Route queries to replica pool
+	// Route only pure read-only SELECTs to replica pool.
 	targetPool := c.pool
-	if c.replicaPool != nil {
+	if c.replicaPool != nil && isReadOnlySQL(sql) {
 		targetPool = c.replicaPool
 	}
 

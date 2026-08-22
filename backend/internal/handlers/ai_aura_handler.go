@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 
 	"github.com/gorilla/mux"
@@ -152,11 +153,15 @@ func (h *AIAuraHandler) HandleGifSearch(w http.ResponseWriter, r *http.Request) 
 	}
 	giphyKey := os.Getenv("FLICKO_GIPHY_API_KEY")
 	if giphyKey == "" {
-		giphyKey = "HfMWbKrtVOYGPkt4I3qg6IH64HSOIv2U"
+		writeError(w, http.StatusServiceUnavailable, "GIF search service is currently unavailable")
+		return
 	}
 
-	url := fmt.Sprintf("https://api.giphy.com/v1/gifs/search?api_key=%s&q=%s&limit=20&rating=g", giphyKey, q)
-	resp, err := http.Get(url)
+	searchURL := fmt.Sprintf("https://api.giphy.com/v1/gifs/search?api_key=%s&q=%s&limit=20&rating=g",
+		url.QueryEscape(giphyKey),
+		url.QueryEscape(q),
+	)
+	resp, err := http.Get(searchURL)
 	if err != nil || resp.StatusCode != http.StatusOK {
 		writeError(w, http.StatusInternalServerError, "Failed to fetch GIFs")
 		return

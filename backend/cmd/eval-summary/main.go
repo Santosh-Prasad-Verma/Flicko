@@ -4,7 +4,7 @@
 //
 // Usage:
 //
-//	GROQ_API_KEY=… go run ./cmd/eval-summary \
+//	GEMINI_API_KEY=… go run ./cmd/eval-summary \
 //	    -golden internal/services/ai/message_summary/evals/golden.jsonl
 //
 // Pass criteria per case (when no `expect_refuse`):
@@ -56,16 +56,19 @@ func main() {
 	logger, _ := zap.NewProduction()
 	defer logger.Sync()
 
+	geminiKey := os.Getenv("FLICKO_GEMINI_API_KEY")
+	if geminiKey == "" {
+		geminiKey = os.Getenv("GEMINI_API_KEY")
+	}
+
 	cfg := llm.Config{
-		GroqAPIKey:    os.Getenv("GROQ_API_KEY"),
-		GroqBaseURL:   envOr("GROQ_BASE_URL", "https://api.groq.com/openai/v1"),
-		GroqModel:     envOr("GROQ_MODEL", "llama-3.3-70b-versatile"),
-		OllamaBaseURL: envOr("OLLAMA_BASE_URL", "http://localhost:11434"),
-		OllamaModel:   envOr("OLLAMA_MODEL", "llama3.1:8b"),
+		GeminiAPIKey:  geminiKey,
+		GeminiBaseURL: envOr("GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai"),
+		GeminiModel:   envOr("GEMINI_MODEL", "gemini-2.5-flash"),
 		HTTPTimeout:   30 * time.Second,
 	}
-	if cfg.GroqAPIKey == "" {
-		fmt.Fprintln(os.Stderr, "warn: GROQ_API_KEY not set; falling back to Ollama at", cfg.OllamaBaseURL)
+	if cfg.GeminiAPIKey == "" {
+		fmt.Fprintln(os.Stderr, "warn: GEMINI_API_KEY not set")
 	}
 	client := llm.New(cfg, logger)
 

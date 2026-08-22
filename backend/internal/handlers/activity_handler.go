@@ -497,6 +497,14 @@ func (h *ActivityHandler) Launch(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback(r.Context()) //nolint:errcheck
 
+	var isMember bool
+	if err = tx.QueryRow(r.Context(), `
+		SELECT EXISTS(SELECT 1 FROM public.server_members WHERE server_id = $1 AND user_id = $2)
+	`, serverUUID, userUUID).Scan(&isMember); err != nil || !isMember {
+		writeError(w, http.StatusForbidden, "user is not a member of this server")
+		return
+	}
+
 	var embedURL string
 	if err = tx.QueryRow(r.Context(), `
 		SELECT COALESCE(embed_url, '')
@@ -573,6 +581,22 @@ func (h *ActivityHandler) Join(w http.ResponseWriter, r *http.Request) {
 	sessionUUID, err := uuid.Parse(sessionID)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "invalid sessionId")
+		return
+	}
+
+	var serverUUID uuid.UUID
+	if err = h.db.QueryRow(r.Context(), `
+		SELECT server_id FROM public.activity_sessions WHERE id = $1
+	`, sessionUUID).Scan(&serverUUID); err != nil {
+		writeError(w, http.StatusNotFound, "activity session not found")
+		return
+	}
+
+	var isMember bool
+	if err = h.db.QueryRow(r.Context(), `
+		SELECT EXISTS(SELECT 1 FROM public.server_members WHERE server_id = $1 AND user_id = $2)
+	`, serverUUID, userUUID).Scan(&isMember); err != nil || !isMember {
+		writeError(w, http.StatusForbidden, "user is not a member of this server")
 		return
 	}
 
@@ -777,6 +801,18 @@ func (h *ActivityHandler) UpdateState(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer tx.Rollback(r.Context()) //nolint:errcheck
+
+	var hostUserID uuid.UUID
+	if err = tx.QueryRow(r.Context(), `
+		SELECT host_user_id FROM public.activity_sessions WHERE id = $1
+	`, sessionUUID).Scan(&hostUserID); err != nil {
+		writeError(w, http.StatusNotFound, "activity session not found")
+		return
+	}
+	if hostUserID != userUUID {
+		writeError(w, http.StatusForbidden, "only the session host can update activity state")
+		return
+	}
 
 	switch req.State {
 	case "active":

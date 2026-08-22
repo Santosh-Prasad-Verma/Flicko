@@ -9,25 +9,18 @@ import (
 	"go.uber.org/zap"
 )
 
-// Subscribe begins listening on the given topic. If this is the first
-// local client for the channel the gateway creates Redis Pub/Sub
-// subscriptions for both the channel topic AND the typing topic and
-// launches reader goroutines for each.
+// Subscribe begins listening on the given topic. Uses a single Redis
+// PSUBSCRIBE with a pattern that covers the channel, DM, and typing
+// topics, reducing the number of Redis connections from 3 per channel
+// to 1 per channel.
 //
 // Idempotent: calling Subscribe twice for the same topic is a no-op.
 // Satisfies EventBus.Subscribe.
 func (ps *RedisPubSub) Subscribe(ctx context.Context, topic string) error {
-	// Subscribe to the main channel topic (messages from msg-service).
-	if err := ps.subscribeSingle(ctx, topic, PrefixChannel+topic); err != nil {
-		return err
-	}
-	// Also subscribe to DM topic for the same channelID (DM channels
-	// publish to rt:dm:{channelID}).
-	_ = ps.subscribeSingle(ctx, "dm:"+topic, PrefixDM+topic)
-	// Also subscribe to typing topic so cross-gateway typing events
-	// reach local clients.
-	_ = ps.subscribeSingle(ctx, "typing:"+topic, PrefixTyping+topic)
-	return nil
+	// Use PSUBSCRIBE with a pattern that matches all three prefixes for this channel:
+	//   rt:channel:{topic}, rt:dm:{topic}, rt:typing:{topic}
+	// The pattern rt:*:{topic} consolidates all three into one subscription + one reader goroutine.
+	return ps.psubscribeSingle(ctx, topic, "rt:*:"+topic)
 }
 
 // subscribeSingle creates a single Redis Pub/Sub subscription.
@@ -71,16 +64,53 @@ func (ps *RedisPubSub) subscribeSingle(ctx context.Context, storeKey, redisKey s
 	return nil
 }
 
-// Unsubscribe stops listening on the given topic and its associated
-// DM and typing subscriptions. The reader goroutines are cancelled
-// and the Redis PubSub objects are closed.
+// psubscribeSingle creates a single Redis Pub/Sub pattern subscription.
+// Uses PSUBSCRIBE instead of SUBSCRIBE, allowing wildcard patterns like
+// "rt:*:{channelID}" to match multiple Redis channels in one subscription.
+func (ps *RedisPubSub) psubscribeSingle(ctx context.Context, storeKey, pattern string) error {
+	// Fast path: already subscribed.
+	if _, loaded := ps.subscribers.Load(storeKey); loaded {
+		return nil
+	}
+
+	// Create Redis pattern subscription.
+	sub := ps.rdb.PSubscribe(ctx, pattern)
+
+	// Validate the subscription was created successfully.
+	_, err := sub.Receive(ctx)
+	if err != nil {
+		sub.Close()
+		ps.log.Error("psubscribe failed",
+			zap.String("topic", storeKey),
+			zap.String("pattern", pattern),
+			zap.Error(err),
+		)
+		return err
+	}
+
+	readerCtx, readerCancel := context.WithCancel(ps.ctx)
+	s := &subscription{sub: sub, cancel: readerCancel}
+
+	if _, loaded := ps.subscribers.LoadOrStore(storeKey, s); loaded {
+		readerCancel()
+		sub.Close()
+		return nil
+	}
+
+	ps.Met.ActiveSubscriptions.Add(1)
+	go ps.reader(readerCtx, storeKey, sub)
+
+	ps.log.Debug("psubscribed", zap.String("topic", storeKey), zap.String("pattern", pattern))
+	return nil
+}
+
+// Unsubscribe stops listening on the given topic. With the consolidated
+// PSUBSCRIBE approach, there is only one subscription per channel (the
+// pattern subscription), so we only need to clean up one entry.
 //
 // Satisfies EventBus.Unsubscribe.
 func (ps *RedisPubSub) Unsubscribe(topic string) error {
-	// Unsubscribe from the main channel, DM, and typing topics.
-	for _, key := range []string{topic, "dm:" + topic, "typing:" + topic} {
-		ps.unsubscribeSingle(key)
-	}
+	ps.unsubscribeSingle(topic)
 	return nil
 }
 

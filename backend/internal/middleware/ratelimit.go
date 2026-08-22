@@ -246,7 +246,7 @@ func Auth(next http.Handler) http.Handler {
 			return
 		}
 
-		// CRIT-001: Actual JWT validation with signature check, expiry, and claims
+		// CRIT-001: Actual JWT validation with Ed25519 signature check, expiry, and claims
 		claims, err := authServiceInstance.ValidateToken(token)
 		if err != nil {
 			logger, _ := zap.NewProduction()
@@ -270,25 +270,13 @@ func Auth(next http.Handler) http.Handler {
 
 // TimeoutMiddleware adds a context timeout to each request handler.
 // CRIT-012: Protects against slowloris attacks and long-running handlers.
+//
+// Uses http.TimeoutHandler which buffers the response and uses a mutex
+// internally, preventing the data race that occurs when a goroutine
+// and a timeout path both write to http.ResponseWriter concurrently.
 func TimeoutMiddleware(timeout time.Duration) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx, cancel := context.WithTimeout(r.Context(), timeout)
-			defer cancel()
-
-			done := make(chan struct{})
-			go func() {
-				next.ServeHTTP(w, r.WithContext(ctx))
-				close(done)
-			}()
-
-			select {
-			case <-done:
-				return
-			case <-ctx.Done():
-				writeJSONError(w, http.StatusGatewayTimeout, "TIMEOUT", "Request timeout")
-			}
-		})
+		return http.TimeoutHandler(next, timeout, `{"error":{"code":"TIMEOUT","message":"Request timeout"}}`)
 	}
 }
 

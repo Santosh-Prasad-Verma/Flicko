@@ -1,7 +1,6 @@
-// Package moderation runs an AI classifier (Llama-Guard via Groq, with an
-// Ollama fallback) over messages before they're published. It returns a
-// per-category score, a decision (clean / review / blocked), and persists a
-// signal row for audit + analytics.
+// Package moderation runs an AI classifier (powered by Google Gemini)
+// over messages before they're published. It returns a per-category score,
+// a decision (clean / review / blocked), and persists a signal row for audit + analytics.
 //
 // Spec: missing-features/03-ai/ai-moderation/{TRD,SCHEMA,IMPL}.md
 package moderation
@@ -130,7 +129,7 @@ func DefaultThresholds() Thresholds {
 
 // Config wires the service to its dependencies.
 type Config struct {
-	ClassifierName    string // for audit ("groq:llama-guard"|"ollama:llama-guard")
+	ClassifierName    string // for audit (e.g. "gemini:gemini-2.5-flash")
 	ClassifierVersion string
 	LLMTimeout        time.Duration
 	AppealsPerDayCap  int
@@ -139,7 +138,7 @@ type Config struct {
 // DefaultConfig returns sensible defaults.
 func DefaultConfig() Config {
 	return Config{
-		ClassifierName:    "groq:llama-3.1-8b-instant",
+		ClassifierName:    "gemini:gemini-2.5-flash",
 		ClassifierVersion: "v1",
 		LLMTimeout:        4 * time.Second,
 		AppealsPerDayCap:  3,

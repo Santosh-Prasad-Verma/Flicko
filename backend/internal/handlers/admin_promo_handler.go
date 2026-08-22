@@ -41,6 +41,12 @@ type batchSendReq struct {
 }
 
 func (h *AdminPromoHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
+	userID := getUserID(r)
+	if userID == "" {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
 	rows, err := h.db.Query(r.Context(), `
 		SELECT id, email, username, created_at
 		FROM public.users
@@ -70,6 +76,12 @@ func (h *AdminPromoHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AdminPromoHandler) ListTemplates(w http.ResponseWriter, r *http.Request) {
+	userID := getUserID(r)
+	if userID == "" {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
 	templatesList := []map[string]string{
 		{"id": "flicko_plus.html", "name": "Flicko+ Premium Promotion", "type": "promotional"},
 		{"id": "upgrade.html", "name": "Feature Upgrade Announcement", "type": "promotional"},
@@ -83,9 +95,20 @@ func (h *AdminPromoHandler) ListTemplates(w http.ResponseWriter, r *http.Request
 }
 
 func (h *AdminPromoHandler) SendBatch(w http.ResponseWriter, r *http.Request) {
+	userID := getUserID(r)
+	if userID == "" {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
 	var req batchSendReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || len(req.Recipients) == 0 {
 		writeError(w, http.StatusBadRequest, "recipients array and template are required")
+		return
+	}
+
+	if len(req.Recipients) > 100 {
+		writeError(w, http.StatusBadRequest, "batch size cannot exceed 100 recipients per request")
 		return
 	}
 

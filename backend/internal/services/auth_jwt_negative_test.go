@@ -1,8 +1,9 @@
 package services_test
 
 import (
+	"crypto/ed25519"
+	"crypto/rand"
 	"testing"
-	"time"
 
 	"github.com/flicko-org/flicko-backend/internal/services"
 	"github.com/golang-jwt/jwt/v5"
@@ -10,65 +11,65 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// The secret contains '!' and '@', which are not valid base64 alphabet
-// characters, so NewAuthService's base64 decode fails and it uses the raw
-// bytes. That lets these tests sign crafted tokens with []byte(secret) and
-// have them match the service's signing key exactly.
-const jwtTestSecret = "supersecretkeylength32byteshere123!@"
-
-// signHS256 crafts an HS256 token with arbitrary claims signed by the given key.
-func signHS256(t *testing.T, claims jwt.MapClaims, key []byte) string {
+// signEdDSA crafts an EdDSA token with arbitrary claims signed by the given key.
+func signEdDSA(t *testing.T, claims jwt.MapClaims, priv ed25519.PrivateKey, kid string) string {
 	t.Helper()
-	tok := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	s, err := tok.SignedString(key)
+	tok := jwt.NewWithClaims(jwt.SigningMethodEdDSA, claims)
+	tok.Header["kid"] = kid
+	s, err := tok.SignedString(priv)
 	require.NoError(t, err)
 	return s
 }
 
-// TestValidateToken_ExpiredToken asserts an HS256 token whose exp is in the past
-// is rejected. The happy-path test only ever validates a fresh token, so nothing
-// currently guards expiry on the live monolith validator.
+// TestValidateToken_ExpiredToken asserts an EdDSA token whose exp is in the past
+// is rejected.
 func TestValidateToken_ExpiredToken(t *testing.T) {
-	svc := services.NewAuthService(nil, jwtTestSecret)
+	pub, priv := testKeypair(t)
+	svc := services.NewAuthService(nil, priv, pub)
 
-	expired := signHS256(t, jwt.MapClaims{
+	// Generate a valid token, then validate an expired one crafted manually.
+	kid := services.TestKeyIDFromPublic(pub)
+	expired := signEdDSA(t, jwt.MapClaims{
 		"sub": "user-123",
-		"iss": "flicko-backend",
-		"exp": time.Now().Add(-1 * time.Hour).Unix(),
-		"iat": time.Now().Add(-2 * time.Hour).Unix(),
-	}, []byte(jwtTestSecret))
+		"iss": "flicko",
+		"exp": 1000000000, // year 2001 — expired
+		"iat": 999999000,
+	}, priv, kid)
 
 	_, err := svc.ValidateToken(expired)
 	assert.Error(t, err, "expired token must be rejected")
 }
 
-// TestValidateToken_BadSignature asserts a token signed with a DIFFERENT secret
+// TestValidateToken_BadSignature asserts a token signed with a DIFFERENT key
 // is rejected. Guards against accepting forged tokens.
 func TestValidateToken_BadSignature(t *testing.T) {
-	svc := services.NewAuthService(nil, jwtTestSecret)
+	pub, priv := testKeypair(t)
+	svc := services.NewAuthService(nil, priv, pub)
 
-	forged := signHS256(t, jwt.MapClaims{
+	// Generate a token signed with a completely different keypair.
+	_, attackerPriv, _ := ed25519.GenerateKey(rand.Reader)
+	kid := services.TestKeyIDFromPublic(pub)
+	forged := signEdDSA(t, jwt.MapClaims{
 		"sub": "user-123",
-		"iss": "flicko-backend",
-		"exp": time.Now().Add(time.Hour).Unix(),
-	}, []byte("a-totally-different-attacker-secret!@"))
+		"iss": "flicko",
+		"exp": 9999999999,
+		"iat": 1000000000,
+	}, attackerPriv, kid)
 
 	_, err := svc.ValidateToken(forged)
-	assert.Error(t, err, "token signed with the wrong secret must be rejected")
+	assert.Error(t, err, "token signed with the wrong key must be rejected")
 }
 
 // TestValidateToken_AlgNone asserts an unsigned "alg: none" token is rejected.
-// This is the classic JWT downgrade attack; the SigningMethodHMAC guard in
-// ValidateToken is what stops it, and this test pins that behavior.
 func TestValidateToken_AlgNone(t *testing.T) {
-	svc := services.NewAuthService(nil, jwtTestSecret)
+	pub, priv := testKeypair(t)
+	svc := services.NewAuthService(nil, priv, pub)
 
 	claims := jwt.MapClaims{
 		"sub": "user-123",
-		"iss": "flicko-backend",
-		"exp": time.Now().Add(time.Hour).Unix(),
+		"iss": "flicko",
+		"exp": 9999999999,
 	}
-	// jwt.UnsafeAllowNoneSignatureType is required to produce a none-signed token.
 	tok := jwt.NewWithClaims(jwt.SigningMethodNone, claims)
 	noneToken, err := tok.SignedString(jwt.UnsafeAllowNoneSignatureType)
 	require.NoError(t, err)
@@ -80,24 +81,23 @@ func TestValidateToken_AlgNone(t *testing.T) {
 // TestValidateToken_TamperedClaims asserts that flipping a byte in the payload
 // (without re-signing) invalidates the token.
 func TestValidateToken_TamperedClaims(t *testing.T) {
-	svc := services.NewAuthService(nil, jwtTestSecret)
+	pub, priv := testKeypair(t)
+	svc := services.NewAuthService(nil, priv, pub)
 
-	valid := signHS256(t, jwt.MapClaims{
-		"sub": "user-123",
-		"iss": "flicko-backend",
-		"exp": time.Now().Add(time.Hour).Unix(),
-	}, []byte(jwtTestSecret))
+	valid, err := svc.GenerateToken("user-123", "u@flicko.test")
+	require.NoError(t, err)
 
 	// Corrupt a character in the middle (payload segment) — signature no longer matches.
 	tampered := valid[:len(valid)/2] + "X" + valid[len(valid)/2+1:]
 
-	_, err := svc.ValidateToken(tampered)
+	_, err = svc.ValidateToken(tampered)
 	assert.Error(t, err, "tampered token must be rejected")
 }
 
 // TestValidateToken_EmptyAndMalformed asserts empty and garbage strings are rejected.
 func TestValidateToken_EmptyAndMalformed(t *testing.T) {
-	svc := services.NewAuthService(nil, jwtTestSecret)
+	pub, priv := testKeypair(t)
+	svc := services.NewAuthService(nil, priv, pub)
 
 	for _, tok := range []string{"", "not.a.jwt", "garbage"} {
 		_, err := svc.ValidateToken(tok)
@@ -108,7 +108,8 @@ func TestValidateToken_EmptyAndMalformed(t *testing.T) {
 // TestValidateToken_ValidTokenAccepted is the positive control: a properly signed,
 // unexpired token is accepted and the subject round-trips.
 func TestValidateToken_ValidTokenAccepted(t *testing.T) {
-	svc := services.NewAuthService(nil, jwtTestSecret)
+	pub, priv := testKeypair(t)
+	svc := services.NewAuthService(nil, priv, pub)
 
 	token, err := svc.GenerateToken("user-456", "u@flicko.test")
 	require.NoError(t, err)
@@ -116,4 +117,5 @@ func TestValidateToken_ValidTokenAccepted(t *testing.T) {
 	claims, err := svc.ValidateToken(token)
 	require.NoError(t, err)
 	assert.Equal(t, "user-456", claims.Subject)
+	assert.Equal(t, "flicko", claims.Issuer)
 }

@@ -87,7 +87,7 @@ func DefaultConfig() Config {
 		WindowMinMessages: 5,
 		MaxBullets:        7,
 		LLMTimeout:        12 * time.Second,
-		ModelName:         "groq:llama-3.3-70b",
+		ModelName:         "gemini:gemini-2.5-flash",
 	}
 }
 

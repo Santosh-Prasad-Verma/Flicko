@@ -25,7 +25,7 @@ RUN go build -trimpath -ldflags="-s -w" -o flicko-backend ./cmd/server/main.go
 FROM alpine:3.22
 WORKDIR /app
 
-# Install CA certs for outbound TLS (Azure, Cloudinary) + timezone data
+# Install CA certs for outbound TLS (Azure, Appwrite) + timezone data
 RUN apk upgrade --no-cache \
     && apk add --no-cache ca-certificates tzdata wget
 

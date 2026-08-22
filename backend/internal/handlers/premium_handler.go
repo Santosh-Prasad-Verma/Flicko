@@ -37,6 +37,9 @@ type PremiumHandler struct {
 type createGiftRequest struct {
 	Plan         string `json:"plan"`
 	DurationDays int    `json:"duration_days,omitempty"`
+	OrderID      string `json:"razorpay_order_id,omitempty"`
+	PaymentID    string `json:"razorpay_payment_id,omitempty"`
+	Signature    string `json:"razorpay_signature,omitempty"`
 }
 
 type redeemGiftRequest struct {
@@ -130,15 +133,32 @@ func (h *PremiumHandler) CreateGift(w http.ResponseWriter, r *http.Request) {
 		priceCents = 999
 	}
 
+	status := "issued"
+	if h.rzpSecret != "" {
+		if req.OrderID != "" && req.PaymentID != "" && req.Signature != "" {
+			data := req.OrderID + "|" + req.PaymentID
+			mac := hmac.New(sha256.New, []byte(h.rzpSecret))
+			mac.Write([]byte(data))
+			expectedSignature := hex.EncodeToString(mac.Sum(nil))
+			if !hmac.Equal([]byte(expectedSignature), []byte(req.Signature)) {
+				writeError(w, http.StatusBadRequest, "invalid payment signature for gift purchase")
+				return
+			}
+			status = "issued"
+		} else {
+			status = "pending_payment"
+		}
+	}
+
 	var giftID uuid.UUID
 	var expiresAt time.Time
 	if err = h.db.QueryRow(r.Context(), `
 		INSERT INTO public.gift_transactions (
 			purchaser_id, plan, duration_days, price_cents, currency, gift_code, status, expires_at
 		)
-		VALUES ($1, $2, $3, $4, 'usd', $5, 'issued', NOW() + INTERVAL '30 days')
+		VALUES ($1, $2, $3, $4, 'usd', $5, $6, NOW() + INTERVAL '30 days')
 		RETURNING id, expires_at
-	`, userUUID, req.Plan, req.DurationDays, priceCents, code).Scan(&giftID, &expiresAt); err != nil {
+	`, userUUID, req.Plan, req.DurationDays, priceCents, code, status).Scan(&giftID, &expiresAt); err != nil {
 		h.logger.Error("failed to create gift transaction", zap.Error(err))
 		writeError(w, http.StatusInternalServerError, "failed to create premium gift")
 		return
@@ -152,7 +172,7 @@ func (h *PremiumHandler) CreateGift(w http.ResponseWriter, r *http.Request) {
 		"price_cents":   priceCents,
 		"currency":      "usd",
 		"expires_at":    expiresAt,
-		"status":        "issued",
+		"status":        status,
 	})
 }
 
@@ -713,6 +733,11 @@ func (h *PremiumHandler) VerifyPayment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if req.OrderID == "" || req.PaymentID == "" || req.Signature == "" {
+		writeError(w, http.StatusBadRequest, "order_id, payment_id and signature are required")
+		return
+	}
+
 	// Verify Signature
 	// Generated Signature = hmac_sha256(order_id + "|" + payment_id, secret)
 	data := req.OrderID + "|" + req.PaymentID
@@ -720,11 +745,26 @@ func (h *PremiumHandler) VerifyPayment(w http.ResponseWriter, r *http.Request) {
 	mac.Write([]byte(data))
 	expectedSignature := hex.EncodeToString(mac.Sum(nil))
 
-	if expectedSignature != req.Signature {
-		h.logger.Warn("invalid payment signature", 
-			zap.String("user", userID), 
+	if !hmac.Equal([]byte(expectedSignature), []byte(req.Signature)) {
+		h.logger.Warn("invalid payment signature",
+			zap.String("user", userID),
 			zap.String("order", req.OrderID))
 		writeError(w, http.StatusBadRequest, "invalid signature")
+		return
+	}
+
+	// Replay Protection: Check if payment has already been redeemed
+	var alreadyProcessed bool
+	err := h.db.QueryRow(r.Context(),
+		`SELECT EXISTS(SELECT 1 FROM public.entitlements WHERE source = 'payment' AND source_id = $1)`,
+		req.PaymentID).Scan(&alreadyProcessed)
+	if err != nil {
+		h.logger.Error("failed to check existing entitlement", zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "internal error")
+		return
+	}
+	if alreadyProcessed {
+		writeError(w, http.StatusConflict, "payment has already been processed")
 		return
 	}
 
@@ -734,8 +774,11 @@ func (h *PremiumHandler) VerifyPayment(w http.ResponseWriter, r *http.Request) {
 	if plan == "" {
 		plan = nitroBasicPlan
 	}
+	if plan != nitroBasicPlan && plan != nitroFullPlan {
+		plan = nitroBasicPlan
+	}
 
-	_, err := h.db.Exec(r.Context(), `
+	_, err = h.db.Exec(r.Context(), `
 		INSERT INTO public.entitlements (user_id, type, source, source_id, granted_at, expires_at, revoked)
 		VALUES ($1, $2, 'payment', $3, NOW(), NOW() + ($4 * INTERVAL '1 day'), FALSE)
 	`, userUUID, plan, req.PaymentID, duration)

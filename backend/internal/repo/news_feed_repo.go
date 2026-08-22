@@ -2,7 +2,6 @@ package repo
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -48,11 +47,7 @@ func (r *newsFeedRepo) SaveFeedItems(ctx context.Context, items []*FeedItem) err
 		if item.CreatedAt.IsZero() {
 			item.CreatedAt = time.Now().UTC()
 		}
-		doc, err := toMap(item)
-		if err != nil {
-			return fmt.Errorf("marshal feed item: %w", err)
-		}
-		docs = append(docs, doc)
+		docs = append(docs, feedItemToMap(item))
 	}
 
 	if err := r.astra.InsertMany(ctx, collNewsFeedCaches, docs); err != nil {
@@ -88,14 +83,61 @@ func (r *newsFeedRepo) GetFeed(ctx context.Context, serverID string, limit int) 
 	return results, nil
 }
 
+func feedItemToMap(item *FeedItem) map[string]any {
+	doc := map[string]any{
+		"_id":        item.ID,
+		"server_id":  item.ServerID,
+		"title":      item.Title,
+		"content":    item.Content,
+		"source_url": item.SourceURL,
+		"created_at": item.CreatedAt,
+	}
+	if item.ImageURL != "" {
+		doc["image_url"] = item.ImageURL
+	}
+	if item.Category != "" {
+		doc["category"] = item.Category
+	}
+	return doc
+}
+
 func fromMapFeedItem(m map[string]any) (*FeedItem, error) {
-	b, err := json.Marshal(m)
-	if err != nil {
-		return nil, err
+	if m == nil {
+		return nil, fmt.Errorf("nil feed item map")
 	}
-	var item FeedItem
-	if err := json.Unmarshal(b, &item); err != nil {
-		return nil, err
+	item := &FeedItem{}
+	if id, ok := m["_id"].(string); ok {
+		item.ID = id
+	} else if id, ok := m["id"].(string); ok {
+		item.ID = id
 	}
-	return &item, nil
+	if serverID, ok := m["server_id"].(string); ok {
+		item.ServerID = serverID
+	}
+	if title, ok := m["title"].(string); ok {
+		item.Title = title
+	}
+	if content, ok := m["content"].(string); ok {
+		item.Content = content
+	}
+	if sourceURL, ok := m["source_url"].(string); ok {
+		item.SourceURL = sourceURL
+	}
+	if imageURL, ok := m["image_url"].(string); ok {
+		item.ImageURL = imageURL
+	}
+	if category, ok := m["category"].(string); ok {
+		item.Category = category
+	}
+	if rawCreatedAt, ok := m["created_at"]; ok {
+		switch t := rawCreatedAt.(type) {
+		case time.Time:
+			item.CreatedAt = t
+		case string:
+			if parsed, err := time.Parse(time.RFC3339, t); err == nil {
+				item.CreatedAt = parsed
+			}
+		}
+	}
+	return item, nil
 }

@@ -51,7 +51,7 @@ const MaxFileSize = 25 * 1024 * 1024
 const PresignedURLTTL = 15 * time.Minute
 
 // S3Presigner generates presigned PUT URLs.
-// This interface decouples the service from the S3-compatible client (minio-go → B2).
+// This interface decouples the service from the storage client.
 type S3Presigner interface {
 	PresignedPutObject(ctx context.Context, bucket, object string, expires time.Duration) (*url.URL, error)
 }

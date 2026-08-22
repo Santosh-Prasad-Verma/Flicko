@@ -64,9 +64,10 @@ type channelClients struct {
 // register/unregister channels or sync.Map operations. Run() is the
 // single event-loop goroutine that processes registrations.
 type Manager struct {
-	clients  sync.Map // map[string]*Client  (clientID → *Client)
-	channels sync.Map // map[string]*channelClients
-	sessions sync.Map // map[string][]string (sessionID -> channelIDs)
+	clients     sync.Map // map[string]*Client  (clientID → *Client)
+	userClients sync.Map // map[string]*sync.Map (userID → map[clientID]*Client) — reverse index for O(1) user lookups
+	channels    sync.Map // map[string]*channelClients
+	sessions    sync.Map // map[string][]string (sessionID -> channelIDs)
 
 	register   chan *Client
 	unregister chan *Client
@@ -78,6 +79,11 @@ type Manager struct {
 	gatewayID  string
 	log        *zap.Logger
 
+	// slowConsumerSem caps the number of concurrent grace-period goroutines
+	// spawned for slow consumers during fan-out. Prevents goroutine storms
+	// under burst load.
+	slowConsumerSem chan struct{}
+
 	// Metrics counters.
 	activeConns atomic.Int64
 	totalConns  atomic.Int64
@@ -86,12 +92,13 @@ type Manager struct {
 // NewManager creates a Manager ready for Run().
 func NewManager(pub Publisher, pres PresenceUpdater, gatewayID string, log *zap.Logger) *Manager {
 	m := &Manager{
-		register:   make(chan *Client, 256),
-		unregister: make(chan *Client, 256),
-		publisher:  pub,
-		presence:   pres,
-		gatewayID:  gatewayID,
-		log:        log.Named("manager"),
+		register:        make(chan *Client, 256),
+		unregister:      make(chan *Client, 256),
+		publisher:       pub,
+		presence:        pres,
+		gatewayID:       gatewayID,
+		log:             log.Named("manager"),
+		slowConsumerSem: make(chan struct{}, 64),
 	}
 
 	// HIGH-008: Start periodic cleanup of empty channel entries to prevent memory leaks
@@ -119,6 +126,9 @@ func (m *Manager) Run(ctx context.Context) {
 		select {
 		case client := <-m.register:
 			m.clients.Store(client.ID, client)
+			// Maintain userClients reverse index for O(1) user lookups.
+			ucVal, _ := m.userClients.LoadOrStore(client.UserID, &sync.Map{})
+			ucVal.(*sync.Map).Store(client.ID, client)
 			m.activeConns.Add(1)
 			m.totalConns.Add(1)
 			m.log.Info("client registered",
@@ -138,6 +148,17 @@ func (m *Manager) Run(ctx context.Context) {
 
 		case client := <-m.unregister:
 			if _, loaded := m.clients.LoadAndDelete(client.ID); loaded {
+				// Remove from userClients reverse index.
+				if ucVal, ok := m.userClients.Load(client.UserID); ok {
+					ucMap := ucVal.(*sync.Map)
+					ucMap.Delete(client.ID)
+					// Clean up empty user entry.
+					empty := true
+					ucMap.Range(func(_, _ interface{}) bool { empty = false; return false })
+					if empty {
+						m.userClients.Delete(client.UserID)
+					}
+				}
 				close(client.Send)
 				m.removeFromAllChannels(client)
 				m.activeConns.Add(-1)
@@ -162,13 +183,15 @@ func (m *Manager) Run(ctx context.Context) {
 }
 
 // CountUserClients returns the number of active clients on this gateway for the given UserID.
+// Uses the userClients reverse index for O(1) lookup instead of O(N) full scan.
 func (m *Manager) CountUserClients(userID string) int {
+	ucVal, ok := m.userClients.Load(userID)
+	if !ok {
+		return 0
+	}
 	count := 0
-	m.clients.Range(func(_, value interface{}) bool {
-		c := value.(*Client)
-		if c.UserID == userID {
-			count++
-		}
+	ucVal.(*sync.Map).Range(func(_, _ interface{}) bool {
+		count++
 		return true
 	})
 	return count
@@ -197,7 +220,7 @@ func (m *Manager) SubscribeToChannel(client *Client, channelID string) {
 	cc.clients[client.ID] = client
 	cc.mu.Unlock()
 
-	client.Channels[channelID] = true
+	client.AddChannel(channelID)
 
 	if client.SessionID != "" {
 		var newChannels []string
@@ -265,7 +288,7 @@ func (m *Manager) UnsubscribeFromChannel(client *Client, channelID string) {
 		}
 	}
 
-	delete(client.Channels, channelID)
+	client.RemoveChannel(channelID)
 
 	if client.SessionID != "" {
 		if saved, ok := m.sessions.Load(client.SessionID); ok {
@@ -311,39 +334,57 @@ func (m *Manager) FanoutToChannel(channelID string, message []byte, excludeClien
 			// Delivered to buffer immediately.
 		default:
 			// SLOW CONSUMER: send channel full.
-			// Try again with a grace period in a goroutine so we don't block the fanout loop.
-			go func(c *Client, msg []byte) {
-				timer := time.NewTimer(2 * time.Second)
-				defer timer.Stop()
+			// Try to acquire semaphore for grace-period goroutine.
+			select {
+			case m.slowConsumerSem <- struct{}{}:
+				go func(c *Client, msg []byte) {
+					defer func() { <-m.slowConsumerSem }()
+					timer := time.NewTimer(2 * time.Second)
+					defer timer.Stop()
 
-				select {
-				case c.Send <- msg:
-					// Delivered after a short delay.
-				case <-timer.C:
-					// Still full after grace period.
-					// Disconnect — they'll reconnect and catch up via REST.
-					m.log.Warn("slow consumer disconnected after grace period",
-						zap.String("user_id", c.UserID),
-						zap.String("channel_id", channelID),
-					)
-					m.unregister <- c
-				}
-			}(client, message)
+					select {
+					case c.Send <- msg:
+						// Delivered after a short delay.
+					case <-timer.C:
+						// Still full after grace period.
+						// Disconnect — they'll reconnect and catch up via REST.
+						m.log.Warn("slow consumer disconnected after grace period",
+							zap.String("user_id", c.UserID),
+							zap.String("channel_id", channelID),
+						)
+						m.unregister <- c
+					}
+				}(client, message)
+			default:
+				// Semaphore full — too many slow consumers already, disconnect immediately.
+				m.log.Warn("slow consumer disconnected immediately (semaphore full)",
+					zap.String("user_id", client.UserID),
+					zap.String("channel_id", channelID),
+				)
+				m.unregister <- client
+			}
 		}
 	}
 }
 
 // FanoutToUser delivers a message to all active client connections for a specific user ID on this gateway.
+// Uses the userClients reverse index for O(1) user lookup instead of O(N) full scan.
 func (m *Manager) FanoutToUser(userID string, message []byte) {
-	m.clients.Range(func(_, value interface{}) bool {
+	ucVal, ok := m.userClients.Load(userID)
+	if !ok {
+		return
+	}
+	ucVal.(*sync.Map).Range(func(_, value interface{}) bool {
 		c := value.(*Client)
-		if c.UserID == userID {
+		select {
+		case c.Send <- message:
+			// Delivered to buffer immediately.
+		default:
+			// Slow consumer: try via semaphore-guarded goroutine.
 			select {
-			case c.Send <- message:
-				// Delivered to buffer immediately.
-			default:
-				// Slow consumer: try in a goroutine with grace period.
+			case m.slowConsumerSem <- struct{}{}:
 				go func(client *Client, msg []byte) {
+					defer func() { <-m.slowConsumerSem }()
 					timer := time.NewTimer(2 * time.Second)
 					defer timer.Stop()
 
@@ -358,6 +399,12 @@ func (m *Manager) FanoutToUser(userID string, message []byte) {
 						m.unregister <- client
 					}
 				}(c, message)
+			default:
+				m.log.Warn("slow consumer disconnected immediately (semaphore full)",
+					zap.String("user_id", c.UserID),
+					zap.String("client_id", c.ID),
+				)
+				m.unregister <- c
 			}
 		}
 		return true
@@ -576,14 +623,35 @@ func (m *Manager) handlePresenceUpdate(client *Client, msg *protocol.GatewayMess
 		_ = m.presence.SetPresence(context.Background(), client.UserID, payload.Status, m.gatewayID)
 	}
 
-	// Fan out presence change to all channels the client is in.
+	// Fan out presence change to all unique client connections across channels the client is in.
 	payload.UserID = client.UserID
 	dispatchRaw, err := protocol.EncodeDispatch("PRESENCE_UPDATE", 0, payload)
 	if err != nil {
 		return
 	}
-	for channelID := range client.Channels {
-		m.FanoutToChannel(channelID, dispatchRaw, client.ID)
+
+	channels := client.GetChannels()
+	uniqueRecipients := make(map[string]*Client)
+
+	for _, channelID := range channels {
+		if val, ok := m.channels.Load(channelID); ok {
+			cc := val.(*channelClients)
+			cc.mu.RLock()
+			for id, c := range cc.clients {
+				if id != client.ID {
+					uniqueRecipients[id] = c
+				}
+			}
+			cc.mu.RUnlock()
+		}
+	}
+
+	for _, target := range uniqueRecipients {
+		select {
+		case target.Send <- dispatchRaw:
+		default:
+			// Slow consumer drop for ephemeral presence
+		}
 	}
 }
 
@@ -591,7 +659,7 @@ func (m *Manager) handlePresenceUpdate(client *Client, msg *protocol.GatewayMess
 
 // removeFromAllChannels unsubscribes a client from every channel.
 func (m *Manager) removeFromAllChannels(client *Client) {
-	for channelID := range client.Channels {
+	for _, channelID := range client.GetChannels() {
 		m.UnsubscribeFromChannel(client, channelID)
 	}
 }
@@ -651,14 +719,10 @@ func (m *Manager) TotalConnections() int64 {
 
 // RangeClients calls fn with each connected user's ID. Used by the
 // presence heartbeat loop to refresh TTLs. fn must not block.
+// Uses the userClients index for direct iteration without deduplication.
 func (m *Manager) RangeClients(fn func(userID string)) {
-	seen := make(map[string]struct{})
-	m.clients.Range(func(_, value interface{}) bool {
-		c := value.(*Client)
-		if _, ok := seen[c.UserID]; !ok {
-			seen[c.UserID] = struct{}{}
-			fn(c.UserID)
-		}
+	m.userClients.Range(func(key, _ interface{}) bool {
+		fn(key.(string))
 		return true
 	})
 }

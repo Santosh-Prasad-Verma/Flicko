@@ -1,10 +1,14 @@
 package handlers
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/flicko-org/flicko-backend/internal/services"
+	"github.com/golang-jwt/jwt/v5"
 	"go.uber.org/zap"
 )
 
@@ -43,7 +47,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	user, token, err := h.authSvc.Register(r.Context(), req.Username, req.Email, req.Phone, req.Password)
 	if err != nil {
 		h.logger.Warn("registration failed", zap.String("username", req.Username), zap.Error(err))
-		writeError(w, http.StatusBadRequest, "Registration failed. Please check your details and try again.")
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -57,9 +61,6 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 type loginRequest struct {
 	Identifier string `json:"identifier"`
-	Email      string `json:"email"`
-	Username   string `json:"username"`
-	Phone      string `json:"phone"`
 	Password   string `json:"password"`
 }
 
@@ -70,25 +71,14 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	loginKey := req.Identifier
-	if loginKey == "" {
-		if req.Email != "" {
-			loginKey = req.Email
-		} else if req.Username != "" {
-			loginKey = req.Username
-		} else if req.Phone != "" {
-			loginKey = req.Phone
-		}
-	}
-
-	if loginKey == "" || req.Password == "" {
-		writeError(w, http.StatusBadRequest, "Username, email, or phone number and password are required")
+	if req.Identifier == "" || req.Password == "" {
+		writeError(w, http.StatusBadRequest, "Identifier and password are required")
 		return
 	}
 
-	user, token, err := h.authSvc.Login(r.Context(), loginKey, req.Password)
+	user, token, err := h.authSvc.Login(r.Context(), req.Identifier, req.Password)
 	if err != nil {
-		h.logger.Warn("login failed", zap.String("identifier", loginKey), zap.Error(err))
+		h.logger.Warn("login failed", zap.String("identifier", req.Identifier), zap.Error(err))
 		writeError(w, http.StatusUnauthorized, "Invalid credentials")
 		return
 	}
@@ -103,8 +93,6 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 type entraIDLoginRequest struct {
 	IDToken string `json:"id_token"`
-	Email   string `json:"email"`
-	Name    string `json:"name"`
 }
 
 func (h *AuthHandler) EntraIDLogin(w http.ResponseWriter, r *http.Request) {
@@ -114,22 +102,48 @@ func (h *AuthHandler) EntraIDLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.IDToken == "" && req.Email == "" {
-		writeError(w, http.StatusBadRequest, "ID token or Email is required for Microsoft Entra ID SSO")
+	if strings.TrimSpace(req.IDToken) == "" {
+		writeError(w, http.StatusBadRequest, "Microsoft Entra ID token (id_token) is required")
 		return
 	}
 
-	email := req.Email
+	// Parse ID Token to extract claims
+	var claims jwt.MapClaims
+	parser := jwt.NewParser()
+	_, _, err := parser.ParseUnverified(req.IDToken, &claims)
+	if err != nil {
+		h.logger.Warn("failed to parse entra id token", zap.Error(err))
+		writeError(w, http.StatusBadRequest, "Invalid Microsoft Entra ID token format")
+		return
+	}
+
+	email, _ := claims["email"].(string)
 	if email == "" {
-		email = "entra_" + req.IDToken[:8] + "@flicko.app"
+		email, _ = claims["preferred_username"].(string)
+	}
+	if email == "" {
+		email, _ = claims["upn"].(string)
+	}
+	if email == "" {
+		writeError(w, http.StatusBadRequest, "Entra ID token missing verified email claim")
+		return
 	}
 
-	username := req.Name
+	username, _ := claims["name"].(string)
 	if username == "" {
-		username = email
+		username, _ = claims["preferred_username"].(string)
+	}
+	if username == "" {
+		username = strings.Split(email, "@")[0]
 	}
 
-	ssoPassword := "EntraID_SSO_Secured_" + email + "_2026!"
+	// Generate a cryptographically secure random password for the SSO account
+	randBytes := make([]byte, 32)
+	if _, err := rand.Read(randBytes); err != nil {
+		writeError(w, http.StatusInternalServerError, "Failed to generate security token")
+		return
+	}
+	ssoPassword := "sso_rand_" + hex.EncodeToString(randBytes) + "!"
 
 	user, token, err := h.authSvc.Login(r.Context(), email, ssoPassword)
 	if err != nil {

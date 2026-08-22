@@ -19,6 +19,7 @@
 
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:mobile/features/sonic_music/Services/yt_music.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -137,49 +138,52 @@ class YouTubeServices {
     return metadata;
   }
 
-  Map? _extractInitialData(String html) {
-    final markers = [
-      'var ytInitialData =',
-      'window["ytInitialData"] =',
-      'ytInitialData =',
-    ];
-    for (final marker in markers) {
-      final markerIndex = html.indexOf(marker);
-      if (markerIndex == -1) continue;
+  Future<Map?> _extractInitialData(String html) async {
+    return await Isolate.run(() {
+      final markers = [
+        'var ytInitialData =',
+        'window["ytInitialData"] =',
+        'ytInitialData =',
+      ];
+      for (final marker in markers) {
+        final markerIndex = html.indexOf(marker);
+        if (markerIndex == -1) continue;
 
-      final start = html.indexOf('{', markerIndex);
-      if (start == -1) continue;
+        final start = html.indexOf('{', markerIndex);
+        if (start == -1) continue;
 
-      var depth = 0;
-      var inString = false;
-      var escaped = false;
-      for (var i = start; i < html.length; i++) {
-        final char = html[i];
-        if (escaped) {
-          escaped = false;
-          continue;
-        }
-        if (char == '\\') {
-          escaped = true;
-          continue;
-        }
-        if (char == '"') {
-          inString = !inString;
-          continue;
-        }
-        if (inString) continue;
-        if (char == '{') depth++;
-        if (char == '}') {
-          depth--;
-          if (depth == 0) {
-            final jsonText = html.substring(start, i + 1);
-            final decoded = json.decode(jsonText);
-            return decoded is Map ? decoded : null;
+        var depth = 0;
+        var inString = false;
+        var escaped = false;
+        final len = html.length;
+        for (var i = start; i < len; i++) {
+          final code = html.codeUnitAt(i);
+          if (escaped) {
+            escaped = false;
+            continue;
+          }
+          if (code == 92) { // '\\'
+            escaped = true;
+            continue;
+          }
+          if (code == 34) { // '"'
+            inString = !inString;
+            continue;
+          }
+          if (inString) continue;
+          if (code == 123) depth++; // '{'
+          if (code == 125) {        // '}'
+            depth--;
+            if (depth == 0) {
+              final jsonText = html.substring(start, i + 1);
+              final decoded = json.decode(jsonText);
+              return decoded is Map ? decoded : null;
+            }
           }
         }
       }
-    }
-    return null;
+      return null;
+    });
   }
 
   Future<Map<String, List>> getMusicHome() async {
@@ -192,7 +196,7 @@ class YouTubeServices {
       if (response.statusCode != 200) {
         return {};
       }
-      final Map? data = _extractInitialData(response.body);
+      final Map? data = await _extractInitialData(response.body);
       if (data == null) {
         Logger.root.warning('Unable to parse YouTube Music home payload');
         return {};

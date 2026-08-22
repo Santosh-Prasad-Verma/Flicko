@@ -196,6 +196,12 @@ func HandleRotateBotSecret(w http.ResponseWriter, r *http.Request) {
 
 // HandleGenerateAPIKey generates a new API key for the authenticated bot.
 func HandleGenerateAPIKey(w http.ResponseWriter, r *http.Request) {
+	userID := getUserID(r)
+	if userID == "" {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	var req GenerateBotKeyRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -207,6 +213,24 @@ func HandleGenerateAPIKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	vars := mux.Vars(r)
+	botID := vars["id"]
+	if botID == "" {
+		http.Error(w, "missing bot id", http.StatusBadRequest)
+		return
+	}
+
+	if botMarketplaceDB != nil {
+		var isOwner bool
+		err := botMarketplaceDB.QueryRow(r.Context(),
+			`SELECT EXISTS(SELECT 1 FROM external_bots WHERE id = $1 AND developer_id = $2)`,
+			botID, userID).Scan(&isOwner)
+		if err != nil || !isOwner {
+			http.Error(w, "forbidden: you do not own this bot", http.StatusForbidden)
+			return
+		}
+	}
+
 	raw, prefix, hash, err := auth.GenerateAPIKey()
 	if err != nil {
 		http.Error(w, "failed to generate key", http.StatusInternalServerError)
@@ -214,9 +238,6 @@ func HandleGenerateAPIKey(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if botMarketplaceDB != nil {
-		vars := mux.Vars(r)
-		botID := vars["id"]
-
 		_, err := botMarketplaceDB.Exec(r.Context(),
 			`INSERT INTO bot_api_keys (bot_id, key_hash, key_prefix, name, scopes)
 			 VALUES ($1, $2, $3, $4, $5)`,

@@ -56,11 +56,7 @@ func (r *auraLogRepo) SaveConversationTurn(ctx context.Context, log *AuraChatLog
 		log.CreatedAt = time.Now().UTC()
 	}
 
-	doc, err := toMap(log)
-	if err != nil {
-		return fmt.Errorf("marshal aura log: %w", err)
-	}
-
+	doc := auraLogToMap(log)
 	if err := r.astra.InsertOne(ctx, collAuraChatLogs, doc); err != nil {
 		return fmt.Errorf("insert aura log: %w", err)
 	}
@@ -76,11 +72,7 @@ func (r *auraLogRepo) SaveConversationBatch(ctx context.Context, logs []*AuraCha
 		if log.CreatedAt.IsZero() {
 			log.CreatedAt = time.Now().UTC()
 		}
-		doc, err := toMap(log)
-		if err != nil {
-			return fmt.Errorf("marshal aura log batch item: %w", err)
-		}
-		docs = append(docs, doc)
+		docs = append(docs, auraLogToMap(log))
 	}
 
 	if err := r.astra.InsertMany(ctx, collAuraChatLogs, docs); err != nil {
@@ -131,7 +123,73 @@ func (r *auraLogRepo) SemanticSearch(ctx context.Context, userID string, vector 
 	return results, nil
 }
 
-// toMap converts a struct to map[string]any via JSON round-trip.
+func auraLogToMap(log *AuraChatLog) map[string]any {
+	doc := map[string]any{
+		"_id":        log.ID,
+		"user_id":    log.UserID,
+		"session_id": log.SessionID,
+		"role":       log.Role,
+		"content":    log.Content,
+		"created_at": log.CreatedAt,
+	}
+	if len(log.ToolCalls) > 0 {
+		doc["tool_calls"] = log.ToolCalls
+	}
+	if len(log.Metadata) > 0 {
+		doc["metadata"] = log.Metadata
+	}
+	if len(log.Vector) > 0 {
+		doc["$vector"] = log.Vector
+	}
+	return doc
+}
+
+// fromMapAuraLog converts a map to AuraChatLog with direct extraction and fast fallback.
+func fromMapAuraLog(m map[string]any) (*AuraChatLog, error) {
+	if m == nil {
+		return nil, fmt.Errorf("nil aura log map")
+	}
+	log := &AuraChatLog{}
+	if id, ok := m["_id"].(string); ok {
+		log.ID = id
+	} else if id, ok := m["id"].(string); ok {
+		log.ID = id
+	}
+	if uID, ok := m["user_id"].(string); ok {
+		log.UserID = uID
+	}
+	if sID, ok := m["session_id"].(string); ok {
+		log.SessionID = sID
+	}
+	if role, ok := m["role"].(string); ok {
+		log.Role = role
+	}
+	if content, ok := m["content"].(string); ok {
+		log.Content = content
+	}
+	if metadata, ok := m["metadata"].(map[string]any); ok {
+		log.Metadata = metadata
+	}
+	if rawCreatedAt, ok := m["created_at"]; ok {
+		switch t := rawCreatedAt.(type) {
+		case time.Time:
+			log.CreatedAt = t
+		case string:
+			if parsed, err := time.Parse(time.RFC3339, t); err == nil {
+				log.CreatedAt = parsed
+			}
+		}
+	}
+	// If tool calls or vector are present, safely decode
+	if rawTools, ok := m["tool_calls"]; ok && rawTools != nil {
+		if b, err := json.Marshal(rawTools); err == nil {
+			_ = json.Unmarshal(b, &log.ToolCalls)
+		}
+	}
+	return log, nil
+}
+
+// toMap converts a struct to map[string]any via JSON round-trip for generic callers.
 func toMap(v any) (map[string]any, error) {
 	b, err := json.Marshal(v)
 	if err != nil {
@@ -142,17 +200,4 @@ func toMap(v any) (map[string]any, error) {
 		return nil, err
 	}
 	return m, nil
-}
-
-// fromMapAuraLog converts a map to AuraChatLog via JSON round-trip.
-func fromMapAuraLog(m map[string]any) (*AuraChatLog, error) {
-	b, err := json.Marshal(m)
-	if err != nil {
-		return nil, err
-	}
-	var log AuraChatLog
-	if err := json.Unmarshal(b, &log); err != nil {
-		return nil, err
-	}
-	return &log, nil
 }

@@ -61,7 +61,7 @@ WORKDIR /src/msg-service
 #   -s: omit symbol table → saves ~2 MB
 #   -w: omit DWARF debug info → saves ~1 MB
 # -tags=netgo — use Go's native DNS resolver instead of CGO's.
-# Result: ~12–15 MB fully static binary (larger than gateway due to pgx, minio-go).
+# Result: ~12–15 MB fully static binary (larger than gateway due to pgx).
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
     -trimpath \
     -tags=netgo \
@@ -74,12 +74,12 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
 # ─────────────────────────────────────────────────────────────────────────────
 # Why alpine:3.22 and not scratch?
 #   - We need wget for HEALTHCHECK (scratch has no shell/tools).
-#   - We need ca-certificates for outbound TLS (PostgreSQL, MinIO).
+#   - We need ca-certificates for outbound TLS (PostgreSQL).
 #   - alpine:3.22 base is ~3.3 MB, total image stays under 20 MB.
 FROM alpine:3.22
 
 # Install only what's strictly needed:
-#   ca-certificates — TLS cert bundle for outbound HTTPS (PostgreSQL, MinIO)
+#   ca-certificates — TLS cert bundle for outbound HTTPS (PostgreSQL)
 #   tzdata          — timezone database (for UTC log timestamps)
 #   wget            — HEALTHCHECK probe (lighter than curl, no libcurl deps)
 RUN apk upgrade --no-cache \
@@ -119,7 +119,7 @@ EXPOSE 8081 9101
 # Docker daemon probes this every 10s. After 5 consecutive failures
 # (50s total), the container is marked unhealthy and compose can restart it.
 # --start-period gives the binary 15s to boot (longer than gateway because
-# msg-service establishes DB + Redis + MinIO connections on startup).
+# msg-service establishes DB + Redis connections on startup).
 # wget --spider does a HEAD-like request (no body download).
 HEALTHCHECK --interval=10s --timeout=3s --retries=5 --start-period=15s \
     CMD ["wget", "--spider", "-q", "http://localhost:8081/healthz"]

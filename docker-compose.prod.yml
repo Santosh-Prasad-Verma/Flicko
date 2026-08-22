@@ -274,7 +274,7 @@ services:
       retries: 5
       start_period: 15s
   # ──────────────────────────────────────────────────────────────────────────
-  # BACKEND — Commands/Bots/Cloudinary signing API
+  # BACKEND — Commands/Bots/Core REST API
   # ──────────────────────────────────────────────────────────────────────────
   backend:
     build:
@@ -439,8 +439,8 @@ services:
 
 
   # ──────────────────────────────────────────────────────────────────────────
-  # STORAGE — Using Cloudinary for media storage (cloud).
-  # Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET in .env
+  # STORAGE — Using Azure Blob Storage & Appwrite for media storage.
+  # Configured via AZURE_BLOB_CONNECTION_STRING & FLICKO_APPWRITE_* in .env
   # ──────────────────────────────────────────────────────────────────────────
 
   # ──────────────────────────────────────────────────────────────────────────

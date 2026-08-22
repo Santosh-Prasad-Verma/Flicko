@@ -80,14 +80,14 @@ func (h *ReactionRoleHandler) CreateReactionRole(w http.ResponseWriter, r *http.
 		return
 	}
 
-	isMember, membershipErr := h.isServerMember(r, serverUUID, userUUID)
-	if membershipErr != nil {
-		h.logger.Error("failed to verify server membership", zap.Error(membershipErr))
+	hasPerm, permErr := h.hasManageRolesPermission(r, serverUUID, userUUID)
+	if permErr != nil {
+		h.logger.Error("failed to verify server permissions", zap.Error(permErr))
 		writeError(w, http.StatusInternalServerError, "failed to create reaction role mapping")
 		return
 	}
-	if !isMember {
-		writeError(w, http.StatusForbidden, "forbidden")
+	if !hasPerm {
+		writeError(w, http.StatusForbidden, "insufficient permissions: MANAGE_ROLES required")
 		return
 	}
 
@@ -145,14 +145,14 @@ func (h *ReactionRoleHandler) DeleteReactionRole(w http.ResponseWriter, r *http.
 		return
 	}
 
-	isMember, membershipErr := h.isServerMember(r, serverUUID, userUUID)
-	if membershipErr != nil {
-		h.logger.Error("failed to verify server membership", zap.Error(membershipErr))
+	hasPerm, permErr := h.hasManageRolesPermission(r, serverUUID, userUUID)
+	if permErr != nil {
+		h.logger.Error("failed to verify server permissions", zap.Error(permErr))
 		writeError(w, http.StatusInternalServerError, "failed to delete reaction role mapping")
 		return
 	}
-	if !isMember {
-		writeError(w, http.StatusForbidden, "forbidden")
+	if !hasPerm {
+		writeError(w, http.StatusForbidden, "insufficient permissions: MANAGE_ROLES required")
 		return
 	}
 
@@ -176,6 +176,22 @@ func (h *ReactionRoleHandler) DeleteReactionRole(w http.ResponseWriter, r *http.
 		"id":      deletedID.String(),
 		"deleted": true,
 	})
+}
+
+func (h *ReactionRoleHandler) hasManageRolesPermission(r *http.Request, serverID, userID uuid.UUID) (bool, error) {
+	var hasPerm bool
+	err := h.db.QueryRow(r.Context(), `
+		SELECT (s.owner_id = $2 OR EXISTS (
+			SELECT 1 FROM public.member_roles mr
+			JOIN public.roles r ON r.id = mr.role_id
+			WHERE mr.server_id = $1 AND mr.user_id = $2
+			  AND ((COALESCE(r.permissions, 0) & 268435456) > 0
+			    OR (COALESCE(r.permissions, 0) & 8) > 0
+			    OR (COALESCE(r.permissions, 0) & 32) > 0)
+		))
+		FROM public.servers s WHERE s.id = $1
+	`, serverID, userID).Scan(&hasPerm)
+	return hasPerm, err
 }
 
 func (h *ReactionRoleHandler) isServerMember(r *http.Request, serverID, userID uuid.UUID) (bool, error) {
