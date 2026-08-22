@@ -102,8 +102,8 @@ func (h *WSHandler) checkOrigin(r *http.Request) bool {
 		return true
 	}
 
-	// Check if origin matches default production domains
-	if strings.HasSuffix(origin, ".flicko.dev") || origin == "https://flicko.dev" {
+	// Check if origin matches default production domains (HTTPS only)
+	if strings.HasPrefix(origin, "https://") && (strings.HasSuffix(origin, ".flicko.dev") || origin == "https://flicko.dev") {
 		return true
 	}
 

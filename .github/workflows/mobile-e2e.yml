@@ -117,7 +117,7 @@ jobs:
         env:
           FLICKO_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL || 'https://flicko-test.supabase.co' }}
           FLICKO_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY || 'dummy_anon_key' }}
-          FLICKO_API_BASE_URL: ${{ secrets.E2E_API_BASE_URL || 'https://api.flicko.dev' }}
+          FLICKO_API_URL: ${{ secrets.E2E_API_URL || 'https://api.flicko.dev' }}
         with:
           api-level: ${{ github.event.inputs.api_level || '30' }}
           arch: x86_64
@@ -132,4 +132,4 @@ jobs:
               -t integration_test/app_launch_test.dart \
               --dart-define=FLICKO_SUPABASE_URL="$FLICKO_SUPABASE_URL" \
               --dart-define=FLICKO_SUPABASE_ANON_KEY="$FLICKO_SUPABASE_ANON_KEY" \
-              --dart-define=FLICKO_API_BASE_URL="$FLICKO_API_BASE_URL" || true
+              --dart-define=FLICKO_API_URL="$FLICKO_API_URL" || true
