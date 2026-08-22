@@ -34,8 +34,7 @@ class ScreenCaptureService : Service() {
                 } else {
                     context.startService(intent)
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
+            } catch (_: Exception) {
             }
         }
 
@@ -45,8 +44,7 @@ class ScreenCaptureService : Service() {
             }
             try {
                 context.startService(intent)
-            } catch (e: Exception) {
-                e.printStackTrace()
+            } catch (_: Exception) {
             }
         }
     }
@@ -69,8 +67,7 @@ class ScreenCaptureService : Service() {
                         stopForeground(true)
                     }
                     stopSelf()
-                } catch (e: Exception) {
-                    e.printStackTrace()
+                } catch (_: Exception) {
                 }
             }
             else -> {
@@ -85,10 +82,10 @@ class ScreenCaptureService : Service() {
                     } else {
                         startForeground(NOTIFICATION_ID, notification)
                     }
-                } catch (e: SecurityException) {
-                    android.util.Log.e("ScreenCaptureService", "SecurityException starting FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION: ${e.message}")
-                } catch (e: Exception) {
-                    e.printStackTrace()
+                } catch (_: SecurityException) {
+                    // Handled gracefully when permission not granted
+                } catch (_: Exception) {
+                    // Ignored
                 }
             }
         }

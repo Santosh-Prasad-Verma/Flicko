@@ -3,7 +3,6 @@
 # Flicko — Production Deploy Script  v2.0
 # =============================================================================
 set -euo pipefail
-IFS=$'\n\t'
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
@@ -314,8 +313,8 @@ render_server_rack() {
   local -a delays=(0.13 0.11 0.11 0.09 0.08 0.07 0.09 0.09 0.11 0.15)
 
   for (( f=0; f<${#frames[@]}; f++ )); do
-    # shellcheck disable=SC2206
-    local old_ifs=$IFS; IFS=" "; local fp=( ${frames[$f]} ); IFS=$old_ifs
+    local -a fp=()
+    read -r -a fp <<< "${frames[$f]}"
     move_up $RACK_LINES
     _draw_rack \
       "${fp[0]}" "${fp[1]}" "${fp[2]}" \

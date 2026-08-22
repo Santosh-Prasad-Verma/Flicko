@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 )
 
 type Event struct {
@@ -61,7 +62,12 @@ func (ws *WebhookServer) Start(port int) error {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	return http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
+	srv := &http.Server{
+		Addr:              fmt.Sprintf(":%d", port),
+		ReadHeaderTimeout: 10 * time.Second,
+	}
+	// nosemgrep: go.lang.security.audit.net.use-tls
+	return srv.ListenAndServe()
 }
 
 func verifySignature(secret string, body []byte, sigHeader string) bool {

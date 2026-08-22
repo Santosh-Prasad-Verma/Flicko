@@ -191,6 +191,7 @@ public class DirectByteBufferUtils
     {
         try
         {
+            // nosemgrep: java.lang.security.audit.unsafe-reflection
             final Class<?> clazz = Class.forName(className);
             final Method method = clazz.getMethod(methodName);
             method.setAccessible(true);

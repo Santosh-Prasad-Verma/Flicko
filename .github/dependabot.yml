@@ -5,6 +5,8 @@ updates:
     directory: "/backend"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
 
   # 2. Track Mail Gateway Go dependencies
@@ -12,6 +14,8 @@ updates:
     directory: "/mail-gateway"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 3
 
   # 3. Track Flutter pub dependencies
@@ -19,6 +23,8 @@ updates:
     directory: "/mobile"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
 
   # 4. Track GitHub Actions updates
@@ -26,4 +32,6 @@ updates:
     directory: "/"
     schedule:
       interval: "monthly"
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 3

@@ -427,6 +427,12 @@ func main() {
 	if cfg.AIModerationEnabled {
 		moderationHandler.RegisterRoutes(protected)
 	}
+
+	// AI Aura Assistant (Chat, TTS, GIF endpoints)
+	aiAuraHandler := handlers.NewAIAuraHandler(cfg, logger)
+	aiAuraHandler.RegisterRoutes(api)
+	aiAuraHandler.RegisterRoutes(protected)
+	logger.Info("AIAuraHandler routes registered (/aura/chat, /aura/gifs, /aura/tts)")
 	protected.Handle("/activities/catalog", cacheMiddleware.Cache(middleware.CacheLong)(http.HandlerFunc(activityHandler.GetCatalog))).Methods("GET")
 	protected.HandleFunc("/activities/catalog/{id}/validate", activityHandler.ValidateCatalogActivity).Methods("POST")
 	protected.HandleFunc("/activities/providers/register", activityHandler.RegisterProvider).Methods("POST")

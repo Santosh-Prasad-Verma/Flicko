@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"encoding/json"
 	"net/http"
 	"runtime/debug"
 
@@ -31,8 +32,12 @@ func Recovery(log *zap.Logger) func(http.Handler) http.Handler {
 
 					w.Header().Set("Content-Type", "application/json")
 					w.WriteHeader(status)
-					// Manually write JSON to avoid importing handler package.
-					_, _ = w.Write([]byte(`{"error":{"code":"` + string(code) + `","message":"` + msg + `"}}`))
+					_ = json.NewEncoder(w).Encode(map[string]interface{}{
+						"error": map[string]interface{}{
+							"code":    string(code),
+							"message": msg,
+						},
+					})
 				}
 			}()
 			next.ServeHTTP(w, r)

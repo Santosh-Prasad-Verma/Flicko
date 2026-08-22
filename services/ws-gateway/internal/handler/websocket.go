@@ -102,8 +102,8 @@ func (h *WSHandler) checkOrigin(r *http.Request) bool {
 		return true
 	}
 
-	// Check if origin matches default production domains
-	if strings.HasSuffix(origin, ".flicko.tech") || strings.HasSuffix(origin, ".flicko.dev") || origin == "https://flicko.tech" || origin == "https://flicko.dev" {
+	// Check if origin matches default production domains (HTTPS only)
+	if strings.HasPrefix(origin, "https://") && (strings.HasSuffix(origin, ".flicko.dev") || origin == "https://flicko.dev") {
 		return true
 	}
 
@@ -128,7 +128,14 @@ func (h *WSHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// ── Upgrade ─────────────────────────────────────────────
+	// ── Origin check & Upgrade ──────────────────────────────
+	if !h.checkOrigin(r) {
+		h.log.Warn("rejected cross-origin websocket upgrade", zap.String("origin", r.Header.Get("Origin")))
+		http.Error(w, "forbidden origin", http.StatusForbidden)
+		return
+	}
+
+	// nosemgrep: go.gorilla.security.audit.websocket-missing-origin-check
 	ws, err := h.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		h.log.Warn("upgrade failed", zap.Error(err))

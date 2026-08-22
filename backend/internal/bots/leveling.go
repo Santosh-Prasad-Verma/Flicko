@@ -2,10 +2,11 @@ package bots
 
 import (
 	"context"
+	crand "crypto/rand"
 	"errors"
 	"fmt"
 	"math"
-	"math/rand"
+	"math/big"
 	"strings"
 	"time"
 
@@ -489,7 +490,10 @@ func (b *LevelingBot) onMessageCreate(evt events.Event) error {
 	}
 	baseXP := xpMin
 	if span := xpMax - xpMin + 1; span > 1 {
-		baseXP = xpMin + rand.Intn(span)
+		n, err := crand.Int(crand.Reader, big.NewInt(int64(span)))
+		if err == nil {
+			baseXP = xpMin + int(n.Int64())
+		}
 	}
 	multiplier := b.getMultiplier(evt.ServerID, authorID, evt.ChannelID)
 	xpGain := int(float64(baseXP) * multiplier)

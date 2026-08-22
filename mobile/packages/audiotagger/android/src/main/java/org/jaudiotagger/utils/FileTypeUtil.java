@@ -95,17 +95,4 @@ public class FileTypeUtil {
 
 		return b;
 	}
-
-	
-	public static void main(String[] args) throws IOException  {
-		// if (args.length < 1) {
-		// System.out.println("Usage: java TestExcelPDF <filename>");
-		// System.exit(1);
-		// }
-		String testFileLoc = "C:/Users/keerthi/Dropbox/Works/Java/github/GaanaExtractor/workspace/jaudiotagger/testm4a";
-		// FileTypeUtil t = new FileTypeUtil();
-		String fileType = getMagicFileType(new File(testFileLoc));
-		System.out.println("File type: " + fileType);
-		System.out.println("File Extension: " + getMagicExt(fileType));
-	}
 }

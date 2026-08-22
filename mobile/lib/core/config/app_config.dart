@@ -175,10 +175,10 @@ class AppConfig {
       final host = apiBaseUrl.replaceAll(RegExp(r'/api/v1/?$'), '');
       final wsHost = host.startsWith('https://')
           ? host.replaceFirst('https://', 'wss://')
-          : host.replaceFirst('http://', 'ws://');
+          : host.replaceFirst('http://', 'wss://');
       realtimeWsUrl = '$wsHost/ws';
     } else {
-      realtimeWsUrl = 'ws://localhost:8080/ws';
+      realtimeWsUrl = 'wss://localhost:8080/ws';
     }
     giphyApiKey = _read(
       _definedGiphyApiKey,
@@ -378,8 +378,8 @@ class AppConfig {
   /// Coerces a configured Centrifugo value into a websocket URL.
   ///
   /// Accepts an http(s) origin, a ws(s) origin, or a full endpoint, so the
-  /// deploy can set `CENTRIFUGO_URL=https://rt.flicko.tech` and still get
-  /// `wss://rt.flicko.tech/connection/websocket`. Returns '' when unset so
+  /// deploy can set `CENTRIFUGO_URL=https://rt.flicko.dev` and still get
+  /// `wss://rt.flicko.dev/connection/websocket`. Returns '' when unset so
   /// callers can detect "not configured" instead of dialing a bad host.
   static String _normalizeCentrifugoUrl(String value) {
     var url = value.trim();
@@ -388,10 +388,9 @@ class AppConfig {
     if (url.startsWith('https://')) {
       url = url.replaceFirst('https://', 'wss://');
     } else if (url.startsWith('http://')) {
-      url = url.replaceFirst('http://', 'ws://');
-    } else if (!url.startsWith('ws://') && !url.startsWith('wss://')) {
-      // Bare host — assume TLS.
-      url = 'wss://$url';
+      url = url.replaceFirst('http://', 'wss://');
+    } else if (!url.startsWith('wss://')) {
+      url = 'wss://${url.replaceFirst(RegExp(r'^wss?:\/\/'), '')}';
     }
 
     if (url.endsWith('/')) {

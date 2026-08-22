@@ -491,12 +491,15 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
         final apiBaseUrl = AppConfig.apiBaseUrl;
         final dio = Dio();
 
-        // Build conversation history for context
+        // Build conversation history for context (injecting search augmented prompt into latest message)
         final conversationMessages = <Map<String, String>>[];
-        for (final msg in activeSession.messages) {
+        final allMsgs = activeSession.messages;
+        for (int i = 0; i < allMsgs.length; i++) {
+          final msg = allMsgs[i];
+          final isLastUserMsg = i == allMsgs.length - 1 && msg.sender == 'user';
           conversationMessages.add({
             'role': msg.sender == 'user' ? 'user' : 'assistant',
-            'content': msg.text,
+            'content': isLastUserMsg ? text : msg.text,
           });
         }
 
@@ -522,7 +525,7 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
         if (response.statusCode == 200 && response.data != null) {
           final data = response.data;
 
-          // Check for function call from Grok
+          // Check for function call from Grok / Gemini
           if (data['functionCall'] != null) {
             final fc = data['functionCall'];
             final name = fc['name'] as String;
@@ -536,7 +539,7 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
           }
         }
       } catch (e) {
-        // Edge function call failed, fall through to Gemini fallback
+        // Backend call failed, fall through to Gemini fallback
       }
     }
 
@@ -552,10 +555,13 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
 
           // Build Gemini-compatible messages
           final geminiContents = <Map<String, dynamic>>[];
-          for (final msg in activeSession.messages) {
+          final allMsgs = activeSession.messages;
+          for (int i = 0; i < allMsgs.length; i++) {
+            final msg = allMsgs[i];
+            final isLastUserMsg = i == allMsgs.length - 1 && msg.sender == 'user';
             geminiContents.add({
               'role': msg.sender == 'user' ? 'user' : 'model',
-              'parts': [{'text': msg.text}],
+              'parts': [{'text': isLastUserMsg ? text : msg.text}],
             });
           }
 
@@ -571,7 +577,7 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
               'systemInstruction': {
                 'parts': [
                   {
-                    'text': 'You are Aura AI. Please respond in the user\'s selected language: $language.'
+                    'text': 'You are Aura AI, a helpful and warm AI assistant inside Flicko. Please respond in the user\'s selected language: $language.'
                   }
                 ]
               },

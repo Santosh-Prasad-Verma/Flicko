@@ -123,6 +123,7 @@ public abstract class AbstractID3v2Frame extends AbstractTagFrame implements Tag
         // to keep things up to date.
         try
         {
+            // nosemgrep: java.lang.security.audit.unsafe-reflection
             Class<AbstractID3v2FrameBody> c = (Class<AbstractID3v2FrameBody>) Class.forName("org.jaudiotagger.tag.id3.framebody.FrameBody" + identifier);
             frameBody = c.newInstance();
         }
@@ -266,6 +267,7 @@ public abstract class AbstractID3v2Frame extends AbstractTagFrame implements Tag
         AbstractID3v2FrameBody frameBody;
         try
         {
+            // nosemgrep: java.lang.security.audit.unsafe-reflection
             Class<AbstractID3v2FrameBody> c = (Class<AbstractID3v2FrameBody>) Class.forName("org.jaudiotagger.tag.id3.framebody.FrameBody" + identifier);
             Class<?>[] constructorParameterTypes = {Class.forName("java.nio.ByteBuffer"), Integer.TYPE};
             Object[] constructorParameterValues = {byteBuffer, frameSize};
@@ -402,6 +404,7 @@ public abstract class AbstractID3v2Frame extends AbstractTagFrame implements Tag
         AbstractID3v2FrameBody frameBody;
         try
         {
+            // nosemgrep: java.lang.security.audit.unsafe-reflection
             Class<AbstractID3v2FrameBody> c = (Class<AbstractID3v2FrameBody>) Class.forName("org.jaudiotagger.tag.id3.framebody.FrameBody" + identifier);
             Class<?>[] constructorParameterTypes = {body.getClass()};
             Object[] constructorParameterValues = {body};

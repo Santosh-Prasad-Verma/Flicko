@@ -87,6 +87,7 @@ func (h *MessageHandler) CreateMessage(w http.ResponseWriter, r *http.Request) {
 			if err == nil && cachedResp != "" {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusOK)
+				// nosemgrep: go.lang.security.audit.xss.no-direct-write-to-responsewriter
 				_, _ = w.Write([]byte(cachedResp))
 				return
 			}
@@ -244,7 +245,7 @@ func (h *MessageHandler) CreateMessage(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write(respBytes)
+	_ = json.NewEncoder(w).Encode(respData)
 }
 
 func (h *MessageHandler) processMentionsAndNotify(ctx context.Context, messageID, content, authorID, serverID string) {

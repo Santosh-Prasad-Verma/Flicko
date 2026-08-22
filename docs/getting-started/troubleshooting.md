@@ -290,8 +290,8 @@ pod install
 1. Find your machine's LAN IP (`hostname -I` on Linux/macOS).
 2. Ensure your `.env` (managed via Azure Key Vault) uses this IP:
    ```env
-   API_URL=http://192.168.1.XX:8081
-   WS_URL=ws://192.168.1.XX:8080/ws
+   API_URL=https://192.168.1.XX:8081
+   WS_URL=wss://192.168.1.XX:8080/ws
    ```
 3. Ensure both the device and host are on the same Wi-Fi network.
 

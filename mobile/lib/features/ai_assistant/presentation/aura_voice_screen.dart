@@ -102,11 +102,40 @@ class _AuraVoiceScreenState extends ConsumerState<AuraVoiceScreen>
     _foregroundService.initialize();
   }
 
+  String _getTtsLanguageCode(String language) {
+    switch (language.toLowerCase()) {
+      case 'español':
+      case 'spanish':
+        return 'es-ES';
+      case 'français':
+      case 'french':
+        return 'fr-FR';
+      case 'deutsch':
+      case 'german':
+        return 'de-DE';
+      case 'हिन्दी':
+      case 'hindi':
+        return 'hi-IN';
+      case '日本語':
+      case 'japanese':
+        return 'ja-JP';
+      case '中文':
+      case 'chinese':
+        return 'zh-CN';
+      case 'português':
+      case 'portuguese':
+        return 'pt-BR';
+      default:
+        return 'en-US';
+    }
+  }
+
   Future<void> _initVoiceServices() async {
     try {
       _speechInitialized = await _speechToText.initialize();
       debugPrint('[Aura] Speech initialized: $_speechInitialized');
-      await _flutterTts.setLanguage("en-US");
+      final langCode = _getTtsLanguageCode(ref.read(auraSettingsProvider).language);
+      await _flutterTts.setLanguage(langCode);
       await _flutterTts.setSpeechRate(0.45);
       await _flutterTts.setVolume(1.0);
       await _flutterTts.setPitch(1.0);
@@ -195,9 +224,12 @@ Important rules:
   }
 
   Future<bool> _tryDeepgramLiveTurn({String? preSetText}) async {
-    final apiKey = AppConfig.deepgramApiKey.isNotEmpty
-        ? AppConfig.deepgramApiKey
-        : '1fa6f8e6e73afa1b071df94b77450c216f2e4c6d';
+    final apiKey = AppConfig.deepgramApiKey.trim();
+
+    if (!AuraLiveAudioService.isValidKey(apiKey)) {
+      debugPrint('[Aura] No valid Deepgram API key configured. Using direct intelligent voice fallback.');
+      return false;
+    }
 
     try {
       await _startAuraLiveForeground();
@@ -628,7 +660,58 @@ Important rules:
       debugPrint('[Aura] Server-side voice chat proxy failed: $e');
     }
 
-    // 2. Try to synthesize high-quality speech via aura-tts API (secure server-side xAI TTS API)
+    // 2. Client Gemini Fallback if backend chat failed
+    if (!textFallbackSuccess) {
+      try {
+        final geminiKey = await ref.read(auraSessionsProvider.notifier).getApiKey();
+        if (geminiKey != null && geminiKey.isNotEmpty) {
+          final dio = Dio();
+          final geminiModel = AppConfig.geminiTextModel.isNotEmpty
+              ? AppConfig.geminiTextModel
+              : 'gemini-2.0-flash';
+          final language = ref.read(auraSettingsProvider).language;
+          final response = await dio.post(
+            'https://generativelanguage.googleapis.com/v1beta/models/$geminiModel:generateContent?key=$geminiKey',
+            options: Options(headers: {'Content-Type': 'application/json'}),
+            data: {
+              'contents': [
+                {
+                  'role': 'user',
+                  'parts': [
+                    {
+                      'text':
+                          'You are Aura, Flicko\'s intelligent conversational voice companion. Answer directly and concisely in 1-2 spoken sentences with no markdown or asterisks in $language.\n\nUser: $spokenText',
+                    }
+                  ]
+                }
+              ],
+              'generationConfig': {
+                'temperature': 0.7,
+                'maxOutputTokens': 250,
+              },
+            },
+          );
+          if (response.statusCode == 200 && response.data != null) {
+            final candidates = response.data['candidates'] as List?;
+            if (candidates != null && candidates.isNotEmpty) {
+              final parts = candidates[0]['content']?['parts'] as List?;
+              if (parts != null && parts.isNotEmpty) {
+                final text = parts[0]['text'] as String?;
+                if (text != null && text.isNotEmpty) {
+                  responseText = text.replaceAll('*', '').replaceAll('•', '').trim();
+                  textFallbackSuccess = true;
+                  debugPrint('[Aura] Voice text response from client Gemini fallback: $responseText');
+                }
+              }
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('[Aura] Client-side voice Gemini fallback failed: $e');
+      }
+    }
+
+    // 3. Try to synthesize high-quality speech via aura-tts API if available
     if (textFallbackSuccess && responseText.isNotEmpty) {
       try {
         final apiBaseUrl = AppConfig.apiBaseUrl;
@@ -644,8 +727,8 @@ Important rules:
           ),
           data: {
             'text': responseText,
-            'voice_id': 'eve', // Standard beautiful voice tone
-            'language': 'en',
+            'voice_id': 'eve',
+            'language': ref.read(auraSettingsProvider).language,
           },
         );
 
@@ -673,11 +756,11 @@ Important rules:
           }
         }
       } catch (e) {
-        debugPrint('[Aura] High-quality server-side speech synthesis failed: $e');
+        debugPrint('[Aura] Server-side speech synthesis not active: $e. Using device TTS engine.');
       }
     }
 
-    // --- STAGE 3: Local simulation fallback if all online attempts fail ---
+    // --- STAGE 4: Local speech synthesis fallback (Flutter TTS) ---
     if (!audioSuccess) {
       if (!textFallbackSuccess) {
         final notifier = ref.read(auraSessionsProvider.notifier);
@@ -692,6 +775,8 @@ Important rules:
       });
 
       try {
+        final langCode = _getTtsLanguageCode(ref.read(auraSettingsProvider).language);
+        await _flutterTts.setLanguage(langCode);
         await _flutterTts.speak(responseText);
 
         final words = responseText.split(' ');

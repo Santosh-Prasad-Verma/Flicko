@@ -55,7 +55,7 @@ func TestLoadGatewayConfig_CustomValues(t *testing.T) {
 	t.Setenv("SERVICE_NAME", "custom-gw")
 	t.Setenv("ENVIRONMENT", "production")
 	// Required in production; see TestLoadGatewayConfig_ProdRequiresCORSOrigins.
-	t.Setenv("CORS_ORIGINS", "https://flicko.tech")
+	t.Setenv("CORS_ORIGINS", "https://flicko.dev")
 	t.Setenv("WS_PORT", "9090")
 	t.Setenv("MAX_CONNECTIONS", "10000")
 	t.Setenv("RATE_LIMIT_MSG_PER_SEC", "20")
@@ -208,13 +208,13 @@ func TestLoadMsgServiceConfig_ProdRequiresCORSOrigins(t *testing.T) {
 func TestLoadMsgServiceConfig_ProdWithCORSOrigins(t *testing.T) {
 	setMsgServiceEnv(t)
 	t.Setenv("ENVIRONMENT", "production")
-	t.Setenv("CORS_ORIGINS", "https://flicko.tech,https://app.flicko.tech")
+	t.Setenv("CORS_ORIGINS", "https://flicko.dev,https://app.flicko.dev")
 
 	cfg, err := LoadMsgServiceConfig()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	assertEqual(t, "CORSOrigins", cfg.CORSOrigins, "https://flicko.tech,https://app.flicko.tech")
+	assertEqual(t, "CORSOrigins", cfg.CORSOrigins, "https://flicko.dev,https://app.flicko.dev")
 }
 
 func TestLoadMsgServiceConfig_InvalidPort(t *testing.T) {

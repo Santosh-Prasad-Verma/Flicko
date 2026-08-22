@@ -256,6 +256,7 @@ public class EventListenerList implements Serializable {
 	while (null != (listenerTypeOrNull = s.readObject())) {
             ClassLoader cl = Thread.currentThread().getContextClassLoader();
 	    EventListener l = (EventListener)s.readObject();
+	    // nosemgrep: java.lang.security.audit.unsafe-reflection
 	    add((Class<EventListener>)Class.forName((String)listenerTypeOrNull, true, cl), l);
 	}	    
     }

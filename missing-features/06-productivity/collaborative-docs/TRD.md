@@ -12,7 +12,7 @@
                       ▼                          ▼
         ┌──────────────────────┐  ┌──────────────────────────────┐
         │ Go Backend           │  │ Hocuspocus container          │
-        │ doc_handler.go       │  │ ws://hocus.flicko/doc/<id>    │
+        │ doc_handler.go       │  │ wss://hocus.flicko/doc/<id>   │
         │ doc_service.go       │◀─┤ persistence -> Postgres       │
         │ doc_acl.go           │  │ presence -> Redis             │
         └─────────┬────────────┘  └──────────────┬───────────────┘

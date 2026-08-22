@@ -205,6 +205,7 @@ func buildAsynqRedisOpt(asynqURL string, rc *redis.Client, logger *zap.Logger) (
 	if parsed.Scheme == "rediss" {
 		opt.TLSConfig = &tls.Config{
 			ServerName: parsed.Hostname(),
+			MinVersion: tls.VersionTLS12,
 		}
 	}
 
