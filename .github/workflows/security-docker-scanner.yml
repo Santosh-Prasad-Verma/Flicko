@@ -37,7 +37,7 @@ jobs:
           docker build -t flicko/backend:test -f backend/Dockerfile ./backend
 
       - name: Run Trivy Scanner on Backend
-        uses: aquasecurity/trivy-action@1f0aa582c8c8f5f7639610d6d38baddfea4fdcee
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
           image-ref: 'flicko/backend:test'
           format: 'table'
@@ -51,7 +51,7 @@ jobs:
           docker build -t flicko/mail-gateway:test -f mail-gateway/Dockerfile ./mail-gateway
 
       - name: Run Trivy Scanner on Mail Gateway
-        uses: aquasecurity/trivy-action@1f0aa582c8c8f5f7639610d6d38baddfea4fdcee
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
           image-ref: 'flicko/mail-gateway:test'
           format: 'table'
@@ -65,7 +65,7 @@ jobs:
           docker build -t flicko/ws-gateway:test -f services/ws-gateway/Dockerfile.prod ./services
 
       - name: Run Trivy Scanner on WS Gateway
-        uses: aquasecurity/trivy-action@1f0aa582c8c8f5f7639610d6d38baddfea4fdcee
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
           image-ref: 'flicko/ws-gateway:test'
           format: 'table'
@@ -79,7 +79,7 @@ jobs:
           docker build -t flicko/msg-service:test -f services/msg-service/Dockerfile.prod ./services
 
       - name: Run Trivy Scanner on Msg Service
-        uses: aquasecurity/trivy-action@1f0aa582c8c8f5f7639610d6d38baddfea4fdcee
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
           image-ref: 'flicko/msg-service:test'
           format: 'table'
