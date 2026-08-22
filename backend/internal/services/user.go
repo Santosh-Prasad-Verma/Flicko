@@ -74,7 +74,7 @@ func (s *userService) GetUser(ctx context.Context, userID string) (*models.User,
 		return nil, fmt.Errorf("error fetching user: %w", err)
 	}
 
-	if user.Badges == nil || len(user.Badges) == 0 {
+	if len(user.Badges) == 0 {
 		user.Badges = []byte("[]")
 	}
 
@@ -144,7 +144,7 @@ func (s *userService) UpdateProfile(ctx context.Context, userID string, updates 
 	if err != nil {
 		return nil, fmt.Errorf("error updating profile: %w", err)
 	}
-	if user.Badges == nil || len(user.Badges) == 0 {
+	if len(user.Badges) == 0 {
 		user.Badges = []byte("[]")
 	}
 
@@ -183,7 +183,7 @@ func (s *userService) SearchUsers(ctx context.Context, query string) ([]*models.
 		if err != nil {
 			return nil, fmt.Errorf("error scanning user: %w", err)
 		}
-		if user.Badges == nil || len(user.Badges) == 0 {
+		if len(user.Badges) == 0 {
 			user.Badges = []byte("[]")
 		}
 		users = append(users, &user)
