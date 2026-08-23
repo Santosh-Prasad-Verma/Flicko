@@ -51,14 +51,31 @@ jobs:
 
       - name: Deploy to Azure VM via Azure CLI
         if: steps.check-method.outputs.method == 'azure'
+        env:
+          AZURE_VM_RG: ${{ secrets.AZURE_VM_RG || 'FLICKO' }}
+          AZURE_VM_NAME: ${{ secrets.AZURE_VM_NAME || 'Flicko-Server' }}
         run: |
+          echo "=== Checking Azure VM Power State ==="
+          POWER_STATE=$(az vm get-instance-view \
+            --resource-group "$AZURE_VM_RG" \
+            --name "$AZURE_VM_NAME" \
+            --query "instanceView.statuses[?starts_with(code, 'PowerState/')].code" \
+            -o tsv 2>/dev/null || echo "")
+
+          echo "Current VM power state: ${POWER_STATE:-unknown}"
+          if [ -n "$POWER_STATE" ] && [ "$POWER_STATE" != "PowerState/running" ]; then
+            echo "VM is not running ($POWER_STATE). Starting VM $AZURE_VM_NAME..."
+            az vm start --resource-group "$AZURE_VM_RG" --name "$AZURE_VM_NAME"
+            echo "VM $AZURE_VM_NAME started successfully."
+          fi
+
           echo "=== Deploying to Azure VM via RunCommand ==="
           az vm run-command invoke \
-            --resource-group "${{ secrets.AZURE_VM_RG || 'FLICKO' }}" \
-            --name "${{ secrets.AZURE_VM_NAME || 'Flicko-Server' }}" \
+            --resource-group "$AZURE_VM_RG" \
+            --name "$AZURE_VM_NAME" \
             --command-id RunShellScript \
             --scripts "
-              set -euo pipefail
+              set -eu
               export HOME=/home/Tarun
               export USER=Tarun
               cd /home/Tarun/Flicko || cd ~/Flicko
