@@ -1,0 +1,83 @@
+# Socket Security GitHub Actions Workflow
+# This workflow runs Socket Security scans on every commit to any branch
+# It automatically detects git repository information and handles different event types
+
+name: socket-security-workflow
+run-name: Socket Security Github Action
+
+on:
+  push:
+    branches: ['**']  # Run on all branches, all commits
+  pull_request:
+    types: [opened, synchronize, reopened]
+  issue_comment:
+    types: [created]
+
+# Prevent concurrent runs for the same commit or PR
+concurrency:
+  group: socket-scan-${{ github.event_name == 'issue_comment' && github.event.issue.number || github.ref }}-${{ github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  socket-security:
+    if: github.event_name != 'issue_comment' || github.event.issue.pull_request
+    permissions:
+      issues: write
+      contents: read
+      pull-requests: write
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+        with:
+          persist-credentials: false
+          # For PRs, fetch one additional commit for proper diff analysis
+          fetch-depth: ${{ github.event_name == 'pull_request' && 2 || 0 }}
+      
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.12'
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '20'
+      
+      - name: Install npm Socket CLI
+        run: npm i -g socket
+      
+      - name: Generate Socket facts SBOM
+        run: |
+          # Emits a .socket.facts.json Socket facts file (the preferred SBOM format)
+          # for the resolved Gradle dependency graph. This also covers Kotlin and Scala
+          # projects built with Gradle. For SBT-based Scala, use `socket manifest scala`.
+          socket manifest dynamic-sbom-inference || socket manifest gradle || true
+      
+      - name: Install Socket CLI
+        run: pip install socketsecurity --upgrade
+      
+      - name: Run Socket Security Scan
+        env:
+          SOCKET_SECURITY_API_KEY: ${{ secrets.SOCKET_SECURITY_API_KEY }}
+          GH_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Determine PR number based on event type
+          PR_NUMBER=0
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            PR_NUMBER=${{ github.event.pull_request.number }}
+          elif [ "${{ github.event_name }}" == "issue_comment" ]; then
+            PR_NUMBER=${{ github.event.issue.number }}
+          fi
+          
+          # Run Socket CLI with minimal required parameters
+          # The CLI automatically detects:
+          # - Repository name from git
+          # - Branch name from git
+          # - Commit SHA from git
+          # - Commit message from git
+          # - Committer information from git
+          # - Default branch status from git and GitHub environment
+          # - Changed files from git commit
+          socketcli \
+            --target-path $GITHUB_WORKSPACE \
+            --scm github \
+            --pr-number $PR_NUMBER
