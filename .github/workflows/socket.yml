@@ -13,13 +13,14 @@ on:
   issue_comment:
     types: [created]
 
-# Prevent concurrent runs for the same commit
+# Prevent concurrent runs for the same commit or PR
 concurrency:
-  group: socket-scan-${{ github.ref }}-${{ github.sha }}
+  group: socket-scan-${{ github.event_name == 'issue_comment' && github.event.issue.number || github.ref }}-${{ github.sha }}
   cancel-in-progress: true
 
 jobs:
   socket-security:
+    if: github.event_name != 'issue_comment' || github.event.issue.pull_request
     permissions:
       issues: write
       contents: read
@@ -29,6 +30,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
         with:
+          persist-credentials: false
           # For PRs, fetch one additional commit for proper diff analysis
           fetch-depth: ${{ github.event_name == 'pull_request' && 2 || 0 }}
       
