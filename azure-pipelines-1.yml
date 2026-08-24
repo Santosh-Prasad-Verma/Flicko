@@ -1,0 +1,49 @@
+# Flicko Go CI & Docker Build Pipeline
+trigger:
+- main
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+- stage: TestAndBuild
+  displayName: 'Test & Build'
+  jobs:
+  - job: TestGo
+    displayName: 'Run Go Tests & Vet'
+    steps:
+    - script: |
+        set -euo pipefail
+        echo "=== Go Version ==="
+        go version
+
+        echo "=== Testing Backend ==="
+        cd backend
+        go mod verify
+        go vet ./...
+        go test -short -v -race ./...
+      displayName: 'Backend Go Tests & Vet'
+
+    - script: |
+        set -euo pipefail
+        if [ -d "services/ws-gateway" ]; then
+          echo "=== Testing WS Gateway ==="
+          cd services/ws-gateway
+          go test -short -v ./...
+        fi
+      displayName: 'Microservices Tests'
+
+  - job: BuildDocker
+    displayName: 'Build Docker Container'
+    dependsOn: TestGo
+    steps:
+    - task: Docker@2
+      displayName: 'Build Backend Image'
+      inputs:
+        command: build
+        dockerfile: '$(Build.SourcesDirectory)/backend/Dockerfile'
+        buildContext: '$(Build.SourcesDirectory)/backend'
+        repository: 'flicko-backend'
+        tags: |
+          $(Build.BuildId)
+          latest
