@@ -30,6 +30,8 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
 
   bool _isLoading = false;
   bool _isResending = false;
+  bool _isPasting = false;
+  late bool _isEditingEmail;
   String? _errorMessage;
   String? _successMessage;
   int _resendCooldown = 60;
@@ -38,13 +40,17 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
   @override
   void initState() {
     super.initState();
-    _emailController = TextEditingController(text: widget.initialEmail.trim());
+    final initial = widget.initialEmail.trim();
+    _emailController = TextEditingController(text: initial);
+    _isEditingEmail = initial.isEmpty;
     _startCooldownTimer();
 
     // Auto-focus the first OTP field
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && _focusNodes.isNotEmpty) {
-        _focusNodes[0].requestFocus();
+        if (!_isEditingEmail) {
+          _focusNodes[0].requestFocus();
+        }
       }
     });
   }
@@ -77,19 +83,23 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
   String get _otpCode => _codeControllers.map((c) => c.text.trim()).join();
 
   void _onDigitChanged(int index, String value) {
+    if (_isPasting) return;
+
     if (value.length > 1) {
-      // Handle pasting multi-digit OTP
+      // Handle pasting multi-digit OTP without duplicate callback execution
       final digits = value.replaceAll(RegExp(r'[^0-9]'), '');
       if (digits.isNotEmpty) {
+        _isPasting = true;
         for (var i = 0; i < 6; i++) {
           if (i < digits.length) {
             _codeControllers[i].text = digits[i];
           }
         }
+        _isPasting = false;
         final nextFocus = digits.length < 6 ? digits.length : 5;
         _focusNodes[nextFocus].requestFocus();
 
-        if (digits.length >= 6) {
+        if (digits.length >= 6 && !_isLoading) {
           _handleVerify();
         }
       }
@@ -101,7 +111,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
         _focusNodes[index + 1].requestFocus();
       } else {
         _focusNodes[index].unfocus();
-        if (_otpCode.length == 6) {
+        if (_otpCode.length == 6 && !_isLoading) {
           _handleVerify();
         }
       }
@@ -262,30 +272,98 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
 
                   // Subtitle & Email
                   Text(
-                    'We sent a 6-digit verification code to',
+                    'Enter the 6-digit verification code sent to your email',
                     style: GoogleFonts.inter(
                       fontSize: 14,
                       color: const Color(0xFF949BA4),
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 4),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1E1F22),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFF2B2D31)),
-                    ),
-                    child: Text(
-                      email.isNotEmpty ? email : 'your email',
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF52B788),
+                  const SizedBox(height: 12),
+                  if (!_isEditingEmail && email.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E1F22),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFF2B2D31)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            email,
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF52B788),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () {
+                              setState(() => _isEditingEmail = true);
+                            },
+                            child: const Icon(
+                              Icons.edit_outlined,
+                              size: 14,
+                              color: Color(0xFF949BA4),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E1F22),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFF2B2D31)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.email_outlined, size: 18, color: Color(0xFF949BA4)),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: TextFormField(
+                              controller: _emailController,
+                              keyboardType: TextInputType.emailAddress,
+                              style: GoogleFonts.inter(
+                                fontSize: 14,
+                                color: Colors.white,
+                              ),
+                              decoration: const InputDecoration(
+                                hintText: 'Enter your email',
+                                hintStyle: TextStyle(color: Color(0xFF5F6368)),
+                                border: InputBorder.none,
+                                isDense: true,
+                                contentPadding: EdgeInsets.symmetric(vertical: 12),
+                              ),
+                              onChanged: (_) => setState(() {}),
+                            ),
+                          ),
+                          if (email.isNotEmpty)
+                            GestureDetector(
+                              onTap: () {
+                                setState(() => _isEditingEmail = false);
+                                if (_focusNodes.isNotEmpty) {
+                                  _focusNodes[0].requestFocus();
+                                }
+                              },
+                              child: Text(
+                                'Done',
+                                style: GoogleFonts.inter(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF52B788),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
-                  ),
+                  ],
 
                   const SizedBox(height: 32),
 

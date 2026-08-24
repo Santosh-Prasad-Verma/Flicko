@@ -71,6 +71,10 @@ func TestAuthService_RegistrationValidation(t *testing.T) {
 	_, _, err = svc.Register(ctx, "validname", "invalidemail", "Valid Name", "password123")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid email format")
+
+	_, _, err = svc.Register(ctx, "validname", "", "Valid Name", "password123")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "email is required for registration")
 }
 
 func TestAuthService_VerifyEmailValidation(t *testing.T) {

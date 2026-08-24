@@ -186,11 +186,14 @@ func (s *authService) Register(ctx context.Context, username, email, phone, pass
 		return nil, "", errors.New("username must be between 2 and 32 characters")
 	}
 
-	if email != "" {
-		_, err := mail.ParseAddress(email)
-		if err != nil {
-			return nil, "", errors.New("invalid email format")
-		}
+	email = strings.TrimSpace(email)
+	if email == "" {
+		return nil, "", errors.New("email is required for registration")
+	}
+
+	_, err := mail.ParseAddress(email)
+	if err != nil {
+		return nil, "", errors.New("invalid email format")
 	}
 
 	hash, err := s.HashPassword(password)

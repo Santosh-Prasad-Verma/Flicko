@@ -305,6 +305,9 @@ func (s *channelService) GetServerChannels(ctx context.Context, serverID string)
 		}
 		channels = append(channels, &c)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating server channels: %w", err)
+	}
 
 	s.cache.SetJSON(ctx, cacheKey, &channels, 1*time.Hour)
 	return channels, nil

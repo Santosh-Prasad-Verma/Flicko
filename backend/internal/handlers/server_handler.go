@@ -97,12 +97,29 @@ func (h *ServerHandler) CreateServer(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, server)
 }
 
-// GetServerChannels returns the channels for a server.
+// GetServerChannels returns the channels for a server if the user is a member.
 func (h *ServerHandler) GetServerChannels(w http.ResponseWriter, r *http.Request) {
+	userID := getUserID(r)
+	if userID == "" {
+		writeError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
 	vars := mux.Vars(r)
 	serverID := vars["id"]
 	if serverID == "" {
 		writeError(w, http.StatusBadRequest, "Server ID is required")
+		return
+	}
+
+	isMember, err := h.serverSvc.IsMember(r.Context(), serverID, userID)
+	if err != nil {
+		h.logger.Error("failed to check server membership", zap.String("server_id", serverID), zap.String("user_id", userID), zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "Failed to verify access")
+		return
+	}
+	if !isMember {
+		writeError(w, http.StatusForbidden, "Forbidden: you are not a member of this server")
 		return
 	}
 
@@ -116,12 +133,29 @@ func (h *ServerHandler) GetServerChannels(w http.ResponseWriter, r *http.Request
 	writeJSON(w, http.StatusOK, channels)
 }
 
-// GetServerMembers returns the members for a server.
+// GetServerMembers returns the members for a server if the user is a member.
 func (h *ServerHandler) GetServerMembers(w http.ResponseWriter, r *http.Request) {
+	userID := getUserID(r)
+	if userID == "" {
+		writeError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
 	vars := mux.Vars(r)
 	serverID := vars["id"]
 	if serverID == "" {
 		writeError(w, http.StatusBadRequest, "Server ID is required")
+		return
+	}
+
+	isMember, err := h.serverSvc.IsMember(r.Context(), serverID, userID)
+	if err != nil {
+		h.logger.Error("failed to check server membership", zap.String("server_id", serverID), zap.String("user_id", userID), zap.Error(err))
+		writeError(w, http.StatusInternalServerError, "Failed to verify access")
+		return
+	}
+	if !isMember {
+		writeError(w, http.StatusForbidden, "Forbidden: you are not a member of this server")
 		return
 	}
 

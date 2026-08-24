@@ -26,6 +26,7 @@ type ServerService interface {
 
 	JoinServer(ctx context.Context, userID, inviteCode string) (*models.Member, error)
 	LeaveServer(ctx context.Context, serverID, userID string) error
+	IsMember(ctx context.Context, serverID, userID string) (bool, error)
 	GetServerMembers(ctx context.Context, serverID string) ([]*models.Member, error)
 	KickMember(ctx context.Context, serverID, userID, executorID, reason string) error
 	BanMember(ctx context.Context, serverID, userID, executorID, reason string) error
@@ -198,6 +199,9 @@ func (s *serverService) GetUserServers(ctx context.Context, userID string) ([]*m
 			return nil, fmt.Errorf("error scanning server: %w", err)
 		}
 		servers = append(servers, &server)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating user servers: %w", err)
 	}
 	return servers, nil
 }
@@ -478,8 +482,33 @@ func (s *serverService) GetServerMembers(ctx context.Context, serverID string) (
 		}
 		members = append(members, &m)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating server members: %w", err)
+	}
 
 	return members, nil
+}
+
+func (s *serverService) IsMember(ctx context.Context, serverID, userID string) (bool, error) {
+	serverUUID, err := uuid.Parse(serverID)
+	if err != nil {
+		return false, fmt.Errorf("invalid server id: %w", err)
+	}
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return false, fmt.Errorf("invalid user id: %w", err)
+	}
+
+	if s.db == nil {
+		return false, nil
+	}
+
+	var exists bool
+	err = s.db.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM public.server_members WHERE server_id = $1 AND user_id = $2)", serverUUID, userUUID).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("error checking server membership: %w", err)
+	}
+	return exists, nil
 }
 
 func (s *serverService) KickMember(ctx context.Context, serverID, userID, executorID, reason string) error {
