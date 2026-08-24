@@ -124,7 +124,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } catch (e) {
       debugPrint('Login error: $e');
       final errorMsg = e.toString();
-      if (errorMsg.contains('Invalid credentials') || errorMsg.contains('401')) {
+      if (errorMsg.contains('email not verified') || errorMsg.contains('403') || errorMsg.contains('email_not_verified')) {
+        setState(() {
+          _generalError = 'Your email is not verified yet. Please check your inbox or click below to resend.';
+          _showEmailNotConfirmed = true;
+        });
+      } else if (errorMsg.contains('Invalid credentials') || errorMsg.contains('401')) {
         setState(() => _generalError = 'Invalid email or password');
       } else {
         setState(() => _generalError = errorMsg.replaceAll(RegExp(r'^Exception:\s*'), '').trim());

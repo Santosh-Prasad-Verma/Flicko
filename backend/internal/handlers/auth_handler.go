@@ -101,6 +101,13 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	user, token, err := h.authSvc.Login(r.Context(), identifier, req.Password)
 	if err != nil {
 		h.logger.Warn("login failed", zap.String("identifier", identifier), zap.Error(err))
+		if strings.Contains(err.Error(), "email not verified") {
+			writeJSON(w, http.StatusForbidden, map[string]interface{}{
+				"error":              "Email not verified — please check your inbox for the verification code.",
+				"email_not_verified": true,
+			})
+			return
+		}
 		writeError(w, http.StatusUnauthorized, "Invalid credentials")
 		return
 	}
