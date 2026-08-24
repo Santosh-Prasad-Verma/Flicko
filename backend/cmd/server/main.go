@@ -253,11 +253,23 @@ func main() {
 
 	// Register Public Auth Endpoints
 	authHandler := handlers.NewAuthHandler(authService, logger)
-	api.Handle("/auth/register", authRateLimiter.Limit(http.HandlerFunc(authHandler.Register))).Methods("POST", "OPTIONS")
-	api.Handle("/auth/login", authRateLimiter.Limit(http.HandlerFunc(authHandler.Login))).Methods("POST", "OPTIONS")
-	api.Handle("/auth/entra-id", authRateLimiter.Limit(http.HandlerFunc(authHandler.EntraIDLogin))).Methods("POST", "OPTIONS")
-	api.Handle("/auth/verify-email", verifyEmailLimiter.Limit(http.HandlerFunc(authHandler.VerifyEmail))).Methods("GET", "POST", "OPTIONS")
-	api.Handle("/auth/resend-verification", resendVerificationLimiter.Limit(http.HandlerFunc(authHandler.ResendVerification))).Methods("POST", "OPTIONS")
+	loginHandler := authRateLimiter.Limit(http.HandlerFunc(authHandler.Login))
+	registerHandler := authRateLimiter.Limit(http.HandlerFunc(authHandler.Register))
+	entraHandler := authRateLimiter.Limit(http.HandlerFunc(authHandler.EntraIDLogin))
+	verifyHandler := verifyEmailLimiter.Limit(http.HandlerFunc(authHandler.VerifyEmail))
+	resendHandler := resendVerificationLimiter.Limit(http.HandlerFunc(authHandler.ResendVerification))
+
+	api.Handle("/auth/register", registerHandler).Methods("POST", "OPTIONS")
+	api.Handle("/auth/login", loginHandler).Methods("POST", "OPTIONS")
+	api.Handle("/auth/entra-id", entraHandler).Methods("POST", "OPTIONS")
+	api.Handle("/auth/verify-email", verifyHandler).Methods("GET", "POST", "OPTIONS")
+	api.Handle("/auth/resend-verification", resendHandler).Methods("POST", "OPTIONS")
+
+	// Direct root /v1/ and /auth/ fallback bindings for flexible reverse proxy routing
+	r.Handle("/auth/login", loginHandler).Methods("POST", "OPTIONS")
+	r.Handle("/auth/register", registerHandler).Methods("POST", "OPTIONS")
+	r.Handle("/v1/auth/login", loginHandler).Methods("POST", "OPTIONS")
+	r.Handle("/v1/auth/register", registerHandler).Methods("POST", "OPTIONS")
 
 	// CRIT-002: Replace memory-based rate limiter with distributed Redis-backed limiter
 	apiLimiter := middleware.NewDistributedRateLimiter(redisCache.GetRedisClient(), 50, logger, "api")
