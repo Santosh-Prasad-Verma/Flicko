@@ -117,8 +117,8 @@ class _ClientCacheInterceptor extends Interceptor {
     if (response.requestOptions.method.toUpperCase() == 'GET' &&
         response.statusCode == 200 &&
         response.data != null) {
-      final eTag = response.headers.value('etag') ?? '';
-      final cacheControl = response.headers.value('cache-control') ?? '';
+      final eTag = _getHeaderValue(response.headers, 'etag') ?? '';
+      final cacheControl = _getHeaderValue(response.headers, 'cache-control') ?? '';
 
       // Parse max-age if present, default to 30 seconds
       int maxAgeSeconds = 30;
@@ -142,6 +142,13 @@ class _ClientCacheInterceptor extends Interceptor {
 
     handler.next(response);
   }
+}
+
+String? _getHeaderValue(Headers? headers, String name) {
+  if (headers == null) return null;
+  final list = headers[name.toLowerCase()] ?? headers[name];
+  if (list == null || list.isEmpty) return null;
+  return list.first;
 }
 
 class _CacheEntry {
@@ -201,7 +208,7 @@ class _RetryInterceptor extends Interceptor {
 class _ErrorMappingInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
-    final requestId = err.response?.headers.value('x-request-id');
+    final requestId = _getHeaderValue(err.response?.headers, 'x-request-id');
     final statusCode = err.response?.statusCode;
 
     FlickoApiException apiException;
@@ -223,7 +230,7 @@ class _ErrorMappingInterceptor extends Interceptor {
     } else if (statusCode == 404) {
       apiException = FlickoApiException.notFound(requestId: requestId);
     } else if (statusCode == 429) {
-      final retryAfterHeader = err.response?.headers.value('retry-after');
+      final retryAfterHeader = _getHeaderValue(err.response?.headers, 'retry-after');
       final retrySeconds = int.tryParse(retryAfterHeader ?? '5') ?? 5;
       apiException = FlickoApiException.rateLimited(Duration(seconds: retrySeconds), requestId: requestId);
     } else if (statusCode != null && statusCode >= 500) {
