@@ -27,19 +27,11 @@ pr:
       - backend/**
       - services/**
 
-pool:
-  vmImage: 'ubuntu-latest'
-
 variables:
-  # Tag strategy: Build ID and latest
   tag: '$(Build.BuildId)'
-  gitCommitSha: '$(Build.SourceVersion)'
   imageRepository: 'flicko-backend'
-  # Name of your Docker Registry Service Connection in Azure DevOps (Project Settings -> Service Connections)
-  # Optional: change this if you configured ACR / DockerHub service connection
+  # Name of your Docker Registry Service Connection in Azure DevOps
   dockerRegistryServiceConnection: 'FlickoContainerRegistry'
-  # Optional: Variable group name in Pipelines -> Library (if using secrets)
-  # - group: Flicko-Deploy-Secrets
 
 stages:
   # ============================================================================
@@ -50,14 +42,14 @@ stages:
     jobs:
       - job: TestBackend
         displayName: 'Backend Go Tests & Vet'
+        pool:
+          vmImage: 'ubuntu-latest'
         steps:
-          - task: GoTool@0
-            inputs:
-              version: '1.24'
-            displayName: 'Set up Go 1.24'
-
           - script: |
               set -euo pipefail
+              echo "=== Go Environment ==="
+              go version
+
               echo "=== Verifying Go Modules ==="
               cd backend
               go mod verify
@@ -71,12 +63,9 @@ stages:
 
       - job: TestServices
         displayName: 'Microservices Tests'
+        pool:
+          vmImage: 'ubuntu-latest'
         steps:
-          - task: GoTool@0
-            inputs:
-              version: '1.24'
-            displayName: 'Set up Go 1.24'
-
           - script: |
               set -euo pipefail
               if [ -d "services/ws-gateway" ]; then
@@ -87,19 +76,18 @@ stages:
             displayName: 'Execute Microservices Tests'
 
   # ============================================================================
-  # Stage 2: Build and Push Docker Image
+  # Stage 2: Build Docker Image
   # ============================================================================
   - stage: BuildAndPush
-    displayName: '2. Build & Push Container Image'
+    displayName: '2. Build Container Image'
     dependsOn: TestAndLint
     condition: succeeded()
     jobs:
-      - job: BuildAndPushImage
-        displayName: 'Build and Push Docker Image'
+      - job: BuildImage
+        displayName: 'Build Docker Image'
+        pool:
+          vmImage: 'ubuntu-latest'
         steps:
-          - checkout: self
-
-          # If Docker Registry Service Connection is configured, build and push
           - task: Docker@2
             displayName: 'Build Docker Image'
             inputs:
@@ -111,69 +99,23 @@ stages:
                 $(tag)
                 latest
 
-          # Push step (Enabled if service connection is set up)
-          # Uncomment or enable this step when you create the service connection in Azure DevOps
-          # - task: Docker@2
-          #   displayName: 'Push Image to Container Registry'
-          #   inputs:
-          #     command: 'push'
-          #     containerRegistry: '$(dockerRegistryServiceConnection)'
-          #     repository: '$(imageRepository)'
-          #     tags: |
-          #       $(tag)
-          #       latest
-
   # ============================================================================
-  # Stage 3: Continuous Deployment (CD) to VPS / Cloud Server
+  # Stage 3: Continuous Deployment (CD)
   # ============================================================================
   - stage: Deploy
     displayName: '3. Deploy to Server (CD)'
     dependsOn: BuildAndPush
     condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
     jobs:
-      - deployment: DeployToVPS
-        displayName: 'Deploy Container to VPS'
-        environment: 'production'
-        strategy:
-          runOnce:
-            deploy:
-              steps:
-                - script: |
-                    echo "=== Continuous Deployment Triggered for Flicko Backend ==="
-                    echo "Build ID: $(Build.BuildId)"
-                    echo "Commit: $(Build.SourceVersion)"
-                    echo "Deployment environment: Production"
-                  displayName: 'Deploy Status Notification'
-
-                # Option A: SSH Deployment to VPS (Requires SSH Service Connection 'FlickoVPSSSH')
-                # - task: SSH@0
-                #   displayName: 'Deploy to VPS via SSH'
-                #   inputs:
-                #     sshEndpoint: 'FlickoVPSSSH'
-                #     runOptions: 'inline'
-                #     inline: |
-                #       set -euo pipefail
-                #       cd ~/Flicko || cd /home/$USER/Flicko
-                #       git fetch origin main
-                #       git reset --hard origin/main
-                #       docker compose -f docker-compose.prod.yml up -d --build
-                #       docker compose -f docker-compose.prod.yml ps
-
-                # Option B: Azure CLI Deployment to Azure VM (Requires Azure RM Service Connection)
-                # - task: AzureCLI@2
-                #   displayName: 'Deploy to Azure VM via RunCommand'
-                #   inputs:
-                #     azureSubscription: 'AzureSubscriptionServiceConnection'
-                #     scriptType: 'bash'
-                #     scriptLocation: 'inlineScript'
-                #     inlineScript: |
-                #       az vm run-command invoke \
-                #         --resource-group "FLICKO" \
-                #         --name "Flicko-Server" \
-                #         --command-id RunShellScript \
-                #         --scripts "
-                #           cd /home/Tarun/Flicko || cd ~/Flicko
-                #           git fetch origin main
-                #           git reset --hard origin/main
-                #           docker compose -f docker-compose.prod.yml up -d --build
-                #         "
+      - job: DeployNotification
+        displayName: 'Deploy Container Status'
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - script: |
+              echo "=== Continuous Deployment Triggered for Flicko Backend ==="
+              echo "Build ID: $(Build.BuildId)"
+              echo "Commit: $(Build.SourceVersion)"
+              echo "Branch: $(Build.SourceBranch)"
+              echo "All tests passed and Docker image built successfully!"
+            displayName: 'Deployment Notification'
