@@ -123,6 +123,19 @@ class AppConfig {
     'CURRENTS_API_KEY',
   );
 
+  static const String _definedOpenRouterApiKey = String.fromEnvironment(
+    'FLICKO_OPENROUTER_API_KEY',
+  );
+  static const String _definedOpenRouterModel = String.fromEnvironment(
+    'FLICKO_OPENROUTER_MODEL',
+  );
+  static const String _definedLegacyOpenRouterApiKey = String.fromEnvironment(
+    'OPENROUTER_API_KEY',
+  );
+  static const String _definedLegacyOpenRouterModel = String.fromEnvironment(
+    'OPENROUTER_MODEL',
+  );
+
   /// Centrifugo websocket endpoint used by realtime gaming (Ludo board sync).
   /// Expected form: `wss://host/connection/websocket`.
   static const String _definedCentrifugoUrl = String.fromEnvironment(
@@ -132,34 +145,34 @@ class AppConfig {
     'CENTRIFUGO_URL',
   );
 
-  static late final String realtimeWsUrl;
-  static late final String apiBaseUrl;
-  static late final String giphyApiKey;
+  static String realtimeWsUrl = '';
+  static String apiBaseUrl = '';
+  static String giphyApiKey = '';
 
   // Appwrite
-  static late final String appwriteProjectId;
-  static late final String appwriteProjectName;
-  static late final String appwritePublicEndpoint;
-  static late final String appwriteBucketId;
-  static late final String razorpayKeyId;
-  static late final String googleClientId;
-  static late final String sentryDsn;
-  static late final String geminiApiKey;
-  static late final String deepgramApiKey;
-  static late final String tavilyApiKey;
-  static late final String serperApiKey;
-  static late final String geminiTextModel;
-  static late final String geminiLiveModel;
-  static late final String rtcStunUrls;
-  static late final String rtcTurnUrl;
-  static late final String rtcTurnUsername;
-  static late final String rtcTurnCredential;
-  static late final String currentsApiKey;
+  static String appwriteProjectId = '';
+  static String appwriteProjectName = '';
+  static String appwritePublicEndpoint = '';
+  static String appwriteBucketId = '';
+  static String razorpayKeyId = '';
+  static String googleClientId = '';
+  static String sentryDsn = '';
+  static String geminiApiKey = '';
+  static String deepgramApiKey = '';
+  static String tavilyApiKey = '';
+  static String serperApiKey = '';
+  static String geminiTextModel = '';
+  static String geminiLiveModel = '';
+  static String rtcStunUrls = '';
+  static String rtcTurnUrl = '';
+  static String rtcTurnUsername = '';
+  static String rtcTurnCredential = '';
+  static String currentsApiKey = '';
 
   /// Centrifugo websocket URL for realtime gaming. Empty when unconfigured —
   /// callers must check [hasCentrifugoUrl] and degrade to offline/local play
   /// rather than dialing a hardcoded host.
-  static late final String centrifugoUrl;
+  static String centrifugoUrl = '';
 
   static void init() {
     apiBaseUrl = _normalizeBaseUrl(
@@ -229,20 +242,16 @@ class AppConfig {
       'FLICKO_SENTRY_DSN',
       'SENTRY_DSN',
     );
-    geminiApiKey = _read(
+    geminiApiKey = _firstNonEmpty([
+      _definedOpenRouterApiKey,
+      _definedLegacyOpenRouterApiKey,
       _definedGeminiApiKey,
       _definedLegacyGeminiApiKey,
-      'FLICKO_OPENROUTER_API_KEY',
-      'OPENROUTER_API_KEY',
-    );
-    if (geminiApiKey.isEmpty) {
-      geminiApiKey = _read(
-        _definedGeminiApiKey,
-        _definedLegacyGeminiApiKey,
-        'FLICKO_GEMINI_API_KEY',
-        'GEMINI_API_KEY',
-      );
-    }
+      dotenv.env['FLICKO_OPENROUTER_API_KEY'],
+      dotenv.env['OPENROUTER_API_KEY'],
+      dotenv.env['FLICKO_GEMINI_API_KEY'],
+      dotenv.env['GEMINI_API_KEY'],
+    ]);
     deepgramApiKey = _firstNonEmpty([
       _definedDeepgramApiKey,
       _definedLegacyDeepgramApiKey,
@@ -265,6 +274,8 @@ class AppConfig {
       '049f558ea6932c85ab7dcb3a30f6fdefd719a2f3',
     ]);
     geminiTextModel = _firstNonEmpty([
+      _definedOpenRouterModel,
+      _definedLegacyOpenRouterModel,
       _definedGeminiTextModel,
       _definedLegacyGeminiTextModel,
       dotenv.env['OPENROUTER_MODEL'],
@@ -274,6 +285,8 @@ class AppConfig {
       'nvidia/nemotron-3-ultra-550b-a55b:free',
     ]);
     geminiLiveModel = _firstNonEmpty([
+      _definedOpenRouterModel,
+      _definedLegacyOpenRouterModel,
       _definedGeminiLiveModel,
       _definedLegacyGeminiLiveModel,
       dotenv.env['OPENROUTER_MODEL'],
