@@ -215,7 +215,7 @@ func main() {
 	}
 	mailService := services.NewMailService(mailGatewayURL, internalToken, logger)
 
-	authService := services.NewAuthService(db, cfg.Ed25519PrivateKey, cfg.Ed25519PublicKey, services.WithMailService(mailService))
+	authService := services.NewAuthService(db, cfg.Ed25519PrivateKey, cfg.Ed25519PublicKey, services.WithMailService(mailService), services.WithCache(redisCache))
 	middleware.SetAuthService(authService)
 
 	// 4. Setup Router

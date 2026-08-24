@@ -14,6 +14,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/flicko-org/flicko-backend/internal/cache"
 	"github.com/flicko-org/flicko-backend/internal/database"
 	"github.com/flicko-org/flicko-backend/internal/models"
 	"github.com/golang-jwt/jwt/v5"
@@ -52,6 +53,7 @@ const (
 
 type authService struct {
 	db      database.DatabaseClient
+	cache   cache.CacheLayer
 	privKey ed25519.PrivateKey
 	pubKeys map[string]ed25519.PublicKey // kid → public key
 	kid     string                      // Key ID for the active private key
@@ -89,6 +91,12 @@ type AuthOption func(*authService)
 func WithMailService(mailSvc *MailService) AuthOption {
 	return func(s *authService) {
 		s.mailSvc = mailSvc
+	}
+}
+
+func WithCache(c cache.CacheLayer) AuthOption {
+	return func(s *authService) {
+		s.cache = c
 	}
 }
 
@@ -250,8 +258,23 @@ func (s *authService) Register(ctx context.Context, username, email, phone, pass
 // VerifyEmail validates the verification code, marks the user's email as confirmed,
 // and issues a valid JWT access token.
 func (s *authService) VerifyEmail(ctx context.Context, email, token string) (*models.User, string, error) {
+	email = strings.TrimSpace(strings.ToLower(email))
 	if email == "" || token == "" {
 		return nil, "", errors.New("email and verification code are required")
+	}
+
+	// Check per-account failed verification attempts limit (max 5 failed attempts per 15 minutes)
+	var failKey string
+	if s.cache != nil {
+		failKey = fmt.Sprintf("verify_fail:%s", email)
+		countStr, err := s.cache.Get(ctx, failKey)
+		if err == nil && countStr != "" {
+			var count int
+			_, _ = fmt.Sscanf(countStr, "%d", &count)
+			if count >= 5 {
+				return nil, "", errors.New("too many failed verification attempts. Please try again later")
+			}
+		}
 	}
 
 	if s.db == nil {
@@ -277,10 +300,25 @@ func (s *authService) VerifyEmail(ctx context.Context, email, token string) (*mo
 	row := s.db.QueryRow(ctx, query, email, token)
 	err := row.Scan(&user.ID, &user.Email, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
+		if s.cache != nil && failKey != "" {
+			var count int
+			countStr, _ := s.cache.Get(ctx, failKey)
+			if countStr != "" {
+				_, _ = fmt.Sscanf(countStr, "%d", &count)
+			}
+			count++
+			_ = s.cache.Set(ctx, failKey, fmt.Sprintf("%d", count), 15*time.Minute)
+		}
+
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, "", errors.New("invalid or expired verification code")
 		}
 		return nil, "", fmt.Errorf("failed to verify email: %w", err)
+	}
+
+	// Clear failed verification counter on successful verification
+	if s.cache != nil && failKey != "" {
+		_ = s.cache.Delete(ctx, failKey)
 	}
 
 	// Fetch username from the profile
