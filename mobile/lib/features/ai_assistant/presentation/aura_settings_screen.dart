@@ -241,9 +241,9 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
                           accent: accent,
                           version: "v3.0.0",
                           date: "June 2026",
-                          title: "Multi-Model AI with Gemini Fallback",
+                          title: "Multi-Model AI via OpenRouter",
                           description:
-                              "Aura now routes through xAI Grok as the primary model with Google Gemini as an intelligent fallback. If the primary model fails, Gemini seamlessly takes over — zero downtime for you.",
+                              "Aura now routes through OpenRouter with Nvidia Nemotron 3 Ultra (550B) as the high-intelligence engine, ensuring massive 1M context windows, superior reasoning, and ultra-high reliability.",
                         ),
                         _buildTimelineItem(
                           accent: accent,
@@ -430,7 +430,7 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
                           accent: accent,
                           question: "Which AI models does Aura use?",
                           answer:
-                              "Aura primarily uses xAI's Grok model routed through secure server-side Edge Functions. If Grok is unavailable, Google Gemini automatically takes over as a fallback — so you always get a response.",
+                              "Aura uses OpenRouter powered by Nvidia Nemotron 3 Ultra (550B) with support for multi-model fallback — ensuring state-of-the-art conversational quality with a 1M token memory.",
                         ),
                         _buildFAQItem(
                           accent: accent,
@@ -951,7 +951,7 @@ class _AuraSettingsScreenState extends ConsumerState<AuraSettingsScreen>
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Powered by xAI Grok + Google Gemini',
+                        'Powered by OpenRouter (Nvidia Nemotron 3 Ultra)',
                         style: GoogleFonts.inter(
                           color: _textDimmed,
                           fontSize: 9,

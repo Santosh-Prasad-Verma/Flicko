@@ -232,9 +232,17 @@ class AppConfig {
     geminiApiKey = _read(
       _definedGeminiApiKey,
       _definedLegacyGeminiApiKey,
-      'FLICKO_GEMINI_API_KEY',
-      'GEMINI_API_KEY',
+      'FLICKO_OPENROUTER_API_KEY',
+      'OPENROUTER_API_KEY',
     );
+    if (geminiApiKey.isEmpty) {
+      geminiApiKey = _read(
+        _definedGeminiApiKey,
+        _definedLegacyGeminiApiKey,
+        'FLICKO_GEMINI_API_KEY',
+        'GEMINI_API_KEY',
+      );
+    }
     deepgramApiKey = _firstNonEmpty([
       _definedDeepgramApiKey,
       _definedLegacyDeepgramApiKey,
@@ -259,16 +267,20 @@ class AppConfig {
     geminiTextModel = _firstNonEmpty([
       _definedGeminiTextModel,
       _definedLegacyGeminiTextModel,
+      dotenv.env['OPENROUTER_MODEL'],
+      dotenv.env['FLICKO_OPENROUTER_MODEL'],
       dotenv.env['FLICKO_GEMINI_TEXT_MODEL'],
       dotenv.env['GEMINI_TEXT_MODEL'],
-      'gemini-2.5-flash',
+      'nvidia/nemotron-3-ultra-550b-a55b:free',
     ]);
     geminiLiveModel = _firstNonEmpty([
       _definedGeminiLiveModel,
       _definedLegacyGeminiLiveModel,
+      dotenv.env['OPENROUTER_MODEL'],
+      dotenv.env['FLICKO_OPENROUTER_MODEL'],
       dotenv.env['FLICKO_GEMINI_LIVE_MODEL'],
       dotenv.env['GEMINI_LIVE_MODEL'],
-      'gemini-2.5-flash-native-audio-preview-12-2025',
+      'nvidia/nemotron-3-ultra-550b-a55b:free',
     ]);
     rtcStunUrls = _firstNonEmpty([
       _definedRtcStunUrls,

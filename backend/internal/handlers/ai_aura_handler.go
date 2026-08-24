@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/flicko-org/flicko-backend/internal/config"
@@ -70,6 +71,12 @@ func (h *AIAuraHandler) HandleAuraChat(w http.ResponseWriter, r *http.Request) {
 		apiKey = h.cfg.FlickoGeminiAPIKey
 	}
 	if apiKey == "" {
+		apiKey = os.Getenv("OPENROUTER_API_KEY")
+	}
+	if apiKey == "" {
+		apiKey = os.Getenv("FLICKO_OPENROUTER_API_KEY")
+	}
+	if apiKey == "" {
 		apiKey = os.Getenv("GEMINI_API_KEY")
 	}
 	if apiKey == "" {
@@ -82,54 +89,124 @@ func (h *AIAuraHandler) HandleAuraChat(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if apiKey != "" {
-		contents := make([]map[string]interface{}, 0, len(req.Messages))
-		for _, m := range req.Messages {
-			role := "user"
-			if m.Role == "assistant" || m.Sender == "assistant" || m.Role == "model" {
-				role = "model"
+		// 1. OpenRouter (OpenAI-compatible) endpoint
+		if strings.HasPrefix(apiKey, "sk-or-") {
+			model := "nvidia/nemotron-3-ultra-550b-a55b:free"
+			if h.cfg != nil && h.cfg.GeminiModel != "" {
+				model = h.cfg.GeminiModel
 			}
-			txt := m.Content
-			if txt == "" {
-				txt = m.Text
-			}
-			if txt != "" {
-				contents = append(contents, map[string]interface{}{
-					"role": role,
-					"parts": []map[string]string{
-						{"text": txt},
-					},
-				})
-			}
-		}
 
-		payload := map[string]interface{}{
-			"contents": contents,
-			"systemInstruction": map[string]interface{}{
-				"parts": []map[string]string{{"text": sysPrompt}},
-			},
-			"generationConfig": map[string]interface{}{
-				"temperature":     0.7,
-				"maxOutputTokens": 2048,
-			},
-		}
-
-		jsonBytes, _ := json.Marshal(payload)
-		url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=%s", apiKey)
-		resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonBytes))
-		if err == nil && resp.StatusCode == http.StatusOK {
-			defer resp.Body.Close()
-			var data struct {
-				Candidates []struct {
-					Content struct {
-						Parts []struct {
-							Text string `json:"text"`
-						} `json:"parts"`
-					} `json:"content"`
-				} `json:"candidates"`
+			oaiMessages := make([]map[string]string, 0, len(req.Messages)+1)
+			oaiMessages = append(oaiMessages, map[string]string{
+				"role":    "system",
+				"content": sysPrompt,
+			})
+			for _, m := range req.Messages {
+				role := "user"
+				if m.Role == "assistant" || m.Sender == "assistant" || m.Role == "model" {
+					role = "assistant"
+				}
+				txt := m.Content
+				if txt == "" {
+					txt = m.Text
+				}
+				if txt != "" {
+					oaiMessages = append(oaiMessages, map[string]string{
+						"role":    role,
+						"content": txt,
+					})
+				}
 			}
-			if err := json.NewDecoder(resp.Body).Decode(&data); err == nil && len(data.Candidates) > 0 && len(data.Candidates[0].Content.Parts) > 0 {
-				writeJSON(w, http.StatusOK, map[string]string{"text": data.Candidates[0].Content.Parts[0].Text})
-				return
+
+			payload := map[string]interface{}{
+				"model":       model,
+				"messages":    oaiMessages,
+				"temperature": 0.7,
+				"max_tokens":  2048,
+			}
+
+			jsonBytes, _ := json.Marshal(payload)
+			httpReq, reqErr := http.NewRequestWithContext(r.Context(), http.MethodPost, "https://openrouter.ai/api/v1/chat/completions", bytes.NewBuffer(jsonBytes))
+			if reqErr == nil {
+				httpReq.Header.Set("Content-Type", "application/json")
+				httpReq.Header.Set("Authorization", "Bearer "+apiKey)
+				httpReq.Header.Set("HTTP-Referer", "https://flicko.dev")
+				httpReq.Header.Set("X-Title", "Flicko")
+
+				resp, err := http.DefaultClient.Do(httpReq)
+				if err == nil {
+					defer resp.Body.Close()
+					if resp.StatusCode == http.StatusOK {
+						var data struct {
+							Choices []struct {
+								Message struct {
+									Content string `json:"content"`
+								} `json:"message"`
+							} `json:"choices"`
+						}
+						if err := json.NewDecoder(resp.Body).Decode(&data); err == nil && len(data.Choices) > 0 && data.Choices[0].Message.Content != "" {
+							writeJSON(w, http.StatusOK, map[string]string{"text": data.Choices[0].Message.Content})
+							return
+						}
+					} else {
+						buf, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))
+						h.logger.Warn("openrouter call non-200", zap.Int("status", resp.StatusCode), zap.String("body", string(buf)))
+					}
+				} else {
+					h.logger.Warn("openrouter request failed", zap.Error(err))
+				}
+			}
+		} else {
+			// 2. Direct Google Gemini endpoint
+			contents := make([]map[string]interface{}, 0, len(req.Messages))
+			for _, m := range req.Messages {
+				role := "user"
+				if m.Role == "assistant" || m.Sender == "assistant" || m.Role == "model" {
+					role = "model"
+				}
+				txt := m.Content
+				if txt == "" {
+					txt = m.Text
+				}
+				if txt != "" {
+					contents = append(contents, map[string]interface{}{
+						"role": role,
+						"parts": []map[string]string{
+							{"text": txt},
+						},
+					})
+				}
+			}
+
+			payload := map[string]interface{}{
+				"contents": contents,
+				"systemInstruction": map[string]interface{}{
+					"parts": []map[string]string{{"text": sysPrompt}},
+				},
+				"generationConfig": map[string]interface{}{
+					"temperature":     0.7,
+					"maxOutputTokens": 2048,
+				},
+			}
+
+			jsonBytes, _ := json.Marshal(payload)
+			url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=%s", apiKey)
+			resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonBytes))
+			if err == nil && resp.StatusCode == http.StatusOK {
+				defer resp.Body.Close()
+				var data struct {
+					Candidates []struct {
+						Content struct {
+							Parts []struct {
+								Text string `json:"text"`
+							} `json:"parts"`
+						} `json:"content"`
+					} `json:"candidates"`
+				}
+				if err := json.NewDecoder(resp.Body).Decode(&data); err == nil && len(data.Candidates) > 0 && len(data.Candidates[0].Content.Parts) > 0 {
+					writeJSON(w, http.StatusOK, map[string]string{"text": data.Candidates[0].Content.Parts[0].Text})
+					return
+				}
 			}
 		}
 	}

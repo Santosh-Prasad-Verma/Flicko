@@ -81,7 +81,7 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Gemini API Key',
+                      'AI API Key',
                       style: GoogleFonts.inter(
                         color: _textColor,
                         fontSize: 20,
@@ -91,8 +91,8 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
                     const SizedBox(height: 12),
                     Text(
                       envKey.isNotEmpty
-                          ? 'A runtime Gemini key is configured. Add a key here only if you want to override it on this device.'
-                          : 'Provide a Gemini API key to activate live text and native-audio voice responses.',
+                          ? 'A runtime OpenRouter / Gemini key is configured. Add a key here only if you want to override it on this device.'
+                          : 'Provide an OpenRouter or Gemini API key to activate live text and native-audio voice responses.',
                       style: GoogleFonts.inter(
                         color: _textColor.withOpacity(0.6),
                         fontSize: 13,
@@ -103,43 +103,27 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
                     Container(
                       decoration: BoxDecoration(
                         color: _textColor.withOpacity(0.04),
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: _textColor.withOpacity(0.07),
-                          width: 1.2,
+                          color: _textColor.withOpacity(0.08),
                         ),
                       ),
                       child: TextField(
                         controller: controller,
-                        obscureText: obscureText,
-                        style: GoogleFonts.spaceMono(
+                        style: GoogleFonts.inter(
                           color: _textColor,
-                          fontSize: 13,
+                          fontSize: 14,
                         ),
                         decoration: InputDecoration(
-                          hintText: 'Enter API Key...',
-                          hintStyle: GoogleFonts.spaceMono(
+                          hintText: 'Enter OpenRouter (sk-or-...) or Gemini API key',
+                          hintStyle: GoogleFonts.inter(
                             color: _textColor.withOpacity(0.3),
                             fontSize: 13,
                           ),
+                          border: InputBorder.none,
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16,
                             vertical: 14,
-                          ),
-                          border: InputBorder.none,
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              obscureText
-                                  ? Icons.visibility_off_outlined
-                                  : Icons.visibility_outlined,
-                              color: _textColor.withOpacity(0.6),
-                              size: 20,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                obscureText = !obscureText;
-                              });
-                            },
                           ),
                         ),
                       ),
@@ -154,30 +138,21 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
                             'Cancel',
                             style: GoogleFonts.inter(
                               color: _textColor.withOpacity(0.6),
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 8),
                         ElevatedButton(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: accent,
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 12,
-                            ),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(10),
                             ),
                           ),
                           onPressed: () async {
                             final newKey = controller.text.trim();
-                            await notifier.saveApiKey(
-                              newKey.isEmpty ? null : newKey,
-                            );
+                            await notifier.saveApiKey(newKey.isEmpty ? null : newKey);
                             if (context.mounted) {
                               Navigator.of(context).pop();
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -185,9 +160,9 @@ class _AuraDashboardScreenState extends ConsumerState<AuraDashboardScreen>
                                   content: Text(
                                     newKey.isEmpty
                                         ? (envKey.isNotEmpty
-                                              ? 'Using configured environment Gemini API key.'
-                                              : 'Gemini API key cleared. Aura Live needs a key to answer online.')
-                                        : 'Gemini API key updated successfully!',
+                                              ? 'Using configured environment AI API key.'
+                                              : 'AI API key cleared. Aura Live needs a key to answer online.')
+                                        : 'AI API key updated successfully!',
                                   ),
                                   backgroundColor: _cardBg,
                                   behavior: SnackBarBehavior.floating,

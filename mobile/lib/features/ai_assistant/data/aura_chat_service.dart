@@ -549,54 +549,106 @@ class AuraNotifier extends Notifier<List<AuraSession>> {
         final geminiKey = await getApiKey();
         if (geminiKey != null && geminiKey.isNotEmpty) {
           final dio = Dio();
-          final geminiModel = AppConfig.geminiTextModel.isNotEmpty
-              ? AppConfig.geminiTextModel
-              : 'gemini-2.0-flash';
-
-          // Build Gemini-compatible messages
-          final geminiContents = <Map<String, dynamic>>[];
-          final allMsgs = activeSession.messages;
-          for (int i = 0; i < allMsgs.length; i++) {
-            final msg = allMsgs[i];
-            final isLastUserMsg = i == allMsgs.length - 1 && msg.sender == 'user';
-            geminiContents.add({
-              'role': msg.sender == 'user' ? 'user' : 'model',
-              'parts': [{'text': isLastUserMsg ? text : msg.text}],
-            });
-          }
-
           final settings = ref.read(auraSettingsProvider);
           final language = settings.language;
           final temperature = settings.temperature;
+          final allMsgs = activeSession.messages;
 
-          final geminiResponse = await dio.post(
-            'https://generativelanguage.googleapis.com/v1beta/models/$geminiModel:generateContent?key=$geminiKey',
-            options: Options(headers: {'Content-Type': 'application/json'}),
-            data: {
-              'contents': geminiContents,
-              'systemInstruction': {
-                'parts': [
-                  {
-                    'text': 'You are Aura AI, a helpful and warm AI assistant inside Flicko. Please respond in the user\'s selected language: $language.'
-                  }
-                ]
-              },
-              'generationConfig': {
+          if (geminiKey.startsWith('sk-or-')) {
+            // OpenRouter API
+            final model = AppConfig.geminiTextModel.isNotEmpty && !AppConfig.geminiTextModel.contains('gemini-2')
+                ? AppConfig.geminiTextModel
+                : 'nvidia/nemotron-3-ultra-550b-a55b:free';
+
+            final oaiMessages = <Map<String, dynamic>>[
+              {
+                'role': 'system',
+                'content': 'You are Aura AI, a helpful and warm AI assistant inside Flicko. Please respond in the user\'s selected language: $language.',
+              }
+            ];
+            for (int i = 0; i < allMsgs.length; i++) {
+              final msg = allMsgs[i];
+              final isLastUserMsg = i == allMsgs.length - 1 && msg.sender == 'user';
+              oaiMessages.add({
+                'role': msg.sender == 'user' ? 'user' : 'assistant',
+                'content': isLastUserMsg ? text : msg.text,
+              });
+            }
+
+            final openRouterResponse = await dio.post(
+              'https://openrouter.ai/api/v1/chat/completions',
+              options: Options(
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': 'Bearer $geminiKey',
+                  'HTTP-Referer': 'https://flicko.dev',
+                  'X-Title': 'Flicko',
+                },
+              ),
+              data: {
+                'model': model,
+                'messages': oaiMessages,
                 'temperature': temperature,
-                'maxOutputTokens': 2048,
+                'max_tokens': 2048,
               },
-            },
-          );
+            );
 
-          if (geminiResponse.statusCode == 200 && geminiResponse.data != null) {
-            final candidates = geminiResponse.data['candidates'] as List?;
-            if (candidates != null && candidates.isNotEmpty) {
-              final parts = candidates[0]['content']?['parts'] as List?;
-              if (parts != null && parts.isNotEmpty) {
-                final geminiText = parts[0]['text'] as String?;
-                if (geminiText != null && geminiText.isNotEmpty) {
-                  responseText = geminiText;
+            if (openRouterResponse.statusCode == 200 && openRouterResponse.data != null) {
+              final choices = openRouterResponse.data['choices'] as List?;
+              if (choices != null && choices.isNotEmpty) {
+                final choiceMsg = choices[0]['message'];
+                final content = choiceMsg?['content'] as String?;
+                if (content != null && content.isNotEmpty) {
+                  responseText = content;
                   liveSuccess = true;
+                }
+              }
+            }
+          } else {
+            // Google Gemini API
+            final geminiModel = AppConfig.geminiTextModel.isNotEmpty
+                ? AppConfig.geminiTextModel
+                : 'gemini-2.0-flash';
+
+            final geminiContents = <Map<String, dynamic>>[];
+            for (int i = 0; i < allMsgs.length; i++) {
+              final msg = allMsgs[i];
+              final isLastUserMsg = i == allMsgs.length - 1 && msg.sender == 'user';
+              geminiContents.add({
+                'role': msg.sender == 'user' ? 'user' : 'model',
+                'parts': [{'text': isLastUserMsg ? text : msg.text}],
+              });
+            }
+
+            final geminiResponse = await dio.post(
+              'https://generativelanguage.googleapis.com/v1beta/models/$geminiModel:generateContent?key=$geminiKey',
+              options: Options(headers: {'Content-Type': 'application/json'}),
+              data: {
+                'contents': geminiContents,
+                'systemInstruction': {
+                  'parts': [
+                    {
+                      'text': 'You are Aura AI, a helpful and warm AI assistant inside Flicko. Please respond in the user\'s selected language: $language.'
+                    }
+                  ]
+                },
+                'generationConfig': {
+                  'temperature': temperature,
+                  'maxOutputTokens': 2048,
+                },
+              },
+            );
+
+            if (geminiResponse.statusCode == 200 && geminiResponse.data != null) {
+              final candidates = geminiResponse.data['candidates'] as List?;
+              if (candidates != null && candidates.isNotEmpty) {
+                final parts = candidates[0]['content']?['parts'] as List?;
+                if (parts != null && parts.isNotEmpty) {
+                  final geminiText = parts[0]['text'] as String?;
+                  if (geminiText != null && geminiText.isNotEmpty) {
+                    responseText = geminiText;
+                    liveSuccess = true;
+                  }
                 }
               }
             }

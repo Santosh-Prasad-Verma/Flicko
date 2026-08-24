@@ -660,54 +660,105 @@ Important rules:
       debugPrint('[Aura] Server-side voice chat proxy failed: $e');
     }
 
-    // 2. Client Gemini Fallback if backend chat failed
+    // 2. Client Gemini / OpenRouter Fallback if backend chat failed
     if (!textFallbackSuccess) {
       try {
         final geminiKey = await ref.read(auraSessionsProvider.notifier).getApiKey();
         if (geminiKey != null && geminiKey.isNotEmpty) {
           final dio = Dio();
-          final geminiModel = AppConfig.geminiTextModel.isNotEmpty
-              ? AppConfig.geminiTextModel
-              : 'gemini-2.0-flash';
           final language = ref.read(auraSettingsProvider).language;
-          final response = await dio.post(
-            'https://generativelanguage.googleapis.com/v1beta/models/$geminiModel:generateContent?key=$geminiKey',
-            options: Options(headers: {'Content-Type': 'application/json'}),
-            data: {
-              'contents': [
-                {
-                  'role': 'user',
-                  'parts': [
-                    {
-                      'text':
-                          'You are Aura, Flicko\'s intelligent conversational voice companion. Answer directly and concisely in 1-2 spoken sentences with no markdown or asterisks in $language.\n\nUser: $spokenText',
-                    }
-                  ]
-                }
-              ],
-              'generationConfig': {
+
+          if (geminiKey.startsWith('sk-or-')) {
+            // OpenRouter API
+            final model = AppConfig.geminiTextModel.isNotEmpty && !AppConfig.geminiTextModel.contains('gemini-2')
+                ? AppConfig.geminiTextModel
+                : 'nvidia/nemotron-3-ultra-550b-a55b:free';
+
+            final response = await dio.post(
+              'https://openrouter.ai/api/v1/chat/completions',
+              options: Options(
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': 'Bearer $geminiKey',
+                  'HTTP-Referer': 'https://flicko.dev',
+                  'X-Title': 'Flicko',
+                },
+              ),
+              data: {
+                'model': model,
+                'messages': [
+                  {
+                    'role': 'system',
+                    'content':
+                        'You are Aura, Flicko\'s intelligent conversational voice companion. Answer directly and concisely in 1-2 spoken sentences with no markdown or asterisks in $language.',
+                  },
+                  {
+                    'role': 'user',
+                    'content': spokenText,
+                  },
+                ],
                 'temperature': 0.7,
-                'maxOutputTokens': 250,
+                'max_tokens': 250,
               },
-            },
-          );
-          if (response.statusCode == 200 && response.data != null) {
-            final candidates = response.data['candidates'] as List?;
-            if (candidates != null && candidates.isNotEmpty) {
-              final parts = candidates[0]['content']?['parts'] as List?;
-              if (parts != null && parts.isNotEmpty) {
-                final text = parts[0]['text'] as String?;
+            );
+
+            if (response.statusCode == 200 && response.data != null) {
+              final choices = response.data['choices'] as List?;
+              if (choices != null && choices.isNotEmpty) {
+                final choiceMsg = choices[0]['message'];
+                final text = choiceMsg?['content'] as String?;
                 if (text != null && text.isNotEmpty) {
                   responseText = text.replaceAll('*', '').replaceAll('•', '').trim();
                   textFallbackSuccess = true;
-                  debugPrint('[Aura] Voice text response from client Gemini fallback: $responseText');
+                  debugPrint('[Aura] Voice text response from client OpenRouter fallback: $responseText');
+                }
+              }
+            }
+          } else {
+            // Google Gemini API
+            final geminiModel = AppConfig.geminiTextModel.isNotEmpty
+                ? AppConfig.geminiTextModel
+                : 'gemini-2.0-flash';
+
+            final response = await dio.post(
+              'https://generativelanguage.googleapis.com/v1beta/models/$geminiModel:generateContent?key=$geminiKey',
+              options: Options(headers: {'Content-Type': 'application/json'}),
+              data: {
+                'contents': [
+                  {
+                    'role': 'user',
+                    'parts': [
+                      {
+                        'text':
+                            'You are Aura, Flicko\'s intelligent conversational voice companion. Answer directly and concisely in 1-2 spoken sentences with no markdown or asterisks in $language.\n\nUser: $spokenText',
+                      }
+                    ]
+                  }
+                ],
+                'generationConfig': {
+                  'temperature': 0.7,
+                  'maxOutputTokens': 250,
+                },
+              },
+            );
+            if (response.statusCode == 200 && response.data != null) {
+              final candidates = response.data['candidates'] as List?;
+              if (candidates != null && candidates.isNotEmpty) {
+                final parts = candidates[0]['content']?['parts'] as List?;
+                if (parts != null && parts.isNotEmpty) {
+                  final text = parts[0]['text'] as String?;
+                  if (text != null && text.isNotEmpty) {
+                    responseText = text.replaceAll('*', '').replaceAll('•', '').trim();
+                    textFallbackSuccess = true;
+                    debugPrint('[Aura] Voice text response from client Gemini fallback: $responseText');
+                  }
                 }
               }
             }
           }
         }
       } catch (e) {
-        debugPrint('[Aura] Client-side voice Gemini fallback failed: $e');
+        debugPrint('[Aura] Client-side voice AI fallback failed: $e');
       }
     }
 

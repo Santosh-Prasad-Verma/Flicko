@@ -10,6 +10,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -175,6 +176,19 @@ func Load() (*Config, error) {
 	if geminiKey == "" {
 		geminiKey = os.Getenv("GEMINI_API_KEY")
 	}
+	if geminiKey == "" {
+		geminiKey = os.Getenv("OPENROUTER_API_KEY")
+	}
+	if geminiKey == "" {
+		geminiKey = os.Getenv("FLICKO_OPENROUTER_API_KEY")
+	}
+
+	defaultBaseURL := "https://generativelanguage.googleapis.com/v1beta/openai"
+	defaultModel := "gemini-2.5-flash"
+	if strings.HasPrefix(geminiKey, "sk-or-") {
+		defaultBaseURL = "https://openrouter.ai/api/v1"
+		defaultModel = "nvidia/nemotron-3-ultra-550b-a55b:free"
+	}
 
 	cfg := &Config{
 		DatabaseURL:                    dbURL,
@@ -203,8 +217,8 @@ func Load() (*Config, error) {
 		AstraDBToken:       envOr("ASTRA_DB_APPLICATION_TOKEN", ""),
 		FlickoGeminiAPIKey: geminiKey,
 		GeminiAPIKey:       geminiKey,
-		GeminiBaseURL:      envOr("GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai"),
-		GeminiModel:        envOr("GEMINI_MODEL", envOr("FLICKO_GEMINI_TEXT_MODEL", "gemini-2.5-flash")),
+		GeminiBaseURL:      envOr("GEMINI_BASE_URL", envOr("OPENROUTER_BASE_URL", defaultBaseURL)),
+		GeminiModel:        envOr("GEMINI_MODEL", envOr("FLICKO_GEMINI_TEXT_MODEL", envOr("OPENROUTER_MODEL", defaultModel))),
 		AIRequestTimeout:   time.Duration(parseIntEnv("AI_REQUEST_TIMEOUT_SECONDS", 12, 1, 120)) * time.Second,
 		AIMessageSummaryEnabled: parseBoolEnv("FEATURE_AI_MESSAGE_SUMMARY", false),
 		AIAutoTranslateEnabled:  parseBoolEnv("FEATURE_AI_AUTO_TRANSLATE", false),

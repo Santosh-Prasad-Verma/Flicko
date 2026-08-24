@@ -38,7 +38,7 @@
 
 **Flicko** is a high-performance, real-time multimedia communication, social collaboration, and gaming ecosystem designed from the ground up for modern cross-platform experiences. Inspired by the flexibility of Discord, the security of Signal, and the interactivity of modern streaming and gaming hubs, Flicko unifies voice/video channels, end-to-end encrypted direct messaging, synchronized collaborative activities, turn-based multiplayer games, full-fidelity music streaming, autonomous AI assistance, and an extensible bot platform into a cohesive, production-grade application.
 
-The platform is engineered around a **high-throughput, distributed microservices backend written in Go** and a **responsive, fluid cross-platform client built with Flutter (Dart)**. It leverages strict Row-Level Security (RLS) in PostgreSQL, low-latency pub/sub via Redis and Centrifugo, WebRTC and Azure Communication Services (ACS) for VoIP, and an intelligent AI pipeline powered by Google Gemini (Gemini 2.5 Flash) and DeepL.
+The platform is engineered around a **high-throughput, distributed microservices backend written in Go** and a **responsive, fluid cross-platform client built with Flutter (Dart)**. It leverages strict Row-Level Security (RLS) in PostgreSQL, low-latency pub/sub via Redis and Centrifugo, WebRTC and Azure Communication Services (ACS) for VoIP, and an intelligent AI pipeline powered by OpenRouter (Nvidia Nemotron 3 Ultra 550B) and DeepL.
 
 ```
                   ┌─────────────────────────────────────────────────────────┐
@@ -93,10 +93,10 @@ The platform is engineered around a **high-throughput, distributed microservices
 * **Integrated Soundboard**: Real-time sound clip playback with MyInstants directory integration, custom sound upload, and multi-user low-latency audio broadcasting.
 
 ### 4. 🧠 Autonomous Aura AI Suite
-* **Aura Interactive Companion**: Multimodal AI conversational partner powered by Google Gemini (Gemini 2.5 Flash / 2.0 Flash) with Deepgram speech-to-text and text-to-speech audio streaming.
-* **Catch-Me-Up (AI Message Summarization)**: Token-budgeted, rolling-window conversation summarization powered by Google Gemini that catches users up on missed messages across active channels.
+* **Aura Interactive Companion**: Multimodal AI conversational partner powered by OpenRouter (Nvidia Nemotron 3 Ultra 550B) with Deepgram speech-to-text and text-to-speech audio streaming.
+* **Catch-Me-Up (AI Message Summarization)**: Token-budgeted, rolling-window conversation summarization powered by OpenRouter that catches users up on missed messages across active channels with a massive 1M token context.
 * **AI Auto-Translation**: On-the-fly multi-language channel message translation powered by LibreTranslate and DeepL fallback.
-* **AI Content Moderation**: Real-time message safety analysis powered by Google Gemini, automatically filtering toxic content, hate speech, and harassment.
+* **AI Content Moderation**: Real-time message safety analysis powered by OpenRouter, automatically filtering toxic content, hate speech, and harassment.
 * **NoSQL Vector History**: Chat histories and context vectors persisted to DataStax Astra DB.
 
 ### 5. 🎮 Native Gaming Hub & Multiplayer Ludo
@@ -167,7 +167,7 @@ The platform is engineered around a **high-throughput, distributed microservices
 | **In-Memory Cache & Pub/Sub** | Redis 7+ (Azure Cache for Redis) | Distributed session caching, rate-limit buckets, and internal event pub/sub |
 | **NoSQL / Vector Store** | DataStax Astra DB | Scalable Cassandra-based vector store for Aura AI conversation histories |
 | **Media & Blob Storage** | Azure Blob Storage / Appwrite Storage | Media asset storage, audio hosting, and presigned direct uploads |
-| **AI Inference Engines** | Google Gemini (2.5-Flash / 2.0-Flash) | High-speed multimodal cloud inference for Aura AI, summaries & moderation |
+| **AI Inference Engines** | OpenRouter (Nvidia Nemotron 3 Ultra 550B) | High-speed multimodal cloud inference for Aura AI, summaries & moderation |
 | **Localization** | Tolgee (Self-hosted) | Centralized i18n translation key management |
 
 ---
@@ -209,7 +209,7 @@ graph TD
     end
     
     subgraph AI & Media Integrations
-        Backend -->|Inference| GeminiAI[⚡ Google Gemini AI]
+        Backend -->|Inference| OpenRouterAI[⚡ OpenRouter AI (Nemotron Ultra)]
         Backend -->|VoIP Calling| AzureACS[📞 Azure Communication Services]
         Backend -->|Translations| LibreTranslate[🌐 LibreTranslate / DeepL]
     end
@@ -650,9 +650,9 @@ All REST routes are prefixed with `/api/v1`. Authenticated endpoints require a s
 │ Signal E2EE Protocol  │ Eliminates server-side trust for DMs; ensures forward    │
 │ (X3DH + DoubleRatchet)│ secrecy and break-in recovery with per-device key states.│
 ├───────────────────────┼──────────────────────────────────────────────────────────┤
-│ Google Gemini AI      │ Scalable multimodal AI using Gemini 2.5 Flash for rapid  │
-│ (Gemini 2.5 Flash)    │ unread message summarization, Aura companion, and safety │
-│                       │ content moderation with high token efficiency.           │
+│ OpenRouter AI Engine  │ Scalable multimodal AI using Nvidia Nemotron 3 Ultra     │
+│ (Nemotron 3 Ultra 550B│ 550B for rapid unread message summarization (1M context),│
+│ & Multi-Model Support)│ Aura companion, and real-time content moderation.        │
 └───────────────────────┴──────────────────────────────────────────────────────────┘
 ```
 
