@@ -8,6 +8,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/data/clients/api_client.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/data/models/user_model.dart';
+import 'package:mobile/data/repositories/auth_repository.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/profile/presentation/widgets/gava_now_playing_bar.dart';
 import 'package:mobile/features/voice/application/sonic_drip_notifier.dart';
@@ -96,24 +97,9 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
 
     try {
       // 1. Fetch Profile
-      final isUuid = RegExp(
-              r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
-              caseSensitive: false)
-          .hasMatch(widget.userId);
-
-      final response = isUuid
-          ? await _client
-              .from('profiles')
-              .select('*')
-              .eq('id', widget.userId)
-              .single()
-          : await _client
-              .from('profiles')
-              .select('*')
-              .eq('username', widget.userId)
-              .single();
-
-      _profile = UserModel.fromJson(response);
+      _profile = await ref
+          .read(authRepositoryProvider)
+          .getUserProfile(widget.userId);
       debugPrint(
           'Profile loaded: avatar=${_profile!.avatarUrl}, banner=${_profile!.bannerUrl}');
       final profileId = _profile!.id;
@@ -242,22 +228,32 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
             .select('server_id')
             .eq('user_id', profileId);
 
-        final myServerIds = (myMemberships as List)
-            .map((m) => m['server_id'] as String)
-            .toSet();
-        final mutualIds = (theirMemberships as List)
-            .map((m) => m['server_id'] as String)
-            .where((id) => myServerIds.contains(id))
-            .toList();
+        if (myMemberships is List && theirMemberships is List) {
+          final myServerIds = myMemberships
+              .whereType<Map>()
+              .map((m) => m['server_id']?.toString() ?? '')
+              .where((id) => id.isNotEmpty)
+              .toSet();
+          final mutualIds = theirMemberships
+              .whereType<Map>()
+              .map((m) => m['server_id']?.toString() ?? '')
+              .where((id) => id.isNotEmpty && myServerIds.contains(id))
+              .toList();
 
-        if (mutualIds.isNotEmpty) {
-          final servers = await _client
-              .from('servers')
-              .select('id, name, icon')
-              .inFilter('id', mutualIds);
-          setState(() {
-            _mutualServers = List<Map<String, dynamic>>.from(servers);
-          });
+          if (mutualIds.isNotEmpty) {
+            final servers = await _client
+                .from('servers')
+                .select('id, name, icon')
+                .inFilter('id', mutualIds);
+            if (servers is List && mounted) {
+              setState(() {
+                _mutualServers = servers
+                    .whereType<Map>()
+                    .map((s) => Map<String, dynamic>.from(s))
+                    .toList();
+              });
+            }
+          }
         }
       } catch (_) {}
     }
@@ -271,15 +267,17 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen>
           .eq('user_id', profileId);
 
       final rolesById = <String, Map<String, dynamic>>{};
-      for (final row in roleRows as List) {
-        if (row is! Map) continue;
-        final roleData = row['roles'];
-        if (roleData is! Map) continue;
+      if (roleRows is List) {
+        for (final row in roleRows) {
+          if (row is! Map) continue;
+          final roleData = row['roles'];
+          if (roleData is! Map) continue;
 
-        final role = Map<String, dynamic>.from(roleData);
-        final id = role['id']?.toString();
-        if (id != null && id.isNotEmpty) {
-          rolesById[id] = role;
+          final role = Map<String, dynamic>.from(roleData);
+          final id = role['id']?.toString();
+          if (id != null && id.isNotEmpty) {
+            rolesById[id] = role;
+          }
         }
       }
 

@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/data/clients/api_client.dart';
 import 'package:mobile/core/constants/flicko_colors.dart';
 import 'package:mobile/data/models/user_model.dart';
+import 'package:mobile/data/repositories/auth_repository.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/shared/presentation/widgets/user_avatar.dart';
 import 'package:mobile/features/shared/presentation/widgets/skeleton_loader.dart';
@@ -87,13 +88,9 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
 
     try {
       // Fetch profile
-      final response = await _client
-          .from('profiles')
-          .select('*')
-          .eq('id', widget.userId)
-          .single();
-
-      _profile = UserModel.fromJson(response);
+      _profile = await ref
+          .read(authRepositoryProvider)
+          .getUserProfile(widget.userId);
 
       // Get current user to determine if own profile
       final currentUser = ref.read(authNotifierProvider).maybeWhen(

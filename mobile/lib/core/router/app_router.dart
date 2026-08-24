@@ -6,6 +6,7 @@ import 'package:mobile/features/spike/spike_dashboard_screen.dart';
 import 'package:mobile/features/spike/azure_calling_spike_screen.dart';
 import 'package:mobile/features/auth/presentation/screens/login_screen.dart';
 import 'package:mobile/features/auth/presentation/screens/register_screen.dart';
+import 'package:mobile/features/auth/presentation/screens/verify_email_screen.dart';
 import 'package:mobile/features/auth/presentation/screens/forgot_password_screen.dart';
 import 'package:mobile/features/auth/presentation/screens/reset_password_screen.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
@@ -197,7 +198,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         '/signup',
         '/register',
         '/forgot-password',
-        '/reset-password'
+        '/reset-password',
+        '/verify-email',
       ].contains(location);
       final isSpikeRoute = location.startsWith('/spike');
 
@@ -365,6 +367,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/register', builder: (context, state) => const RegisterScreen()),
       GoRoute(path: '/forgot-password', builder: (context, state) => const ForgotPasswordScreen()),
       GoRoute(path: '/reset-password', builder: (context, state) => const ResetPasswordScreen()),
+      GoRoute(
+        path: '/verify-email',
+        builder: (context, state) {
+          final email = state.uri.queryParameters['email'] ?? '';
+          return VerifyEmailScreen(initialEmail: email);
+        },
+      ),
 
       // ── Server Routes ──
       GoRoute(path: '/server/create', builder: (context, state) => const CreateServerScreen()),

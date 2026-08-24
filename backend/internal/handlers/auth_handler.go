@@ -46,7 +46,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, token, err := h.authSvc.Register(r.Context(), req.Username, req.Email, req.Phone, req.Password)
+	user, _, err := h.authSvc.Register(r.Context(), req.Username, req.Email, req.Phone, req.Password)
 	if err != nil {
 		h.logger.Warn("registration failed", zap.String("username", req.Username), zap.Error(err))
 		var pgErr *pgconn.PgError
@@ -64,8 +64,10 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusCreated, map[string]interface{}{
-		"user":  user,
-		"token": token,
+		"message":               "Verification code sent to your email",
+		"email":                 req.Email,
+		"user":                  user,
+		"requires_verification": true,
 	})
 }
 
@@ -234,7 +236,7 @@ func (h *AuthHandler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.authSvc.VerifyEmail(r.Context(), email, token)
+	user, token, err := h.authSvc.VerifyEmail(r.Context(), email, token)
 	if err != nil {
 		h.logger.Warn("email verification failed",
 			zap.String("email", email),
@@ -259,6 +261,8 @@ func (h *AuthHandler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"message": "Email verified successfully",
+		"user":    user,
+		"token":   token,
 	})
 }
 

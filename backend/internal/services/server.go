@@ -20,6 +20,7 @@ import (
 type ServerService interface {
 	CreateServer(ctx context.Context, ownerID, name, description, icon string) (*models.Server, error)
 	GetServer(ctx context.Context, serverID string) (*models.Server, error)
+	GetUserServers(ctx context.Context, userID string) ([]*models.Server, error)
 	UpdateServer(ctx context.Context, serverID string, updates map[string]interface{}, executorID string) (*models.Server, error)
 	DeleteServer(ctx context.Context, serverID string, executorID string) error
 
@@ -152,6 +153,53 @@ func (s *serverService) GetServer(ctx context.Context, serverID string) (*models
 
 	s.cache.SetJSON(ctx, cacheKey, &server, 1*time.Hour)
 	return &server, nil
+}
+
+func (s *serverService) GetUserServers(ctx context.Context, userID string) ([]*models.Server, error) {
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user id: %w", err)
+	}
+
+	if s.db == nil {
+		return []*models.Server{}, nil
+	}
+
+	query := `
+		SELECT s.id, s.name, s.description, s.owner_id, s.icon_url, s.banner_url, s.system_channel_id, 
+			   s.rules_channel_id, s.public_updates_channel_id, s.preferred_locale, s.features, 
+			   s.verification_level, s.default_message_notifications, s.explicit_content_filter, 
+			   s.mfa_level, s.nsfw_level, s.premium_tier, s.premium_subscription_count, 
+			   s.vanity_url_code, s.discovery_enabled, s.created_at, s.updated_at
+		FROM public.servers s
+		INNER JOIN public.server_members sm ON sm.server_id = s.id
+		WHERE sm.user_id = $1
+		ORDER BY sm.joined_at ASC
+	`
+	rows, err := s.db.Query(ctx, query, userUUID)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching user servers: %w", err)
+	}
+	defer rows.Close()
+
+	servers := make([]*models.Server, 0)
+	for rows.Next() {
+		var server models.Server
+		err := rows.Scan(
+			&server.ID, &server.Name, &server.Description, &server.OwnerID, &server.IconURL,
+			&server.BannerURL, &server.SystemChannelID, &server.RulesChannelID,
+			&server.PublicUpdatesChannelID, &server.PreferredLocale, &server.Features,
+			&server.VerificationLevel, &server.DefaultMessageNotifications,
+			&server.ExplicitContentFilter, &server.MFALevel, &server.NSFWLevel,
+			&server.PremiumTier, &server.PremiumSubscriptionCount, &server.VanityURLCode,
+			&server.DiscoveryEnabled, &server.CreatedAt, &server.UpdatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error scanning server: %w", err)
+		}
+		servers = append(servers, &server)
+	}
+	return servers, nil
 }
 
 func (s *serverService) UpdateServer(ctx context.Context, serverID string, updates map[string]interface{}, executorID string) (*models.Server, error) {

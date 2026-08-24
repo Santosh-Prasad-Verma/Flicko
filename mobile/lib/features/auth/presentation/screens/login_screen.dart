@@ -578,18 +578,45 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             textAlign: TextAlign.center,
           ),
           if (_showEmailNotConfirmed) ...[
-            const SizedBox(height: 10),
-            GestureDetector(
-              onTap: _resendLoading ? null : _handleResendVerification,
-              child: Text(
-                _resendLoading ? 'Sending...' : 'Resend verification email',
-                style: GoogleFonts.inter(
-                  color: const Color(FlickoColors.blurple),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  decoration: TextDecoration.underline,
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    final email = _emailController.text.trim().toLowerCase();
+                    context.push('/verify-email?email=${Uri.encodeComponent(email)}');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF52B788),
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                  ),
+                  child: Text(
+                    'Enter Verification Code',
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
-              ),
+                const SizedBox(width: 12),
+                GestureDetector(
+                  onTap: _resendLoading ? null : _handleResendVerification,
+                  child: Text(
+                    _resendLoading ? 'Sending...' : 'Resend Email',
+                    style: GoogleFonts.inter(
+                      color: const Color(FlickoColors.blurple),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+              ],
             ),
             if (_resendMessage != null) ...[
               const SizedBox(height: 6),

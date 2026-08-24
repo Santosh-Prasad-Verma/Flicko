@@ -669,6 +669,19 @@ func main() {
 	protected.HandleFunc("/users/{id}", userHandler.GetUser).Methods("GET")
 	protected.HandleFunc("/users/{id}", userHandler.UpdateProfile).Methods("PATCH", "PUT")
 
+	// ── Server & Channel Endpoints ───────────────────────────────────────────
+	auditLogSvc := services.NewAuditLogService(db, redisCache, permService)
+	serverSvc := services.NewServerService(db, redisCache, permService, auditLogSvc)
+	channelSvc := services.NewChannelService(db, redisCache, permService, auditLogSvc)
+	serverHandler := handlers.NewServerHandler(serverSvc, channelSvc, logger)
+
+	protected.HandleFunc("/users/@me/servers", serverHandler.GetMyServers).Methods("GET")
+	protected.HandleFunc("/servers", serverHandler.CreateServer).Methods("POST")
+	protected.HandleFunc("/servers/{id}", serverHandler.GetServer).Methods("GET")
+	protected.HandleFunc("/servers/{id}/channels", serverHandler.GetServerChannels).Methods("GET")
+	protected.HandleFunc("/servers/{id}/members", serverHandler.GetServerMembers).Methods("GET")
+	protected.HandleFunc("/servers/{id}/join", serverHandler.JoinServer).Methods("POST")
+
 
 	// ── Creator Community Subsystem ──────────────────────────────────────────
 	creatorSvc := services.NewCreatorService(db.Pool(), redisCache)

@@ -270,7 +270,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       );
 
       if (mounted) {
-        context.go('/');
+        context.go('/verify-email?email=${Uri.encodeComponent(sanitizedEmail)}');
       }
     } catch (e) {
       debugPrint('Register error: $e');

@@ -43,7 +43,8 @@ abstract class UserModel with _$UserModel {
     @JsonKey(name: 'updated_at', fromJson: _parseNullableDateTime) DateTime? updatedAt,
   }) = _UserModel;
 
-  factory UserModel.fromJson(Map<String, dynamic> json) => _$UserModelFromJson(json);
+  factory UserModel.fromJson(Map<dynamic, dynamic> json) =>
+      _$UserModelFromJson(Map<String, dynamic>.from(json));
 }
 
 DateTime _parseDateTime(dynamic val) {

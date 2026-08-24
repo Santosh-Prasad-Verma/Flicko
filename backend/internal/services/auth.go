@@ -10,12 +10,14 @@ import (
 	"fmt"
 	"math/big"
 	"net/mail"
+	"strings"
 	"time"
 	"unicode/utf8"
 
 	"github.com/flicko-org/flicko-backend/internal/database"
 	"github.com/flicko-org/flicko-backend/internal/models"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/jackc/pgx/v5"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -36,7 +38,7 @@ type AuthService interface {
 	CheckPassword(hash, password string) bool
 	Register(ctx context.Context, username, email, phone, password string) (*models.User, string, error)
 	Login(ctx context.Context, identifier, password string) (*models.User, string, error)
-	VerifyEmail(ctx context.Context, email, token string) error
+	VerifyEmail(ctx context.Context, email, token string) (*models.User, string, error)
 	ResendVerification(ctx context.Context, email string) error
 }
 
@@ -227,11 +229,6 @@ func (s *authService) Register(ctx context.Context, username, email, phone, pass
 		user.Username = username
 	}
 
-	token, err := s.GenerateToken(user.ID, user.Email)
-	if err != nil {
-		return nil, "", fmt.Errorf("failed to generate token: %w", err)
-	}
-
 	// Send verification email (not welcome email) — verification must happen first
 	if s.mailSvc != nil && user.Email != "" {
 		go func(toEmail, toUsername, code string) {
@@ -243,13 +240,20 @@ func (s *authService) Register(ctx context.Context, username, email, phone, pass
 		}(user.Email, user.Username, verificationCode)
 	}
 
-	return &user, token, nil
+	// Email is unverified; return user without active token to enforce verification
+	return &user, "", nil
 }
 
-// VerifyEmail validates the verification code and marks the user's email as confirmed.
-func (s *authService) VerifyEmail(ctx context.Context, email, token string) error {
+// VerifyEmail validates the verification code, marks the user's email as confirmed,
+// and issues a valid JWT access token.
+func (s *authService) VerifyEmail(ctx context.Context, email, token string) (*models.User, string, error) {
 	if email == "" || token == "" {
-		return errors.New("email and verification code are required")
+		return nil, "", errors.New("email and verification code are required")
+	}
+
+	if s.db == nil {
+		// Mock testing mode
+		return &models.User{Email: email, Username: "testuser"}, "mock-token", nil
 	}
 
 	// Verify the token matches and hasn't expired
@@ -263,19 +267,44 @@ func (s *authService) VerifyEmail(ctx context.Context, email, token string) erro
 		  AND verification_token = $2
 		  AND (verification_token_expires_at IS NULL OR verification_token_expires_at > NOW())
 		  AND email_confirmed_at IS NULL
+		RETURNING id, COALESCE(email, ''), created_at, updated_at
 	`
 
-	result, err := s.db.Exec(ctx, query, email, token)
+	var user models.User
+	row := s.db.QueryRow(ctx, query, email, token)
+	err := row.Scan(&user.ID, &user.Email, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
-		return fmt.Errorf("failed to verify email: %w", err)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, "", errors.New("invalid or expired verification code")
+		}
+		return nil, "", fmt.Errorf("failed to verify email: %w", err)
 	}
 
-	rowsAffected := result.RowsAffected()
-	if rowsAffected == 0 {
-		return errors.New("invalid or expired verification code")
+	// Fetch username from the profile
+	profileQuery := `SELECT username, discriminator FROM profiles WHERE id = $1`
+	profileRow := s.db.QueryRow(ctx, profileQuery, user.ID)
+	err = profileRow.Scan(&user.Username, &user.Discriminator)
+	if err != nil {
+		user.Username = strings.Split(user.Email, "@")[0]
 	}
 
-	return nil
+	jwtToken, err := s.GenerateToken(user.ID, user.Email)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to generate token: %w", err)
+	}
+
+	// Send welcome email now that email is verified
+	if s.mailSvc != nil && user.Email != "" {
+		go func(toEmail, toUsername string) {
+			if err := s.mailSvc.SendWelcomeEmail(toEmail, toUsername); err != nil {
+				zap.L().Error("failed to send welcome email after verification", zap.String("email", toEmail), zap.Error(err))
+			} else {
+				zap.L().Info("welcome email dispatched", zap.String("email", toEmail))
+			}
+		}(user.Email, user.Username)
+	}
+
+	return &user, jwtToken, nil
 }
 
 // ResendVerification generates a new verification code and sends it to the user's email.

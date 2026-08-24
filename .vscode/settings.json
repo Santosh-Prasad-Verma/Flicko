@@ -1,4 +1,12 @@
 {
     "kiroAgent.configureMCP": "Enabled",
-    "typescript.autoClosingTags": false
+    "typescript.autoClosingTags": false,
+    "python.analysis.extraPaths": [
+        "./proxy-gateway",
+        "./proxy-gateway/src"
+    ],
+    "python.autoComplete.extraPaths": [
+        "./proxy-gateway",
+        "./proxy-gateway/src"
+    ]
 }

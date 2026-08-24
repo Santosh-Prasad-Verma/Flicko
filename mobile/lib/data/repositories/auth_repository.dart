@@ -37,8 +37,11 @@ class AuthRepository {
       'phone': phone ?? '',
       'password': password,
     });
-    if (response.data != null && response.data['token'] != null) {
-      await _secureStorage.write(key: 'auth_token', value: response.data['token']);
+    if (response.data != null &&
+        response.data is Map &&
+        response.data['token'] != null &&
+        (response.data['token'] as String).isNotEmpty) {
+      await _secureStorage.write(key: 'auth_token', value: response.data['token'] as String);
     }
   }
 
@@ -76,10 +79,16 @@ class AuthRepository {
   }
 
   Future<void> verifyEmail({required String email, required String token}) async {
-    await _dio.post('/api/v1/auth/verify-email', data: {
+    final response = await _dio.post('/api/v1/auth/verify-email', data: {
       'email': email,
       'token': token,
     });
+    if (response.data != null &&
+        response.data is Map &&
+        response.data['token'] != null &&
+        (response.data['token'] as String).isNotEmpty) {
+      await _secureStorage.write(key: 'auth_token', value: response.data['token'] as String);
+    }
   }
 
   Future<void> signOut() async {
@@ -87,13 +96,14 @@ class AuthRepository {
   }
 
   Future<UserModel> getUserProfile(String userId) async {
-    final response = await _dio.get('/api/v1/users/@me');
-    return UserModel.fromJson(response.data);
+    final endpoint = (userId.isEmpty || userId == '@me') ? '/api/v1/users/@me' : '/api/v1/users/$userId';
+    final response = await _dio.get(endpoint);
+    return UserModel.fromJson(Map<String, dynamic>.from(response.data as Map));
   }
 
   Future<UserModel> updateProfile(String userId, Map<String, dynamic> updates) async {
     final response = await _dio.patch('/api/v1/users/@me', data: updates);
-    return UserModel.fromJson(response.data);
+    return UserModel.fromJson(Map<String, dynamic>.from(response.data as Map));
   }
 
   Future<void> updatePhone(String userId, String phone) async {

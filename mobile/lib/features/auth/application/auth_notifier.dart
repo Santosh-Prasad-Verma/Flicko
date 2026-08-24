@@ -115,6 +115,33 @@ class AuthNotifier extends Notifier<AuthState> {
     try {
       state = const AuthState.loading();
       await _repository.signUp(username: username, email: email, password: password);
+      final token = await _repository.getStoredToken();
+      if (token != null && token.isNotEmpty) {
+        final profile = await _repository.getUserProfile('@me');
+        final user = AuthUser(
+          id: profile.id,
+          email: email,
+          userMetadata: {'username': profile.username},
+        );
+        state = AuthState.authenticated(
+          authUser: user,
+          userProfile: profile,
+        );
+        _bootstrapE2EE();
+      } else {
+        state = const AuthState.unauthenticated();
+      }
+    } catch (e) {
+      state = AuthState.error(e.toString());
+      state = const AuthState.unauthenticated();
+      rethrow;
+    }
+  }
+
+  Future<void> verifyEmail(String email, String token) async {
+    try {
+      state = const AuthState.loading();
+      await _repository.verifyEmail(email: email, token: token);
       final profile = await _repository.getUserProfile('@me');
       final user = AuthUser(
         id: profile.id,

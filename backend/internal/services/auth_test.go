@@ -78,11 +78,11 @@ func TestAuthService_VerifyEmailValidation(t *testing.T) {
 	svc := services.NewAuthService(nil, priv, pub)
 	ctx := context.Background()
 
-	err := svc.VerifyEmail(ctx, "", "123456")
+	_, _, err := svc.VerifyEmail(ctx, "", "123456")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "email and verification code are required")
 
-	err = svc.VerifyEmail(ctx, "user@example.com", "")
+	_, _, err = svc.VerifyEmail(ctx, "user@example.com", "")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "email and verification code are required")
 }
