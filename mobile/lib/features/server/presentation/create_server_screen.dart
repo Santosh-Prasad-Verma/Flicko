@@ -4,9 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:mobile/data/clients/api_client.dart';
-
 import 'package:mobile/core/constants/flicko_colors.dart';
+import 'package:mobile/data/repositories/server_repository.dart';
 import 'package:mobile/features/auth/application/auth_notifier.dart';
 import 'package:mobile/features/home/application/servers_notifier.dart';
 
@@ -177,58 +176,17 @@ class _CreateServerScreenState extends ConsumerState<CreateServerScreen> {
       _error = '';
     });
 
-    final client = Supabase.instance.client;
-
     try {
-      String serverId;
-
-      try {
-        final result = await client.rpc('create_server_rpc', params: {'p_name': trimmedName});
-        serverId = result['id'] as String;
-      } catch (_) {
-        final response = await client.from('servers').insert({
-          'name': trimmedName,
-          'owner_id': currentUser.id,
-        }).select().single();
-
-        serverId = response['id'] as String;
-      }
-
-      if (_iconFile != null) {
-        try {
-          final fileName = 'server_icons/${serverId}_${DateTime.now().millisecondsSinceEpoch}.png';
-          await client.storage.from('server-assets').upload(fileName, _iconFile!);
-          final iconUrl = client.storage.from('server-assets').getPublicUrl(fileName);
-          await client.from('servers').update({'icon': iconUrl}).eq('id', serverId);
-        } catch (_) {}
-      }
-
-      if (_bannerFile != null) {
-        try {
-          final fileName = 'server_banners/${serverId}_${DateTime.now().millisecondsSinceEpoch}.png';
-          await client.storage.from('server-assets').upload(fileName, _bannerFile!);
-          final bannerUrl = client.storage.from('server-assets').getPublicUrl(fileName);
-          await client.from('servers').update({'banner': bannerUrl}).eq('id', serverId);
-        } catch (_) {}
-      }
-
-      final channels = (_templateChannels[_selectedTemplate] ?? [])
-          .where((ch) => ch['name'] != 'general' && ch['name'] != 'welcome')
-          .toList();
-
-      for (int i = 0; i < channels.length; i++) {
-        await client.from('channels').insert({
-          'name': channels[i]['name'],
-          'type': channels[i]['type'],
-          'server_id': serverId,
-          'position': i + 1,
-        });
-      }
+      final serverRepo = ref.read(serverRepositoryProvider);
+      final server = await serverRepo.createServer(
+        name: trimmedName,
+        ownerId: currentUser.id,
+      );
 
       if (mounted) {
         // Refresh server list and select the newly created server
-        ref.read(serversNotifierProvider.notifier).refresh();
-        ref.read(serversNotifierProvider.notifier).selectServer(serverId);
+        await ref.read(serversNotifierProvider.notifier).refresh();
+        ref.read(serversNotifierProvider.notifier).selectServer(server.id);
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
