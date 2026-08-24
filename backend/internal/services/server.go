@@ -90,14 +90,14 @@ func (s *serverService) CreateServer(ctx context.Context, ownerID, name, descrip
 		return nil, fmt.Errorf("error creating server: %w", err)
 	}
 
-	// Add owner as a member
-	_, err = tx.Exec(ctx, `INSERT INTO public.server_members (server_id, user_id) VALUES ($1, $2)`, server.ID, ownerUUID)
+	// Add owner as a member (idempotent with on_server_created trigger)
+	_, err = tx.Exec(ctx, `INSERT INTO public.server_members (server_id, user_id) VALUES ($1, $2) ON CONFLICT (server_id, user_id) DO NOTHING`, server.ID, ownerUUID)
 	if err != nil {
 		return nil, fmt.Errorf("error adding owner as member: %w", err)
 	}
 
-	// Create default welcome settings for the new server
-	_, err = tx.Exec(ctx, `INSERT INTO welcome_settings (server_id, enabled, welcome_message) VALUES ($1, true, 'Welcome to the server, {user}! 🎉')`, server.ID)
+	// Create default welcome settings for the new server (idempotent)
+	_, err = tx.Exec(ctx, `INSERT INTO welcome_settings (server_id, enabled, welcome_message) VALUES ($1, true, 'Welcome to the server, {user}! 🎉') ON CONFLICT (server_id) DO NOTHING`, server.ID)
 	if err != nil {
 		return nil, fmt.Errorf("error creating welcome settings: %w", err)
 	}
