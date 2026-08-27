@@ -103,7 +103,7 @@ dependencies:
   audiotagger:
     path: ./packages/audiotagger
   carousel_slider: ^5.0.0
-  connectivity_plus: any
+  connectivity_plus: 7.3.1
   device_info_plus: any
   file_picker: ^11.0.2
   flip_card: ^0.7.0
