@@ -40,7 +40,7 @@ dependencies:
   
   # Backend & Services
   flutter_webrtc: ^1.4.0
-  appwrite: ^23.1.0
+  appwrite: ^26.1.0
   
   # Local Storage & Security
   shared_preferences: ^2.2.3
@@ -89,7 +89,7 @@ dependencies:
   # Music Streaming (BlackHole-style)
   youtube_explode_dart: ^3.1.0
   dart_des: ^1.0.2
-  share_plus: ^12.0.2
+  share_plus: ^13.3.0
   gal: ^2.3.3
   speech_to_text: ^7.4.0
   flutter_tts: ^4.2.5
@@ -104,8 +104,8 @@ dependencies:
     path: ./packages/audiotagger
   carousel_slider: ^5.0.0
   connectivity_plus: 7.3.1
-  device_info_plus: any
-  file_picker: ^11.0.2
+  device_info_plus: 13.2.0
+  file_picker: ^12.0.0-beta.7
   flip_card: ^0.7.0
   flutter_archive: ^6.0.0
   flutter_displaymode: ^0.6.0
@@ -119,7 +119,7 @@ dependencies:
   flutter_material_design_icons: ^3.1.0
   metadata_god: ^1.1.0
   on_audio_query: ^2.9.0
-  package_info_plus: any
+  package_info_plus: 10.2.1
   palette_generator: ^0.3.3+3
   persistent_bottom_nav_bar: ^6.2.1
   sizer: ^2.0.15
