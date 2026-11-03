@@ -31,7 +31,7 @@ dependencies:
   # Networking
   dio: ^5.4.3+1
   http: ^1.2.0
-  crypto: ^3.0.3
+  crypto: ^3.0.8
   path: ^1.8.3
   
   # OAuth
