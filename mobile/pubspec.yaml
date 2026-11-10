@@ -99,7 +99,7 @@ dependencies:
   audioplayers: ^6.0.0
   
   # BlackHole Dependencies
-  app_links: ^3.5.0
+  app_links: ^7.2.2
   audiotagger:
     path: ./packages/audiotagger
   carousel_slider: ^5.0.0
